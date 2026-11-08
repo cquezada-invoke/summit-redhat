@@ -14,7 +14,7 @@
 <td>{{ x.paso }}{% if x.motivo %}<br><span class="sub" style="font-size:12px">{{ x.motivo[:140] }}</span>{% endif %}</td>
 <td>{% if x.avance is not none %}<div class="sb-barra" style="margin:0"><i style="width:{{ x.avance }}%;background:{{ '#3e8635' if x.resultado == 'commit' else ('#c9190b' if x.resultado in ('rollback', 'validacion') else '#0066cc') }}"></i></div><span class="sub" style="font-size:12px">{{ x.avance }} %{% if x.resta %} · faltan ≈{{ x.resta }} min{% endif %}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td>{{ x.min }} min</td>
-<td>{% set e = {'en_curso': ('en curso', 'med'), 'validado': ('validado', 'med'), 'sin_avisos': ('sin avisos', 'mal'), 'commit': ('instalado', 'ok'), 'rollback': ('revertido', 'mal'), 'validacion': ('validación fallida', 'mal')}.get(x.resultado, (x.resultado, '')) %}<span class="chip {{ e[1] }}">{{ e[0] }}</span></td>
+<td>{% set e = {'en_curso': ('en curso', 'med'), 'validado': ('validado', 'med'), 'sin_avisos': ('sin avisos', 'mal'), 'commit': ('instalado', 'ok'), 'rollback': ('revertido', 'mal'), 'validacion': ('validación fallida', 'mal'), 'interrumpido': ('interrumpido', 'mal')}.get(x.resultado, (x.resultado, '')) %}<span class="chip {{ e[1] }}">{{ e[0] }}</span></td>
 <td>{% if x.k.id %}<a class="btn" style="padding:3px 10px;white-space:nowrap" href="{{ url_for('contrato_instalacion', kid=x.k.id) }}">Ver →</a>{% endif %}</td></tr>
 {% else %}<tr><td colspan="10" class="sub">No hay instalaciones {{ {'curso': 'en curso', 'commit': 'terminadas', 'fallidas': 'fallidas'}.get(f, '') }}.</td></tr>{% endfor %}
 </table></div>

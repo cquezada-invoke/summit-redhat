@@ -1,15 +1,49 @@
 {# Avance de la instalación en cajas, con el log de cada paso. Requiere inst_pr (instalacion.progreso). #}
-{% if inst_pr %}{% set P = inst_pr %}<div style="margin-top:14px" id="avance"><div class="fila" style="gap:10px;align-items:center;flex-wrap:wrap"><b>Avance de la instalación</b><span class="sub" style="font-size:12.5px">máquina {{ P.host }} · desde {{ P.inicio[11:16] }} · último aviso {{ P.ultimo[11:16] }}</span>
-{% if P.resultado == 'commit' %}<span class="chip ok">instalada (commit)</span>{% elif P.resultado == 'rollback' %}<span class="chip mal">revertida (rollback)</span>{% elif P.en_curso %}<span class="chip med">en curso: {{ P.en_curso.t }} · faltan ≈{{ P.resta_min }} min</span>{% endif %}</div>
+{% if inst_pr %}{% set P = inst_pr %}<div style="margin-top:14px" id="avance"><div class="fila" style="gap:10px;align-items:center;flex-wrap:wrap"><b>Avance de la instalación</b><span class="sub" style="font-size:12.5px">máquina {{ P.host }}</span>
+{% if P.resultado == 'commit' %}<span class="chip ok">instalada (commit)</span>{% elif P.resultado == 'rollback' %}<span class="chip mal">revertida (rollback)</span>{% elif P.en_curso %}<span class="chip med">en curso: {{ P.en_curso.t }}</span>{% endif %}</div>
+{% macro hm(m) %}{{ (m // 60) ~ ' h ' ~ (m % 60) ~ ' min' if m >= 60 else m ~ ' min' }}{% endmacro %}
+<div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">
+<div><span class="sub" style="font-size:12px">Tiempo transcurrido</span><br><b style="font-size:22px">{{ hm(P.lleva_min) }}</b></div>
+{% if P.en_curso %}<div><span class="sub" style="font-size:12px">Falta aproximadamente</span><br><b style="font-size:22px">{{ hm(P.resta_min) }}</b></div>
+<div><span class="sub" style="font-size:12px">Debería terminar cerca de las</span><br><b style="font-size:22px">{{ P.termina }}</b></div>{% else %}<div><span class="sub" style="font-size:12px">Terminó a las</span><br><b style="font-size:22px">{{ P.ultimo[11:16] }}</b></div>{% endif %}
+<div style="flex:1;min-width:200px"><div class="sb-barra" style="margin:0;height:10px"><i style="width:{{ P.pct_tiempo }}%;background:{{ 'var(--ok)' if P.resultado == 'commit' else ('var(--bad)' if P.resultado == 'rollback' else 'var(--acc)') }}"></i></div>
+<span class="sub" style="font-size:12px">{{ P.pct_tiempo }} % del tiempo estimado · empezó a las {{ P.inicio[11:16] }} · último aviso de la máquina {{ P.ultimo[11:16] }}</span></div></div>
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:8px">{% for p in P.pasos %}{% set colr = {'ok': 'var(--ok)', 'commit': 'var(--ok)', 'error': 'var(--bad)', 'rollback': 'var(--bad)', 'en_curso': 'var(--acc)'}.get(p.estado, 'var(--line)') %}
-<div style="border:1px solid {{ colr }};border-top:4px solid {{ colr }};border-radius:8px;padding:8px 10px;font-size:12.5px;{{ 'opacity:.55;' if p.estado == 'pendiente' }}">
+<div role="button" tabindex="0" onclick="instPaso('{{ p.k }}')" onkeydown="if(event.key==='Enter')instPaso('{{ p.k }}')" title="Ver el recorrido de este paso" style="cursor:pointer;border:1px solid {{ colr }};border-top:4px solid {{ colr }};border-radius:8px;padding:8px 10px;font-size:12.5px;{{ 'opacity:.55;' if p.estado == 'pendiente' }}">
 <div style="display:flex;justify-content:space-between;gap:6px"><b>{{ loop.index }}. {{ p.t }}</b><span>{{ {'ok': '✓', 'commit': '✓', 'error': '✗', 'rollback': '↺', 'en_curso': '…'}.get(p.estado, '') }}</span></div>
 {% if p.d %}<div class="sub">{{ p.d }}</div>{% endif %}
 <div style="margin-top:4px">{% if p.estado == 'pendiente' %}<span class="sub">pendiente · típico ≈{{ p.tipico }} min</span>{% else %}{{ {'ok': 'listo', 'commit': 'commit', 'error': 'falló', 'rollback': 'rollback', 'en_curso': 'en curso'}[p.estado] }} · {{ p.inicio[11:16] }} · {{ p.dur }} min <span class="sub">(típico {{ p.tipico }})</span>{% endif %}</div>
-{% if p.motivo and p.estado in ('error', 'rollback') %}<div style="color:var(--bad);margin-top:3px">{{ p.motivo[:200] }}</div>{% endif %}
-{% if p.log %}<a href="#" style="font-size:12px" onclick="const d=document.getElementById('log-{{ p.k }}');d.showModal();return false">ver log</a>
-<dialog id="log-{{ p.k }}" class="dlg-grande"><div class="dlg-cab"><h2 style="margin:0">{{ loop.index }}. {{ p.t }} · log</h2><button type="button" class="btn gris" onclick="this.closest('dialog').close()">×</button></div>
-<pre style="white-space:pre-wrap;font:12px/1.45 'Red Hat Mono',monospace;max-height:60vh;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px">{{ p.log }}</pre>
-<button type="button" class="btn gris chico" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>{this.textContent='Copiado'})">Copiar log</button></dialog>{% endif %}</div>{% endfor %}</div>
+{% if p.motivo and p.estado in ('error', 'rollback') %}<div style="color:var(--bad);margin-top:3px">{{ p.motivo[:200] }}</div>{% endif %}</div>{% endfor %}</div>
+{# flotante a la derecha: el recorrido de cada paso en lenguaje sencillo y, al final, el log para el técnico #}
+<div id="inst-velo" onclick="instCerrar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:900"></div>
+<aside id="inst-flot" aria-hidden="true" style="position:fixed;top:0;right:0;height:100%;width:min(440px,100%);background:var(--card,#fff);color:inherit;box-shadow:-8px 0 24px rgba(0,0,0,.18);z-index:901;transform:translateX(105%);transition:transform .2s;overflow:auto;padding:18px 20px">
+{% for p in P.pasos %}<div class="inst-det" data-k="{{ p.k }}" style="display:none">
+<div style="display:flex;align-items:center;gap:8px"><h2 style="margin:0;font-size:19px">{{ loop.index }}. {{ p.t }}</h2><button type="button" class="btn gris" style="margin-left:auto" onclick="instCerrar()" aria-label="Cerrar">×</button></div>
+<p style="margin:6px 0 0">{% if p.estado == 'pendiente' %}<span class="chip">pendiente</span>{% elif p.estado in ('ok', 'commit') %}<span class="chip ok">{{ 'confirmado' if p.estado == 'commit' else 'terminó bien' }}</span>{% elif p.estado == 'en_curso' %}<span class="chip med">en curso</span>{% else %}<span class="chip mal">{{ 'revertido' if p.estado == 'rollback' else 'falló' }}</span>{% endif %}
+{% if p.dur is not none %}<span class="sub" style="font-size:12.5px"> · {{ p.dur }} min (lo típico es ≈{{ p.tipico }} min)</span>{% endif %}</p>
+<h3 style="margin:16px 0 4px;font-size:14px">Qué hace este paso</h3><p style="margin:0;line-height:1.5">{{ inst_llano.get(p.k, p.d) }}</p>
+<h3 style="margin:16px 0 6px;font-size:14px">Recorrido</h3>
+{% if p.ev %}<ol style="list-style:none;margin:0;padding:0;border-left:2px solid var(--line);">{% for e in p.ev %}{% set mal = e.estado == 'error' or e.fase == 'rollback' or (e.fase == 'validacion' and e.estado != 'ok') %}
+<li style="position:relative;padding:0 0 12px 16px"><i style="position:absolute;left:-6px;top:4px;width:10px;height:10px;border-radius:50%;background:{{ 'var(--bad)' if mal else ('var(--ok)' if e.estado == 'ok' or e.fase == 'commit' else 'var(--acc)') }}"></i>
+<span class="sub mono" style="font-size:12px">{{ e.fecha[11:16] }}</span><br>
+{% if e.fase == 'validacion' %}{% if e.estado == 'ok' %}La máquina cumple los requisitos y el contrato está vigente.{% else %}La revisión no pasó: {{ e.fallas|join('; ') or e.motivo or 'la máquina no cumple los requisitos' }}.{% endif %}
+{% if e.avisos %}<br><span class="sub">Avisos (no impiden seguir): {{ e.avisos|join('; ') }}</span>{% endif %}
+{% elif e.fase == 'commit' %}Instalación confirmada: FaceOps quedó instalado y enlazado.
+{% elif e.fase == 'rollback' %}Se deshizo todo lo hecho y la máquina quedó como estaba.{% if e.motivo %} Motivo: {{ e.motivo }}.{% endif %}
+{% elif e.estado == 'en_curso' %}Comenzó este paso.
+{% elif e.estado == 'ok' %}Terminó bien.
+{% else %}Falló{% if e.motivo %}: {{ e.motivo }}{% endif %}. La instalación se detiene y se deshace lo hecho.{% endif %}</li>{% endfor %}</ol>
+{% if p.estado == 'en_curso' %}<p class="sub" style="font-size:12.5px;margin:0">Sigue trabajando… esta vista se actualiza sola.</p>{% endif %}
+{% else %}<p class="sub" style="margin:0">Todavía no empieza. Comenzará cuando termine el paso anterior.</p>{% endif %}
+<div style="border-top:1px solid var(--line);margin-top:18px;padding-top:12px"><h3 style="margin:0 0 6px;font-size:14px">Para el técnico</h3>
+{% if p.log %}<textarea hidden id="inst-log-{{ p.k }}">{{ p.log }}</textarea><button type="button" class="btn" onclick="instLog('{{ p.k }}')">Descargar log</button> <span class="sub" style="font-size:12px">{{ p.log.count('\n') + 1 }} líneas</span>
+{% else %}<span class="sub" style="font-size:12.5px">Este paso aún no tiene log.</span>{% endif %}</div></div>{% endfor %}</aside>
+<script>
+function instPaso(k){document.querySelectorAll('.inst-det').forEach(d=>d.style.display=d.dataset.k===k?'':'none');const f=document.getElementById('inst-flot');f.style.transform='none';f.setAttribute('aria-hidden','false');document.getElementById('inst-velo').style.display='';try{sessionStorage.setItem('inst-paso',k)}catch(e){}}
+function instCerrar(){const f=document.getElementById('inst-flot');f.style.transform='translateX(105%)';f.setAttribute('aria-hidden','true');document.getElementById('inst-velo').style.display='none';try{sessionStorage.removeItem('inst-paso')}catch(e){}}
+function instLog(k){const t=document.getElementById('inst-log-'+k).value,a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'}));a.download='faceops-instalacion-{{ P.host }}-'+k+'.log';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')instCerrar()});
+try{const k=sessionStorage.getItem('inst-paso');if(k)instPaso(k)}catch(e){}
+</script>
 {% if P.en_curso %}<p class="sub" style="margin:6px 0 0;font-size:12px">Se actualiza solo cada 20 segundos mientras la instalación está en curso.</p>
 <script>setTimeout(()=>{if(!document.querySelector('dialog[open]'))location.reload()},20000)</script>{% endif %}</div>{% endif %}

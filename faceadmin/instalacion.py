@@ -46,6 +46,18 @@ def eventos(cid, n=30):
     return out
 
 
+# qué hace cada paso, dicho para una persona que no es técnica
+LLANO = {"validacion": "Revisamos que el contrato esté vigente y que la máquina cumpla lo mínimo: sistema operativo, procesador, memoria, disco y conexión a internet y a FaceAdmin.",
+         "contrato": "Antes de tocar nada, volvimos a confirmar con FaceAdmin que el contrato sigue habilitado para esta máquina.",
+         "sistema": "Preparamos la máquina: agrandamos el disco si hacía falta, instalamos los programas base y abrimos los puertos necesarios.",
+         "bundle": "Descargamos desde FaceAdmin el paquete de Ansible Automation Platform (unos 4 GB). Depende de la velocidad de la conexión.",
+         "aap": "Instalamos Ansible Automation Platform con sus bases de datos. Es el paso más largo: suele tomar cerca de 40 minutos.",
+         "suscripcion": "Activamos la suscripción de Red Hat que entrega Invoke, para que la plataforma quede con soporte.",
+         "catalogo": "Cargamos en la plataforma las acciones de FaceOps (las plantillas y su código).",
+         "faceops": "Construimos e iniciamos la consola FaceOps en la máquina.",
+         "verificacion": "Comprobamos que la plataforma y FaceOps respondan, y que FaceOps quede enlazado con FaceAdmin.",
+         "cierre": "Si todo salió bien, la instalación se confirma (commit). Si algo falló, se deshace todo lo hecho (rollback) y la máquina queda como estaba."}
+
 PASOS = [("validacion", "Validación", "contrato y requisitos", 2), ("contrato", "Contrato", "revalidación", 1), ("sistema", "Sistema", "disco, paquetes y firewall", 4),
          ("bundle", "Bundle de AAP", "descarga de ≈4 GB", 8), ("aap", "AAP y bases de datos", "gateway, controller, hub, EDA, PostgreSQL", 40),
          ("suscripcion", "Suscripción CCSP", "manifiesto de Invoke", 1), ("catalogo", "Catálogo de acciones", "código y plantillas en AAP", 4),
@@ -70,6 +82,8 @@ def progreso(cid):
             continue
         x = st[k]
         x["inicio"] = x["inicio"] or e["fecha"]
+        x.setdefault("ev", []).append({"fecha": e["fecha"], "fase": e["fase"], "estado": e["estado"], "motivo": e["d"].get("motivo", ""),
+                                       "fallas": e["d"].get("fallas") or [], "avisos": e["d"].get("avisos") or []})
         if e["d"].get("log"):
             x["log"] = e["d"]["log"]
         if e["fase"] == "validacion" and e["d"].get("fallas"):
@@ -89,8 +103,13 @@ def progreso(cid):
         out.append(dict(x, k=k, t=t, d=d, tipico=tip, dur=dur))
     fin = st["cierre"]["estado"]
     en_curso = next((p for p in out if p["estado"] == "en_curso"), None)
-    resta = sum(p["tipico"] for p in out if p["estado"] in ("pendiente", "en_curso") and p["k"] != "cierre") if en_curso else 0
-    return {"host": evs[-1].get("host") or host_id[:12], "pasos": out, "resultado": fin, "en_curso": en_curso, "resta_min": resta,
+    resta = 0
+    if en_curso:   # lo típico de los pasos que faltan, más lo que le queda al paso en curso
+        resta = sum(p["tipico"] for p in out if p["estado"] == "pendiente" and p["k"] != "cierre") + max(1, round(en_curso["tipico"] - (en_curso["dur"] or 0)))
+    lleva = round(((ahora_ if en_curso else f(evs[-1]["fecha"])) - f(evs[0]["fecha"])).total_seconds() / 60)
+    from datetime import timedelta as _td
+    return {"host": evs[-1].get("host") or host_id[:12], "pasos": out, "resultado": fin, "en_curso": en_curso, "resta_min": resta, "lleva_min": lleva,
+            "pct_tiempo": round(100 * lleva / max(1, lleva + resta)) if en_curso else 100, "termina": (ahora_ + _td(minutes=resta)).strftime("%H:%M") if en_curso else "",
             "inicio": evs[0]["fecha"], "ultimo": evs[-1]["fecha"]}
 
 
@@ -430,6 +449,11 @@ def instalaciones_lista():
         for i, x in enumerate(its):
             ult = i == 0
             hechos = sum(1 for p in pr.get("pasos", []) if p["estado"] in ("ok", "commit")) if ult else None
+            if not ult and x["resultado"] in ("en_curso", "validado", "sin_avisos"):
+                x["resultado"] = "interrumpido"   # hubo un intento posterior: este quedó abandonado
+            if ult and x["resultado"] == "en_curso":
+                from datetime import datetime as _dt
+                x["min"] = round((_dt.now() - _dt.strptime(x["inicio"], "%Y-%m-%d %H:%M:%S")).total_seconds() / 60, 1)
             filas.append(dict(x, c=c, k=k, ult=ult, n_intento=len(its) - i,
                               avance=round(100 * hechos / len(PASOS)) if ult and hechos is not None else (100 if x["resultado"] == "commit" else None),
                               resta=pr.get("resta_min") if ult and x["resultado"] == "en_curso" else None))
@@ -438,7 +462,10 @@ def instalaciones_lista():
         x["id"] = f"INS-{n:04d}"
     cuenta = {"curso": sum(1 for x in filas if x["resultado"] in ("en_curso", "validado", "sin_avisos")),
               "commit": sum(1 for x in filas if x["resultado"] == "commit"),
-              "fallidas": sum(1 for x in filas if x["resultado"] in ("rollback", "validacion")), "todas": len(filas)}
+              "fallidas": sum(1 for x in filas if x["resultado"] in ("rollback", "validacion", "interrumpido")), "todas": len(filas)}
     vis = {"curso": lambda x: x["resultado"] in ("en_curso", "validado", "sin_avisos"), "commit": lambda x: x["resultado"] == "commit",
-           "fallidas": lambda x: x["resultado"] in ("rollback", "validacion"), "todas": lambda x: True}.get(filtro, lambda x: True)
+           "fallidas": lambda x: x["resultado"] in ("rollback", "validacion", "interrumpido"), "todas": lambda x: True}.get(filtro, lambda x: True)
     return render_template("instalaciones.html", filas=[x for x in filas if vis(x)], cuenta=cuenta, f=filtro)
+
+
+app.jinja_env.globals["inst_llano"] = LLANO
