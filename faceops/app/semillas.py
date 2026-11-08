@@ -188,11 +188,11 @@ def sembrar():
     if limpia():
         vaciar_instancia_cliente(c["codigo"], admin)
         from .bd import ajuste as _aj
+        ej("UPDATE clientes SET descripcion='' WHERE descripcion LIKE 'Ecosistema de demos%'")
         if not _aj("instancia_limpia_v2"):   # restos del laboratorio en Gobierno: herramienta de CI/CD de ejemplo y foco del gobierno
             if q1("SELECT name FROM sqlite_master WHERE type='table' AND name='devsecops_herramientas'"):
                 ej("DELETE FROM devsecops_herramientas WHERE tipo='tekton'")
             ej("DELETE FROM ajustes WHERE clave LIKE 'gti_foco_%'")
-            ej("UPDATE clientes SET descripcion='' WHERE descripcion LIKE 'Ecosistema de demos%'")
             _aj("instancia_limpia_v2", ahora())
         cl0 = q1("SELECT id FROM clientes WHERE codigo=?", c["codigo"])
         if cl0:
