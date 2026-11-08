@@ -50,6 +50,67 @@ def datos():
     return d
 
 
+IMAGENES = {   # imagen del bundle → (producto, componente)
+    "gateway": ("aap", "Platform gateway"), "gateway-proxy": ("aap", "Proxy del gateway"), "controller": ("aap", "Automation controller"),
+    "hub": ("aap", "Automation hub"), "hub-web": ("aap", "Automation hub · web"), "eda-controller": ("aap", "Event-Driven Ansible"),
+    "eda-controller-ui": ("aap", "Event-Driven Ansible · web"), "receptor": ("aap", "Receptor (malla de ejecución)"),
+    "metrics-service": ("aap", "Servicio de métricas"), "ee-minimal": ("ee", "Entorno de ejecución mínimo"),
+    "ee-supported": ("ee", "Entorno de ejecución soportado"), "ee-control-plane": ("ee", "Entorno del plano de control"),
+    "de-minimal": ("ee", "Entorno de decisión mínimo"), "de-supported": ("ee", "Entorno de decisión soportado"),
+    "lightspeed": ("ia", "Ansible Lightspeed"), "lightspeed-chatbot": ("ia", "Lightspeed · asistente"), "mcp-server": ("ia", "Servidor MCP"),
+    "mcp-tools": ("ia", "Herramientas MCP"), "pcp": ("otros", "Performance Co-Pilot (métricas del sistema)")}
+
+
+def productos(d):
+    """Lista de materiales de esta versión de FaceOps: lo que se instala junto a él en la máquina del cliente."""
+    import re
+    import tarfile
+    from instalacion import DIR, archivos
+    ar = archivos()
+    imgs = []
+    b = ar.get("bundle")
+    if b:   # imágenes del bundle de AAP (se leen una vez por cada bundle y se guardan)
+        cache = os.path.join(DIR, b["nombre"] + ".imagenes.json")
+        try:
+            imgs = json.load(open(cache, encoding="utf-8"))
+        except (OSError, ValueError):
+            try:
+                with tarfile.open(os.path.join(DIR, b["nombre"])) as t:
+                    imgs = sorted({os.path.basename(m.name)[:-7] for m in t.getmembers() if "/bundle/images/" in m.name and m.name.endswith(".tar.gz")})
+                json.dump(imgs, open(cache, "w", encoding="utf-8"))
+            except (OSError, tarfile.TarError):
+                imgs = []
+    ver = re.search(r"bundle-(\d+\.\d+)-(\d+)", b["nombre"]).groups() if b else ("", "")
+    comp = {"aap": [], "ee": [], "ia": [], "otros": []}
+    pg = rd = ""
+    for i in imgs:
+        nom = re.sub(r"-rhel9$", "", i)
+        if nom.startswith("postgresql-"):
+            pg = nom.split("-", 1)[1]
+        elif nom.startswith("redis-"):
+            rd = nom.split("-", 1)[1]
+        elif nom in IMAGENES:
+            g, t = IMAGENES[nom]
+            comp[g].append(t)
+    base = d.get("base") or {}
+    out = [{"prod": f"FaceOps", "version": f"v{d['faceops'].get('linea', '1.0')}.{d['faceops'].get('build', '')}", "tipo": "Producto Invoke",
+            "detalle": f"{len(d['modulos'])} módulos · imagen {base.get('imagen', '').split('/')[-1]}", "estado": "ok"},
+           {"prod": "Red Hat Ansible Automation Platform", "version": f"{ver[0]} (bundle {ver[0]}-{ver[1]})" if b else "—", "tipo": "Plataforma de automatización",
+            "detalle": " · ".join(comp["aap"]) or "falta el bundle", "estado": "ok" if b else "falta"},
+           {"prod": "Entornos de ejecución y decisión", "version": ver[0] or "—", "tipo": "Parte de AAP", "detalle": " · ".join(comp["ee"]) or "—", "estado": "ok" if comp["ee"] else "falta"},
+           {"prod": "PostgreSQL", "version": pg or "—", "tipo": "Base de datos de AAP", "detalle": "bases de gateway, controller, hub, EDA y métricas", "estado": "ok" if pg else "falta"},
+           {"prod": "Redis", "version": rd or "—", "tipo": "Caché de AAP", "detalle": "modo standalone", "estado": "ok" if rd else "falta"},
+           {"prod": "Ansible Lightspeed y MCP", "version": ver[0] or "—", "tipo": "IA de AAP (opcional)", "detalle": " · ".join(comp["ia"]) or "—", "estado": "ok" if comp["ia"] else "falta"},
+           {"prod": "Catálogo de acciones", "version": f"{(ar.get('catalogo') or {}).get('n', 0)} acciones", "tipo": "Contenido FaceOps",
+            "detalle": "plantillas de AAP con sus playbooks del repositorio central", "estado": "ok" if ar.get("catalogo") else "falta"},
+           {"prod": "Suscripción Red Hat (CCSP)", "version": (ar.get("manifiesto") or {}).get("fecha", "—"), "tipo": "Licencia",
+            "detalle": "manifiesto de Invoke como proveedor CCSP", "estado": "ok" if ar.get("manifiesto") else "falta"},
+           {"prod": "Red Hat Enterprise Linux", "version": "9", "tipo": "Sistema operativo (requisito)", "detalle": "con Podman, firewalld y SELinux en enforcing", "estado": "requisito"},
+           {"prod": "Python y librerías de FaceOps", "version": base.get("imagen", "").split(":")[0].split("/")[-1].replace("python-", "Python "),
+            "tipo": "Dentro de la imagen de FaceOps", "detalle": " · ".join(f"{x['nombre']} {x['version']}" for x in base.get("dependencias", [])), "estado": "ok"}]
+    return out
+
+
 @app.route("/fabrica")
 @requiere_login
 def fabrica():
@@ -57,7 +118,7 @@ def fabrica():
     d = datos()
     flota = estados(q("SELECT * FROM clientes WHERE activo=1 AND habilitado=1 AND COALESCE(tipo,'cliente')='cliente' ORDER BY rol='laboratorio' DESC, nombre"))
     from instalacion import archivos
-    return render_template("fabrica.html", d=d, etapas=ETAPAS, etapa_t=ETAPA_T, flota=flota, repo=REPO, ar=archivos())
+    return render_template("fabrica.html", d=d, etapas=ETAPAS, etapa_t=ETAPA_T, flota=flota, repo=REPO, ar=archivos(), productos=productos(d))
 
 
 @app.route("/fabrica/<clave>", methods=["GET", "POST"])

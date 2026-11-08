@@ -65,6 +65,25 @@ def actividad(rutas):
             "autores": autores, "mensual": dict(sorted(mensual.items())[-12:]), "primero": filas[-1][1][:10] if filas else ""}
 
 
+def base():
+    """Sobre qué corre FaceOps: imagen de contenedor y dependencias de Python (Containerfile y requirements.txt)."""
+    import re
+    img = ""
+    try:
+        img = next((l.split()[1] for l in open(os.path.join(F, "Containerfile"), encoding="utf-8") if l.startswith("FROM ")), "")
+    except OSError:
+        pass
+    deps = []
+    try:
+        for l in open(os.path.join(F, "requirements.txt"), encoding="utf-8"):
+            m = re.match(r"\s*([A-Za-z0-9_.\-\[\]]+)\s*==\s*([^\s#]+)", l)
+            if m:
+                deps.append({"nombre": m.group(1), "version": m.group(2)})
+    except OSError:
+        pass
+    return {"imagen": img, "dependencias": deps}
+
+
 def linea():
     import re
     m = re.search(r'^VERSION = "(\d+\.\d+)', open(os.path.join(F, "app", "__init__.py"), encoding="utf-8").read(), re.M)
@@ -92,6 +111,7 @@ def main():
            "faceops": {"linea": linea(), "build": int(git("rev-list", "--count", "HEAD").strip() or 0), "commit": head[0][:10] if head[0] else "",
                        "fecha": head[1][:16].replace("T", " ") if len(head) > 1 else "", "mensaje": head[2][:140] if len(head) > 2 else "",
                        "actividad": actividad(["faceops"])},
+           "base": base(),
            "modulos": out, "sin_modulo": {"n": len(sueltas), "lineas": lineas(sueltas), "ejemplos": sueltas[:40]}}
     json.dump(res, open(os.path.join(R, "faceadmin", "fabrica.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(len(out), "módulos ·", sum(len(m["piezas"]["codigo"]) + len(m["piezas"]["vistas"]) + len(m["piezas"]["playbooks"]) for m in out), "piezas ·",

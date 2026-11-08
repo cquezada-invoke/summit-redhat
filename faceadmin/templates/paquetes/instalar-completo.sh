@@ -46,7 +46,9 @@ rollback() {   # deshace en orden inverso todo lo anotado en el diario
       aap) [ -f "$x/inventory-faceops" ] && sudo -iu aap bash -c "cd '$x' && ansible-playbook -i inventory-faceops ansible.containerized_installer.uninstall" >>"$LOG" 2>&1 < /dev/null
            sudo -iu aap podman system reset -f >>"$LOG" 2>&1 < /dev/null; hecho+=("AAP y sus bases de datos");;
       envf) rm -f "$ENVF"; hecho+=("claves generadas");;
-      usuario) loginctl disable-linger aap 2>/dev/null; pkill -u aap 2>/dev/null; sleep 2; userdel -r aap >/dev/null 2>&1; rm -f /etc/sudoers.d/aap-faceops; hecho+=("usuario aap");;
+      usuario) loginctl disable-linger aap 2>/dev/null; loginctl terminate-user aap 2>/dev/null; systemctl stop "user@$(id -u aap 2>/dev/null).service" 2>/dev/null
+               for _ in 1 2 3 4 5; do pkill -9 -u aap 2>/dev/null; sleep 2; userdel -r aap >/dev/null 2>&1 && break; done
+               rm -f /etc/sudoers.d/aap-faceops; id aap >/dev/null 2>&1 && hecho+=("usuario aap (NO se pudo borrar)") || hecho+=("usuario aap");;
       hostname) hostnamectl set-hostname "$x"; sed -i "/ faceops-$CODIGO\$/d" /etc/hosts; hecho+=("nombre de host ($x)");;
       firewall) firewall-cmd -q --remove-service=https --remove-port=8843/tcp 2>/dev/null; firewall-cmd -q --permanent --remove-service=https --remove-port=8843/tcp 2>/dev/null; hecho+=("firewall");;
       paquetes) [ -n "$x" ] && dnf -q -y remove $x >>"$LOG" 2>&1; hecho+=("paquetes instalados (${x:-ninguno})");;

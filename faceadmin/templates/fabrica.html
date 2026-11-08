@@ -8,6 +8,12 @@
 <div class="kpi"><span class="sub">Piezas</span><b>{{ d.total_piezas }}</b><span class="sub" style="font-size:12px">{{ '{:,}'.format(d.total_lineas).replace(',', '.') }} líneas · {{ d.sin_modulo.n }} sin módulo</span></div>
 <div class="kpi"><span class="sub">Instancias en clientes</span><b>{{ flota|length }}</b><span class="sub" style="font-size:12px">{{ flota|selectattr('atraso', 'equalto', 0)|list|length }} al día</span></div></div>
 
+<div class="card tabla-scroll"><div class="fila" style="align-items:center;gap:10px"><h2 style="margin:0">Productos enlazados a esta versión</h2><span class="sub" style="font-size:13px">lo que se instala junto a FaceOps v{{ F.linea }}.{{ F.build }} en la máquina del cliente</span>
+<a style="margin-left:auto;font-size:13px" href="{{ url_for('fabrica_instalacion') }}">paquete de instalación →</a></div>
+<table style="margin-top:8px"><tr><th>Producto</th><th>Versión</th><th>Rol</th><th>Componentes</th><th>Estado</th></tr>
+{% for p in productos %}<tr><td><b>{{ p.prod }}</b></td><td class="mono" style="font-size:12.5px;white-space:nowrap">{{ p.version }}</td><td style="font-size:13px">{{ p.tipo }}</td><td style="font-size:12.5px">{{ p.detalle }}</td>
+<td>{% if p.estado == 'ok' %}<span class="chip ok">incluido</span>{% elif p.estado == 'requisito' %}<span class="chip">requisito</span>{% else %}<span class="chip med">falta</span>{% endif %}</td></tr>{% endfor %}</table></div>
+
 <div class="card"><div class="fila" style="align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Ensamblado</h2>
 <span class="sub" style="font-size:13px">Cada pieza del avión es un módulo; el color es su etapa del ciclo de vida.</span>
 <span style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px">{% for k, t in etapas %}<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:{{ col[k] }};margin-right:4px"></i>{{ t }} ({{ d.por_etapa[k] }})</span>{% endfor %}</span></div>

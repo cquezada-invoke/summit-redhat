@@ -53,6 +53,7 @@ curl -sfk -m 20 -r 0-0 -o /dev/null -H "X-FaceAdmin-Token: $LLAVE" "$ADMIN/api/i
 for p in 443 8843; do ss -ltnH "sport = :$p" | grep -q . && mal "el puerto $p está ocupado" || bien "puerto $p libre"; done
 
 echo "· instalaciones previas"
+if pgrep -f faceops-paso2.sh >/dev/null; then mal "hay una instalación de FaceOps corriendo ahora en esta máquina (espera a que termine: sudo tail -f /var/log/faceops-instalacion.salida)"; fi
 if [ -e /etc/faceops.env ] || systemctl list-unit-files 2>/dev/null | grep -q '^faceops'; then mal "ya hay un FaceOps instalado en esta máquina"; else bien "sin FaceOps previo"; fi
 if id aap >/dev/null 2>&1 || podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' 2>/dev/null | grep -q automation-gateway; then mal "ya hay un AAP o un usuario «aap» en esta máquina"; else bien "sin AAP previo"; fi
 

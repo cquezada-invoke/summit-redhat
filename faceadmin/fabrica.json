@@ -1,15 +1,33 @@
 {
- "generado": "2026-11-08 16:38 UTC",
+ "generado": "2026-11-08 17:45 UTC",
  "monorepo": "github.com/cquezada-invoke/summit-redhat",
  "faceops": {
   "linea": "1.0",
-  "build": 1194,
-  "commit": "00fd035256",
-  "fecha": "2026-11-08 13:20",
-  "mensaje": "FaceAdmin: Fábrica (módulos, repositorios, versiones y ciclo de vida) e instalación con un comando que valida el contrato e instala AAP con ",
+  "build": 1206,
+  "commit": "4956379acd",
+  "fecha": "2026-11-08 14:43",
+  "mensaje": "Instalador: la URL de FaceAdmin ya no choca con la clave ADMIN de AAP (las descargas y avisos iban a un host inválido)",
   "actividad": {
-   "commits": 875,
+   "commits": 878,
    "ultimos": [
+    {
+     "sha": "b16ef09d99",
+     "fecha": "2026-11-08 14:39",
+     "autor": "Cristian Quezada",
+     "mensaje": "FaceOps: Hipervisores y Nubes como lista con radar arriba y salud consolidada por registro; listas sin radar mini (redundante con la salud)"
+    },
+    {
+     "sha": "66ed7e81ae",
+     "fecha": "2026-11-08 13:45",
+     "autor": "Cristian Quezada",
+     "mensaje": "FaceAdmin nunca se conecta a FaceOps: cada FaceOps sube su latido, versión, nodos y consumo; FaceAdmin solo recibe"
+    },
+    {
+     "sha": "241e241ade",
+     "fecha": "2026-11-08 13:38",
+     "autor": "Cristian Quezada",
+     "mensaje": "Fábrica: cada módulo con su repositorio privado en la org faceops-invoke"
+    },
     {
      "sha": "e45f4f7312",
      "fecha": "2026-11-08 12:53",
@@ -39,24 +57,6 @@
      "fecha": "2026-11-08 11:07",
      "autor": "Cristian Quezada",
      "mensaje": "Integraciones: los tickets propios de FaceOps no aparecen como herramienta de tickets"
-    },
-    {
-     "sha": "97788985e0",
-     "fecha": "2026-11-08 11:05",
-     "autor": "Cristian Quezada",
-     "mensaje": "Integraciones: «Proveedores de identidad» solo con la federación LDAP o Active Directory del cliente"
-    },
-    {
-     "sha": "08a1deb985",
-     "fecha": "2026-11-08 10:59",
-     "autor": "Cristian Quezada",
-     "mensaje": "Instancia de cliente: quita la descripción del laboratorio"
-    },
-    {
-     "sha": "7fe002b8cc",
-     "fecha": "2026-11-08 10:57",
-     "autor": "Cristian Quezada",
-     "mensaje": "Instancia de cliente: integraciones solo las configuradas, sin descripción ni ejemplos del laboratorio"
     }
    ],
    "autores": [
@@ -65,10 +65,55 @@
    ],
    "mensual": {
     "2026-10": 287,
-    "2026-11": 588
+    "2026-11": 591
    },
    "primero": "2026-10-28"
   }
+ },
+ "base": {
+  "imagen": "registry.access.redhat.com/ubi9/python-311:latest",
+  "dependencias": [
+   {
+    "nombre": "flask",
+    "version": "3.1.*"
+   },
+   {
+    "nombre": "requests",
+    "version": "2.32.*"
+   },
+   {
+    "nombre": "pyyaml",
+    "version": "6.0.*"
+   },
+   {
+    "nombre": "gunicorn",
+    "version": "23.0.*"
+   },
+   {
+    "nombre": "cryptography",
+    "version": "43.*"
+   },
+   {
+    "nombre": "redis",
+    "version": "5.2.*"
+   },
+   {
+    "nombre": "psycopg[binary]",
+    "version": "3.2.*"
+   },
+   {
+    "nombre": "reportlab",
+    "version": "4.2.*"
+   },
+   {
+    "nombre": "ldap3",
+    "version": "2.9.*"
+   },
+   {
+    "nombre": "bcrypt",
+    "version": "4.2.*"
+   }
+  ]
  },
  "modulos": [
   {
@@ -140,10 +185,16 @@
      "faceops/aap/vincular-maquina.yml"
     ]
    },
-   "lineas": 10143,
+   "lineas": 10145,
    "actividad": {
-    "commits": 379,
+    "commits": 380,
     "ultimos": [
+     {
+      "sha": "66ed7e81ae",
+      "fecha": "2026-11-08 13:45",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceAdmin nunca se conecta a FaceOps: cada FaceOps sube su latido, versión, nodos y consumo; FaceAdmin solo recibe"
+     },
      {
       "sha": "defc024060",
       "fecha": "2026-11-08 12:40",
@@ -185,12 +236,6 @@
       "fecha": "2026-11-08 10:43",
       "autor": "Cristian Quezada",
       "mensaje": "FaceAdmin: alta de cliente con contacto, consultor Invoke a cargo, contrato, alcance y correo de habilitación con instalador y documento de "
-     },
-     {
-      "sha": "568ead0734",
-      "fecha": "2026-11-08 10:34",
-      "autor": "Cristian Quezada",
-      "mensaje": "Instancia de cliente parte vacía: solo la máquina propia de FaceOps; sin datos de ejemplo del laboratorio y sin funcionalidades vacías en el"
      }
     ],
     "autores": [
@@ -199,11 +244,11 @@
     ],
     "mensual": {
      "2026-10": 121,
-     "2026-11": 258
+     "2026-11": 259
     },
     "primero": "2026-10-28"
    },
-   "version": "v1.379"
+   "version": "v1.380"
   },
   {
    "clave": "infraestructura",
@@ -235,10 +280,16 @@
      "faceops/aap/registro-imagenes.yml"
     ]
    },
-   "lineas": 2176,
+   "lineas": 2178,
    "actividad": {
-    "commits": 120,
+    "commits": 121,
     "ultimos": [
+     {
+      "sha": "b16ef09d99",
+      "fecha": "2026-11-08 14:39",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: Hipervisores y Nubes como lista con radar arriba y salud consolidada por registro; listas sin radar mini (redundante con la salud)"
+     },
      {
       "sha": "e45f4f7312",
       "fecha": "2026-11-08 12:53",
@@ -280,12 +331,6 @@
       "fecha": "2026-11-07 20:24",
       "autor": "Cristian Quezada",
       "mensaje": "Nueva acción «Infra · Cargar imágenes base al registro» (plan de prueba, sin probar); puntos: avisa cuando la copia del registro tiene otra "
-     },
-     {
-      "sha": "439205d502",
-      "fecha": "2026-11-07 18:19",
-      "autor": "Cristian Quezada",
-      "mensaje": "Detalle de la máquina: barra transversal de salud; sin «Acciones del sistema operativo», «Segmentos de negocio» ni «Eliminar servidor»; fuer"
      }
     ],
     "autores": [
@@ -294,11 +339,11 @@
     ],
     "mensual": {
      "2026-10": 49,
-     "2026-11": 71
+     "2026-11": 72
     },
     "primero": "2026-10-28"
    },
-   "version": "v1.120"
+   "version": "v1.121"
   },
   {
    "clave": "servidores",
@@ -880,8 +925,14 @@
    },
    "lineas": 1319,
    "actividad": {
-    "commits": 33,
+    "commits": 34,
     "ultimos": [
+     {
+      "sha": "b16ef09d99",
+      "fecha": "2026-11-08 14:39",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: Hipervisores y Nubes como lista con radar arriba y salud consolidada por registro; listas sin radar mini (redundante con la salud)"
+     },
      {
       "sha": "e45f4f7312",
       "fecha": "2026-11-08 12:53",
@@ -923,12 +974,6 @@
       "fecha": "2026-11-07 19:11",
       "autor": "Cristian Quezada",
       "mensaje": "Equipo: CPU y memoria como promedio de todas las muestras; vCPU y memoria según la capacidad del anfitrión donde vive; radar de salud en cad"
-     },
-     {
-      "sha": "f63eb060d6",
-      "fecha": "2026-11-07 12:16",
-      "autor": "Cristian Quezada",
-      "mensaje": "FaceOps: alertas por objeto (botón y flotante, configuradas en Ansible/Prometheus), Radar de salud como eje de Monitoreo y en todas las vist"
      }
     ],
     "autores": [
@@ -936,11 +981,11 @@
     ],
     "mensual": {
      "2026-10": 5,
-     "2026-11": 28
+     "2026-11": 29
     },
     "primero": "2026-10-30"
    },
-   "version": "v1.33"
+   "version": "v1.34"
   },
   {
    "clave": "contenedores",
@@ -1222,8 +1267,14 @@
    },
    "lineas": 3510,
    "actividad": {
-    "commits": 123,
+    "commits": 124,
     "ultimos": [
+     {
+      "sha": "b16ef09d99",
+      "fecha": "2026-11-08 14:39",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: Hipervisores y Nubes como lista con radar arriba y salud consolidada por registro; listas sin radar mini (redundante con la salud)"
+     },
      {
       "sha": "7fe002b8cc",
       "fecha": "2026-11-08 10:57",
@@ -1265,12 +1316,6 @@
       "fecha": "2026-11-06 19:31",
       "autor": "Cristian Quezada",
       "mensaje": "Estrella: margen para las etiquetas"
-     },
-     {
-      "sha": "9f26aa52cd",
-      "fecha": "2026-11-06 19:28",
-      "autor": "Cristian Quezada",
-      "mensaje": "Estrella de salud (meta vs actual, brecha) en el Panel y en la flotante de salud del segmento; metas de la organización"
      }
     ],
     "autores": [
@@ -1279,11 +1324,11 @@
     ],
     "mensual": {
      "2026-10": 46,
-     "2026-11": 77
+     "2026-11": 78
     },
     "primero": "2026-10-28"
    },
-   "version": "v1.123"
+   "version": "v1.124"
   },
   {
    "clave": "monitoreo",
@@ -1574,7 +1619,7 @@
  ],
  "sin_modulo": {
   "n": 66,
-  "lineas": 10508,
+  "lineas": 10539,
   "ejemplos": [
    "faceops/app/activacion.py",
    "faceops/app/bloqueo_admin.py",
