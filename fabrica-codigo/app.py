@@ -28,6 +28,16 @@ GITEA_TOKEN = os.environ.get("GITEA_TOKEN", "")
 ORG = os.environ.get("GITEA_ORG", "fabrica")
 DOMINIO_APPS = os.environ.get("FABRICA_DOMINIO_APPS", "")   # las apps quedan en https://<nombre>.<dominio>
 MODELO = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
+# modelo abierto en nuestra infraestructura (vLLM u Ollama con API compatible con OpenAI)
+LOCAL_URL = os.environ.get("MODELO_LOCAL_URL", "").rstrip("/")
+LOCAL_MODELO = os.environ.get("MODELO_LOCAL", "Qwen/Qwen2.5-Coder-14B-Instruct-AWQ")
+LOCAL_NOMBRE = os.environ.get("MODELO_LOCAL_NOMBRE", "Qwen2.5-Coder 14B · vLLM con GPU en nuestra infraestructura")
+LOCAL_SALIDA = int(os.environ.get("MODELO_LOCAL_SALIDA", "8000"))
+MOTORES = {"claude": f"Claude ({MODELO}) · Anthropic"}
+if LOCAL_URL:
+    MOTORES["local"] = LOCAL_NOMBRE
+MOTOR_SESION = {}   # id de sesión → motor elegido
+_hilo = threading.local()
 VERIFY = os.environ.get("FACEOPS_VERIFY", "false") == "true"
 TRABAJOS = {}    # id de trabajo → avance de una generación (pasos que ve el usuario)
 PENDIENTES = {}  # id de sesión → requerimiento sobre el que el agente hizo una pregunta (la respuesta lo completa)
@@ -133,8 +143,53 @@ class Pregunta(Exception):
     """El agente respondió con texto (una pregunta o aclaración) en vez de entregar el plan."""
 
 
+def _local(sistema, msgs, max_tokens, herramienta=None, al_texto=None):
+    """El mismo pedido a un modelo abierto en nuestra infraestructura (API compatible con OpenAI, streaming)."""
+    cuerpo = {"model": LOCAL_MODELO, "max_tokens": min(max_tokens, LOCAL_SALIDA), "stream": True, "temperature": 0.2,
+              "messages": [{"role": "system", "content": sistema}] + msgs}
+    if herramienta:
+        cuerpo.update(tools=[{"type": "function", "function": {"name": herramienta["name"], "description": herramienta["description"],
+                                                               "parameters": herramienta["input_schema"]}}], tool_choice="auto")
+    h = {"content-type": "application/json"}
+    if os.environ.get("MODELO_LOCAL_CLAVE"):
+        h["authorization"] = "Bearer " + os.environ["MODELO_LOCAL_CLAVE"]
+    r = requests.post(f"{LOCAL_URL}/v1/chat/completions", json=cuerpo, headers=h, timeout=900, stream=True)
+    r.raise_for_status()
+    js, texto, parada = "", "", ""
+    for linea in r.iter_lines(decode_unicode=True):
+        if not linea or not linea.startswith("data:") or linea.strip() == "data: [DONE]":
+            continue
+        try:
+            ev = json.loads(linea[5:])
+        except ValueError:
+            continue
+        for ch in ev.get("choices") or []:
+            de = ch.get("delta") or {}
+            if de.get("content"):
+                texto += de["content"]
+                if al_texto:
+                    al_texto(len(texto))
+            for tc in de.get("tool_calls") or []:
+                js += ((tc.get("function") or {}).get("arguments") or "")
+            if ch.get("finish_reason"):
+                parada = "max_tokens" if ch["finish_reason"] == "length" else ch["finish_reason"]
+    entrada = None
+    if js:
+        entrada = json.loads(js)
+    elif herramienta and "{" in texto:   # algunos modelos abiertos escriben el JSON de la herramienta como texto
+        try:
+            cand = json.loads(texto[texto.index("{"):texto.rindex("}") + 1])
+            if isinstance(cand, dict) and set(herramienta["input_schema"].get("required", [])) <= set(cand):
+                entrada, texto = cand, ""
+        except ValueError:
+            pass
+    return entrada, texto, parada
+
+
 def _claude(sistema, msgs, max_tokens, herramienta=None, al_texto=None):
-    """Una llamada a Claude (streaming). Devuelve (entrada de la herramienta o None, texto, motivo de parada)."""
+    """Una llamada al modelo elegido (Claude por defecto, streaming). Devuelve (entrada de la herramienta o None, texto, motivo de parada)."""
+    if getattr(_hilo, "motor", "claude") == "local" and LOCAL_URL:
+        return _local(sistema, msgs, max_tokens, herramienta, al_texto)
     cuerpo = {"model": MODELO, "max_tokens": max_tokens, "system": sistema, "messages": msgs, "stream": True}
     if herramienta:
         cuerpo.update(tools=[herramienta], tool_choice={"type": "auto"})
@@ -185,7 +240,9 @@ def generar(requerimiento, previo=None, correccion="", paso=lambda t: None, solo
         plan["archivos"] = previo["plan_archivos"]
         rehacer = [a for a in plan["archivos"] if a["ruta"] in solo] or [{"ruta": r, "proposito": "corrección"} for r in solo]
     else:
-        paso(f"Claude ({MODELO}) está planificando la aplicación · tiempo estimado: {'1 a 2' if previo else '2 a 4'} minutos")
+        loc = getattr(_hilo, "motor", "claude") == "local"
+        paso(f"{MOTORES.get('local' if loc else 'claude')} está planificando la aplicación · tiempo estimado: "
+             f"{('3 a 6' if loc else '1 a 2') if previo else ('5 a 10' if loc else '2 a 4')} minutos")
         msgs = [{"role": "user", "content": f"Requerimiento funcional:\n{requerimiento}\n\nEntrega el plan con planificar_proyecto, o pregunta si falta algo esencial."}]
         if previo:
             msgs = [{"role": "user", "content": f"Proyecto actual (plan):\n{json.dumps({'nombre': previo['nombre'], 'resumen': previo.get('resumen'), 'archivos': previo['plan_archivos']}, ensure_ascii=False)}"
@@ -211,7 +268,10 @@ def generar(requerimiento, previo=None, correccion="", paso=lambda t: None, solo
         rl = r.lower()
         return (next((i for i, k in enumerate(ORDEN) if f"/{k}" in rl), len(ORDEN)), r)
 
+    motor_ = getattr(_hilo, "motor", "claude")
+
     def escribir(a, contexto=""):
+        _hilo.motor = motor_   # los hilos del pool usan el mismo modelo que el trabajo
         previo_txt = f"\n\nContenido actual de este archivo:\n{contenidos[a['ruta']]}" if a["ruta"] in contenidos else ""
         _, txt, parada_ = _claude(sistema, [{"role": "user", "content": base + contexto + previo_txt +
                                             f"\n\nEscribe ahora el archivo {a['ruta']} ({a.get('proposito', '')}). Debe compilar con los archivos ya escritos "
@@ -316,6 +376,7 @@ def revisar(archivos):
 
 def _trabajo(tid, sid, req_, previo):
     t = TRABAJOS[tid]
+    _hilo.motor = t.get("motor", "claude")
     paso = lambda txt: t["pasos"].append({"t": round(time.time() - t["inicio"]), "texto": txt})   # noqa: E731
     try:
         p = generar(req_, previo, paso=paso)
@@ -363,11 +424,23 @@ def api_generar():
     if pend and not previo:   # respuesta a la pregunta del agente: el requerimiento se completa con ella
         req_ = f"{pend['req']}\n\nEl agente preguntó:\n{pend['pregunta']}\n\nRespuesta del usuario:\n{req_}"[:8000]
     tid = secrets.token_hex(8)
-    TRABAJOS[tid] = {"sid": sid, "inicio": time.time(), "pasos": [], "listo": False}
+    TRABAJOS[tid] = {"sid": sid, "inicio": time.time(), "pasos": [], "listo": False, "motor": MOTOR_SESION.get(sid, "claude")}
     for k in [k for k, v in TRABAJOS.items() if time.time() - v["inicio"] > 3600]:
         TRABAJOS.pop(k, None)
     threading.Thread(target=_trabajo, args=(tid, sid, req_, previo), daemon=True).start()
     return jsonify({"trabajo": tid})
+
+
+@app.route("/api/motor", methods=["GET", "POST"])
+def api_motor():
+    """Modelo que usa la Fábrica en esta sesión: Claude o el modelo abierto en nuestra infraestructura."""
+    _, sid = _sesion()
+    if request.method == "POST":
+        m = (request.get_json(silent=True) or {}).get("motor", "claude")
+        if m not in MOTORES:
+            return jsonify({"error": "Modelo no disponible"}), 400
+        MOTOR_SESION[sid] = m
+    return jsonify({"motor": MOTOR_SESION.get(sid, "claude"), "motores": MOTORES})
 
 
 @app.route("/api/avance/<tid>")

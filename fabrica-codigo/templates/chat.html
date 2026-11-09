@@ -13,13 +13,16 @@ textarea{flex:1;font:inherit;padding:10px;border:1px solid var(--l);border-radiu
 button{font:inherit;background:var(--a);color:#fff;border:0;border-radius:6px;padding:9px 16px;cursor:pointer}button.sec{background:#fff;color:var(--a);border:1px solid var(--a)}button:disabled{opacity:.5}
 .ayuda{color:var(--s);font-size:13px}
 .pasos{list-style:none;margin:0;padding:0;font-size:13.5px}.pasos li{padding:2px 0;color:#3c3f42}.pasos li.actual{font-weight:600;color:#151515}.pasos .seg{display:inline-block;min-width:42px;color:#8a8d90;font-variant-numeric:tabular-nums}.pasos li.actual::after{content:" ●";color:#0066cc;animation:pul 1s infinite}@keyframes pul{50%{opacity:.2}}</style></head><body>
-<header><b>Fábrica de software</b><span>Desarrollo Spring Boot sobre OpenShift con las políticas de software de FaceOps · agente: Claude ({{ modelo }}, Anthropic) · {{ usuario }}</span>{% if faceops %}<a href="{{ faceops }}/fabrica/politicas" target="_blank">Políticas de software ↗</a>{% endif %}</header>
+<header><b>Fábrica de software</b><span>Desarrollo Spring Boot sobre OpenShift con las políticas de software de FaceOps · {{ usuario }}</span><label style="font-size:13px;opacity:.9">Modelo <select id="motor" style="font:inherit;font-size:13px;padding:3px 6px;border-radius:6px"></select></label>{% if faceops %}<a href="{{ faceops }}/fabrica/politicas" target="_blank">Políticas de software ↗</a>{% endif %}</header>
 <main id="chat"><div class="m"><h3>¿Qué necesitas construir?</h3><p class="ayuda">Describe el requerimiento funcional (qué hace, qué datos recibe y entrega, quién lo usa). El agente arma la aplicación cumpliendo las políticas de software, la revisa y, cuando la apruebes, crea el repositorio y la rama <code>feature/…</code> y pide a FaceOps ejecutar el pipeline (revisión y despliegue en OpenShift, con aprobación).</p>
 <p class="ayuda">Ejemplo: «Una API que reciba solicitudes de vacaciones (empleado, desde, hasta), valide que no se crucen y liste las del mes».</p></div></main>
 <footer><form id="f"><textarea id="msg" placeholder="Escribe el requerimiento o un ajuste al proyecto actual…" required></textarea>
 <div style="display:flex;flex-direction:column;gap:6px"><button id="b-gen">Generar</button><button type="button" class="sec" id="b-aj" disabled title="Ajustar el proyecto actual">Ajustar</button></div></form></footer>
 <script>
 const chat=document.getElementById('chat'),msg=document.getElementById('msg'),bg=document.getElementById('b-gen'),ba=document.getElementById('b-aj');
+(async()=>{const r=await fetch('api/motor');if(!r.ok)return;const d=await r.json();const sel=document.getElementById('motor');
+ sel.innerHTML=Object.entries(d.motores).map(([k,v])=>'<option value="'+k+'"'+(k===d.motor?' selected':'')+'>'+v+'</option>').join('');
+ sel.onchange=async()=>{await post('api/motor',{motor:sel.value});burbuja('<p class="ayuda">Desde ahora el desarrollo lo hace: <b>'+sel.options[sel.selectedIndex].text+'</b></p>')};})();
 const esc=t=>String(t??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 function burbuja(html,yo){const d=document.createElement('div');d.className='m'+(yo?' yo':'');d.innerHTML=html;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
 async function post(u,b){const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF':window.FO_CSRF||''},body:JSON.stringify(b)});return [r.ok,await r.json().catch(()=>({error:'respuesta inválida'}))]}
