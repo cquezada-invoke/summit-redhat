@@ -54,8 +54,8 @@ a=d.get("archivos") or {}
 print("ok|contrato "+d["contrato"]+" vigente (puesta en marcha hasta "+(d.get("puesta_en_marcha_hasta") or "—")+")|"+("1" if a.get("bundle") else "0")+("1" if a.get("manifiesto") else "0")+("1" if a.get("catalogo") else "0")+("1" if a.get("rhel") else "0"))' 2>/dev/null)
 case "$R" in ok\|*) bien "$(echo "$R" | cut -d'|' -f2)"; AR=$(echo "$R" | cut -d'|' -f3)
   [ "${AR:0:1}" = 1 ] && bien "FaceAdmin tiene el bundle de AAP" || mal "FaceAdmin aún no tiene el bundle de AAP (avisa a Invoke)"
-  [ "${AR:1:1}" = 1 ] && bien "licencia de AAP del cliente cargada en FaceAdmin" || mal "falta la licencia de AAP del cliente (manifiesto CCSP o demo del portal de Red Hat): cárgala en FaceAdmin"
-  [ "${AR:3:1}" = 1 ] && bien "suscripción RHEL del cliente cargada en FaceAdmin" || mal "falta la suscripción RHEL del cliente (organización y clave de activación): cárgala en FaceAdmin"
+  [ "${AR:1:1}" = 1 ] && bien "licencia de AAP del cliente cargada en FaceAdmin" || {% if demo %}ojo "demo sin licencia de AAP: AAP queda sin suscripción hasta cargarla"{% else %}mal "falta la licencia de AAP del cliente (manifiesto CCSP o demo del portal de Red Hat): cárgala en FaceAdmin"{% endif %}
+  [ "${AR:3:1}" = 1 ] && bien "suscripción RHEL del cliente cargada en FaceAdmin" || {% if demo %}ojo "demo sin suscripción RHEL en FaceAdmin: se usa la que ya tenga la máquina"{% else %}mal "falta la suscripción RHEL del cliente (organización y clave de activación): cárgala en FaceAdmin"{% endif %}
   [ "${AR:2:1}" = 1 ] || ojo "FaceAdmin no tiene el catálogo de acciones: FaceOps queda sin acciones hasta cargarlo";;
   *) mal "$(echo "$R" | cut -d'|' -f2-) (¿la máquina llega a $ADMIN por HTTPS?)";; esac
 

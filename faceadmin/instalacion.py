@@ -334,7 +334,7 @@ def contrato_comando(kid):
         flash(str(e), "error")
         return redirect(url_for("contrato_instalacion", kid=kid) + "#licencias")
     lic = licencias(c["id"])
-    if not lic["ok"]:
+    if not lic["ok"] and not demo_vigente(k):   # en una demo las licencias son opcionales
         flash("Antes de generar el comando carga las licencias del cliente: " + " y ".join(x for x, v in (("la licencia de AAP (manifiesto)", lic["aap"]),
               ("la suscripción RHEL (organización y clave de activación)", lic["rhel"])) if not v), "error")
         return redirect(url_for("contrato_instalacion", kid=kid) + "#licencias")
@@ -379,7 +379,7 @@ def contrato_instalacion(kid):
         flash("La instalación se habilita cuando el contrato está firmado y con su orden de compra conciliada", "error")
         return redirect(url_for("contrato_ficha", kid=kid))
     ok, m = puede_instalar(c)
-    return render_template("contrato_instalacion.html", lic=licencias(c["id"]), k=k, c=c, inst_ok=ok, inst_motivo="" if ok else m, inst_ar=archivos(),
+    return render_template("contrato_instalacion.html", lic=licencias(c["id"]), demo=demo_vigente(k), k=k, c=c, inst_ok=ok, inst_motivo="" if ok else m, inst_ar=archivos(),
                            cmd_inst=session.pop(f"cmd_{kid}", None), inst_ev=eventos(c["id"]), fases=FASES, inst_pr=progreso(c["id"]),
                            inst_int=intentos(c["id"]), instalado_ok=instalada(c["id"]),
                            reinst=q("SELECT * FROM reinstalaciones WHERE cliente_id=? ORDER BY id DESC LIMIT 10", c["id"]))
@@ -391,7 +391,7 @@ def instalar_publico(tok):
     c, k, err = _enlace(tok)
     if err:
         return _bash_error(err)
-    txt = render_template("paquetes/validar.sh", c=c, k=k, tok=llave(c), admin=request.host_url.rstrip("/"), enlace=tok, generado=ahora(), minimo=MIN)
+    txt = render_template("paquetes/validar.sh", c=c, k=k, tok=llave(c), admin=request.host_url.rstrip("/"), enlace=tok, generado=ahora(), minimo=MIN, demo=demo_vigente(k))
     bitacora("validador entregado", c["codigo"], {"contrato": k["numero"], "ip": request.headers.get("X-Forwarded-For", request.remote_addr)})
     return Response(txt, mimetype="text/plain", headers={"Cache-Control": "no-store"})
 
@@ -409,7 +409,7 @@ def instalar_paso2(tok):
     if not cen.get("commit"):
         return _bash_error("GitHub no respondió para fijar la versión; prueba de nuevo en unos minutos.")
     txt = render_template("paquetes/instalar-completo.sh", c=c, k=k, tok=llave(c), commit=cen["commit"], repo=f"https://github.com/{REPO}.git",
-                          admin=request.host_url.rstrip("/"), generado=ahora(), minimo=MIN, host_id=h)
+                          admin=request.host_url.rstrip("/"), generado=ahora(), minimo=MIN, host_id=h, demo=demo_vigente(k))
     huella = hashlib.sha256(txt.encode()).hexdigest()
     ej("INSERT INTO paquetes (cliente_id, so, commit_, generado, por, huella) VALUES (?,?,?,?,?,?)", c["id"], "linux", cen["commit"], ahora(),
        "comando de instalación", huella)
