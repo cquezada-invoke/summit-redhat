@@ -342,6 +342,7 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
             lat_p, lat_n = latencia_prom(cliente["id"], f)
             els.append({"data": {"id": f"f{i}", "source": camino(f, "e:" + f["desde"]), "target": "e:" + f["hacia"],
                                  "label": (f"⏳ {tk['numero']}" if tk else ""),
+                                 "fdesde": f["desde"], "fhacia": f["hacia"], "fpuertos": re.findall(r"\d{2,5}", str(f.get("puerto", ""))),
                                  "puertos": etiqueta_puertos(estados, f), "latencia": lat, "latencia_en": lat_en,
                                  "latencia_prom": lat_p, "latencia_n": lat_n, "etq_lat": ("⌀ " + lat_p) if lat_p else (lat or ""),
                                  "multi": len(re.findall(r"\d{2,5}", str(f.get("puerto", "")))) > 1, "tls": tls_de(estados, f), "tls_tipo": tls_de(estados, f).get("tipo", ""),

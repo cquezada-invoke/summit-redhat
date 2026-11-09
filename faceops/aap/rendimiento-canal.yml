@@ -1,0 +1,51 @@
+---
+# FaceOps · Rendimiento del canal (no invasiva): desde cada equipo de origen mide cada tramo del segmento con conexiones TCP
+# cortas (abrir y cerrar), en varias rondas de varias muestras y con pausa entre muestras. No envía datos de negocio ni carga,
+# y no cambia nada. Devuelve las muestras en ms por ronda (set_stats) y FaceOps calcula promedio, p95, jitter y pérdidas.
+# Variables: faceops_flujos: [{clave, desde, ip, puerto}] · fo_rondas (3) · fo_muestras (10)
+- name: FaceOps · Rendimiento del canal
+  hosts: all
+  gather_facts: false
+  vars:
+    mios: "{{ faceops_flujos | default([]) | selectattr('desde', 'equalto', inventory_hostname) | list }}"
+  tasks:
+    - name: Medir cada tramo que sale de este equipo
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import json, socket, sys, time
+            ip, puerto, rondas, muestras = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
+            out = []
+            for _ in range(min(rondas, 5)):
+                ms, perd = [], 0
+                for _ in range(min(muestras, 30)):
+                    t = time.perf_counter()
+                    try:
+                        socket.create_connection((ip, puerto), 3).close()
+                        ms.append(round((time.perf_counter() - t) * 1000, 3))
+                    except OSError:
+                        perd += 1
+                    time.sleep(0.1)
+                out.append({"ms": ms, "perdidas": perd})
+                time.sleep(0.5)
+            print(json.dumps({"rondas": out}))
+          - "{{ item.ip }}"
+          - "{{ item.puerto }}"
+          - "{{ fo_rondas | default(3) }}"
+          - "{{ fo_muestras | default(10) }}"
+      loop: "{{ mios }}"
+      loop_control: {label: "{{ item.desde }} → {{ item.ip }}:{{ item.puerto }}"}
+      register: r
+      changed_when: false
+      failed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        aggregate: true
+        per_host: false
+        data:
+          faceops_rendimiento: >-
+            {{ dict(r.results | map(attribute='item') | map(attribute='clave') | zip(r.results | map(attribute='stdout', default='{}'))) }}
+      when: mios | length > 0

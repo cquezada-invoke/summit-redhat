@@ -5455,6 +5455,29 @@ def mapa_bifurcacion():
     return {"ok": True, "ticket": t["numero"], "url": url_for("consola.ticket", tid=t["id"]), "estado": t["estado"]}
 
 
+@bp.route("/mapa/rendimiento", methods=["GET", "POST"])
+@requiere_login
+def mapa_rendimiento():
+    """Prueba de rendimiento no invasiva de todo el canal del segmento: POST la lanza; GET devuelve su avance y resultado."""
+    from . import rendimiento as REN
+    from .aap import ErrorAAP as _EA
+    seg = request.values.get("segmento", "")
+    if not q1("SELECT id FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], seg) or not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
+        return {"error": "Segmento no encontrado"}, 404
+    if request.method == "POST":
+        if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+            return {"error": "Necesitas perfil de escritura"}, 403
+        actual = REN.estado(g.cliente, seg)
+        if actual and actual["estado"] == "en curso":
+            return {"ok": True, "en_curso": True}
+        try:
+            return dict(REN.lanzar(g.usuario, g.cliente, seg, equipos_visibles()), ok=True)
+        except (ValueError, _EA) as x:
+            return {"error": str(x)}, 400
+    r = REN.estado(g.cliente, seg)
+    return r or {"estado": "sin pruebas"}
+
+
 @bp.route("/mapa/datos")
 @requiere_login
 def mapa_datos():

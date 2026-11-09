@@ -67,7 +67,7 @@ const ab=()=>{if(!c.hidden)return;c.hidden=false;v.hidden=false;requestAnimation
 document.getElementById('cy').addEventListener('pointerdown',()=>{usuario=true},true);window.abrirCajon=()=>{usuario=true;ab();};
 new MutationObserver(()=>{if(usuario&&p.innerHTML.trim())ab()}).observe(p,{childList:true});
 v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!c.hidden)ce()});})();</script>
-<div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
+<div class="leyenda" style="margin-top:6px">{% if segmento %}<span><i class="punto" style="display:inline-block"></i>operativa</span><span><i class="punto p3" style="display:inline-block"></i>con falla (un flujo hacia ella no responde)</span><span><i class="punto" style="display:inline-block;background:#8a8d90"></i>apagada</span>{% else %}<span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>{% endif %}
 <span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⇉ varios puertos · 🔒 TLS · <b style="color:var(--warn)">- - -</b> planificado (por crear) · <b style="color:#7f77dd">- - -</b> bifurcación: copia de cada request al data lake (clic para ver el punto) · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 {% if tickets_seg is defined and segmento and request.args.get('ambiente') != 'homologacion' %}<h2 style="margin:22px 0 6px;font-size:16px" id="actividad">Actividad lanzada en este segmento</h2>
@@ -139,7 +139,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       el.style.width='280px'; el.style.height='92px';
       el.innerHTML=svgRol(d.icono)+'<div class="tx"><div class="t">'+(d.nombre||'')+'</div><div class="s">'+(por?'por crear · ':'')+(d.ip?d.ip+' · ':'')+(d.rol||'')+'</div>'
         +'<div class="u">'+dc+(d.ambiente?' · '+d.ambiente:'')+(d.energia==='apagado'?' · <span style="color:#c9190b">apagado</span>':'')+'</div></div>'
-        +(d.energia==='apagado'?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px">apagada</span></div>':(!por&&(d.estado||0)>=3?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px;background:#c9190b;color:#fff" title="Tiene hallazgos de severidad alta (seguridad o configuración)">crítico</span></div>':''));
+        +(d.energia==='apagado'?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px">apagada</span></div>':'');
       if(d.ha){  // botón en la caja: replicar con alta disponibilidad (ticket con aprobación en AAP)
         const b=document.createElement('button'); b.type='button'; b.className='btn-ha'; b.title='Replicar con alta disponibilidad (balanceo round robin)';
         b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path d="M14 11v6M11 14h6"/></svg>HA';
@@ -164,6 +164,10 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     return ids.length?ids.map(i=>'[id="'+i+'"]').join(','):undefined;
   }
   function dibujar(els, global){
+    if(!global){  // semáforo operativo de las cajas: gris apagada, rojo con falla (algún flujo hacia ella no responde), verde operativa
+      const malos=new Set(els.filter(e=>e.data.source&&e.data.estado_flujo==='bloqueado').map(e=>e.data.target));
+      els.forEach(e=>{ const d=e.data; if(d.tipo!=='equipo') return; d.hallazgos_nivel=d.estado;
+        d.op=d.energia==='apagado'?'apagado':(malos.has(d.id)?'falla':'ok'); d.estado=d.op==='falla'?3:0; }); }
     if(cy) cy.destroy();
     window._cy=cy=cytoscape({container:document.getElementById('cy'),elements:els,userZoomingEnabled:false,  // la rueda del mouse hace scroll de la página; el zoom va con los botones
       style:[
@@ -205,7 +209,9 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
           'background-image':icono,'background-width':'34px','background-height':'34px','background-position-x':'16px','background-position-y':'50%',
           'background-repeat':'no-repeat','background-clip':'none','background-image-opacity':0.9}},
         {selector:'node[tipo="equipo"][energia="apagado"]',style:{'background-color':'#d9d9d9','border-color':'#8a8d90','border-style':'solid'}},
-        {selector:'node[tipo="equipo"][estado >= 3]',style:{'background-color':'#fdeaea','border-color':'#c9190b','border-width':3}},
+        {selector:'node[tipo="equipo"][op="ok"]',style:{'background-color':'#f3faf2','border-color':'#3e8635','border-width':3}},
+        {selector:'node[tipo="equipo"][op="falla"]',style:{'background-color':'#fdeaea','border-color':'#c9190b','border-width':3}},
+        {selector:'node[tipo="equipo"][estado >= 3][^op]',style:{'background-color':'#fdeaea','border-color':'#c9190b','border-width':3}},
         {selector:'node[tipo="por_crear"][tipo="viejo"]',style:{'label':'data(caja)','shape':'round-rectangle','width':260,'height':78,'text-valign':'center','text-halign':'center',
           'text-margin-x':22,'text-wrap':'wrap','text-max-width':200,'font-size':13,'color':v('--muted'),'background-color':v('--soft'),'border-width':2,
           'border-style':'dashed','border-color':v('--warn'),'background-image':icono,'background-width':'34px','background-height':'34px',
@@ -260,6 +266,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     } else { const caja=document.getElementById('cy'); cy.resize(); cy.fit(cy.elements(),20); }
     if(!global){ REP_COMP=false; if(cy.nodes('[grupo_rep]').length && cy.nodes('[tipo="equipo"]').length>10) comprimir(true); else cajasHTML();
       const bg=document.querySelector('.zoom-ctl [data-z="grupos"]'); if(bg){ bg.style.display=cy.nodes('[grupo_rep]').length?'':'none'; bg.textContent=REP_COMP?'⊞':'⊟'; } }
+    if(!global && SEG) { try{ pintarTotal(); perfInicial(); }catch(e){ console.warn(e); } }
     cy.on('tap',ev=>{ if(ev.target===cy && SEGINFO) mostrarSegmento(SEGINFO); });  // clic en el fondo: el segmento completo
     cy.on('tap','node',ev=>{
       const d=ev.target.data();
@@ -360,6 +367,80 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         +'<text x="'+x.toFixed(1)+'" y="'+(y+dy+14).toFixed(1)+'" text-anchor="'+anc+'" font-size="11" fill="var(--muted)">'+Math.round(A[i])+' % · meta '+Math.round(M[i])+' %</text>';
     }
     return o+'</svg>';
+  }
+  // ─────────── latencia del canal: total arriba (ruta crítica desde la entrada) y prueba de rendimiento no invasiva ───────────
+  const URL_PERF={{ url_for('consola.mapa_rendimiento')|tojson }};
+  let PERF=null, PERF_ON=false, perfTimer=null;
+  const msDe=t=>{ const m=String(t||'').match(/([\d.]+)\s*ms/); return m?parseFloat(m[1]):null; };
+  function rutaCritica(valor){  // suma máxima de ms desde la entrada siguiendo los flujos (DAG); valor(e) → ms o null
+    const cy_=window._cy; if(!cy_) return null;
+    const ent=cy_.edges('[tipo="entrada"]'); const ini=ent.length?ent.targets():cy_.nodes('[tipo="equipo"]').filter(n=>!n.incomers('edge[tipo="flujo"]').length);
+    const memo={}, visit=new Set();
+    const mejor=n=>{ if(memo[n.id()]!==undefined) return memo[n.id()]; if(visit.has(n.id())) return {ms:0,cam:[]}; visit.add(n.id());
+      let b={ms:0,cam:[]}; n.outgoers('edge[tipo="flujo"]').forEach(e=>{ const v=valor(e); const r=mejor(e.target()); const t=(v||0)+r.ms;
+        if(t>b.ms) b={ms:t,cam:[e.id()].concat(r.cam)}; }); visit.delete(n.id()); return memo[n.id()]=b; };
+    let best={ms:0,cam:[]}; ini.forEach(n=>{ const r=mejor(n); if(r.ms>best.ms) best=r; });
+    return best;
+  }
+  function cajaTotal(){ const cont=document.querySelector('.cy-env'); let b=document.getElementById('lat-total');
+    if(!b){ b=document.createElement('div'); b.id='lat-total'; b.style.cssText='position:absolute;top:8px;left:10px;z-index:7;background:var(--panel,#fff);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.08);max-width:70%';
+      cont.appendChild(b); } return b; }
+  function pintarTotal(){
+    const r=rutaCritica(e=>msDe(e.data('latencia'))||msDe(e.data('latencia_prom')));
+    const b=cajaTotal(); const medidos=window._cy.edges('[tipo="flujo"]').filter(e=>msDe(e.data('latencia'))!=null).length, tot=window._cy.edges('[tipo="flujo"]').length;
+    b.innerHTML='<b>Latencia del canal:</b> '+(r&&r.ms?r.ms.toFixed(r.ms<10?2:1)+' ms':'sin medir')+' <span class="sub">('+medidos+'/'+tot+' tramos medidos'+(r&&r.ms?' · ruta crítica desde la entrada':'')+')</span>'
+      +(PUEDE?' <button type="button" class="btn chico" id="b-perf" style="margin-left:6px">Prueba de rendimiento</button>':'')
+      +(PERF&&PERF.estado==='listo'?' <button type="button" class="btn chico gris" id="b-perf-ver">'+(PERF_ON?'Volver a lo normal':'Ver tiempos medidos')+'</button>':'');
+    const bp=document.getElementById('b-perf'); if(bp) bp.onclick=lanzarPerf;
+    const bv=document.getElementById('b-perf-ver'); if(bv) bv.onclick=()=>{ PERF_ON?quitarPerf():ponerPerf(); };
+  }
+  function lanzarPerf(){ const b=document.getElementById('b-perf'); if(b){ b.disabled=true; b.textContent='midiendo…'; }
+    const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG);
+    fetch(URL_PERF,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){ alertaPerf(x.error); if(b){b.disabled=false;b.textContent='Prueba de rendimiento';} return; }
+      panelPerf({estado:'en curso',tramos:{},entrada:{}}); seguirPerf(); }).catch(()=>{ if(b){b.disabled=false;b.textContent='Prueba de rendimiento';} }); }
+  function alertaPerf(t){ const f=flotPerf(); f.querySelector('.cuerpo').innerHTML='<p style="color:var(--bad)">'+t+'</p>'; }
+  function seguirPerf(){ clearTimeout(perfTimer);
+    fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=x;
+      if(x.estado==='en curso'){ panelPerf(x); perfTimer=setTimeout(seguirPerf,5000); return; }
+      if(x.estado==='listo'){ panelPerf(x); ponerPerf(); } }); }
+  function perfInicial(){ fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ if(x&&x.estado&&x.estado!=='sin pruebas'){ PERF=x; pintarTotal(); if(x.estado==='en curso'){ panelPerf(x); seguirPerf(); } } }).catch(()=>{}); }
+  function claveEdge(e,p){ return e.data('fdesde')+'>'+e.data('fhacia')+':'+p; }
+  function statEdge(e){ if(!PERF) return null; let peor=null;
+    (e.data('fpuertos')||[]).forEach(p=>{ const t=(PERF.tramos||{})[claveEdge(e,p)]; const g=t&&t.global; if(g&&g.n&&(!peor||g.prom>peor.prom)) peor=Object.assign({puerto:p},g); }); return peor; }
+  function ponerPerf(){ if(!PERF||!window._cy) return; PERF_ON=true; const cy_=window._cy;
+    const r=rutaCritica(e=>{ const g=statEdge(e); return g?g.prom:null; });
+    let cuello=null; cy_.edges('[tipo="flujo"]').forEach(e=>{ const g=statEdge(e); if(g&&(!cuello||g.prom>cuello.g.prom)) cuello={e,g}; });
+    cy_.edges('[tipo="flujo"]').forEach(e=>{ const g=statEdge(e); e.data('perf', g?('⏱ '+g.prom.toFixed(g.prom<10?2:1)+' ms · p95 '+g.p95.toFixed(g.p95<10?2:1)+(g.perdidas?' · ✗'+g.perdidas:'')):'');
+      e.data('perf_cuello', cuello&&cuello.e.id()===e.id()?1:0); e.data('perf_ruta', r&&r.cam.includes(e.id())?1:0); });
+    cy_.style().selector('edge[perf]').style({'label':'data(perf)','font-size':12.5,'font-weight':700,'color':'#8a4b00','text-background-color':'#fff4e0','text-background-opacity':1,'text-background-padding':3,'text-rotation':'none'})
+      .selector('edge[perf_ruta = 1]').style({'line-color':'#f0ab00','target-arrow-color':'#f0ab00','width':4})
+      .selector('edge[perf_cuello = 1]').style({'line-color':'#c9190b','target-arrow-color':'#c9190b','width':5,'color':'#a30000'}).update();
+    const b=cajaTotal(); const en=(PERF.entrada||{}).global||{};
+    pintarTotal(); b.insertAdjacentHTML('beforeend','<div style="margin-top:4px;color:#8a4b00"><b>Medido ahora:</b> '+(r&&r.ms?r.ms.toFixed(2)+' ms por la red':'—')
+      +(en.prom!=null?' · entrada HTTP '+en.prom.toFixed(1)+' ms (p95 '+(en.p95||0).toFixed(1)+')':'')+(cuello?' · cuello de botella: <b style="color:#a30000">'+cuello.e.data('fdesde')+' → '+cuello.e.data('fhacia')+'</b>':'')+'</div>');
+  }
+  function quitarPerf(){ PERF_ON=false; const cy_=window._cy; if(!cy_) return; cy_.edges().forEach(e=>{ e.removeData('perf'); e.removeData('perf_cuello'); e.removeData('perf_ruta'); }); cy_.style().update(); pintarTotal(); }
+  function flotPerf(){ let f=document.getElementById('perf-flot');
+    if(!f){ f=document.createElement('div'); f.id='perf-flot';
+      f.style.cssText='position:fixed;left:24px;bottom:24px;z-index:60;width:min(760px,calc(100vw - 48px));max-height:60vh;overflow:auto;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);font-size:13px';
+      f.innerHTML='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:inherit"><b style="font-size:14px">Rendimiento del canal · detalle técnico</b><span class="sub est"></span><button type="button" class="cajon-x" style="margin-left:auto" aria-label="Cerrar">✕</button></div><div class="cuerpo" style="padding:10px 14px"></div>';
+      document.body.appendChild(f); f.querySelector('.cajon-x').onclick=()=>{ f.remove(); quitarPerf(); }; }
+    return f; }
+  function panelPerf(x){ const f=flotPerf(); const cu=f.querySelector('.cuerpo'); f.querySelector('.est').textContent=x.estado==='listo'?('medido '+(x.fin||'').slice(0,16).replace('T',' ')+' UTC'):'midiendo… (3 rondas × 10 muestras por tramo)';
+    const n2=v=>v==null?'—':v.toFixed(v<10?2:1);
+    const tr=Object.entries(x.tramos||{}).map(([k,t])=>Object.assign({k},t)).sort((a,b)=>((b.global||{}).prom||0)-((a.global||{}).prom||0));
+    const peor=tr.length&&tr[0].global&&tr[0].global.n?tr[0].k:'';
+    let h='<p class="sub" style="margin:0 0 8px">Prueba no invasiva: desde cada máquina de origen se abren y cierran conexiones TCP hacia el siguiente punto (sin datos de negocio), y unas pocas peticiones GET a la entrada. Ordenado del tramo más lento al más rápido.</p>';
+    const en=x.entrada||{};
+    if(en.url) h+='<table style="width:100%;margin-bottom:10px"><tr><th style="text-align:left">Entrada HTTP</th><th>Ronda 1</th><th>Ronda 2</th><th>Ronda 3</th><th>p95</th><th>Pérdidas</th></tr><tr><td class="mono" style="font-size:12px">'+en.url+'</td>'
+      +[0,1,2].map(i=>'<td style="text-align:center">'+(en.rondas&&en.rondas[i]&&en.rondas[i].n?n2(en.rondas[i].prom)+' ms':(en.pendiente?'…':'—'))+'</td>').join('')+'<td style="text-align:center">'+n2((en.global||{}).p95)+'</td><td style="text-align:center">'+((en.global||{}).perdidas||0)+'</td></tr></table>';
+    h+='<table style="width:100%"><tr><th style="text-align:left">Tramo</th><th>Ronda 1</th><th>Ronda 2</th><th>Ronda 3</th><th>Mín</th><th>Prom</th><th>p95</th><th>Máx</th><th>Jitter</th><th>Pérdidas</th></tr>';
+    tr.forEach(t=>{ const g=t.global||{}, rs=t.rondas||[]; const cu_=t.k===peor;
+      h+='<tr'+(cu_?' style="background:#fdeaea"':'')+'><td>'+t.desde+' → '+t.k.split('>')[1]+(cu_?' <b style="color:#a30000">cuello de botella</b>':'')+'</td>'
+        +[0,1,2].map(i=>'<td style="text-align:center">'+(rs[i]&&rs[i].n?n2(rs[i].prom):(x.estado==='listo'?'—':'…'))+'</td>').join('')
+        +['min','prom','p95','max','jitter'].map(c=>'<td style="text-align:center">'+n2(g[c])+'</td>').join('')+'<td style="text-align:center'+(g.perdidas?';color:#a30000;font-weight:700':'')+'">'+(g.perdidas||0)+'</td></tr>'; });
+    if(!tr.length) h+='<tr><td colspan="10" class="sub">'+(x.estado==='listo'?'Sin tramos medibles.':'Esperando a AAP…')+'</td></tr>';
+    cu.innerHTML=h+'</table><p class="sub" style="margin:8px 0 0">Tiempos en ms. Los tiempos medidos se muestran sobre la gráfica (en naranjo la ruta crítica, en rojo el cuello de botella); al cerrar este detalle la gráfica vuelve a lo normal.</p>';
   }
   // encender de una vez todas las máquinas apagadas del segmento (las del gráfico): un ticket por máquina, con su aprobación
   function apagadasGrafo(){ const cy_=window._cy; if(!cy_) return []; const vistos=new Set();

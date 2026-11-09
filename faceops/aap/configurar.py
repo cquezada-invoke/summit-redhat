@@ -88,6 +88,7 @@ shutil.copy(f"{AQUI}/apagar.yml", f"{tmp}/playbooks/apagar.yml")
 shutil.copy(f"{AQUI}/habilitar-servidor.yml", f"{tmp}/playbooks/habilitar-servidor.yml")
 shutil.copy(f"{AQUI}/agente-monitoreo.yml", f"{tmp}/playbooks/agente-monitoreo.yml")
 shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.yml")
+shutil.copy(f"{AQUI}/rendimiento-canal.yml", f"{tmp}/playbooks/rendimiento-canal.yml")
 shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado.yml")
 shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
 shutil.copy(f"{AQUI}/aplicar-politica.yml", f"{tmp}/playbooks/aplicar-politica.yml")
@@ -325,6 +326,12 @@ jv = asegurar("job_templates", "FaceOps · Verificar flujos de red", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True,
     "description": "Prueba los flujos de red del mapa de FaceOps (TCP, sin cambios)"})
 paso(f"Plantilla «FaceOps · Verificar flujos de red» (id {jv['id']})")
+jrc = asegurar("job_templates", "FaceOps · Rendimiento del canal", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/rendimiento-canal.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True,
+    "description": "Prueba de rendimiento no invasiva de los tramos de un segmento (TCP corto, varias rondas, sin cambios)"})
+paso(f"Plantilla «FaceOps · Rendimiento del canal» (id {jrc['id']})")
 
 # Segmento de negocio nuevo: doble aprobación en AAP (Arquitectura → Infraestructura) y cierre
 js = asegurar("job_templates", "FaceOps · Segmento aprobado", {
