@@ -1,0 +1,37 @@
+commit: 0aa1f03f889de0415c0a710a1ff4b097a0e331c2
+inicio: 2026-11-09T16:30:59-03:00
+---
+Failed · Tasks Completed: 5 (Failed: 1, Cancelled 0), Skipped: 1
+ambiente=desarrollo  app=casa-cuentas  repo-url=http://192.168.122.1:3000/fabrica/casa-cuentas.git  revision=feature/casa-cuentas-11091815  
+analisis-estatico   Succeeded
+clonar              Succeeded
+politicas           Succeeded
+pruebas             Failed
+secretos            Succeeded
+== falló: pruebas
+	at org.springframework.test.web.servlet.result.StatusResultMatchers.lambda$is3xxRedirection$4(StatusResultMatchers.java:88)
+	at org.springframework.test.web.servlet.MockMvc$1.andExpect(MockMvc.java:214)
+	at com.invoke.casacuentas.web.HomeControllerTest.homeSinSesionRedirigeAlLogin(HomeControllerTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] Failures: 
+[ERROR]   HomeControllerTest.homeSinSesionRedirigeAlLogin:46 Range for response status value 401 expected:<REDIRECTION> but was:<CLIENT_ERROR>
+[ERROR] Errors: 
+[ERROR]   HomeControllerTest.formularioInvalidoVuelveAlHomeConErrores:76 » Servlet Request processing failed: org.thymeleaf.exceptions.TemplateProcessingException: Error during execution of processor 'org.thymeleaf.spring6.processor.SpringI
+[ERROR]   HomeControllerTest.homeMuestraLasCuentasDelUsuario:62 » Servlet Request processing failed: org.thymeleaf.exceptions.TemplateProcessingException: Error during execution of processor 'org.thymeleaf.spring6.processor.SpringInputGener
+[ERROR] Tests run: 18, Failures: 1, Errors: 2, Skipped: 0
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.4:test (default-test) on project casa-cuentas: There are test failures.
+[ERROR] 
+[ERROR] See /tmp/src/target/surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+2026/11/09 19:27:45 Entrypoint initialization
+--- fin: 2026-11-09T16:31:00-03:00 · código: 0
