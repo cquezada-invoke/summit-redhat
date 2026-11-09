@@ -395,7 +395,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function pintarTotal(){
     const b=cajaTotal();
     if(PERF_ON&&PERF){ const r=rutaCritica(e=>{ const g=statEdge(e); return g?g.prom:null; }); const en=(PERF.entrada||{}).global||{};
-      const corre=PERF.estado==='corriendo'||PERF.estado==='pausado';
+      const corre=['corriendo','pausado','preparando'].includes(PERF.estado);
       b.innerHTML='<b>Latencia del canal'+(corre?' (midiendo)':' (medida)')+':</b> '+(r&&r.ms?n2(r.ms)+' ms':'—')+(en.n?' · entrada HTTP '+n2(en.prom)+' ms':'')
         +(corre?' · <b>⏱ '+Math.floor(PERF.transcurrido)+' / '+PERF.duracion+' s</b>'+(PERF.estado==='pausado'?' (en pausa)':''):'');
       return; }
@@ -415,18 +415,18 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function postPerf(acc,extra){ const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG); fd.append('accion',acc); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
     return fetch(URL_PERF,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){ const m=document.getElementById('perf-msg'); if(m) m.innerHTML='<span style="color:var(--bad)">'+x.error+'</span>'; return null; } PERF=x; return x; }); }
   function tickPerf(){ clearTimeout(perfTimer);
-    fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=x; const corre=x.estado==='corriendo'||x.estado==='pausado';
+    fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=x; const corre=['corriendo','pausado','preparando'].includes(x.estado);
       if(corre||PERF_ON) ponerPerf();
       if(!corre&&PERF_ON&&!perfFin) perfFin=setTimeout(quitarPerf, PERF_MIN*60000);
       pintarControles(); if(TABLA_ABIERTA) pintarTabla();
       if(corre) perfTimer=setTimeout(tickPerf, x.estado==='pausado'?3000:2000); }).catch(()=>{ perfTimer=setTimeout(tickPerf,4000); }); }
-  function perfInicial(){ fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=x; if(x.estado==='corriendo'||x.estado==='pausado'){ perfFin=null; tickPerf(); } pintarTotal(); pintarControles(); }).catch(()=>{}); }
+  function perfInicial(){ fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=x; if(['corriendo','pausado','preparando'].includes(x.estado)){ perfFin=null; tickPerf(); } pintarTotal(); pintarControles(); }).catch(()=>{}); }
   function htmlControles(){
     if(!PUEDE) return '';
     return sec('Rendimiento del canal')+'<div class="act-acc" id="perf-ctl" style="display:grid;gap:6px"></div>';
   }
   function pintarControles(){ const c=document.getElementById('perf-ctl'); if(!c) return;
-    const x=PERF||{}, corre=x.estado==='corriendo', pausa=x.estado==='pausado', activo=corre||pausa;
+    const x=PERF||{}, corre=x.estado==='corriendo', pausa=x.estado==='pausado', prep=x.estado==='preparando', activo=corre||pausa||prep;
     const tr=Object.values(x.tramos||{}), cuellos=tr.filter(t=>t.cuello).length+((x.entrada||{}).cuello?1:0);
     const r=PERF_ON?rutaCritica(e=>{ const g=statEdge(e); return g?g.prom:null; }):null;
     const pct=x.duracion?Math.min(100,Math.round(100*(x.transcurrido||0)/x.duracion)):0;
@@ -434,10 +434,10 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     c.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="font-size:12.5px">Umbral (ms) <input id="perf-umb" type="number" min="1" max="60000" value="'+umV+'" style="width:80px"></label><button type="button" class="btn chico gris" id="perf-umb-g">Guardar umbral</button></div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="font-size:12.5px">Segundos a probar <input id="perf-seg" type="number" min="1" max="120" value="'+(activo?x.duracion:segV)+'" style="width:70px"'+(activo?' disabled':'')+'></label>'
       +'<button type="button" class="btn chico" id="perf-ini"'+(activo?' disabled':'')+'>Iniciar</button>'
-      +'<button type="button" class="btn chico gris" id="perf-pau"'+(activo?'':' disabled')+'>'+(pausa?'Reanudar':'Pausar')+'</button>'
+      +'<button type="button" class="btn chico gris" id="perf-pau"'+(corre||pausa?'':' disabled')+'>'+(pausa?'Reanudar':'Pausar')+'</button>'
       +'<button type="button" class="btn chico gris" id="perf-det"'+(activo?'':' disabled')+'>Detener</button>'
       +'<button type="button" class="btn chico gris" id="perf-tab"'+(x.tramos&&Object.keys(x.tramos).length?'':' disabled')+'>'+(TABLA_ABIERTA?'Ocultar tabla':'Ver tabla')+'</button></div>'
-      +(x.estado&&x.estado!=='sin pruebas'?'<div><div style="display:flex;justify-content:space-between;font-size:13px"><b>⏱ '+Math.floor(x.transcurrido||0)+' / '+(x.duracion||0)+' s</b><span class="sub">'+({corriendo:'midiendo',pausado:'en pausa',detenido:'detenida',listo:'terminada'}[x.estado]||x.estado)+'</span></div>'
+      +(x.estado&&x.estado!=='sin pruebas'?'<div><div style="display:flex;justify-content:space-between;font-size:13px"><b>⏱ '+Math.floor(x.transcurrido||0)+' / '+(x.duracion||0)+' s</b><span class="sub">'+({corriendo:'midiendo',pausado:'en pausa',preparando:'AAP arrancando la medición…',detenido:'detenida',listo:'terminada'}[x.estado]||x.estado)+'</span></div>'
         +'<div style="height:6px;background:var(--soft,#eee);border-radius:3px;overflow:hidden;margin-top:3px"><i style="display:block;height:100%;width:'+pct+'%;background:'+(pausa?'#8a8d90':'#0066cc')+'"></i></div>'
         +'<div style="font-size:12.5px;margin-top:4px">'+(r&&r.ms?'Ruta crítica: <b>'+n2(r.ms)+' ms</b> · ':'')+(cuellos?'<b style="color:#a30000">'+cuellos+' cuello'+(cuellos===1?'':'s')+' de botella</b> (sobre '+umV+' ms)':'sin cuellos de botella (umbral '+umV+' ms)')
         +' · '+tr.reduce((a,t)=>a+((t.global||{}).n||0),0)+' muestras</div>'+(!activo&&PERF_ON?'<div class="sub" style="font-size:12px">Los tiempos medidos quedan sobre la gráfica '+PERF_MIN+' min. <a href="#" id="perf-norm">Volver a lo normal</a></div>':'')
@@ -458,7 +458,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       f.style.cssText='position:fixed;left:24px;bottom:24px;z-index:60;width:min(820px,calc(100vw - 48px));max-height:55vh;overflow:auto;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);font-size:13px';
       f.innerHTML='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:inherit"><b style="font-size:14px">Rendimiento del canal · detalle técnico</b><span class="sub est"></span><button type="button" class="cajon-x" style="margin-left:auto" aria-label="Cerrar">✕</button></div><div class="cuerpo" style="padding:10px 14px"></div>';
       document.body.appendChild(f); f.querySelector('.cajon-x').onclick=()=>{ f.remove(); TABLA_ABIERTA=false; pintarControles(); }; }
-    const x=PERF||{}; f.querySelector('.est').textContent='⏱ '+Math.floor(x.transcurrido||0)+' / '+(x.duracion||0)+' s · '+({corriendo:'midiendo (se actualiza cada 2 s)',pausado:'en pausa',detenido:'detenida',listo:'terminada'}[x.estado]||'')+' · umbral '+Math.round(UMB())+' ms';
+    const x=PERF||{}; f.querySelector('.est').textContent='⏱ '+Math.floor(x.transcurrido||0)+' / '+(x.duracion||0)+' s · '+({corriendo:'midiendo (se actualiza cada 2 s)',pausado:'en pausa',preparando:'AAP arrancando la medición…',detenido:'detenida',listo:'terminada'}[x.estado]||'')+' · umbral '+Math.round(UMB())+' ms';
     const fila=(nom,g,cu,serie)=>'<tr'+(cu?' style="background:#fdeaea"':'')+'><td>'+nom+(cu?' <b style="color:#a30000">cuello de botella</b>':'')+'</td>'
       +['n','min','prom','p95','max','jitter'].map(c=>'<td style="text-align:right">'+(c==='n'?(g.n||0):n2(g[c]))+'</td>').join('')
       +'<td style="text-align:right'+(g.perdidas?';color:#a30000;font-weight:700':'')+'">'+(g.perdidas||0)+'</td><td class="sub" style="font-size:11.5px">'+(serie||[]).slice(-6).map(v=>n2(v)).join(' · ')+'</td></tr>';

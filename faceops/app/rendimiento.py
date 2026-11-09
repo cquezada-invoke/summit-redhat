@@ -82,7 +82,7 @@ def _entrada(app_, rid, url):
             r = q1("SELECT * FROM rendimiento_canal WHERE id=?", rid)
             if not r or r["estado"] in ("detenido", "listo"):
                 return
-            if r["estado"] == "pausado":
+            if r["estado"] in ("pausado", "preparando"):
                 time.sleep(1)
                 continue
             if transcurrido(r) >= (r["duracion"] or 30):
@@ -118,7 +118,7 @@ def iniciar(usuario, cliente, segmento, eqs, segundos):
     if not flujos and not en_:
         raise ValueError("No hay tramos medibles: los equipos de origen deben estar encendidos y con datos del recolector")
     rid = ej("INSERT INTO rendimiento_canal(cliente_id, segmento, cuando, por, estado, duracion, inicio_ts, tramos, flujos, entrada) VALUES (?,?,?,?,?,?,?,?,?,?)",
-             cliente["id"], segmento, ahora(), usuario["usuario"], "corriendo", segundos, time.time(),
+             cliente["id"], segmento, ahora(), usuario["usuario"], "preparando" if flujos else "corriendo", segundos, None if flujos else time.time(),
              json.dumps({f["clave"]: {"desde": f["desde"], "ip": f["ip"], "puerto": f["puerto"]} for f in flujos}), json.dumps(flujos),
              json.dumps({"url": en_} if en_ else {}))
     jobs = _lanzar_jobs(cliente, flujos, eqs, segundos) if flujos else []
@@ -142,8 +142,10 @@ def _cancelar(cliente, jobs):
 def controlar(usuario, cliente, segmento, eqs, accion):
     _tabla()
     r = q1("SELECT * FROM rendimiento_canal WHERE cliente_id=? AND segmento=? ORDER BY id DESC LIMIT 1", cliente["id"], segmento)
-    if not r or r["estado"] not in ("corriendo", "pausado"):
+    if not r or r["estado"] not in ("corriendo", "pausado", "preparando"):
         raise ValueError("No hay una prueba en curso")
+    if r["estado"] == "preparando" and accion != "detener":
+        raise ValueError("AAP aún está arrancando la medición: espera unos segundos o detenla")
     if accion == "pausar" and r["estado"] == "corriendo":
         _ingerir(cliente, r)
         _cancelar(cliente, j(r["jobs"], []))
@@ -197,12 +199,28 @@ def _cerrar(cliente, r, estado_):
     ej("UPDATE rendimiento_canal SET estado=?, fin=? WHERE id=?", estado_, ahora(), r["id"])
 
 
+def _ts(iso):
+    from datetime import datetime
+    try:
+        return datetime.fromisoformat((iso or "").replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return time.time()
+
+
 def estado(cliente, segmento):
     """La última prueba del segmento, con sus muestras al día (lee AAP mientras corre)."""
     _tabla()
     r = q1("SELECT * FROM rendimiento_canal WHERE cliente_id=? AND segmento=? ORDER BY id DESC LIMIT 1", cliente["id"], segmento)
     if not r:
         return None
+    if r["estado"] == "preparando":   # AAP arranca los trabajos (≈20 s): el reloj parte con la primera muestra
+        mu = _ingerir(cliente, r)
+        if any(x.get("ms") for x in mu.values()):
+            ej("UPDATE rendimiento_canal SET estado='corriendo', inicio_ts=? WHERE id=?", time.time(), r["id"])
+        elif time.time() - _ts(r["cuando"]) > 120:
+            _cancelar(cliente, j(r["jobs"], []))
+            ej("UPDATE rendimiento_canal SET estado='detenido', fin=? WHERE id=?", ahora(), r["id"])
+        r = q1("SELECT * FROM rendimiento_canal WHERE id=?", r["id"])
     if r["estado"] == "corriendo":
         _ingerir(cliente, r)
         if transcurrido(r) >= (r["duracion"] or 30):

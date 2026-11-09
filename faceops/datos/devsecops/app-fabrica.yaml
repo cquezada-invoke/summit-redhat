@@ -42,21 +42,27 @@ spec:
             workingDir: $(workspaces.fuente.path)/src
             script: |
               #!/usr/bin/env python3
-              import glob, re, sys
+              # Políticas de software (OpenShift + Spring Boot) que se verifican de forma automática
+              import glob, os, re, sys
               malos = []
-              cf = open("Containerfile").read() if __import__("os").path.exists("Containerfile") else ""
-              if not cf: malos.append("PD-01 falta Containerfile")
-              m = re.search(r"^FROM\s+(\S+)", cf, re.M)
-              if not m or not m.group(1).startswith("registry.access.redhat.com/ubi9/") or m.group(1).endswith(":latest") or ":" not in m.group(1).rsplit("/", 1)[-1]:
-                  malos.append("PD-02 imagen base UBI 9 con versión fija")
+              cf = open("Containerfile").read() if os.path.exists("Containerfile") else ""
+              if not cf: malos.append("PS-21 falta Containerfile")
+              froms = re.findall(r"^FROM\s+(\S+)", cf, re.M)
+              if not froms or not froms[-1].startswith("registry.access.redhat.com/ubi9/openjdk-") or froms[-1].endswith(":latest") or ":" not in froms[-1].rsplit("/", 1)[-1]:
+                  malos.append("PS-01 imagen de ejecución ubi9/openjdk con versión fija")
               u = re.findall(r"^USER\s+(\S+)", cf, re.M)
-              if not u or u[-1] in ("0", "root"): malos.append("PD-03 USER no root")
-              if not re.search(r"^EXPOSE\s+8080", cf, re.M): malos.append("PD-04 EXPOSE 8080")
+              if not u or u[-1] in ("0", "root"): malos.append("PS-08 USER no root")
+              if not re.search(r"^EXPOSE\s+8080", cf, re.M): malos.append("PS-21 EXPOSE 8080")
+              pom = open("pom.xml").read() if os.path.exists("pom.xml") else ""
+              for k, p in (("spring-boot-starter-parent", "PS-02"), ("spring-boot-starter-security", "PS-06"), ("micrometer-registry-prometheus", "PS-23")):
+                  if k not in pom: malos.append(f"{p} pom.xml sin {k}")
+              if "SNAPSHOT" in pom: malos.append("PS-02 dependencias SNAPSHOT")
               dep = "".join(open(f).read() for f in glob.glob("deploy/*.y*ml"))
-              for k, p in (("livenessProbe", "PD-06"), ("readinessProbe", "PD-06"), ("requests", "PD-07"), ("limits", "PD-07"),
-                           ("kind: Route", "PD-08"), ("termination: edge", "PD-08"), ("IMAGEN_APP", "PD-08")):
+              for k, p in (("livenessProbe", "PS-15"), ("readinessProbe", "PS-15"), ("requests", "PS-18"), ("limits", "PS-18"),
+                           ("kind: Route", "PS-21"), ("termination: edge", "PS-12"), ("IMAGEN_APP", "PS-21"),
+                           ("kind: HorizontalPodAutoscaler", "PS-13"), ("kind: PodDisruptionBudget", "PS-14"), ("runAsNonRoot", "PS-08")):
                   if k not in dep: malos.append(f"{p} deploy/ sin {k}")
-              print("\n".join("INCUMPLE " + x for x in malos) or "Políticas automáticas: todas cumplen")
+              print("\n".join("INCUMPLE " + x for x in malos) or "Políticas de software automáticas: todas cumplen")
               sys.exit(1 if malos else 0)
     - name: pruebas
       runAfter: [politicas, secretos]
@@ -65,13 +71,15 @@ spec:
         workspaces: [{name: fuente}]
         steps:
           - name: pruebas-unitarias
-            image: registry.access.redhat.com/ubi9/python-311:1-77
+            image: registry.access.redhat.com/ubi9/openjdk-21:1.20
             workingDir: $(workspaces.fuente.path)/src
+            env: [{name: HOME, value: /tmp}, {name: MAVEN_OPTS, value: "-Xmx768m"}]
             script: |
               set -e
-              if [ -f requirements.txt ]; then pip install -q -r requirements.txt pytest pytest-cov && python -m pytest -q --cov=. --cov-fail-under=70; \
+              if [ -f pom.xml ]; then echo "Spring Boot: mvn verify (JUnit 5 y cobertura JaCoCo del pom)" && mvn -B -q -Dmaven.repo.local=/tmp/m2 verify; \
+              elif [ -f requirements.txt ]; then pip install -q -r requirements.txt pytest pytest-cov && python -m pytest -q --cov=. --cov-fail-under=70; \
               elif [ -f package.json ]; then echo "Node: npm test" && npx --yes npm@10 ci && npx --yes npm@10 test; \
-              else echo "PD-16: sin pruebas reconocibles" && exit 1; fi
+              else echo "PS-25: sin pruebas reconocibles" && exit 1; fi
     - name: analisis-estatico
       runAfter: [politicas]
       workspaces: [{name: fuente, workspace: fuente}]
@@ -105,6 +113,7 @@ spec:
               IMG=$(oc get is "$A" -o jsonpath='{.status.dockerImageRepository}'):latest
               for f in deploy/*.y*ml; do sed "s#IMAGEN_APP#$IMG#g" "$f" | oc apply -f -; done
               oc patch route "$A" --type=merge -p "{\"spec\":{\"host\":\"$A.$OCP_DOMINIO\"}}" >/dev/null 2>&1 || true
+              [ "$(params.ambiente)" = "produccion" ] || oc patch hpa "$A" --type=merge -p '{"spec":{"minReplicas":1}}' >/dev/null 2>&1 || true   # PS-13: 2+ réplicas solo en producción
               oc rollout restart deploy/"$A" >/dev/null 2>&1 || true
               oc rollout status deploy/"$A" --timeout=240s
               echo "Aplicación desplegada en $(params.ambiente): https://$(oc get route "$A" -o jsonpath='{.spec.host}')"

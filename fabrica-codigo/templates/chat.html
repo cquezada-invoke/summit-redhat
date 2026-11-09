@@ -23,7 +23,11 @@ const chat=document.getElementById('chat'),msg=document.getElementById('msg'),bg
 const esc=t=>String(t??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 function burbuja(html,yo){const d=document.createElement('div');d.className='m'+(yo?' yo':'');d.innerHTML=html;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
 async function post(u,b){const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return [r.ok,await r.json().catch(()=>({error:'respuesta inválida'}))]}
-async function enviar(ajustar){const t=msg.value.trim();if(!t)return;burbuja(esc(t),true);msg.value='';bg.disabled=ba.disabled=true;
+async function enviar(ajustar){const t=msg.value.trim();if(!t)return;
+ const tn=t.toLowerCase();
+ if(!ajustar&&ENTREGADO&&/(despleg|deploy|lanza|pipeline)/.test(tn)){burbuja(esc(t),true);msg.value='';return desplegar(null)}
+ if(!ajustar&&!ENTREGADO&&ba.disabled===false&&/(entrega|repositorio|\brepo\b|sube|crea la rama)/.test(tn)){burbuja(esc(t),true);msg.value='';return publicar(null)}
+ burbuja(esc(t),true);msg.value='';bg.disabled=ba.disabled=true;
  const w=burbuja('<p class="ayuda">Enviando el requerimiento al agente…</p>');
  const [ok0,d0]=await post('/api/generar',{mensaje:t,ajustar});
  if(!ok0){w.innerHTML='<p class="chip mal">'+esc(d0.error)+'</p>';bg.disabled=false;return}
@@ -32,18 +36,27 @@ async function enviar(ajustar){const t=msg.value.trim();if(!t)return;burbuja(esc
   if(!r.ok){w.innerHTML='<p class="chip mal">'+esc(a.error)+'</p>';bg.disabled=false;return}
   w.innerHTML='<ul class="pasos">'+a.pasos.map((p,i)=>'<li'+(i===a.pasos.length-1&&!a.listo?' class="actual"':'')+'><span class="seg">'+p.t+' s</span> '+esc(p.texto)+'</li>').join('')+(a.listo?'':'<li class="actual sub">trabajando… '+a.segundos+' s</li>')+'</ul>';
   chat.scrollTop=chat.scrollHeight;
-  if(a.listo){if(a.error){w.insertAdjacentHTML('beforeend','<p class="chip mal">'+esc(a.error)+'</p>');bg.disabled=false;return}d=a.resultado;break}}
+  if(a.listo){if(a.error){w.insertAdjacentHTML('beforeend','<p class="chip mal">'+esc(a.error)+'</p>');bg.disabled=false;return}
+   if(a.mensaje){burbuja('<p style="white-space:pre-wrap">'+esc(a.mensaje)+'</p><p class="ayuda">Responde aquí abajo y el agente construye con esa precisión.</p>');bg.disabled=false;msg.focus();return}
+   d=a.resultado;ENTREGADO=false;break}}
  bg.disabled=false;ba.disabled=false;const n=Object.keys(d.archivos).length;const w2=burbuja('');
  w2.innerHTML='<h3>'+esc(d.nombre)+' <span class="chip">'+esc(d.stack)+'</span></h3><p>'+esc(d.resumen)+'</p>'+
   '<p>'+(d.politicas||[]).map(p=>'<span class="chip ok">'+esc(p)+'</span>').join('')+'</p>'+
   (d.revision.length?'<p><b>Aún no cumple:</b></p>'+d.revision.map(x=>'<span class="chip mal">'+esc(x)+'</span>').join('')+'<p class="ayuda">Pide un ajuste para corregirlo.</p>':'<p class="chip ok">Cumple las políticas que se revisan antes del pipeline · versión de políticas '+esc(d.huella)+'</p>')+
   '<details><summary>Ver los '+n+' archivos</summary>'+Object.entries(d.archivos).map(([k,v])=>'<p><b>'+esc(k)+'</b></p><pre>'+esc(v)+'</pre>').join('')+'</details>'+
-  (d.revision.length?'':'<p style="margin-top:8px"><button onclick="publicar(this)">Crear repositorio y lanzar el pipeline</button></p>')}
-async function publicar(b){b.disabled=true;const w=burbuja('<p class="ayuda">Creando el repositorio y la rama, y pidiendo el pipeline a FaceOps…</p>');
+  (d.revision.length?'':'<p style="margin-top:8px"><button onclick="publicar(this)">Entregar el repositorio (rama feature)</button></p><p class="ayuda">Después puedes pedir «despliega en desarrollo» y se lanza el pipeline.</p>')}
+let ENTREGADO=false;
+async function publicar(b){if(b)b.disabled=true;const w=burbuja('<p class="ayuda">Creando el repositorio, las ramas main y develop, y la rama feature con el desarrollo…</p>');
  const [ok,d]=await post('/api/publicar',{});
- if(!ok&&!d.repo){w.innerHTML='<p class="chip mal">'+esc(d.error)+'</p>';b.disabled=false;return}
- w.innerHTML='<p>Repositorio: <a href="'+esc(d.repo)+'" target="_blank">'+esc(d.repo)+'</a></p><p>Rama: <code>'+esc(d.rama)+'</code></p>'+(d.ticket?'<p>Ticket en FaceOps: <b>'+esc(d.ticket)+'</b> · <span id="st-'+esc(d.ticket)+'" class="chip">pendiente de aprobación</span></p><p class="ayuda">El pipeline corre al aprobarse: revisa secretos, políticas, pruebas y análisis estático, construye la imagen en OpenShift y la despliega.</p>':'<p class="chip mal">'+esc(d.error||'FaceOps no creó el ticket')+'</p>');
- if(d.ticket)seguir(d.ticket,d.app_url)}
+ if(!ok){w.innerHTML='<p class="chip mal">'+esc(d.error)+'</p>';if(b)b.disabled=false;return}
+ ENTREGADO=true;
+ w.innerHTML='<p><b>Repositorio entregado</b> en la rama <code>'+esc(d.rama)+'</code>:</p><p><a href="'+esc(d.repo)+'" target="_blank">'+esc(d.repo)+'</a></p><p class="ayuda">Clonar: <code>git clone -b '+esc(d.rama)+' '+esc(d.clonar)+'</code></p>'
+  +'<p style="margin-top:8px"><button onclick="desplegar(this)">Desplegar en desarrollo</button></p><p class="ayuda">Se despliega con el pipeline de la Fábrica (Tekton): FaceOps crea el ticket con aprobación; revisa secretos, políticas, pruebas y análisis estático, construye en OpenShift y despliega en desarrollo.</p>'}
+async function desplegar(b){if(b)b.disabled=true;const w=burbuja('<p class="ayuda">Pidiendo a FaceOps el despliegue en desarrollo por el pipeline…</p>');
+ const [ok,d]=await post('/api/desplegar',{});
+ if(!ok||!d.ticket){w.innerHTML='<p class="chip mal">'+esc(d.error||'FaceOps no creó el ticket')+'</p>';if(b)b.disabled=false;return}
+ w.innerHTML='<p>Ticket en FaceOps: <b>'+esc(d.ticket)+'</b> · <span id="st-'+esc(d.ticket)+'" class="chip">pendiente de aprobación</span></p><p class="ayuda">El pipeline corre al aprobarse el ticket.</p>';
+ seguir(d.ticket,d.app_url)}
 async function seguir(t,appUrl){const el=document.getElementById('st-'+t);for(let i=0;i<240;i++){const r=await fetch('/api/ticket/'+encodeURIComponent(t));if(r.ok){const d=await r.json();el.textContent=d.estado.replace('_',' ');el.className='chip '+(d.estado==='exitoso'?'ok':d.estado==='fallido'?'mal':'');
  if(['exitoso','fallido','cancelado','rechazado'].includes(d.estado)){const u=(d.resultado.match(/https:\/\/[^\s"]+/)||[])[0]||(d.estado==='exitoso'?appUrl:'');burbuja('<p><b>'+esc(t)+'</b>: '+esc(d.estado)+'</p>'+(u?'<p>Aplicación: <a href="'+esc(u)+'" target="_blank">'+esc(u)+'</a></p>':'')+'<details><summary>Resultado</summary><pre>'+esc(d.resultado)+'</pre></details>');return}}
  await new Promise(r=>setTimeout(r,15000))}}

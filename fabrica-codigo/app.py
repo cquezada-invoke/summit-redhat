@@ -30,6 +30,7 @@ DOMINIO_APPS = os.environ.get("FABRICA_DOMINIO_APPS", "")   # las apps quedan en
 MODELO = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
 VERIFY = os.environ.get("FACEOPS_VERIFY", "false") == "true"
 TRABAJOS = {}    # id de trabajo → avance de una generación (pasos que ve el usuario)
+PENDIENTES = {}  # id de sesión → requerimiento sobre el que el agente hizo una pregunta (la respuesta lo completa)
 PROYECTOS = {}   # id de sesión → último proyecto generado (en memoria: el repositorio es la fuente de verdad)
 
 # ------------------------------------------------------------------ acceso: enlace firmado desde FaceOps (60 s)
@@ -107,6 +108,10 @@ HERRAMIENTA = {"name": "entregar_proyecto", "description": "Entrega el proyecto 
                                 "properties": {"ruta": {"type": "string"}, "contenido": {"type": "string"}}}}}}}
 
 
+class Pregunta(Exception):
+    """El agente respondió con texto (una pregunta o aclaración) en vez de entregar el proyecto."""
+
+
 def generar(requerimiento, previo=None, correccion="", paso=lambda t: None):
     """Claude escribe el proyecto (streaming): a medida que llegan los archivos se informa cuál está escribiendo."""
     pol = politicas()
@@ -124,7 +129,7 @@ def generar(requerimiento, previo=None, correccion="", paso=lambda t: None):
                       json={"model": MODELO, "max_tokens": 24000, "system": SISTEMA.format(politicas=texto_pol), "messages": msgs,
                             "tools": [HERRAMIENTA], "tool_choice": {"type": "auto"}, "stream": True})
     r.raise_for_status()
-    js, parada, vistos = "", "", 0
+    js, parada, vistos, texto = "", "", 0, ""
     for linea in r.iter_lines(decode_unicode=True):
         if not linea or not linea.startswith("data:"):
             continue
@@ -138,12 +143,16 @@ def generar(requerimiento, previo=None, correccion="", paso=lambda t: None):
             if len(rutas) > vistos:
                 vistos = len(rutas)
                 paso(f"Escribiendo {rutas[-1]} ({vistos} archivo{'s' if vistos != 1 else ''})")
+        elif ev.get("type") == "content_block_delta" and (ev.get("delta") or {}).get("type") == "text_delta":
+            texto += ev["delta"].get("text", "")
         elif ev.get("type") == "message_delta":
             parada = (ev.get("delta") or {}).get("stop_reason") or parada
         elif ev.get("type") == "error":
             raise ValueError((ev.get("error") or {}).get("message", "error del agente"))
+    if not js and texto.strip():
+        raise Pregunta(texto.strip())   # el agente pide precisar el requerimiento antes de construir
     if not js or parada == "max_tokens":
-        raise ValueError("respuesta incompleta del agente")
+        raise ValueError(f"respuesta incompleta del agente (parada: {parada or 'sin datos'})")
     d = json.loads(js)
     arch = d.get("archivos") or []
     d["archivos"] = {a["ruta"].lstrip("/"): a["contenido"] for a in arch if a.get("ruta")} if isinstance(arch, list) else dict(arch)
@@ -218,9 +227,13 @@ def _trabajo(tid, sid, req_, previo):
                 det = f" {rs.status_code}"
         app.logger.warning("generar: %s%s", type(x).__name__, det)
         t["error"] = f"No se pudo generar ({type(x).__name__}{det})"
+    except Pregunta as x:
+        paso("El agente necesita precisar el requerimiento")
+        t["mensaje"] = str(x)[:4000]
+        PENDIENTES[sid] = {"req": req_, "pregunta": t["mensaje"]}
     except (ValueError, KeyError) as x:
         app.logger.warning("generar: %s", x)
-        t["error"] = "El agente no devolvió un proyecto válido; intenta de nuevo o precisa el requerimiento"
+        t["error"] = f"El agente no devolvió un proyecto válido ({str(x)[:160]}); intenta de nuevo o precisa el requerimiento"
     t["listo"] = True
 
 
@@ -232,6 +245,9 @@ def api_generar():
     if len(req_) < 10:
         return jsonify({"error": "Describe el requerimiento funcional"}), 400
     previo = PROYECTOS.get(sid) if d.get("ajustar") else None
+    pend = PENDIENTES.pop(sid, None)
+    if pend and not previo:   # respuesta a la pregunta del agente: el requerimiento se completa con ella
+        req_ = f"{pend['req']}\n\nEl agente preguntó:\n{pend['pregunta']}\n\nRespuesta del usuario:\n{req_}"[:8000]
     tid = secrets.token_hex(8)
     TRABAJOS[tid] = {"sid": sid, "inicio": time.time(), "pasos": [], "listo": False}
     for k in [k for k, v in TRABAJOS.items() if time.time() - v["inicio"] > 3600]:
@@ -246,7 +262,7 @@ def api_avance(tid):
     t = TRABAJOS.get(tid)
     if not t or t["sid"] != sid:
         return jsonify({"error": "Trabajo no encontrado"}), 404
-    return jsonify({"pasos": t["pasos"], "listo": t["listo"], "error": t.get("error"), "resultado": t.get("resultado"),
+    return jsonify({"pasos": t["pasos"], "listo": t["listo"], "error": t.get("error"), "resultado": t.get("resultado"), "mensaje": t.get("mensaje"),
                     "segundos": round(time.time() - t["inicio"])})
 
 # ------------------------------------------------------------------ Git y pipeline
@@ -267,8 +283,10 @@ def publicar(p, usuario):
     rama = "feature/" + re.sub(r"[^a-z0-9-]", "-", (p["nombre"] + "-" + time.strftime("%m%d%H%M")).lower())[:60]
     _git("POST", f"/repos/{ORG}/{repo}/branches", json={"new_branch_name": rama, "old_branch_name": "develop"}).raise_for_status()
     existentes = {}
-    r = _git("GET", f"/repos/{ORG}/{repo}/git/trees/{rama}", params={"recursive": "true"})
-    if r.ok:
+    b_ = _git("GET", f"/repos/{ORG}/{repo}/branches/{requests.utils.quote(rama, safe='')}")
+    sha_ = ((b_.json() or {}).get("commit") or {}).get("id") if b_.ok else ""
+    r = _git("GET", f"/repos/{ORG}/{repo}/git/trees/{sha_}", params={"recursive": "true", "per_page": 1000}) if sha_ else None
+    if r is not None and r.ok:   # los archivos que ya están (p. ej. el README inicial) se actualizan, no se crean
         existentes = {x["path"]: x["sha"] for x in r.json().get("tree", []) if x.get("type") == "blob"}
     files = [{"operation": "update" if ruta in existentes else "create", "path": ruta, "sha": existentes.get(ruta),
               "content": base64.b64encode(cont.encode()).decode()} for ruta, cont in p["archivos"].items()]
@@ -279,6 +297,7 @@ def publicar(p, usuario):
 
 @app.route("/api/publicar", methods=["POST"])
 def api_publicar():
+    """Entrega el desarrollo: repositorio en Git (org fabrica) con main, develop y la rama feature/… con todos los archivos."""
     usuario, sid = _sesion()
     p = PROYECTOS.get(sid)
     if not p:
@@ -288,13 +307,26 @@ def api_publicar():
     try:
         repo, rama = publicar(p, usuario)
     except requests.RequestException as x:
-        return jsonify({"error": f"Git no aceptó el proyecto ({type(x).__name__})"}), 502
-    url_repo = f"{GITEA_PIPELINE}/{ORG}/{repo}.git"
-    r = _fo("POST", "/api/fabrica/ejecutar", json={"repo": url_repo, "rama": rama, "nombre": repo, "solicitante": usuario, "requerimiento": p.get("requerimiento", "")})
+        rs = getattr(x, "response", None)
+        return jsonify({"error": f"Git no aceptó el proyecto ({type(x).__name__}{' ' + str(rs.status_code) + ' · ' + rs.text[:160] if rs is not None else ''})"}), 502
+    p.update(repo=repo, rama=rama, ticket=None)
+    return jsonify({"repo": f"{GITEA_PUBLICA}/{ORG}/{repo}/src/branch/{rama}", "clonar": f"{GITEA_PUBLICA}/{ORG}/{repo}.git", "rama": rama})
+
+
+@app.route("/api/desplegar", methods=["POST"])
+def api_desplegar():
+    """Despliega en desarrollo la rama feature entregada: FaceOps crea el ticket del pipeline (con aprobación) y Tekton revisa y despliega."""
+    usuario, sid = _sesion()
+    p = PROYECTOS.get(sid)
+    if not p or not p.get("repo"):
+        return jsonify({"error": "Primero entrega el repositorio (rama feature)"}), 400
+    url_repo = f"{GITEA_PIPELINE}/{ORG}/{p['repo']}.git"
+    r = _fo("POST", "/api/fabrica/ejecutar", json={"repo": url_repo, "rama": p["rama"], "nombre": p["repo"], "solicitante": usuario,
+                                                   "requerimiento": p.get("requerimiento", "")})
     d = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"error": f"FaceOps respondió {r.status_code}"}
-    p.update(repo=repo, rama=rama, ticket=d.get("ticket"))
-    return jsonify({"repo": f"{GITEA_PUBLICA}/{ORG}/{repo}/src/branch/{rama}", "rama": rama, "ticket": d.get("ticket"), "error": d.get("error"),
-                    "app_url": f"https://{repo}.{DOMINIO_APPS}" if DOMINIO_APPS else ""}), (200 if r.ok else 502)
+    p["ticket"] = d.get("ticket")
+    return jsonify({"ticket": d.get("ticket"), "error": d.get("error"), "rama": p["rama"],
+                    "app_url": f"https://{p['repo']}.{DOMINIO_APPS}" if DOMINIO_APPS else ""}), (200 if r.ok else 502)
 
 
 @app.route("/api/ticket/<numero>")
