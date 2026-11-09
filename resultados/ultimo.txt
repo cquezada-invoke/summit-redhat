@@ -1,8 +1,20 @@
-commit: 327993ae340faa95a548c620bcc9815783bc03fd
-inicio: 2026-11-09T16:03:27-03:00
+commit: 041ae4fc25138cfaa6306a4c63bbafd2ef57177f
+inicio: 2026-11-09T16:03:55-03:00
 ---
-actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit-2.service failed
-actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit-3.service failed
-actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit.service running
- 16:03:27 up  7:45,  0 users,  load average: 6.46, 5.74, 5.35
---- fin: 2026-11-09T16:03:27-03:00 · código: 0
+Nov 09 15:57:24 demo-ansible-summit systemd[1]: Started GitHub Actions Runner (cquezada-invoke-summit-redhat.demo-ansible-summit-2).
+Nov 09 15:57:24 demo-ansible-summit systemd[1348535]: actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit-2.service: Failed to locate executable /home/cquezada/actions-runner-2/runsvc.sh: Permission denied
+Nov 09 15:57:24 demo-ansible-summit systemd[1348535]: actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit-2.service: Failed at step EXEC spawning /home/cquezada/actions-runner-2/runsvc.sh: Permission denied
+Nov 09 15:57:24 demo-ansible-summit systemd[1]: actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit-2.service: Main process exited, code=exited, status=203/EXEC
+Nov 09 15:57:24 demo-ansible-summit systemd[1]: actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit-2.service: Failed with result 'exit-code'.
+total 84
+drwxr-xr-x.  5 cquezada cquezada  4096 Nov  9 15:57 .
+drwx------. 35 cquezada cquezada  4096 Nov  9 15:57 ..
+drwxr-xr-x. 17 cquezada cquezada 12288 Nov  9 15:57 bin
+-rwxr-xr-x.  1 cquezada cquezada  2458 Oct 26 11:25 config.sh
+-rw-r--r--.  1 cquezada cquezada   268 Nov  9 15:57 .credentials
+-rw-------.  1 cquezada cquezada  1667 Nov  9 15:57 .credentials_rsaparams
+drwxr-xr-x.  2 cquezada cquezada    44 Nov  9 15:57 _diag
+-rw-r--r--.  1 cquezada cquezada    17 Nov  9 15:57 .env
+-rwxr-xr-x.  1 cquezada cquezada   646 Oct 26 11:25 env.sh
+Enforcing
+--- fin: 2026-11-09T16:03:55-03:00 · código: 0
