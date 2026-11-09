@@ -159,7 +159,9 @@ for campo, clave in (("host", "host"), ("bearer_token", "token")):
                                               "metadata": {"secret_backend": "secret", "secret_path": "portal/ocp", "secret_key": clave}})
 paso("Credencial 'OpenShift · clúster (token)' enlazada a Vault")
 
-proy = asegurar("projects", "Portal · automatizaciones", {
+# Proyecto e inventario propios del tenant (los antiguos de «Portal de automatización» no pueden cambiar de organización
+# mientras tengan plantillas: las plantillas se mueven a estos)
+proy = asegurar("projects", "Claro PR · automatizaciones", {
     "organization": org, "scm_type": "git", "scm_url": f"http://192.168.122.1:3000/invoke/{REPO}.git", "scm_branch": "main",
     "scm_update_on_launch": True, "scm_update_cache_timeout": 30, "description": "Playbooks del portal de automatización"})["id"]
 for _ in range(60):
@@ -178,10 +180,10 @@ if st != "successful":
     sys.exit(f"ERROR al sincronizar el proyecto del portal: {st}")
 proy_red = uno("projects", name="Red · laboratorio")
 aap("POST", f"projects/{proy_red['id']}/update/", {})
-paso("Proyecto 'Portal · automatizaciones' sincronizado")
+paso("Proyecto 'Claro PR · automatizaciones' sincronizado")
 
 # Inventario sin hosts: los playbooks usan el localhost implícito de Ansible (no consume licencia de nodo de AAP)
-inv = asegurar("inventories", "Portal · local", {"organization": org, "description": "Sin hosts: las automatizaciones corren en el nodo de ejecución y hablan con APIs",
+inv = asegurar("inventories", "Claro PR · local", {"organization": org, "description": "Sin hosts: las automatizaciones corren en el nodo de ejecución y hablan con APIs",
                                                  "variables": "ansible_python_interpreter: '{{ ansible_playbook_python }}'\n"})["id"]
 
 ee_nom = os.environ.get("PORTAL_EE", "Default execution environment")
