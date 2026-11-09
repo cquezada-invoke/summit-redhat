@@ -1,14 +1,16 @@
-commit: 73f5c4a8da5201d49eb7eaa7ab7eeea6d9939cc3
-inicio: 2026-11-09T08:44:54-03:00
+commit: ac7bff095dcac9da3b214f83399d59803b0d79e1
+inicio: 2026-11-09T08:50:30-03:00
 ---
-lab desplegado
-catálogo sincronizado
-PIPE ejecutar app-jboss@develop: FO-LAB-01350 fallido AAP terminó (failed): ejecución 168 s, espera de aprobación 136 s Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-jboss-faceops-s96cm del pipeline app-jboss falló o no terminó: revisa sus 
-Traceback (most recent call last):
-  File "/tmp/plan2.py", line 47, in <module>
-    t = solicitar(u, cli, al, "*", {}, f"Plan de prueba · levantamiento {k}", prueba=True); tk = esperar(t["id"]); tks.append(tk["numero"])
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/operacion.py", line 409, in solicitar
-    raise PermissionError("Elige un ambiente: cada ejecución va a un único ambiente")
-PermissionError: Elige un ambiente: cada ejecución va a un único ambiente
---- fin: 2026-11-09T08:49:33-03:00 · código: 0
+== pipelinerun
+== entorno
+/home/cquezada/openshift
+/etc/containers/systemd/faceops-maqueta.container
+EnvironmentFile=/etc/faceops.env
+/home/cquezada/faceops/faceops.env
+== licencias
+LIC 1: FO-LAB-01351 exitoso · filas 0 
+LIC 2: FO-LAB-01352 exitoso · filas 0 
+LIC tipos []
+LIC caducidad {'vencida': 2, 'vence en 30 días': 0, 'vence en 90 días': 5, 'vigente': 1, 'sin fecha': 0} · AAP: ['60 Day Product Trial of Red Hat Ansible Automation vence 2026-12-21']
+LIC casos [{'id': 'C1', 'resultado': 'falla'}, {'id': 'C2', 'resultado': 'ok'}, {'id': 'C3', 'resultado': 'ok'}]
+--- fin: 2026-11-09T08:53:45-03:00 · código: 0
