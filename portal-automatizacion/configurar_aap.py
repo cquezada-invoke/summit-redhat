@@ -224,7 +224,8 @@ def workflow(it):
     nombre = f"Portal · {it['nombre']}"
     wf = aap("GET", "workflow_job_templates/?name=" + q(nombre))["results"]
     datos = {"organization": org, "description": it["descripcion"], "survey_enabled": bool(it.get("encuesta")), "ask_variables_on_launch": False,
-             "allow_simultaneous": False}
+             "allow_simultaneous": False, "ask_limit_on_launch": bool(it.get("limite")),
+             "inventory": (aap("GET", f"job_templates/{jts[it['nombre']]}/")["inventory"] if it.get("limite") else None)}
     wf = aap("PATCH", f"workflow_job_templates/{wf[0]['id']}/", datos)["id"] if wf else aap("POST", "workflow_job_templates/", dict(datos, name=nombre))["id"]
     for n in aap("GET", f"workflow_job_templates/{wf}/workflow_nodes/?page_size=50")["results"]:
         aap("DELETE", f"workflow_job_template_nodes/{n['id']}/")

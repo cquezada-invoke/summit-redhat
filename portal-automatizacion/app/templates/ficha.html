@@ -10,6 +10,10 @@
     <form class="panel" method="post" action="{{ url_for('lanzar', wid=w.id) }}" id="form">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <h2 style="margin-top:0">Parámetros</h2>
+      {% if hosts %}
+      <label class="campo"><b>Servidores <span class="req">*</span></b><small>Elija uno o más (Ctrl/Cmd para varios). Sale del inventario de AAP.</small>
+        <select name="_limite" multiple size="{{ [hosts | length, 8] | min }}" required>{% for h in hosts %}<option>{{ h }}</option>{% endfor %}</select></label>
+      {% endif %}
       {% for p in preguntas %}
       <label class="campo">
         <b>{{ p.question_name }}{% if p.required %} <span class="req">*</span>{% endif %}</b>
@@ -27,7 +31,7 @@
         {% endif %}
       </label>
       {% else %}
-      <p class="sub">Esta automatización no pide datos.</p>
+      {% if not hosts %}<p class="sub">Esta automatización no pide datos.</p>{% endif %}
       {% endfor %}
       <button class="btn" {{ 'disabled' if not w.summary_fields.user_capabilities.start }}>Lanzar</button>
       {% if not w.summary_fields.user_capabilities.start %}<span class="sub"> Su usuario no tiene permiso de ejecución en AAP.</span>{% endif %}

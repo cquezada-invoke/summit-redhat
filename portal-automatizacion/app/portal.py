@@ -172,7 +172,10 @@ def ficha(wid):
     recientes = aap("GET", f"workflow_jobs/?workflow_job_template={wid}&order_by=-id&page_size=6")["results"]
     etiquetas = [x["name"] for x in w["summary_fields"].get("labels", {}).get("results", [])]
     sec = next((e.split("-", 1)[1] for e in etiquetas if e.startswith("portal-")), "infra")
-    return render_template("ficha.html", u=u, w=w, preguntas=enc.get("spec", []), pasos=pasos, recientes=recientes, sec=sec)
+    hosts = []
+    if w.get("ask_limit_on_launch") and w.get("inventory"):
+        hosts = [h["name"] for h in aap("GET", f"inventories/{w['inventory']}/hosts/?page_size=200&order_by=name")["results"]]
+    return render_template("ficha.html", u=u, w=w, preguntas=enc.get("spec", []), pasos=pasos, recientes=recientes, sec=sec, hosts=hosts)
 
 
 @app.route("/automatizacion/<int:wid>/lanzar", methods=["POST"])
@@ -187,7 +190,11 @@ def lanzar(wid):
         if v in ("", []) and not p.get("required"):
             continue
         ev[p["variable"]] = v
-    r = aap("POST", f"workflow_job_templates/{wid}/launch/", {"extra_vars": ev})
+    cuerpo = {"extra_vars": ev}
+    lim = [h for h in request.form.getlist("_limite") if h]
+    if lim:
+        cuerpo["limit"] = ",".join(lim)
+    r = aap("POST", f"workflow_job_templates/{wid}/launch/", cuerpo)
     return redirect(url_for("ejecucion", jid=r["workflow_job"]))
 
 

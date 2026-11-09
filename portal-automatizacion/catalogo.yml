@@ -123,3 +123,43 @@
     - {question_name: "Versión", variable: version, type: text, default: 2.4.0, required: true, max: 12}
     - {question_name: "Simular falla de la versión nueva", variable: simular_falla, type: multiplechoice, choices: ["no", si], default: "no", required: true,
        question_description: "si hace que la versión nueva no pase su sonda de salud, para mostrar la vuelta atrás automática."}
+- nombre: "Infraestructura · Revisar CVE de servidores"
+  seccion: infra
+  existente: "Seguridad · Revisar CVEs"
+  limite: true
+  descripcion: "Por servidor, los CVE ya corregidos por los parches instalados y los pendientes (hay parche y no está instalado), con severidad y paquete. Usa las erratas de Red Hat. Solo lectura."
+  encuesta: []
+- nombre: "Infraestructura · Escaneo de seguridad"
+  seccion: infra
+  existente: "Seguridad · Escaneo de servidores"
+  limite: true
+  descripcion: "Revisa en cada servidor Linux los puntos de vulnerabilidad más comunes: parches, SSH, puertos expuestos, SELinux, firewall, cuentas, sudo, permisos, servicios inseguros, suscripción, reinicio pendiente y fin de vida. Solo lectura."
+  encuesta: []
+- nombre: "Infraestructura · Aplicar parches de seguridad"
+  seccion: infra
+  existente: "Seguridad · Aplicar parches de seguridad"
+  limite: true
+  descripcion: "Instala las erratas de seguridad pendientes (todas o las de los CVE indicados) y dice si el servidor necesita reiniciar. No reinicia solo."
+  encuesta:
+    - {question_name: "CVE a corregir", variable: cves, type: text, default: "", required: false, max: 600,
+       question_description: "Separados por coma (CVE-2026-1234,…). Vacío: todas las erratas de seguridad pendientes."}
+- nombre: "Infraestructura · Inventariar servidor"
+  seccion: infra
+  existente: "Sistema · Inventariar máquina"
+  limite: true
+  descripcion: "Trae toda la información del servidor (sistema, CPU, memoria, discos, red, servicios, registro, parches y paquetes) y guarda una instantánea de su configuración en Git para poder recuperarlo."
+  encuesta: []
+- nombre: "Infraestructura · Inventario de certificados"
+  seccion: infra
+  existente: "Certificados · Inventario"
+  limite: true
+  descripcion: "Cruza los certificados en uso en cada servidor (y el que entrega su puerto TLS) con los emitidos por la CA interna y avisa los que vencen pronto."
+  encuesta:
+    - {question_name: "Avisar si vence en (días)", variable: cert_dias, type: integer, min: 1, max: 365, default: 30, required: true}
+- nombre: "Infraestructura · Encender o apagar servidor"
+  seccion: infra
+  existente: "Infra · Encender o apagar equipo"
+  descripcion: "Cambia el estado de energía de una máquina virtual del data center. Apagar es ordenado (como el botón de encendido): el sistema cierra sus servicios."
+  encuesta:
+    - {question_name: "Servidor (nombre de la VM)", variable: en_equipo, type: text, default: "", required: true, min: 2, max: 60}
+    - {question_name: "Acción", variable: en_accion, type: multiplechoice, choices: [encender, apagar, reiniciar], default: encender, required: true}
