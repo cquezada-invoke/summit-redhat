@@ -1,0 +1,16 @@
+commit: 9a7f27ec50d22bf718bc8d2e7901c3afcb0b2c25
+inicio: 2026-11-09T09:09:38-03:00
+---
+imagen faceops lista
+sno api: ok
+AVISO: no se encontró ANTHROPIC_API_KEY en FaceOps (la Fábrica no podrá generar código)
+Push successful
+error: timed out waiting for the condition
+Waiting for deployment "fabrica" rollout to finish: 1 old replicas are pending termination...
+Traceback (most recent call last):
+  File "/tmp/fab.py", line 12, in <module>
+    texto = open("/opt/faceops/datos/devsecops/app-fabrica.yaml").read().replace("__HOST__", "192.168.122.1")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/faceops/datos/devsecops/app-fabrica.yaml'
+fabrica pública 503
+--- fin: 2026-11-09T09:17:21-03:00 · código: 0
