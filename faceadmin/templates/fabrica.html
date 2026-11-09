@@ -2,7 +2,7 @@
 {% set F = d.faceops %}{% set col = {'diseno': '#8a8d90', 'construccion': '#f0ab00', 'pruebas': '#2b9af3', 'produccion': '#3e8635', 'retiro': '#c9190b'} %}
 <div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Fábrica de FaceOps</h1>
 <p class="sub" style="margin:2px 0 0">FaceOps se ensambla como un avión: cada módulo es una pieza con su repositorio, su versión y su ciclo de vida. FaceOps es la suma de todos.</p></div>
-<a class="btn gris" style="margin-left:auto" href="{{ url_for('fabrica_instalacion') }}">Paquete de instalación</a></div>
+<a class="btn gris" style="margin-left:auto" href="{{ url_for('arquitectura') }}">Arquitectura del producto</a><a class="btn gris" href="{{ url_for('fabrica_instalacion') }}">Paquete de instalación</a></div>
 <div class="kpis"><div class="kpi"><span class="sub">FaceOps</span><b>v{{ F.linea }}.{{ F.build }}</b><span class="sub mono" style="font-size:12px">{{ F.commit }} · {{ F.fecha }}</span></div>
 <div class="kpi"><span class="sub">Módulos</span><b>{{ d.modulos|length }}</b><span class="sub" style="font-size:12px">{{ d.por_etapa.produccion }} en producción · {{ d.por_etapa.pruebas }} en pruebas</span></div>
 <div class="kpi"><span class="sub">Piezas</span><b>{{ d.total_piezas }}</b><span class="sub" style="font-size:12px">{{ '{:,}'.format(d.total_lineas).replace(',', '.') }} líneas · {{ d.sin_modulo.n }} sin módulo</span></div>

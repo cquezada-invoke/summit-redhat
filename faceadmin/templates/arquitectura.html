@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block titulo %}Arquitectura{% endblock %}{% block cuerpo %}
 {% set F = d.faceops %}{% set VER = 'v' ~ (F.linea or '1.0') ~ '.' ~ (F.build or '') %}
-<h1 style="margin:0">Arquitectura de FaceOps {{ VER }}</h1>
+<p class="sub" style="margin:0"><a href="{{ url_for('fabrica') }}">Fábrica</a> ›</p><h1 style="margin:0">Arquitectura de FaceOps {{ VER }}</h1>
 <p class="sub" style="margin:2px 0 14px">Cómo queda el producto instalado en la máquina del cliente y con qué se conecta. Es la misma para todos los clientes de esta versión.</p>
 <div class="card" style="padding:10px;overflow-x:auto">
 <svg viewBox="0 0 1180 760" width="100%" style="min-width:900px;font-family:var(--sans)" role="img" aria-label="Arquitectura de FaceOps">
