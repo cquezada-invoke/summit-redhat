@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}"><meta name="csrf" content="{{ csrf }}"></head>
 <body>
 {% if u %}<p><a href="{{ url_for('inicio') }}">Automatizaciones</a> | <a href="{{ url_for('inventario') }}">Servidores</a> | <a href="{{ url_for('historial') }}">Ejecuciones</a> | <a href="{{ url_for('integracion') }}">Integración</a> |
-{{ u.usuario }} <form method="post" action="{{ url_for('salir') }}" style="display:inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Salir</button></form></p><hr>{% endif %}
+{% if tenant %}Organización de AAP: <b>{{ tenant }}</b> | {% endif %}{{ u.usuario }} <form method="post" action="{{ url_for('salir') }}" style="display:inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Salir</button></form></p><hr>{% endif %}
 {% block contenido %}{% endblock %}
 <script>
 const CSRF = document.querySelector('meta[name=csrf]').content;

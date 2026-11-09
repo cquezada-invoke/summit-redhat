@@ -21,6 +21,8 @@ CTX = ssl.create_default_context() if os.environ.get("AAP_VERIFICAR") == "1" els
 AAP_PUBLICO = os.environ.get("AAP_PUBLICO", "https://aap.34.176.42.56.sslip.io").rstrip("/")   # consola de AAP para los enlaces
 GIT_INTERNO = os.environ.get("GIT_INTERNO", "http://192.168.122.1:3000").rstrip("/")
 GIT_PUBLICO = os.environ.get("GIT_PUBLICO", "https://faceops.34.176.42.56.sslip.io:8843/git").rstrip("/")
+TENANT = os.environ.get("PORTAL_ORGANIZACION", "Claro Puerto Rico")   # organización de AAP que muestra el portal ("" = todas)
+_ORG = f"&organization__name={urllib.parse.quote(TENANT)}" if TENANT else ""
 AMDOCS = os.environ.get("AMDOCS_URL", "https://amdocs-ordering.sno.34.176.42.56.sslip.io").rstrip("/")
 SECCIONES = [
     ("infra", "Infraestructura", "Servidores, sistemas operativos y servicios base del data center"),
@@ -118,7 +120,7 @@ def repo_publico(url, rama="main", archivo=""):
 
 @app.context_processor
 def _contexto():
-    return {"secciones": SECCIONES, "csrf": session.get("csrf", ""), "en_aap": en_aap}
+    return {"secciones": SECCIONES, "csrf": session.get("csrf", ""), "en_aap": en_aap, "tenant": TENANT}
 
 
 @app.route("/ingresar", methods=["GET", "POST"])
@@ -158,7 +160,7 @@ def salir():
 
 
 def catalogo():
-    wf = aap("GET", "workflow_job_templates/?labels__name__startswith=portal-&page_size=200&order_by=name")["results"]
+    wf = aap("GET", f"workflow_job_templates/?labels__name__startswith=portal-&page_size=200&order_by=name{_ORG}")["results"]
     items = []
     for w in wf:
         etiquetas = [x["name"] for x in w["summary_fields"].get("labels", {}).get("results", [])]
@@ -302,7 +304,7 @@ def api_aprobar(aid, accion):
 def inventario():
     """Servidores: los inventarios y hosts de AAP que el usuario puede ver (todo enlazado a AAP)."""
     u = sesion() or abort(401)
-    invs = aap("GET", "inventories/?page_size=100&order_by=name")["results"]
+    invs = aap("GET", f"inventories/?page_size=100&order_by=name{_ORG}")["results"]
     sel = request.args.get("inv", type=int)
     hosts = aap("GET", f"inventories/{sel}/hosts/?page_size=200&order_by=name")["results"] if sel else []
     return render_template("inventario.html", u=u, invs=invs, sel=sel, hosts=hosts)
@@ -318,7 +320,8 @@ def aprobaciones():
 @app.route("/historial")
 def historial():
     u = sesion() or abort(401)
-    jobs = aap("GET", "workflow_jobs/?workflow_job_template__labels__name__startswith=portal-&order_by=-id&page_size=40")["results"]
+    jobs = aap("GET", "workflow_jobs/?workflow_job_template__labels__name__startswith=portal-&order_by=-id&page_size=40"
+                      + (f"&workflow_job_template__organization__name={urllib.parse.quote(TENANT)}" if TENANT else ""))["results"]
     return render_template("historial.html", u=u, jobs=jobs)
 
 
