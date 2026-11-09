@@ -1,12 +1,17 @@
-commit: 689b9c18539e12b55d88348ec8a43ad122dc9482
-inicio: 2026-11-09T09:32:13-03:00
+commit: 9e35a55633b1413d5f44b35cc217c92346402515
+inicio: 2026-11-09T09:33:32-03:00
 ---
-faceops actualizado
-bajado deployment.apps/analitica (tenía 1)
-bajado deployment.apps/ollama (tenía 1)
-error: deployment "fabrica" exceeded its progress deadline
-fabrica pública 503
-faceops prefijo 200
-entrar 503
-generar 503 None None archivos: [] revision: None 503
---- fin: 2026-11-09T09:32:53-03:00 · código: 0
+Warning: Permanently added 'faceadmin.southamerica-west1-a.c.master-ia-320218.internal' (ED25519) to the list of known hosts.
+cquezada@faceadmin.southamerica-west1-a.c.master-ia-320218.internal: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+faceops lab 302 -> https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/ingresar?siguiente=/?
+NAME                      READY   STATUS      RESTARTS   AGE
+fabrica-1-build           0/1     Completed   0          23m
+fabrica-2-build           0/1     Completed   0          12m
+fabrica-7dbbf98f4-4dbx8   1/1     Running     0          11m
+22s         Normal    Created             pod/fabrica-86d9554459-5rvkc    Created container: app
+22s         Normal    Created             pod/fabrica-7dbbf98f4-4dbx8     Created container: app
+11s         Normal    SuccessfulDelete    replicaset/fabrica-86d9554459   Deleted pod: fabrica-86d9554459-5rvkc
+11s         Normal    Killing             pod/fabrica-86d9554459-5rvkc    Stopping container app
+11s         Normal    ScalingReplicaSet   deployment/fabrica              Scaled down replica set fabrica-86d9554459 from 1 to 0
+  memory             22520Mi (98%)  36408Mi (158%)
+--- fin: 2026-11-09T09:33:33-03:00 · código: 0
