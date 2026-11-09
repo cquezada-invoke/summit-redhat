@@ -33,7 +33,7 @@ async function cargar(){let d;try{d=await (await fetch({{ url_for('consola.fabri
    <td>${fe?`<a href="${esc(fe.url)}" target="_blank" rel="noopener" class="mono">${esc(fe.rama)}</a><br><span class="sub">${esc(fe.sha)} · ${esc(fe.fecha)} · ${esc(fe.mensaje)}</span>${extra}`:'<span class="sub">sin rama feature</span>'}</td>
    <td>${fe&&fe.por_integrar!=null?(fe.por_integrar?fe.por_integrar+' commit(s)':'integrada'):'—'}</td>
    <td>${amb(r,'dev')}</td><td>${amb(r,'qa')}</td><td>${amb(r,'prod')}</td><td>${mv}</td>
-   <td>${fe?`<a class="btn chico" href="?trabajo=${encodeURIComponent(r.repo+'@'+fe.rama)}&lanzar=1" title="Lanza el pipeline de esta rama (ticket con aprobación) y lo sigue en la conversación">Lanzar pipeline</a>`:''}</td></tr>`;}).join('');}
+   <td>${fe?`<a class="btn chico" href="?trabajo=${encodeURIComponent(r.repo+'@'+fe.rama)}&lanzar=1" title="Lanzar el pipeline de esta rama (ticket con aprobación) y seguirlo en la conversación" aria-label="Lanzar pipeline" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><path d="M5 8v8"/><path d="M5 12h6"/><path d="M13 7l6 5-6 5z" fill="currentColor"/></svg>Lanzar</a>`:''}</td></tr>`;}).join('');}
 cargar();setInterval(cargar,20000);})();</script>
 {% endif %}
 {% endblock %}
