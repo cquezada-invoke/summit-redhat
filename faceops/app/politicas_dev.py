@@ -1,4 +1,4 @@
-"""Gobierno › Arquitectura › Políticas de desarrollo: lo que todo código debe cumplir para correr en OpenShift. Se editan en
+"""Gobierno › Fábrica de software › Políticas de software: lo que todo desarrollo debe contener en OpenShift (por ahora Spring Boot). Se editan en
 FaceOps (cada cambio es una versión) y las consume el agente de la Fábrica de código, que genera el desarrollo cumpliéndolas;
 el pipeline de Tekton verifica las que dicen «verifica: pipeline»."""
 import hashlib
@@ -10,7 +10,7 @@ import yaml
 from .bd import ahora, ej, q, q1
 
 RUTA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "politicas-desarrollo.yml")
-AREAS = ["Arquitectura", "Infraestructura", "Seguridad", "Operación", "Calidad"]   # quién define la política (hacia el desarrollo)
+AREAS = ["Arquitectura", "Seguridad", "Continuidad operativa", "Infraestructura", "Operación", "Calidad"]   # quién define la política (hacia el desarrollo)
 NIVELES = {"obligatoria": "Obligatoria", "recomendada": "Recomendada"}
 VERIFICA = {"pipeline": "Pipeline (automática)", "revisión": "Revisión"}
 PLATAFORMAS = {"openshift": "OpenShift", "iis": "IIS (.NET)", "jboss": "JBoss EAP", "springboot": "Spring Boot", "quarkus": "Quarkus"}
@@ -37,6 +37,10 @@ def _tabla():
 def lista(cliente_id):
     _tabla()
     base = {p["id"]: p for p in yaml.safe_load(open(RUTA, encoding="utf-8")) or []}
+    from .bd import ajuste
+    if not ajuste(f"politicas_software_v1_{cliente_id}"):   # 09/11: pasan a ser políticas de software para OpenShift (Spring Boot)
+        ej("DELETE FROM politicas_desarrollo WHERE cliente_id=? AND codigo LIKE 'PD-%' AND autor='base' AND version=1", cliente_id)
+        ajuste(f"politicas_software_v1_{cliente_id}", ahora())
     for p in base.values():   # las políticas base que falten (las nuevas de cada versión) entran; las existentes no se tocan
         ej("INSERT OR IGNORE INTO politicas_desarrollo (cliente_id, codigo, categoria, titulo, regla, nivel, verifica, area, aplica, autor, fecha) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
            cliente_id, p["id"], p["categoria"], p["titulo"], p["regla"], p["nivel"], p.get("verifica", "revisión"), p.get("area", "Arquitectura"),
@@ -91,13 +95,12 @@ def contrato(cliente_id):
 
 def markdown(cliente_id):
     c = contrato(cliente_id)
-    lineas = [f"# Políticas de desarrollo (versión {c['huella']})", "",
+    lineas = [f"# Políticas de software · OpenShift con Spring Boot (versión {c['huella']})", "",
               "Todo desarrollo debe cumplir estas políticas. Las obligatorias bloquean el despliegue.", ""]
     area = None
     for p in c["politicas"]:
         if p["area"] != area:
             area = p["area"]
             lineas += ["", f"## Área {area}"]
-        lineas.append(f"- **{p['codigo']} · {p['titulo']}** [{p['categoria']}] ({p['nivel']}; verifica: {p['verifica']}; aplica a: "
-                      f"{', '.join(PLATAFORMAS[x] for x in p['aplica'])}): {p['regla']}")
+        lineas.append(f"- **{p['codigo']} · {p['titulo']}** [{p['categoria']}] ({p['nivel']}; verifica: {p['verifica']}): {p['regla']}")
     return "\n".join(lineas) + "\n"

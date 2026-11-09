@@ -15,7 +15,7 @@ from flask import Flask, abort, jsonify, redirect, render_template, request, ses
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FABRICA_SESION") or secrets.token_hex(32)
-app.config.update(SESSION_COOKIE_SECURE=True, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+app.config.update(SESSION_COOKIE_SECURE=True, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="None")   # se usa embebida en FaceOps (otro sitio)
 
 FACEOPS = os.environ.get("FACEOPS_URL", "").rstrip("/")                      # API (red interna)
 FACEOPS_PUBLICA = os.environ.get("FACEOPS_URL_PUBLICA", FACEOPS).rstrip("/")  # enlaces para el navegador
@@ -85,11 +85,12 @@ requerimiento funcional, listas para correr en Red Hat OpenShift, y SIEMPRE cump
 {politicas}
 
 Reglas de entrega:
-- Elige el stack aceptado más simple para el requerimiento (preferencia: Python 3.11 + Flask).
-- Estructura mínima: Containerfile (FROM registry.access.redhat.com/ubi9/python-311:<versión fija> o ubi9/nodejs-20:<versión fija>, USER 1001,
-  EXPOSE 8080), código, pruebas unitarias, README.md, deploy/deployment.yaml, deploy/service.yaml, deploy/route.yaml.
+- Stack: Spring Boot 3 con Java 21 y Maven (pom.xml y mvnw), como exigen las políticas.
+- Estructura mínima: Containerfile multi-stage (construye con registry.access.redhat.com/ubi9/openjdk-21:<versión fija> y ejecuta con
+  ubi9/openjdk-21-runtime:<versión fija>, USER 185, EXPOSE 8080), código en src/main, pruebas en src/test, README.md y en deploy/:
+  deployment.yaml, service.yaml, route.yaml, configmap.yaml, hpa.yaml y pdb.yaml.
 - deploy/deployment.yaml usa la imagen IMAGEN_APP (el pipeline la reemplaza), nombre de la app en metadata.name y en las etiquetas
-  app.kubernetes.io/name, part-of: fabrica-codigo y version; sondas /health/live y /health/ready en el puerto 8080; requests y limits.
+  app.kubernetes.io/name, part-of: fabrica-codigo y version; sondas /actuator/health/liveness y /actuator/health/readiness en el puerto 8080; requests y limits.
 - deploy/route.yaml: tls termination edge con insecureEdgeTerminationPolicy Redirect.
 - Sin secretos en el código; configuración por variables de entorno.
 - Entrega el proyecto completo SOLO con la herramienta entregar_proyecto (cada archivo con su ruta y su contenido completo)."""
@@ -136,25 +137,35 @@ def revisar(archivos):
     malos = []
     cf = archivos.get("Containerfile") or archivos.get("Dockerfile") or ""
     if not cf:
-        malos.append("PD-01: falta el Containerfile")
-    m = re.search(r"^FROM\s+(\S+)", cf, re.M)
-    if not m or not m.group(1).startswith("registry.access.redhat.com/ubi9/") or ":" not in m.group(1).split("/")[-1] or m.group(1).endswith(":latest"):
-        malos.append("PD-02: la imagen base debe ser UBI 9 con versión fija")
+        malos.append("PS-21: falta el Containerfile")
+    froms = re.findall(r"^FROM\s+(\S+)", cf, re.M)
+    if not froms or not froms[-1].startswith("registry.access.redhat.com/ubi9/openjdk-") or ":" not in froms[-1].split("/")[-1] or froms[-1].endswith(":latest"):
+        malos.append("PS-01: la imagen de ejecución debe ser ubi9/openjdk-21-runtime con versión fija")
     usr = re.findall(r"^USER\s+(\S+)", cf, re.M)
     if not usr or usr[-1] in ("0", "root"):
-        malos.append("PD-03: debe terminar con USER no root (1001)")
+        malos.append("PS-08: debe terminar con USER no root")
     if not re.search(r"^EXPOSE\s+8080", cf, re.M):
-        malos.append("PD-04: debe exponer el puerto 8080")
+        malos.append("PS-21: debe exponer el puerto 8080")
+    pom = archivos.get("pom.xml", "")
+    if "spring-boot-starter-parent" not in pom:
+        malos.append("PS-02: falta pom.xml con spring-boot-starter-parent")
+    if "SNAPSHOT" in pom:
+        malos.append("PS-02: dependencias SNAPSHOT")
+    if "spring-boot-starter-security" not in pom:
+        malos.append("PS-06: falta spring-boot-starter-security")
+    if "micrometer-registry-prometheus" not in pom:
+        malos.append("PS-23: falta micrometer-registry-prometheus")
     dep = "\n".join(v for k, v in archivos.items() if k.startswith("deploy/"))
-    for clave, pol in (("livenessProbe", "PD-06"), ("readinessProbe", "PD-06"), ("limits", "PD-07"), ("requests", "PD-07"),
-                       ("kind: Route", "PD-08"), ("termination: edge", "PD-08"), ("IMAGEN_APP", "PD-08")):
+    for clave, pol in (("livenessProbe", "PS-15"), ("readinessProbe", "PS-15"), ("limits", "PS-18"), ("requests", "PS-18"),
+                       ("kind: Route", "PS-21"), ("termination: edge", "PS-12"), ("IMAGEN_APP", "PS-21"),
+                       ("kind: HorizontalPodAutoscaler", "PS-13"), ("kind: PodDisruptionBudget", "PS-14"), ("runAsNonRoot", "PS-08")):
         if clave not in dep:
             malos.append(f"{pol}: deploy/ no tiene {clave}")
     for ruta, cont in archivos.items():
-        if re.search(r"(?i)(password|secret|token|api[_-]?key)\s*[:=]\s*['\"][^'\"\s]{6,}", cont):
-            malos.append(f"PD-05: posible secreto en {ruta}")
-    if not any(re.search(r"(^|/)(test_|tests?/)|\.test\.|_test\.", k) for k in archivos):
-        malos.append("PD-16: faltan pruebas unitarias")
+        if re.search(r"(?i)(password|secret|token|api[_-]?key)\s*[:=]\s*['\"]?[^'\"\s$]{6,}", cont) and not ruta.startswith("src/test/"):
+            malos.append(f"PS-07: posible secreto en {ruta}")
+    if not any(k.startswith("src/test/") for k in archivos):
+        malos.append("PS-25: faltan pruebas (src/test)")
     return sorted(set(malos))
 
 

@@ -1,50 +1,65 @@
-# Políticas de desarrollo (Gobierno › Arquitectura): lo que todo código debe cumplir para correr en OpenShift. Las toma el
-# agente de la Fábrica de código para generar el desarrollo y el pipeline (Tekton) verifica las que dicen «verifica: pipeline».
-# area: el área dueña de la política (Arquitectura, Infraestructura, Seguridad, Operación, Calidad), siempre hacia el desarrollo
+# Políticas de software (Gobierno › Fábrica de software): lo que todo desarrollo debe contener para correr en OpenShift.
+# Por ahora, exclusivamente aplicaciones Spring Boot. Las toma el agente de la Fábrica para generar cada desarrollo y el pipeline
+# de Tekton verifica las que dicen «verifica: pipeline».
+# area: el área dueña de la política (Arquitectura, Seguridad, Continuidad operativa, Infraestructura, Operación, Calidad)
 # nivel: obligatoria (bloquea el despliegue) · recomendada (avisa)
-# aplica: plataformas donde rige (openshift, iis, jboss, springboot, quarkus); en las aplicaciones ya instaladas la acción
-#   «Políticas de desarrollo · Evaluar aplicaciones» verifica las que tienen comprobación y deja el resto para revisión
-- {id: PD-01, aplica: [openshift], area: Arquitectura, categoria: Plataforma, titulo: "Todo desarrollo corre en OpenShift", nivel: obligatoria, verifica: pipeline,
-   regla: "La aplicación se empaqueta como imagen de contenedor y se despliega en OpenShift con manifiestos versionados en el mismo repositorio (carpeta deploy/). No se instala nada en máquinas virtuales."}
-- {id: PD-02, aplica: [openshift], area: Seguridad, categoria: Contenedor, titulo: "Imagen base Red Hat UBI", nivel: obligatoria, verifica: pipeline,
-   regla: "La imagen parte de una imagen base UBI 9 de Red Hat (registry.access.redhat.com/ubi9/*) con versión fija; nunca la etiqueta latest."}
-- {id: PD-03, aplica: [openshift], area: Seguridad, categoria: Contenedor, titulo: "Sin root y con UID arbitrario", nivel: obligatoria, verifica: pipeline,
-   regla: "El contenedor corre sin root (USER 1001) y funciona con cualquier UID que asigne OpenShift (restricted-v2 SCC): carpetas de escritura con grupo 0 y permisos g=u."}
-- {id: PD-04, aplica: [openshift], area: Infraestructura, categoria: Contenedor, titulo: "Puerto no privilegiado", nivel: obligatoria, verifica: pipeline,
-   regla: "La aplicación escucha en el puerto 8080 (nunca bajo 1024) y lo declara con EXPOSE."}
-- {id: PD-05, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Configuración, titulo: "Configuración por variables de entorno", nivel: obligatoria, verifica: pipeline,
-   regla: "Toda configuración entra por variables de entorno desde ConfigMap; los secretos desde Secret. Ningún secreto, clave ni token en el código ni en la imagen."}
-- {id: PD-06, aplica: [openshift, jboss, springboot, quarkus], area: Operación, categoria: Salud, titulo: "Sondas de vida y disponibilidad", nivel: obligatoria, verifica: pipeline,
-   regla: "Expone /health/live y /health/ready; el Deployment declara livenessProbe y readinessProbe sobre esas rutas."}
-- {id: PD-07, aplica: [openshift], area: Infraestructura, categoria: Recursos, titulo: "Requests y limits declarados", nivel: obligatoria, verifica: pipeline,
-   regla: "Cada contenedor declara requests y limits de CPU y memoria acordes a la aplicación (por defecto 100m/128Mi y 500m/512Mi)."}
-- {id: PD-08, aplica: [openshift], area: Infraestructura, categoria: Despliegue, titulo: "Deployment, Service y Route con TLS", nivel: obligatoria, verifica: pipeline,
-   regla: "deploy/ contiene Deployment, Service y Route con terminación TLS edge e insecureEdgeTerminationPolicy Redirect; etiquetas app.kubernetes.io/name, part-of y version."}
-- {id: PD-09, aplica: [openshift, iis, jboss, springboot, quarkus], area: Arquitectura, categoria: Despliegue, titulo: "Sin estado local", nivel: obligatoria, verifica: revisión,
-   regla: "La aplicación no guarda estado en el contenedor: los datos van a una base de datos o servicio externo; si necesita disco, un PVC declarado en deploy/."}
-- {id: PD-10, aplica: [openshift, jboss, springboot, quarkus], area: Operación, categoria: Observabilidad, titulo: "Logs a la salida estándar en JSON", nivel: obligatoria, verifica: revisión,
-   regla: "Los logs salen por stdout en formato JSON (nivel, mensaje, fecha, request id), sin datos personales ni secretos."}
-- {id: PD-11, aplica: [openshift, jboss, springboot, quarkus], area: Operación, categoria: Observabilidad, titulo: "Métricas para Prometheus", nivel: recomendada, verifica: revisión,
-   regla: "Expone /metrics en formato Prometheus con al menos solicitudes, errores y latencia."}
-- {id: PD-12, aplica: [openshift], area: Seguridad, categoria: Seguridad, titulo: "Análisis estático sin hallazgos altos", nivel: obligatoria, verifica: pipeline,
-   regla: "El código pasa el análisis estático (SAST) del pipeline sin hallazgos de severidad alta o crítica."}
-- {id: PD-13, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Seguridad, titulo: "Dependencias fijas y sin CVE críticos", nivel: obligatoria, verifica: pipeline,
-   regla: "Las dependencias se declaran con versión fija (requirements.txt, package-lock.json, pom.xml) y no tienen vulnerabilidades críticas conocidas."}
-- {id: PD-14, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Seguridad, titulo: "Entradas validadas", nivel: obligatoria, verifica: revisión,
-   regla: "Toda entrada externa se valida (tipos, largo, formato) y las consultas a bases de datos son parametrizadas."}
-- {id: PD-15, aplica: [openshift], area: Arquitectura, categoria: API, titulo: "API documentada con OpenAPI", nivel: recomendada, verifica: revisión,
-   regla: "Si expone una API REST, publica su contrato OpenAPI 3 en /openapi.json y responde errores con JSON {error, detalle}."}
-- {id: PD-16, aplica: [openshift], area: Calidad, categoria: Pruebas, titulo: "Pruebas unitarias", nivel: obligatoria, verifica: pipeline,
-   regla: "Incluye pruebas unitarias que el pipeline ejecuta; cobertura mínima de 70 % de la lógica de negocio."}
-- {id: PD-17, aplica: [openshift, iis, jboss, springboot, quarkus], area: Calidad, categoria: Git, titulo: "Gitflow y commits convencionales", nivel: obligatoria, verifica: revisión,
+# Arquitectura
+- {id: PS-01, area: Arquitectura, categoria: Imagen, titulo: "Imagen base del stack tecnológico", nivel: obligatoria, verifica: pipeline,
+   regla: "La imagen de ejecución es registry.access.redhat.com/ubi9/openjdk-21-runtime con versión fija (aceptada en el manifiesto de arquitectura); la construcción usa ubi9/openjdk-21 en una etapa aparte (multi-stage). Nunca latest ni imágenes de terceros."}
+- {id: PS-02, area: Arquitectura, categoria: Stack, titulo: "Spring Boot 3 sobre Java 21 LTS", nivel: obligatoria, verifica: pipeline,
+   regla: "La aplicación usa Spring Boot 3.x con soporte vigente (spring-boot-starter-parent con versión fija) y Java 21 LTS. Sin dependencias SNAPSHOT."}
+- {id: PS-03, area: Arquitectura, categoria: Construcción, titulo: "Maven con wrapper y dependencias fijas", nivel: obligatoria, verifica: pipeline,
+   regla: "El proyecto se construye con Maven (pom.xml y mvnw incluidos); todas las dependencias con versión fija o gestionada por el parent de Spring Boot."}
+- {id: PS-04, area: Arquitectura, categoria: Diseño, titulo: "Sin estado y configuración externa", nivel: obligatoria, verifica: revisión,
+   regla: "La aplicación no guarda estado en el pod (sesiones, archivos o caché local). La configuración por ambiente entra por variables de entorno y ConfigMap (SPRING_PROFILES_ACTIVE); application.yaml no contiene valores de un ambiente en particular."}
+- {id: PS-05, area: Arquitectura, categoria: API, titulo: "API REST documentada con OpenAPI", nivel: recomendada, verifica: revisión,
+   regla: "Si expone una API REST, publica su contrato OpenAPI 3 con springdoc-openapi y responde los errores en JSON (ProblemDetail, RFC 9457)."}
+# Seguridad
+- {id: PS-06, area: Seguridad, categoria: Autenticación, titulo: "Spring Security habilitado", nivel: obligatoria, verifica: pipeline,
+   regla: "Incluye spring-boot-starter-security: toda ruta exige autenticación (OAuth2/OIDC contra el proveedor corporativo) salvo las sondas de salud; cabeceras seguras activas."}
+- {id: PS-07, area: Seguridad, categoria: Secretos, titulo: "Secretos solo desde Secret de OpenShift", nivel: obligatoria, verifica: pipeline,
+   regla: "Contraseñas, tokens y llaves entran como variables desde un Secret de OpenShift (o la bóveda corporativa). Ningún secreto en el código, application.yaml, la imagen ni el repositorio (el pipeline lo revisa con gitleaks)."}
+- {id: PS-08, area: Seguridad, categoria: Contenedor, titulo: "Contenedor sin root (SCC restricted-v2)", nivel: obligatoria, verifica: pipeline,
+   regla: "Corre sin root y con cualquier UID asignado por OpenShift: runAsNonRoot, allowPrivilegeEscalation false, capabilities drop ALL, seccompProfile RuntimeDefault y readOnlyRootFilesystem con /tmp en emptyDir."}
+- {id: PS-09, area: Seguridad, categoria: Vulnerabilidades, titulo: "Sin vulnerabilidades altas ni críticas", nivel: obligatoria, verifica: pipeline,
+   regla: "El código pasa el análisis estático (SAST) y las dependencias y la imagen pasan el análisis de vulnerabilidades (ACS) sin hallazgos altos ni críticos."}
+- {id: PS-10, area: Seguridad, categoria: Código seguro, titulo: "Entradas validadas y consultas parametrizadas", nivel: obligatoria, verifica: revisión,
+   regla: "Toda entrada externa se valida con Bean Validation (@Valid y restricciones en los DTO); el acceso a datos usa JPA o consultas parametrizadas, nunca concatenación de SQL."}
+- {id: PS-11, area: Seguridad, categoria: Exposición, titulo: "Actuator acotado y sin trazas al usuario", nivel: obligatoria, verifica: pipeline,
+   regla: "Actuator expone solo health, info y prometheus (management.endpoints.web.exposure.include); server.error.include-stacktrace=never; sin spring-boot-devtools en la imagen."}
+- {id: PS-12, area: Seguridad, categoria: Tráfico, titulo: "Tráfico cifrado con TLS", nivel: obligatoria, verifica: pipeline,
+   regla: "La Route termina TLS (edge o reencrypt) con insecureEdgeTerminationPolicy Redirect; la aplicación respeta las cabeceras del proxy (server.forward-headers-strategy=framework)."}
+# Continuidad operativa
+- {id: PS-13, area: Continuidad operativa, categoria: Alta disponibilidad, titulo: "Dos réplicas o más en producción", nivel: obligatoria, verifica: pipeline,
+   regla: "En producción corre con 2 réplicas como mínimo (HorizontalPodAutoscaler con minReplicas 2 o más); en desarrollo y QA puede usar 1."}
+- {id: PS-14, area: Continuidad operativa, categoria: Alta disponibilidad, titulo: "Réplicas repartidas y protegidas", nivel: obligatoria, verifica: pipeline,
+   regla: "Declara PodDisruptionBudget (minAvailable 1) y topologySpreadConstraints o antiafinidad para que las réplicas queden en nodos distintos (y zonas, si el clúster las tiene)."}
+- {id: PS-15, area: Continuidad operativa, categoria: Salud, titulo: "Sondas de arranque, vida y disponibilidad", nivel: obligatoria, verifica: pipeline,
+   regla: "Usa las sondas de Spring Boot: startupProbe y livenessProbe en /actuator/health/liveness y readinessProbe en /actuator/health/readiness (management.endpoint.health.probes.enabled=true)."}
+- {id: PS-16, area: Continuidad operativa, categoria: Despliegue, titulo: "Apagado ordenado y despliegue sin corte", nivel: obligatoria, verifica: pipeline,
+   regla: "server.shutdown=graceful y terminationGracePeriodSeconds de 30 o más; estrategia RollingUpdate con maxUnavailable 0."}
+- {id: PS-17, area: Continuidad operativa, categoria: DR, titulo: "Recuperación ante desastres", nivel: obligatoria, verifica: revisión,
+   regla: "Todo el despliegue es declarativo en Git (GitOps) y se puede levantar igual en el clúster alterno; los datos viven en servicios con respaldo o réplica. El README declara RPO y RTO y cómo se cambia al sitio alterno."}
+# Infraestructura
+- {id: PS-18, area: Infraestructura, categoria: Recursos, titulo: "Requests y limits dentro de los máximos", nivel: obligatoria, verifica: pipeline,
+   regla: "Cada contenedor declara requests y limits de CPU y memoria. Máximos por contenedor: request de CPU 1 core, limit de CPU 2 cores y limit de memoria 2Gi; la memoria request y limit son iguales."}
+- {id: PS-19, area: Infraestructura, categoria: Recursos, titulo: "JVM ajustada al contenedor", nivel: obligatoria, verifica: pipeline,
+   regla: "La JVM toma la memoria del contenedor (JAVA_OPTS con -XX:MaxRAMPercentage=75) y no fija -Xmx por encima del limit."}
+- {id: PS-20, area: Infraestructura, categoria: Namespace, titulo: "Cuotas y almacenamiento aprobado", nivel: obligatoria, verifica: revisión,
+   regla: "El despliegue cabe en la ResourceQuota y el LimitRange del namespace; si necesita disco, lo pide con un PVC en una StorageClass aprobada."}
+- {id: PS-21, area: Infraestructura, categoria: Despliegue, titulo: "Manifiestos y etiquetas estándar", nivel: obligatoria, verifica: pipeline,
+   regla: "deploy/ contiene Deployment, Service, Route, ConfigMap, HorizontalPodAutoscaler y PodDisruptionBudget con las etiquetas app.kubernetes.io/name, part-of y version; puerto 8080 declarado."}
+# Operación
+- {id: PS-22, area: Operación, categoria: Observabilidad, titulo: "Logs estructurados a la salida estándar", nivel: obligatoria, verifica: pipeline,
+   regla: "Los logs salen por stdout en JSON (logging.structured.format.console=ecs) con nivel, mensaje, fecha y traceId; sin datos personales ni secretos."}
+- {id: PS-23, area: Operación, categoria: Observabilidad, titulo: "Métricas para Prometheus", nivel: obligatoria, verifica: pipeline,
+   regla: "Incluye micrometer-registry-prometheus y expone /actuator/prometheus; declara un ServiceMonitor para el monitoreo de usuario de OpenShift."}
+- {id: PS-24, area: Operación, categoria: Observabilidad, titulo: "Trazas distribuidas", nivel: recomendada, verifica: revisión,
+   regla: "Propaga trazas con Micrometer Tracing y OpenTelemetry hacia el colector del clúster."}
+# Calidad
+- {id: PS-25, area: Calidad, categoria: Pruebas, titulo: "Pruebas unitarias con cobertura", nivel: obligatoria, verifica: pipeline,
+   regla: "Incluye pruebas con JUnit 5 que el pipeline ejecuta (mvn verify); cobertura mínima de 70 % medida con JaCoCo."}
+- {id: PS-26, area: Calidad, categoria: Git, titulo: "Gitflow y commits convencionales", nivel: obligatoria, verifica: revisión,
    regla: "Cada requerimiento se desarrolla en una rama feature/<nombre> desde develop; los commits siguen Conventional Commits (feat:, fix:, chore:)."}
-- {id: PD-18, aplica: [openshift, iis, jboss, springboot, quarkus], area: Calidad, categoria: Git, titulo: "README y responsable", nivel: recomendada, verifica: revisión,
-   regla: "El repositorio tiene README con propósito, cómo ejecutarlo localmente, variables de entorno y el responsable del componente."}
-- {id: PD-19, aplica: [openshift, iis, jboss, springboot, quarkus], area: Arquitectura, categoria: Lenguajes, titulo: "Stack aceptado por el manifiesto", nivel: obligatoria, verifica: revisión,
-   regla: "Solo lenguajes y frameworks aceptados en el manifiesto de arquitectura: Python 3.11+ (Flask/FastAPI), Node.js 20 (Express), Java 17+ (Quarkus o JBoss EAP)."}
-- {id: PD-20, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Seguridad, titulo: "Sin modo depuración ni errores detallados", nivel: obligatoria, verifica: revisión,
-   regla: "En los ambientes productivos la aplicación no corre en modo depuración ni muestra trazas o errores detallados al usuario (IIS: compilation debug y customErrors; Java: devtools, stacktrace y nivel DEBUG del log raíz)."}
-- {id: PD-21, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Seguridad, titulo: "Consolas y endpoints de administración no expuestos", nivel: obligatoria, verifica: revisión,
-   regla: "Las consolas y endpoints de administración (consola de JBoss, actuator de Spring, Swagger UI, listado de directorios de IIS) no quedan expuestos a todas las interfaces ni al público."}
-- {id: PD-22, aplica: [iis, jboss, springboot, quarkus], area: Infraestructura, categoria: Seguridad, titulo: "Tráfico cifrado con TLS y cookies seguras", nivel: obligatoria, verifica: revisión,
-   regla: "Las aplicaciones fuera de OpenShift atienden por HTTPS (o detrás de un proxy TLS declarado) y sus cookies de sesión van marcadas como seguras."}
+- {id: PS-27, area: Calidad, categoria: Git, titulo: "README y responsable", nivel: recomendada, verifica: revisión,
+   regla: "El repositorio tiene README con propósito, cómo ejecutarlo localmente, variables de entorno, RPO/RTO y el responsable del componente."}

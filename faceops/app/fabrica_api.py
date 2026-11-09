@@ -34,9 +34,7 @@ def _autorizado():
 def api_fabrica_politicas():
     cli, _ = _autorizado()
     from .politicas_dev import contrato
-    c = contrato(cli["id"])   # la Fábrica genera para OpenShift: solo las políticas que rigen ahí
-    c["politicas"] = [p for p in c["politicas"] if "openshift" in p["aplica"]]
-    return jsonify(c)
+    return jsonify(contrato(cli["id"]))
 
 
 @bp.route("/api/fabrica/ejecutar", methods=["POST"])

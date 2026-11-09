@@ -6507,27 +6507,13 @@ def manifiesto_arquitectura():
                            salida=M.SALIDA, avance=M.AVANCE, aceptadas=aceptadas)
 
 
+@bp.route("/fabrica/politicas", methods=["GET", "POST"])
 @bp.route("/arquitectura/politicas-desarrollo", methods=["GET", "POST"])
 @requiere_login
 def politicas_desarrollo():
-    """Gobierno › Arquitectura › Políticas de desarrollo: lo que todo código debe cumplir para correr en OpenShift; las usa el agente
-    de la Fábrica de código para generar desarrollos y el pipeline verifica las automáticas."""
+    """Gobierno › Fábrica de software › Políticas de software: lo que todo desarrollo debe contener en OpenShift (por ahora Spring
+    Boot); las usa el agente de la Fábrica para generar desarrollos y el pipeline verifica las automáticas."""
     from . import politicas_dev as PDV
-    from . import politicas_eval as PEV
-    if request.method == "POST" and request.form.get("accion") == "evaluar":
-        _escritura()
-        a_ = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], PEV.AUTO_EVALUAR)
-        if not a_:
-            flash(f"Falta «{PEV.AUTO_EVALUAR}» en el catálogo (sincroniza con AAP)", "error")
-            return redirect(url_for("consola.politicas_desarrollo", _anchor="cumplimiento"))
-        from .operacion import solicitar
-        try:
-            t = solicitar(g.usuario, g.cliente, a_, "*", {}, "Evaluar las aplicaciones instaladas contra las políticas de desarrollo")
-            flash(f"{t['numero']} creado: al aprobarse revisa las aplicaciones de IIS, JBoss, Spring Boot y Quarkus de cada máquina", "ok")
-            return redirect(url_for("consola.ticket", tid=t["id"]))
-        except (PermissionError, ErrorAAP, ValueError) as x:
-            flash(str(x), "error")
-        return redirect(url_for("consola.politicas_desarrollo", _anchor="cumplimiento"))
     if request.method == "POST":
         _escritura()
         try:
@@ -6545,12 +6531,16 @@ def politicas_desarrollo():
             cats.setdefault(p_["area"] or "Arquitectura", []).append(p_)
     ver = request.args.get("ver", "")
     hist = PDV.historial(g.cliente["id"], ver) if ver else []
-    cum = PEV.resumen(g.cliente["id"], {e["nombre"] for e in equipos_visibles()})
-    f_app = request.args.get("app", "")
     return render_template("politicas_desarrollo.html", cats=cats, ps=ps, niveles=PDV.NIVELES, verifica=PDV.VERIFICA, areas=PDV.AREAS, f_area=f_area,
-                           plataformas=PDV.PLATAFORMAS, aplica=PDV.aplica, cum=cum, f_app=f_app, estados=PEV.ESTADOS,
                            contrato=PDV.contrato(g.cliente["id"]), ver=ver, hist=hist,
                            fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and url_for("consola.fabrica_abrir"))
+
+
+@bp.route("/fabrica/desarrollo")
+@requiere_login
+def fabrica_desarrollo():
+    """Gobierno › Fábrica de software › Desarrollo: el chat de la Fábrica (solo OpenShift) dentro de FaceOps."""
+    return render_template("fabrica_desarrollo.html", fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and url_for("consola.fabrica_abrir", embebido=1))
 
 
 @bp.route("/arquitectura/fabrica/abrir")
@@ -6999,6 +6989,7 @@ def menu_nav():
                  ("consola.ecosistema", "Arquitectura", "segmentos", [("Manifiesto de arquitectura", {"_ep": "consola.manifiesto_arquitectura"}), ("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Políticas de desarrollo", {"_ep": "consola.politicas_desarrollo"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
                                                                       ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True}),
                                                                       ("Buenas prácticas por tecnología", {"_ep": "consola.buenas_practicas"})]),
+                 ("consola.fabrica_desarrollo", "Fábrica de software", "segmentos", [("Desarrollo", {}), ("Políticas de software", {"_ep": "consola.politicas_desarrollo"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
                  ("consola.radar_salud", "Monitoreo", "alertas", [("Radar de salud", {}), ("Alertas", {"_ep": "consola.alertas"}), ("Productividad", {"_ep": "consola.inicio", "_ancla": "sec-productividad"}), ("Tickets", {"_ep": "consola.tickets", "_titulo": True}), ("Todos", {"_ep": "consola.tickets", "_sub": True}),
                                                              ("En ejecución", {"_ep": "consola.tickets", "estado": "en_ejecucion", "_sub": True}), ("Exitosos", {"_ep": "consola.tickets", "estado": "exitoso", "_sub": True}),
