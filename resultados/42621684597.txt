@@ -1,0 +1,85 @@
+commit: 3c0eb7c9a41e2a9f1955e16e97ca1ac45f76c5f7
+inicio: 2026-11-09T10:00:30-03:00
+---
+nginx ip 192.168.122.11
+12:include /usr/share/nginx/modules/*.conf;
+31:    include             /etc/nginx/mime.types;
+35:    # See http://nginx.org/en/docs/ngx_core_module.html#include
+37:    include /etc/nginx/conf.d/*.conf;
+40:        listen       80;
+41:        listen       [::]:80;
+42:        server_name  _;
+46:        include /etc/nginx/default.d/*.conf;
+49:        location = /404.html {
+53:        location = /50x.html {
+60:#        listen       443 ssl http2;
+61:#        listen       [::]:443 ssl http2;
+62:#        server_name  _;
+73:#        include /etc/nginx/default.d/*.conf;
+76:#            location = /40x.html {
+80:#            location = /50x.html {
+187:# configuration file /etc/nginx/conf.d/app-jboss-upstream.conf:
+189:upstream app_jboss {
+190:    server 192.168.122.15:8080 max_fails=2 fail_timeout=10s;
+191:    server 192.168.122.18:8080 max_fails=2 fail_timeout=10s;
+196:upstream fo_app_jboss_azul { server 192.168.122.15:8080; }
+197:upstream fo_app_jboss_verde { server 192.168.122.21:8080; }
+199:    listen 8009;
+200:    location / {
+201:        proxy_pass http://fo_app_jboss_azul;
+204:        add_header X-Servidor $upstream_addr always;
+211:    listen 443 ssl;
+212:    server_name _;
+215:    include /etc/nginx/default.d/*.conf;
+220:location /app-jboss/ {
+221:    proxy_pass http://app_jboss/app-jboss/;
+223:    proxy_next_upstream error timeout http_502 http_503;
+224:    add_header X-Servidor-JBoss $upstream_addr always;
+229:location /prueba-flujo-qa/ {
+230:    proxy_pass http://192.168.122.14:8775/;
+236:location /console/ {
+237:    proxy_pass http://192.168.122.14:8161/console/;
+250:location /midpoint/ {
+251:    proxy_pass http://192.168.122.1:8101;
+262:location /sso/ {
+app-jboss-upstream.conf
+faceops-trafico-app-jboss.conf
+faceops-trafico-app-jboss.conf.anterior
+summit-tls.conf
+== app
+raiz 200
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+	<head>
+		<title>Test Page for the HTTP Server on Red Hat Enterprise Linux</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<style type="text/css">
+			/*<![CDATA[*/
+			body {
+				background-color: #fff;
+				col
+/app-jboss/ 404
+/app/ 404
+/api/ 404
+/facturas 404
+/app-jboss/api/facturas 404
+/pagos 404
+== sno ip
+ vnet18     52:54:00:5e:00:5e    ipv4         192.168.122.50/24
+
+192.168.122.50
+== s3 anónimo
+put 201
+lake.properties 
+ connector.name=hive
+hive.metastore=file
+hive.metastore.catalog.dir=file:///data/trino/metastore
+hive.non-managed-table-writes-enabled=true
+fs.hadoop.enabled=true
+fs.native-s3.enabled=true
+s3.endpoint=http://minio:9000
+s3.region=us-east-1
+s3.path-style-access=true
+nginx->sno-route 200
+--- fin: 2026-11-09T10:00:37-03:00 · código: 0
