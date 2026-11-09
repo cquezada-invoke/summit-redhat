@@ -173,7 +173,15 @@ def api_generar():
             p2 = generar(req_, dict(p, requerimiento=req_), "Corrige estos incumplimientos de las políticas y entrega el JSON completo:\n" + "\n".join(malos))
             p, malos = p2, revisar(p2["archivos"])
     except requests.RequestException as x:
-        return jsonify({"error": f"No se pudo generar ({type(x).__name__})"}), 502
+        rs = getattr(x, "response", None)
+        det = ""
+        if rs is not None:
+            try:
+                det = f" {rs.status_code} · {rs.url.split('/')[2]} · {str((rs.json().get('error') or {}).get('message', ''))[:200]}"
+            except Exception:  # noqa: BLE001
+                det = f" {rs.status_code}"
+        app.logger.warning("generar: %s%s", type(x).__name__, det)
+        return jsonify({"error": f"No se pudo generar ({type(x).__name__}{det})"}), 502
     except (ValueError, KeyError):
         return jsonify({"error": "El agente no devolvió un proyecto válido; intenta de nuevo o precisa el requerimiento"}), 502
     p["requerimiento"] = (previo or {}).get("requerimiento", req_) if previo else req_
