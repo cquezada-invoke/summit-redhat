@@ -150,8 +150,10 @@ spec:
               fi
               EXTRA=""; case "$(params.ambiente)" in desarrollo) EXTRA="deploy/desarrollo deploy/dev";; qa) EXTRA="deploy/qa";; produccion) EXTRA="deploy/produccion deploy/prod";; esac
               for d in $EXTRA; do [ -d "$d" ] && for f in "$d"/*.y*ml; do oc apply -f "$f"; done; done   # dependencias del ambiente (p. ej. PostgreSQL de desarrollo)
-              for f in deploy/*.y*ml; do sed "s#IMAGEN_APP#$IMG#g" "$f" | oc apply -f -; done
-              oc patch route "$A" --type=merge -p "{\"spec\":{\"host\":\"$A.$OCP_DOMINIO\"}}" >/dev/null 2>&1 || true
+              H="$A.$OCP_DOMINIO"; R=$(oc get route "$A" -o jsonpath='{.spec.host}' 2>/dev/null || true)
+              [ -z "$R" ] || [ "$R" = "$H" ] || { oc delete route "$A" >/dev/null; echo "Route $A: host $R reemplazado por $H"; }   # el host es inmutable
+              for f in deploy/*.y*ml; do sed -e "s#IMAGEN_APP#$IMG#g" -e "s#^\(\s*host:\s*\).*#\1$H#" "$f" | oc apply -f -; done
+              oc get route "$A" -o jsonpath='{.spec.host}' | grep -qx "$H" || oc patch route "$A" --type=merge -p "{\"spec\":{\"host\":\"$H\"}}" >/dev/null 2>&1 || true
               [ "$(params.ambiente)" = "produccion" ] || { oc patch hpa "$A" --type=merge -p '{"spec":{"minReplicas":1}}' >/dev/null 2>&1; oc scale deploy/"$A" --replicas=1 >/dev/null 2>&1; } || true   # PS-13: 2+ réplicas solo en producción
               if [ "$(params.ambiente)" != "produccion" ]; then   # desarrollo/QA: requests mínimos y, si el clúster no asigna StorageClass, disco efímero
                 for D in $(oc get deploy -o name | grep "^deployment.apps/$A"); do
