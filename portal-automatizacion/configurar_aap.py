@@ -18,7 +18,9 @@ VA, C, G, E = "http://192.168.122.1:8202/v1", "https://localhost/api/controller/
 GITEA = "http://127.0.0.1:3000/api/v1"
 CTX = ssl._create_unverified_context()
 BASIC = "Basic " + base64.b64encode(f"admin:{CLAVE}".encode()).decode()
-ORG_N, REPO = "Portal de automatización", "portal-automatizaciones"
+ORG_N, REPO = "Claro Puerto Rico", "portal-automatizaciones"   # tenant de Claro PR: OpenShift, Telco y Amdocs
+ORG_INFRA = "Portal de automatización"                            # Infraestructura del laboratorio (fuera del tenant de Claro)
+USUARIO_CLARO = "claro-demo"
 OC = os.path.expanduser("~/openshift/sno/bin/oc")
 KCFG = os.path.expanduser("~/openshift/sno/instalar/auth/kubeconfig")
 API_OCP = "https://192.168.122.50:6443"
@@ -130,15 +132,20 @@ if "secret/data/portal/" not in pol:
 paso("OpenShift: ServiceAccount aap-portal (token en Vault secret/portal/ocp)")
 
 # 3. AAP -----------------------------------------------------------------------------------------------------------------
-if not gw("GET", "organizations/?name=" + q(ORG_N))["results"]:
-    gw("POST", "organizations/", {"name": ORG_N, "description": "Catálogo del portal de automatización (demos con aprobación)"})
-org = None
-for _ in range(20):
-    org = uno("organizations", name=ORG_N)
-    if org:
-        break
-    time.sleep(3)
-org = org["id"]
+def organizacion(nombre, descripcion):
+    if not gw("GET", "organizations/?name=" + q(nombre))["results"]:
+        gw("POST", "organizations/", {"name": nombre, "description": descripcion})
+    for _ in range(20):
+        o = uno("organizations", name=nombre)
+        if o:
+            return o["id"]
+        time.sleep(3)
+    sys.exit(f"ERROR: la organización {nombre} no aparece en el controlador")
+
+
+org = organizacion(ORG_N, "Tenant de Claro Puerto Rico: OpenShift, CNF de Nabstract, red del servicio y Amdocs")
+org_infra = organizacion(ORG_INFRA, "Automatizaciones de infraestructura del laboratorio para el portal")
+paso(f"Organizaciones «{ORG_N}» (tenant) y «{ORG_INFRA}»")
 
 vcred = uno("credentials", name="HashiCorp Vault · secretos")["id"]
 tipo_k8s = aap("GET", "credential_types/?namespace=kubernetes_bearer_token")["results"][0]["id"]
@@ -186,11 +193,11 @@ cred_red = [c["id"] for c in aap("GET", f"job_templates/{jt_red['id']}/credentia
 etiqueta_ids = {}
 
 
-def etiqueta(nombre):
-    if nombre not in etiqueta_ids:
-        e = uno("labels", name=nombre, organization=org) or aap("POST", "labels/", {"name": nombre, "organization": org})
-        etiqueta_ids[nombre] = e["id"]
-    return etiqueta_ids[nombre]
+def etiqueta(nombre, o):
+    if (nombre, o) not in etiqueta_ids:
+        e = uno("labels", name=nombre, organization=o) or aap("POST", "labels/", {"name": nombre, "organization": o})
+        etiqueta_ids[(nombre, o)] = e["id"]
+    return etiqueta_ids[(nombre, o)]
 
 
 def plantilla(nombre, playbook, red=False, descripcion=""):
@@ -223,7 +230,8 @@ paso(f"{len(jts)} plantillas")
 def workflow(it):
     nombre = f"Portal · {it['nombre']}"
     wf = aap("GET", "workflow_job_templates/?name=" + q(nombre))["results"]
-    datos = {"organization": org, "description": it["descripcion"], "survey_enabled": bool(it.get("encuesta")), "ask_variables_on_launch": False,
+    o_ = org_infra if it["seccion"] == "infra" else org
+    datos = {"organization": o_, "description": it["descripcion"], "survey_enabled": bool(it.get("encuesta")), "ask_variables_on_launch": False,
              "allow_simultaneous": False, "ask_limit_on_launch": bool(it.get("limite")),
              "inventory": (aap("GET", f"job_templates/{jts[it['nombre']]}/")["inventory"] if it.get("limite") else None)}
     wf = aap("PATCH", f"workflow_job_templates/{wf[0]['id']}/", datos)["id"] if wf else aap("POST", "workflow_job_templates/", dict(datos, name=nombre))["id"]
@@ -260,19 +268,31 @@ def workflow(it):
         aap("DELETE", f"workflow_job_templates/{wf}/survey_spec/", t=True)
     ya = {x["name"] for x in aap("GET", f"workflow_job_templates/{wf}/labels/")["results"]}
     if f"portal-{it['seccion']}" not in ya:
-        aap("POST", f"workflow_job_templates/{wf}/labels/", {"id": etiqueta(f"portal-{it['seccion']}")})
+        aap("POST", f"workflow_job_templates/{wf}/labels/", {"id": etiqueta(f"portal-{it['seccion']}", o_)})
     return wf
 
 
 for it in cat:
     paso(f"workflow 'Portal · {it['nombre']}' (id {workflow(it)})")
 
-# Equipo «Portal · operadores»: lanzan y aprueban (el admin ya puede todo)
-equipo = gw("GET", "teams/?name=" + q("Portal · operadores"))["results"]
-if not equipo:
-    gw("POST", "teams/", {"name": "Portal · operadores", "organization": gw("GET", "organizations/?name=" + q(ORG_N))["results"][0]["id"],
-                          "description": "Pueden lanzar y aprobar las automatizaciones del portal"})
-paso("Equipo 'Portal · operadores' (asignar usuarios para que vean el portal)")
+# Usuario demo del tenant: administra solo su organización (ve, lanza y aprueba lo de Claro). La clave la fija Cristian en AAP.
+u_ = gw("GET", "users/?username=" + USUARIO_CLARO)["results"]
+if not u_:
+    import secrets as _s
+    u_ = [gw("POST", "users/", {"username": USUARIO_CLARO, "first_name": "Claro", "last_name": "Puerto Rico (demo)",
+                                "password": _s.token_urlsafe(24)})]   # clave aleatoria descartada: se cambia en AAP › Usuarios
+uid = u_[0]["id"]
+gorg = gw("GET", "organizations/?name=" + q(ORG_N))["results"][0]["id"]
+if not gw("GET", f"organizations/{gorg}/admins/?id={uid}", t=True) or not gw("GET", f"organizations/{gorg}/admins/?id={uid}")["results"]:
+    gw("POST", f"organizations/{gorg}/admins/", {"id": uid}, t=True)
+# la red del servicio usa la plantilla del equipo de redes (otra organización): el usuario demo puede ejecutarla
+rd = aap("GET", "role_definitions/?name=" + q("JobTemplate Execute"), t=True)
+cu = uno("users", username=USUARIO_CLARO)
+if rd and rd.get("results") and cu:
+    jt_rs = jts.get("Telco · Red del servicio (VLAN y BGP)")
+    if jt_rs:
+        aap("POST", "role_user_assignments/", {"role_definition": rd["results"][0]["id"], "user": cu["id"], "object_id": str(jt_rs)}, t=True)
+paso(f"Usuario «{USUARIO_CLARO}» administrador del tenant «{ORG_N}» (fijar su clave en AAP › Usuarios)")
 
 # 4. EDA -----------------------------------------------------------------------------------------------------------------
 if "--sin-eda" not in sys.argv:
