@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% block titulo %}Políticas de desarrollo{% endblock %}
+{% block cuerpo %}
+<style>.pd-cat{margin:14px 0 6px;font-size:15px}.pd{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0 0 8px;background:var(--card,#fff)}
+.pd h3{margin:0;font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.pd p{margin:4px 0 0;font-size:13.5px}.pd.off{opacity:.55}
+.pd-n{font-size:11px;padding:1px 7px;border-radius:9px}.n-obligatoria{background:#fdeaea;color:#a30000}.n-recomendada{background:#e7f1fa;color:#004080}</style>
+<div class="fila" style="align-items:flex-start;gap:10px"><div><h1 style="margin:0">Políticas de desarrollo</h1>
+<p class="sub" style="margin:4px 0 0">Lo que todo código debe cumplir para correr en OpenShift, definido por cada área (Arquitectura, Infraestructura, Seguridad, Operación y Calidad) hacia el desarrollo. Las toma el agente de la Fábrica de código para generar cada desarrollo y el pipeline de Tekton verifica las automáticas; las obligatorias bloquean el despliegue.</p></div>
+<div class="der" style="display:flex;gap:8px">{% if fabrica_url %}<a class="btn" href="{{ fabrica_url }}" target="_blank" rel="noopener">Abrir la Fábrica de código</a>{% endif %}
+<a class="btn sec" href="{{ url_for('consola.politicas_desarrollo_md') }}" target="_blank">Ver como las recibe el agente</a>
+{% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn sec" onclick="document.getElementById('pd-nueva').showModal()">+ Nueva política</button>{% endif %}</div></div>
+<div class="grid g4" style="margin:12px 0"><div class="card kpi"><span class="sub">Políticas activas</span><b>{{ contrato.politicas|length }}</b></div>
+<div class="card kpi"><span class="sub">Obligatorias</span><b>{{ contrato.politicas|selectattr('nivel', 'equalto', 'obligatoria')|list|length }}</b></div>
+<div class="card kpi"><span class="sub">Verifica el pipeline</span><b>{{ contrato.politicas|selectattr('verifica', 'equalto', 'pipeline')|list|length }}</b></div>
+<div class="card kpi"><span class="sub">Versión del conjunto</span><b class="mono" style="font-size:18px">{{ contrato.huella }}</b></div></div>
+<div class="fila" style="gap:6px;flex-wrap:wrap;margin:0 0 8px"><a class="btn chico {{ '' if not f_area else 'gris' }}" href="{{ url_for('consola.politicas_desarrollo') }}">Todas las áreas</a>{% for a in areas %}<a class="btn chico {{ '' if f_area == a else 'gris' }}" href="{{ url_for('consola.politicas_desarrollo', area=a) }}">{{ a }} ({{ ps|selectattr('area', 'equalto', a)|list|length }})</a>{% endfor %}</div>
+{% from "_buscador.html" import buscador %}{{ buscador('Buscar política: código, categoría, texto…') }}
+<div data-buscable-bloques>
+{% for cat, lst in cats.items() %}<h2 class="pd-cat">Área {{ cat }}</h2>
+{% for p in lst %}<div class="pd{{ ' off' if not p.activa }}" id="p-{{ p.codigo }}" data-buscable-item><h3><span class="mono">{{ p.codigo }}</span> {{ p.titulo }} <span class="sub" style="font-size:12px">· {{ p.categoria }}</span>
+<span class="pd-n n-{{ p.nivel }}">{{ niveles[p.nivel] }}</span><span class="pd-n" style="background:var(--soft,#f0f0f0)">verifica: {{ verifica.get(p.verifica, p.verifica) }}</span>{% if not p.activa %}<span class="pd-n" style="background:#eee">inactiva</span>{% endif %}
+<span class="sub" style="font-size:11.5px;margin-left:auto">v{{ p.version }} · {{ p.autor }} · {{ (p.fecha or '')[:10] }}{% if p.version > 1 %} · <a href="{{ url_for('consola.politicas_desarrollo', ver=p.codigo, _anchor='p-' ~ p.codigo) }}">historial</a>{% endif %}</span></h3>
+<p>{{ p.regla }}</p>
+{% if ver == p.codigo and hist %}<div style="margin-top:6px;font-size:12.5px">{% for h in hist %}<div class="sub">v{{ h.version }} · {{ h.autor }} · {{ h.fecha[:16].replace('T', ' ') }}{{ ' · ' ~ h.motivo if h.motivo }}</div>{% endfor %}</div>{% endif %}
+{% if perfil_actual.modo == 'escritura' %}<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12.5px;color:var(--acc,#0066cc)">Editar</summary>
+<form method="post" style="display:grid;gap:6px;margin-top:6px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="codigo" value="{{ p.codigo }}">
+<div class="rejilla"><label>Área dueña<select name="area">{% for a in areas %}<option {{ 'selected' if p.area == a }}>{{ a }}</option>{% endfor %}</select></label><label>Categoría<input name="categoria" value="{{ p.categoria }}"></label><label>Título<input name="titulo" value="{{ p.titulo }}" required></label>
+<label>Nivel<select name="nivel">{% for k, t in niveles.items() %}<option value="{{ k }}" {{ 'selected' if p.nivel == k }}>{{ t }}</option>{% endfor %}</select></label>
+<label>Verifica<select name="verifica">{% for k, t in verifica.items() %}<option value="{{ k }}" {{ 'selected' if p.verifica == k }}>{{ t }}</option>{% endfor %}</select></label>
+<label>Estado<select name="activa"><option value="1" {{ 'selected' if p.activa }}>Activa</option><option value="0" {{ 'selected' if not p.activa }}>Inactiva</option></select></label></div>
+<label>Regla<textarea name="regla" rows="3" required>{{ p.regla }}</textarea></label><label>Motivo del cambio<input name="motivo"></label>
+<div class="fila"><button class="btn">Guardar nueva versión</button></div></form></details>{% endif %}</div>{% endfor %}{% endfor %}
+</div>
+{% if perfil_actual.modo == 'escritura' %}<dialog id="pd-nueva" class="al-dlg" style="max-width:560px"><form method="post" style="display:grid;gap:8px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<h2 style="margin:0">Nueva política de desarrollo</h2>
+<div class="rejilla"><label>Área dueña<select name="area">{% for a in areas %}<option {{ 'selected' if f_area == a }}>{{ a }}</option>{% endfor %}</select></label><label>Categoría<input name="categoria" list="pd-cats" required></label><label>Título<input name="titulo" required></label>
+<label>Nivel<select name="nivel">{% for k, t in niveles.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label>
+<label>Verifica<select name="verifica">{% for k, t in verifica.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label></div>
+<label>Regla<textarea name="regla" rows="4" required placeholder="Qué debe cumplir el código, de forma verificable"></textarea></label>
+<datalist id="pd-cats">{% for c in ps|map(attribute='categoria')|unique %}<option value="{{ c }}">{% endfor %}</datalist>
+<div class="fila"><button class="btn">Crear</button><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button></div></form></dialog>{% endif %}
+{% endblock %}

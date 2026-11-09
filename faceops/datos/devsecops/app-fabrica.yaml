@@ -1,0 +1,110 @@
+# Fábrica de código: revisa y despliega en OpenShift lo que generó el agente. Verifica las políticas de desarrollo automáticas
+# (PD-02 a PD-08, PD-05 secretos, PD-12 análisis estático, PD-16 pruebas); si alguna obligatoria falla, no se despliega.
+# El build y el despliegue ocurren en OpenShift (namespace fabrica-dev) con la cuenta de servicio del Secret «fabrica-ocp».
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: app-fabrica
+spec:
+  description: Aplicación de la Fábrica de código hacia OpenShift con sus políticas de desarrollo
+  params:
+    - {name: repo-url, default: "http://__HOST__:3000/fabrica/ejemplo.git"}
+    - {name: revision, default: develop}
+    - {name: app, default: ejemplo, description: "Nombre de la aplicación (repositorio)"}
+    - {name: ambiente, default: desarrollo, description: "Ambiente al que despliega"}
+  workspaces:
+    - name: fuente
+    - {name: cache, optional: true}
+  tasks:
+    - name: clonar
+      workspaces: [{name: fuente, workspace: fuente}]
+      params: [{name: repo-url, value: $(params.repo-url)}, {name: revision, value: $(params.revision)}]
+      taskSpec:
+        params: [{name: repo-url}, {name: revision}]
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: git, image: docker.io/alpine/git:2.45.2, script: "rm -rf $(workspaces.fuente.path)/src && git clone --depth 1 -b $(params.revision) $(params.repo-url) $(workspaces.fuente.path)/src && git -C $(workspaces.fuente.path)/src log -1 --oneline"}
+    - name: secretos
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: gitleaks, image: docker.io/zricethezav/gitleaks:v8.18.4, workingDir: $(workspaces.fuente.path)/src, script: "gitleaks detect --no-git --source . --redact"}
+    - name: politicas
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - name: politicas-desarrollo
+            image: docker.io/library/python:3.12-alpine
+            workingDir: $(workspaces.fuente.path)/src
+            script: |
+              #!/usr/bin/env python3
+              import glob, re, sys
+              malos = []
+              cf = open("Containerfile").read() if __import__("os").path.exists("Containerfile") else ""
+              if not cf: malos.append("PD-01 falta Containerfile")
+              m = re.search(r"^FROM\s+(\S+)", cf, re.M)
+              if not m or not m.group(1).startswith("registry.access.redhat.com/ubi9/") or m.group(1).endswith(":latest") or ":" not in m.group(1).rsplit("/", 1)[-1]:
+                  malos.append("PD-02 imagen base UBI 9 con versión fija")
+              u = re.findall(r"^USER\s+(\S+)", cf, re.M)
+              if not u or u[-1] in ("0", "root"): malos.append("PD-03 USER no root")
+              if not re.search(r"^EXPOSE\s+8080", cf, re.M): malos.append("PD-04 EXPOSE 8080")
+              dep = "".join(open(f).read() for f in glob.glob("deploy/*.y*ml"))
+              for k, p in (("livenessProbe", "PD-06"), ("readinessProbe", "PD-06"), ("requests", "PD-07"), ("limits", "PD-07"),
+                           ("kind: Route", "PD-08"), ("termination: edge", "PD-08"), ("IMAGEN_APP", "PD-08")):
+                  if k not in dep: malos.append(f"{p} deploy/ sin {k}")
+              print("\n".join("INCUMPLE " + x for x in malos) or "Políticas automáticas: todas cumplen")
+              sys.exit(1 if malos else 0)
+    - name: pruebas
+      runAfter: [politicas, secretos]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - name: pruebas-unitarias
+            image: registry.access.redhat.com/ubi9/python-311:1-77
+            workingDir: $(workspaces.fuente.path)/src
+            script: |
+              set -e
+              if [ -f requirements.txt ]; then pip install -q -r requirements.txt pytest pytest-cov && python -m pytest -q --cov=. --cov-fail-under=70; \
+              elif [ -f package.json ]; then echo "Node: npm test" && npx --yes npm@10 ci && npx --yes npm@10 test; \
+              else echo "PD-16: sin pruebas reconocibles" && exit 1; fi
+    - name: analisis-estatico
+      runAfter: [politicas]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: semgrep, image: docker.io/semgrep/semgrep:1.85.0, workingDir: $(workspaces.fuente.path)/src, script: "semgrep scan --config p/default --severity ERROR --error --metrics=off ."}
+    - name: construir-y-desplegar
+      runAfter: [pruebas, analisis-estatico]
+      workspaces: [{name: fuente, workspace: fuente}]
+      params: [{name: app, value: $(params.app)}, {name: ambiente, value: $(params.ambiente)}]
+      taskSpec:
+        params: [{name: app}, {name: ambiente}]
+        workspaces: [{name: fuente}]
+        steps:
+          - name: openshift
+            image: quay.io/openshift/origin-cli:4.16
+            workingDir: $(workspaces.fuente.path)/src
+            env:
+              - {name: OCP_SERVER, valueFrom: {secretKeyRef: {name: fabrica-ocp, key: servidor}}}
+              - {name: OCP_TOKEN, valueFrom: {secretKeyRef: {name: fabrica-ocp, key: token}}}
+              - {name: OCP_NS, valueFrom: {secretKeyRef: {name: fabrica-ocp, key: namespace}}}
+              - {name: OCP_DOMINIO, valueFrom: {secretKeyRef: {name: fabrica-ocp, key: dominio}}}
+            script: |
+              set -e
+              A=$(params.app)
+              oc login --server="$OCP_SERVER" --token="$OCP_TOKEN" --insecure-skip-tls-verify=true >/dev/null
+              oc project "$OCP_NS" >/dev/null
+              oc get bc "$A" >/dev/null 2>&1 || oc new-build --name "$A" --binary --strategy docker -l app.kubernetes.io/part-of=fabrica-codigo >/dev/null
+              oc start-build "$A" --from-dir=. --wait --follow | tail -5
+              IMG=$(oc get is "$A" -o jsonpath='{.status.dockerImageRepository}'):latest
+              for f in deploy/*.y*ml; do sed "s#IMAGEN_APP#$IMG#g" "$f" | oc apply -f -; done
+              oc patch route "$A" --type=merge -p "{\"spec\":{\"host\":\"$A.$OCP_DOMINIO\"}}" >/dev/null 2>&1 || true
+              oc rollout restart deploy/"$A" >/dev/null 2>&1 || true
+              oc rollout status deploy/"$A" --timeout=240s
+              echo "Aplicación desplegada en $(params.ambiente): https://$(oc get route "$A" -o jsonpath='{.spec.host}')"

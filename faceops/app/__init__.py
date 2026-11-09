@@ -112,7 +112,7 @@ def create_app():
             ref = request.headers.get("Origin") or request.headers.get("Referer") or ""
             if not ref.startswith(request.host_url.rstrip("/")):
                 abort(400, "Origen no permitido")
-        elif request.method == "POST" and request.endpoint not in ("consola.ingresar",):
+        elif request.method == "POST" and request.endpoint not in ("consola.ingresar", "consola.api_fabrica_ejecutar"):
             tok_ = request.form.get("_csrf") or request.headers.get("X-CSRF") or ((request.get_json(silent=True) or {}).get("_csrf") if request.is_json else None)
             if tok_ != session.get("csrf"):
                 abort(400, "Formulario vencido: recarga la página")
@@ -292,6 +292,7 @@ def create_app():
     from .vistas import bp as consola
     from .admin import bp as admin
     from . import mod_redes, mod_storage, mod_contenedores, mod_estaciones, mod_hipervisores, mod_nubes   # noqa: F401  (módulos con repositorio propio)
+    from . import fabrica_api   # noqa: F401  (API del agente de la Fábrica de código)
     from . import demo_datos   # noqa: F401  (datos de demostración marcados, se quitan con un clic)
     from . import recuperar   # noqa: F401  (recuperar clave desde el login)
     from . import multicliente   # noqa: F401  (FaceOps centralizado · demo: registra /clientes en la consola)

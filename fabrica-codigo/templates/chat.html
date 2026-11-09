@@ -1,0 +1,46 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fábrica de código</title>
+<style>
+:root{--f:#f2f2f2;--c:#fff;--t:#151515;--s:#6a6e73;--a:#0066cc;--l:#d2d2d2;--ok:#3e8635;--mal:#c9190b}
+*{box-sizing:border-box}body{margin:0;font-family:"Red Hat Text",system-ui,sans-serif;background:var(--f);color:var(--t);display:flex;flex-direction:column;height:100vh}
+header{background:#151515;color:#fff;padding:10px 18px;display:flex;align-items:center;gap:12px}header b{font-size:17px}header span{opacity:.7;font-size:13px}header a{color:#73bcf7;margin-left:auto;font-size:13px}
+main{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px;max-width:1100px;width:100%;margin:0 auto}
+.m{background:var(--c);border:1px solid var(--l);border-radius:10px;padding:12px 14px;max-width:92%}.yo{align-self:flex-end;background:#e7f1fa;border-color:#bee1f4}
+.m h3{margin:0 0 6px;font-size:15px}.m p{margin:4px 0}.chip{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:9px;background:#f0f0f0;margin:2px 4px 2px 0}
+.ok{background:#f3faf2;color:var(--ok)}.mal{background:#fdeaea;color:var(--mal)}
+details{margin-top:6px}summary{cursor:pointer;color:var(--a);font-size:13px}pre{background:#1e1e1e;color:#eee;padding:10px;border-radius:6px;overflow:auto;font-size:12px;max-height:360px}
+footer{border-top:1px solid var(--l);background:var(--c);padding:12px 18px}footer form{max-width:1100px;margin:0 auto;display:flex;gap:8px}
+textarea{flex:1;font:inherit;padding:10px;border:1px solid var(--l);border-radius:8px;resize:vertical;min-height:54px}
+button{font:inherit;background:var(--a);color:#fff;border:0;border-radius:6px;padding:9px 16px;cursor:pointer}button.sec{background:#fff;color:var(--a);border:1px solid var(--a)}button:disabled{opacity:.5}
+.ayuda{color:var(--s);font-size:13px}
+</style></head><body>
+<header><b>Fábrica de código</b><span>Desarrollo sobre OpenShift con las políticas de desarrollo de FaceOps · {{ usuario }}</span>{% if faceops %}<a href="{{ faceops }}/arquitectura/politicas-desarrollo" target="_blank">Políticas de desarrollo ↗</a>{% endif %}</header>
+<main id="chat"><div class="m"><h3>¿Qué necesitas construir?</h3><p class="ayuda">Describe el requerimiento funcional (qué hace, qué datos recibe y entrega, quién lo usa). El agente arma la aplicación cumpliendo las políticas de desarrollo, la revisa y, cuando la apruebes, crea el repositorio y la rama <code>feature/…</code> y pide a FaceOps ejecutar el pipeline (revisión y despliegue en OpenShift, con aprobación).</p>
+<p class="ayuda">Ejemplo: «Una API que reciba solicitudes de vacaciones (empleado, desde, hasta), valide que no se crucen y liste las del mes».</p></div></main>
+<footer><form id="f"><textarea id="msg" placeholder="Escribe el requerimiento o un ajuste al proyecto actual…" required></textarea>
+<div style="display:flex;flex-direction:column;gap:6px"><button id="b-gen">Generar</button><button type="button" class="sec" id="b-aj" disabled title="Ajustar el proyecto actual">Ajustar</button></div></form></footer>
+<script>
+const chat=document.getElementById('chat'),msg=document.getElementById('msg'),bg=document.getElementById('b-gen'),ba=document.getElementById('b-aj');
+const esc=t=>String(t??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+function burbuja(html,yo){const d=document.createElement('div');d.className='m'+(yo?' yo':'');d.innerHTML=html;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
+async function post(u,b){const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return [r.ok,await r.json().catch(()=>({error:'respuesta inválida'}))]}
+async function enviar(ajustar){const t=msg.value.trim();if(!t)return;burbuja(esc(t),true);msg.value='';bg.disabled=ba.disabled=true;
+ const w=burbuja('<p class="ayuda">El agente está construyendo el proyecto con las políticas de desarrollo…</p>');
+ const [ok,d]=await post('/api/generar',{mensaje:t,ajustar});bg.disabled=false;
+ if(!ok){w.innerHTML='<p class="chip mal">'+esc(d.error)+'</p>';return}
+ ba.disabled=false;const n=Object.keys(d.archivos).length;
+ w.innerHTML='<h3>'+esc(d.nombre)+' <span class="chip">'+esc(d.stack)+'</span></h3><p>'+esc(d.resumen)+'</p>'+
+  '<p>'+(d.politicas||[]).map(p=>'<span class="chip ok">'+esc(p)+'</span>').join('')+'</p>'+
+  (d.revision.length?'<p><b>Aún no cumple:</b></p>'+d.revision.map(x=>'<span class="chip mal">'+esc(x)+'</span>').join('')+'<p class="ayuda">Pide un ajuste para corregirlo.</p>':'<p class="chip ok">Cumple las políticas que se revisan antes del pipeline · versión de políticas '+esc(d.huella)+'</p>')+
+  '<details><summary>Ver los '+n+' archivos</summary>'+Object.entries(d.archivos).map(([k,v])=>'<p><b>'+esc(k)+'</b></p><pre>'+esc(v)+'</pre>').join('')+'</details>'+
+  (d.revision.length?'':'<p style="margin-top:8px"><button onclick="publicar(this)">Crear repositorio y lanzar el pipeline</button></p>')}
+async function publicar(b){b.disabled=true;const w=burbuja('<p class="ayuda">Creando el repositorio y la rama, y pidiendo el pipeline a FaceOps…</p>');
+ const [ok,d]=await post('/api/publicar',{});
+ if(!ok&&!d.repo){w.innerHTML='<p class="chip mal">'+esc(d.error)+'</p>';b.disabled=false;return}
+ w.innerHTML='<p>Repositorio: <a href="'+esc(d.repo)+'" target="_blank">'+esc(d.repo)+'</a></p><p>Rama: <code>'+esc(d.rama)+'</code></p>'+(d.ticket?'<p>Ticket en FaceOps: <b>'+esc(d.ticket)+'</b> · <span id="st-'+esc(d.ticket)+'" class="chip">pendiente de aprobación</span></p><p class="ayuda">El pipeline corre al aprobarse: revisa secretos, políticas, pruebas y análisis estático, construye la imagen en OpenShift y la despliega.</p>':'<p class="chip mal">'+esc(d.error||'FaceOps no creó el ticket')+'</p>');
+ if(d.ticket)seguir(d.ticket,d.app_url)}
+async function seguir(t,appUrl){const el=document.getElementById('st-'+t);for(let i=0;i<240;i++){const r=await fetch('/api/ticket/'+encodeURIComponent(t));if(r.ok){const d=await r.json();el.textContent=d.estado.replace('_',' ');el.className='chip '+(d.estado==='exitoso'?'ok':d.estado==='fallido'?'mal':'');
+ if(['exitoso','fallido','cancelado','rechazado'].includes(d.estado)){const u=(d.resultado.match(/https:\/\/[^\s"]+/)||[])[0]||(d.estado==='exitoso'?appUrl:'');burbuja('<p><b>'+esc(t)+'</b>: '+esc(d.estado)+'</p>'+(u?'<p>Aplicación: <a href="'+esc(u)+'" target="_blank">'+esc(u)+'</a></p>':'')+'<details><summary>Resultado</summary><pre>'+esc(d.resultado)+'</pre></details>');return}}
+ await new Promise(r=>setTimeout(r,15000))}}
+document.getElementById('f').addEventListener('submit',e=>{e.preventDefault();enviar(false)});ba.addEventListener('click',()=>enviar(true));
+msg.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();enviar(false)}});
+</script></body></html>

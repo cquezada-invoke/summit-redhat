@@ -4544,7 +4544,7 @@ def devsecops():
             flash("Herramienta registrada. Queda en gris hasta que FaceOps la conecte y la pruebe.", "ok")
         except ValueError as x:
             flash(str(x), "error")
-        return redirect(url_for("consola.devsecops_herramienta", hid=hid))
+        return redirect(url_for("consola.devsecops"))   # antes apuntaba a una herramienta inexistente (error al agregar)
     cajas = []
     n_tk = None
     for h in dso.herramientas(g.cliente["id"], eqs):
@@ -6498,6 +6498,59 @@ def manifiesto_arquitectura():
                            salida=M.SALIDA, avance=M.AVANCE, aceptadas=aceptadas)
 
 
+@bp.route("/arquitectura/politicas-desarrollo", methods=["GET", "POST"])
+@requiere_login
+def politicas_desarrollo():
+    """Gobierno › Arquitectura › Políticas de desarrollo: lo que todo código debe cumplir para correr en OpenShift; las usa el agente
+    de la Fábrica de código para generar desarrollos y el pipeline verifica las automáticas."""
+    from . import politicas_dev as PDV
+    if request.method == "POST":
+        _escritura()
+        try:
+            cod = PDV.guardar(g.cliente["id"], request.form, g.usuario["usuario"])
+            auditar(g.usuario["usuario"], g.cliente["id"], "política de desarrollo", cod, {"titulo": request.form.get("titulo"), "motivo": request.form.get("motivo")})
+            flash(f"Política {cod} guardada (nueva versión para el agente)", "ok")
+        except ValueError as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.politicas_desarrollo", _anchor="p-" + (request.form.get("codigo") or "")))
+    ps = PDV.lista(g.cliente["id"])
+    f_area = request.args.get("area", "")
+    cats = {}   # por área dueña (hacia el desarrollo)
+    for p_ in ps:
+        if not f_area or p_["area"] == f_area:
+            cats.setdefault(p_["area"] or "Arquitectura", []).append(p_)
+    ver = request.args.get("ver", "")
+    hist = PDV.historial(g.cliente["id"], ver) if ver else []
+    return render_template("politicas_desarrollo.html", cats=cats, ps=ps, niveles=PDV.NIVELES, verifica=PDV.VERIFICA, areas=PDV.AREAS, f_area=f_area,
+                           contrato=PDV.contrato(g.cliente["id"]), ver=ver, hist=hist,
+                           fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and url_for("consola.fabrica_abrir"))
+
+
+@bp.route("/arquitectura/fabrica/abrir")
+@requiere_login
+def fabrica_abrir():
+    """Entra a la Fábrica de código con un enlace firmado de 60 segundos (la Fábrica no tiene usuarios propios)."""
+    import hashlib
+    import hmac
+    import time
+    url, tok = os.environ.get("FACEOPS_FABRICA_URL", "").rstrip("/"), os.environ.get("FACEOPS_FABRICA_TOKEN", "")
+    if not url or not tok:
+        flash("La Fábrica de código aún no está conectada a esta instancia", "error")
+        return redirect(url_for("consola.politicas_desarrollo"))
+    t = str(int(time.time()))
+    f = hmac.new(tok.encode(), f"{g.usuario['usuario']}|{t}".encode(), hashlib.sha256).hexdigest()
+    auditar(g.usuario["usuario"], g.cliente["id"], "entrar a la Fábrica de código", "fabrica")
+    from urllib.parse import urlencode
+    return redirect(f"{url}/entrar?" + urlencode({"u": g.usuario["usuario"], "t": t, "f": f}))
+
+
+@bp.route("/arquitectura/politicas-desarrollo.md")
+@requiere_login
+def politicas_desarrollo_md():
+    from . import politicas_dev as PDV
+    return PDV.markdown(g.cliente["id"]), 200, {"Content-Type": "text/markdown; charset=utf-8"}
+
+
 @bp.route("/gobierno/plano-de-control")
 @requiere_login
 def plano_control():
@@ -6916,7 +6969,7 @@ def menu_nav():
                                                                 ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
                  ("consola.disponibilidad", "Disponibilidad", "gobierno", [("Producción", {}), ("QA", {"ambiente": "qa"}), ("Desarrollo", {"ambiente": "desarrollo"}),
                                                                       ("Respaldos y recuperación", {"_ep": "consola.respaldos"})]),
-                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Manifiesto de arquitectura", {"_ep": "consola.manifiesto_arquitectura"}), ("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
+                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Manifiesto de arquitectura", {"_ep": "consola.manifiesto_arquitectura"}), ("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Políticas de desarrollo", {"_ep": "consola.politicas_desarrollo"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
                                                                       ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True}),
                                                                       ("Buenas prácticas por tecnología", {"_ep": "consola.buenas_practicas"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
