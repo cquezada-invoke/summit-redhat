@@ -25,6 +25,50 @@ def quarter(fecha):
         return "—"
 
 
+def _contactos_todos():
+    import contactos as _ct   # noqa: F401  (crea la tabla de historial)
+    vis = {c["id"]: c["nombre"] for c in q("SELECT id, nombre, codigo, tenant_id FROM clientes WHERE activo=1") if en_alcance(c)}
+    return [dict(x, cuenta=vis.get(x["cliente_id"], "")) for x in q("SELECT * FROM contactos ORDER BY nombre") if not x["cliente_id"] or x["cliente_id"] in vis]
+
+
+def _contactos_form(f):
+    """Filas de contactos del formulario: existentes (ct_id) o nuevos (nombre y correo)."""
+    out = []
+    for i, cid in enumerate(f.getlist("ct_id")):
+        def v(k):
+            lst = f.getlist(k)
+            return (lst[i] if i < len(lst) else "").strip()
+        if cid.isdigit():
+            x = q1("SELECT * FROM contactos WHERE id=?", int(cid))
+            if x:
+                out.append({"id": x["id"], "nombre": x["nombre"], "cargo": x["cargo"] or "", "correo": x["correo"] or "", "telefono": x["telefono"] or ""})
+        elif v("ct_nombre") and v("ct_correo"):
+            out.append({"id": None, "nombre": v("ct_nombre")[:120], "cargo": v("ct_cargo")[:120], "correo": v("ct_correo")[:160], "telefono": v("ct_telefono")[:40]})
+    return out
+
+
+def _vincular_contactos(cts, c):
+    """Los contactos nuevos se crean en la cuenta; los existentes sin cuenta pasan a esta. Devuelve sus ids (el primero es el principal)."""
+    hoy, ids = ahora()[:10], []
+    for i, x in enumerate(cts):
+        kid = x["id"]
+        if not kid:
+            ya = q1("SELECT id FROM contactos WHERE cliente_id=? AND LOWER(correo)=LOWER(?)", c["id"], x["correo"])
+            kid = ya["id"] if ya else ej("INSERT INTO contactos (cliente_id, nombre, cargo, correo, telefono, rol, principal, notas, creado, por) "
+                                         "VALUES (?,?,?,?,?,?,?,?,?,?)", c["id"], x["nombre"], x["cargo"], x["correo"], x["telefono"], "", 0, "", ahora(), g.usuario["usuario"])
+            if not ya:
+                ej("INSERT INTO contacto_cuentas (contacto_id, cliente_id, cargo, desde, por) VALUES (?,?,?,?,?)", kid, c["id"], x["cargo"], hoy, g.usuario["usuario"])
+        else:
+            e = q1("SELECT * FROM contactos WHERE id=?", kid)
+            if e and not e["cliente_id"]:
+                ej("UPDATE contactos SET cliente_id=? WHERE id=?", c["id"], kid)
+                ej("INSERT INTO contacto_cuentas (contacto_id, cliente_id, cargo, desde, por) VALUES (?,?,?,?,?)", kid, c["id"], e["cargo"] or "", hoy, g.usuario["usuario"])
+        if i == 0:
+            ej("UPDATE contactos SET principal=(id=?) WHERE cliente_id=?", kid, c["id"])
+        ids.append(kid)
+    return ids
+
+
 def _notas_tabla():
     ej("CREATE TABLE IF NOT EXISTS oportunidad_notas (id INTEGER PRIMARY KEY, oportunidad_id INTEGER, fecha TEXT, usuario TEXT, texto TEXT, cambios TEXT DEFAULT '')")
 
@@ -65,7 +109,7 @@ def iniciar():
            "notas TEXT DEFAULT '', creado TEXT, por TEXT, demo_semanas INTEGER DEFAULT 0, demo_inicio TEXT DEFAULT '', demo_fin TEXT DEFAULT '', "
            "contrato_demo_id INTEGER)")
         cols = {r["name"] for r in q("PRAGMA table_info(oportunidades)")}
-        for col, t in (("modalidad", "TEXT DEFAULT ''"), ("estimacion", "TEXT DEFAULT '{}'"), ("monto_tentativo", "REAL DEFAULT 0"), ("nivel", "INTEGER")):
+        for col, t in (("modalidad", "TEXT DEFAULT ''"), ("estimacion", "TEXT DEFAULT '{}'"), ("monto_tentativo", "REAL DEFAULT 0"), ("nivel", "INTEGER"), ("contactos", "TEXT DEFAULT '[]'")):
             if col not in cols:
                 ej(f"ALTER TABLE oportunidades ADD COLUMN {col} {t}")
         ej("UPDATE oportunidades SET tipo='directo' WHERE tipo NOT IN ('multitenant','tenant','directo')")
@@ -134,14 +178,17 @@ def oportunidad_nueva():
         from datetime import date, timedelta
         f0 = dict(request.args)
         f0.setdefault("cierre_estimado", (date.today() + timedelta(days=60)).isoformat())
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=f0, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES)
-    f = request.form
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f0, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES, contactos=_contactos_todos())
+    f = request.form.copy()
     import cobro
     from contratos import _empresa
+    cts = _contactos_form(f)
+    if cts:   # el primer contacto es el principal de la cuenta
+        p0 = cts[0]
+        f["contacto_nombre"], f["contacto_cargo"], f["contacto_correo"], f["contacto_telefono"] = p0["nombre"], p0["cargo"], p0["correo"], p0["telefono"]
     if f.get("modalidad") == "alcance" and not f.getlist("auto") and len((f.get("alcance_texto") or "").strip()) >= 20:
         import alcance   # sin analizar en pantalla: se analiza aquí y se marcan las automatizaciones propuestas
         d = alcance.analizar(f["alcance_texto"])
-        f = f.copy()
         f["alcance_ia"] = json.dumps(d, ensure_ascii=False)
         for a in d.get("automatizaciones") or []:
             f.add("auto", a["nombre"])
@@ -159,19 +206,25 @@ def oportunidad_nueva():
         c = _empresa(f, "directo" if tipo == "directo" else "tenant", None)
     except ValueError as e:
         flash(str(e), "error")
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES), 400
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES, contactos=_contactos_todos()), 400
     import alcance
     alcance.columnas()
     atexto = (f.get("alcance_texto") or "").strip()[:6000]
     if est["modalidad"] == "alcance" and len(atexto) < 20:
         flash("En costo fijo por alcance, describe el alcance (lo evalúa el especialista de negocio antes de fijar el precio)", "error")
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES), 400
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES, contactos=_contactos_todos()), 400
+    if not cts:
+        flash("Agrega al menos un contacto (nombre y correo)", "error")
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES,
+                               contactos=_contactos_todos()), 400
     num = _numero(c)
     oid = ej("INSERT INTO oportunidades (cliente_id, numero, tipo, etapa, despliegue, plan, nodos, monto_estimado, cierre_estimado, notas, creado, por, modalidad, "
              "estimacion, monto_tentativo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], num, tipo, "prospecto",
              {"multitenant": "centralizado", "tenant": "por_cliente"}.get(tipo, ""), est["plan"], est["nodos"], est["anual"], (f.get("cierre_estimado") or "")[:10],
              (f.get("notas") or "").strip()[:3000], ahora(), g.usuario["usuario"], est["modalidad"], json.dumps(est, ensure_ascii=False), tent)
     monto = tent
+    ids = _vincular_contactos(cts, c)
+    ej("UPDATE oportunidades SET contactos=? WHERE id=?", json.dumps(ids), oid)
     try:
         niv = int(f.get("nivel") or 5)
     except ValueError:
@@ -258,6 +311,11 @@ def oportunidad(oid):
     o["nivel_"], o["quarter"] = nivel_de(o), quarter(o.get("cierre_estimado") or "")
     _notas_tabla()
     o["historial"] = q("SELECT * FROM oportunidad_notas WHERE oportunidad_id=? ORDER BY id DESC", oid)
+    try:
+        _ids = json.loads(o.get("contactos") or "[]")
+    except ValueError:
+        _ids = []
+    o["contactos_"] = [x for x in (q1("SELECT * FROM contactos WHERE id=?", i) for i in _ids) if x]
     return render_template("oportunidad.html", niveles=NIVELES, inst_t=INST_T, demos=dem, o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
                            inst=(intentos(c["id"]) or [None])[0], lic=licencias(c["id"]))
 

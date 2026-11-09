@@ -6,8 +6,14 @@
 <label>Empresa<select name="empresa_id" onchange="opEmpresa(this)"><option value="">+ Empresa nueva</option>{% for e in existentes %}<option value="{{ e.id }}" data-pais="{{ e.pais or '' }}" data-industria="{{ e.industria or '' }}" data-tel="{{ e.contacto_telefono or '' }}" {{ 'selected' if f.empresa_id == e.id|string }}>{{ e.nombre }}{{ ' (tenant)' if e.tipo == 'tenant' }}</option>{% endfor %}</select></label>
 <label data-nueva>Nombre * <span class="sub" id="op-ia" style="font-size:11.5px"></span><input name="nombre" value="{{ f.nombre }}" autofocus placeholder="escribe el nombre: se completa el resto" onchange="opNombre(this)"></label><label data-nueva>Código *<input name="codigo" maxlength="20" placeholder="se genera del nombre" value="{{ f.codigo }}"></label>
 <label>País *<select name="pais">{% for p in paises %}<option {{ 'selected' if (f.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label><label>Industria<input name="industria" value="{{ f.industria }}"></label>
-<label data-nueva>Contacto *<input name="contacto_nombre" value="{{ f.contacto_nombre }}"></label><label data-nueva>Correo *<input name="contacto_correo" type="email" value="{{ f.contacto_correo }}"></label><label>Teléfono<input name="contacto_telefono" value="{{ f.contacto_telefono }}"></label>
 </div></fieldset>
+<fieldset><legend>Contactos</legend>
+<p class="sub" style="margin:0 0 6px;font-size:12.5px">Elige un contacto existente o crea uno nuevo. El primero queda como contacto principal; agrega los que necesites.</p>
+<table id="op-cts" style="font-size:13.5px"><tr><th>Contacto</th><th>Nombre</th><th>Cargo</th><th>Correo</th><th>Teléfono</th><th></th></tr>
+<tr data-ct><td><select name="ct_id" onchange="opCt(this)" style="min-width:180px"><option value="">+ Contacto nuevo</option>{% for x in contactos %}<option value="{{ x.id }}" data-cuenta="{{ x.cliente_id or '' }}" data-n="{{ x.nombre }}" data-c="{{ x.cargo }}" data-m="{{ x.correo }}" data-t="{{ x.telefono }}">{{ x.nombre }}{{ ' · ' ~ x.cuenta if x.cuenta else ' · sin cuenta' }}</option>{% endfor %}</select></td>
+<td><input name="ct_nombre" placeholder="nombre *"></td><td><input name="ct_cargo"></td><td><input name="ct_correo" type="email" placeholder="correo *"></td><td><input name="ct_telefono"></td>
+<td><button type="button" class="btn chico gris" onclick="opCtQuitar(this)" title="Quitar">×</button></td></tr></table>
+<p style="margin:6px 0 0"><button type="button" class="btn chico gris" onclick="opCtMas()">+ Agregar otro contacto</button></p></fieldset>
 <fieldset><legend>Oportunidad</legend><div class="rejilla">
 <label>Tipo *<select name="tipo" onchange="opTipo(this.form)">{% for k, t in tipos.items() %}<option value="{{ k }}" {{ 'selected' if (f.tipo or 'directo') == k }}>{{ t }}</option>{% endfor %}</select></label>
 <label data-ten>Licencia de tenant (USD/mes, lista)<input name="licencia" inputmode="decimal" value="{{ f.licencia or licencia_def }}"></label>
@@ -16,6 +22,7 @@
 <label>Cuándo se espera cerrar *<input name="cierre_estimado" type="date" required value="{{ f.cierre_estimado }}"></label>
 <label>Monto tentativo esperado (USD/año)<input name="monto_tentativo" inputmode="decimal" placeholder="vacío = precio de lista" value="{{ f.monto_tentativo }}"></label></div>
 <p class="sub" data-ten style="margin:6px 0 0;font-size:12.5px">En un tenant, la modalidad y el alcance de abajo son los de <b>un cliente típico</b>: se multiplican por los clientes estimados.</p></fieldset>
+<style>form [data-mod="alcance"]{display:none!important}</style>{# en la oportunidad, el alcance lo describe el vendedor y lo analiza la IA: sin el catálogo predefinido #}
 <div class="rejilla">{% include "_cobro_form.html" %}</div>
 <div class="card" data-alcance style="display:none;border-color:var(--acc)"><h2 style="margin:0 0 4px">Alcance del cliente</h2>
 <p class="sub" style="margin:0 0 6px;font-size:12.5px">Explica qué necesita el cliente (qué tareas, sobre cuántos equipos, con qué frecuencia). La IA propone las automatizaciones y su volumen; al crear la oportunidad se envía al especialista de negocio de Invoke, que evalúa la implementación y confirma el alcance antes de fijar el precio. Con la propuesta aprobada por el cliente se tarifica.</p>
@@ -28,8 +35,13 @@
 {% include "_cobro_js.html" %}
 <script>const DSP={{ despliegues|tojson }};
 const CSRF={{ csrf|tojson }};
-function opEmpresa(sel){const o=sel.selectedOptions[0],f=sel.form;document.querySelectorAll('[data-nueva]').forEach(x=>x.style.display=sel.value?'none':'');
- if(sel.value){if(o.dataset.pais)f.pais.value=o.dataset.pais;if(o.dataset.industria&&!f.industria.value)f.industria.value=o.dataset.industria;if(o.dataset.tel&&!f.contacto_telefono.value)f.contacto_telefono.value=o.dataset.tel}}
+function opCt(sel){const tr=sel.closest('tr'),o=sel.selectedOptions[0],ex=!!sel.value;
+ [['ct_nombre','n'],['ct_cargo','c'],['ct_correo','m'],['ct_telefono','t']].forEach(([k,d])=>{const i=tr.querySelector('[name='+k+']');i.value=ex?(o.dataset[d]||''):'';i.readOnly=ex})}
+function opCtMas(){const t=document.getElementById('op-cts'),r=t.querySelector('[data-ct]').cloneNode(true);r.querySelectorAll('input').forEach(i=>{i.value='';i.readOnly=false});r.querySelector('select').value='';t.appendChild(r);opCtFiltro()}
+function opCtQuitar(b){const rs=document.querySelectorAll('#op-cts [data-ct]');if(rs.length>1)b.closest('tr').remove();else{const r=rs[0];r.querySelector('select').value='';opCt(r.querySelector('select'))}}
+function opCtFiltro(){const emp=document.querySelector('[name=empresa_id]').value;document.querySelectorAll('#op-cts select[name=ct_id] option[data-cuenta]').forEach(o=>{o.hidden=!!emp&&o.dataset.cuenta&&o.dataset.cuenta!==emp})}
+function opEmpresa(sel){opCtFiltro();const o=sel.selectedOptions[0],f=sel.form;document.querySelectorAll('[data-nueva]').forEach(x=>x.style.display=sel.value?'none':'');
+ if(sel.value){if(o.dataset.pais)f.pais.value=o.dataset.pais;if(o.dataset.industria&&!f.industria.value)f.industria.value=o.dataset.industria;}}
 async function opNombre(inp){const f=inp.form,nom=inp.value.trim();if(nom.length<2)return;
  const ex=[...f.empresa_id.options].find(o=>o.value&&o.text.replace(/ \(tenant\)$/,'').toLowerCase()===nom.toLowerCase());
  if(ex){f.empresa_id.value=ex.value;opEmpresa(f.empresa_id);document.getElementById('op-ia').textContent='· ya existe: se usa esa empresa';return}
@@ -43,7 +55,7 @@ async function opAlcance(f){const est=document.getElementById('op-alc-est'),out=
  est.textContent='analizando…';out.innerHTML='';
  try{const r=await fetch({{ url_for('api_alcance')|tojson }},{method:'POST',body:fd});const d=await r.json();if(!r.ok){est.textContent=d.error||'no se pudo analizar';return}
   f.alcance_ia.value=JSON.stringify(d);f.querySelectorAll('[name=auto]').forEach(c=>c.checked=false);
-  (d.automatizaciones||[]).forEach(a=>{const c=[...f.querySelectorAll('[name=auto]')].find(x=>x.value===a.nombre);if(c){c.checked=true;const v=f.elements['vol::'+a.nombre];if(v&&a.volumen)v.value=a.volumen;const dt=c.closest('details');if(dt)dt.open=true}});
+  (d.automatizaciones||[]).forEach(a=>{const c=[...f.querySelectorAll('[name=auto]')].find(x=>x.value===a.nombre);if(c){c.checked=true;const v=f.elements['vol::'+a.nombre];if(v&&a.volumen)v.value=a.volumen;}});
   const esc=t=>String(t||'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
   est.textContent='análisis: '+(d.origen||'');out.innerHTML='<p style="margin:0 0 4px">'+esc(d.resumen)+'</p><ul style="margin:0 0 4px 18px">'+(d.automatizaciones||[]).map(a=>'<li><b>'+esc(a.nombre)+'</b> · '+esc(a.volumen)+'/mes <span class=sub>'+esc(a.motivo)+'</span></li>').join('')+'</ul>'+
    (d.implementacion_horas?'<p class=sub style="margin:0">Implementación estimada: '+esc(d.implementacion_horas)+' horas (la confirma el especialista)</p>':'')+
