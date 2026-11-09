@@ -153,6 +153,16 @@ spec:
               for f in deploy/*.y*ml; do sed "s#IMAGEN_APP#$IMG#g" "$f" | oc apply -f -; done
               oc patch route "$A" --type=merge -p "{\"spec\":{\"host\":\"$A.$OCP_DOMINIO\"}}" >/dev/null 2>&1 || true
               [ "$(params.ambiente)" = "produccion" ] || { oc patch hpa "$A" --type=merge -p '{"spec":{"minReplicas":1}}' >/dev/null 2>&1; oc scale deploy/"$A" --replicas=1 >/dev/null 2>&1; } || true   # PS-13: 2+ réplicas solo en producción
+              if [ "$(params.ambiente)" != "produccion" ]; then   # desarrollo/QA: requests mínimos y, si el clúster no asigna StorageClass, disco efímero
+                for D in $(oc get deploy -o name | grep "^deployment.apps/$A"); do
+                  oc set resources "$D" --requests=cpu=50m,memory=256Mi >/dev/null 2>&1 || true
+                  for V in $(oc get "$D" -o jsonpath='{range .spec.template.spec.volumes[*]}{.name}={.persistentVolumeClaim.claimName}{" "}{end}'); do
+                    C="${V#*=}"; [ -n "$C" ] || continue
+                    [ -z "$(oc get pvc "$C" -o jsonpath='{.spec.storageClassName}' 2>/dev/null)" ] || continue
+                    oc set volume "$D" --add --overwrite --name="${V%%=*}" --type=emptyDir >/dev/null && oc delete pvc "$C" --ignore-not-found >/dev/null && echo "${D#*/}: PVC $C sin StorageClass, usa emptyDir en $(params.ambiente)"
+                  done
+                done
+              fi
               oc rollout restart deploy/"$A" >/dev/null 2>&1 || true
               oc rollout status deploy/"$A" --timeout=240s
               echo "Aplicación desplegada en $(params.ambiente): https://$(oc get route "$A" -o jsonpath='{.spec.host}')"
