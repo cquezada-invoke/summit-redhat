@@ -1,0 +1,48 @@
+commit: 8083b088af9b7bbb05df2b412fb1a978eafbc6db
+inicio: 2026-11-09T11:17:12-03:00
+---
+secret fabrica-git
+aplicar: FO-LAB-01370 exitoso
+PIPE: FO-LAB-01371 fallido AAP terminó (failed): ejecución 102 s, espera de aprobación 29 s | Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-fabrica-faceops-m76mq del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps | ok: [anfitrion-kvm] |  | TASK [Resumen de cada ejecución] *********************************************** | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-5gxpz) | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-z58d9) | ok: [anfitrion-kvm] => (item=app-fabrica-face
+T                   S           M
+analisis-estatico   Succeeded   All Steps have completed executing
+clonar              Succeeded   All Steps have completed executing
+politicas           Succeeded   All Steps have completed executing
+pruebas             Failed      "step-pruebas-unitarias" exited with code 1: Error
+secretos            Succeeded   All Steps have completed executing
+--- politicas
+2026/11/09 14:20:36 Entrypoint initialization
+2026/11/09 14:20:38 Decoded script /tekton/scripts/script-0-nd8bn
+Políticas de software automáticas: todas cumplen
+--- pruebas
+2026/11/09 14:20:43 Entrypoint initialization
+2026/11/09 14:20:45 Decoded script /tekton/scripts/script-0-2pnkd
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project usuarios-demo: Compilation failure
+[ERROR] /tmp/src/src/main/java/com/invoke/usuarios/service/UsuarioService.java:[41,27] constructor Usuario in class com.invoke.usuarios.domain.Usuario cannot be applied to given types;
+[ERROR]   required: no arguments
+[ERROR]   found:    no arguments
+[ERROR]   reason: Usuario() has protected access in com.invoke.usuarios.domain.Usuario
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+--- analisis-estatico
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+  Scan skipped: 3 files matching .semgrepignore patterns
+  For a full list of skipped files, run semgrep with the --verbose flag.
+
+(need more rules? `semgrep login` for additional free Semgrep Registry rules)
+
+Ran 80 rules on 23 files: 0 findings.
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading
+If Semgrep missed a finding, please send us feedback to let us know!
+See https://semgrep.dev/docs/reporting-false-negatives/
+2026/11/09 14:20:43 Entrypoint initialization
+2026/11/09 14:20:45 Decoded script /tekton/scripts/script-0-cr5m5
+app 503
+--- fin: 2026-11-09T11:22:19-03:00 · código: 0
