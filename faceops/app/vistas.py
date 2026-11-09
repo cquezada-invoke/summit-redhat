@@ -6459,6 +6459,17 @@ def _datos_plano():
 def manifiesto_arquitectura():
     """Manifiesto de arquitectura en tres niveles: capas, conceptos y tecnologías aceptadas (con lo instalado y su ciclo de vida)."""
     from . import manifiesto as M
+    if request.method == "POST" and request.form.get("accion") == "roadmap":
+        _escritura()
+        sk = request.form.get("skill", "")[:80]
+        try:
+            M.guardar_roadmap(g.cliente["id"], sk, request.form, g.usuario["usuario"])
+            auditar(g.usuario["usuario"], g.cliente["id"], "roadmap de salida del manifiesto", sk,
+                    {k: request.form.get(k) for k in ("decision", "reemplazo", "responsable", "fecha_objetivo", "avance")})
+            flash("Roadmap actualizado: " + sk, "ok")
+        except ValueError as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.manifiesto_arquitectura", nivel=3, _anchor="roadmap"))
     if request.method == "POST":
         _escritura()
         try:
@@ -6474,15 +6485,17 @@ def manifiesto_arquitectura():
     nivel = nivel if nivel in ("1", "2", "3") else "1"
     m = M.manifiesto(g.cliente["id"])
     eqs = equipos_visibles()
-    fuera = []
+    fuera = M.fuera_del_manifiesto(g.cliente["id"], eqs)   # con su roadmap de salida (resumen en todos los niveles)
+    rm = M.roadmap(g.cliente["id"], fuera)
     if nivel == "3":
         from . import stack as S
         r = S.ultimo(g.cliente["id"]) or S.evaluar(g.cliente["id"], {})
         M.con_instalado(m, eqs, r.get("filas"))
-        fuera = M.fuera_del_manifiesto(g.cliente["id"], eqs)
     apps = [x["nombre"] for x in segmentos_visibles(g.usuario, g.cliente["id"]) if __import__("app.grupos_segmento", fromlist=["x"]).grupo_de(x) == "aplicaciones"]
     cuenta = Counter(t["estado"] for t in M.tecnologias(m))
-    return render_template("manifiesto.html", m=m, nivel=nivel, estados=M.ESTADOS, fuera=fuera, apps=apps, cuenta=cuenta)
+    aceptadas = sorted({t["nombre"] for t in M.tecnologias(m) if t.get("estado") in ("aceptada", "evaluacion")})
+    return render_template("manifiesto.html", m=m, nivel=nivel, estados=M.ESTADOS, fuera=fuera, apps=apps, cuenta=cuenta, rm=rm,
+                           salida=M.SALIDA, avance=M.AVANCE, aceptadas=aceptadas)
 
 
 @bp.route("/gobierno/plano-de-control")

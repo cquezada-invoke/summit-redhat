@@ -139,3 +139,54 @@ def fuera_del_manifiesto(cliente_id, eqs, ignorar=()):
             x = out.setdefault(sk, {"skill": sk, "nombre": t["nombre"] if t else sk, "estado": t["estado"] if t else "fuera", "equipos": []})
             x["equipos"].append(e["nombre"])
     return sorted(out.values(), key=lambda x: (-len(x["equipos"]), x["skill"]))
+
+
+# ------------------------------------------------------------------ roadmap de salida o reemplazo de lo que está fuera del manifiesto
+SALIDA = {"reemplazar": "Reemplazar por una tecnología aceptada", "retirar": "Retirar del parque", "regularizar": "Regularizar (aceptarla en el manifiesto)"}
+AVANCE = {"planificado": "Planificado", "en_curso": "En curso", "hecho": "Hecho"}
+
+
+def _clave(skill):
+    return "manifiesto:" + skill
+
+
+def roadmap(cliente_id, fuera):
+    """Cada tecnología instalada fuera del manifiesto con su plan de salida (decisión, reemplazo, responsable, fecha objetivo y avance).
+    Lo que ya no está instalado y tenía plan queda como cumplido."""
+    from .racionalizacion import _tabla
+    _tabla()
+    planes = {}
+    for r in q("SELECT * FROM stack_decisiones WHERE cliente_id=? AND tecnologia LIKE 'manifiesto:%'", cliente_id):
+        try:
+            x = json.loads(r.get("nota") or "{}")
+        except ValueError:
+            x = {"nota": r.get("nota") or ""}
+        planes[r["tecnologia"][len("manifiesto:"):]] = dict(r, avance=x.get("avance", "planificado"), nota_txt=x.get("nota", ""))
+    hoy = __import__("datetime").date.today().isoformat()
+    for f in fuera:
+        p = planes.get(f["skill"])
+        f["plan"] = p
+        f["vencido"] = bool(p and p.get("fecha_objetivo") and p["fecha_objetivo"] < hoy)
+    vivos = {f["skill"] for f in fuera}
+    cumplidos = [dict(p, skill=s) for s, p in planes.items() if s not in vivos]
+    return {"sin_plan": sum(1 for f in fuera if not f["plan"]), "vencidos": sum(1 for f in fuera if f["vencido"]), "cumplidos": cumplidos,
+            "cronograma": sorted((f for f in fuera if f["plan"]), key=lambda f: f["plan"].get("fecha_objetivo") or "9999")}
+
+
+def guardar_roadmap(cliente_id, skill, f, autor):
+    from .racionalizacion import _tabla
+    _tabla()
+    d = f.get("decision", "")
+    if d not in SALIDA:
+        raise ValueError("Elige qué se hará: reemplazar, retirar o regularizar")
+    if d == "reemplazar" and not (f.get("reemplazo") or "").strip():
+        raise ValueError("Indica la tecnología aceptada que la reemplaza")
+    fecha = (f.get("fecha_objetivo") or "")[:10]
+    if d != "regularizar" and not fecha:
+        raise ValueError("Pon una fecha objetivo para la salida")
+    av = f.get("avance") if f.get("avance") in AVANCE else "planificado"
+    nota = json.dumps({"avance": av, "nota": (f.get("nota") or "").strip()[:400]}, ensure_ascii=False)
+    ej("INSERT INTO stack_decisiones(cliente_id, tecnologia, decision, reemplazo, responsable, fecha_objetivo, nota, autor, fecha) VALUES (?,?,?,?,?,?,?,?,?) "
+       "ON CONFLICT(cliente_id, tecnologia) DO UPDATE SET decision=excluded.decision, reemplazo=excluded.reemplazo, responsable=excluded.responsable, "
+       "fecha_objetivo=excluded.fecha_objetivo, nota=excluded.nota, autor=excluded.autor, fecha=excluded.fecha",
+       cliente_id, _clave(skill)[:200], d, (f.get("reemplazo") or "").strip()[:120], (f.get("responsable") or "").strip()[:80], fecha, nota, autor, ahora())
