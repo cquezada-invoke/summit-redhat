@@ -1,40 +1,39 @@
-commit: fa5d364cb79f259cdb55fdf8eabe53455d155d7f
-inicio: 2026-11-09T11:40:42-03:00
+commit: a510b99bd5a16cdd2df4860eaa9c2ac9e61057b1
+inicio: 2026-11-09T11:54:40-03:00
 ---
-fabrica-ocp por IP
-{"nombre": "usuarios-demo", "rama": "feature/usuarios-demo-11091428"}rbac ok
-aplicar: FO-LAB-01375 exitoso
-PIPE: FO-LAB-01376 fallido AAP terminó (failed): ejecución 442 s, espera de aprobación 29 s | Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-fabrica-faceops-jqcf5 del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-5gxpz) | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-z58d9) | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-m76mq) | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-z5jf5) | ok: [anfitrion-kvm] => (item=app-fa
-T                       S           M
-analisis-estatico       Succeeded   All Steps have completed executing
-clonar                  Succeeded   All Steps have completed executing
-construir-y-desplegar   Failed      "step-openshift" exited with code 1: Error
-politicas               Succeeded   All Steps have completed executing
-pruebas                 Succeeded   All Steps have completed executing
-secretos                Succeeded   All Steps have completed executing
---- construir-y-desplegar
-2026/11/09 14:45:18 Entrypoint initialization
-2026/11/09 14:45:19 Decoded script /tekton/scripts/script-0-c8blt
-Uploading directory "." as binary input for the build ...
-
-Uploading finished
-error: the build fabrica-dev/usuarios-demo-2 status is "Failed"
-tar (child): Error is not recoverable: exiting now
-tar: Child returned status 2
-tar: Error is not recoverable: exiting now
-failed to untar
-error: build error: building at STEP "RUN ./mvnw -B -DskipTests package": while running runtime: exit status 1
-persistentvolumeclaim/usuarios-demo-postgres created
-deployment.apps/usuarios-demo-postgres created
-service/usuarios-demo-postgres created
-configmap/usuarios-demo-config unchanged
-deployment.apps/usuarios-demo unchanged
-horizontalpodautoscaler.autoscaling/usuarios-demo unchanged
-poddisruptionbudget.policy/usuarios-demo configured
-route.route.openshift.io/usuarios-demo unchanged
-service/usuarios-demo unchanged
-servicemonitor.monitoring.coreos.com/usuarios-demo created
-Waiting for deployment "usuarios-demo" rollout to finish: 1 out of 2 new replicas have been updated...
+faceops actualizado
+Push successful
+deployment "fabrica" successfully rolled out
+chat vía FaceOps: 200 True True
+página desarrollo: 200 True
+pasos: ['Leí las 27 políticas de software vigentes (versión b02dc84f635d) y el stack acep', 'Claude (claude-sonnet-5-5) está planificando la aplicación · tiempo estimado: 2 ', 'Plan listo: gestion-usuarios · 28 archivos', 'Escribiendo 28 archivos: primero pom.xml y el código en orden de dependencias, e', 'Revisando que el código compile: consistencia entre clases, constructores, métod', 'Revisión de compilación: 1 archivo corregido', 'Revisión previa de las políticas que verifica el pipeline', '1 incumplimiento: Claude los está corrigiendo', 'Leí las 27 políticas de software vigentes (versión b02dc84f635d) y el stack acep', 'Escribiendo 1 archivo: primero pom.xml y el código en orden de depe
+error: None proyecto: gestion-usuarios 28 revision: [] mvnw: []
+entregado: feature/gestion-usuarios-11091500 None
+aplicar: FO-LAB-01377 exitoso
+PIPE: FO-LAB-01378 fallido AAP terminó (failed): ejecución 527 s, espera de aprobación 29 s | Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-fabrica-faceops-c5wzc del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-z58d9) | ok:
+T                       S
+analisis-estatico       Succeeded
+clonar                  Succeeded
+construir-y-desplegar   Failed
+politicas               Succeeded
+pruebas                 Succeeded
+secretos                Succeeded
+Writing manifest to image destination
+Successfully pushed image-registry.openshift-image-registry.svc:5000/fabrica-dev/gestion-usuarios@sha256:2d0bec9f2fbd8b59ad9ce46170563d618b841b9674f66eff8142cd9f0147ab8d
+Push successful
+configmap/gestion-usuarios-config created
+deployment.apps/gestion-usuarios created
+horizontalpodautoscaler.autoscaling/gestion-usuarios created
+poddisruptionbudget.policy/gestion-usuarios created
+persistentvolumeclaim/postgres-usuarios-data created
+deployment.apps/postgres-usuarios created
+service/postgres-usuarios created
+route.route.openshift.io/gestion-usuarios created
+service/gestion-usuarios created
+servicemonitor.monitoring.coreos.com/gestion-usuarios created
+Waiting for deployment "gestion-usuarios" rollout to finish: 1 old replicas are pending termination...
 error: timed out waiting for the condition
-app 503
---- fin: 2026-11-09T11:51:09-03:00 · código: 0
+2026/11/09 15:06:17 Entrypoint initialization
+2026/11/09 15:06:19 Decoded script /tekton/scripts/script-0-x2t9z
+app gestion-usuarios 503
+--- fin: 2026-11-09T12:13:16-03:00 · código: 0
