@@ -12,13 +12,15 @@ grep -q '^fabrica_sesion=' $SEC || echo "fabrica_sesion=$(openssl rand -hex 32)"
 TK=$(grep '^fabrica_token=' $SEC | cut -d= -f2-); SS=$(grep '^fabrica_sesion=' $SEC | cut -d= -f2-)
 AK=$(sudo grep -h '^ANTHROPIC_API_KEY=' /etc/faceops.env $HOME/faceops/faceops.env 2>/dev/null | head -1 | cut -d= -f2- || true)
 GT=$(grep -h '^FACEOPS_GITEA_ORG_TOKEN=' $HOME/faceops/faceops.env | head -1 | cut -d= -f2-)
+[ -n "$AK" ] || AK=$(sudo podman exec -w /opt/faceops -e PYTHONPATH=/opt/faceops faceops python3 -c 'from app.boveda import leer; print((leer("integraciones/anthropic") or {}).get("api_key",""))' 2>/dev/null | tail -1 || true)
 [ -n "$AK" ] || echo "AVISO: no se encontró ANTHROPIC_API_KEY en FaceOps (la Fábrica no podrá generar código)"
 # 1) OpenShift
 $OC apply -f $D/openshift/fabrica.yaml >/dev/null
 $OC -n fabrica-codigo create secret generic fabrica --from-literal=ANTHROPIC_API_KEY="$AK" --from-literal=FACEOPS_FABRICA_TOKEN="$TK" \
   --from-literal=GITEA_TOKEN="$GT" --from-literal=FABRICA_SESION="$SS" --dry-run=client -o yaml | $OC apply -f - >/dev/null
 $OC -n fabrica-codigo start-build fabrica --from-dir=$D --follow --wait 2>&1 | tail -1
-$OC -n fabrica-codigo rollout status deploy/fabrica --timeout=300s | tail -1
+$OC -n fabrica-codigo rollout restart deploy/fabrica >/dev/null
+$OC -n fabrica-codigo rollout status deploy/fabrica --timeout=300s | tail -1 || { $OC -n fabrica-codigo get pods -o wide | tail -4; $OC -n fabrica-codigo get events --sort-by=.lastTimestamp | tail -8 | cut -c1-220; $OC -n fabrica-codigo logs deploy/fabrica --tail=15 2>&1 | cut -c1-200; }
 # 2) Tekton (k3s): credencial del pipeline para construir y desplegar en fabrica-dev
 for i in $(seq 1 20); do ST=$($OC -n fabrica-dev get secret fabrica-pipeline-token -o jsonpath='{.data.token}' 2>/dev/null | base64 -d); [ -n "$ST" ] && break; sleep 3; done
 SRV=$($OC whoami --show-server)
