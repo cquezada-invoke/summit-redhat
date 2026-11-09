@@ -115,6 +115,8 @@ def repo_publico(url, rama="main", archivo=""):
         return ""
     u = url.replace(GIT_INTERNO, GIT_PUBLICO).replace("http://127.0.0.1:3000", GIT_PUBLICO)
     u = u[:-4] if u.endswith(".git") else u
+    if "github.com" in u:   # AAP con el proyecto en GitHub (instalación fuera del laboratorio)
+        return f"{u}/blob/{rama}/{archivo}" if archivo else u
     return f"{u}/src/branch/{rama}/{archivo}" if archivo else u
 
 
