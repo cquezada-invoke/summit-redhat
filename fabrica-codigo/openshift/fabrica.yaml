@@ -55,6 +55,7 @@ metadata:
   labels: {app.kubernetes.io/name: fabrica, app.kubernetes.io/part-of: fabrica-codigo, app.kubernetes.io/version: "1.0"}
   annotations: {image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"fabrica:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'}
 spec:
+  strategy: {type: Recreate}
   replicas: 1
   selector: {matchLabels: {app.kubernetes.io/name: fabrica}}
   template:

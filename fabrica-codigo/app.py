@@ -92,8 +92,16 @@ Reglas de entrega:
   app.kubernetes.io/name, part-of: fabrica-codigo y version; sondas /health/live y /health/ready en el puerto 8080; requests y limits.
 - deploy/route.yaml: tls termination edge con insecureEdgeTerminationPolicy Redirect.
 - Sin secretos en el código; configuración por variables de entorno.
-- Responde SOLO un JSON válido: {{"nombre": "<kebab-case, máx 30>", "resumen": "<qué hace, 2-3 frases>", "stack": "<lenguaje/framework>",
-  "politicas_aplicadas": ["PD-xx", ...], "archivos": {{"<ruta>": "<contenido>", ...}}}}"""
+- Entrega el proyecto completo SOLO con la herramienta entregar_proyecto (cada archivo con su ruta y su contenido completo)."""
+
+HERRAMIENTA = {"name": "entregar_proyecto", "description": "Entrega el proyecto generado, completo.",
+               "input_schema": {"type": "object", "required": ["nombre", "resumen", "stack", "politicas_aplicadas", "archivos"], "properties": {
+                   "nombre": {"type": "string", "description": "kebab-case, máximo 30 caracteres"},
+                   "resumen": {"type": "string", "description": "qué hace, 2-3 frases"},
+                   "stack": {"type": "string"},
+                   "politicas_aplicadas": {"type": "array", "items": {"type": "string"}},
+                   "archivos": {"type": "array", "items": {"type": "object", "required": ["ruta", "contenido"],
+                                "properties": {"ruta": {"type": "string"}, "contenido": {"type": "string"}}}}}}}
 
 
 def generar(requerimiento, previo=None, correccion=""):
@@ -106,10 +114,18 @@ def generar(requerimiento, previo=None, correccion=""):
                 {"role": "user", "content": correccion or requerimiento}]
     r = requests.post("https://api.anthropic.com/v1/messages", timeout=300,
                       headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""), "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                      json={"model": MODELO, "max_tokens": 16000, "system": SISTEMA.format(politicas=texto_pol), "messages": msgs})
+                      json={"model": MODELO, "max_tokens": 24000, "system": SISTEMA.format(politicas=texto_pol), "messages": msgs,
+                            "tools": [HERRAMIENTA], "tool_choice": {"type": "tool", "name": "entregar_proyecto"}})
     r.raise_for_status()
-    txt = "".join(b.get("text", "") for b in r.json().get("content", []))
-    d = json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
+    rj = r.json()
+    uso = next((b for b in rj.get("content", []) if b.get("type") == "tool_use"), None)
+    if not uso or rj.get("stop_reason") == "max_tokens":
+        raise ValueError("respuesta incompleta del agente")
+    d = dict(uso["input"])
+    arch = d.get("archivos") or []
+    d["archivos"] = {a["ruta"].lstrip("/"): a["contenido"] for a in arch if a.get("ruta")} if isinstance(arch, list) else dict(arch)
+    if not d["archivos"]:
+        raise ValueError("el agente no entregó archivos")
     d["nombre"] = re.sub(r"[^a-z0-9-]", "-", (d.get("nombre") or "app").lower()).strip("-")[:30] or "app"
     d["huella_politicas"] = pol["huella"]
     return d
