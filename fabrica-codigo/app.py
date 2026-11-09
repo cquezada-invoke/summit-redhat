@@ -407,8 +407,8 @@ def revisar(archivos):
         if clave not in dep:
             malos.append(f"{pol}: deploy/ no tiene {clave}")
     for ruta, cont in archivos.items():
-        if re.search(r"(?i)(password|secret|token|api[_-]?key)\s*[:=]\s*['\"]?[^'\"\s$]{6,}", cont) and not ruta.startswith("src/test/") and not ruta.endswith(".md"):   # el README documenta variables; gitleaks revisa igual
-            malos.append(f"PS-07: posible secreto en {ruta}")
+        if re.search(r"(?i)(password|passwd|secret|token|api[_-]?key)[ \t]*[:=][ \t]*['\"]?(?!\$|\{\{|<)[^'\"\s$]{6,}", cont) and not ruta.startswith("src/test/") and not ruta.endswith(".md"):   # el README documenta variables; gitleaks revisa igual
+            malos.append(f"PS-07: posible secreto escrito en {ruta} (una clave o token con valor fijo; debe venir de un Secret)")
     if not any(k.startswith("src/test/") for k in archivos):
         malos.append("PS-25: faltan pruebas (src/test)")
     return sorted(set(malos))
