@@ -447,7 +447,9 @@ def probar(archivos, paso=lambda t: None, espera=900):
         if r.status_code >= 300:
             return None, f"no se pudo preparar la prueba ({r.status_code})"
         guion = ("mkdir -p /tmp/src && cd /tmp/src && tar xzf /in/src.tgz && "
-                 "mvn -B -ntp -Dmaven.repo.local=/tmp/m2 -Dstyle.color=never test > /tmp/salida.txt 2>&1; c=$?; "
+                 "mvn -B -Dmaven.repo.local=/tmp/m2 -Dstyle.color=never test 2>&1 | tee /tmp/salida.txt | "
+                 r"grep --line-buffered -E 'Downloading from|Compiling [0-9]+ source|^\[INFO\] Running |Tests run:.* in |BUILD'; c=${PIPESTATUS[0]}; "
+                 "echo '===RESUMEN==='; "
                  r"grep -E '^\[(ERROR|WARNING)\]|Tests run:|FAIL|expected' /tmp/salida.txt | grep -v 'Help 1\|cwiki\|re-run Maven\|^\[ERROR\] *$' | tail -60; exit $c")
         pod = {"metadata": {"name": nombre, "labels": {"app.kubernetes.io/part-of": "fabrica-codigo"}},
                "spec": {"restartPolicy": "Never", "activeDeadlineSeconds": espera,
@@ -462,13 +464,42 @@ def probar(archivos, paso=lambda t: None, espera=900):
             return None, f"no se pudo crear el pod de pruebas ({r.status_code})"
         paso("Corriendo las pruebas del proyecto (mvn test), igual que la etapa de pruebas del pipeline")
         fin = time.time() + espera + 60
-        fase = ""
+        fase, vistos, descargas, t0 = "", set(), [False], time.time()
+
+        def avance(texto):   # el chat ve cada paso de Maven: dependencias, compilación y cada clase de prueba con su resultado
+            for l_ in texto.split("===RESUMEN===")[0].splitlines():
+                l_ = l_.strip()
+                if not l_ or l_ in vistos:
+                    continue
+                vistos.add(l_)
+                m = re.search(r"Compiling (\d+) source files? .*?/(test-)?classes", l_)
+                if "Downloading from" in l_:
+                    if not descargas[0]:
+                        descargas[0] = True
+                        paso("Maven: descargando las dependencias del proyecto (la primera vez tarda un par de minutos)")
+                elif m:
+                    paso(f"Maven: compilando {m.group(1)} archivo{'s' if m.group(1) != '1' else ''} {'de pruebas' if m.group(2) else 'del código'}")
+                elif re.search(r"\] Running ", l_):
+                    paso("Probando " + l_.rsplit(".", 1)[-1] + "…")
+                elif re.search(r"Tests run:.* in ", l_):
+                    mm = re.search(r"Tests run: (\d+), Failures: (\d+), Errors: (\d+).* in (\S+)", l_)
+                    if mm:
+                        n, f_, e_, cl = mm.groups()
+                        paso(f"{cl.rsplit('.', 1)[-1]}: {n} prueba{'s' if n != '1' else ''}" + (" ✓" if f_ == e_ == "0" else f" · {f_} falla(s), {e_} error(es) ✗"))
         while time.time() < fin:
-            time.sleep(8)
+            time.sleep(6)
             fase = (_k8s("GET", f"{base}/pods/{nombre}").json().get("status") or {}).get("phase", "")
+            if fase in ("Running", "Succeeded", "Failed"):
+                try:
+                    avance(_k8s("GET", f"{base}/pods/{nombre}/log", params={"tailLines": 400}).text)
+                except requests.RequestException:
+                    pass
+            elif fase == "Pending" and time.time() - t0 > 60 and "esperando" not in vistos:
+                vistos.add("esperando")
+                paso("El pod de pruebas espera capacidad en el clúster…")
             if fase in ("Succeeded", "Failed"):
                 break
-        log = _k8s("GET", f"{base}/pods/{nombre}/log", params={"tailLines": 80}).text
+        log = _k8s("GET", f"{base}/pods/{nombre}/log", params={"tailLines": 80}).text.split("===RESUMEN===")[-1]
         if fase == "Succeeded":
             m = re.findall(r"Tests run: (\d+), Failures: (\d+), Errors: (\d+)", log)
             return True, (f"{m[-1][0]} pruebas, todas pasan" if m else "las pruebas pasan")
