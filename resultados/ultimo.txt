@@ -1,38 +1,12 @@
-commit: 8f96da05edaa257089364a6275ece5e829e0162b
-inicio: 2026-11-09T12:44:59-03:00
+commit: 5819e5a65546683c384ba37a4edb06e948336859
+inicio: 2026-11-09T12:58:32-03:00
 ---
-Push successful
-deployment "fabrica" successfully rolled out
-53:            - configMapRef:
-54-                name: mantenedor-usuarios
-4:  name: mantenedor-usuarios-config
-6:    app.kubernetes.io/name: mantenedor-usuarios
- deploy/deployment.yaml   | 2 +-
- deploy/postgres-dev.yaml | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
-remote: 
-remote: Create a new pull request for 'feature/mantenedor-usuarios-11091507':        
-remote:   https://faceops.34.176.42.56.sslip.io:8843/git/fabrica/mantenedor-usuarios/compare/main...feature/mantenedor-usuarios-11091507        
-remote: 
-remote: . Processing 1 references        
-remote: Processed 1 references in total        
-rama corregida
-PIPE: FO-LAB-01382 fallido S_FIN ')).split(' ')[-1] == 'True'", "changed": false, "evaluated_to": false, "msg": "La ejecución app-fabrica-faceops-w7qln del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=8    changed=2    unreachable=0    failed=1    skipp
-2026/11/09 15:50:15 Decoded script /tekton/scripts/script-0-9vlgb
-2026/11/09 15:50:15 Decoded script /tekton/scripts/script-1-gqrls
-Secrets que piden los manifiestos: [('mantenedor-usuarios-db', 'DB_PASSWORD'), ('mantenedor-usuarios-db', 'DB_USER'), ('mantenedor-usuarios-db', 'password'), ('mantenedor-usuarios-db', 'username')]
-service/mantenedor-usuarios-db unchanged
-route.route.openshift.io/mantenedor-usuarios unchanged
-service/mantenedor-usuarios unchanged
-servicemonitor.monitoring.coreos.com/mantenedor-usuarios unchanged
-mantenedor-usuarios-db: PVC mantenedor-usuarios-db sin StorageClass, usa emptyDir en desarrollo
-Waiting for deployment "mantenedor-usuarios" rollout to finish: 0 out of 1 new replicas have been updated...
-Waiting for deployment "mantenedor-usuarios" rollout to finish: 1 old replicas are pending termination...
-error: timed out waiting for the condition
-2026/11/09 15:50:12 Entrypoint initialization
-NAME                                      READY   STATUS             RESTARTS      AGE
-mantenedor-usuarios-5459b96dcd-8pvbz      0/1     CrashLoopBackOff   5 (35s ago)   4m42s
-mantenedor-usuarios-cff6f4cc9-tsth4       0/1     CrashLoopBackOff   5 (29s ago)   4m41s
-mantenedor-usuarios-db-8677cd7c4b-fztzg   1/1     Running            0             4m42s
-app 503
---- fin: 2026-11-09T12:58:03-03:00 · código: 0
+Error from server (BadRequest): previous terminated container "docker-build" in pod "mantenedor-usuarios-1-build" not found
+== configmap
+{"DB_URL":"jdbc:postgresql://mantenedor-usuarios-postgres:5432/usuarios","KEYCLOAK_ISSUER_URI":"https://keycloak.dev.invoke.local/realms/invoke","OTEL_EXPORTER_OTLP_ENDPOINT":"http://otel-collector.openshift-opentelemetry:4318","SPRING_PROFILES_ACTIVE":"dev"}
+
+== env db
+POSTGRESQL_DATABASE <- usuarios
+POSTGRESQL_USER <- DB_USER
+POSTGRESQL_PASSWORD <- DB_PASSWORD
+--- fin: 2026-11-09T12:58:33-03:00 · código: 0
