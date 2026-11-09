@@ -994,17 +994,19 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq):
                     "detalle": ", ".join(f"{f['desde']}→{f['hacia']}" for f in sin_tls[:4]),
                     "remedio": "Emitir el certificado con ticket desde la línea del flujo («Certificados · Emitir para servicio», CA interna)"})
     lentos = []
+    from .rendimiento import umbral as _umbral
+    um_ = _umbral(cliente["id"])
     for f in fl:
         v, n = latencia_prom(cliente["id"], f)
         try:
             ms = float(v.split()[0]) if v else 0
         except ValueError:
             ms = 0
-        if ms >= 20:
+        if ms > um_:
             lentos.append((ms, f))
     if lentos:
         lentos.sort(key=lambda x: -x[0])
-        out.append({"nivel": "media", "area": "Rendimiento", "titulo": f"Latencia alta en {len(lentos)} flujo(s): posible cuello de botella",
+        out.append({"nivel": "media", "area": "Rendimiento", "titulo": f"Latencia sobre el umbral ({um_:.0f} ms) en {len(lentos)} flujo(s): cuello de botella",
                     "detalle": ", ".join(f"{f['desde']}→{f['hacia']} ⌀ {ms:.0f} ms" for ms, f in lentos[:4]),
                     "remedio": "Revisar red y carga del destino; medir de nuevo con «Probar latencia» en la línea"})
     orden = {"alta": 0, "media": 1, "info": 2, "ok": 3}

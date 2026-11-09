@@ -1,51 +1,38 @@
 ---
-# FaceOps · Rendimiento del canal (no invasiva): desde cada equipo de origen mide cada tramo del segmento con conexiones TCP
-# cortas (abrir y cerrar), en varias rondas de varias muestras y con pausa entre muestras. No envía datos de negocio ni carga,
-# y no cambia nada. Devuelve las muestras en ms por ronda (set_stats) y FaceOps calcula promedio, p95, jitter y pérdidas.
-# Variables: faceops_flujos: [{clave, desde, ip, puerto}] · fo_rondas (3) · fo_muestras (10)
+# FaceOps · Rendimiento del canal (no invasiva, por tiempo): desde cada equipo de origen mide sus tramos del segmento durante
+# fo_segundos. En cada paso (≈1 s) abre y cierra conexiones TCP al puerto de cada destino (handshake, sin datos de negocio) y
+# publica las muestras en ms como un evento del trabajo: FaceOps las lee en vivo y puede pausar o detener (cancelando el trabajo).
+# Variables: faceops_flujos: [{clave, desde, ip, puerto}] · fo_segundos (1 a 120)
 - name: FaceOps · Rendimiento del canal
   hosts: all
   gather_facts: false
   vars:
     mios: "{{ faceops_flujos | default([]) | selectattr('desde', 'equalto', inventory_hostname) | list }}"
+    pasos: "{{ [fo_segundos | default(30) | int, 125] | min }}"
   tasks:
-    - name: Medir cada tramo que sale de este equipo
+    - name: Medir los tramos de este equipo (un paso por segundo)
       ansible.builtin.command:
         argv:
           - python3
           - -c
           - |
             import json, socket, sys, time
-            ip, puerto, rondas, muestras = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
-            out = []
-            for _ in range(min(rondas, 5)):
-                ms, perd = [], 0
-                for _ in range(min(muestras, 30)):
-                    t = time.perf_counter()
+            tramos = json.loads(sys.argv[1])
+            m, p, t0 = {t["clave"]: [] for t in tramos}, {t["clave"]: 0 for t in tramos}, time.time()
+            while time.time() - t0 < 0.7:
+                for t in tramos:
+                    a = time.perf_counter()
                     try:
-                        socket.create_connection((ip, puerto), 3).close()
-                        ms.append(round((time.perf_counter() - t) * 1000, 3))
+                        socket.create_connection((t["ip"], int(t["puerto"])), 2).close()
+                        m[t["clave"]].append(round((time.perf_counter() - a) * 1000, 3))
                     except OSError:
-                        perd += 1
-                    time.sleep(0.1)
-                out.append({"ms": ms, "perdidas": perd})
-                time.sleep(0.5)
-            print(json.dumps({"rondas": out}))
-          - "{{ item.ip }}"
-          - "{{ item.puerto }}"
-          - "{{ fo_rondas | default(3) }}"
-          - "{{ fo_muestras | default(10) }}"
-      loop: "{{ mios }}"
-      loop_control: {label: "{{ item.desde }} → {{ item.ip }}:{{ item.puerto }}"}
-      register: r
+                        p[t["clave"]] += 1
+                time.sleep(0.15)
+            print(json.dumps({"paso": int(sys.argv[2]), "t": round(time.time(), 2), "m": m, "p": p}))
+          - "{{ mios | to_json }}"
+          - "{{ item }}"
+      loop: "{{ range(pasos | int) | list }}"
+      loop_control: {label: "paso {{ item }}"}
       changed_when: false
       failed_when: false
-
-    - name: Resultado para FaceOps
-      ansible.builtin.set_stats:
-        aggregate: true
-        per_host: false
-        data:
-          faceops_rendimiento: >-
-            {{ dict(r.results | map(attribute='item') | map(attribute='clave') | zip(r.results | map(attribute='stdout', default='{}'))) }}
       when: mios | length > 0

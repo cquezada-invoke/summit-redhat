@@ -1,21 +1,43 @@
-"""Prueba de rendimiento del canal de un segmento de negocio (no invasiva): mide cada tramo entre cajas desde su máquina de
-origen (conexiones TCP cortas, varias rondas de varias muestras, con pausa entre muestras) y la entrada HTTP de la aplicación
-(unas pocas peticiones GET). No envía carga real ni cambia nada. Sirve para ver dónde está el cuello de botella."""
+"""Prueba de rendimiento del canal de un segmento de negocio (no invasiva, por tiempo, en vivo). Cada tramo entre cajas se mide
+desde su máquina de origen (AAP abre y cierra conexiones TCP al puerto del destino, sin datos de negocio; no es ping ICMP) y la
+entrada de la aplicación con peticiones HTTP GET desde FaceOps. Dura los segundos que se pidan (máximo 120), se puede pausar,
+reanudar y detener, y las muestras llegan en vivo (eventos del trabajo en AAP). Un tramo es cuello de botella si su promedio
+supera el umbral de rendimiento (200 ms por defecto, editable)."""
 import json
 import statistics
 import threading
 import time
 from collections import defaultdict
 
-from .bd import ahora, auditar, ej, j, q1
+from .bd import ahora, ajuste, auditar, ej, j, q1
 
 PLANTILLA = "FaceOps · Rendimiento del canal"
-RONDAS, MUESTRAS = 3, 10
+MAX_SEG = 120
+UMBRAL_DEF = 200.0
+
+
+def umbral(cliente_id, nuevo=None):
+    """Umbral de rendimiento (ms) para toda la aplicación: sobre él un tramo es cuello de botella."""
+    k = f"umbral_rendimiento_ms_{cliente_id}"
+    if nuevo is not None:
+        v = max(1.0, min(float(nuevo), 60000.0))
+        ajuste(k, str(v))
+        return v
+    try:
+        return float(ajuste(k) or UMBRAL_DEF)
+    except ValueError:
+        return UMBRAL_DEF
 
 
 def _tabla():
     ej("CREATE TABLE IF NOT EXISTS rendimiento_canal (id INTEGER PRIMARY KEY, cliente_id INTEGER, segmento TEXT, cuando TEXT, por TEXT, "
        "estado TEXT, jobs TEXT DEFAULT '[]', tramos TEXT DEFAULT '{}', entrada TEXT DEFAULT '{}', resultado TEXT DEFAULT '{}', fin TEXT)")
+    from .bd import q as _q
+    cols = {r["name"] for r in _q("PRAGMA table_info(rendimiento_canal)")}
+    for c, t in (("duracion", "INTEGER DEFAULT 30"), ("inicio_ts", "REAL"), ("pausado_acum", "REAL DEFAULT 0"), ("pausa_desde", "REAL"),
+                 ("ultimos", "TEXT DEFAULT '{}'"), ("muestras", "TEXT DEFAULT '{}'"), ("flujos", "TEXT DEFAULT '[]'")):
+        if c not in cols:
+            ej(f"ALTER TABLE rendimiento_canal ADD COLUMN {c} {t}")
 
 
 def _stats(ms, perdidas=0):
@@ -26,42 +48,16 @@ def _stats(ms, perdidas=0):
             "max": round(s[-1], 2), "jitter": round(statistics.pstdev(s), 2), "perdidas": perdidas}
 
 
-def _entrada(rid, url, rondas, muestras):
-    """La entrada HTTP de la aplicación, medida desde FaceOps (pocas peticiones, con pausa)."""
-    import requests
-    out = []
-    for _ in range(rondas):
-        ms, err, cod = [], 0, {}
-        for _ in range(muestras):
-            try:
-                r = requests.get(url, timeout=8, verify=False, headers={"User-Agent": "FaceOps-rendimiento/1.0"})
-                ms.append(r.elapsed.total_seconds() * 1000)
-                cod[r.status_code] = cod.get(r.status_code, 0) + 1
-            except requests.RequestException:
-                err += 1
-            time.sleep(0.2)
-        out.append(dict(_stats(ms, err), codigos=cod))
-    todas = [x for x in out if x.get("n")]
-    ej("UPDATE rendimiento_canal SET entrada=? WHERE id=?", json.dumps({"url": url, "rondas": out, "global": {
-        "prom": round(statistics.mean(x["prom"] for x in todas), 2) if todas else None,
-        "p95": max((x["p95"] for x in todas), default=None), "perdidas": sum(x.get("perdidas", 0) for x in out)}}), rid)
+def transcurrido(r):
+    if not r.get("inicio_ts"):
+        return 0
+    hasta = r["pausa_desde"] if r["estado"] == "pausado" and r.get("pausa_desde") else time.time()
+    return max(0.0, hasta - r["inicio_ts"] - (r.get("pausado_acum") or 0))
 
 
-def lanzar(usuario, cliente, segmento, eqs):
+def _lanzar_jobs(cliente, flujos, eqs, segundos):
     from .aap import AAP, ErrorAAP
-    from .arquitectura import asignacion, flujos_expandidos, vigente
     from .operacion import acceso_equipo
-    from .topologia import clave_flujo, flujos_verificables
-    _tabla()
-    arq = vigente(cliente["id"], segmento)
-    if not arq:
-        raise ValueError("El segmento no tiene arquitectura aprobada: no hay canal que medir")
-    m = arq["m"]
-    pares = {(f["desde"], f["hacia"]) for f in flujos_expandidos(m, asignacion(m, eqs)) if not f["desde"].startswith("x:")}
-    flujos = [f for f in flujos_verificables(cliente, eqs) if any(f["clave"].startswith(clave_flujo(a, b, "")) for a, b in pares)]
-    en_ = (m.get("entrada") or {}).get("url") or ""
-    if not flujos and not en_:
-        raise ValueError("No hay tramos medibles: los equipos de origen deben estar encendidos y con datos del recolector")
     aap = AAP.de_cliente(cliente)
     r = aap.get("job_templates/", name=PLANTILLA).get("results", [])
     if not r:
@@ -71,76 +67,159 @@ def lanzar(usuario, cliente, segmento, eqs):
     for f in flujos:
         try:
             inv, _, creds = acceso_equipo(aap, cliente, por_nombre[f["desde"]])
-        except ErrorAAP:
+        except (ErrorAAP, KeyError):
             continue
         grupos[(inv, tuple(creds))].append(f)
-    rid = ej("INSERT INTO rendimiento_canal(cliente_id, segmento, cuando, por, estado, tramos) VALUES (?,?,?,?,?,?)", cliente["id"], segmento, ahora(),
-             usuario["usuario"], "en curso", json.dumps({f["clave"]: {"desde": f["desde"], "ip": f["ip"], "puerto": f["puerto"]} for f in flujos}))
-    jobs = []
-    for (inv, creds), fl in grupos.items():
-        jobs.append(aap.lanzar("job", r[0]["id"], extra_vars={"faceops_flujos": fl, "fo_rondas": RONDAS, "fo_muestras": MUESTRAS},
-                               limite=":".join(sorted({f["desde"] for f in fl})), inventario=inv, credenciales=list(creds)))
-    ej("UPDATE rendimiento_canal SET jobs=?, entrada=? WHERE id=?", json.dumps(jobs), json.dumps({"url": en_, "pendiente": True} if en_ else {}), rid)
-    if en_:
-        from flask import current_app
-        app_ = current_app._get_current_object()
+    return [aap.lanzar("job", r[0]["id"], extra_vars={"faceops_flujos": fl, "fo_segundos": int(segundos) + 3},
+                       limite=":".join(sorted({f["desde"] for f in fl})), inventario=inv, credenciales=list(creds)) for (inv, creds), fl in grupos.items()]
 
-        def _hilo():
-            with app_.app_context():
-                try:
-                    _entrada(rid, en_, RONDAS, MUESTRAS)
-                except Exception as x:  # noqa: BLE001
-                    ej("UPDATE rendimiento_canal SET entrada=? WHERE id=?", json.dumps({"url": en_, "error": str(x)[:200]}), rid)
-        threading.Thread(target=_hilo, daemon=True).start()
-    auditar(usuario["usuario"], cliente["id"], "prueba de rendimiento del canal", segmento, {"tramos": len(flujos), "trabajos": jobs})
-    return {"id": rid, "tramos": len(flujos), "trabajos": jobs, "entrada": en_}
+
+def _entrada(app_, rid, url):
+    """La entrada HTTP, una petición por segundo mientras la prueba corre (respeta pausa y detención)."""
+    import requests
+    with app_.app_context():
+        while True:
+            r = q1("SELECT * FROM rendimiento_canal WHERE id=?", rid)
+            if not r or r["estado"] in ("detenido", "listo"):
+                return
+            if r["estado"] == "pausado":
+                time.sleep(1)
+                continue
+            if transcurrido(r) >= (r["duracion"] or 30):
+                return
+            ms, err = None, 0
+            try:
+                x = requests.get(url, timeout=5, verify=False, headers={"User-Agent": "FaceOps-rendimiento/1.0"})
+                ms = round(x.elapsed.total_seconds() * 1000, 2)
+            except requests.RequestException:
+                err = 1
+            e = j(q1("SELECT entrada FROM rendimiento_canal WHERE id=?", rid)["entrada"], {})
+            if ms is not None:
+                e.setdefault("ms", []).append(ms)
+            e["perdidas"] = e.get("perdidas", 0) + err
+            e["url"] = url
+            ej("UPDATE rendimiento_canal SET entrada=? WHERE id=?", json.dumps(e), rid)
+            time.sleep(1)
+
+
+def iniciar(usuario, cliente, segmento, eqs, segundos):
+    from flask import current_app
+    from .arquitectura import asignacion, flujos_expandidos, vigente
+    from .topologia import clave_flujo, flujos_verificables
+    _tabla()
+    segundos = max(1, min(int(segundos or 30), MAX_SEG))
+    arq = vigente(cliente["id"], segmento)
+    if not arq:
+        raise ValueError("El segmento no tiene arquitectura aprobada: no hay canal que medir")
+    m = arq["m"]
+    pares = {(f["desde"], f["hacia"]) for f in flujos_expandidos(m, asignacion(m, eqs)) if not f["desde"].startswith("x:")}
+    flujos = [f for f in flujos_verificables(cliente, eqs) if any(f["clave"].startswith(clave_flujo(a, b, "")) for a, b in pares)]
+    en_ = (m.get("entrada") or {}).get("url") or ""
+    if not flujos and not en_:
+        raise ValueError("No hay tramos medibles: los equipos de origen deben estar encendidos y con datos del recolector")
+    rid = ej("INSERT INTO rendimiento_canal(cliente_id, segmento, cuando, por, estado, duracion, inicio_ts, tramos, flujos, entrada) VALUES (?,?,?,?,?,?,?,?,?,?)",
+             cliente["id"], segmento, ahora(), usuario["usuario"], "corriendo", segundos, time.time(),
+             json.dumps({f["clave"]: {"desde": f["desde"], "ip": f["ip"], "puerto": f["puerto"]} for f in flujos}), json.dumps(flujos),
+             json.dumps({"url": en_} if en_ else {}))
+    jobs = _lanzar_jobs(cliente, flujos, eqs, segundos) if flujos else []
+    ej("UPDATE rendimiento_canal SET jobs=? WHERE id=?", json.dumps(jobs), rid)
+    if en_:
+        threading.Thread(target=_entrada, args=(current_app._get_current_object(), rid, en_), daemon=True).start()
+    auditar(usuario["usuario"], cliente["id"], "prueba de rendimiento del canal", segmento, {"segundos": segundos, "tramos": len(flujos), "trabajos": jobs})
+    return rid
+
+
+def _cancelar(cliente, jobs):
+    from .aap import AAP, ErrorAAP
+    aap = AAP.de_cliente(cliente)
+    for jid in jobs:
+        try:
+            aap.post(f"jobs/{jid}/cancel/")
+        except ErrorAAP:
+            pass
+
+
+def controlar(usuario, cliente, segmento, eqs, accion):
+    _tabla()
+    r = q1("SELECT * FROM rendimiento_canal WHERE cliente_id=? AND segmento=? ORDER BY id DESC LIMIT 1", cliente["id"], segmento)
+    if not r or r["estado"] not in ("corriendo", "pausado"):
+        raise ValueError("No hay una prueba en curso")
+    if accion == "pausar" and r["estado"] == "corriendo":
+        _ingerir(cliente, r)
+        _cancelar(cliente, j(r["jobs"], []))
+        ej("UPDATE rendimiento_canal SET estado='pausado', pausa_desde=? WHERE id=?", time.time(), r["id"])
+    elif accion == "reanudar" and r["estado"] == "pausado":
+        resto = max(1, int((r["duracion"] or 30) - transcurrido(r)))
+        jobs = j(r["jobs"], []) + (_lanzar_jobs(cliente, j(r["flujos"], []), eqs, resto) if j(r["flujos"], []) else [])
+        ej("UPDATE rendimiento_canal SET estado='corriendo', pausado_acum=COALESCE(pausado_acum,0)+?, pausa_desde=NULL, jobs=? WHERE id=?",
+           time.time() - (r["pausa_desde"] or time.time()), json.dumps(jobs), r["id"])
+    elif accion == "detener":
+        _ingerir(cliente, r)
+        _cancelar(cliente, j(r["jobs"], []))
+        if r["estado"] == "pausado":
+            ej("UPDATE rendimiento_canal SET pausado_acum=COALESCE(pausado_acum,0)+?, pausa_desde=NULL WHERE id=?",
+               time.time() - (r["pausa_desde"] or time.time()), r["id"])
+        _cerrar(cliente, q1("SELECT * FROM rendimiento_canal WHERE id=?", r["id"]), "detenido")
+    auditar(usuario["usuario"], cliente["id"], f"prueba de rendimiento: {accion}", segmento, {"id": r["id"]})
+
+
+def _ingerir(cliente, r):
+    """Lee de AAP las muestras nuevas (un evento por paso de cada equipo de origen)."""
+    from .aap import AAP, ErrorAAP
+    aap, ult, mu = AAP.de_cliente(cliente), j(r["ultimos"], {}), j(r["muestras"], {})
+    for jid in j(r["jobs"], []):
+        try:
+            evs = aap.get(f"jobs/{jid}/job_events/", event="runner_item_on_ok", id__gt=ult.get(str(jid), 0), order_by="id", page_size=200).get("results", [])
+        except ErrorAAP:
+            continue
+        for ev in evs:
+            ult[str(jid)] = max(ult.get(str(jid), 0), ev["id"])
+            try:
+                d = json.loads(((ev.get("event_data") or {}).get("res") or {}).get("stdout") or "{}")
+            except ValueError:
+                continue
+            for k, v in (d.get("m") or {}).items():
+                x = mu.setdefault(k, {"ms": [], "perdidas": 0, "serie": []})
+                x["ms"] = (x["ms"] + v)[-3000:]
+                x["perdidas"] += (d.get("p") or {}).get(k, 0)
+                if v:
+                    x["serie"] = (x["serie"] + [round(statistics.mean(v), 2)])[-150:]
+    ej("UPDATE rendimiento_canal SET ultimos=?, muestras=? WHERE id=?", json.dumps(ult), json.dumps(mu), r["id"])
+    return mu
+
+
+def _cerrar(cliente, r, estado_):
+    for k, x in j(r["muestras"], {}).items():   # la medición también alimenta la latencia normal del mapa
+        if x.get("ms"):
+            med = round(statistics.median(x["ms"]), 3)
+            ej("INSERT INTO flujos_latencia(cliente_id, clave, ms, en) VALUES (?,?,?,?)", cliente["id"], k, med, ahora())
+            ej("UPDATE flujos SET estado='abierto', verificado=?, latencia_ms=?, latencia_en=? WHERE cliente_id=? AND clave=?", ahora(), med, ahora(), cliente["id"], k)
+    ej("UPDATE rendimiento_canal SET estado=?, fin=? WHERE id=?", estado_, ahora(), r["id"])
 
 
 def estado(cliente, segmento):
-    """Última prueba del segmento; si sigue en curso, lee de AAP los trabajos terminados y completa el resultado."""
-    from .aap import AAP, ErrorAAP
+    """La última prueba del segmento, con sus muestras al día (lee AAP mientras corre)."""
     _tabla()
     r = q1("SELECT * FROM rendimiento_canal WHERE cliente_id=? AND segmento=? ORDER BY id DESC LIMIT 1", cliente["id"], segmento)
     if not r:
         return None
-    if r["estado"] == "en curso":
-        aap, fin, art = AAP.de_cliente(cliente), True, {}
-        for jid in j(r["jobs"], []):
-            try:
-                x = aap.get(f"jobs/{jid}/")
-            except ErrorAAP:
-                fin = False
-                continue
-            if x.get("status") not in ("successful", "failed", "error", "canceled"):
-                fin = False
-                continue
-            art.update(((x.get("artifacts") or {}).get("faceops_rendimiento")) or {})
-        entrada = j(r["entrada"], {})
-        if fin and entrada.get("pendiente") and time.time() - _ts(r["cuando"]) < 150:
-            fin = False   # la entrada HTTP aún se está midiendo
-        if fin:
-            tramos = j(r["tramos"], {})
-            for k, t in tramos.items():
-                try:
-                    d = json.loads(art.get(k) or "{}")
-                except ValueError:
-                    d = {}
-                rondas = [_stats(x.get("ms") or [], x.get("perdidas", 0)) for x in d.get("rondas", [])]
-                todas = [v for x in d.get("rondas", []) for v in (x.get("ms") or [])]
-                t.update(rondas=rondas, **{"global": _stats(todas, sum(x.get("perdidas", 0) for x in d.get("rondas", [])))})
-                if todas:   # la medición también alimenta la latencia normal del mapa
-                    med = round(statistics.median(todas), 3)
-                    ej("INSERT INTO flujos_latencia(cliente_id, clave, ms, en) VALUES (?,?,?,?)", cliente["id"], k, med, ahora())
-                    ej("UPDATE flujos SET estado='abierto', verificado=?, latencia_ms=?, latencia_en=? WHERE cliente_id=? AND clave=?",
-                       ahora(), med, ahora(), cliente["id"], k)
-            ej("UPDATE rendimiento_canal SET estado='listo', tramos=?, fin=? WHERE id=?", json.dumps(tramos), ahora(), r["id"])
-            r = q1("SELECT * FROM rendimiento_canal WHERE id=?", r["id"])
-    return dict(r, tramos=j(r["tramos"], {}), entrada=j(r["entrada"], {}), jobs=j(r["jobs"], []))
-
-
-def _ts(iso):
-    from datetime import datetime
-    try:
-        return datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp()
-    except ValueError:
-        return 0
+    if r["estado"] == "corriendo":
+        _ingerir(cliente, r)
+        if transcurrido(r) >= (r["duracion"] or 30):
+            _cancelar(cliente, j(r["jobs"], []))
+            _cerrar(cliente, q1("SELECT * FROM rendimiento_canal WHERE id=?", r["id"]), "listo")
+        r = q1("SELECT * FROM rendimiento_canal WHERE id=?", r["id"])
+    um = umbral(cliente["id"])
+    mu, tr = j(r["muestras"], {}), j(r["tramos"], {})
+    tramos = {}
+    for k, t in tr.items():
+        x = mu.get(k) or {}
+        g = _stats(x.get("ms") or [], x.get("perdidas", 0))
+        tramos[k] = dict(t, **{"global": g, "serie": x.get("serie", [])[-60:], "cuello": bool(g.get("n") and g["prom"] > um)})
+    e = j(r["entrada"], {})
+    ms_e = [v for v in e.get("ms", []) if v is not None]
+    entrada = {"url": e.get("url", ""), "global": _stats(ms_e, e.get("perdidas", 0)), "serie": ms_e[-60:]} if e.get("url") else {}
+    if entrada:
+        entrada["cuello"] = bool(ms_e and entrada["global"]["prom"] > um)
+    return {"id": r["id"], "estado": r["estado"], "duracion": r["duracion"], "transcurrido": round(transcurrido(r), 1), "cuando": r["cuando"],
+            "fin": r["fin"], "por": r["por"], "umbral": um, "tramos": tramos, "entrada": entrada}

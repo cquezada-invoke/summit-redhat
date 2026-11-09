@@ -117,7 +117,8 @@ def generar(requerimiento, previo=None, correccion="", paso=lambda t: None):
         msgs = [{"role": "user", "content": f"Requerimiento funcional:\n{previo['requerimiento']}"},
                 {"role": "assistant", "content": json.dumps({k: previo[k] for k in ("nombre", "resumen", "stack", "archivos")}, ensure_ascii=False)},
                 {"role": "user", "content": correccion or requerimiento}]
-    paso(f"Claude ({MODELO}) está diseñando la aplicación")
+    paso(f"Claude ({MODELO}) está diseñando la aplicación · tiempo estimado: {'1 a 2' if previo else '2 a 4'} minutos "
+         "(piensa cerca de un minuto y luego escribe archivo por archivo)")
     r = requests.post("https://api.anthropic.com/v1/messages", timeout=300, stream=True,
                       headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""), "anthropic-version": "2023-06-01", "content-type": "application/json"},
                       json={"model": MODELO, "max_tokens": 24000, "system": SISTEMA.format(politicas=texto_pol), "messages": msgs,

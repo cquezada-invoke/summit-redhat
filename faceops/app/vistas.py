@@ -5456,24 +5456,34 @@ def mapa_bifurcacion():
 @bp.route("/mapa/rendimiento", methods=["GET", "POST"])
 @requiere_login
 def mapa_rendimiento():
-    """Prueba de rendimiento no invasiva de todo el canal del segmento: POST la lanza; GET devuelve su avance y resultado."""
+    """Prueba de rendimiento del canal (en vivo): POST accion=iniciar|pausar|reanudar|detener|umbral; GET su avance y muestras."""
     from . import rendimiento as REN
     from .aap import ErrorAAP as _EA
     seg = request.values.get("segmento", "")
     if not q1("SELECT id FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], seg) or not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
         return {"error": "Segmento no encontrado"}, 404
     if request.method == "POST":
-        if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        f = request.form
+        if f.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
             return {"error": "Necesitas perfil de escritura"}, 403
-        actual = REN.estado(g.cliente, seg)
-        if actual and actual["estado"] == "en curso":
-            return {"ok": True, "en_curso": True}
+        acc = f.get("accion", "iniciar")
         try:
-            return dict(REN.lanzar(g.usuario, g.cliente, seg, equipos_visibles()), ok=True)
+            if acc == "umbral":
+                v = REN.umbral(g.cliente["id"], float(f.get("umbral") or REN.UMBRAL_DEF))
+                auditar(g.usuario["usuario"], g.cliente["id"], "umbral de rendimiento", f"{v:.0f} ms")
+            elif acc == "iniciar":
+                actual = REN.estado(g.cliente, seg)
+                if actual and actual["estado"] in ("corriendo", "pausado"):
+                    return {"error": "Ya hay una prueba en curso: detenla antes de iniciar otra"}, 409
+                REN.iniciar(g.usuario, g.cliente, seg, equipos_visibles(), int(f.get("segundos") or 30))
+            elif acc in ("pausar", "reanudar", "detener"):
+                REN.controlar(g.usuario, g.cliente, seg, equipos_visibles(), acc)
+            else:
+                return {"error": "Acción no válida"}, 400
         except (ValueError, _EA) as x:
             return {"error": str(x)}, 400
     r = REN.estado(g.cliente, seg)
-    return r or {"estado": "sin pruebas"}
+    return r or {"estado": "sin pruebas", "umbral": REN.umbral(g.cliente["id"])}
 
 
 @bp.route("/mapa/datos")
