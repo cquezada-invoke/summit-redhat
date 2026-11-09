@@ -1,0 +1,40 @@
+commit: fa5d364cb79f259cdb55fdf8eabe53455d155d7f
+inicio: 2026-11-09T11:40:42-03:00
+---
+fabrica-ocp por IP
+{"nombre": "usuarios-demo", "rama": "feature/usuarios-demo-11091428"}rbac ok
+aplicar: FO-LAB-01375 exitoso
+PIPE: FO-LAB-01376 fallido AAP terminó (failed): ejecución 442 s, espera de aprobación 29 s | Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-fabrica-faceops-jqcf5 del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-5gxpz) | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-z58d9) | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-m76mq) | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-z5jf5) | ok: [anfitrion-kvm] => (item=app-fa
+T                       S           M
+analisis-estatico       Succeeded   All Steps have completed executing
+clonar                  Succeeded   All Steps have completed executing
+construir-y-desplegar   Failed      "step-openshift" exited with code 1: Error
+politicas               Succeeded   All Steps have completed executing
+pruebas                 Succeeded   All Steps have completed executing
+secretos                Succeeded   All Steps have completed executing
+--- construir-y-desplegar
+2026/11/09 14:45:18 Entrypoint initialization
+2026/11/09 14:45:19 Decoded script /tekton/scripts/script-0-c8blt
+Uploading directory "." as binary input for the build ...
+
+Uploading finished
+error: the build fabrica-dev/usuarios-demo-2 status is "Failed"
+tar (child): Error is not recoverable: exiting now
+tar: Child returned status 2
+tar: Error is not recoverable: exiting now
+failed to untar
+error: build error: building at STEP "RUN ./mvnw -B -DskipTests package": while running runtime: exit status 1
+persistentvolumeclaim/usuarios-demo-postgres created
+deployment.apps/usuarios-demo-postgres created
+service/usuarios-demo-postgres created
+configmap/usuarios-demo-config unchanged
+deployment.apps/usuarios-demo unchanged
+horizontalpodautoscaler.autoscaling/usuarios-demo unchanged
+poddisruptionbudget.policy/usuarios-demo configured
+route.route.openshift.io/usuarios-demo unchanged
+service/usuarios-demo unchanged
+servicemonitor.monitoring.coreos.com/usuarios-demo created
+Waiting for deployment "usuarios-demo" rollout to finish: 1 out of 2 new replicas have been updated...
+error: timed out waiting for the condition
+app 503
+--- fin: 2026-11-09T11:51:09-03:00 · código: 0
