@@ -108,11 +108,13 @@ Reglas de entrega:
 - Stack: Spring Boot 3 con Java 21 y Maven (pom.xml), como exigen las políticas. Sin Maven Wrapper (no incluyas mvnw ni .mvn/):
   el Containerfile compila con el comando mvn que ya trae registry.access.redhat.com/ubi9/openjdk-21. Cualquier otra pieza (base de datos, mensajería,
   caché) sale SOLO del stack tecnológico aceptado que sigue; p. ej. base relacional = la aceptada (PostgreSQL) con Spring Data JPA,
-  credenciales por Secret, y en deploy/ su Deployment/Service/PVC para el ambiente de desarrollo; en las pruebas usa H2 o Testcontainers.
+  credenciales por Secret, y en deploy/desarrollo/ su Deployment/Service (sin PVC) para el ambiente de desarrollo; en las pruebas usa H2.
 {stack}
 - Ambiente de desarrollo: sus dependencias (p. ej. PostgreSQL) van en deploy/desarrollo/ y usan almacenamiento efímero (emptyDir, sin PVC:
   el clúster de desarrollo no tiene almacenamiento persistente). La aplicación y su base usan el MISMO Secret «<nombre-app>-db» con las
   claves usuario, clave y base (secretKeyRef). El Secret NO va en el repositorio: fuera de producción lo crea el pipeline.
+  Imagen de la base en desarrollo, exacta: {img_pg} (no inventes etiquetas). Todo ConfigMap que referencie
+  un Deployment (envFrom/configMapKeyRef) debe existir con ese mismo nombre en deploy/.
 - Si al requerimiento le falta algo que cambia el diseño (entidades, reglas, integraciones), NO construyas: responde en texto con hasta
   3 preguntas cortas y concretas. Si es razonable suponerlo, supónlo y dilo en el resumen.
 - Sé conciso: código mínimo y funcional, sin comentarios largos ni archivos de más (idealmente 12 a 20 archivos).
@@ -237,7 +239,7 @@ def generar(requerimiento, previo=None, correccion="", paso=lambda t: None, solo
     texto_pol = "\n".join(f"- {p['codigo']} [{p['area']} · {p['nivel']}] {p['titulo']}: {p['regla']}" for p in pol["politicas"])
     texto_stack = ("Stack tecnológico aceptado:\n" + "\n".join(f"  · {x['concepto']}: {x['nombre']} {', '.join(x['versiones'])}".rstrip()
                                                              for x in pol.get("stack") or [])) if pol.get("stack") else ""
-    sistema = SISTEMA.format(politicas=texto_pol, stack=texto_stack)
+    sistema = SISTEMA.format(politicas=texto_pol, stack=texto_stack, img_pg=IMAGENES_DEP["postgresql"])
     if solo and previo:
         plan = {k: previo[k] for k in ("nombre", "resumen", "stack", "politicas_aplicadas") if k in previo}
         plan["archivos"] = previo["plan_archivos"]
@@ -338,9 +340,32 @@ def _archivos_de(malos, archivos):
     return sorted(out) or sorted(archivos)
 
 
+IMAGENES_DEP = {"postgresql": "registry.redhat.io/rhel9/postgresql-16:latest"}   # dependencias de desarrollo con imagen verificada
+
+
+def _consistencia(archivos):
+    """Coherencia entre manifiestos: ConfigMap y Secret referenciados existen o los crea el pipeline; imágenes de dependencias válidas."""
+    malos = []
+    yml = {k: v for k, v in archivos.items() if k.startswith("deploy/") and k.endswith((".yaml", ".yml"))}
+    todo = "\n".join(yml.values())
+    cms = set(re.findall(r"kind:\s*ConfigMap\s*\n(?:.*\n)*?\s*name:\s*['\"]?([\w.-]+)", todo))
+    for n in set(re.findall(r"configMapRef:\s*\{?\s*\n?\s*name:\s*['\"]?([\w.-]+)", todo)) | set(re.findall(r"configMapKeyRef:\s*\{?\s*\n?\s*(?:key:.*\n\s*)?name:\s*['\"]?([\w.-]+)", todo)):
+        if n not in cms:
+            malos.append(f"PS-21: el Deployment usa el ConfigMap «{n}» y deploy/ no lo declara (declarados: {', '.join(sorted(cms)) or 'ninguno'})")
+    for ruta, cont in yml.items():
+        for img in re.findall(r"^\s*-?\s*image:\s*['\"]?([^'\"\s]+)", cont, re.M):
+            if img == "IMAGEN_APP":
+                continue
+            if "postgres" in img and img != IMAGENES_DEP["postgresql"]:
+                malos.append(f"PS-01: {ruta} usa {img}; la imagen de PostgreSQL aceptada es {IMAGENES_DEP['postgresql']}")
+        if "kind: PersistentVolumeClaim" in cont and ("desarrollo" in ruta or "/dev/" in ruta):
+            malos.append(f"PS-20: {ruta} pide un PVC; en desarrollo la base usa emptyDir")
+    return malos
+
+
 def revisar(archivos):
     """Revisión previa de las políticas automáticas (la misma idea que el pipeline): lista de incumplimientos."""
-    malos = []
+    malos = _consistencia(archivos)
     cf = archivos.get("Containerfile") or archivos.get("Dockerfile") or ""
     if not cf:
         malos.append("PS-21: falta el Containerfile")
@@ -370,7 +395,7 @@ def revisar(archivos):
         if clave not in dep:
             malos.append(f"{pol}: deploy/ no tiene {clave}")
     for ruta, cont in archivos.items():
-        if re.search(r"(?i)(password|secret|token|api[_-]?key)\s*[:=]\s*['\"]?[^'\"\s$]{6,}", cont) and not ruta.startswith("src/test/"):
+        if re.search(r"(?i)(password|secret|token|api[_-]?key)\s*[:=]\s*['\"]?[^'\"\s$]{6,}", cont) and not ruta.startswith("src/test/") and not ruta.endswith(".md"):   # el README documenta variables; gitleaks revisa igual
             malos.append(f"PS-07: posible secreto en {ruta}")
     if not any(k.startswith("src/test/") for k in archivos):
         malos.append("PS-25: faltan pruebas (src/test)")
