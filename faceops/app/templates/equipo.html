@@ -469,6 +469,7 @@ fetch({{ url_for('consola.punto_frecuencia', eid=e.id)|tojson }},{method:'POST',
   window.fxNuevoTicket=t=>{filas.unshift({numero:t.numero,auto:t.auto||t.automatizacion||'',nombre_aap:t.nombre_aap||'',estado:t.estado||'pendiente_aprobacion',autor:{{ (usuario.nombre if usuario else '')|tojson }},
     fecha:new Date().toISOString(),inicio:new Date().toISOString(),fin:'',url:t.url,tipo:'ejecución',comps:clasif((t.auto||'')+' '+(t.nombre_aap||'')),nuevo:true});
     pintar();const sec=document.getElementById('tickets-maquina');sec.scrollIntoView({behavior:'smooth',block:'start'});sec.classList.add('resalta');setTimeout(()=>sec.classList.remove('resalta'),2500);};
+  if(location.hash==='#tickets-maquina'){const sec=document.getElementById('tickets-maquina');setTimeout(()=>{sec.scrollIntoView({behavior:'smooth',block:'start'});sec.classList.add('resalta');setTimeout(()=>sec.classList.remove('resalta'),2500);},300);}
   {% if 'respaldo-git' not in e.skills %}info={error:'Esta máquina aún no tiene respaldo continuo en Git: sus cambios se registran desde que se habilita «Respaldo continuo en Git».'};{% endif %}
   const enviar=(b,url,extra)=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
     const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));

@@ -2657,7 +2657,8 @@ def equipo_accion_so(eid, clave):
         flash(f"{acc['t']}: {t['numero']} creado (espera su aprobación)", "ok")
     except (PermissionError, ErrorAAP, ValueError) as x:
         flash(str(x), "error")
-    return redirect(url_for("consola.equipo", eid=eid))
+        return redirect(url_for("consola.equipo", eid=eid))
+    return redirect(url_for("consola.equipo", eid=eid) + "#tickets-maquina")
 
 
 @bp.route("/inventario/<int:eid>/recursos", methods=["POST"])
@@ -2684,7 +2685,8 @@ def equipo_recursos(eid):
         flash(f"{t['numero']}: {e['nombre']} a {cpu} vCPU y {ram} GB (espera su aprobación; si está encendida se reinicia)", "ok")
     except (PermissionError, ErrorAAP, ValueError) as x:
         flash(str(x), "error")
-    return redirect(url_for("consola.equipo", eid=eid))
+        return redirect(url_for("consola.equipo", eid=eid))
+    return redirect(url_for("consola.equipo", eid=eid) + "#tickets-maquina")   # el foco va a los tickets de la máquina
 
 
 @bp.route("/inventario/<int:eid>/redis-insight", methods=["POST"])
@@ -4249,8 +4251,9 @@ def equipo(eid):
                      "url": url_for("consola.ticket", tid=t["id"])}
                     for t in q("SELECT t.id, t.numero, t.estado, t.creado, t.inicio, t.fin, a.nombre auto, a.nombre_aap, u.nombre solicitante FROM tickets t "
                                "LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id LEFT JOIN usuarios u ON u.id=t.usuario_id "
-                               "WHERE t.cliente_id=? AND ((':' || COALESCE(t.limite,'') || ':') LIKE ? OR t.parametros LIKE ?) ORDER BY t.creado DESC LIMIT 100",
-                               g.cliente["id"], f"%:{e['nombre']}:%", f'%"{e["nombre"]}"%')]
+                               "WHERE t.cliente_id=? AND ((':' || COALESCE(t.limite,'') || ':') LIKE ? OR t.parametros LIKE ? OR t.parametros LIKE ? OR t.parametros LIKE ?) "
+                               "ORDER BY t.creado DESC LIMIT 100",   # también parámetros «máquina:valor» (ajustar recursos y similares)
+                               g.cliente["id"], f"%:{e['nombre']}:%", f'%"{e["nombre"]}"%', f'%"{e["nombre"]}:%', f'%,{e["nombre"]}:%')]
     salud_eq = None
     try:   # salud por componente y global (reemplaza el puntaje de riesgo como indicador principal)
         from . import kb as kb_
