@@ -1,0 +1,16 @@
+commit: 91b6a7ae633a05ab35ce8272f9ab3b04757f7cfd
+inicio: 2026-11-09T12:14:35-03:00
+---
+No resources found
+NAME             CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                 STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+acs-central-db   100Gi      RWO            Retain           Bound    stackrox/central-db                  <unset>                          7d7h
+configmap "usuarios-demo-config" deleted
+servicemonitor.monitoring.coreos.com "usuarios-demo" deleted
+  cpu                7327m (97%)    28860m (384%)
+  memory             22546Mi (98%)  36064Mi (157%)
+NAME                                READY   STATUS                       RESTARTS   AGE
+gestion-usuarios-1-build            0/1     Completed                    0          8m13s
+gestion-usuarios-746d9bd4fb-bsp5q   0/1     CreateContainerConfigError   0          5m40s
+gestion-usuarios-8456bc56fd-mzjrs   0/1     CreateContainerConfigError   0          5m41s
+postgres-usuarios-5b6b844f7-zn6qf   0/1     Pending                      0          5m41s
+--- fin: 2026-11-09T12:14:37-03:00 · código: 0
