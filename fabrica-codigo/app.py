@@ -50,6 +50,11 @@ def entrar():
 
 
 def _sesion():
+    """Sesión del navegador (enlace firmado) o, si FaceOps llama de servidor a servidor, su token y el usuario."""
+    tok = request.headers.get("X-Fabrica-Token", "")
+    if tok and TOKEN and hmac.compare_digest(tok, TOKEN):
+        u = (request.headers.get("X-Fabrica-Usuario") or "faceops")[:60]
+        return u, "fo-" + hashlib.sha256(u.encode()).hexdigest()[:16]
     if not session.get("usuario"):
         abort(401)
     return session["usuario"], session["sid"]
@@ -62,9 +67,11 @@ def salud():
 
 @app.route("/")
 def inicio():
-    if not session.get("usuario"):
+    tok = request.headers.get("X-Fabrica-Token", "")
+    if not session.get("usuario") and not (tok and TOKEN and hmac.compare_digest(tok, TOKEN)):
         return render_template("fuera.html", faceops=FACEOPS_PUBLICA), 401
-    return render_template("chat.html", usuario=session["usuario"], faceops=FACEOPS_PUBLICA, modelo=MODELO)
+    usuario, _ = _sesion()
+    return render_template("chat.html", usuario=usuario, faceops=FACEOPS_PUBLICA, modelo=MODELO)
 
 # ------------------------------------------------------------------ FaceOps y políticas
 
@@ -88,7 +95,8 @@ requerimiento funcional, listas para correr en Red Hat OpenShift, y SIEMPRE cump
 {politicas}
 
 Reglas de entrega:
-- Stack: Spring Boot 3 con Java 21 y Maven (pom.xml), como exigen las políticas. Cualquier otra pieza (base de datos, mensajería,
+- Stack: Spring Boot 3 con Java 21 y Maven (pom.xml), como exigen las políticas. Sin Maven Wrapper (no incluyas mvnw ni .mvn/):
+  el Containerfile compila con el comando mvn que ya trae registry.access.redhat.com/ubi9/openjdk-21. Cualquier otra pieza (base de datos, mensajería,
   caché) sale SOLO del stack tecnológico aceptado que sigue; p. ej. base relacional = la aceptada (PostgreSQL) con Spring Data JPA,
   credenciales por Secret, y en deploy/ su Deployment/Service/PVC para el ambiente de desarrollo; en las pruebas usa H2 o Testcontainers.
 {stack}
@@ -257,7 +265,7 @@ def _archivos_de(malos, archivos):
     for m in malos:
         if "deploy/" in m:
             out |= {k for k in archivos if k.startswith("deploy/")}
-        if "Containerfile" in m or m.startswith(("PS-01", "PS-08: debe", "PS-21: debe", "PS-21: falta")):
+        if "Containerfile" in m or m.startswith(("PS-01", "PS-03", "PS-08: debe", "PS-21: debe", "PS-21: falta")):
             out.add("Containerfile")
         if "pom.xml" in m or m.startswith(("PS-02", "PS-06", "PS-23")):
             out.add("pom.xml")
@@ -281,6 +289,8 @@ def revisar(archivos):
         malos.append("PS-08: debe terminar con USER no root")
     if not re.search(r"^EXPOSE\s+8080", cf, re.M):
         malos.append("PS-21: debe exponer el puerto 8080")
+    if "mvnw" in cf:
+        malos.append("PS-03: el Containerfile debe usar mvn de la imagen, no ./mvnw")
     pom = archivos.get("pom.xml", "")
     if "spring-boot-starter-parent" not in pom:
         malos.append("PS-02: falta pom.xml con spring-boot-starter-parent")

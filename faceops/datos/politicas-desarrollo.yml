@@ -9,7 +9,7 @@
 - {id: PS-02, area: Arquitectura, categoria: Stack, titulo: "Spring Boot 3 sobre Java 21 LTS", nivel: obligatoria, verifica: pipeline,
    regla: "La aplicación usa Spring Boot 3.x con soporte vigente (spring-boot-starter-parent con versión fija) y Java 21 LTS. Sin dependencias SNAPSHOT."}
 - {id: PS-03, area: Arquitectura, categoria: Construcción, titulo: "Maven con wrapper y dependencias fijas", nivel: obligatoria, verifica: pipeline,
-   regla: "El proyecto se construye con Maven (pom.xml y mvnw incluidos); todas las dependencias con versión fija o gestionada por el parent de Spring Boot."}
+   regla: "El proyecto se construye con Maven (pom.xml) usando el mvn que trae la imagen de construcción ubi9/openjdk-21 (sin Maven Wrapper, que descarga desde internet); todas las dependencias con versión fija o gestionada por el parent de Spring Boot."}
 - {id: PS-04, area: Arquitectura, categoria: Diseño, titulo: "Sin estado y configuración externa", nivel: obligatoria, verifica: revisión,
    regla: "La aplicación no guarda estado en el pod (sesiones, archivos o caché local). La configuración por ambiente entra por variables de entorno y ConfigMap (SPRING_PROFILES_ACTIVE); application.yaml no contiene valores de un ambiente en particular."}
 - {id: PS-05, area: Arquitectura, categoria: API, titulo: "API REST documentada con OpenAPI", nivel: recomendada, verifica: revisión,

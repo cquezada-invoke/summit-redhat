@@ -45,6 +45,11 @@ def lista(cliente_id):
         ej("INSERT OR IGNORE INTO politicas_desarrollo (cliente_id, codigo, categoria, titulo, regla, nivel, verifica, area, aplica, autor, fecha) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
            cliente_id, p["id"], p["categoria"], p["titulo"], p["regla"], p["nivel"], p.get("verifica", "revisión"), p.get("area", "Arquitectura"),
            ",".join(p.get("aplica") or ["openshift"]), "base", ahora())
+    for r in q("SELECT * FROM politicas_desarrollo WHERE cliente_id=? AND autor='base' AND version=1", cliente_id):
+        b = base.get(r["codigo"])   # las que nadie editó siguen la versión del producto
+        if b and (r["regla"], r["titulo"], r["nivel"]) != (b["regla"], b["titulo"], b["nivel"]):
+            ej("UPDATE politicas_desarrollo SET regla=?, titulo=?, nivel=?, verifica=?, categoria=?, area=? WHERE id=?", b["regla"], b["titulo"], b["nivel"],
+               b.get("verifica", "revisión"), b["categoria"], b.get("area", "Arquitectura"), r["id"])
     for r in q("SELECT id, codigo FROM politicas_desarrollo WHERE cliente_id=? AND (COALESCE(area,'')='' OR COALESCE(aplica,'')='')", cliente_id):
         b = base.get(r["codigo"]) or {}
         ej("UPDATE politicas_desarrollo SET area=COALESCE(NULLIF(area,''), ?), aplica=COALESCE(NULLIF(aplica,''), ?) WHERE id=?",

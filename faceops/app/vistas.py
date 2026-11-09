@@ -6591,7 +6591,31 @@ def politicas_desarrollo():
 @requiere_login
 def fabrica_desarrollo():
     """Gobierno › Fábrica de software › Desarrollo: el chat de la Fábrica (solo OpenShift) dentro de FaceOps."""
-    return render_template("fabrica_desarrollo.html", fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and url_for("consola.fabrica_abrir", embebido=1))
+    return render_template("fabrica_desarrollo.html", fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and url_for("consola.fabrica_app", ruta=""))
+
+
+@bp.route("/fabrica/app/", defaults={"ruta": ""}, methods=["GET", "POST"])
+@bp.route("/fabrica/app/<path:ruta>", methods=["GET", "POST"])
+@requiere_login
+def fabrica_app(ruta):
+    """La Fábrica servida a través de FaceOps (mismo sitio: sin cookies de terceros en el navegador). FaceOps la llama de servidor
+    a servidor con el token compartido y el usuario de la sesión; el navegador nunca ve el token."""
+    url, tok = os.environ.get("FACEOPS_FABRICA_URL", "").rstrip("/"), os.environ.get("FACEOPS_FABRICA_TOKEN", "")
+    if not url or not tok or not re.fullmatch(r"(api/[a-z]+(/[A-Za-z0-9-]+)?)?", ruta):
+        abort(404)
+    if request.method == "POST" and g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    try:
+        r = requests.request(request.method, f"{url}/{ruta}", timeout=60, verify=False, data=request.get_data() if request.method == "POST" else None,
+                             headers={"X-Fabrica-Token": tok, "X-Fabrica-Usuario": g.usuario["usuario"], "Content-Type": request.headers.get("Content-Type", "application/json")})
+    except requests.RequestException as x:
+        return {"error": f"La Fábrica no responde ({type(x).__name__})"}, 502
+    if request.method == "POST" and ruta == "api/desplegar":
+        auditar(g.usuario["usuario"], g.cliente["id"], "fábrica: desplegar en desarrollo", "fabrica", {"estado": r.status_code})
+    cuerpo = r.content
+    if not ruta and "text/html" in r.headers.get("Content-Type", ""):   # el chat manda el token CSRF de FaceOps en sus POST
+        cuerpo = cuerpo.replace(b"</head>", f'<script>window.FO_CSRF={json.dumps(session.get("csrf", ""))};</script></head>'.encode(), 1)
+    return cuerpo, r.status_code, {"Content-Type": r.headers.get("Content-Type", "application/json")}
 
 
 @bp.route("/arquitectura/fabrica/abrir")
