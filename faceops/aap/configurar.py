@@ -148,6 +148,7 @@ shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.y
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/licencias-levantar.yml", f"{tmp}/playbooks/licencias-levantar.yml")
 shutil.copy(f"{AQUI}/politicas-dev-evaluar.yml", f"{tmp}/playbooks/politicas-dev-evaluar.yml")
+shutil.copy(f"{AQUI}/datalake-derivar.yml", f"{tmp}/playbooks/datalake-derivar.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 shutil.copy(f"{AQUI}/jenkins-servidor.yml", f"{tmp}/playbooks/jenkins-servidor.yml")
@@ -674,6 +675,13 @@ jpev = asegurar("job_templates", "Políticas de desarrollo · Evaluar aplicacion
 if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jpev['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jpev['id']}/credentials/", {"id": cred["id"]})
 paso(f"Plantilla «Políticas de desarrollo · Evaluar aplicaciones» (id {jpev['id']})")
+jdl = asegurar("job_templates", "Data lake · Derivar segmento", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/datalake-derivar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_limit_on_launch": True, "ask_variables_on_launch": True, "ask_inventory_on_launch": True, "become_enabled": True,
+    "description": "Pone o quita el espejo de tráfico del segmento hacia el colector del data lake (nginx mirror) y arranca flujos funcionales"})
+if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jdl['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jdl['id']}/credentials/", {"id": cred["id"]})
+paso(f"Plantilla «Data lake · Derivar segmento» (id {jdl['id']})")
 paso(f"Plantilla «FaceOps · Vincular máquina a la bóveda» (id {jvm['id']})" + ("" if cr_bov else " · falta crear la credencial «FaceOps · Bóveda (escritura)»"))
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)

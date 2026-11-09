@@ -1,0 +1,120 @@
+# Data lake · Derivar segmento: activa o desactiva la copia (espejo) de cada request que entra por el balanceador del segmento
+# hacia el colector del data lake, que la guarda en S3 + Trino para JavIA. El camino del negocio no cambia: nginx «mirror»
+# envía una copia en paralelo y no espera su respuesta. Con dl_flujos=si, además arranca flujos funcionales hacia la aplicación.
+# Variables: dl_accion (activar | desactivar), dl_prefijo (segmento en el lake), dl_colector (URL interna del colector),
+#            dl_app_url (entrada de la aplicación), dl_flujos (si | no), dl_escenario (lista [método, ruta, cuerpo]), dl_minutos
+- name: Data lake · Derivar segmento
+  hosts: all
+  gather_facts: false
+  become: true
+  vars:
+    accion: "{{ dl_accion | default('activar') }}"
+    pref: "{{ dl_prefijo | default('') }}"
+    colector: "{{ dl_colector | default('http://192.168.122.50:30480') }}"
+    archivo: "/etc/nginx/default.d/fo-lake-{{ pref }}.conf"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - accion in ['activar', 'desactivar']
+          - pref is match('^[a-z0-9][a-z0-9-]{0,39}$')
+          - colector is match('^http://[0-9.]+:[0-9]+$')
+        fail_msg: "Acción, segmento o colector no válidos"
+
+    - name: ¿Es un balanceador nginx?
+      ansible.builtin.command: nginx -T
+      register: r_ng
+      changed_when: false
+      failed_when: r_ng.rc != 0
+
+    - name: El servidor publica sus ubicaciones adicionales (default.d)
+      ansible.builtin.assert:
+        that: ["'/etc/nginx/default.d/' in r_ng.stdout"]
+        fail_msg: "El nginx de esta máquina no incluye /etc/nginx/default.d en su servidor: no hay dónde activar el espejo"
+
+    - name: Espejo hacia el colector del lake
+      ansible.builtin.copy:
+        dest: "{{ archivo }}"
+        mode: "0644"
+        backup: true
+        content: |
+          # FaceOps · Data lake: copia de cada request del segmento «{{ pref }}» hacia el colector (no afecta la respuesta)
+          mirror /fo_lake_{{ pref | replace('-', '_') }};
+          mirror_request_body on;
+          location = /fo_lake_{{ pref | replace('-', '_') }} {
+              internal;
+              mirror off;
+              proxy_pass {{ colector }}/ingesta/{{ pref }}$request_uri;
+              proxy_set_header X-FO-Metodo $request_method;
+              proxy_set_header X-FO-IP $remote_addr;
+              proxy_set_header Authorization "";
+              proxy_set_header Cookie "";
+              proxy_connect_timeout 2s;
+              proxy_send_timeout 3s;
+              proxy_read_timeout 3s;
+          }
+      register: r_cp
+      when: accion == 'activar'
+
+    - name: Quitar el espejo
+      ansible.builtin.file: {path: "{{ archivo }}", state: absent}
+      register: r_rm
+      when: accion == 'desactivar'
+
+    - name: Configuración válida
+      ansible.builtin.command: nginx -t
+      register: r_t
+      changed_when: false
+      failed_when: false
+
+    - name: Volver atrás si la configuración no es válida
+      when: r_t.rc != 0
+      block:
+        - name: Quitar el archivo nuevo
+          ansible.builtin.file: {path: "{{ archivo }}", state: absent}
+        - name: Falla con el detalle de nginx
+          ansible.builtin.fail: {msg: "nginx rechazó la configuración y se dejó como estaba: {{ r_t.stderr | default('') | truncate(300) }}"}
+
+    - name: Recargar nginx (sin cortar conexiones)
+      ansible.builtin.systemd: {name: nginx, state: reloaded}
+      when: (r_cp is changed) or (r_rm is changed)
+
+    - name: El colector responde
+      ansible.builtin.uri: {url: "{{ colector }}/salud", timeout: 10}
+      register: r_sal
+      failed_when: false
+
+    - name: Prueba del espejo (un request de verificación por el balanceador)
+      ansible.builtin.uri:
+        url: "https://127.0.0.1/fo-verificacion-lake?segmento={{ pref }}"
+        validate_certs: false
+        status_code: [200, 301, 302, 403, 404]
+        timeout: 10
+      failed_when: false
+      when: accion == 'activar'
+
+    - name: Llegó la copia al colector
+      ansible.builtin.uri: {url: "{{ colector }}/estado/{{ pref }}", timeout: 10, return_content: true}
+      register: r_est
+      until: accion == 'desactivar' or (r_est.json.recibidos | default(0) | int) > 0
+      retries: 5
+      delay: 3
+      failed_when: accion == 'activar' and (r_est.json.recibidos | default(0) | int) == 0
+
+    - name: Flujos funcionales hacia la aplicación
+      ansible.builtin.uri:
+        url: "{{ colector }}/generador/{{ pref }}"
+        method: "{{ 'POST' if accion == 'activar' else 'DELETE' }}"
+        body_format: json
+        body: {base: "{{ dl_app_url | default('') }}", escenario: "{{ dl_escenario | default([['GET', '/']]) }}", minutos: "{{ dl_minutos | default(30) | int }}", rps: 2}
+        timeout: 10
+      register: r_gen
+      failed_when: false
+      when: (dl_flujos | default('si')) == 'si' or accion == 'desactivar'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_datalake: "{{ {pref: {'accion': accion, 'equipo': inventory_hostname, 'recibidos': r_est.json.recibidos | default(0),
+                                  'flujos': (r_gen.json | default({})).get('activo', false), 'colector': r_sal.status | default(0)}} }}"
+        aggregate: true

@@ -5429,21 +5429,30 @@ def salud_detalle():
 @bp.route("/mapa/bifurcacion", methods=["POST"])
 @requiere_login
 def mapa_bifurcacion():
-    """Activa o desactiva la bifurcación de un segmento hacia el data lake (desde la flotante de su punto de entrada).
-    Queda auditado; la réplica de cada request se habilita en el punto indicado."""
+    """Activa o desactiva la derivación de un segmento hacia el data lake: ticket en AAP (con aprobación) que pone el espejo
+    de tráfico en su punto de entrada y arranca los flujos funcionales. El estado cambia cuando el ticket termina bien."""
+    from .operacion import solicitar_en_equipo
+    from .topologia import params_derivacion
     f = request.form
     if f.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
-        abort(400)
+        return {"error": "Necesitas perfil de escritura"}, 403
     seg = f.get("segmento", "")
     if not q1("SELECT id FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], seg) or not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
         return {"error": "Segmento no encontrado"}, 404
-    activa = 1 if f.get("accion") == "activar" else 0
-    ej("INSERT INTO bifurcaciones(cliente_id, segmento, punto, destino, activa, por, en) VALUES (?,?,?,?,?,?,?) "
-       "ON CONFLICT(cliente_id, segmento) DO UPDATE SET punto=excluded.punto, destino=excluded.destino, activa=excluded.activa, por=excluded.por, en=excluded.en",
-       g.cliente["id"], seg, f.get("punto", "")[:120], f.get("destino", "")[:200], activa, g.usuario["usuario"], ahora())
-    auditar(g.usuario["usuario"], g.cliente["id"], "activar bifurcación al data lake" if activa else "desactivar bifurcación al data lake", seg,
-            {"punto": f.get("punto", ""), "destino": f.get("destino", "")})
-    return {"ok": True, "activa": bool(activa)}
+    e = next((x for x in equipos_visibles() if x["nombre"] == f.get("punto", "")), None)
+    if not e:
+        return {"error": "No encuentro la máquina de entrada del segmento (el punto donde se copia el tráfico)"}, 400
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], DATALAKE)
+    if not a:
+        return {"error": f"Falta «{DATALAKE}» en el catálogo (sincroniza con AAP)"}, 400
+    accion = "activar" if f.get("accion") == "activar" else "desactivar"
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params_derivacion(g.cliente["id"], seg, e["nombre"], accion),
+                                f"Data lake · {accion} la derivación del segmento {seg} (para JavIA)")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    auditar(g.usuario["usuario"], g.cliente["id"], f"{accion} derivación al data lake (ticket)", seg, {"punto": e["nombre"], "ticket": t["numero"]})
+    return {"ok": True, "ticket": t["numero"], "url": url_for("consola.ticket", tid=t["id"]), "estado": t["estado"]}
 
 
 @bp.route("/mapa/datos")
@@ -7712,6 +7721,7 @@ def _uso_seg(e):
         return {"medido": False}
 
 
+DATALAKE = "Data lake · Derivar segmento"
 ENERGIA = "Infra · Encender o apagar equipo"
 
 

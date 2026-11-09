@@ -26,6 +26,15 @@ entrada:
   url: http://192.168.122.11/app-jboss/
   espera: "Base de datos: conectada"
 
+flujos_funcionales:                       # tráfico de negocio sintético para probar la derivación al data lake (lo envía el colector)
+  base: https://192.168.122.11
+  escenario:
+    - [GET, /app-jboss/]
+    - [GET, /app-jboss/salud]
+    - [POST, /app-jboss/pagos, {id: "PAG-{n}", monto: 125.5, moneda: USD, canal: web, comercio: "COM-0042"}]
+    - [GET, "/app-jboss/pagos/PAG-{n}"]
+    - [POST, "/app-jboss/pagos/PAG-{n}/confirmar", {id: "PAG-{n}", resultado: aprobado}]
+
 externos:
   - {id: usuarios, nombre: Usuarios de la app}
 

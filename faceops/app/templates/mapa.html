@@ -70,7 +70,7 @@ v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('k
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
 <span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⇉ varios puertos · 🔒 TLS · <b style="color:var(--warn)">- - -</b> planificado (por crear) · <b style="color:#7f77dd">- - -</b> bifurcación: copia de cada request al data lake (clic para ver el punto) · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
-{% if tickets_seg is defined and segmento %}<h2 style="margin:22px 0 6px;font-size:16px" id="actividad">Actividad lanzada en este segmento</h2>
+{% if tickets_seg is defined and segmento and request.args.get('ambiente') != 'homologacion' %}<h2 style="margin:22px 0 6px;font-size:16px" id="actividad">Actividad lanzada en este segmento</h2>
 {% if tickets_seg %}<div class="tabla-scroll"><table style="font-size:13px"><tr><th>Ticket</th><th>Fecha</th><th>Acción</th><th>Máquinas</th><th>Motivo</th><th>Estado</th></tr>
 {% for t in tickets_seg %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td style="white-space:nowrap">{{ (t.creado or '')[:16].replace('T', ' ') }}</td>
 <td>{{ t.accion or '—' }}</td><td>{{ t.maquinas|join(', ') or '—' }}</td><td class="sub">{{ (t.motivo or '')[:110] }}</td><td><span class="chip e-{{ t.estado }}">{{ t.estado.replace('_', ' ') }}</span></td></tr>{% endfor %}</table></div>
@@ -398,14 +398,14 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function htmlLakeSegmento(){ const x=bifSegmento(); if(!x) return ''; const b=x.b;
     return sec('Data lake · JavIA')+fila({izq:'Derivación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
       det:(b.activa?'Cada request del segmento se copia al data lake'+(b.por?' (activada por '+b.por+', '+(b.en||'').slice(0,16).replace('T',' ')+')':'')+'; JavIA la toma desde ahí.'
-          :'Al activarla, cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, para que JavIA la use después.')
+          :'Al activarla (ticket con aprobación), cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, y arrancan flujos funcionales de prueba; JavIA la usa después.')
         +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif-seg">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
-        +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.explorador+'" target="_blank">Explorador del lake</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
+        +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.datos+'" target="_blank"><b>Ver los datos</b></a> · <a href="'+b.explorador+'" target="_blank">Explorador SQL</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
   function enlazarLakeSegmento(){ const bb=document.getElementById('b-bif-seg'), x=bifSegmento(); if(!bb||!x) return;
     bb.onclick=()=>{ bb.disabled=true; const res=bb.parentElement.querySelector('.res'); res.textContent='guardando…';
       const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',x.b.segmento); fd.append('punto',x.punto); fd.append('destino',x.b.destino);
       fd.append('accion',x.b.activa?'desactivar':'activar');
-      fetch(x.b.url,{method:'POST',body:fd}).then(r=>r.json()).then(y=>{ if(y.error){res.textContent=y.error; bb.disabled=false; return;} res.textContent=y.activa?'activada':'desactivada'; cargar(); })
+      fetch(x.b.url,{method:'POST',body:fd}).then(r=>r.json()).then(y=>{ if(y.error){res.textContent=y.error; bb.disabled=false; return;} res.innerHTML='<a href="'+y.url+'" target="_blank">'+y.ticket+'</a> <span class="chip e-'+y.estado+'">'+y.estado.replace(/_/g,' ')+'</span> · cambia al terminar el ticket'; })
         .catch(()=>{res.textContent='no se pudo guardar'; bb.disabled=false;}); }; }
   function mostrarSegmento(s){
     panel.dataset.fijo='';
@@ -640,7 +640,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
             :'Al activarla, cada request que pasa por aquí se copia al data lake en <b>'+b.destino+'</b>, sin tocar el camino del negocio.')
           +(b.declarada?'<br><span class="sub">La arquitectura del segmento declara su propio lake como componente.</span>':'')
           +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
-          +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.explorador+'" target="_blank">Explorador del lake</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
+          +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.datos+'" target="_blank"><b>Ver los datos</b></a> · <a href="'+b.explorador+'" target="_blank">Explorador SQL</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
     if(d.web||d.ssh||d.ha||d.respaldo){  // accesos directos: consola web (vía FaceOps) y SSH / escritorio remoto (vía Guacamole)
       h+=sec('Acceso');
       if(d.web) h+=fila({izq:'Consola web',ic:SVG.web,txt:'<a href="'+d.web.abrir+'" target="_blank" title="'+d.web.producto+' · se abre a través de FaceOps">'+d.web.url+'</a>',
@@ -703,7 +703,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(bbif) bbif.onclick=()=>{ bbif.disabled=true; const res=bbif.parentElement.querySelector('.res'); res.textContent='guardando…';
       const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',d.bif.segmento); fd.append('punto',d.nombre||nombre); fd.append('destino',d.bif.destino);
       fd.append('accion',d.bif.activa?'desactivar':'activar');
-      fetch(d.bif.url,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){res.textContent=x.error; bbif.disabled=false; return;} res.textContent=x.activa?'activada':'desactivada'; cargar(); })
+      fetch(d.bif.url,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){res.textContent=x.error; bbif.disabled=false; return;} res.innerHTML='<a href="'+x.url+'" target="_blank">'+x.ticket+'</a> <span class="chip e-'+x.estado+'">'+x.estado.replace(/_/g,' ')+'</span> · cambia al terminar el ticket'; })
         .catch(()=>{res.textContent='no se pudo guardar'; bbif.disabled=false;}); };
     const bexp=document.getElementById('b-expandir');
     if(bexp) bexp.onclick=()=>{ comprimir(false); const bg=document.querySelector('.zoom-ctl [data-z="grupos"]'); if(bg) bg.textContent='⊟'; };

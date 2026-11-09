@@ -2,6 +2,7 @@
 Niveles: global (infraestructura → redes, o segmentos de negocio) → una red o un segmento (sus equipos y flujos) → equipo.
 La topología (redes, enlaces y flujos) vive en la clasificación del cliente («_topologia»); los equipos y su estado, en el
 inventario de FaceOps."""
+import os
 import re
 from collections import Counter, defaultdict
 
@@ -509,7 +510,9 @@ def _componentes_ocp(els, m, asg, cliente=None):
 
 # ------------------------------------------------------------------ bifurcación hacia el data lake corporativo
 LAKE = {"nombre": "Data lake corporativo", "detalle": "S3 + Trino (demo-datalake)", "web": "https://lake.sno.34.176.42.56.sslip.io/buckets/lake/",
-        "explorador": "https://sql-lake.sno.34.176.42.56.sslip.io/lake"}
+        "explorador": "https://sql-lake.sno.34.176.42.56.sslip.io/lake",
+        "colector": os.environ.get("FACEOPS_LAKE_COLECTOR", "http://192.168.122.50:30480"),   # interno: lo usa el espejo de nginx
+        "datos": os.environ.get("FACEOPS_LAKE_DATOS", "https://colector-lake.sno.34.176.42.56.sslip.io/datos/")}
 PRIORIDAD_PUNTO = ["balanceo", "web", "servicios", "base_datos"]   # dónde es más factible copiar cada request: el que la recibe primero
 
 
@@ -517,6 +520,16 @@ def prefijo_lake(segmento):
     import unicodedata
     t = unicodedata.normalize("NFKD", segmento).encode("ascii", "ignore").decode().lower()
     return re.sub(r"[^a-z0-9]+", "-", t).strip("-")[:40]
+
+
+def params_derivacion(cliente_id, segmento, punto, accion):
+    """Variables del ticket «Data lake · Derivar segmento»: espejo en el punto de entrada y flujos funcionales de su arquitectura."""
+    from .arquitectura import vigente
+    arq = vigente(cliente_id, segmento)
+    ff = ((arq or {}).get("m") or {}).get("flujos_funcionales") or {}
+    return {"dl_accion": accion, "dl_prefijo": prefijo_lake(segmento), "dl_segmento": segmento, "dl_punto": punto, "dl_colector": LAKE["colector"],
+            "dl_flujos": "si" if ff.get("base") else "no", "dl_app_url": ff.get("base", ""), "dl_escenario": ff.get("escenario") or [["GET", "/"]],
+            "dl_minutos": int(ff.get("minutos", 30))}
 
 
 def _bifurcacion_lake(els, cliente, segmento, m, asg):
@@ -559,7 +572,8 @@ def _bifurcacion_lake(els, cliente, segmento, m, asg):
     url = _url_app(cliente["id"], segmento, m)
     for n in punto:
         nodos[n]["bif"] = {"segmento": segmento, "destino": f"s3://lake/{pref}/", "activa": activa, "como": como, "declarada": declarada,
-                           "por": (b or {}).get("por") or "", "en": (b or {}).get("en") or "", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"]}
+                           "por": (b or {}).get("por") or "", "en": (b or {}).get("en") or "", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"],
+                           "datos": LAKE["datos"] + pref}
         if url and not nodos[n].get("app_url"):
             nodos[n]["app_url"] = url
     if not activa or declarada:
@@ -569,7 +583,8 @@ def _bifurcacion_lake(els, cliente, segmento, m, asg):
     for i, n in enumerate(punto):
         els.append({"data": {"id": f"bl{i}", "source": n, "target": "dl:lake", "tipo": "bifurcacion", "estilo": "bifurcacion", "label": "",
                              "puertos": "9000", "estado_bif": "activa", "punto": nodos[n].get("nombre") or nodos[n].get("label", ""),
-                             "como": como, "destino": f"s3://lake/{pref}/", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"]}})
+                             "como": como, "destino": f"s3://lake/{pref}/", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"],
+                           "datos": LAKE["datos"] + pref}})
 
 
 def m_nombre(m, cid):
