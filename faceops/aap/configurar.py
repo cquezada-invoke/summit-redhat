@@ -146,6 +146,7 @@ shutil.copy(f"{AQUI}/origen-maquinas.yml", f"{tmp}/playbooks/origen-maquinas.yml
 shutil.copy(f"{AQUI}/registro-imagenes.yml", f"{tmp}/playbooks/registro-imagenes.yml")
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
+shutil.copy(f"{AQUI}/licencias-levantar.yml", f"{tmp}/playbooks/licencias-levantar.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 shutil.copy(f"{AQUI}/jenkins-servidor.yml", f"{tmp}/playbooks/jenkins-servidor.yml")
@@ -658,6 +659,13 @@ jst = asegurar("job_templates", "Arquitectura · Evaluar stack tecnológico", {
 if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jst['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jst['id']}/credentials/", {"id": cred["id"]})
 paso(f"Plantilla «Arquitectura · Evaluar stack tecnológico» (id {jst['id']})")
+jlic = asegurar("job_templates", "Licencias · Levantar desde las plataformas", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/licencias-levantar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10,
+    "description": "Solo lectura: lee en cada máquina las suscripciones y licencias que consume y su fecha de término"})
+if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jlic['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jlic['id']}/credentials/", {"id": cred["id"]})
+paso(f"Plantilla «Licencias · Levantar desde las plataformas» (id {jlic['id']})")
 paso(f"Plantilla «FaceOps · Vincular máquina a la bóveda» (id {jvm['id']})" + ("" if cr_bov else " · falta crear la credencial «FaceOps · Bóveda (escritura)»"))
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)

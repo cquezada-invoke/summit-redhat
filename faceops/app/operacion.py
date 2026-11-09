@@ -1077,6 +1077,12 @@ def actualizar_tickets():
                     guardar_stack(t, artefactos_ticket(aap, t))
                 except Exception as x:  # noqa: BLE001
                     print("Evaluación del stack:", str(x)[:200])
+            if est == "exitoso" and a_.get("nombre_aap") == "Licencias · Levantar desde las plataformas":
+                try:   # licencias en uso y su caducidad, por máquina
+                    from .licencias import guardar_levantamiento
+                    guardar_levantamiento(t, artefactos_ticket(aap, t))
+                except Exception as x:  # noqa: BLE001
+                    print("Levantamiento de licencias:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") in AUTOS_SO:
                 try:   # la última evaluación del sistema operativo queda a la mano en cada equipo
                     guardar_eval_so(t, artefactos_ticket(aap, t))

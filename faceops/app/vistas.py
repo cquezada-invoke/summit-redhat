@@ -6596,7 +6596,21 @@ def centros_datos(centro=None):
 def licencias():
     """Gobierno › Arquitectura › Licencias: contratos de todos los fabricantes, dónde está registrado cada equipo y el cruce
     caso a caso entre lo contratado y lo efectivamente cubierto."""
-    from .licencias import REGLAS, agregar, cruce
+    from .licencias import AUTO_LEVANTAR, REGLAS, agregar, caducidad, cruce
+    if request.method == "POST" and request.form.get("accion") == "levantar":
+        _escritura()
+        a_ = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], AUTO_LEVANTAR)
+        if not a_:
+            flash(f"Falta «{AUTO_LEVANTAR}» en el catálogo (sincroniza con AAP)", "error")
+            return redirect(url_for("consola.licencias"))
+        from .operacion import solicitar
+        try:
+            t = solicitar(g.usuario, g.cliente, a_, "*", {}, "Levantar las licencias en uso y su caducidad desde cada plataforma")
+            flash(f"{t['numero']} creado: al aprobarse lee las licencias de cada máquina y actualiza la caducidad", "ok")
+            return redirect(url_for("consola.ticket", tid=t["id"]))
+        except (PermissionError, ErrorAAP, ValueError) as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.licencias"))
     if request.method == "POST":
         if g.perfil["modo"] != "escritura":
             abort(403)
@@ -6610,7 +6624,8 @@ def licencias():
     r = cruce(g.cliente["id"], equipos_visibles())
     f_fab, f_est = request.args.get("fabricante", ""), request.args.get("estado", "")
     casos = [c for c in r["casos"] if (not f_fab or c["fabricante"] == f_fab) and (not f_est or c["estado"] == f_est)]
-    return render_template("licencias.html", r=r, casos=casos, f_fab=f_fab, f_est=f_est, reglas=REGLAS)
+    cad = caducidad(g.cliente, r["licencias"])
+    return render_template("licencias.html", r=r, casos=casos, f_fab=f_fab, f_est=f_est, reglas=REGLAS, cad=cad)
 
 
 @bp.route("/arquitectura/homologacion")

@@ -197,3 +197,144 @@ def cruce(cliente_id, eqs):
 
 def json_seguro(x):
     return json.dumps(x, ensure_ascii=False, default=str)
+
+
+# ------------------------------------------------------------------ licencias en uso y su caducidad, levantadas de cada plataforma
+AUTO_LEVANTAR = "Licencias · Levantar desde las plataformas"
+
+
+def _tabla_det():
+    from .bd import con
+    con().executescript("""CREATE TABLE IF NOT EXISTS licencias_detectadas (
+      id INTEGER PRIMARY KEY, cliente_id INTEGER, equipo TEXT, fabricante TEXT, producto TEXT, sku TEXT, contrato TEXT, vence TEXT,
+      fuente TEXT, detalle TEXT, visto TEXT, ticket_id INTEGER);""")
+
+
+def _fecha(txt):
+    """«12/31/2026», «2026-12-31» o «31/12/2026» → 2026-12-31."""
+    txt = (txt or "").strip()
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})", txt)
+    if m:
+        return m.group(0)
+    m = re.match(r"(\d{1,2})/(\d{1,2})/(\d{4})", txt)
+    if m:
+        a, b, y = int(m.group(1)), int(m.group(2)), m.group(3)
+        mes, dia = (a, b) if a <= 12 else (b, a)
+        return f"{y}-{mes:02d}-{dia:02d}"
+    return ""
+
+
+def _consumidas(txt):
+    out, cur = [], {}
+    for linea in (txt or "").splitlines():
+        if ":" not in linea:
+            continue
+        k, v = [x.strip() for x in linea.split(":", 1)]
+        k = k.lower()
+        if k == "subscription name" and cur:
+            out.append(cur)
+            cur = {}
+        cur[k] = v
+    if cur:
+        out.append(cur)
+    return [x for x in out if x.get("subscription name")]
+
+
+def levantar_desde(artefactos):
+    """Artefactos del job → [{equipo, fabricante, producto, sku, contrato, vence, fuente, detalle}]."""
+    out = []
+    for host, d in ((artefactos or {}).get("faceops_licencias") or {}).items():
+        if d.get("familia") == "RedHat":
+            subs = _consumidas(d.get("consumidas"))
+            for s_ in subs:
+                out.append({"equipo": host, "fabricante": "Red Hat", "producto": s_.get("subscription name", ""), "sku": s_.get("sku", ""),
+                            "contrato": s_.get("contract", ""), "vence": _fecha(s_.get("ends")), "fuente": "subscription-manager", "detalle": d.get("so", "")})
+            if not subs:
+                est = d.get("estado") or ""
+                sca = "simple content access" in est.lower() or "content access mode" in est.lower()
+                reg = "unknown" not in est.lower() and bool(est.strip())
+                ident = (d.get("identidad") or "").splitlines()
+                out.append({"equipo": host, "fabricante": "Red Hat", "producto": d.get("so", "RHEL"), "sku": "", "contrato": "",
+                            "vence": "", "fuente": ("acceso simple (SCA) · " if sca else "") + ("registrado" if reg else "sin registrar"),
+                            "detalle": " · ".join(x for x in ident if x)})
+        elif d.get("familia") == "Windows":
+            try:
+                w = json.loads(d.get("windows") or "{}")
+            except ValueError:
+                w = {}
+            out.append({"equipo": host, "fabricante": "Microsoft", "producto": w.get("producto") or d.get("so", "Windows"), "sku": "",
+                        "contrato": w.get("canal", ""), "vence": _fecha(w.get("vence")), "fuente": "activación de Windows",
+                        "detalle": {1: "activado", 0: "sin licencia", 2: "período de gracia", 5: "notificación"}.get(w.get("estado"), str(w.get("estado", "")))})
+    return out
+
+
+def guardar_levantamiento(t, artefactos):
+    _tabla_det()
+    filas = levantar_desde(artefactos)
+    ej("DELETE FROM licencias_detectadas WHERE cliente_id=?", t["cliente_id"])
+    for f in filas:
+        ej("INSERT INTO licencias_detectadas (cliente_id, equipo, fabricante, producto, sku, contrato, vence, fuente, detalle, visto, ticket_id) "
+           "VALUES (?,?,?,?,?,?,?,?,?,?,?)", t["cliente_id"], f["equipo"], f["fabricante"], f["producto"], f["sku"], f["contrato"], f["vence"],
+           f["fuente"], f["detalle"] if isinstance(f["detalle"], str) else json.dumps(f["detalle"]), ahora(), t["id"])
+    return len(filas)
+
+
+_aap_lic = {}
+
+
+def licencia_aap(cliente):
+    """La suscripción de Ansible Automation Platform del cliente, leída de su AAP (caché 1 hora)."""
+    import time
+    c = _aap_lic.get(cliente["id"])
+    if c and time.time() - c[0] < 3600:
+        return c[1]
+    r = None
+    try:
+        from .aap import AAP
+        info = (AAP.de_cliente(cliente).get("config/") or {}).get("license_info") or {}
+        if info:
+            from datetime import datetime, timezone
+            ts = info.get("license_date")
+            r = {"producto": info.get("subscription_name") or "Ansible Automation Platform", "sku": info.get("sku") or "",
+                 "vence": datetime.fromtimestamp(int(ts), timezone.utc).strftime("%Y-%m-%d") if ts else "",
+                 "nodos": info.get("instance_count"), "usados": info.get("current_instances") or info.get("automated_instances"),
+                 "vencida": bool(info.get("date_expired"))}
+    except Exception:  # noqa: BLE001 - sin AAP no se muestra
+        r = None
+    _aap_lic[cliente["id"]] = (time.time(), r)
+    return r
+
+
+def caducidad(cliente, contratos):
+    """Todas las licencias en uso con fecha de término: contratos registrados, lo levantado de cada máquina y la suscripción de AAP,
+    agrupadas por producto, contrato y fecha, ordenadas por lo que vence primero."""
+    _tabla_det()
+    from datetime import date
+    hoy = date.today()
+    grupos = {}
+    for d in q("SELECT * FROM licencias_detectadas WHERE cliente_id=?", cliente["id"]):
+        k = (d["fabricante"], d["producto"], d["contrato"], d["vence"])
+        x = grupos.setdefault(k, {"fabricante": d["fabricante"], "producto": d["producto"], "sku": d["sku"], "contrato": d["contrato"],
+                                  "vence": d["vence"], "fuente": d["fuente"], "equipos": [], "origen": "plataforma", "visto": d["visto"]})
+        x["equipos"].append(d["equipo"])
+    filas = list(grupos.values())
+    for l_ in contratos:
+        filas.append({"fabricante": l_["fabricante"], "producto": l_["producto"], "sku": l_.get("sku") or "", "contrato": l_.get("contrato") or "",
+                      "vence": l_.get("hasta") or "", "fuente": l_.get("registro") or "contrato registrado", "equipos": [], "origen": "contrato",
+                      "cantidad": l_.get("cantidad"), "usado": l_.get("usado")})
+    a = licencia_aap(cliente)
+    if a:
+        filas.append({"fabricante": "Red Hat", "producto": a["producto"], "sku": a["sku"], "contrato": "", "vence": a["vence"],
+                      "fuente": "suscripción cargada en AAP", "equipos": [], "origen": "plataforma", "cantidad": a["nodos"], "usado": a["usados"]})
+    for f in filas:
+        try:
+            dias = (date.fromisoformat(f["vence"]) - hoy).days if f["vence"] else None
+        except ValueError:
+            dias = None
+        f["dias"] = dias
+        f["estado"] = ("sin fecha" if dias is None else "vencida" if dias < 0 else "vence en 30 días" if dias <= 30
+                       else "vence en 90 días" if dias <= 90 else "vigente")
+    orden = {"vencida": 0, "vence en 30 días": 1, "vence en 90 días": 2, "vigente": 3, "sin fecha": 4}
+    filas.sort(key=lambda f: (orden[f["estado"]], f["dias"] if f["dias"] is not None else 99999, f["fabricante"], f["producto"]))
+    ult = q1("SELECT MAX(visto) v FROM licencias_detectadas WHERE cliente_id=?", cliente["id"]) or {}
+    return {"filas": filas, "cuenta": {k: sum(1 for f in filas if f["estado"] == k) for k in orden}, "levantado": ult.get("v") or ""}

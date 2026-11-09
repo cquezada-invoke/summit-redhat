@@ -9,6 +9,18 @@
 <div class="fila"><div><h1>Licencias</h1><p class="sub">Todas las licencias y suscripciones, de todos los fabricantes, en un solo lugar. Para cada equipo se muestra dónde está registrado y si está realmente cubierto: registrado y con cupo en un contrato vigente. Producción se cubre primero.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-lic').showModal()">+ Agregar licencia</button>{% endif %}</div>
 
+<div class="card" id="caducidad" style="margin:12px 0"><div class="fila" style="align-items:center;gap:10px"><h2 style="margin:0;font-size:16px">Licencias en uso y su caducidad</h2>
+{% for k, n in cad.cuenta.items() if n and k != 'vigente' %}<span class="chip {{ 's-alta' if k in ('vencida', 'vence en 30 días') else ('s-media' if k == 'vence en 90 días' else '') }}" style="font-size:11.5px">{{ n }} {{ k }}</span>{% endfor %}
+{% if perfil_actual.modo == 'escritura' %}<form method="post" class="der" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="levantar"><button class="btn sec">Levantar desde las plataformas</button></form>{% endif %}</div>
+<p class="sub" style="font-size:12.5px;margin:4px 0 8px">Lo que cada plataforma informa (suscripciones de Red Hat en cada RHEL, activación de Windows, la suscripción cargada en AAP) junto con los contratos registrados, ordenado por lo que vence primero. {% if cad.levantado %}Último levantamiento: {{ cad.levantado[:16].replace('T', ' ') }}.{% else %}Aún no se levanta desde las plataformas.{% endif %}</p>
+<div class="tabla-scroll"><table style="font-size:13px"><tr><th>Vence</th><th>Estado</th><th>Fabricante</th><th>Producto</th><th>Contrato / SKU</th><th>Dónde</th><th style="text-align:right">Máquinas / cupo</th></tr>
+{% for f in cad.filas %}<tr><td class="mono"{% if f.estado in ('vencida', 'vence en 30 días') %} style="color:#a30000;font-weight:600"{% endif %}>{{ f.vence or '—' }}{% if f.dias is not none %}<br><span class="sub" style="font-size:11.5px">{{ f.dias ~ ' días' if f.dias >= 0 else 'hace ' ~ (-f.dias) ~ ' días' }}</span>{% endif %}</td>
+<td><span class="chip {{ 's-alta' if f.estado in ('vencida', 'vence en 30 días') else ('s-media' if f.estado == 'vence en 90 días' else ('ok' if f.estado == 'vigente' else '')) }}" style="font-size:11.5px">{{ f.estado }}</span></td>
+<td>{{ f.fabricante }}</td><td>{{ f.producto }}</td><td class="mono" style="font-size:12px">{{ f.contrato or '' }}{{ ' · ' if f.contrato and f.sku }}{{ f.sku or '' }}{{ '—' if not f.contrato and not f.sku }}</td>
+<td style="font-size:12px">{{ f.fuente }}{{ ' (registrado a mano)' if f.origen == 'contrato' }}</td>
+<td style="text-align:right">{% if f.equipos %}<span title="{{ f.equipos|join(', ') }}">{{ f.equipos|length }}</span>{% elif f.cantidad %}{{ (f.usado or 0)|round(1) if f.usado is not none else '—' }} / {{ f.cantidad }}{% else %}—{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="sub">Sin licencias registradas ni levantadas.</td></tr>{% endfor %}</table></div></div>
+
 {% set rs = r.resumen %}
 <div class="lic-res">{% for k, t in [('cubierto', 'cubiertos'), ('sin dato', 'sin confirmar registro'), ('no registrado', 'no registrados'), ('sin cupo', 'sin cupo'), ('sin licencia', 'sin licencia')] %}
 <a class="card" href="{{ url_for('consola.licencias', estado=None if f_est == k else k, fabricante=f_fab or None) }}" style="color:var(--ink){{ ';border-color:var(--acc)' if f_est == k }}"><b>{{ rs[k] }}</b><span class="sub">{{ t }}</span></a>{% endfor %}</div>

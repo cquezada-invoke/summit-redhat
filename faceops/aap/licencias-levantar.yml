@@ -1,0 +1,62 @@
+# Licencias · Levantar desde las plataformas (solo lectura): en cada máquina lee las suscripciones y licencias que consume y su
+# fecha de término. RHEL: subscription-manager (suscripciones consumidas o acceso simple de la organización). Windows:
+# activación (slmgr) con su vencimiento si es por volumen/KMS. FaceOps suma la de AAP (API) y arma el panel de caducidad.
+- name: Licencias · Levantar desde las plataformas
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: ¿Responde?
+      ansible.builtin.wait_for_connection: {timeout: 20}
+      register: r_con
+      ignore_errors: true
+
+    - name: Fuera del levantamiento (no responde)
+      ansible.builtin.meta: end_host
+      when: r_con is failed
+
+    - name: Datos del sistema
+      ansible.builtin.setup: {gather_subset: [min]}
+
+    - name: Suscripciones consumidas (RHEL)
+      ansible.builtin.command: subscription-manager list --consumed
+      register: r_sm
+      changed_when: false
+      failed_when: false
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Estado del registro (RHEL)
+      ansible.builtin.command: subscription-manager status
+      register: r_st
+      changed_when: false
+      failed_when: false
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Organización y Satellite (RHEL)
+      ansible.builtin.shell: |
+        set -o pipefail
+        subscription-manager identity 2>/dev/null | sed -n 's/^org name: //Ip;s/^org ID: //Ip' | paste -sd' ' -
+        grep -E '^hostname' /etc/rhsm/rhsm.conf | head -1 | awk -F= '{gsub(/ /,"",$2); print $2}'
+      register: r_id
+      changed_when: false
+      failed_when: false
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Activación de Windows
+      ansible.windows.win_shell: |
+        $l = Get-CimInstance SoftwareLicensingProduct -Filter "PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'" | Select-Object -First 1
+        $vence = ''
+        if ($l.GracePeriodRemaining -gt 0 -and $l.LicenseStatus -ne 1 -or $l.Description -match 'VOLUME_KMSCLIENT') { $vence = (Get-Date).AddMinutes($l.GracePeriodRemaining).ToString('yyyy-MM-dd') }
+        [pscustomobject]@{producto=$l.Name; canal=$l.Description; estado=$l.LicenseStatus; vence=$vence} | ConvertTo-Json -Compress
+      register: r_win
+      changed_when: false
+      failed_when: false
+      when: ansible_facts.os_family == 'Windows'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_licencias: "{{ {inventory_hostname: {'familia': ansible_facts.os_family, 'so': ansible_facts.distribution ~ ' ' ~ ansible_facts.distribution_version,
+                                  'consumidas': r_sm.stdout | default(''), 'estado': r_st.stdout | default(''), 'identidad': r_id.stdout | default(''),
+                                  'windows': r_win.stdout | default('') | trim}} }}"
+        aggregate: true

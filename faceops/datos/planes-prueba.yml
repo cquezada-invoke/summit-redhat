@@ -3,6 +3,11 @@
 # verificación. Se ejecuta completo con tickets reales (aprobados por Claude con «Aprobado por Claude (regla de Cristian)»);
 # solo con todos los casos ok la versión vigente queda certificada. Si la automatización cambia, se ejecuta de nuevo.
 planes:
+  "Licencias · Levantar desde las plataformas":
+    casos:
+      - {id: C1, caso: "Levantar en todo el parque (con máquinas apagadas)", verificar: "ticket exitoso; las apagadas quedan fuera; cada RHEL encendido aparece con su suscripción o con acceso simple (SCA)"}
+      - {id: C2, caso: "Caducidad en FaceOps", verificar: "la tabla «Licencias en uso y su caducidad» muestra lo levantado, la suscripción de AAP y los contratos, ordenada por vencimiento"}
+      - {id: C3, caso: "Repetir el levantamiento", verificar: "solo lectura e idempotente: mismo resultado, sin duplicar filas"}
   "Arquitectura · Evaluar stack tecnológico":
     casos:
       - {id: C1, caso: "Barrido de todo el parque (con máquinas apagadas en el inventario)", verificar: "ticket exitoso; las apagadas quedan fuera sin hacer fallar al resto; evaluación nueva con filas por máquina"}
