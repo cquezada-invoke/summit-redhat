@@ -1,5 +1,5 @@
 FROM registry.access.redhat.com/ubi9/python-311:1-77
-RUN pip install --no-cache-dir flask==3.0.3 gunicorn==23.0.0
+RUN pip install --no-cache-dir flask==3.0.3 gunicorn==23.0.0 PyYAML==6.0.2
 COPY app/ /opt/app-root/src/
 WORKDIR /opt/app-root/src
 EXPOSE 8120

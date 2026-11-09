@@ -1,0 +1,22 @@
+# Estado de prueba de cada automatización del portal (lo muestra la lista). Se actualiza con cada corrida de pruebas/probar.py.
+# estado: probada | repetir (falló y se corrigió, falta volver a probar) | sin_probar
+"OpenShift · Salud del clúster": {estado: repetir, nota: "caso warning OK (#19674); caso critical falló (#19709), corregido"}
+"OpenShift · Certificados": {estado: repetir, nota: "la prueba no terminó a tiempo (#19678)"}
+"OpenShift · Regularizar línea base": {estado: repetir, nota: "falló (#19701, #19705); reescrita, falta volver a probar"}
+"OpenShift · Optimizar recursos y limpiar": {estado: repetir, nota: "falló (#19694); reescrita, falta volver a probar"}
+"OpenShift · Actualizaciones y operadores": {estado: probada, nota: "OK (#19690)"}
+"OpenShift · Respaldo de etcd": {estado: sin_probar}
+"OpenShift · Alta de proyecto": {estado: repetir, nota: "crear OK (#19698); eliminar falló, corregido"}
+"Telco · Validar clúster para CNF": {estado: sin_probar}
+"Telco · Onboarding de CNF": {estado: sin_probar}
+"Telco · Red del servicio (VLAN y BGP)": {estado: sin_probar}
+"Telco · Día 2 del clúster de cargas": {estado: sin_probar}
+"Amdocs · Activar orden de servicio": {estado: sin_probar}
+"Amdocs · Salud de la plataforma BSS": {estado: repetir, nota: "falló (#19711), corregido"}
+"Amdocs · Desplegar release": {estado: probada, nota: "3 casos OK, incluida la reversión ante falla (#19715, #19718, #19723)"}
+"Infraestructura · Revisar CVE de servidores": {estado: sin_probar}
+"Infraestructura · Escaneo de seguridad": {estado: sin_probar}
+"Infraestructura · Aplicar parches de seguridad": {estado: sin_probar}
+"Infraestructura · Inventariar servidor": {estado: sin_probar}
+"Infraestructura · Inventario de certificados": {estado: sin_probar}
+"Infraestructura · Encender o apagar servidor": {estado: sin_probar}

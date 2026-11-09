@@ -6,7 +6,7 @@
   {% set lista = items | selectattr('seccion', 'equalto', k) | list %}
   {% if lista %}
   <h3>{{ n }}</h3>
-  <ul>{% for i in lista %}<li><a href="{{ url_for('ficha', wid=i.id) }}">{{ i.nombre }}</a> (<a href="{{ en_aap('wf', i.id) }}" target="_blank">AAP</a>) <span class="sub">— {{ i.descripcion }}</span></li>{% endfor %}</ul>
+  <ul>{% for i in lista %}<li><a href="{{ url_for('ficha', wid=i.id) }}">{{ i.nombre }}</a> (<a href="{{ en_aap('wf', i.id) }}" target="_blank">AAP</a>) <b title="{{ i.prueba_nota }}">[{{ i.prueba }}]</b> <span class="sub">— {{ i.descripcion }}</span></li>{% endfor %}</ul>
   {% if k == 'amdocs' %}
   <p>Simular orden de Amdocs:
     cliente <select id="o-cliente"><option value="CLI-00001">Banco del Caribe</option><option value="CLI-00002">Hospital San Juan</option><option value="CLI-00003">Puerto de Ponce</option><option value="CLI-00004">Retail Isla</option></select>

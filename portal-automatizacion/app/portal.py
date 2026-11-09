@@ -159,7 +159,19 @@ def salir():
     return redirect(url_for("ingresar"))
 
 
+ETQ_PRUEBA = {"probada": "probada", "repetir": "falta volver a probar", "sin_probar": "sin probar"}
+
+
+def estado_pruebas():
+    try:
+        import yaml
+        return yaml.safe_load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "estado_pruebas.yml"))) or {}
+    except (ImportError, OSError, ValueError):
+        return {}
+
+
 def catalogo():
+    ep = estado_pruebas()
     wf = aap("GET", f"workflow_job_templates/?labels__name__startswith=portal-&page_size=200&order_by=name{_ORG}")["results"]
     items = []
     for w in wf:
@@ -170,6 +182,9 @@ def catalogo():
                       "puede": w["summary_fields"].get("user_capabilities", {}).get("start", False),
                       "ultima": (w["summary_fields"].get("last_job") or {}).get("status", ""),
                       "ultima_fecha": (w.get("last_job_run") or "")[:16].replace("T", " ")})
+        pr = ep.get(items[-1]["nombre"]) or {}
+        items[-1]["prueba"] = ETQ_PRUEBA.get(pr.get("estado"), "sin probar")
+        items[-1]["prueba_nota"] = pr.get("nota", "")
     return items
 
 
