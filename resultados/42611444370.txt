@@ -1,0 +1,14 @@
+commit: 73f5c4a8da5201d49eb7eaa7ab7eeea6d9939cc3
+inicio: 2026-11-09T08:44:54-03:00
+---
+lab desplegado
+catálogo sincronizado
+PIPE ejecutar app-jboss@develop: FO-LAB-01350 fallido AAP terminó (failed): ejecución 168 s, espera de aprobación 136 s Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-jboss-faceops-s96cm del pipeline app-jboss falló o no terminó: revisa sus 
+Traceback (most recent call last):
+  File "/tmp/plan2.py", line 47, in <module>
+    t = solicitar(u, cli, al, "*", {}, f"Plan de prueba · levantamiento {k}", prueba=True); tk = esperar(t["id"]); tks.append(tk["numero"])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/operacion.py", line 409, in solicitar
+    raise PermissionError("Elige un ambiente: cada ejecución va a un único ambiente")
+PermissionError: Elige un ambiente: cada ejecución va a un único ambiente
+--- fin: 2026-11-09T08:49:33-03:00 · código: 0
