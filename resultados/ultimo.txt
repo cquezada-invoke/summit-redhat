@@ -1,37 +1,18 @@
-commit: 0aa1f03f889de0415c0a710a1ff4b097a0e331c2
-inicio: 2026-11-09T16:30:59-03:00
+commit: e98ff6c8eda73d142107353c7061f0b31e2f2e0c
+inicio: 2026-11-09T16:20:23-03:00
 ---
-Failed · Tasks Completed: 5 (Failed: 1, Cancelled 0), Skipped: 1
-ambiente=desarrollo  app=casa-cuentas  repo-url=http://192.168.122.1:3000/fabrica/casa-cuentas.git  revision=feature/casa-cuentas-11091815  
-analisis-estatico   Succeeded
-clonar              Succeeded
-politicas           Succeeded
-pruebas             Failed
-secretos            Succeeded
-== falló: pruebas
-	at org.springframework.test.web.servlet.result.StatusResultMatchers.lambda$is3xxRedirection$4(StatusResultMatchers.java:88)
-	at org.springframework.test.web.servlet.MockMvc$1.andExpect(MockMvc.java:214)
-	at com.invoke.casacuentas.web.HomeControllerTest.homeSinSesionRedirigeAlLogin(HomeControllerTest.java:46)
-	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
-	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
-	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+faceops actualizado
+Push successful
+deployment "fabrica" successfully rolled out
+portal actualizado
+casa-cuentas | Aplicación web con login y un home que lista las cuentas de pago del hogar (luz, agua, internet, etc.) de cada | False
+mantenedor-usuarios | API REST de mantenedor (CRUD) de usuarios con Spring Boot 3 / Java 21: crear, consultar, listar paginado, actu | False
+gestion-usuarios | API REST para administrar usuarios (crear, consultar, listar con paginación, actualizar, eliminar) sobre Postg | False
+iframe: ['/lab/fabrica/app/?trabajo=mantenedor-usuarios@feature/mantenedor-usuarios-11091507&amp;lanzar=1'] True
+conversacion: 404 {'error': 'Este trabajo no tiene conversación guardada (se entregó antes de que existiera esta opción)', 'rama': 'feature/mantenedor-usuarios-11091507', 'repo':
+== FaceAdmin
+FaceAdmin actualizado a 655705b4
+{"build":82,"commit":"655705b4991569c416702ed2a4b1ab3dfdb36f
 
-[ERROR] Failures: 
-[ERROR]   HomeControllerTest.homeSinSesionRedirigeAlLogin:46 Range for response status value 401 expected:<REDIRECTION> but was:<CLIENT_ERROR>
-[ERROR] Errors: 
-[ERROR]   HomeControllerTest.formularioInvalidoVuelveAlHomeConErrores:76 » Servlet Request processing failed: org.thymeleaf.exceptions.TemplateProcessingException: Error during execution of processor 'org.thymeleaf.spring6.processor.SpringI
-[ERROR]   HomeControllerTest.homeMuestraLasCuentasDelUsuario:62 » Servlet Request processing failed: org.thymeleaf.exceptions.TemplateProcessingException: Error during execution of processor 'org.thymeleaf.spring6.processor.SpringInputGener
-[ERROR] Tests run: 18, Failures: 1, Errors: 2, Skipped: 0
-[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.4:test (default-test) on project casa-cuentas: There are test failures.
-[ERROR] 
-[ERROR] See /tmp/src/target/surefire-reports for the individual test results.
-[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
-[ERROR] -> [Help 1]
-[ERROR] 
-[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
-[ERROR] Re-run Maven using the -X switch to enable full debug logging.
-[ERROR] 
-[ERROR] For more information about the errors and possible solutions, please read the following articles:
-[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
-2026/11/09 19:27:45 Entrypoint initialization
---- fin: 2026-11-09T16:31:00-03:00 · código: 0
+sudo: sqlite3: command not found
+== Modelo GPU (fabrica-gpu us-west1-a 10.138.0.4)
