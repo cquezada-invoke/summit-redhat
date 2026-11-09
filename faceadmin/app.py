@@ -917,6 +917,7 @@ import instalacion  # noqa: E402,F401  (comando de instalación: valida el contr
 import negocio  # noqa: E402,F401  (ciclo comercial y tenants: registra sus rutas en esta app)
 import oportunidades  # noqa: E402,F401  (oportunidades y demos de FaceOps por semanas)
 import cuentas  # noqa: E402,F401  (cuentas y sus contactos: toda empresa, con o sin contrato)
+import alcance  # noqa: E402,F401  (costo fijo por alcance: análisis con IA y confirmación del especialista de negocio)
 
 
 def validar_smtp(cfg):
@@ -990,7 +991,10 @@ def config_correo():
         flash("Servidor de correo guardado. Envía una prueba para confirmarlo.", "ok")
         return redirect(url_for("config_correo"))
     pend = q("SELECT id, fecha, para, asunto, estado FROM correos WHERE estado LIKE 'pendiente%' OR estado LIKE 'no se pudo%' ORDER BY id DESC LIMIT 20")
-    return render_template("config_correo.html", cfg={k: v for k, v in cfg.items() if k != "clave"}, tiene_clave=bool(cfg.get("clave")), pend=pend)
+    import alcance as _alc
+    _ia = _alc.ia_config()
+    return render_template("config_correo.html", cfg={k: v for k, v in cfg.items() if k != "clave"}, tiene_clave=bool(cfg.get("clave")), pend=pend,
+                           ia_clave=bool(_ia.get("api_key")), especialista=_alc.especialista(), ia_modelo=_alc.MODELO)
 
 
 @app.route("/configuracion/correo/reenviar", methods=["POST"])

@@ -106,10 +106,21 @@ def oportunidad_nueva():
     solo_invoke()
     existentes = [c for c in q("SELECT * FROM clientes WHERE activo=1 AND COALESCE(propio,0)=0 AND tenant_id IS NULL ORDER BY nombre") if en_alcance(c)]
     if request.method == "GET":
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=request.args, tipos=TIPOS, licencia_def=LICENCIA_TENANT)
+        from datetime import date, timedelta
+        f0 = dict(request.args)
+        f0.setdefault("cierre_estimado", (date.today() + timedelta(days=60)).isoformat())
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f0, tipos=TIPOS, licencia_def=LICENCIA_TENANT)
     f = request.form
     import cobro
     from contratos import _empresa
+    if f.get("modalidad") == "alcance" and not f.getlist("auto") and len((f.get("alcance_texto") or "").strip()) >= 20:
+        import alcance   # sin analizar en pantalla: se analiza aquí y se marcan las automatizaciones propuestas
+        d = alcance.analizar(f["alcance_texto"])
+        f = f.copy()
+        f["alcance_ia"] = json.dumps(d, ensure_ascii=False)
+        for a in d.get("automatizaciones") or []:
+            f.add("auto", a["nombre"])
+            f["vol::" + a["nombre"]] = str(a.get("volumen") or 5)
     try:
         tipo = f.get("tipo")
         if tipo not in TIPOS:
@@ -124,6 +135,12 @@ def oportunidad_nueva():
     except ValueError as e:
         flash(str(e), "error")
         return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT), 400
+    import alcance
+    alcance.columnas()
+    atexto = (f.get("alcance_texto") or "").strip()[:6000]
+    if est["modalidad"] == "alcance" and len(atexto) < 20:
+        flash("En costo fijo por alcance, describe el alcance (lo evalúa el especialista de negocio antes de fijar el precio)", "error")
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT), 400
     num = _numero(c)
     oid = ej("INSERT INTO oportunidades (cliente_id, numero, tipo, etapa, despliegue, plan, nodos, monto_estimado, cierre_estimado, notas, creado, por, modalidad, "
              "estimacion, monto_tentativo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], num, tipo, "prospecto",
@@ -131,7 +148,18 @@ def oportunidad_nueva():
              (f.get("notas") or "").strip()[:3000], ahora(), g.usuario["usuario"], est["modalidad"], json.dumps(est, ensure_ascii=False), tent)
     monto = tent
     bitacora("oportunidad creada", c["codigo"], {"oportunidad": num, "monto": monto})
-    flash(f"Oportunidad {num} creada para {c['nombre']}", "ok")
+    aviso = ""
+    if est["modalidad"] == "alcance":
+        try:
+            d = json.loads(f.get("alcance_ia") or "{}")
+        except ValueError:
+            d = {}
+        if not d.get("automatizaciones") and not d.get("resumen"):
+            d = alcance.analizar(atexto)
+        ej("UPDATE oportunidades SET alcance_texto=?, alcance_ia=?, alcance_estado='por_confirmar' WHERE id=?", atexto, json.dumps(d, ensure_ascii=False), oid)
+        estado = alcance.avisar_especialista(q1("SELECT * FROM oportunidades WHERE id=?", oid), c, d)
+        aviso = f" · alcance enviado al especialista ({alcance.especialista()}): {estado}"
+    flash(f"Oportunidad {num} creada para {c['nombre']}{aviso}", "ok")
     return redirect(url_for("oportunidad", oid=oid))
 
 
@@ -169,6 +197,14 @@ def oportunidad(oid):
         o["est"] = json.loads(o.get("estimacion") or "{}")
     except ValueError:
         o["est"] = {}
+    import alcance
+    alcance.columnas()
+    o = q1("SELECT * FROM oportunidades WHERE id=?", oid) | {"demo": o["demo"], "est": o["est"]}
+    try:
+        o["aia"] = json.loads(o.get("alcance_ia") or "{}")
+    except ValueError:
+        o["aia"] = {}
+    o["especialista"] = alcance.especialista()
     dem = [_demo_fila(x) for x in q("SELECT * FROM demos WHERE oportunidad_id=? ORDER BY id DESC", oid)]
     return render_template("oportunidad.html", inst_t=INST_T, demos=dem, o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
                            inst=(intentos(c["id"]) or [None])[0], lic=licencias(c["id"]))

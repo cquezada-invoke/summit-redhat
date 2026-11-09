@@ -6,6 +6,6 @@ if(mod==='creditos'){const o=f.plan.selectedOptions[0]; serv=n(o.dataset.c)*vc/1
 else{const cats={}; let k=0; f.querySelectorAll('[name=auto]:checked').forEach(c=>{const v=n(f.elements['vol::'+c.value].value); serv+=n(c.dataset.cr)*v*vc; k++; cats[c.dataset.cat]=(cats[c.dataset.cat]||0)+1;});
  f.querySelectorAll('span[data-cat]').forEach(s=>s.textContent=cats[s.dataset.cat]?'· '+cats[s.dataset.cat]+' marcada(s)':''); det=k+' automatización(es)';}
 const rh=n(f.nodos.value)*n(f.valor_nodo.value);
-f.querySelector('[data-total]').innerHTML='Servicio: <b>'+fm(serv)+'</b>/mes <span class=sub>('+det+')</span> · Red Hat CCSP: <b>'+fm(rh)+'</b>/mes · <b>Total mensual: '+fm(serv+rh)+'</b>'+(f.anios?' · Monto del contrato ('+(n(f.anios.value)*12)+' meses + implementación): <b>'+fm((serv+rh)*12*n(f.anios.value)+n(f.implementacion.value))+'</b> <span class=sub>= monto de la OC del cliente</span>':'');}
+f.querySelector('[data-total]').innerHTML='<span class=sub>('+det+')</span> · <b>Total mensual: '+fm(serv+rh)+'</b>'+(f.anios?' · Monto del contrato ('+(n(f.anios.value)*12)+' meses + implementación): <b>'+fm((serv+rh)*12*n(f.anios.value)+n(f.implementacion.value))+'</b> <span class=sub>= monto de la OC del cliente</span>':'');}
 document.querySelectorAll('form').forEach(f=>{if(f.modalidad)cobroCalc(f)});
 </script>

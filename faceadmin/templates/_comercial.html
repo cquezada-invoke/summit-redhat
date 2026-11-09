@@ -11,7 +11,7 @@
 
 <h3>Propuestas</h3>
 {% if com.propuestas %}<div class="tabla-scroll"><table><tr><th>Versión</th><th>Cobro</th><th>Plazo</th><th style="text-align:right">Mensual</th><th style="text-align:right">Implementación</th><th>Estado</th><th></th></tr>
-{% for p in com.propuestas %}<tr><td class="mono">{{ p.numero }} v{{ p.version }}</td><td>{{ cobro_.resumen(p) }}{% if p.nodos %}<br><span class="sub" style="font-size:12px">Red Hat CCSP · {{ p.nodos }} nodos</span>{% endif %}</td><td>{{ p.anios }} año{{ 's' if p.anios > 1 }}</td>
+{% for p in com.propuestas %}<tr><td class="mono">{{ p.numero }} v{{ p.version }}</td><td>{{ cobro_.resumen(p) }}</td><td>{{ p.anios }} año{{ 's' if p.anios > 1 }}</td>
 <td style="text-align:right">{{ p.moneda }} {{ p.mensual|num }}</td><td style="text-align:right">{{ p.implementacion|num }}</td>
 <td><span class="chip {{ 'ok' if p.estado == 'aceptada' else ('mal' if p.estado == 'rechazada' else 'med') }}">{{ p.estado }}</span></td>
 <td style="white-space:nowrap"><a href="{{ url_for('propuesta_doc', pid=p.id) }}" target="_blank" rel="noopener">documento ↗</a>

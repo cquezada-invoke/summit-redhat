@@ -1,4 +1,10 @@
-{% extends "base.html" %}{% block titulo %}Correo{% endblock %}{% block cuerpo %}
+{% extends "base.html" %}{% block titulo %}Correo<form method="post" action="{{ url_for('config_ia') }}" class="card" style="margin-top:14px"><input type="hidden" name="_csrf" value="{{ csrf }}"><h2>Alcance de oportunidades: especialista e IA</h2>
+<p class="sub" style="font-size:12.5px;margin:0 0 8px">Las oportunidades a costo fijo por alcance se envían por correo al especialista de negocio, que evalúa la implementación y confirma antes de fijar precio. La IA analiza el alcance contra el catálogo y completa los datos de empresas nuevas.</p>
+<div class="rejilla"><label>Correo del especialista de negocio *<input name="especialista" type="email" value="{{ especialista }}" required></label>
+<label>Clave de la API de Anthropic {% if ia_clave %}<span class="chip ok" style="font-size:11px">guardada</span>{% else %}<span class="chip">sin clave: análisis por palabras clave</span>{% endif %}<input name="api_key" type="password" autocomplete="new-password" placeholder="{{ 'vacío = mantener la guardada' if ia_clave else 'sk-ant-…' }}"></label></div>
+<p class="sub" style="font-size:12px;margin:6px 0">Modelo: <span class="mono">{{ ia_modelo }}</span>. La clave queda en un archivo solo legible por FaceAdmin y no se vuelve a mostrar.</p>
+<div class="fila"><button class="btn">Guardar</button>{% if ia_clave %}<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="quitar_clave" value="1" style="width:auto"> quitar la clave</label>{% endif %}</div></form>
+{% endblock %}{% block cuerpo %}
 <h1 style="margin:0">Servidor de correo</h1>
 <p class="sub" style="margin:2px 0 14px">FaceAdmin envía por aquí los accesos de administrador, los documentos de alcance y los avisos. La clave queda en un archivo solo legible por FaceAdmin y no se vuelve a mostrar.</p>
 <div class="grid g2">
@@ -16,4 +22,10 @@
 <label style="flex:1">Enviar una prueba a<input name="para" type="email" value="cquezada@invoke.cl" required></label><button class="btn gris">Enviar prueba</button></form>
 <h2 style="margin-top:18px">Pendientes en la bandeja de salida</h2>{% if pend %}<table style="font-size:13px"><tr><th>Fecha</th><th>Para</th><th>Asunto</th></tr>{% for m in pend %}<tr><td class="mono">{{ m.fecha[:16] }}</td><td>{{ m.para }}</td><td>{{ m.asunto }}</td></tr>{% endfor %}</table>
 <form method="post" action="{{ url_for('correo_reenviar') }}" style="margin-top:8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico">Reenviar pendientes</button></form>{% else %}<p class="sub">No hay correos pendientes.</p>{% endif %}</div></div>
+<form method="post" action="{{ url_for('config_ia') }}" class="card" style="margin-top:14px"><input type="hidden" name="_csrf" value="{{ csrf }}"><h2>Alcance de oportunidades: especialista e IA</h2>
+<p class="sub" style="font-size:12.5px;margin:0 0 8px">Las oportunidades a costo fijo por alcance se envían por correo al especialista de negocio, que evalúa la implementación y confirma antes de fijar precio. La IA analiza el alcance contra el catálogo y completa los datos de empresas nuevas.</p>
+<div class="rejilla"><label>Correo del especialista de negocio *<input name="especialista" type="email" value="{{ especialista }}" required></label>
+<label>Clave de la API de Anthropic {% if ia_clave %}<span class="chip ok" style="font-size:11px">guardada</span>{% else %}<span class="chip">sin clave: análisis por palabras clave</span>{% endif %}<input name="api_key" type="password" autocomplete="new-password" placeholder="{{ 'vacío = mantener la guardada' if ia_clave else 'sk-ant-…' }}"></label></div>
+<p class="sub" style="font-size:12px;margin:6px 0">Modelo: <span class="mono">{{ ia_modelo }}</span>. La clave queda en un archivo solo legible por FaceAdmin y no se vuelve a mostrar.</p>
+<div class="fila"><button class="btn">Guardar</button>{% if ia_clave %}<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="quitar_clave" value="1" style="width:auto"> quitar la clave</label>{% endif %}</div></form>
 {% endblock %}

@@ -21,7 +21,7 @@
 <div class="segm" role="group" aria-label="Tipo de contrato">{% for k_, t_ in FT %}<a href="#" data-ft="{{ k_ }}" class="{{ 'on' if not k_ }}">{{ t_ }} <b>{{ contratos|length if not k_ else contratos|selectattr('f_tipo', 'equalto', k_)|list|length }}</b></a>{% endfor %}</div>
 <div class="segm" role="group" aria-label="Modalidad">{% for k_, t_ in FM %}<a href="#" data-fm="{{ k_ }}" class="{{ 'on' if not k_ }}">{{ t_ }} <b>{% set n_ = namespace(v=0) %}{% for x in contratos if not k_ or k_ in x.f_mod.split() %}{% set n_.v = n_.v + 1 %}{% endfor %}{{ n_.v }}</b></a>{% endfor %}</div></div>
 <div class="busca-autos"><input id="ct-q" type="search" placeholder="Buscar contrato: número, cliente, país, tipo, estado…" autocomplete="off" aria-label="Buscar"></div>
-<script>document.addEventListener('DOMContentLoaded',()=>{let ft='',fm='';const q=document.getElementById('ct-q');
+<script>(document.readyState==='loading'?(fn=>document.addEventListener('DOMContentLoaded',fn)):(fn=>fn()))(()=>{let ft='',fm='';const q=document.getElementById('ct-q');
 function f(){const v=q.value.toLowerCase().trim();document.querySelectorAll('tr[data-ft]').forEach(r=>{r.style.display=(!ft||r.dataset.ft===ft)&&(!fm||r.dataset.fm.split(' ').includes(fm))&&(!v||r.textContent.toLowerCase().includes(v))?'':'none'})}
 document.querySelectorAll('[data-ft]').forEach(a=>{if(a.tagName!=='A')return;a.onclick=e=>{e.preventDefault();ft=a.dataset.ft;a.parentNode.querySelectorAll('a').forEach(x=>x.classList.toggle('on',x===a));f()}});
 document.querySelectorAll('a[data-fm]').forEach(a=>a.onclick=e=>{e.preventDefault();fm=a.dataset.fm;a.parentNode.querySelectorAll('a').forEach(x=>x.classList.toggle('on',x===a));f()});q.addEventListener('input',f)});</script>
