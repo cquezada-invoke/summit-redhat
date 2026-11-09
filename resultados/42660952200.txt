@@ -1,0 +1,52 @@
+commit: 65412f0a449156ed6dd5497359ec3a65d4969cbd
+inicio: 2026-11-09T14:04:07-03:00
+---
+== equipo 6: 200 7.57s
+        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1062(open)
+        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:984(run_wsgi_app)
+        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1230(run_wsgi_app)
+        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:1529(__call__)
+        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/werkzeug/middleware/proxy_fix.py:126(__call__)
+        1    0.000    0.000    7.568    7.568 /opt/faceops/app/__init__.py:55(__call__)
+        1    0.000    0.000    7.567    7.567 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:1479(wsgi_app)
+        1    0.000    0.000    7.566    7.566 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:904(full_dispatch_request)
+        1    0.000    0.000    7.533    7.533 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:879(dispatch_request)
+        1    0.003    0.003    7.533    7.533 /opt/faceops/app/__init__.py:356(envoltura)
+        1    0.004    0.004    7.530    7.530 /opt/faceops/app/vistas.py:4037(equipo)
+       87    0.001    0.000    4.940    0.057 /opt/app-root/lib64/python3.11/site-packages/requests/sessions.py:500(request)
+       87    0.002    0.000    4.832    0.056 /opt/app-root/lib64/python3.11/site-packages/requests/sessions.py:673(send)
+       87    0.002    0.000    4.793    0.055 /opt/app-root/lib64/python3.11/site-packages/requests/adapters.py:590(send)
+       87    0.002    0.000    4.753    0.055 /opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py:598(urlopen)
+       87    0.002    0.000    4.744    0.055 /opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py:383(_make_request)
+       87    0.002    0.000    4.681    0.054 /opt/app-root/lib64/python3.11/site-packages/urllib3/connection.py:607(getresponse)
+       87    0.001    0.000    4.665    0.054 /usr/lib64/python3.11/http/client.py:1371(getresponse)
+       87    0.002    0.000    4.663    0.054 /usr/lib64/python3.11/http/client.py:323(begin)
+      540    0.001    0.000    4.636    0.009 /usr/lib64/python3.11/socket.py:704(readinto)
+       87    0.002    0.000    4.635    0.053 /usr/lib64/python3.11/http/client.py:290(_read_status)
+     2777    0.002    0.000    4.633    0.002 {method 'readline' of '_io.BufferedReader' objects}
+       84    0.001    0.000    4.449    0.053 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:14(request)
+       83    0.001    0.000    4.431    0.053 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:62(get)
+      535    4.150    0.008    4.150    0.008 {method 'recv_into' of '_socket.socket' objects}
+        1    0.003    0.003    3.697    3.697 /opt/faceops/app/paquetes.py:52(de_equipo)
+
+
+== equipo 6: 200 1.00s
+== equipo 7: 200 1.33s
+== Certificar Pipeline Tekton
+certificada
+== Fábrica (chequeo PS-07)
+Push successful
+deployment "fabrica" successfully rolled out
+== Portal de automatización
+== Amdocs emulado en OpenShift
+build.build.openshift.io/amdocs-emulado-1 started
+deployment "amdocs-ordering" successfully rolled out
+deployment "amdocs-customer" successfully rolled out
+deployment "amdocs-catalog" successfully rolled out
+== AAP y EDA
+   · Gitea: invoke/portal-automatizaciones y telco-red-servicio.yml en invoke/red-laboratorio
+   · OpenShift: ServiceAccount aap-portal (token en Vault secret/portal/ocp)
+   · Credencial 'OpenShift · clúster (token)' enlazada a Vault
+   · Proyecto 'Portal · automatizaciones' sincronizado
+ERROR POST https://localhost/api/controller/v2/inventories/17/hosts/ -> 403: {"detail":"License count of 50 instances has been reached."}
+--- fin: 2026-11-09T14:07:19-03:00 · código: 0
