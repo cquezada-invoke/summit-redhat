@@ -356,13 +356,27 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     }
     return o+'</svg>';
   }
+  // encender de una vez todas las máquinas apagadas del segmento (las del gráfico): un ticket por máquina, con su aprobación
+  function apagadasGrafo(){ const cy_=window._cy; if(!cy_) return []; const vistos=new Set();
+    return cy_.nodes('[tipo="equipo"]').filter(n=>n.data('energia')==='apagado'&&n.data('energia_url')).map(n=>n.data()).filter(d=>!vistos.has(d.energia_url)&&vistos.add(d.energia_url)); }
+  function htmlEncenderTodas(){ const xs=apagadasGrafo(); if(!xs.length||!PUEDE) return '';
+    return '<div class="act-acc" id="enc-todas"><button class="btn chico" id="b-enc-todas">Encender las '+xs.length+' apagada'+(xs.length===1?'':'s')+'</button> <span class="res sub"></span>'
+      +'<p class="sub" style="font-size:12px;margin:4px 0 0">'+xs.map(d=>d.label||d.nombre).join(', ')+'. Un ticket por máquina (con aprobación donde corresponda).</p></div>'; }
+  function enlazarEncenderTodas(){ const b=document.getElementById('b-enc-todas'); if(!b) return;
+    b.onclick=async()=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); const xs=apagadasGrafo(); const out=[];
+      for(const [i,d] of xs.entries()){ res.textContent='creando '+(i+1)+' de '+xs.length+'…';
+        const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('accion','encender');
+        try{ const x=await fetch(d.energia_url,{method:'POST',body:fd}).then(r=>r.json());
+          out.push(x.error?'<span class="chip e-fallido" title="'+x.error.replace(/"/g,'&quot;')+'">'+(d.label||d.nombre)+': no</span>':'<a href="'+x.url+'" target="_blank">'+x.numero+'</a>');
+        }catch(e){ out.push('<span class="chip e-fallido">'+(d.label||d.nombre)+': no se pudo enviar</span>'); } }
+      res.innerHTML=out.join(' · '); }; }
   // flotante de salud del segmento en el ambiente: cada área con su % y lo que hay que remediar
   function mostrarSalud(s, ambt){
     panel.dataset.fijo='1';
     const col=p=>p>=85?'#3e8635':(p>=60?'#f0ab00':'#c9190b'), IC={alta:SVG.mal,media:SVG.warn,ok:SVG.ok,info:SVG.gris};
     let h=cab('Salud · '+ambt,'Página completa',URL_SALUD+'?segmento='+encodeURIComponent(s.nombre)+'&ambiente='+encodeURIComponent(AMB));
     h+='<div class="act-acc"><div class="sb-tit"><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">promedio de sus áreas · '+s.equipos+' máquina'+(s.equipos===1?'':'s')+'</span></div>'
-      +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div></div>';
+      +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div></div>'+htmlEncenderTodas();
     if(s.salud_meta) h+='<div style="text-align:center;padding:4px 8px">'+estrellaSVG(Object.fromEntries((s.salud_areas||[]).map(a=>[a.area,a.pct])), s.salud_meta)+'</div>';
     (s.salud_areas||[]).forEach(a=>{
       const xs=(s.salud||[]).filter(x=>x.area===a.area);
@@ -372,7 +386,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     });
     if(!(s.salud_areas||[]).length) h+='<p class="act-desc">Sin situaciones por atender en este ambiente.</p>';
     h+='<p class="sub" style="font-size:12px;padding:0 14px">Cada área parte en 100 %: −15 por situación grave y −6 por advertencia.</p>';
-    pintar(h);
+    pintar(h); enlazarEncenderTodas();
   }
   function mostrarSegmento(s){
     panel.dataset.fijo='';
@@ -381,6 +395,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(s.descripcion) h+='<p class="act-desc">'+s.descripcion+'</p>';
     h+=sec('Estado','<a href="'+s.inventario+'">Ver equipos</a>');
     h+=fila({izq:'Equipos',ic:s.apagados?SVG.mal:SVG.ok,txt:s.equipos+' · '+s.encendidos+' encendidos'+(s.apagados?' · '+s.apagados+' apagados':'')});
+    h+=htmlEncenderTodas();
     h+=fila({izq:'Flujos',ic:s.bloqueados?SVG.mal:SVG.ok,txt:s.abiertos+'/'+s.flujos+' abiertos'+(s.bloqueados?' · '+s.bloqueados+' cerrados':'')});
     h+=fila({izq:'Hallazgos',ic:s.altos?SVG.mal:(s.hallazgos?SVG.warn:SVG.ok),txt:s.hallazgos?(s.hallazgos+(s.altos?' · '+s.altos+' altos':'')):'sin hallazgos'});
     if(s.entrada&&s.entrada.hacia) h+=fila({izq:'Entrada',ic:letra('E'),txt:(s.entrada.desde||'')+' → '+s.entrada.hacia+' :'+s.entrada.puerto});
@@ -414,7 +429,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         if(o.gitops) h+=fila({izq:'GitOps',ic:letra('G','#4cb140'),txt:'<a href="'+o.gitops.replace('http://192.168.122.1:3000','http://34.176.42.56:3000')+'" target="_blank" rel="noopener">repositorio del estado deseado</a>'});
       });
     }
-    pintar(h);
+    pintar(h); enlazarEncenderTodas();
   }
   const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }}, URL_SALUD={{ url_for('consola.salud_detalle')|tojson }};
   const PUEDE={{ (perfil_actual.modo == 'escritura')|tojson }}, CSRF={{ csrf|tojson }}, URL_FLUJO={{ url_for('consola.mapa_flujo')|tojson }};
