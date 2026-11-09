@@ -1,0 +1,21 @@
+commit: f98894f53f33a90316e5b6b888b00a9c822be4c8
+inicio: 2026-11-09T16:58:56-03:00
+---
+{'id': 1394, 'numero': 'FO-LAB-01394', 'estado': 'fallido', 'creado': '2026-11-09T19:56:02+00:00', 'inicio': '2026-11-09T19:56:05+00:00', 'aap_job_id': 19793, 'aap_job_tipo': 'workflow', 'aap_aprobacion_id': 19794, 'parametros': '{"dp_accion": "ejecutar", "dp_pipeline": "app-fabrica", "dp_url": "htt
+AAP: failed 2026-11-09T19:56:05.837288Z 167.308
+  nodo: workflow_approval Etapa 1/1 · DevSecOps · ¿Ejecutar «Pipeline Tekton (DevSecOps)»? successful 19794
+  nodo: job DevSecOps · Pipeline Tekton failed 19795
+app-fabrica-faceops-bs5nd   True        Succeeded   3h2m        176m
+app-fabrica-faceops-gdj65   False       Failed      31m         29m
+app-fabrica-faceops-zj6tb   False       Failed      2m11s       14s
+analisis-estatico   Succeeded
+clonar              Succeeded
+politicas           Succeeded
+pruebas             Failed
+secretos            Succeeded
+app-fabrica-faceops-zj6tb-analisis-estatico-pod   0/1   Completed   0     111s    10.42.0.131   demo-ansible-summit   <none>   <none>
+app-fabrica-faceops-zj6tb-clonar-pod              0/1   Completed   0     2m12s   10.42.0.128   demo-ansible-summit   <none>   <none>
+app-fabrica-faceops-zj6tb-politicas-pod           0/1   Completed   0     117s    10.42.0.129   demo-ansible-summit   <none>   <none>
+app-fabrica-faceops-zj6tb-pruebas-pod             0/1   Error       0     111s    10.42.0.132   demo-ansible-summit   <none>   <none>
+app-fabrica-faceops-zj6tb-secretos-pod            0/1   Completed   0     117s    10.42.0.130   demo-ansible-summit   <none>   <none>
+--- fin: 2026-11-09T16:59:04-03:00 · código: 0
