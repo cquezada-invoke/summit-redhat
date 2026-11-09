@@ -228,7 +228,7 @@ def lanzar(wid):
     if lim:
         cuerpo["limit"] = ",".join(lim)
     r = aap("POST", f"workflow_job_templates/{wid}/launch/", cuerpo)
-    return redirect(url_for("ejecucion", jid=r["workflow_job"]))
+    return redirect(en_aap("wj", r["workflow_job"]))   # se sigue y se aprueba en AAP
 
 
 @app.route("/ejecucion/<int:jid>")

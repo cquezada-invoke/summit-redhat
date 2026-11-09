@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block contenido %}
 <h3>Ejecuciones</h3>
-{% if jobs %}<ul>{% for j in jobs %}<li><a href="{{ url_for('ejecucion', jid=j.id) }}">#{{ j.id }}</a> (<a href="{{ en_aap('wj', j.id) }}" target="_blank">AAP</a>) {{ j.name.split('·', 1)[-1] | trim }} — {{ j.status }} — {{ (j.started or j.created or '')[:16] | replace('T', ' ') }} — {{ j.summary_fields.created_by.username if j.summary_fields.created_by else 'EDA' }}</li>{% endfor %}</ul>
+{% if jobs %}<ul>{% for j in jobs %}<li><a href="{{ en_aap('wj', j.id) }}" target="_blank">#{{ j.id }}</a> {{ j.name.split('·', 1)[-1] | trim }} — {{ j.status }} — {{ (j.started or j.created or '')[:16] | replace('T', ' ') }} — {{ j.summary_fields.created_by.username if j.summary_fields.created_by else 'EDA' }}</li>{% endfor %}</ul>
 {% else %}<p>Sin ejecuciones.</p>{% endif %}
 {% endblock %}

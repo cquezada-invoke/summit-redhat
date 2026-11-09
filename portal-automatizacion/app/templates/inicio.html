@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block contenido %}
 <p class="sub">Todo se ejecuta y se audita en Ansible Automation Platform: <a href="{{ en_aap('aprobs', 0) | replace('/workflow-approvals', '/templates') }}" target="_blank">plantillas en AAP</a> · <a href="{{ en_aap('aprobs', 0) }}" target="_blank">aprobaciones en AAP</a></p>
-{% if pendientes %}<p><a href="{{ url_for('aprobaciones') }}">{{ pendientes | length }} aprobación(es) pendiente(s)</a></p>{% endif %}
+{% if pendientes %}<p><a href="{{ en_aap('aprobs', 0) }}" target="_blank">{{ pendientes | length }} aprobación(es) pendiente(s) en AAP</a></p>{% endif %}
 {% for k, n, d in secciones if not seccion or seccion == k %}
   {% set lista = items | selectattr('seccion', 'equalto', k) | list %}
   {% if lista %}
@@ -31,7 +31,7 @@ if (caja) {
     caja.innerHTML = '<table><tr><th>Orden</th><th>Servicio</th><th>Estado en Amdocs</th><th>Ejecución</th></tr>' + d.ordenes.map(x => {
       const j = d.ejecuciones.find(e => e.orden === x.id);
       return `<tr><td>${esc(x.id)}</td><td>${esc(x.servicio.nombre)} VLAN ${esc(x.servicio.vlan)} ${esc(x.servicio.prefijo)}</td><td>${esc(x.estado)}</td>
-        <td>${j ? `<a href="/ejecucion/${j.id}">#${j.id}</a> (<a href="${AAP}/execution/jobs/workflow/${j.id}/output" target="_blank">AAP</a>) ${esc(j.estado)}` : 'esperando EDA'}</td></tr>`; }).join('') + '</table>';
+        <td>${j ? `<a href="${AAP}/execution/jobs/workflow/${j.id}/output" target="_blank">#${j.id} en AAP</a> ${esc(j.estado)}` : 'esperando EDA'}</td></tr>`; }).join('') + '</table>';
   }
   document.getElementById('o-crear').onclick = async ev => {
     ev.target.disabled = true;

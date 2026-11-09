@@ -15,7 +15,7 @@
 {% elif p.type == 'textarea' %}<textarea name="{{ p.variable }}" rows="3">{{ p.default }}</textarea>
 {% else %}<input type="text" name="{{ p.variable }}" value="{{ p.default }}" size="40" {{ 'required' if p.required }}>{% endif %}</p>
 {% endfor %}
-<p><button {{ 'disabled' if not w.summary_fields.user_capabilities.start }}>Lanzar</button></p>
+<p><button {{ 'disabled' if not w.summary_fields.user_capabilities.start }}>Lanzar</button> <span class="sub">Al lanzar se abre la ejecución en AAP, donde se aprueba y se ve el avance.</span></p>
 </form>
-{% if recientes %}<p>Ejecuciones recientes:</p><ul>{% for j in recientes %}<li><a href="{{ url_for('ejecucion', jid=j.id) }}">#{{ j.id }}</a> (<a href="{{ en_aap('wj', j.id) }}" target="_blank">AAP</a>) {{ j.status }} {{ (j.started or j.created or '')[:16] | replace('T', ' ') }}</li>{% endfor %}</ul>{% endif %}
+{% if recientes %}<p>Ejecuciones recientes:</p><ul>{% for j in recientes %}<li><a href="{{ en_aap('wj', j.id) }}" target="_blank">#{{ j.id }}</a> {{ j.status }} {{ (j.started or j.created or '')[:16] | replace('T', ' ') }}</li>{% endfor %}</ul>{% endif %}
 {% endblock %}
