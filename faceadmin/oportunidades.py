@@ -27,8 +27,22 @@ def quarter(fecha):
 
 def _contactos_todos():
     import contactos as _ct   # noqa: F401  (crea la tabla de historial)
-    vis = {c["id"]: c["nombre"] for c in q("SELECT id, nombre, codigo, tenant_id FROM clientes WHERE activo=1") if en_alcance(c)}
-    return [dict(x, cuenta=vis.get(x["cliente_id"], "")) for x in q("SELECT * FROM contactos ORDER BY nombre") if not x["cliente_id"] or x["cliente_id"] in vis]
+    cli = {c["id"]: c for c in q("SELECT * FROM clientes WHERE activo=1") if en_alcance(c)}
+    cargo_cta = {(r["contacto_id"], r["cliente_id"]): r["cargo"] for r in q("SELECT contacto_id, cliente_id, cargo FROM contacto_cuentas WHERE COALESCE(cargo,'')<>'' ORDER BY id")}
+    out = []
+    for x in q("SELECT * FROM contactos ORDER BY nombre"):
+        if x["cliente_id"] and x["cliente_id"] not in cli:
+            continue
+        x = dict(x)
+        c = cli.get(x["cliente_id"]) or {}
+        # el mismo contacto como principal de la cuenta (por correo o nombre): de ahí se completa lo que falte
+        ppal = c and (((x.get("correo") or "").lower() and (x.get("correo") or "").lower() == (c.get("contacto_correo") or "").lower())
+                      or (x.get("nombre") or "").strip().lower() == (c.get("contacto_nombre") or "").strip().lower())
+        x["cargo"] = x.get("cargo") or cargo_cta.get((x["id"], x["cliente_id"])) or (c.get("contacto_cargo") if ppal else "") or ""
+        x["telefono"] = x.get("telefono") or (c.get("contacto_telefono") if ppal else "") or ""
+        x["correo"] = x.get("correo") or (c.get("contacto_correo") if ppal else "") or ""
+        out.append(dict(x, cuenta=c.get("nombre", "")))
+    return out
 
 
 def _contactos_form(f):

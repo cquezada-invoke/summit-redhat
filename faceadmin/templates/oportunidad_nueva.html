@@ -42,7 +42,9 @@ function opCtMas(){const t=document.getElementById('op-cts'),r=t.querySelector('
 function opCtQuitar(b){const rs=document.querySelectorAll('#op-cts [data-ct]');if(rs.length>1)b.closest('tr').remove();else{const r=rs[0];r.querySelector('select').value='';opCt(r.querySelector('select'))}}
 function opCtFiltro(){const emp=document.querySelector('[name=empresa_id]').value;document.querySelectorAll('#op-cts select[name=ct_id] option[data-cuenta]').forEach(o=>{o.hidden=!!emp&&o.dataset.cuenta&&o.dataset.cuenta!==emp})}
 function opEmpresa(sel){opCtFiltro();const o=sel.selectedOptions[0],f=sel.form;document.querySelectorAll('[data-nueva]').forEach(x=>x.style.display=sel.value?'none':'');
- if(sel.value){if(o.dataset.pais)f.pais.value=o.dataset.pais;if(o.dataset.industria&&!f.industria.value)f.industria.value=o.dataset.industria;}}
+ if(sel.value){if(o.dataset.pais)f.pais.value=o.dataset.pais;f.industria.value=o.dataset.industria||'';
+  if(!o.dataset.industria){const fd=new FormData();fd.append('_csrf',CSRF);fd.append('nombre',o.text.replace(/ \(tenant\)$/,''));
+   fetch({{ url_for('api_empresa')|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.industria&&sel.value===o.value&&!f.industria.value)f.industria.value=d.industria}).catch(()=>{})}}}
 async function opNombre(inp){const f=inp.form,nom=inp.value.trim();if(nom.length<2)return;
  const ex=[...f.empresa_id.options].find(o=>o.value&&o.text.replace(/ \(tenant\)$/,'').toLowerCase()===nom.toLowerCase());
  if(ex){f.empresa_id.value=ex.value;opEmpresa(f.empresa_id);document.getElementById('op-ia').textContent='· ya existe: se usa esa empresa';return}
