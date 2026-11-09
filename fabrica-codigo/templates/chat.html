@@ -52,8 +52,8 @@ let ENTREGADO=false;
 (async()=>{const q=new URLSearchParams(location.search).get('trabajo');if(!q)return;   // volver a la conversación de un trabajo
  const [repo,rama]=q.split('@');const r=await fetch('api/conversacion?repo='+encodeURIComponent(repo)+'&rama='+encodeURIComponent(rama||''));
  const d=await r.json().catch(()=>({error:'sin respuesta'}));
- if(!r.ok||d.error){burbuja('<p class="chip mal">'+esc(d.error||'No se encontró la conversación de este trabajo')+'</p>');return}
- burbuja('<p class="ayuda">Conversación del trabajo <b>'+esc(d.repo)+'</b> · rama <code>'+esc(d.rama)+'</code> · '+esc(d.fecha||'')+' · '+esc(d.usuario||'')+'</p>');
+ if(!r.ok||d.error){burbuja('<p class="ayuda">'+esc(d.error||'No se encontró la conversación de este trabajo')+'</p>');d.conversacion=[];d.repo=repo;d.rama=rama;}
+ else burbuja('<p class="ayuda">Conversación del trabajo <b>'+esc(d.repo)+'</b> · rama <code>'+esc(d.rama)+'</code> · '+esc(d.fecha||'')+' · '+esc(d.usuario||'')+'</p>');
  (d.conversacion||[]).forEach(m=>{const b=burbuja('',m.yo);b.style.whiteSpace='pre-wrap';b.textContent=m.texto;});
  burbuja('<p class="ayuda">Para seguir trabajando en él, escribe el ajuste y presiona Ajustar (el agente parte del código de esta rama).</p>');
  const [ok2]=await post('api/retomar',{repo:d.repo,rama:d.rama});if(ok2){ba.disabled=false;}})();
