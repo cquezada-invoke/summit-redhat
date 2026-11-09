@@ -1,8 +1,36 @@
-commit: aa63465e3c7d549f82d8c8f98c57526661e74473
-inicio: 2026-11-08T22:55:10-03:00
+commit: ad0ee8da214fbd9db7878d80c4019cfab673ffde
+inicio: 2026-11-09T08:20:53-03:00
 ---
-{"build":78,"commit":"33ca8b03223612b699d555c8d9e47d14e8a4eb80","fecha":"2026-11-08 22:54","linea":"1.0","sistema":"faceadmin"}
-
-ingresar 200 gzip:2367B
-recuperar sin token 401
---- fin: 2026-11-08T22:55:45-03:00 · código: 0
+lab desplegado
+cliente lab usuario cquezada
+== Manifiesto
+GET /arquitectura/manifiesto?nivel=1 200 759ms 
+GET /arquitectura/manifiesto?nivel=2 200 54ms 
+GET /arquitectura/manifiesto?nivel=3 200 106ms 
+GET /arquitectura/manifiesto?nivel=3 200 57ms 
+tecnologias 54 menciones fuera 4
+ejemplo tecnologia trino
+== Stack tecnologico
+GET /infraestructuras/stack 200 49ms 
+GET /infraestructuras/stack/racionalizacion 200 2547ms 
+barrido POST 302 /infraestructuras/stack
+== DevSecOps
+GET /devsecops 200 796ms ERR «Evaluar stack tecnológico» está bloqueada: cambió desde su última prueba y debe probarse de nuevo
+GET /devsecops/catalogo 200 123ms 
+GET /devsecops/h/1 200 1055ms 
+GET /devsecops/h/2 200 56ms 
+pipelines ['app-jboss', 'app-node-contenedor', 'app-python-sast', 'infra-ansible-calidad']
+GET /devsecops/app-jboss 200 409ms ERR 
+GET /devsecops/app-jboss/avance 404 2ms 
+GET /devsecops/app-node-contenedor 200 229ms ERR 
+GET /devsecops/app-node-contenedor/avance 404 2ms 
+GET /devsecops/app-python-sast 200 235ms ERR 
+GET /devsecops/app-python-sast/avance 404 1ms 
+GET /devsecops/infra-ansible-calidad 200 237ms ERR 
+GET /devsecops/infra-ansible-calidad/avance 404 1ms 
+pipeline estado POST 302 /tickets/1344
+ticket FO-LAB-01344 fallido
+FIN FO-LAB-01344 fallido AAP GET job_templates/437/ → 503: no healthy upstream
+GET /infraestructuras/stack 200 41ms 
+informe pdf True
+--- fin: 2026-11-09T08:24:09-03:00 · código: 0
