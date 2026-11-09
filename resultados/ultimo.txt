@@ -1,27 +1,8 @@
-commit: ba1904eb3b86ee42906f2d3b53eb50afe23e5ed4
-inicio: 2026-11-09T10:46:25-03:00
+commit: cb6aeaa41e7de1f3875525811f40dd7066d5ad52
+inicio: 2026-11-09T10:52:22-03:00
 ---
-faceops actualizado
-   · Plantilla «FaceOps · Rendimiento del canal» (id 616)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-Push successful
-deployment "fabrica" successfully rolled out
-iniciar 200 corriendo None
-vivo 0: corriendo t=11.5/40 muestras=0 entrada=0 cuellos=[]
-vivo 1: corriendo t=19.7/40 muestras=0 entrada=1 cuellos=[]
-vivo 2: corriendo t=27.8/40 muestras=0 entrada=2 cuellos=[]
-vivo 3: corriendo t=36.1/40 muestras=85 entrada=3 cuellos=[]
-pausa: pausado t=37.0/40 muestras=85 entrada=4 cuellos=[]
-en pausa (no avanza): pausado t=37.0/40 muestras=85 entrada=4 cuellos=[]
-reanudado: listo t=49.7/40 muestras=135 entrada=5 cuellos=[]
-detenido: listo t=49.7/40 muestras=135 entrada=5 cuellos=[]
-  nodo-jboss2>nodo-postgres:5432 {'jitter': 0.51, 'max': 2.54, 'min': 0.61, 'n': 25, 'p95': 2.02, 'perdidas': 0, 'prom': 0.94}
-  nodo-jboss2>nodo-tomcat:61616 {'jitter': 0.05, 'max': 0.55, 'min': 0.36, 'n': 25, 'p95': 0.54, 'perdidas': 0, 'prom': 0.46}
-  nodo-jboss2>nodo-tomcat:6379 {'jitter': 0.06, 'max': 0.55, 'min': 0.26, 'n': 25, 'p95': 0.41, 'perdidas': 0, 'prom': 0.35}
-  nodo-jboss>nodo-postgres:5432 {'n': 0, 'perdidas': 0}
-  nodo-jboss>nodo-tomcat:61616 {'n': 0, 'perdidas': 0}
-  nodo-jboss>nodo-tomcat:6379 {'n': 0, 'perdidas': 0}
-  nodo-nginx>nodo-jboss2:8080 {'jitter': 0.17, 'max': 1.08, 'min': 0.33, 'n': 30, 'p95': 1.07, 'perdidas': 0, 'prom': 0.46}
-  nodo-nginx>nodo-jboss:8080 {'jitter': 0.67, 'max': 3.81, 'min': 0.56, 'n': 30, 'p95': 2.13, 'perdidas': 0, 'prom': 0.98}
- entrada {'jitter': 0.5, 'max': 5.97, 'min': 4.66, 'n': 5, 'p95': 5.97, 'perdidas': 6, 'prom': 5.28}
---- fin: 2026-11-09T10:51:51-03:00 · código: 0
+[2026-11-09 13:50:08 +0000] [1] [INFO] Starting gunicorn 22.0.0
+[2026-11-09 13:50:08 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2026-11-09 13:50:08 +0000] [1] [INFO] Using worker: gthread
+[2026-11-09 13:50:08 +0000] [2] [INFO] Booting worker with pid: 2
+--- fin: 2026-11-09T10:52:22-03:00 · código: 0
