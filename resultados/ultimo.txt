@@ -1,12 +1,23 @@
-commit: 5819e5a65546683c384ba37a4edb06e948336859
-inicio: 2026-11-09T12:58:32-03:00
+commit: 6b659c824448beb207408d4649561f02940f9b69
+inicio: 2026-11-09T12:59:34-03:00
 ---
-Error from server (BadRequest): previous terminated container "docker-build" in pod "mantenedor-usuarios-1-build" not found
-== configmap
-{"DB_URL":"jdbc:postgresql://mantenedor-usuarios-postgres:5432/usuarios","KEYCLOAK_ISSUER_URI":"https://keycloak.dev.invoke.local/realms/invoke","OTEL_EXPORTER_OTLP_ENDPOINT":"http://otel-collector.openshift-opentelemetry:4318","SPRING_PROFILES_ACTIVE":"dev"}
-
-== env db
-POSTGRESQL_DATABASE <- usuarios
-POSTGRESQL_USER <- DB_USER
-POSTGRESQL_PASSWORD <- DB_PASSWORD
---- fin: 2026-11-09T12:58:33-03:00 · código: 0
+Push successful
+deployment "fabrica" successfully rolled out
+ deploy/configmap.yaml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rama corregida
+secret "mantenedor-usuarios-db" deleted
+2
+aplicar: FO-LAB-01383 exitoso
+PIPE: FO-LAB-01384 fallido S_FIN ')).split(' ')[-1] == 'True'", "changed": false, "evaluated_to": false, "msg": "La ejecución app-fabrica-faceops-j7jv8 del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps"} |  | PLAY RECAP ********************************************************
+NAME                                      READY   STATUS             RESTARTS      AGE
+mantenedor-usuarios-5459b96dcd-6km62      0/1     CrashLoopBackOff   5 (11s ago)   4m30s
+mantenedor-usuarios-5fdcdb99d-vkx8z       0/1     CrashLoopBackOff   5 (15s ago)   4m29s
+mantenedor-usuarios-db-8677cd7c4b-c7n6s   1/1     Running            0             4m29s
+{"@timestamp":"2026-11-09T16:15:33.028522061Z","log.level":"INFO","process.pid":1,"process.thread.name":"main","service.name":"mantenedor-usuarios","service.version":"1.0.0","log.logger":"com.invoke.usuarios.UsuariosApplication","message":"Starting UsuariosApplication v1.0.0 usin
+{"@timestamp":"2026-11-09T16:15:43.265008289Z","log.level":"WARN","process.pid":1,"process.thread.name":"main","service.name":"mantenedor-usuarios","service.version":"1.0.0","log.logger":"org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationCont
+{"@timestamp":"2026-11-09T16:15:43.276571926Z","log.level":"WARN","process.pid":1,"process.thread.name":"main","service.name":"mantenedor-usuarios","service.version":"1.0.0","log.logger":"org.apache.catalina.loader.WebappClassLoaderBase","message":"The web application [ROOT] appe
+{"@timestamp":"2026-11-09T16:15:43.277293585Z","log.level":"WARN","process.pid":1,"process.thread.name":"main","service.name":"mantenedor-usuarios","service.version":"1.0.0","log.logger":"org.apache.catalina.loader.WebappClassLoaderBase","message":"The web application [ROOT] appe
+{"@timestamp":"2026-11-09T16:15:43.333235255Z","log.level":"ERROR","process.pid":1,"process.thread.name":"main","service.name":"mantenedor-usuarios","service.version":"1.0.0","log.logger":"org.springframework.boot.SpringApplication","message":"Application run failed","error.type"
+app 503
+--- fin: 2026-11-09T13:15:59-03:00 · código: 0
