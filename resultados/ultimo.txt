@@ -1,9 +1,12 @@
-commit: 4bb66a54a9680923b3fd5e7bbe288922cf74aa08
-inicio: 2026-11-09T16:05:48-03:00
+commit: 138039e6bd8945e2edd310c3869589eac9a40eb3
+inicio: 2026-11-09T16:20:23-03:00
 ---
-   · Gitea: invoke/portal-automatizaciones y telco-red-servicio.yml en invoke/red-laboratorio
-   · OpenShift: ServiceAccount aap-portal (token en Vault secret/portal/ocp)
-   · Organizaciones «Claro Puerto Rico» (tenant) y «Portal de automatización»
-   · Credencial 'OpenShift · clúster (token)' enlazada a Vault
-ERROR PATCH https://localhost/api/controller/v2/projects/617/ -> 400: {"organization":["Organization cannot be changed when in use by job templates."]}
-== Pruebas
+Traceback (most recent call last):
+  File "/tmp/q6.py", line 5, in <module>
+    e = q("SELECT id, nombre, cpu, ram, forma, actualizado FROM equipos WHERE id=6")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 178, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: ram
+--- fin: 2026-11-09T16:20:30-03:00 · código: 0
