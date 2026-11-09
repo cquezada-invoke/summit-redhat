@@ -1,11 +1,19 @@
-commit: 1eeb603ed2ea0028943a431bc1d61c321151cee5
-inicio: 2026-11-09T10:20:21-03:00
+commit: f67af2e78556ecfe646fac4e3992f112b2d61544
+inicio: 2026-11-09T10:28:29-03:00
 ---
-DL C3 desactivar: FO-LAB-01364 exitoso 
-activa tras C3: 0
-generador tras C3: False
-app tras C3: 200
-DL reactivar: FO-LAB-01365 exitoso 
-casos: [{'id': 'C1', 'resultado': 'ok', 'nota': 'FO-LAB-01362: espejo puesto, nginx -t ok, verificación recibida'}, {'id': 'C2', 'resultado': 'ok', 'nota': '194 requests en lake.seg_app_de_pagos.requests; vista de datos 200; cuerpo con claves enmascaradas'}, {'id': 'C3', 'resultado': 'ok'}, {'id': 'C4', 'resultado': 'ok', 'nota': 'FO-LAB-01363 idempotente (un solo archivo, 3 líneas mirror)'}]
-DATA LAKE certificada
---- fin: 2026-11-09T10:23:55-03:00 · código: 0
+faceops actualizado
+   · Plantilla «FaceOps · Rendimiento del canal» (id 616)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+lanzar 200 {'entrada': 'http://192.168.122.11/app-jboss/', 'id': 1, 'ok': True, 'trabajos': [19389], 'tramos': 8}
+estado listo fin 2026-11-09T13:34:28+00:00
+  nodo-jboss2>nodo-postgres:5432 [1.02, 0.9, 0.84] {'jitter': 0.41, 'max': 3.05, 'min': 0.68, 'n': 30, 'p95': 1.03, 'perdidas': 0, 'prom': 0.92}
+  nodo-jboss2>nodo-tomcat:61616 [1.22, 0.79, 0.73] {'jitter': 0.8, 'max': 5.15, 'min': 0.53, 'n': 30, 'p95': 1.12, 'perdidas': 0, 'prom': 0.91}
+  nodo-jboss2>nodo-tomcat:6379 [0.96, 0.78, 0.72] {'jitter': 0.24, 'max': 2.0, 'min': 0.62, 'n': 30, 'p95': 0.99, 'perdidas': 0, 'prom': 0.82}
+  nodo-jboss>nodo-postgres:5432 [] {'n': 0, 'perdidas': 0}
+  nodo-jboss>nodo-tomcat:61616 [] {'n': 0, 'perdidas': 0}
+  nodo-jboss>nodo-tomcat:6379 [] {'n': 0, 'perdidas': 0}
+  nodo-nginx>nodo-jboss2:8080 [0.87, 1.01, 0.78] {'jitter': 0.38, 'max': 2.51, 'min': 0.58, 'n': 30, 'p95': 1.98, 'perdidas': 0, 'prom': 0.89}
+  nodo-nginx>nodo-jboss:8080 [1.13, 0.83, 0.79] {'jitter': 0.34, 'max': 2.55, 'min': 0.69, 'n': 30, 'p95': 1.51, 'perdidas': 0, 'prom': 0.92}
+ entrada {"pendiente": true, "url": "http://192.168.122.11/app-jboss/"}
+app sigue 200
+--- fin: 2026-11-09T10:34:28-03:00 · código: 0
