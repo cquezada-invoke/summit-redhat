@@ -1,0 +1,10 @@
+commit: 4bc0b0dc732452c191df1ac320d4d3345b4f481e
+inicio: 2026-11-09T13:41:57-03:00
+---
+{"host":"mantenedor-usuarios-fabrica-dev.apps.sno.invoke.lab","port":{"targetPort":"http"},"tls":{"insecureEdgeTerminationPolicy":"Redirect","termination":"edge"},"to":{"kind":"Service","name":"mantenedor-usuarios","weight":100},"wildcardPolicy":"None"}
+{"app.kubernetes.io/name":"mantenedor-usuarios"} [{"name":"http","port":8080,"protocol":"TCP","targetPort":8080}]
+[{"addresses":[{"ip":"10.128.0.199","nodeName":"sno","targetRef":{"kind":"Pod","name":"mantenedor-usuarios-7b96587988-xd9tq","namespace":"fabrica-dev","uid":"8ca333cc-b322-4b14-9c05-1925a3a85c90"}}],"ports":[{"name":"http","port":8080,"protocol":"TCP"}]}]
+NAME                                   READY   STATUS    RESTARTS      AGE   LABELS
+mantenedor-usuarios-7b96587988-xd9tq   1/1     Running   1 (15m ago)   15m   app.kubernetes.io/name=mantenedor-usuarios,app.kubernetes.io/part-of=fabrica-codigo,app.kubernetes.io/version=1.0.0,pod-template-hash=7b96587988
+No resources found in fabrica-dev namespace.
+--- fin: 2026-11-09T13:41:57-03:00 · código: 0
