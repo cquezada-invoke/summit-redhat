@@ -2750,10 +2750,18 @@ def ticket_bitacora(tid):
         from .bitacora import construir
         try:
             cli = AAP.de_cliente(g.cliente)
+            if t["estado"] == "en_ejecucion" and t["aap_job_tipo"] == "workflow" and not t["aap_aprobacion_id"]:
+                try:   # la aprobación aparece apenas AAP la crea, sin esperar el ciclo del vigía
+                    from .operacion import _revisar_aprobaciones
+                    _revisar_aprobaciones(cli, t)
+                    t = q1("SELECT * FROM tickets WHERE id=?", tid)
+                except Exception:  # noqa: BLE001
+                    pass
             web_aap, bitacora = cli.publica, construir(cli, t)
         except ErrorAAP:
             pass
     resp = make_response(render_template("_bitacora.html", bitacora=bitacora, web_aap=web_aap, t=t))
+    resp.headers["X-Ticket-Estado"] = t["estado"]
     resp.headers["X-Ticket-Terminado"] = "0" if t["estado"] in ("en_ejecucion", "en_cola", "pendiente_aprobacion") else "1"
     resp.headers["Cache-Control"] = "no-store"
     return resp

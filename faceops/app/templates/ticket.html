@@ -68,10 +68,11 @@ if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap
   <div class="fila"><h2>Bitácora de la ejecución</h2><span class="sub der">lo que hizo la acción en AAP, paso a paso{% if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') %} · <span class='vivo-punto'></span> en vivo{% endif %}</span></div>
   <div id="bitacora-viva" data-url="{{ url_for('consola.ticket_bitacora', tid=t.id) }}" data-vivo="{{ 1 if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 0 }}">{% include "_bitacora.html" %}</div>
   <script>(function(){const b=document.getElementById('bitacora-viva');if(!b||b.dataset.vivo!=='1')return;let ult='';
-    const tick=()=>fetch(b.dataset.url,{headers:{'X-Requested-With':'fetch'}}).then(r=>{const fin=r.headers.get('X-Ticket-Terminado')==='1';return r.text().then(h=>[h,fin]);}).then(([h,fin])=>{
+    const est0={{ t.estado|tojson }};
+    const tick=()=>fetch(b.dataset.url,{headers:{'X-Requested-With':'fetch'}}).then(r=>{const fin=r.headers.get('X-Ticket-Terminado')==='1'||(r.headers.get('X-Ticket-Estado')||est0)!==est0;return r.text().then(h=>[h,fin]);}).then(([h,fin])=>{
       if(h!==ult){ult=h;const abajo=(innerHeight+scrollY)>=document.body.scrollHeight-80;b.innerHTML=h;const ps=b.querySelectorAll('.paso');if(ps.length)ps[ps.length-1].classList.add('reciente');if(abajo)window.scrollTo(0,document.body.scrollHeight);}
-      if(fin){setTimeout(()=>location.reload(),1500);return;} setTimeout(tick,3000);}).catch(()=>setTimeout(tick,6000));
-    setTimeout(tick,2000);})();</script>
+      if(fin){setTimeout(()=>location.reload(),800);return;} setTimeout(tick,2000);}).catch(()=>setTimeout(tick,5000));
+    setTimeout(tick,1000);})();</script>
 </div>
 <div class="card" style="margin-top:14px"><h2>Trazabilidad</h2><table>{% for r in traza %}<tr><td>{{ r.cuando|fecha }}</td><td>{{ r.usuario }}</td><td>{{ r.accion }}</td><td class="mono" style="font-size:11.5px">{{ r.detalle }}</td></tr>{% endfor %}</table></div>
 {% endblock %}
