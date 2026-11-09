@@ -22,13 +22,12 @@ def sin_epoca(v):
 
 
 def limpiar_cache():
-    _cache.clear()
+    """Marca la caché como vencida: la próxima consulta la renueva en segundo plano sin hacer esperar a nadie."""
+    if "rpm" in _cache:
+        _cache["rpm"] = (0, _cache["rpm"][1])
 
 
-def en_registro():
-    """{'nombre|versión-release'} de los RPM del registro propio."""
-    if "rpm" in _cache and time.time() - _cache["rpm"][0] < 300:
-        return _cache["rpm"][1]
+def _leer_registro():
     out = set()
     try:
         import os
@@ -37,14 +36,43 @@ def en_registro():
         tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")   # el usuario de servicio del registro ve sus paquetes privados
         if tok:
             h = {"Authorization": f"token {tok}"}
-        for page in range(1, 200):
-            r = requests.get(f"{base}/api/v1/packages/repositorio", params={"type": "rpm", "limit": 50, "page": page}, headers=h, timeout=10)
-            lote = r.json() if r.ok else []
-            if not lote:
-                break
-            out.update(f"{p['name']}|{sin_epoca(p['version'])}" for p in lote)
+        with requests.Session() as ses:   # una sola conexión para todas las páginas
+            for page in range(1, 200):
+                r = ses.get(f"{base}/api/v1/packages/repositorio", params={"type": "rpm", "limit": 50, "page": page}, headers=h, timeout=10)
+                lote = r.json() if r.ok else []
+                if not lote:
+                    break
+                out.update(f"{p['name']}|{sin_epoca(p['version'])}" for p in lote)
     except Exception:  # noqa: BLE001 - sin registro se muestra la lista igual
-        pass
+        return None
+    return out
+
+
+def _refrescar():
+    try:
+        out = _leer_registro()
+        if out is not None:
+            _cache["rpm"] = (time.time(), out)
+    finally:
+        _cache.pop("refrescando", None)
+
+
+def precargar():
+    """Lee el registro en segundo plano (al arrancar FaceOps) para que la primera ficha no espere."""
+    import threading
+    if "refrescando" not in _cache:
+        _cache["refrescando"] = True
+        threading.Thread(target=_refrescar, daemon=True).start()
+
+
+def en_registro():
+    """{'nombre|versión-release'} de los RPM del registro propio. Responde siempre desde la caché y la renueva en segundo
+    plano cada 5 min; solo la primera vez de todas (sin caché) espera la lectura."""
+    if "rpm" in _cache:
+        if time.time() - _cache["rpm"][0] >= 300:
+            precargar()
+        return _cache["rpm"][1]
+    out = _leer_registro() or set()
     _cache["rpm"] = (time.time(), out)
     return out
 

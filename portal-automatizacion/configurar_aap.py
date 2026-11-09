@@ -173,9 +173,9 @@ proy_red = uno("projects", name="Red · laboratorio")
 aap("POST", f"projects/{proy_red['id']}/update/", {})
 paso("Proyecto 'Portal · automatizaciones' sincronizado")
 
-inv = asegurar("inventories", "Portal · local", {"organization": org, "description": "Ejecución local: las automatizaciones hablan con APIs"})["id"]
-if not aap("GET", f"inventories/{inv}/hosts/?name=localhost")["results"]:
-    aap("POST", f"inventories/{inv}/hosts/", {"name": "localhost", "variables": "ansible_connection: local\nansible_python_interpreter: '{{ ansible_playbook_python }}'\n"})
+# Inventario sin hosts: los playbooks usan el localhost implícito de Ansible (no consume licencia de nodo de AAP)
+inv = asegurar("inventories", "Portal · local", {"organization": org, "description": "Sin hosts: las automatizaciones corren en el nodo de ejecución y hablan con APIs",
+                                                 "variables": "ansible_python_interpreter: '{{ ansible_playbook_python }}'\n"})["id"]
 
 ee_nom = os.environ.get("PORTAL_EE", "Default execution environment")
 ee = uno("execution_environments", name=ee_nom)

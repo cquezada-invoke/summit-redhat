@@ -344,6 +344,8 @@ def create_app():
     from .operacion import vigia
     if os.environ.get("FACEOPS_VIGIA", "1") == "1":
         vigia()
+        from .paquetes import precargar
+        precargar()   # registro de paquetes en memoria antes de la primera ficha de servidor
     from .bloqueo_admin import iniciar_latido
     iniciar_latido()   # FaceOps informa a FaceAdmin (solo de adentro hacia afuera)
     return app
