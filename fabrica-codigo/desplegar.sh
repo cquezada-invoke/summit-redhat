@@ -26,6 +26,7 @@ for i in $(seq 1 20); do ST=$($OC -n fabrica-dev get secret fabrica-pipeline-tok
 SRV=$($OC whoami --show-server)
 $K -n default create secret generic fabrica-ocp --from-literal=servidor="$SRV" --from-literal=token="$ST" --from-literal=namespace=fabrica-dev \
   --from-literal=dominio=sno.34.176.42.56.sslip.io --dry-run=client -o yaml | $K apply -f - >/dev/null && echo "secret fabrica-ocp en k3s"
+$K -n default create secret generic fabrica-git --from-literal=token="$GT" --dry-run=client -o yaml | $K apply -f - >/dev/null && echo "secret fabrica-git en k3s"
 # 3) Git: organización de la Fábrica
 curl -s -o /dev/null -w "org fabrica %{http_code}\n" -H "Authorization: token $GT" -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/api/v1/orgs -d '{"username":"fabrica","visibility":"private"}' || true
 # 4) FaceOps: token, URL y pipeline

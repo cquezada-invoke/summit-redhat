@@ -23,7 +23,18 @@ spec:
         params: [{name: repo-url}, {name: revision}]
         workspaces: [{name: fuente}]
         steps:
-          - {name: git, image: docker.io/alpine/git:2.45.2, script: "rm -rf $(workspaces.fuente.path)/src && git clone --depth 1 -b $(params.revision) $(params.repo-url) $(workspaces.fuente.path)/src && git -C $(workspaces.fuente.path)/src log -1 --oneline"}
+          - name: git
+            image: docker.io/alpine/git:2.45.2
+            env: [{name: GIT_TOKEN, valueFrom: {secretKeyRef: {name: fabrica-git, key: token, optional: true}}}]
+            script: |
+              set -e
+              URL="$(params.repo-url)"
+              # repositorios privados de la Fábrica: lectura con el token del secret fabrica-git (nunca se imprime)
+              [ -n "$GIT_TOKEN" ] && URL=$(echo "$URL" | sed "s#^http://#http://fabrica:${GIT_TOKEN}@#")
+              rm -rf $(workspaces.fuente.path)/src
+              git clone -q --depth 1 -b "$(params.revision)" "$URL" $(workspaces.fuente.path)/src 2>&1 | sed "s#${GIT_TOKEN:-sin-token}#***#g"
+              git -C $(workspaces.fuente.path)/src remote set-url origin "$(params.repo-url)"
+              git -C $(workspaces.fuente.path)/src log -1 --oneline
     - name: secretos
       runAfter: [clonar]
       workspaces: [{name: fuente, workspace: fuente}]
