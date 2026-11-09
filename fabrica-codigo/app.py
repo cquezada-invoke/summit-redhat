@@ -741,14 +741,38 @@ def api_desplegar():
     p = PROYECTOS.get(sid)
     if not p or not p.get("repo"):
         return jsonify({"error": "Primero entrega el repositorio (rama feature)"}), 400
+    if d0.get("repo"):   # botón de la tabla: antes del pipeline se prueban las pruebas de la rama (y se corrigen si fallan)
+        tid = secrets.token_hex(8)
+        TRABAJOS[tid] = {"sid": sid, "pasos": [], "listo": False, "inicio": time.time()}
+
+        def correr(p_=dict(p)):
+            t = TRABAJOS[tid]
+            paso = lambda txt: t["pasos"].append({"t": round(time.time() - t["inicio"]), "texto": txt})   # noqa: E731
+            try:
+                motivo = _probar_rama(p_["repo"], p_["rama"], paso)
+                if motivo:
+                    t["error"] = motivo
+                else:
+                    paso("Pidiendo a FaceOps el ticket del pipeline")
+                    t["resultado"] = _lanzar_pipeline(p_, usuario)[0]
+            except (requests.RequestException, ValueError, KeyError) as x:
+                t["error"] = f"No se pudo preparar el pipeline ({type(x).__name__})"
+            t["listo"] = True
+        threading.Thread(target=correr, daemon=True).start()
+        return jsonify({"trabajo": tid})
+    d, ok = _lanzar_pipeline(p, usuario)
+    return jsonify(d), (200 if ok else 502)
+
+
+def _lanzar_pipeline(p, usuario):
     url_repo = f"{GITEA_PIPELINE}/{ORG}/{p['repo']}.git"
     r = _fo("POST", "/api/fabrica/ejecutar", json={"repo": url_repo, "rama": p["rama"], "nombre": p["repo"], "solicitante": usuario,
                                                    "requerimiento": p.get("requerimiento", "")})
     d = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"error": f"FaceOps respondió {r.status_code}"}
     p["ticket"] = d.get("ticket")
-    return jsonify({"ticket": d.get("ticket"), "error": d.get("error"), "rama": p["rama"], "repo": p["repo"],
-                    "pipeline_url": d.get("pipeline_url", ""), "ticket_url": d.get("ticket_url", ""),
-                    "app_url": f"https://{p['repo']}.{DOMINIO_APPS}" if DOMINIO_APPS else ""}), (200 if r.ok else 502)
+    return ({"ticket": d.get("ticket"), "error": d.get("error"), "rama": p["rama"], "repo": p["repo"],
+             "pipeline_url": d.get("pipeline_url", ""), "ticket_url": d.get("ticket_url", ""),
+             "app_url": f"https://{p['repo']}.{DOMINIO_APPS}" if DOMINIO_APPS else ""}, r.ok)
 
 
 def _rama_ok(repo, rama):
@@ -769,6 +793,65 @@ def api_conversacion():
     return jsonify(r.json())
 
 
+def _leer_rama(repo, rama):
+    """Archivos de la rama (sin .fabrica/), sus sha y la conversación guardada. None si no se pudo leer."""
+    b_ = _git("GET", f"/repos/{ORG}/{repo}/branches/{requests.utils.quote(rama, safe='')}")
+    sha_ = ((b_.json() or {}).get("commit") or {}).get("id") if b_.ok else ""
+    tr = _git("GET", f"/repos/{ORG}/{repo}/git/trees/{sha_}", params={"recursive": "true", "per_page": 1000}) if sha_ else None
+    if tr is None or not tr.ok:
+        return None
+    archivos, shas = {}, {}
+    for x in tr.json().get("tree", []):
+        if x.get("type") == "blob":
+            shas[x["path"]] = x["sha"]
+            if not x["path"].startswith(".fabrica/") and x.get("size", 0) < 200000:
+                r = _git("GET", f"/repos/{ORG}/{repo}/raw/{requests.utils.quote(x['path'])}", params={"ref": rama})
+                if r.ok:
+                    archivos[x["path"]] = r.text
+    conv = _git("GET", f"/repos/{ORG}/{repo}/raw/.fabrica/conversacion.json", params={"ref": rama})
+    return archivos, shas, (conv.json() if conv.ok else {})
+
+
+def _subir(repo, rama, cambios, shas, msg):
+    files = [{"operation": "update" if r in shas else "create", "path": r, "sha": shas.get(r),
+              "content": base64.b64encode(c.encode()).decode()} for r, c in cambios.items()]
+    _git("POST", f"/repos/{ORG}/{repo}/contents", json={"branch": rama, "message": msg, "files": files}).raise_for_status()
+
+
+def _probar_rama(repo, rama, paso):
+    """Antes de lanzar el pipeline: corre las pruebas de la rama y, si fallan, Claude las corrige (hasta dos veces) y sube la corrección.
+    Devuelve None si quedó listo para el pipeline, o el motivo para no lanzarlo."""
+    leido = _leer_rama(repo, rama)
+    if not leido:
+        return "No se pudo leer la rama"
+    archivos, shas, conv = leido
+    req_ = conv.get("requerimiento") or f"Proyecto {repo} existente"
+    for intento in range(3):
+        ok, res = probar(archivos, paso=paso)
+        if ok is None:
+            paso(f"No se pudieron correr las pruebas antes del pipeline ({res}); el pipeline las corre igual")
+            return None
+        if ok:
+            paso(f"Pruebas: {res}")
+            return None
+        if intento == 2:
+            return "Las pruebas siguen fallando después de dos correcciones automáticas: no se lanza el pipeline"
+        paso(f"Fallan pruebas: Claude las está corrigiendo (intento {intento + 1} de 2)")
+        previo = {"nombre": repo, "resumen": conv.get("resumen", ""), "stack": "", "archivos": archivos,
+                  "plan_archivos": [{"ruta": k, "proposito": ""} for k in archivos]}
+        p2 = generar(req_, previo, "Las pruebas (mvn test) fallan. Corrige el código o las pruebas para que todas pasen, sin desactivar "
+                     "pruebas ni bajar la seguridad. Salida de Maven:\n" + res, paso=paso,
+                     solo=_rutas_en_fallas(res, archivos) or sorted(k for k in archivos if k.endswith(".java")))
+        cambios = {k: v for k, v in p2["archivos"].items() if archivos.get(k) != v}
+        if not cambios:
+            return "Claude no encontró qué corregir en las pruebas que fallan"
+        _subir(repo, rama, cambios, shas, f"fix: pruebas que fallaban ({len(cambios)} archivos), corregidas por la Fábrica antes del pipeline")
+        paso(f"Subí la corrección a {rama}: {', '.join(sorted(cambios))[:300]}")
+        archivos.update(cambios)
+        shas = (_leer_rama(repo, rama) or (None, shas, None))[1]
+    return None
+
+
 @app.route("/api/retomar", methods=["POST"])
 def api_retomar():
     """Carga el código de la rama feature como proyecto actual de la sesión, para seguir ajustándolo desde el chat."""
@@ -777,19 +860,10 @@ def api_retomar():
     repo, rama = d.get("repo", ""), d.get("rama", "")
     if not _rama_ok(repo, rama):
         return jsonify({"error": "Trabajo inválido"}), 400
-    b_ = _git("GET", f"/repos/{ORG}/{repo}/branches/{requests.utils.quote(rama, safe='')}")
-    sha_ = ((b_.json() or {}).get("commit") or {}).get("id") if b_.ok else ""
-    tr = _git("GET", f"/repos/{ORG}/{repo}/git/trees/{sha_}", params={"recursive": "true", "per_page": 1000}) if sha_ else None
-    if tr is None or not tr.ok:
+    leido = _leer_rama(repo, rama)
+    if not leido:
         return jsonify({"error": "No se pudo leer la rama"}), 404
-    archivos = {}
-    for x in tr.json().get("tree", []):
-        if x.get("type") == "blob" and not x["path"].startswith(".fabrica/") and x.get("size", 0) < 200000:
-            r = _git("GET", f"/repos/{ORG}/{repo}/raw/{requests.utils.quote(x['path'])}", params={"ref": rama})
-            if r.ok:
-                archivos[x["path"]] = r.text
-    conv = _git("GET", f"/repos/{ORG}/{repo}/raw/.fabrica/conversacion.json", params={"ref": rama})
-    c = conv.json() if conv.ok else {}
+    archivos, _, c = leido
     PROYECTOS[sid] = {"nombre": repo, "archivos": archivos, "revision": revisar(archivos), "requerimiento": c.get("requerimiento", ""),
                       "resumen": c.get("resumen", ""), "conversacion": c.get("conversacion", []), "huella_politicas": "", "repo": repo, "rama": rama}
     return jsonify({"ok": True, "archivos": len(archivos)})

@@ -64,8 +64,12 @@ async function publicar(b){if(b)b.disabled=true;const w=burbuja('<p class="ayuda
  ENTREGADO=true;
  w.innerHTML='<p><b>Repositorio entregado</b> en la rama <code>'+esc(d.rama)+'</code>:</p><p><a href="'+esc(d.repo)+'" target="_blank">'+esc(d.repo)+'</a></p><p class="ayuda">Clonar: <code>git clone -b '+esc(d.rama)+' '+esc(d.clonar)+'</code></p>'
   +'<p style="margin-top:8px"><button onclick="desplegar(this)">Desplegar en desarrollo</button></p><p class="ayuda">Se despliega con el pipeline de la Fábrica (Tekton): FaceOps crea el ticket con aprobación; revisa secretos, políticas, pruebas y análisis estático, construye en OpenShift y despliega en desarrollo.</p>'}
-async function desplegar(b,trabajo){if(b)b.disabled=true;const w=burbuja('<p class="ayuda">Pidiendo a FaceOps el despliegue en desarrollo por el pipeline'+(trabajo?' de la rama <code>'+esc(trabajo.rama)+'</code>':'')+'…</p>');
- const [ok,d]=await post('api/desplegar',trabajo||{});
+async function desplegar(b,trabajo){if(b)b.disabled=true;let w=burbuja('<p class="ayuda">Pidiendo a FaceOps el despliegue en desarrollo por el pipeline'+(trabajo?' de la rama <code>'+esc(trabajo.rama)+'</code>':'')+'…</p>');
+ let [ok,d]=await post('api/desplegar',trabajo||{});
+ if(ok&&d.trabajo){const tid=d.trabajo;w.innerHTML='<p class="ayuda">Antes del pipeline corro las pruebas de la rama y, si alguna falla, la corrijo.</p><ol class="pasos"></ol>';const ol=w.querySelector('.pasos');
+  for(;;){await new Promise(r=>setTimeout(r,2000));const r=await fetch('api/avance/'+tid);const a=await r.json().catch(()=>({error:'sin respuesta'}));
+   ol.innerHTML=(a.pasos||[]).map(x=>'<li>'+esc(x.texto)+'</li>').join('');if(a.listo||a.error){d=a.resultado||{error:a.error};ok=!a.error;break}}
+  w=burbuja('<p class="ayuda">Lanzando el pipeline…</p>')}
  if(!ok||!d.ticket){w.innerHTML='<p class="chip mal">'+esc(d.error||'FaceOps no creó el ticket')+'</p>';if(b)b.disabled=false;return}
  w.innerHTML='<p>Pipeline de <b>'+esc(d.repo||'')+'</b> · rama <code>'+esc(d.rama||'')+'</code> · ticket <b>'+esc(d.ticket)+'</b> · <span id="st-'+esc(d.ticket)+'" class="chip">pendiente de aprobación</span></p>'
   +(d.pipeline_url?'<p><a href="'+esc(d.pipeline_url)+'" target="_blank" rel="noopener">Ver el pipeline (etapas en vivo)</a> · <a href="'+esc(d.ticket_url)+'" target="_blank" rel="noopener">ticket y aprobación</a></p>':'')
