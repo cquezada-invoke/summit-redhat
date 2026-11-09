@@ -23,7 +23,8 @@ $OC -n fabrica-codigo rollout restart deploy/fabrica >/dev/null
 $OC -n fabrica-codigo rollout status deploy/fabrica --timeout=300s | tail -1 || { $OC -n fabrica-codigo get pods -o wide | tail -4; $OC -n fabrica-codigo get events --sort-by=.lastTimestamp | tail -8 | cut -c1-220; $OC -n fabrica-codigo logs deploy/fabrica --tail=15 2>&1 | cut -c1-200; }
 # 2) Tekton (k3s): credencial del pipeline para construir y desplegar en fabrica-dev
 for i in $(seq 1 20); do ST=$($OC -n fabrica-dev get secret fabrica-pipeline-token -o jsonpath='{.data.token}' 2>/dev/null | base64 -d); [ -n "$ST" ] && break; sleep 3; done
-SRV=$($OC whoami --show-server)
+SNO_IP=${SNO_IP:-$(sudo virsh domifaddr sno 2>/dev/null | awk '/ipv4/{split($4,a,"/");print a[1]}' | head -1)}
+SRV=$($OC whoami --show-server | sed "s#//[^:/]*#//${SNO_IP:-192.168.122.50}#")   # Tekton (k3s) no resuelve el nombre interno del SNO: va por IP
 $K -n default create secret generic fabrica-ocp --from-literal=servidor="$SRV" --from-literal=token="$ST" --from-literal=namespace=fabrica-dev \
   --from-literal=dominio=sno.34.176.42.56.sslip.io --dry-run=client -o yaml | $K apply -f - >/dev/null && echo "secret fabrica-ocp en k3s"
 $K -n default create secret generic fabrica-git --from-literal=token="$GT" --dry-run=client -o yaml | $K apply -f - >/dev/null && echo "secret fabrica-git en k3s"
