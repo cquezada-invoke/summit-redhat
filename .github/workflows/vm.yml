@@ -4,7 +4,7 @@
 name: VM · ejecutar tarea
 on:
   push:
-    branches: [vm]
+    branches: [vm, 'vm/**']
   workflow_dispatch:
 permissions:
   contents: write
@@ -29,7 +29,10 @@ jobs:
         if: always()
         run: |
           export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_VALUE_0=""
-          cd "$RUNNER_TEMP" && rm -rf res && git clone -q --depth 1 -b vm-resultados "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" res 2>/dev/null \
-            || { git init -q res && cd res && git checkout -q --orphan vm-resultados && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" && cd ..; }
-          cd res && mkdir -p resultados && cp /tmp/vm-res/${{ github.run_id }}.txt resultados/ && cp resultados/${{ github.run_id }}.txt resultados/ultimo.txt
-          git add -A && git -c user.name="vm-runner" -c user.email="vm-runner@invoke.cl" commit -qm "Resultado ${{ github.run_id }} · ${{ github.sha }}" && git push -q origin vm-resultados
+          for intento in 1 2 3 4 5 6; do   # varias tareas en paralelo: si otro publicó antes, se reintenta sobre lo nuevo
+            cd "$RUNNER_TEMP" && rm -rf res && git clone -q --depth 1 -b vm-resultados "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" res 2>/dev/null \
+              || { git init -q res && cd res && git checkout -q --orphan vm-resultados && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" && cd ..; }
+            cd res && mkdir -p resultados && cp /tmp/vm-res/${{ github.run_id }}.txt resultados/ && cp resultados/${{ github.run_id }}.txt resultados/ultimo.txt
+            git add -A && git -c user.name="vm-runner" -c user.email="vm-runner@invoke.cl" commit -qm "Resultado ${{ github.run_id }} · ${{ github.sha }}" && git push -q origin vm-resultados && break
+            sleep $((intento * 3))
+          done
