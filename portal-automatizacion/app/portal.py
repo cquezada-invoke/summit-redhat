@@ -101,7 +101,7 @@ def _csrf():
 
 def en_aap(tipo, i):
     """Enlace a la consola de AAP (el portal no reemplaza a AAP: todo se ve y se audita allá)."""
-    rutas = {"wf": "templates/workflow-template/{}/details", "jt": "templates/job-template/{}/details", "wj": "jobs/workflow/{}/output",
+    rutas = {"wf": "templates/workflow-job-template/{}/details", "jt": "templates/job-template/{}/details", "wj": "jobs/workflow/{}/output",
              "job": "jobs/playbook/{}/output", "aprob": "administration/workflow-approvals/{}/details", "aprobs": "administration/workflow-approvals",
              "tpls": "templates", "inv": "infrastructure/inventories/inventory/{}/details", "invs": "infrastructure/inventories", "host": "infrastructure/hosts/{}/details",
              "cred": "infrastructure/credentials/{}/details", "proy": "projects/{}/details", "eda": "../decisions/rulebook-activations"}
