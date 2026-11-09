@@ -1,5 +1,76 @@
-commit: d4e32d8565f423b2d31b9d0b3d840bce519c7b75
-inicio: 2026-11-09T09:57:37-03:00
+commit: 997b9b11b2e0ce686804a3da5e93c10808871513
+inicio: 2026-11-09T09:59:19-03:00
 ---
-faceops actualizado
---- fin: 2026-11-09T09:58:32-03:00 · código: 0
+== demo-datalake
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/consola   1/1     1            1           2d20h
+deployment.apps/minio     1/1     1            1           2d21h
+deployment.apps/trino     1/1     1            1           2d21h
+
+NAME                               HOST/PORT                            PATH   SERVICES   PORT      TERMINATION     WILDCARD
+route.route.openshift.io/consola   sql-lake.sno.34.176.42.56.sslip.io          consola    <all>     edge/Redirect   None
+route.route.openshift.io/minio     lake.sno.34.176.42.56.sslip.io              minio      consola   edge/Redirect   None
+route.route.openshift.io/trino     trino.sno.34.176.42.56.sslip.io             trino      <all>     edge/Redirect   None
+
+NAME              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+service/consola   ClusterIP   172.30.77.69     <none>        8080/TCP            2d20h
+service/minio     ClusterIP   172.30.97.81     <none>        9000/TCP,9001/TCP   2d21h
+service/trino     ClusterIP   172.30.126.243   <none>        8080/TCP            2d21h
+secret/builder-dockercfg-tgdkd
+secret/default-dockercfg-w878m
+secret/deployer-dockercfg-x54hn
+secret/minio
+secret/pipeline-dockercfg-m6js6
+secret/trino-catalogo
+== demo-fiscalia
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/inteligencia   1/1     1            1           2d20h
+deployment.apps/registro       1/1     1            1           2d20h
+
+NAME                                    HOST/PORT                                         PATH   SERVICES       PORT    TERMINATION     WILDCARD
+route.route.openshift.io/inteligencia   inteligencia-fiscalia.sno.34.176.42.56.sslip.io          inteligencia   <all>   edge/Redirect   None
+route.route.openshift.io/registro       denuncias.sno.34.176.42.56.sslip.io                      registro       <all>   edge/Redirect   None
+== nginx de App de pagos
+ 21   nodo-jboss-dev               running
+ 22   nodo-jboss2                  running
+ 23   nodo-jboss                   running
+ 24   nodo-tomcat                  running
+ 25   nodo-postgres                running
+ 26   nodo-nginx                   running
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss3                  shut off
+ -    srv-legado-jboss5-01         shut off
+ -    srv-legado-jboss6-01         shut off
+ -    srv-legado-jboss7-01         shut off
+/home/cquezada/summit-redhat/demo-cicd/
+/home/cquezada/summit-redhat/demo-datalake/
+/home/cquezada/summit-redhat/demo-doble-factor/
+/home/cquezada/summit-redhat/demo-drift/
+/home/cquezada/summit-redhat/demo-fiscalia/
+/home/cquezada/summit-redhat/demo-ia-analitica/
+/home/cquezada/summit-redhat/demo-industrias/
+/home/cquezada/summit-redhat/demo-javia/
+/home/cquezada/summit-redhat/demo-jboss/
+/home/cquezada/summit-redhat/demo-jboss6/
+/home/cquezada/summit-redhat/demo-summit-repo/
+/home/cquezada/summit-redhat/herramientas/pruebas/migrar_lake.py
+/home/cquezada/summit-redhat/herramientas/pruebas/p-disco-s3.sh
+/home/cquezada/summit-redhat/faceops/aap/storage-lake-s3.yml
+/home/cquezada/summit-redhat/faceops/aap/configurar.py
+/home/cquezada/summit-redhat/faceops/datos/manifiesto-arquitectura.yml
+/home/cquezada/summit-redhat/faceops/datos/planes-prueba.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/denuncias-fiscalia.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/banca-contacto.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/banca-core.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/banca-creditos.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/banca-digital.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/banca-tarjetas.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/telco-atencion.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/telco-bss.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/telco-cdr.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/telco-oss.yml
+/home/cquezada/summit-redhat/faceops/datos/arquitectura/telco-ventas.yml
+/home/cquezada/summit-redhat/faceops/datos/catalogo.yml
+/home/cquezada/summit-redhat/faceops/datos/modulos.yml
+/home/cquezada/summit-redhat/faceops/datos/creditos.yml
+--- fin: 2026-11-09T09:59:29-03:00 · código: 0
