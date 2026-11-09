@@ -1,0 +1,63 @@
+commit: fc4a1d7272b5b898a54e36d6b14ba8910a5668f8
+inicio: 2026-11-09T11:35:17-03:00
+---
+fabrica-ocp por IP
+{"nombre": "usuarios-demo", "rama": "feature/usuarios-demo-11091428"}PIPE: FO-LAB-01374 fallido AAP terminó (failed): ejecución 145 s, espera de aprobación 35 s | Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-fabrica-faceops-v729l del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps | TASK [Resumen de cada ejecución] *********************************************** | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-5gxpz) | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-z58d9) | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-m76mq) | ok: [anfit
+T                       S           M
+analisis-estatico       Succeeded   All Steps have completed executing
+clonar                  Succeeded   All Steps have completed executing
+construir-y-desplegar   Failed      "step-openshift" exited with code 1: Error
+politicas               Succeeded   All Steps have completed executing
+pruebas                 Succeeded   All Steps have completed executing
+secretos                Succeeded   All Steps have completed executing
+--- politicas
+Políticas de software automáticas: todas cumplen
+2026/11/09 14:37:10 Entrypoint initialization
+2026/11/09 14:37:11 Decoded script /tekton/scripts/script-0-c629m
+--- pruebas
+2026/11/09 14:37:16 Entrypoint initialization
+2026/11/09 14:37:17 Decoded script /tekton/scripts/script-0-p897x
+{"@timestamp":"2026-11-09T14:38:41.526635921Z","log":{"level":"INFO","logger":"org.hibernate.jpa.internal.util.LogHelper"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuarios-demo","node":{}},"mess
+{"@timestamp":"2026-11-09T14:38:41.607105622Z","log":{"level":"INFO","logger":"org.hibernate.Version"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuarios-demo","node":{}},"message":"HHH000412: Hib
+{"@timestamp":"2026-11-09T14:38:41.650089199Z","log":{"level":"INFO","logger":"org.hibernate.cache.internal.RegionFactoryInitiator"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuarios-demo","node"
+{"@timestamp":"2026-11-09T14:38:41.815469998Z","log":{"level":"INFO","logger":"org.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usu
+{"@timestamp":"2026-11-09T14:38:41.937001872Z","log":{"level":"INFO","logger":"org.hibernate.orm.connections.pooling"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuarios-demo","node":{}},"message"
+{"@timestamp":"2026-11-09T14:38:42.913846788Z","log":{"level":"INFO","logger":"org.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name
+{"@timestamp":"2026-11-09T14:38:42.944441704Z","log":{"level":"INFO","logger":"org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuari
+{"@timestamp":"2026-11-09T14:38:44.121216543Z","log":{"level":"INFO","logger":"org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuar
+{"@timestamp":"2026-11-09T14:38:44.938084056Z","log":{"level":"INFO","logger":"org.springframework.boot.test.mock.web.SpringBootMockServletContext"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuar
+{"@timestamp":"2026-11-09T14:38:44.938795482Z","log":{"level":"INFO","logger":"org.springframework.test.web.servlet.TestDispatcherServlet"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuarios-demo"
+{"@timestamp":"2026-11-09T14:38:44.940111735Z","log":{"level":"INFO","logger":"org.springframework.test.web.servlet.TestDispatcherServlet"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuarios-demo"
+{"@timestamp":"2026-11-09T14:38:45.026448998Z","log":{"level":"INFO","logger":"com.invoke.usuarios.web.UsuarioControllerTest"},"process":{"pid":176,"thread":{"name":"main"}},"service":{"name":"usuarios-demo","node":{}},"
+--- analisis-estatico
+2026/11/09 14:37:16 Entrypoint initialization
+2026/11/09 14:37:17 Decoded script /tekton/scripts/script-0-jdwtz
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+  Scan skipped: 3 files matching .semgrepignore patterns
+  For a full list of skipped files, run semgrep with the --verbose flag.
+
+(need more rules? `semgrep login` for additional free Semgrep Registry rules)
+
+Ran 80 rules on 23 files: 0 findings.
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading
+If Semgrep missed a finding, please send us feedback to let us know!
+See https://semgrep.dev/docs/reporting-false-negatives/
+--- construir-y-desplegar
+Receiving source from STDIN as archive ...
+error: open /tmp/build/inputs/Dockerfile: no such file or directory
+configmap/usuarios-demo-config created
+deployment.apps/usuarios-demo created
+horizontalpodautoscaler.autoscaling/usuarios-demo created
+poddisruptionbudget.policy/usuarios-demo created
+route.route.openshift.io/usuarios-demo created
+service/usuarios-demo created
+Error from server (Forbidden): error when retrieving current configuration of:
+Resource: "monitoring.coreos.com/v1, Resource=servicemonitors", GroupVersionKind: "monitoring.coreos.com/v1, Kind=ServiceMonitor"
+Name: "usuarios-demo", Namespace: "fabrica-dev"
+from server for: "STDIN": servicemonitors.monitoring.coreos.com "usuarios-demo" is forbidden: User "system:serviceaccount:fabrica-dev:fabrica-pipeline" cannot get resource "servicemonitors" in API group "monitoring.coreo
+2026/11/09 14:38:58 Entrypoint initialization
+2026/11/09 14:38:59 Decoded script /tekton/scripts/script-0-jk7n7
+app 503
+--- fin: 2026-11-09T11:39:50-03:00 · código: 0
