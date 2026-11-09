@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   tarea:
-    runs-on: [self-hosted, summit-vm]
+    runs-on: [self-hosted, summit-vm, "${{ startsWith(github.ref_name, 'vmt/c-') && 'corta' || 'larga' }}"]   # tareas cortas al runner "corta", largas a los "larga"
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
