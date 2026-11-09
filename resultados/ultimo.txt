@@ -1,7 +1,18 @@
-commit: 553928f81c42eabd57322c083d58f8088ce2bc7e
-inicio: 2026-11-08T21:54:51-03:00
+commit: 65941393b0bfccc881e396d294e4813dddc6094c
+inicio: 2026-11-08T21:56:50-03:00
 ---
-error: Your local changes to the following files would be overwritten by merge:
+#!/bin/bash
+set -u
+R=/home/cquezada/faceops-repo; REPO=$(cat /etc/faceadmin/repo 2>/dev/null)
+[ -d "$R/.git" ] || sudo -u cquezada git clone -q "$REPO" "$R"
+antes=$(sudo -u cquezada git -C "$R" rev-parse HEAD 2>/dev/null)
+for i in 1 2 3 4 5; do sudo -u cquezada git -C "$R" pull -q --ff-only && break; sleep 15; done
+ahora=$(sudo -u cquezada git -C "$R" rev-parse HEAD)
+if [ "$antes" != "$ahora" ] || ! podman image exists localhost/faceadmin:latest; then
+  sudo -u cquezada bash "$R/faceadmin/version.sh"
+  podman build -q -t localhost/faceadmin:latest -f "$R/faceadmin/Containerfile" "$R/faceadmin" >/dev/null && echo "FaceAdmin actualizado a $(git -C "$R" rev-parse --short HEAD)"
+  systemctl try-restart faceadmin
+fi
 	faceadmin/fabrica.json
 Please commit your changes or stash them before you merge.
 Aborting
@@ -17,12 +28,4 @@ error: Your local changes to the following files would be overwritten by merge:
 	faceadmin/fabrica.json
 Please commit your changes or stash them before you merge.
 Aborting
-error: Your local changes to the following files would be overwritten by merge:
-	faceadmin/fabrica.json
-Please commit your changes or stash them before you merge.
-Aborting
-{"build":65,"commit":"0bb633387c27cfd6cc29c1a1c53431c0e88d4111","fecha":"2026-11-08 17:25","linea":"1.0","sistema":"faceadmin"}
-
-ingresar 200 gzip:1778B
-recuperar sin token 403
---- fin: 2026-11-08T21:56:23-03:00 · código: 0
+--- fin: 2026-11-08T21:58:09-03:00 · código: 0
