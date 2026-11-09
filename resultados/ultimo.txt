@@ -1,36 +1,83 @@
-commit: ad0ee8da214fbd9db7878d80c4019cfab673ffde
-inicio: 2026-11-09T08:20:53-03:00
+commit: edaec9998d54a10813a131ff93d184d32ff2f00a
+inicio: 2026-11-09T08:24:44-03:00
 ---
-lab desplegado
-cliente lab usuario cquezada
-== Manifiesto
-GET /arquitectura/manifiesto?nivel=1 200 759ms 
-GET /arquitectura/manifiesto?nivel=2 200 54ms 
-GET /arquitectura/manifiesto?nivel=3 200 106ms 
-GET /arquitectura/manifiesto?nivel=3 200 57ms 
-tecnologias 54 menciones fuera 4
-ejemplo tecnologia trino
-== Stack tecnologico
-GET /infraestructuras/stack 200 49ms 
-GET /infraestructuras/stack/racionalizacion 200 2547ms 
-barrido POST 302 /infraestructuras/stack
-== DevSecOps
-GET /devsecops 200 796ms ERR «Evaluar stack tecnológico» está bloqueada: cambió desde su última prueba y debe probarse de nuevo
-GET /devsecops/catalogo 200 123ms 
-GET /devsecops/h/1 200 1055ms 
-GET /devsecops/h/2 200 56ms 
-pipelines ['app-jboss', 'app-node-contenedor', 'app-python-sast', 'infra-ansible-calidad']
-GET /devsecops/app-jboss 200 409ms ERR 
-GET /devsecops/app-jboss/avance 404 2ms 
-GET /devsecops/app-node-contenedor 200 229ms ERR 
-GET /devsecops/app-node-contenedor/avance 404 2ms 
-GET /devsecops/app-python-sast 200 235ms ERR 
-GET /devsecops/app-python-sast/avance 404 1ms 
-GET /devsecops/infra-ansible-calidad 200 237ms ERR 
-GET /devsecops/infra-ansible-calidad/avance 404 1ms 
-pipeline estado POST 302 /tickets/1344
-ticket FO-LAB-01344 fallido
-FIN FO-LAB-01344 fallido AAP GET job_templates/437/ → 503: no healthy upstream
-GET /infraestructuras/stack 200 41ms 
-informe pdf True
---- fin: 2026-11-09T08:24:09-03:00 · código: 0
+ Id   Name                         State
+---------------------------------------------
+ 1    srv-prueba-rhel9-01          running
+ 2    nodo-vault                   running
+ 3    srv-prueba-rhel8-01          running
+ 4    srv-prueba-rocky-01          running
+ 5    srv-no-existe-99             running
+ 6    srv-prueba-resp-01           running
+ 7    nodo-windows                 running
+ 8    nodo-storage                 running
+ 9    srv-dell-r660xs-01           running
+ 10   srv-hpe-dl360-01             running
+ 11   srv-lenovo-sr630-01          running
+ 12   srv-fujitsu-rx2540-01        running
+ 13   srv-xfusion-2288h-01         running
+ 14   srv-dell-r760-01             running
+ 15   srv-hpe-dl380-01             running
+ 16   srv-lenovo-sr650-01          running
+ 17   srv-cisco-c240-01            running
+ 18   srv-supermicro-01            running
+ -    dc1-ad01                     shut off
+ -    dc1-ds01                     shut off
+ -    dc1-idm01                    shut off
+ -    dc1-iga01                    shut off
+ -    dc1-sat01                    shut off
+ -    dc1-sql01                    shut off
+ -    dc1-sso01                    shut off
+ -    dc1-vpn01                    shut off
+ -    dc2-sql01                    shut off
+ -    ee-centro-datos-prod         shut off
+ -    nodo-jboss                   shut off
+ -    nodo-jboss-dev               shut off
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss2                  shut off
+ -    nodo-jboss3                  shut off
+ -    nodo-nginx                   shut off
+ -    nodo-postgres                shut off
+ -    nodo-so                      shut off
+ -    nodo-tomcat                  shut off
+ -    pc-oficina-01                shut off
+ -    pc-oficina-02                shut off
+ -    sno                          shut off
+ -    srv-jenkins-01               shut off
+ -    srv-legado-jboss5-01         shut off
+ -    srv-legado-jboss6-01         shut off
+ -    srv-legado-jboss7-01         shut off
+ -    srv-odoo-demo-01             shut off
+ -    srv-pagos-app-01             shut off
+ -    srv-pn8-rhel6-01             shut off
+ -    srv-rocky-demo-01            shut off
+ -    srv-rocky-prueba-01          shut off
+ -    srv-servidor-de-ejemplo-01   shut off
+ -    srv-test-ubuntu-01           shut off
+ -    srv-test-vinculacion-01      shut off
+
+summit-dns Up 2 minutes
+faceops-vcsim Up 6 minutes
+faceops-validador Up 6 minutes
+faceops-maqueta Up 6 minutes
+faceops-guacd Up 6 minutes (healthy)
+kc-doble-factor Up 6 minutes
+faceops-sni Up 6 minutes
+faceops-kb Up 6 minutes
+summit-blackbox Up 6 minutes
+summit-alertmanager Up 6 minutes
+summit-prometheus Up 6 minutes
+summit-grafana Up 6 minutes
+faceops-publico Up 6 minutes
+faceops-guacamole Up 6 minutes
+clab-summit-red-fw Up 5 minutes
+clab-summit-red-isp Up 5 minutes
+clab-summit-red-rtr Up 5 minutes
+clab-summit-red-pc-usuario Up 5 minutes
+clab-summit-red-srv-app Up 5 minutes
+suc1 Up 2 minutes
+suc2 Up 2 minutes
+suc3 Up 2 minutes
+faceops Up About a minute
+aap gateway 200
+--- fin: 2026-11-09T08:24:45-03:00 · código: 0
