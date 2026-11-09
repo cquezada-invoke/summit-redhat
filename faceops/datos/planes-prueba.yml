@@ -3,6 +3,17 @@
 # verificación. Se ejecuta completo con tickets reales (aprobados por Claude con «Aprobado por Claude (regla de Cristian)»);
 # solo con todos los casos ok la versión vigente queda certificada. Si la automatización cambia, se ejecuta de nuevo.
 planes:
+  "Arquitectura · Evaluar stack tecnológico":
+    casos:
+      - {id: C1, caso: "Barrido de todo el parque (con máquinas apagadas en el inventario)", verificar: "ticket exitoso; las apagadas quedan fuera sin hacer fallar al resto; evaluación nueva con filas por máquina"}
+      - {id: C2, caso: "Informe de obsolescencia", verificar: "PDF del barrido disponible y con contenido"}
+      - {id: C3, caso: "Repetir el barrido", verificar: "solo lectura e idempotente: segunda evaluación con las mismas máquinas y tecnologías"}
+  "DevSecOps · Pipeline Tekton":
+    casos:
+      - {id: C1, caso: "estado de un pipeline", verificar: "lee sus últimas ejecuciones sin cambiar nada"}
+      - {id: C2, caso: "aplicar desde Git", verificar: "el Pipeline queda aplicado en el clúster con el contenido de Git"}
+      - {id: C3, caso: "ejecutar en una rama de Gitflow", verificar: "PipelineRun creado y terminado; FaceOps muestra su avance y resultado"}
+      - {id: C4, caso: "acción inválida o URL fuera del Git interno", verificar: "se rechaza en la validación sin tocar el clúster"}
   "Satellite · Incorporar RHEL":
     casos:
       - {id: C1, caso: "Registrar un RHEL registrado en Red Hat (CDN)", verificar: "subscription-manager identity contra el Satellite; datos.satellite marcado"}
