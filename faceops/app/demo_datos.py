@@ -80,7 +80,10 @@ def cargar(cid, uid=None):
                                      cid, ids.get(eq), "seguridad", sev, "[demo] " + tit, "Dato de demostración", ahora()))
         n += 1
     autos = q("SELECT id, nombre, minutos_manual FROM automatizaciones WHERE cliente_id=? AND COALESCE(visible,1)=1 ORDER BY id LIMIT 8", cid)
-    uid = uid or (g.usuario["id"] if g.get("usuario") else (q1("SELECT id FROM usuarios WHERE es_admin=1 ORDER BY id LIMIT 1") or {}).get("id"))
+    from flask import has_app_context
+    if not uid and has_app_context() and g.get("usuario"):
+        uid = g.usuario["id"]
+    uid = uid or (q1("SELECT id FROM usuarios WHERE es_admin=1 ORDER BY id LIMIT 1") or {}).get("id")
     hoy = datetime.now(timezone.utc)
     for k in range(24 if autos else 0):
         a = autos[k % len(autos)]

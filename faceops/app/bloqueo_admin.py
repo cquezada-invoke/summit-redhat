@@ -64,7 +64,7 @@ def _atender_pedidos(url, tok, pedidos):
                 n = demo_datos.quitar(c["id"]) if p.get("accion") == "quitar" else demo_datos.cargar(c["id"])
                 res = {"ok": True, "detalle": f"{p.get('accion') or 'cargar'}: {n} registros"}
             except Exception as e:  # noqa: BLE001
-                res = {"ok": False, "motivo": type(e).__name__}
+                res = {"ok": False, "motivo": f"{type(e).__name__}: {str(e)[:160]}"}
             try:
                 requests.post(f"{url}/api/instancia/pedido/{p['id']}", json=res, headers={"X-FaceAdmin-Token": tok}, timeout=10, verify=False)
             except requests.RequestException:
