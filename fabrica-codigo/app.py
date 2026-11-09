@@ -596,7 +596,7 @@ def api_trabajos():
         shas = {k: sha(v)[:7] for k, v in amb.items() if v}
         fuera = [b for b in ramas if not (b.startswith(("feature/", "release/", "hotfix/")) or b in ("develop", "main", "master", "qa"))]
         return {"repo": n, "url": f"{GITEA_PUBLICA}/{ORG}/{n}", "features": features, "ramas": amb, "shas": shas,
-                "misma_version": len(set(shas.values())) == 1 and len(shas) == 3,
+                "misma_version": len(set(shas.values())) == 1 and len(shas) >= 2, "sin_qa": not amb["qa"],
                 "dev_vs_prod": adelante(amb["prod"], amb["dev"]), "qa_vs_prod": adelante(amb["prod"], amb["qa"]) if amb["qa"] else None,
                 "ramas_fuera_de_gitflow": fuera, "actualizado": (r.get("updated_at") or "")[:16].replace("T", " ")}
     with ThreadPoolExecutor(max_workers=8) as ex:

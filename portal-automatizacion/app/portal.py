@@ -18,7 +18,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 AAP = os.environ.get("AAP_URL", "https://192.168.122.1").rstrip("/")
 CTX = ssl.create_default_context() if os.environ.get("AAP_VERIFICAR") == "1" else ssl._create_unverified_context()
-AAP_PUBLICO = os.environ.get("AAP_PUBLICO", "https://34.176.42.56").rstrip("/")   # consola de AAP para los enlaces
+AAP_PUBLICO = os.environ.get("AAP_PUBLICO", "https://aap.34.176.42.56.sslip.io").rstrip("/")   # consola de AAP para los enlaces
 GIT_INTERNO = os.environ.get("GIT_INTERNO", "http://192.168.122.1:3000").rstrip("/")
 GIT_PUBLICO = os.environ.get("GIT_PUBLICO", "https://faceops.34.176.42.56.sslip.io:8843/git").rstrip("/")
 AMDOCS = os.environ.get("AMDOCS_URL", "https://amdocs-ordering.sno.34.176.42.56.sslip.io").rstrip("/")
