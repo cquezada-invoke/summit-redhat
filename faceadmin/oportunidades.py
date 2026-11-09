@@ -389,6 +389,9 @@ def _activar_demo(o, c, sem):
     desde_ped = o["demo_fin"] if (o["demo_fin"] and o["demo_fin"] >= hoy.isoformat()) else hoy.isoformat()
     ej("INSERT INTO demos (numero, oportunidad_id, cliente_id, tipo, semanas, desde, hasta, contrato_id, creado, por, motivo) VALUES (?,?,?,?,?,?,?,?,?,?,?)", _numero_demo(c["id"]), o["id"], c["id"],
        "extensión" if (o["demo_fin"] and o["demo_fin"] >= hoy.isoformat()) else "activación", sem, desde_ped, fin, kid, ahora(), g.usuario["usuario"], (request.form.get("motivo") or "")[:500])
+    _notas_tabla()
+    ej("INSERT INTO oportunidad_notas (oportunidad_id, fecha, usuario, texto, cambios) VALUES (?,?,?,?,?)", o["id"], ahora(), g.usuario["usuario"],
+       (request.form.get("motivo") or "").strip()[:500], f"demo {'extendida' if o['demo_semanas'] else 'activada'}: {sem} semana{'s' if sem > 1 else ''} hasta el {fin}")
     bitacora("oportunidad · demo " + ("extendida" if o["demo_semanas"] else "activada"), c["codigo"],
              {"oportunidad": o["numero"], "semanas": sem, "hasta": fin, "por": g.usuario["usuario"]})
     flash(f"Demo {'extendida' if o['demo_semanas'] else 'activada'} hasta el {fin}. Ya puedes cargar las licencias demo del cliente y generar el comando de instalación.", "ok")
