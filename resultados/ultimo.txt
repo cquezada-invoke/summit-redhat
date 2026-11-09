@@ -1,49 +1,38 @@
-commit: bca81ef1adf6d122bc31603cf374742cba58abec
-inicio: 2026-11-09T12:25:55-03:00
+commit: 1d6e8f77074b706b339ba5f6cc36d5a73574e988
+inicio: 2026-11-09T12:27:06-03:00
 ---
-stackrox                                      cpu= 0.73 mem=   2752Mi pods=6
-catocp-prod                                   cpu= 1.00 mem=   2560Mi pods=3
-openshift-gitops                              cpu= 1.88 mem=   2432Mi pods=8
-openshift-monitoring                          cpu= 0.15 mem=   1965Mi pods=12
-openshift-ovn-kubernetes                      cpu= 0.10 mem=   1950Mi pods=2
-openshift-kube-apiserver                      cpu= 0.29 mem=   1224Mi pods=1
-openshift-etcd                                cpu= 0.37 mem=    960Mi pods=1
-openshift-insights                            cpu= 0.04 mem=    554Mi pods=2
-demo-datalake                                 cpu= 0.09 mem=    544Mi pods=4
-openshift-kube-controller-manager             cpu= 0.08 mem=    500Mi pods=1
-openshift-machine-config-operator             cpu= 0.16 mem=    400Mi pods=5
-demo-fiscalia                                 cpu= 0.04 mem=    384Mi pods=2
-openshift-operator-lifecycle-manager          cpu= 0.05 mem=    320Mi pods=4
-openshift-image-registry                      cpu= 0.12 mem=    316Mi pods=3
-openshift-pipelines                           cpu= 0.30 mem=    300Mi pods=12
-openshift-multus                              cpu= 0.06 mem=    265Mi pods=4
-openshift-machine-api                         cpu= 0.08 mem=    260Mi pods=4
-openshift-ingress                             cpu= 0.10 mem=    256Mi pods=1
-openshift-apiserver                           cpu= 0.11 mem=    250Mi pods=1
-openshift-marketplace                         cpu= 0.04 mem=    215Mi pods=5
-openshift-kube-storage-version-migrator       cpu= 0.01 mem=    201Mi pods=1
-openshift-authentication-operator             cpu= 0.02 mem=    200Mi pods=1
-== deploys con réplicas >0 fuera de openshift
-catocp-prod                                        bd                                             1/1   1     1     9d
-catocp-prod                                        web                                            1/1   1     1     9d
-catocp-prod                                        ws                                             1/1   1     1     9d
-demo-datalake                                      colector                                       1/1   1     1     139m
-demo-datalake                                      consola                                        1/1   1     1     2d22h
-demo-datalake                                      minio                                          1/1   1     1     2d23h
-demo-datalake                                      trino                                          1/1   1     1     2d23h
-demo-fiscalia                                      inteligencia                                   1/1   1     1     2d22h
-demo-fiscalia                                      registro                                       1/1   1     1     2d22h
-demo-industrias                                    banca                                          1/1   1     1     2d12h
-demo-industrias                                    telco                                          1/1   1     1     2d12h
-demo-javia                                         javia                                          1/1   1     1     2d14h
-fabrica-codigo                                     fabrica                                        1/1   1     1     3h16m
-fabrica-dev                                        mantenedor-usuarios                            0/1   1     0     5m4s
-fabrica-dev                                        mantenedor-usuarios-db                         0/1   1     0     5m3s
-faceops                                            hawtio-operator                                1/1   1     1     7d9h
-rhacs-operator                                     rhacs-operator-controller-manager              1/1   1     1     7d9h
-stackrox                                           admission-control                              3/3   3     3     7d6h
-stackrox                                           central                                        0/1   1     0     7d7h
-stackrox                                           central-db                                     0/1   1     0     7d7h
-stackrox                                           config-controller                              0/1   1     0     7d7h
-stackrox                                           sensor                                         0/1   1     0     7d6h
---- fin: 2026-11-09T12:25:55-03:00 · código: 0
+== Argo que gestiona catocp-prod
+openshift-gitops/catocp-prod sync={"prune":true,"selfHeal":true}
+  autosync pausado
+bajado deployment.apps/bd
+bajado deployment.apps/web
+bajado deployment.apps/ws
+[{"name":"ambiente","value":"desarrollo"},{"name":"app","value":"mantenedor-usuarios"},{"name":"repo-url","value":"http://192.168.122.1:3000/fabrica/mantenedor-usuarios.git"},{"name":"revision","value":"feature/mantenedor-usuarios-11091507"}]
+aplicar: FO-LAB-01380 exitoso
+PIPE: FO-LAB-01381 fallido S_FIN ')).split(' ')[-1] == 'True'", "changed": false, "evaluated_to": false, "msg": "La ejecución app-fabrica-faceops-59snf del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=8    changed=2    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2026/11/09 15:32:17 Entrypoint initialization
+2026/11/09 15:32:18 Decoded script /tekton/scripts/script-0-d2g8z
+2026/11/09 15:32:18 Decoded script /tekton/scripts/script-1-klfkm
+Secrets que piden los manifiestos: [('mantenedor-usuarios-db', 'DB_PASSWORD'), ('mantenedor-usuarios-db', 'DB_USER'), ('mantenedor-usuarios-db', 'password'), ('mantenedor-usuarios-db', 'username')]
+horizontalpodautoscaler.autoscaling/mantenedor-usuarios configured
+poddisruptionbudget.policy/mantenedor-usuarios configured
+persistentvolumeclaim/mantenedor-usuarios-db unchanged
+deployment.apps/mantenedor-usuarios-db unchanged
+service/mantenedor-usuarios-db unchanged
+route.route.openshift.io/mantenedor-usuarios unchanged
+service/mantenedor-usuarios unchanged
+servicemonitor.monitoring.coreos.com/mantenedor-usuarios unchanged
+mantenedor-usuarios-db: PVC mantenedor-usuarios-db sin StorageClass, usa emptyDir en desarrollo
+Waiting for deployment spec update to be observed...
+Waiting for deployment "mantenedor-usuarios" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "mantenedor-usuarios" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "mantenedor-usuarios" rollout to finish: 1 old replicas are pending termination...
+error: timed out waiting for the condition
+NAME                                          READY   STATUS                       RESTARTS   AGE
+pod/mantenedor-usuarios-1-build               0/1     Completed                    0          25m
+pod/mantenedor-usuarios-2-build               0/1     Completed                    0          9m38s
+pod/mantenedor-usuarios-55b84856f6-q7pgg      0/1     CreateContainerConfigError   0          4m55s
+pod/mantenedor-usuarios-5fb67b96b9-mjvx2      0/1     CreateContainerConfigError   0          4m56s
+pod/mantenedor-usuarios-db-7d447ff89c-fk5t6   0/1     ImagePullBackOff             0          4m55s
+app mantenedor-usuarios 503
+--- fin: 2026-11-09T12:42:45-03:00 · código: 0

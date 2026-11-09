@@ -1,0 +1,38 @@
+commit: 1d6e8f77074b706b339ba5f6cc36d5a73574e988
+inicio: 2026-11-09T12:27:06-03:00
+---
+== Argo que gestiona catocp-prod
+openshift-gitops/catocp-prod sync={"prune":true,"selfHeal":true}
+  autosync pausado
+bajado deployment.apps/bd
+bajado deployment.apps/web
+bajado deployment.apps/ws
+[{"name":"ambiente","value":"desarrollo"},{"name":"app","value":"mantenedor-usuarios"},{"name":"repo-url","value":"http://192.168.122.1:3000/fabrica/mantenedor-usuarios.git"},{"name":"revision","value":"feature/mantenedor-usuarios-11091507"}]
+aplicar: FO-LAB-01380 exitoso
+PIPE: FO-LAB-01381 fallido S_FIN ')).split(' ')[-1] == 'True'", "changed": false, "evaluated_to": false, "msg": "La ejecución app-fabrica-faceops-59snf del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=8    changed=2    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2026/11/09 15:32:17 Entrypoint initialization
+2026/11/09 15:32:18 Decoded script /tekton/scripts/script-0-d2g8z
+2026/11/09 15:32:18 Decoded script /tekton/scripts/script-1-klfkm
+Secrets que piden los manifiestos: [('mantenedor-usuarios-db', 'DB_PASSWORD'), ('mantenedor-usuarios-db', 'DB_USER'), ('mantenedor-usuarios-db', 'password'), ('mantenedor-usuarios-db', 'username')]
+horizontalpodautoscaler.autoscaling/mantenedor-usuarios configured
+poddisruptionbudget.policy/mantenedor-usuarios configured
+persistentvolumeclaim/mantenedor-usuarios-db unchanged
+deployment.apps/mantenedor-usuarios-db unchanged
+service/mantenedor-usuarios-db unchanged
+route.route.openshift.io/mantenedor-usuarios unchanged
+service/mantenedor-usuarios unchanged
+servicemonitor.monitoring.coreos.com/mantenedor-usuarios unchanged
+mantenedor-usuarios-db: PVC mantenedor-usuarios-db sin StorageClass, usa emptyDir en desarrollo
+Waiting for deployment spec update to be observed...
+Waiting for deployment "mantenedor-usuarios" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "mantenedor-usuarios" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "mantenedor-usuarios" rollout to finish: 1 old replicas are pending termination...
+error: timed out waiting for the condition
+NAME                                          READY   STATUS                       RESTARTS   AGE
+pod/mantenedor-usuarios-1-build               0/1     Completed                    0          25m
+pod/mantenedor-usuarios-2-build               0/1     Completed                    0          9m38s
+pod/mantenedor-usuarios-55b84856f6-q7pgg      0/1     CreateContainerConfigError   0          4m55s
+pod/mantenedor-usuarios-5fb67b96b9-mjvx2      0/1     CreateContainerConfigError   0          4m56s
+pod/mantenedor-usuarios-db-7d447ff89c-fk5t6   0/1     ImagePullBackOff             0          4m55s
+app mantenedor-usuarios 503
+--- fin: 2026-11-09T12:42:45-03:00 · código: 0
