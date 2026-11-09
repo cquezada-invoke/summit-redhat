@@ -1,0 +1,17 @@
+commit: d9ca2931ea3ef2f2c291a941d2f37edcae2ceaa7
+inicio: 2026-11-09T13:16:23-03:00
+---
+WARN Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerF
+WARN The web application [ROOT] appears to have started a thread named [BatchSpanProcessor_WorkerThread-1] but has failed to stop it. This is very likely to create a memory leak. Stack trace of thread:
+ java.base/jdk.internal.misc.Unsafe.park(Native Method)
+ java.base/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:269)
+ java.base/java.util.concurrent.locks.AbstractQueuedSynchronizer$
+WARN The web application [ROOT] appears to have started a thread named [BatchLogRecordProcessor_WorkerThread-1] but has failed to stop it. This is very likely to create a memory leak. Stack trace of thread:
+ java.base/jdk.internal.misc.Unsafe.park(Native Method)
+ java.base/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:269)
+ java.base/java.util.concurrent.locks.AbstractQueuedSynchron
+ERROR Application run failed
+    Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/autoconfigure/flyway/FlywayAutoConfiguration$FlywayConfiguration.class]: Unable to obtain connection from database: FATAL: pa
+    Caused by: org.flywaydb.core.internal.exception.FlywaySqlException: Unable to obtain connection from database: FATAL: password authentication failed for user "1000890000"
+    Caused by: org.postgresql.util.PSQLException: FATAL: password authentication failed for user "1000890000"
+--- fin: 2026-11-09T13:16:24-03:00 · código: 0
