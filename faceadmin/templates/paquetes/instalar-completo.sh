@@ -287,6 +287,7 @@ R=/opt/faceops-repo; antes=$(git -C "$R" rev-parse HEAD)
 git -C "$R" checkout -q main 2>/dev/null; for i in 1 2 3; do git -C "$R" pull -q --ff-only && break; sleep 15; done
 if [ "$antes" != "$(git -C "$R" rev-parse HEAD)" ] || ! podman image exists localhost/faceops:latest; then
   bash "$R/faceops/version.sh" >/dev/null; podman build -q -t localhost/faceops:latest -f "$R/faceops/Containerfile" "$R/faceops" >/dev/null && systemctl try-restart faceops
+  podman image prune -f >/dev/null 2>&1   # cada versión deja la imagen anterior sin uso: se borra para no llenar el disco
 fi
 A
 chmod 755 /usr/local/sbin/faceops-actualizar

@@ -23,7 +23,10 @@ def estado():
         r = requests.get(url + "/api/instancia/estado", headers={"X-FaceAdmin-Token": tok}, timeout=4, verify=False)
         if r.ok:
             v = r.json()
-            ajuste("faceadmin_estado", json.dumps(v))
+            try:
+                ajuste("faceadmin_estado", json.dumps(v))
+            except Exception:  # noqa: BLE001  (p. ej. disco lleno): no botar la consola por no poder guardar el estado
+                pass
     except (requests.RequestException, ValueError):
         v = None
     if v is None:
