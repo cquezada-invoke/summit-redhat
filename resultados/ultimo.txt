@@ -1,13 +1,25 @@
-commit: a7ff70c9dd007fb553b30aaa83e09643a22f76a3
-inicio: 2026-11-09T14:18:45-03:00
+commit: 5ee9085cb16086891c8e6c49133795259a9d84e5
+inicio: 2026-11-09T14:45:06-03:00
 ---
+== Portal
+portal ingresar 200
 faceops actualizado
-eliminables: 39 ['anfitrion-stand', 'dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sat01', 'dc1-sql01', 'dc1-sso01', 'dc1-vpn01', 'dc2-sql01', 'dns-dmz', 'nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss-qa', 'nodo-jboss2', 'nodo-jboss3', 'nodo-nginx', 'nodo-postgres', 'nodo-so', 'nodo-tomcat', 'nodo-vault', 'nodo-windows', 'pc-campus-01', 'pc-oficina-01', 'pc-oficina-02', 'pc-usuario', 'proxy-dmz', 'srv-app-01', 'srv-bd-01', 'srv-jenkins-01', 'srv-legado-jboss6-01', 'srv-legado-jboss7-01', 'srv-prueba-rhel8-01', 'srv-prueba-rhel9-01', 'srv-prueba-rocky-01', 'srv-rocky-demo-01', 'srv-rocky-p
-encendidas: ['anfitrion-stand', 'fw', 'nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss2', 'nodo-nginx', 'nodo-postgres', 'nodo-so', 'nodo-storage', 'nodo-vault', 'nodo-windows', 'ocp-sno', 'pc-usuario', 'rtr', 'sno', 'srv-cisco-c240-01', 'srv-dell-r660xs-01', 'srv-dell-r760-01', 'srv-fujitsu-rx2540-01', 'srv-hpe-dl360-01', 'srv-hpe-dl380-01', 'srv-lenovo-sr630-01', 'srv-lenovo-sr650-01', 'srv-prueba-rhel8-01', 'srv-prueba-rhel9-01', 'srv-prueba-rocky-01', 'srv-supermicro-01', 'srv-xfusion-2288h-01', 'suc1', 'suc2', 'suc3']
-anfitrion-stand    200 eliminar=True horas=0 h · este mes 0 h consumo=0 vCPU·h · 0 GiB·h
-C3 ocp-sno 400 {'error': 'Esta máquina no se puede eliminar desde FaceOps (no es una máquina virtual del hipervisor o es nodo de OpenShift)'}
-tickets nuevos: 0
-== Portal: pruebas de solo lectura
-== OpenShift · Salud del clúster {"severidad_minima": "warning", "incluir_pods": "si"} → #19639 tiempo agotado
-
---- fin: 2026-11-09T14:44:28-03:00 · código: 0
+Push successful
+deployment "fabrica" successfully rolled out
+trabajos: None repos: 4 en curso: 0
+  mantenedor-usuarios    feature=feature/mantenedor-usuarios-11091507 por_integrar=4 shas={'dev': '8dcbff8', 'prod': '8dcbff8'} misma=False dev=FO-LAB-01389
+  gestion-usuarios       feature=feature/gestion-usuarios-11091500 por_integrar=1 shas={'dev': 'ea76719', 'prod': 'ea76719'} misma=False dev=FO-LAB-01378
+  usuarios-demo          feature=feature/usuarios-demo-11091428 por_integrar=1 shas={'dev': '16216c9', 'prod': '16216c9'} misma=False dev=FO-LAB-01376
+  tareas-demo            feature=feature/tareas-demo-11091244 por_integrar=0 shas={'dev': '7dc776f', 'prod': '7dc776f'} misma=False dev=None
+pagina: 200 True
+AAP /execution/templates/workflow-template/631/details 200
+AAP /execution/workflow-approvals 200
+AAP /execution/infrastructure/hosts/1/details 200
+== Diagnóstico workflow 19639
+wf running 
+  nodo ¿Ejecutar «OpenShift · Salud del clúster»? (19640, 'pending', 'workflow_approval')
+  nodo Portal · OpenShift · Salud del clúster (plantilla) None
+  aprob 19653 pending 19652
+  aprob 19640 pending 19639
+  aprob 19611 successful 19610
+--- fin: 2026-11-09T14:47:25-03:00 · código: 0
