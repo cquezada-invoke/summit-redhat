@@ -1,45 +1,13 @@
-commit: 65412f0a449156ed6dd5497359ec3a65d4969cbd
-inicio: 2026-11-09T14:04:07-03:00
+commit: ff5d9605d0057c9728c3d3da44200258cf04fa71
+inicio: 2026-11-09T14:08:37-03:00
 ---
-== equipo 6: 200 7.57s
-        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1062(open)
-        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:984(run_wsgi_app)
-        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1230(run_wsgi_app)
-        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:1529(__call__)
-        1    0.000    0.000    7.568    7.568 /opt/app-root/lib64/python3.11/site-packages/werkzeug/middleware/proxy_fix.py:126(__call__)
-        1    0.000    0.000    7.568    7.568 /opt/faceops/app/__init__.py:55(__call__)
-        1    0.000    0.000    7.567    7.567 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:1479(wsgi_app)
-        1    0.000    0.000    7.566    7.566 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:904(full_dispatch_request)
-        1    0.000    0.000    7.533    7.533 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:879(dispatch_request)
-        1    0.003    0.003    7.533    7.533 /opt/faceops/app/__init__.py:356(envoltura)
-        1    0.004    0.004    7.530    7.530 /opt/faceops/app/vistas.py:4037(equipo)
-       87    0.001    0.000    4.940    0.057 /opt/app-root/lib64/python3.11/site-packages/requests/sessions.py:500(request)
-       87    0.002    0.000    4.832    0.056 /opt/app-root/lib64/python3.11/site-packages/requests/sessions.py:673(send)
-       87    0.002    0.000    4.793    0.055 /opt/app-root/lib64/python3.11/site-packages/requests/adapters.py:590(send)
-       87    0.002    0.000    4.753    0.055 /opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py:598(urlopen)
-       87    0.002    0.000    4.744    0.055 /opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py:383(_make_request)
-       87    0.002    0.000    4.681    0.054 /opt/app-root/lib64/python3.11/site-packages/urllib3/connection.py:607(getresponse)
-       87    0.001    0.000    4.665    0.054 /usr/lib64/python3.11/http/client.py:1371(getresponse)
-       87    0.002    0.000    4.663    0.054 /usr/lib64/python3.11/http/client.py:323(begin)
-      540    0.001    0.000    4.636    0.009 /usr/lib64/python3.11/socket.py:704(readinto)
-       87    0.002    0.000    4.635    0.053 /usr/lib64/python3.11/http/client.py:290(_read_status)
-     2777    0.002    0.000    4.633    0.002 {method 'readline' of '_io.BufferedReader' objects}
-       84    0.001    0.000    4.449    0.053 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:14(request)
-       83    0.001    0.000    4.431    0.053 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:62(get)
-      535    4.150    0.008    4.150    0.008 {method 'recv_into' of '_socket.socket' objects}
-        1    0.003    0.003    3.697    3.697 /opt/faceops/app/paquetes.py:52(de_equipo)
-
-
-== equipo 6: 200 1.00s
-== equipo 7: 200 1.33s
-== Certificar Pipeline Tekton
-certificada
-== Fábrica (chequeo PS-07)
-Push successful
-deployment "fabrica" successfully rolled out
-== Portal de automatización
+faceops actualizado
+== equipo 6: 200 4.29s
+== equipo 6: 200 0.93s
+== equipo 7: 200 0.86s
+== Portal
 == Amdocs emulado en OpenShift
-build.build.openshift.io/amdocs-emulado-1 started
+build.build.openshift.io/amdocs-emulado-2 started
 deployment "amdocs-ordering" successfully rolled out
 deployment "amdocs-customer" successfully rolled out
 deployment "amdocs-catalog" successfully rolled out
@@ -48,5 +16,35 @@ deployment "amdocs-catalog" successfully rolled out
    · OpenShift: ServiceAccount aap-portal (token en Vault secret/portal/ocp)
    · Credencial 'OpenShift · clúster (token)' enlazada a Vault
    · Proyecto 'Portal · automatizaciones' sincronizado
-ERROR POST https://localhost/api/controller/v2/inventories/17/hosts/ -> 403: {"detail":"License count of 50 instances has been reached."}
---- fin: 2026-11-09T14:07:19-03:00 · código: 0
+   · 19 plantillas
+   · workflow 'Portal · OpenShift · Salud del clúster' (id 631)
+   · workflow 'Portal · OpenShift · Certificados' (id 633)
+   · workflow 'Portal · OpenShift · Regularizar línea base' (id 635)
+   · workflow 'Portal · OpenShift · Optimizar recursos y limpiar' (id 637)
+   · workflow 'Portal · OpenShift · Actualizaciones y operadores' (id 639)
+   · workflow 'Portal · OpenShift · Respaldo de etcd' (id 641)
+   · workflow 'Portal · OpenShift · Alta de proyecto' (id 643)
+   · workflow 'Portal · Telco · Validar clúster para CNF' (id 645)
+   · workflow 'Portal · Telco · Onboarding de CNF' (id 647)
+   · workflow 'Portal · Telco · Red del servicio (VLAN y BGP)' (id 649)
+   · workflow 'Portal · Telco · Día 2 del clúster de cargas' (id 651)
+   · workflow 'Portal · Amdocs · Activar orden de servicio' (id 653)
+   · workflow 'Portal · Amdocs · Salud de la plataforma BSS' (id 655)
+   · workflow 'Portal · Amdocs · Desplegar release' (id 657)
+   · workflow 'Portal · Infraestructura · Revisar CVE de servidores' (id 659)
+   · workflow 'Portal · Infraestructura · Escaneo de seguridad' (id 661)
+   · workflow 'Portal · Infraestructura · Aplicar parches de seguridad' (id 663)
+   · workflow 'Portal · Infraestructura · Inventariar servidor' (id 665)
+   · workflow 'Portal · Infraestructura · Inventario de certificados' (id 667)
+   · workflow 'Portal · Infraestructura · Encender o apagar servidor' (id 669)
+   · Equipo 'Portal · operadores' (asignar usuarios para que vean el portal)
+   · EDA: activación 'Amdocs · Órdenes de servicio' (running) escuchando en :5011
+   LISTO
+== Portal (contenedor)
+
+[notice] A new release of pip is available: 23.2.1 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+== Publicación: https://ansible.34.176.42.56.sslip.io:8843/
+2026/11/09 17:13:33 [notice] 81#81: signal process started
+Portal: https://ansible.34.176.42.56.sslip.io:8843/ (200)
+--- fin: 2026-11-09T14:13:33-03:00 · código: 0
