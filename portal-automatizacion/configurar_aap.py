@@ -287,6 +287,12 @@ uid = u_[0]["id"]
 gorg = gw("GET", "organizations/?name=" + q(ORG_N))["results"][0]["id"]
 if not gw("GET", f"organizations/{gorg}/admins/?id={uid}", t=True) or not gw("GET", f"organizations/{gorg}/admins/?id={uid}")["results"]:
     gw("POST", f"organizations/{gorg}/admins/", {"id": uid}, t=True)
+# el administrador de la organización en el gateway no siempre llega al controlador: se asigna también ahí
+cu0 = uno("users", username=USUARIO_CLARO)
+if cu0:
+    ro_ = aap("GET", f"organizations/{org}/")["summary_fields"]["object_roles"]
+    for k_ in ("admin_role", "execute_role", "read_role"):
+        aap("POST", f"users/{cu0['id']}/roles/", {"id": ro_[k_]["id"]}, t=True)
 # la red del servicio usa la plantilla del equipo de redes (otra organización): el usuario demo puede ejecutarla
 rd = aap("GET", "role_definitions/?name=" + q("JobTemplate Execute"), t=True)
 cu = uno("users", username=USUARIO_CLARO)
