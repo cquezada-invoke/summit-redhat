@@ -352,6 +352,11 @@ def _consistencia(archivos):
     for n in set(re.findall(r"configMapRef:\s*\{?\s*\n?\s*name:\s*['\"]?([\w.-]+)", todo)) | set(re.findall(r"configMapKeyRef:\s*\{?\s*\n?\s*(?:key:.*\n\s*)?name:\s*['\"]?([\w.-]+)", todo)):
         if n not in cms:
             malos.append(f"PS-21: el Deployment usa el ConfigMap «{n}» y deploy/ no lo declara (declarados: {', '.join(sorted(cms)) or 'ninguno'})")
+    svcs = set(re.findall(r"kind:\s*Service\s*\n(?:.*\n)*?\s*name:\s*['\"]?([\w.-]+)", todo))
+    for ruta, cont in archivos.items():
+        for host in set(re.findall(r"jdbc:\w+://([\w.-]+)", cont)):
+            if host.split(".")[0] not in svcs and host not in ("localhost", "127.0.0.1"):
+                malos.append(f"PS-21: {ruta} conecta a «{host}» y deploy/ no declara ese Service (declarados: {', '.join(sorted(svcs)) or 'ninguno'})")
     for ruta, cont in yml.items():
         for img in re.findall(r"^\s*-?\s*image:\s*['\"]?([^'\"\s]+)", cont, re.M):
             if img == "IMAGEN_APP":

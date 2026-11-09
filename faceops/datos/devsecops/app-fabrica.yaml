@@ -140,9 +140,9 @@ spec:
               if [ "$(params.ambiente)" != "produccion" ] && [ -s $(workspaces.fuente.path)/secretos.txt ]; then   # secretos de prueba, generados aquí (nunca se imprimen)
                 for N in $(cut -d' ' -f1 $(workspaces.fuente.path)/secretos.txt | sort -u); do
                   oc get secret "$N" >/dev/null 2>&1 && continue
-                  ARGS=""
+                  ARGS=""; CLAVE=$(head -c 24 /dev/urandom | base64 | tr -dc A-Za-z0-9 | head -c 20)   # una sola clave por Secret: app y base deben coincidir
                   for K in $(awk -v n="$N" '$1==n{print $2}' $(workspaces.fuente.path)/secretos.txt); do
-                    case "$K" in *user*|*usuario*|*USER*|*USUARIO*) V="app";; *base*|*database*|*db*|*DB*|*DATABASE*|*BASE*) V="$A";; *) V=$(head -c 24 /dev/urandom | base64 | tr -dc A-Za-z0-9 | head -c 20);; esac
+                    case "$K" in *user*|*usuario*|*USER*|*USUARIO*) V="app";; *pass*|*PASS*|*clave*|*CLAVE*) V="$CLAVE";; *base*|*database*|*db*|*DB*|*DATABASE*|*BASE*) V="$A";; *) V=$(head -c 24 /dev/urandom | base64 | tr -dc A-Za-z0-9 | head -c 20);; esac
                     ARGS="$ARGS --from-literal=$K=$V"
                   done
                   oc create secret generic "$N" $ARGS >/dev/null && echo "Secret $N creado para $(params.ambiente)"
