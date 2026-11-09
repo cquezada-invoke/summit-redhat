@@ -1,15 +1,16 @@
-commit: e17ce8a9cfbfaf305b7a918ebb858bfb727ec8b1
-inicio: 2026-11-09T08:55:11-03:00
+commit: 9a7f27ec50d22bf718bc8d2e7901c3afcb0b2c25
+inicio: 2026-11-09T09:09:38-03:00
 ---
- 20   nodo-so                 running
- 21   nodo-jboss-dev          running
-== licencias
-LIC 1: FO-LAB-01353 exitoso · filas 2 
-LIC 2: FO-LAB-01354 exitoso · filas 2 
-LIC tipos [(('RedHat 9.8', 'registrado'), 1), (('RedHat 9.8', 'acceso simple (SCA) · registrado'), 1)]
-LIC caducidad {'vencida': 2, 'vence en 30 días': 0, 'vence en 90 días': 5, 'vigente': 1, 'sin fecha': 1} · AAP: ['60 Day Product Trial of Red Hat Ansible Automation vence 2026-12-21']
-LIC casos [{'id': 'C1', 'resultado': 'ok'}, {'id': 'C2', 'resultado': 'ok'}, {'id': 'C3', 'resultado': 'ok'}]
-   ('nodo-jboss-dev', 'RedHat 9.8', 'registrado', '')
-   ('nodo-so', 'RedHat 9.8', 'acceso simple (SCA) · registrado', '')
-PIPE app-jboss@develop: FO-LAB-01355 fallido AAP terminó (failed): ejecución 168 s, espera de aprobación 29 s Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-jboss-faceops-74tbp del pipeline app-jboss falló o no terminó: revisa sus etapas en FaceOps ok: [anfitrion-kvm] => 
---- fin: 2026-11-09T09:09:04-03:00 · código: 0
+imagen faceops lista
+sno api: ok
+AVISO: no se encontró ANTHROPIC_API_KEY en FaceOps (la Fábrica no podrá generar código)
+Push successful
+error: timed out waiting for the condition
+Waiting for deployment "fabrica" rollout to finish: 1 old replicas are pending termination...
+Traceback (most recent call last):
+  File "/tmp/fab.py", line 12, in <module>
+    texto = open("/opt/faceops/datos/devsecops/app-fabrica.yaml").read().replace("__HOST__", "192.168.122.1")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/faceops/datos/devsecops/app-fabrica.yaml'
+fabrica pública 503
+--- fin: 2026-11-09T09:17:21-03:00 · código: 0
