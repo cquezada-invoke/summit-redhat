@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block contenido %}
+<p class="sub">Todo se ejecuta y se audita en Ansible Automation Platform: <a href="{{ en_aap('aprobs', 0) | replace('/workflow-approvals', '/templates') }}" target="_blank">plantillas en AAP</a> · <a href="{{ en_aap('aprobs', 0) }}" target="_blank">aprobaciones en AAP</a></p>
 {% if pendientes %}<p><a href="{{ url_for('aprobaciones') }}">{{ pendientes | length }} aprobación(es) pendiente(s)</a></p>{% endif %}
 {% for k, n, d in secciones if not seccion or seccion == k %}
   {% set lista = items | selectattr('seccion', 'equalto', k) | list %}
   {% if lista %}
   <h3>{{ n }}</h3>
-  <ul>{% for i in lista %}<li><a href="{{ url_for('ficha', wid=i.id) }}">{{ i.nombre }}</a> <span class="sub">— {{ i.descripcion }}</span></li>{% endfor %}</ul>
+  <ul>{% for i in lista %}<li><a href="{{ url_for('ficha', wid=i.id) }}">{{ i.nombre }}</a> (<a href="{{ en_aap('wf', i.id) }}" target="_blank">AAP</a>) <span class="sub">— {{ i.descripcion }}</span></li>{% endfor %}</ul>
   {% if k == 'amdocs' %}
   <p>Simular orden de Amdocs:
     cliente <select id="o-cliente"><option value="CLI-00001">Banco del Caribe</option><option value="CLI-00002">Hospital San Juan</option><option value="CLI-00003">Puerto de Ponce</option><option value="CLI-00004">Retail Isla</option></select>
@@ -20,6 +21,7 @@
 {% endblock %}
 {% block js %}
 <script>
+const AAP = {{ en_aap('aprobs', 0).split('/execution')[0] | tojson }};
 const caja = document.getElementById('o-estado');
 if (caja) {
   const o = id => document.getElementById('o-' + id).value;
@@ -29,7 +31,7 @@ if (caja) {
     caja.innerHTML = '<table><tr><th>Orden</th><th>Servicio</th><th>Estado en Amdocs</th><th>Ejecución</th></tr>' + d.ordenes.map(x => {
       const j = d.ejecuciones.find(e => e.orden === x.id);
       return `<tr><td>${esc(x.id)}</td><td>${esc(x.servicio.nombre)} VLAN ${esc(x.servicio.vlan)} ${esc(x.servicio.prefijo)}</td><td>${esc(x.estado)}</td>
-        <td>${j ? `<a href="/ejecucion/${j.id}">#${j.id}</a> ${esc(j.estado)}` : 'esperando EDA'}</td></tr>`; }).join('') + '</table>';
+        <td>${j ? `<a href="/ejecucion/${j.id}">#${j.id}</a> (<a href="${AAP}/execution/jobs/workflow/${j.id}/output" target="_blank">AAP</a>) ${esc(j.estado)}` : 'esperando EDA'}</td></tr>`; }).join('') + '</table>';
   }
   document.getElementById('o-crear').onclick = async ev => {
     ev.target.disabled = true;

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block contenido %}
 <h3>Aprobaciones pendientes</h3>
+<p class="sub">Son las mismas de AAP: <a href="{{ en_aap('aprobs', 0) }}" target="_blank">Workflow Approvals en AAP</a>. Se aprueban aquí o allá.</p>
 {% if pendientes %}<ul>{% for a in pendientes %}{% set wj = a.summary_fields.source_workflow_job %}
-<li id="a{{ a.id }}">{{ (wj.name if wj else a.name).split('·', 1)[-1] | trim }} {% if wj %}(<a href="{{ url_for('ejecucion', jid=wj.id) }}">#{{ wj.id }}</a>){% endif %}
+<li id="a{{ a.id }}">{{ (wj.name if wj else a.name).split('·', 1)[-1] | trim }} {% if wj %}(<a href="{{ url_for('ejecucion', jid=wj.id) }}">#{{ wj.id }}</a>){% endif %} — <a href="{{ en_aap('aprob', a.id) }}" target="_blank">ver en AAP</a>
 <button onclick="decidir({{ a.id }}, 'approve', this)">Aprobar</button> <button onclick="decidir({{ a.id }}, 'deny', this)">Rechazar</button></li>{% endfor %}</ul>
 {% else %}<p>No hay aprobaciones pendientes.</p>{% endif %}
 {% endblock %}

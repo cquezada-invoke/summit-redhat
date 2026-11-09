@@ -18,6 +18,9 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 AAP = os.environ.get("AAP_URL", "https://192.168.122.1").rstrip("/")
 CTX = ssl.create_default_context() if os.environ.get("AAP_VERIFICAR") == "1" else ssl._create_unverified_context()
+AAP_PUBLICO = os.environ.get("AAP_PUBLICO", "https://34.176.42.56").rstrip("/")   # consola de AAP para los enlaces
+GIT_INTERNO = os.environ.get("GIT_INTERNO", "http://192.168.122.1:3000").rstrip("/")
+GIT_PUBLICO = os.environ.get("GIT_PUBLICO", "https://faceops.34.176.42.56.sslip.io:8843/git").rstrip("/")
 AMDOCS = os.environ.get("AMDOCS_URL", "https://amdocs-ordering.sno.34.176.42.56.sslip.io").rstrip("/")
 SECCIONES = [
     ("infra", "Infraestructura", "Servidores, sistemas operativos y servicios base del data center"),
@@ -96,9 +99,24 @@ def _csrf():
             abort(400)
 
 
+def en_aap(tipo, i):
+    """Enlace a la consola de AAP (el portal no reemplaza a AAP: todo se ve y se audita allá)."""
+    rutas = {"wf": "templates/workflow-template/{}/details", "jt": "templates/job-template/{}/details", "wj": "jobs/workflow/{}/output",
+             "job": "jobs/playbook/{}/output", "aprob": "workflow-approvals/{}/details", "aprobs": "workflow-approvals"}
+    return f"{AAP_PUBLICO}/execution/" + rutas[tipo].format(i)
+
+
+def repo_publico(url, rama="main", archivo=""):
+    if not url:
+        return ""
+    u = url.replace(GIT_INTERNO, GIT_PUBLICO).replace("http://127.0.0.1:3000", GIT_PUBLICO)
+    u = u[:-4] if u.endswith(".git") else u
+    return f"{u}/src/branch/{rama}/{archivo}" if archivo else u
+
+
 @app.context_processor
 def _contexto():
-    return {"secciones": SECCIONES, "csrf": session.get("csrf", "")}
+    return {"secciones": SECCIONES, "csrf": session.get("csrf", ""), "en_aap": en_aap}
 
 
 @app.route("/ingresar", methods=["GET", "POST"])
@@ -168,7 +186,20 @@ def ficha(wid):
     w = aap("GET", f"workflow_job_templates/{wid}/")
     enc = aap("GET", f"workflow_job_templates/{wid}/survey_spec/") if w.get("survey_enabled") else {}
     nodos = aap("GET", f"workflow_job_templates/{wid}/workflow_nodes/?page_size=50")["results"]
-    pasos = [n["summary_fields"].get("unified_job_template", {}) for n in nodos]
+    pasos = []
+    for n in nodos:
+        u = dict(n["summary_fields"].get("unified_job_template", {}))
+        if u.get("unified_job_type") == "job" and u.get("id"):
+            try:
+                jt = aap("GET", f"job_templates/{u['id']}/")
+                pr = aap("GET", f"projects/{jt['project']}/") if jt.get("project") else {}
+                u["aap"] = en_aap("jt", u["id"])
+                u["repo"] = repo_publico(pr.get("scm_url", ""), pr.get("scm_branch") or "main", jt.get("playbook", ""))
+                u["playbook"] = jt.get("playbook", "")
+            except ErrorAAP:
+                pass
+        if u.get("id") not in [p.get("id") for p in pasos] or u.get("unified_job_type") != "job":
+            pasos.append(u)
     recientes = aap("GET", f"workflow_jobs/?workflow_job_template={wid}&order_by=-id&page_size=6")["results"]
     etiquetas = [x["name"] for x in w["summary_fields"].get("labels", {}).get("results", [])]
     sec = next((e.split("-", 1)[1] for e in etiquetas if e.startswith("portal-")), "infra")
