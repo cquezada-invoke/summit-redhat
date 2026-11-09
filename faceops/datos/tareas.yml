@@ -26,6 +26,7 @@ tareas:
   vincular-maquina:      {nombre: "Crear usuario de servicio con llave propia y guardar la credencial en la bóveda", manual: 30, auto: 0.5}
   barrer-stack:          {nombre: "Inventariar versiones de sistema, plataformas y lenguajes en cada máquina", manual: 240, auto: 2, alcance: ejecucion}
   levantar-licencias:    {nombre: "Leer suscripciones y licencias de cada máquina y su fecha de término", manual: 180, auto: 2, alcance: ejecucion}
+  evaluar-apps-politicas: {nombre: "Encontrar las aplicaciones de cada máquina y revisar su configuración contra las políticas de desarrollo", manual: 420, auto: 3, alcance: ejecucion}
   informe-obsolescencia: {nombre: "Cruzar con el ciclo de vida y armar el informe de obsolescencia", manual: 240, auto: 0.5, alcance: ejecucion}
   controlar-servicio:    {nombre: "Encender, apagar o reiniciar el servicio de una plataforma y verificarlo", manual: 15, auto: 0.3}
   agente-monitoreo:      {nombre: "Instalar y registrar el agente de monitoreo", manual: 20, auto: 0.5}
@@ -191,6 +192,7 @@ automatizaciones:
   "FaceOps · Vincular máquina a la bóveda":       [vincular-maquina]
   "Arquitectura · Evaluar stack tecnológico":     [barrer-stack, informe-obsolescencia]
   "Licencias · Levantar desde las plataformas":     [levantar-licencias]
+  "Políticas de desarrollo · Evaluar aplicaciones": [evaluar-apps-politicas]
   "Infra · Encender o apagar equipo":             [apagar-equipo]
   "FaceOps · Eliminar servidor":                  [retirar-balanceo, apagar-equipo, eliminar-vm]
   "Remediación · Renovar certificado":            [cert-emitir, cert-instalar, validar-servicio]

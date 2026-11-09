@@ -17,7 +17,7 @@
 <div data-buscable-bloques>
 {% for cat, lst in cats.items() %}<h2 class="pd-cat">Área {{ cat }}</h2>
 {% for p in lst %}<div class="pd{{ ' off' if not p.activa }}" id="p-{{ p.codigo }}" data-buscable-item><h3><span class="mono">{{ p.codigo }}</span> {{ p.titulo }} <span class="sub" style="font-size:12px">· {{ p.categoria }}</span>
-<span class="pd-n n-{{ p.nivel }}">{{ niveles[p.nivel] }}</span><span class="pd-n" style="background:var(--soft,#f0f0f0)">verifica: {{ verifica.get(p.verifica, p.verifica) }}</span>{% if not p.activa %}<span class="pd-n" style="background:#eee">inactiva</span>{% endif %}
+<span class="pd-n n-{{ p.nivel }}">{{ niveles[p.nivel] }}</span><span class="pd-n" style="background:var(--soft,#f0f0f0)">verifica: {{ verifica.get(p.verifica, p.verifica) }}</span><span class="pd-n" style="background:#eef6ee;color:#1e5c1e">aplica: {% for x in aplica(p) %}{{ plataformas[x] }}{{ ', ' if not loop.last }}{% endfor %}</span>{% if not p.activa %}<span class="pd-n" style="background:#eee">inactiva</span>{% endif %}
 <span class="sub" style="font-size:11.5px;margin-left:auto">v{{ p.version }} · {{ p.autor }} · {{ (p.fecha or '')[:10] }}{% if p.version > 1 %} · <a href="{{ url_for('consola.politicas_desarrollo', ver=p.codigo, _anchor='p-' ~ p.codigo) }}">historial</a>{% endif %}</span></h3>
 <p>{{ p.regla }}</p>
 {% if ver == p.codigo and hist %}<div style="margin-top:6px;font-size:12.5px">{% for h in hist %}<div class="sub">v{{ h.version }} · {{ h.autor }} · {{ h.fecha[:16].replace('T', ' ') }}{{ ' · ' ~ h.motivo if h.motivo }}</div>{% endfor %}</div>{% endif %}
@@ -27,14 +27,32 @@
 <label>Nivel<select name="nivel">{% for k, t in niveles.items() %}<option value="{{ k }}" {{ 'selected' if p.nivel == k }}>{{ t }}</option>{% endfor %}</select></label>
 <label>Verifica<select name="verifica">{% for k, t in verifica.items() %}<option value="{{ k }}" {{ 'selected' if p.verifica == k }}>{{ t }}</option>{% endfor %}</select></label>
 <label>Estado<select name="activa"><option value="1" {{ 'selected' if p.activa }}>Activa</option><option value="0" {{ 'selected' if not p.activa }}>Inactiva</option></select></label></div>
+<div style="font-size:13px">Aplica a {% for k, t in plataformas.items() %}<label style="display:inline-flex;gap:4px;margin-right:10px;font-weight:normal"><input type="checkbox" name="aplica" value="{{ k }}" {{ 'checked' if k in aplica(p) }}>{{ t }}</label>{% endfor %}</div>
 <label>Regla<textarea name="regla" rows="3" required>{{ p.regla }}</textarea></label><label>Motivo del cambio<input name="motivo"></label>
 <div class="fila"><button class="btn">Guardar nueva versión</button></div></form></details>{% endif %}</div>{% endfor %}{% endfor %}
 </div>
+<h2 class="pd-cat" id="cumplimiento" style="margin-top:22px">Cumplimiento de las aplicaciones instaladas</h2>
+<div class="fila" style="align-items:center;gap:10px;margin:0 0 8px"><p class="sub" style="margin:0">Aplicaciones de IIS, JBoss EAP, Spring Boot y Quarkus encontradas en las máquinas, evaluadas contra las políticas que aplican a su plataforma.
+{% if cum.fecha %}Última evaluación: {{ cum.fecha[:16].replace('T', ' ') }}{% if cum.ticket_id %} · <a href="{{ url_for('consola.ticket', tid=cum.ticket_id) }}">ticket</a>{% endif %}.{% else %}Aún no se ha evaluado.{% endif %}</p>
+{% if perfil_actual.modo == 'escritura' %}<form method="post" class="der" style="margin-left:auto"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="evaluar"><button class="btn">Evaluar aplicaciones</button></form>{% endif %}</div>
+{% if cum.apps %}<div class="grid g4" style="margin:0 0 10px"><div class="card kpi"><span class="sub">Aplicaciones</span><b>{{ cum.apps|length }}</b></div>
+<div class="card kpi"><span class="sub">Con brechas</span><b>{{ cum.con_brechas }}</b></div><div class="card kpi"><span class="sub">Incumplimientos</span><b>{{ cum.no_cumple }}</b></div>
+<div class="card kpi"><span class="sub">Por revisar</span><b>{{ cum.apps|sum(attribute='revision') }}</b></div></div>
+<div class="tabla-scroll"><table style="font-size:13px"><thead><tr><th>Aplicación</th><th>Máquina</th><th>Plataforma</th><th>Cumple</th><th>No cumple</th><th>Revisión</th><th>Cumplimiento</th></tr></thead><tbody>
+{% for a in cum.apps %}<tr><td><a href="{{ url_for('consola.politicas_desarrollo', app=a.equipo ~ '|' ~ a.app, _anchor='cumplimiento') }}">{{ a.app }}</a>{% if not a.en_ejecucion %} <span class="sub">(detenida)</span>{% endif %}</td>
+<td>{{ a.equipo }}</td><td>{{ plataformas.get(a.plataforma, a.plataforma) }}<div class="sub" style="font-size:11.5px">{{ a.producto }}</div></td>
+<td>{{ a.cumple }}</td><td>{% if a.no_cumple %}<b style="color:#a30000">{{ a.no_cumple }}</b>{% else %}0{% endif %}</td><td>{{ a.revision }}</td><td>{{ (a.pct ~ ' %') if a.pct is not none else '—' }}</td></tr>
+{% if f_app == a.equipo ~ '|' ~ a.app %}<tr><td colspan="7" style="background:var(--soft,#f7f7f7)"><table style="margin:0;font-size:12.5px"><tbody>
+{% for f in a.politicas %}<tr><td class="mono" style="width:70px"><a href="#p-{{ f.codigo }}">{{ f.codigo }}</a></td><td style="width:110px">{% if f.estado == 'no_cumple' %}<b style="color:#a30000">{{ estados[f.estado] }}</b>{% elif f.estado == 'cumple' %}<span style="color:#1e5c1e">{{ estados[f.estado] }}</span>{% else %}<span class="sub">{{ estados[f.estado] }}</span>{% endif %}</td>
+<td>{{ (ps|selectattr('codigo', 'equalto', f.codigo)|first or {}).titulo }}<div class="sub" style="font-size:12px">{{ f.evidencia }}</div></td></tr>{% endfor %}
+</tbody></table><div class="sub" style="font-size:12px;margin-top:4px">{{ a.instalacion }}</div></td></tr>{% endif %}{% endfor %}</tbody></table></div>
+{% endif %}
 {% if perfil_actual.modo == 'escritura' %}<dialog id="pd-nueva" class="al-dlg" style="max-width:560px"><form method="post" style="display:grid;gap:8px"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <h2 style="margin:0">Nueva política de desarrollo</h2>
 <div class="rejilla"><label>Área dueña<select name="area">{% for a in areas %}<option {{ 'selected' if f_area == a }}>{{ a }}</option>{% endfor %}</select></label><label>Categoría<input name="categoria" list="pd-cats" required></label><label>Título<input name="titulo" required></label>
 <label>Nivel<select name="nivel">{% for k, t in niveles.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label>
 <label>Verifica<select name="verifica">{% for k, t in verifica.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label></div>
+<div style="font-size:13px">Aplica a {% for k, t in plataformas.items() %}<label style="display:inline-flex;gap:4px;margin-right:10px;font-weight:normal"><input type="checkbox" name="aplica" value="{{ k }}" {{ 'checked' if k == 'openshift' }}>{{ t }}</label>{% endfor %}</div>
 <label>Regla<textarea name="regla" rows="4" required placeholder="Qué debe cumplir el código, de forma verificable"></textarea></label>
 <datalist id="pd-cats">{% for c in ps|map(attribute='categoria')|unique %}<option value="{{ c }}">{% endfor %}</datalist>
 <div class="fila"><button class="btn">Crear</button><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button></div></form></dialog>{% endif %}

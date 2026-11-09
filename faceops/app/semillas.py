@@ -435,8 +435,7 @@ def migrar_usuarios_lab(lab):
                 ej("INSERT INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador, roles) VALUES (?,?,?,?,?,?,?)",
                    uid, c["id"], json.dumps(p["segmentos"], ensure_ascii=False), json.dumps(p.get("ambientes", ["*"])), p["modo"],
                    p["aprobador"], json.dumps(p.get("roles", [])))
-            elif p.get("roles"):
-                ej("UPDATE perfiles SET roles=? WHERE usuario_id=? AND cliente_id=?", json.dumps(p["roles"]), uid, c["id"])
+            # si ya existe, el perfil es del cliente (roles, segmentos, ambientes): no se pisa en cada arranque
 
 
 PLATAFORMA = {  # productos de la plataforma (se declaran en AAP con faceops_skills; no se detectan por servicio)

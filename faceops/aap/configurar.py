@@ -147,6 +147,7 @@ shutil.copy(f"{AQUI}/registro-imagenes.yml", f"{tmp}/playbooks/registro-imagenes
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/licencias-levantar.yml", f"{tmp}/playbooks/licencias-levantar.yml")
+shutil.copy(f"{AQUI}/politicas-dev-evaluar.yml", f"{tmp}/playbooks/politicas-dev-evaluar.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 shutil.copy(f"{AQUI}/jenkins-servidor.yml", f"{tmp}/playbooks/jenkins-servidor.yml")
@@ -666,6 +667,13 @@ jlic = asegurar("job_templates", "Licencias · Levantar desde las plataformas", 
 if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jlic['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jlic['id']}/credentials/", {"id": cred["id"]})
 paso(f"Plantilla «Licencias · Levantar desde las plataformas» (id {jlic['id']})")
+jpev = asegurar("job_templates", "Políticas de desarrollo · Evaluar aplicaciones", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/politicas-dev-evaluar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10,
+    "description": "Solo lectura: encuentra las aplicaciones de IIS, JBoss, Spring Boot y Quarkus y revisa su configuración contra las políticas de desarrollo"})
+if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jpev['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jpev['id']}/credentials/", {"id": cred["id"]})
+paso(f"Plantilla «Políticas de desarrollo · Evaluar aplicaciones» (id {jpev['id']})")
 paso(f"Plantilla «FaceOps · Vincular máquina a la bóveda» (id {jvm['id']})" + ("" if cr_bov else " · falta crear la credencial «FaceOps · Bóveda (escritura)»"))
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)

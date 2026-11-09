@@ -3,6 +3,11 @@
 # verificación. Se ejecuta completo con tickets reales (aprobados por Claude con «Aprobado por Claude (regla de Cristian)»);
 # solo con todos los casos ok la versión vigente queda certificada. Si la automatización cambia, se ejecuta de nuevo.
 planes:
+  "Políticas de desarrollo · Evaluar aplicaciones":
+    casos:
+      - {id: C1, caso: "Evaluar todo el parque (con máquinas apagadas)", verificar: "ticket exitoso; las apagadas quedan fuera; aparecen las aplicaciones de JBoss (srv-legado-jboss7-01, nodo-jboss-dev) y de IIS (srv-pn-win-01) con su plataforma y producto"}
+      - {id: C2, caso: "Cumplimiento por aplicación", verificar: "cada aplicación tiene sus políticas según «aplica a» con cumple / no cumple / revisión y evidencia; ninguna evidencia muestra valores de configuración"}
+      - {id: C3, caso: "Repetir la evaluación", verificar: "solo lectura e idempotente: mismas aplicaciones y mismos resultados, sin duplicar filas"}
   "Licencias · Levantar desde las plataformas":
     casos:
       - {id: C1, caso: "Levantar en todo el parque (con máquinas apagadas)", verificar: "ticket exitoso; las apagadas quedan fuera; cada RHEL encendido aparece con su suscripción o con acceso simple (SCA)"}

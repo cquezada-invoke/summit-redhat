@@ -249,11 +249,16 @@ def editar(cliente_id, p, autor, motivo):
 
 
 def cargar(cliente_id):
-    """Las políticas del repositorio (datos/politicas.yml): si alguna cambió, entra como versión nueva."""
+    """Las políticas del producto (datos/politicas.yml): las nuevas entran y las que cambiaron suben de versión, salvo las que el
+    cliente ya ajustó (su última versión no es del repositorio): esas son parámetros del cliente y no se pisan."""
     try:
         for p in yaml.safe_load(open(RUTA, encoding="utf-8")) or []:
-            if (p.get("id") or p.get("codigo")) in retiradas(cliente_id):
+            cod = p.get("id") or p.get("codigo")
+            if cod in retiradas(cliente_id):
                 continue
+            ult = q1("SELECT autor FROM politicas_def WHERE cliente_id=? AND codigo=? ORDER BY version DESC LIMIT 1", cliente_id, cod)
+            if ult and ult["autor"] != "repositorio":
+                continue   # el cliente la ajustó: es dato suyo, la versión del producto no la pisa
             guardar(cliente_id, p, "repositorio", "datos/politicas.yml")
     except OSError:
         pass

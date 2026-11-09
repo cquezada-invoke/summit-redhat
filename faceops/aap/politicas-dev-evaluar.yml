@@ -1,0 +1,242 @@
+# Políticas de desarrollo · Evaluar aplicaciones (solo lectura): en cada máquina encuentra las aplicaciones de IIS, JBoss EAP,
+# Spring Boot y Quarkus y levanta la evidencia de su configuración. Nunca devuelve valores de configuración: solo marcas
+# (sí/no), versiones y nombres de claves o librerías. FaceOps cruza la evidencia con las políticas de desarrollo que aplican a
+# cada plataforma y arma el cumplimiento por aplicación.
+- name: Políticas de desarrollo · Evaluar aplicaciones
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: ¿Responde?
+      ansible.builtin.wait_for_connection: {timeout: 20}
+      register: r_con
+      ignore_errors: true
+
+    - name: Fuera de la evaluación (no responde)
+      ansible.builtin.meta: end_host
+      when: r_con is failed
+
+    - name: Datos del sistema
+      ansible.builtin.setup: {gather_subset: [min]}
+
+    - name: Aplicaciones Java (JBoss EAP, Spring Boot, Quarkus)
+      ansible.builtin.shell: |
+        PY=$(command -v python3 || echo /usr/libexec/platform-python)
+        $PY - <<'PYEOF'
+        import json, os, re, subprocess, zipfile
+        VULN = [  # librería, versión mínima segura
+            (r"log4j-core-(\d[\d.]*)", "2.17.1"), (r"(?:^|/|\.)log4j-(1\.[\d.]*)\.jar", "2.0"), (r"commons-collections-(\d[\d.]*)", "3.2.2"),
+            (r"struts2-core-(\d[\d.]*)", "2.5.33"), (r"jackson-databind-(\d[\d.]*)", "2.12.7"), (r"spring-core-(\d[\d.]*)", "5.3.18"),
+            (r"spring-beans-(\d[\d.]*)", "5.3.18"), (r"xstream-(\d[\d.]*)", "1.4.20"), (r"snakeyaml-(\d[\d.]*)", "2.0")]
+        SECRETO = re.compile(r"(password|passwd|secret|token|api[-_.]?key|credentials?)$", re.I)
+        def ver(v): return tuple(int(x) for x in re.findall(r"\d+", v)[:4])
+        def vulnerables(nombres):
+            out = []
+            for n in nombres:
+                b = n.rsplit("/", 1)[-1]
+                for rx, seguro in VULN:
+                    m = re.search(rx, b)
+                    if m and ver(m.group(1)) < ver(seguro):
+                        out.append(b); break
+            return sorted(set(out))[:20]
+        def java_version(exe):
+            try:
+                r = subprocess.run([exe, "-version"], capture_output=True, text=True, timeout=15)
+                m = re.search(r'version "([^"]+)"', r.stderr or "")
+                v = m.group(1) if m else ""
+                return v[2:] if v.startswith("1.") else v
+            except Exception:
+                return ""
+        def props(texto):
+            """claves de un .properties o .yml (aplanado simple); valores solo para decidir, nunca salen"""
+            d, pila = {}, []
+            for l in texto.splitlines():
+                if not l.strip() or l.strip().startswith(("#", "!")): continue
+                m = re.match(r"^(\s*)([\w.\-\[\]]+)\s*[:=]\s*(.*)$", l)
+                if not m: continue
+                ind, k, v = len(m.group(1)), m.group(2), m.group(3).strip().strip('"\'')
+                pila = [(i, x) for i, x in pila if i < ind]
+                clave = ".".join([x for _, x in pila] + [k])
+                if v: d[clave.lower()] = v
+                else: pila.append((ind, k))
+            return d
+        def secretos(d):
+            return sorted(k for k, v in d.items() if SECRETO.search(k.split(".")[-1]) and v and not v.startswith(("${", "ENC(", "vault:")))[:10]
+        procs = []
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit(): continue
+            try:
+                args = open(f"/proc/{pid}/cmdline", "rb").read().split(b"\0")
+                args = [a.decode("utf-8", "replace") for a in args if a]
+                if args and os.path.basename(args[0]).startswith("java"):
+                    procs.append((pid, args, os.readlink(f"/proc/{pid}/exe"), os.readlink(f"/proc/{pid}/cwd")))
+            except Exception:
+                pass
+        apps = []
+        # JBoss EAP / WildFly: instalaciones en disco (aunque estén detenidas) y la configuración que usa el proceso
+        homes = set()
+        for base in ("/opt", "/usr/share", "/srv", "/home", "/app", "/apps", "/u01"):
+            if not os.path.isdir(base): continue
+            for raiz, dirs, archivos in os.walk(base):
+                if raiz.count(os.sep) - base.count(os.sep) > 5: dirs[:] = []; continue
+                if raiz.endswith(os.path.join("standalone", "configuration")) and "standalone.xml" in archivos:
+                    homes.add(os.path.dirname(os.path.dirname(raiz))); dirs[:] = []
+        for home in sorted(homes):
+            pr = next((p for p in procs if any(home in a for a in p[1])), None)
+            conf = "standalone.xml"
+            if pr:
+                for i, a in enumerate(pr[1]):
+                    if a.startswith("--server-config=") or a.startswith("-c="): conf = a.split("=", 1)[1]
+                    elif a in ("-c", "--server-config") and i + 1 < len(pr[1]): conf = pr[1][i + 1]
+            try: x = open(os.path.join(home, "standalone", "configuration", conf), errors="replace").read()
+            except Exception: x = ""
+            vt = ""
+            try: vt = open(os.path.join(home, "version.txt"), errors="replace").read().strip()
+            except Exception: pass
+            mg = re.search(r'<interface name="management">(.*?)</interface>', x, re.S)
+            bind_mgmt = any(a.startswith("-bmanagement") and "0.0.0.0" in a for a in (pr[1] if pr else []))
+            plano = len(re.findall(r"<password>(?!\s*\$\{|\s*VAULT::)[^<]+</password>", x)) + len(re.findall(r'clear-text="(?!\$\{)[^"]+"', x))
+            comun = {"plataforma": "jboss", "instalacion": home, "producto": vt[:80], "en_ejecucion": bool(pr),
+                     "java": java_version(pr[2]) if pr else "",
+                     "secreto_plano": plano > 0, "secreto_detalle": f"{plano} clave(s) en texto plano en {conf}" if plano else "",
+                     "tls": "<https-listener" in x, "log_json": "json-formatter" in x,
+                     "metricas": "microprofile-metrics" in x or "micrometer" in x, "health": "urn:wildfly:health" in x or "microprofile-health" in x,
+                     "depuracion": bool(re.search(r'<root-logger>\s*<level name="(DEBUG|TRACE|ALL)"', x)),
+                     "consola_expuesta": bind_mgmt or bool(mg and ("0.0.0.0" in mg.group(1) or "<any-address" in mg.group(1)))}
+            dep = os.path.join(home, "standalone", "deployments")
+            nombres = [n for n in (os.listdir(dep) if os.path.isdir(dep) else []) if re.search(r"\.(war|ear|jar)$", n)]
+            for n in nombres or ["(sin aplicaciones desplegadas)"]:
+                libs = []
+                ruta = os.path.join(dep, n)
+                try:
+                    if os.path.isdir(ruta):
+                        for r_, _, fs in os.walk(ruta): libs += [f for f in fs if f.endswith(".jar")]
+                    elif os.path.isfile(ruta):
+                        z = zipfile.ZipFile(ruta)
+                        libs = [e for e in z.namelist() if e.endswith(".jar")]
+                except Exception:
+                    pass
+                apps.append({**comun, "app": n, "librerias": len(libs), "libs_vulnerables": vulnerables(libs)})
+        # Spring Boot y Quarkus: procesos java -jar en ejecución
+        for pid, args, exe, cwd in procs:
+            jar = next((args[i + 1] for i, a in enumerate(args) if a == "-jar" and i + 1 < len(args)), "")
+            if not jar or any(h in " ".join(args) for h in homes): continue
+            jar = jar if jar.startswith("/") else os.path.join(cwd, jar)
+            try: z = zipfile.ZipFile(jar); nombres = z.namelist()
+            except Exception: continue
+            texto, libs, plat, version = "", [], "", ""
+            if any(n.startswith("BOOT-INF/") for n in nombres):
+                plat = "springboot"; libs = [n for n in nombres if n.startswith("BOOT-INF/lib/")]
+                m = next((re.search(r"spring-boot-(\d[\d.]*)\.jar", n) for n in libs if re.search(r"/spring-boot-\d", n)), None)
+                version = m.group(1).rstrip(".") if m else ""
+                for c in ("BOOT-INF/classes/application.properties", "BOOT-INF/classes/application.yml", "BOOT-INF/classes/application.yaml"):
+                    if c in nombres: texto += "\n" + z.read(c).decode("utf-8", "replace")
+            elif os.path.basename(jar) == "quarkus-run.jar" or any("io.quarkus" in n for n in nombres):
+                plat = "quarkus"; qa = os.path.dirname(jar)
+                libs = os.listdir(os.path.join(qa, "lib", "main")) if os.path.isdir(os.path.join(qa, "lib", "main")) else nombres
+                m = next((re.search(r"quarkus-core-(\d[\d.]*?)(?:\.Final)?\.jar", n) for n in libs if "quarkus-core-" in n), None)
+                version = m.group(1) if m else ""
+                for aj in (os.listdir(os.path.join(qa, "app")) if os.path.isdir(os.path.join(qa, "app")) else []):
+                    try:
+                        za = zipfile.ZipFile(os.path.join(qa, "app", aj))
+                        if "application.properties" in za.namelist(): texto += "\n" + za.read("application.properties").decode("utf-8", "replace")
+                    except Exception: pass
+            else:
+                continue
+            for c in ("application.properties", "application.yml", "config/application.properties", "config/application.yml"):
+                for b in {cwd, os.path.dirname(jar)}:
+                    try: texto += "\n" + open(os.path.join(b, c), errors="replace").read()
+                    except Exception: pass
+            d = props(texto)
+            for a in args:   # -Dclave=valor y --clave=valor
+                m = re.match(r"^(?:-D|--)([\w.\-]+)=(.*)$", a)
+                if m: d[m.group(1).lower()] = m.group(2)
+            ls = " ".join(libs)
+            sec = secretos(d)
+            if plat == "springboot":
+                ev = {"health": "spring-boot-actuator" in ls, "metricas": "micrometer-registry-prometheus" in ls,
+                      "log_json": "logstash-logback-encoder" in ls or bool(d.get("logging.structured.format.console")),
+                      "depuracion": "spring-boot-devtools" in ls or d.get("server.error.include-stacktrace") == "always" or d.get("debug") == "true"
+                                    or d.get("logging.level.root", "").lower() in ("debug", "trace"),
+                      "consola_expuesta": "*" in d.get("management.endpoints.web.exposure.include", ""),
+                      "tls": d.get("server.ssl.enabled") == "true" or bool(d.get("server.ssl.key-store")) or bool(d.get("server.forward-headers-strategy"))}
+            else:
+                ev = {"health": "smallrye-health" in ls, "metricas": "micrometer-registry-prometheus" in ls or "smallrye-metrics" in ls,
+                      "log_json": "logging-json" in ls, "depuracion": any("quarkus:dev" in a or a == "-Dquarkus.profile=dev" for a in args)
+                                    or d.get("quarkus.log.level", "").lower() in ("debug", "trace"),
+                      "consola_expuesta": d.get("quarkus.swagger-ui.always-include") == "true",
+                      "tls": bool(d.get("quarkus.http.ssl.certificate.files") or d.get("quarkus.http.ssl.certificate.key-store-file"))
+                             or d.get("quarkus.http.insecure-requests") in ("redirect", "disabled") or d.get("quarkus.http.proxy.proxy-address-forwarding") == "true"}
+            apps.append({"plataforma": plat, "app": os.path.basename(jar) if os.path.basename(jar) != "quarkus-run.jar" else os.path.basename(os.path.dirname(os.path.dirname(jar))) or "quarkus-app",
+                         "instalacion": os.path.dirname(jar), "producto": f"{'Spring Boot' if plat == 'springboot' else 'Quarkus'} {version}".strip(),
+                         "version": version, "en_ejecucion": True, "java": java_version(exe), "secreto_plano": bool(sec),
+                         "secreto_detalle": ", ".join(sec), "librerias": len(libs), "libs_vulnerables": vulnerables(libs), **ev})
+        print(json.dumps(apps))
+        PYEOF
+      args: {executable: /bin/bash}
+      register: r_java
+      changed_when: false
+      failed_when: false
+      when: ansible_facts.os_family != 'Windows'
+
+    - name: Aplicaciones de IIS
+      ansible.windows.win_shell: |
+        $apps = @()
+        if (Get-Module -ListAvailable WebAdministration) {
+          Import-Module WebAdministration
+          foreach ($s in Get-Website) {
+            $https = [bool]($s.bindings.Collection | Where-Object { $_.protocol -eq 'https' })
+            $lista = @([pscustomobject]@{path='/'; physicalPath=$s.physicalPath; applicationPool=$s.applicationPool}) + @(Get-WebApplication -Site $s.name)
+            foreach ($a in $lista) {
+              $ruta = [Environment]::ExpandEnvironmentVariables($a.physicalPath)
+              $ps = "IIS:\Sites\$($s.name)$(if ($a.path -ne '/') { $a.path })"
+              $x = $null; $wc = Join-Path $ruta 'web.config'
+              if (Test-Path $wc) { try { [xml]$x = Get-Content $wc -Raw } catch { $x = $null } }
+              $cs = @(); $plano = @()
+              if ($x -and $x.configuration.connectionStrings -and -not $x.configuration.connectionStrings.configProtectionProvider) {
+                foreach ($c in $x.configuration.connectionStrings.add) {
+                  if ($c.connectionString -match '(?i)(password|pwd)\s*=' -and $c.connectionString -notmatch '(?i)integrated security\s*=\s*(true|sspi)|trusted_connection\s*=\s*(yes|true)') { $plano += $c.name }
+                }
+              }
+              if ($x -and $x.configuration.appSettings) {
+                foreach ($k in $x.configuration.appSettings.add) { if ($k.key -match '(?i)(password|secret|apikey|api_key|token)$' -and $k.value) { $plano += $k.key } }
+              }
+              $dbg = $x -and $x.configuration.'system.web'.compilation.debug -eq 'true'
+              $ce = $x -and $x.configuration.'system.web'.customErrors.mode -eq 'Off'
+              $he = (Get-WebConfigurationProperty -PSPath $ps -Filter system.webServer/httpErrors -Name errorMode -ErrorAction SilentlyContinue)
+              $db = (Get-WebConfigurationProperty -PSPath $ps -Filter system.webServer/directoryBrowse -Name enabled -ErrorAction SilentlyContinue).Value
+              $ck = $x -and $x.configuration.'system.web'.httpCookies.requireSSL -eq 'true'
+              $pool = Get-Item "IIS:\AppPools\$($a.applicationPool)" -ErrorAction SilentlyContinue
+              $core = $x -and $x.configuration.'system.webServer'.aspNetCore
+              $fw = if ($x) { $x.configuration.'system.web'.httpRuntime.targetFramework } else { '' }
+              $rc = Get-ChildItem $ruta -Filter *.runtimeconfig.json -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($core -and $rc) { try { $fw = (Get-Content $rc.FullName -Raw | ConvertFrom-Json).runtimeOptions.framework.version } catch {} }
+              $vul = @()
+              foreach ($d in Get-ChildItem (Join-Path $ruta 'bin') -Filter *.dll -ErrorAction SilentlyContinue) {
+                $v = $d.VersionInfo.FileVersion
+                if ($d.Name -eq 'Newtonsoft.Json.dll' -and $v -and [version]($v -replace '[^\d.].*$','') -lt [version]'13.0.1') { $vul += "Newtonsoft.Json $v" }
+                if ($d.Name -eq 'log4net.dll' -and $v -and [version]($v -replace '[^\d.].*$','') -lt [version]'2.0.10') { $vul += "log4net $v" }
+              }
+              $apps += [pscustomobject]@{plataforma='iis'; app="$($s.name)$(if ($a.path -ne '/') { $a.path })"; instalacion=$ruta; en_ejecucion=($s.state -eq 'Started')
+                producto=$(if ($core) { ".NET $fw" } else { ".NET Framework $(if ($fw) { $fw } else { $pool.managedRuntimeVersion })" })
+                net_core=[bool]$core; pool=$a.applicationPool; web_config=[bool]$x
+                secreto_plano=($plano.Count -gt 0); secreto_detalle=($plano -join ', ')
+                depuracion=[bool]($dbg -or $ce -or "$he" -eq 'Detailed'); depuracion_detalle=(@($(if ($dbg) {'compilation debug'}), $(if ($ce) {'customErrors Off'}), $(if ("$he" -eq 'Detailed') {'httpErrors Detailed'})) | Where-Object { $_ }) -join ', '
+                consola_expuesta=[bool]$db; tls=[bool]($https -and $ck); https=$https; cookies_seguras=[bool]$ck
+                libs_vulnerables=$vul; librerias=@(Get-ChildItem (Join-Path $ruta 'bin') -Filter *.dll -ErrorAction SilentlyContinue).Count}
+            }
+          }
+        }
+        ConvertTo-Json -InputObject @($apps) -Compress -Depth 4
+      register: r_iis
+      changed_when: false
+      failed_when: false
+      when: ansible_facts.os_family == 'Windows'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_politicas_apps: "{{ {inventory_hostname: {'familia': ansible_facts.os_family, 'so': ansible_facts.distribution ~ ' ' ~ ansible_facts.distribution_version,
+                                       'apps': ((r_iis.stdout | default('') | trim) if ansible_facts.os_family == 'Windows' else (r_java.stdout | default('') | trim)) or '[]',
+                                       'error': ((r_iis.stderr | default('')) if ansible_facts.os_family == 'Windows' else (r_java.stderr | default(''))) | trim | truncate(300)}} }}"
+        aggregate: true

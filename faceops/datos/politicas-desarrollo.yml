@@ -2,41 +2,49 @@
 # agente de la Fábrica de código para generar el desarrollo y el pipeline (Tekton) verifica las que dicen «verifica: pipeline».
 # area: el área dueña de la política (Arquitectura, Infraestructura, Seguridad, Operación, Calidad), siempre hacia el desarrollo
 # nivel: obligatoria (bloquea el despliegue) · recomendada (avisa)
-- {id: PD-01, area: Arquitectura, categoria: Plataforma, titulo: "Todo desarrollo corre en OpenShift", nivel: obligatoria, verifica: pipeline,
+# aplica: plataformas donde rige (openshift, iis, jboss, springboot, quarkus); en las aplicaciones ya instaladas la acción
+#   «Políticas de desarrollo · Evaluar aplicaciones» verifica las que tienen comprobación y deja el resto para revisión
+- {id: PD-01, aplica: [openshift], area: Arquitectura, categoria: Plataforma, titulo: "Todo desarrollo corre en OpenShift", nivel: obligatoria, verifica: pipeline,
    regla: "La aplicación se empaqueta como imagen de contenedor y se despliega en OpenShift con manifiestos versionados en el mismo repositorio (carpeta deploy/). No se instala nada en máquinas virtuales."}
-- {id: PD-02, area: Seguridad, categoria: Contenedor, titulo: "Imagen base Red Hat UBI", nivel: obligatoria, verifica: pipeline,
+- {id: PD-02, aplica: [openshift], area: Seguridad, categoria: Contenedor, titulo: "Imagen base Red Hat UBI", nivel: obligatoria, verifica: pipeline,
    regla: "La imagen parte de una imagen base UBI 9 de Red Hat (registry.access.redhat.com/ubi9/*) con versión fija; nunca la etiqueta latest."}
-- {id: PD-03, area: Seguridad, categoria: Contenedor, titulo: "Sin root y con UID arbitrario", nivel: obligatoria, verifica: pipeline,
+- {id: PD-03, aplica: [openshift], area: Seguridad, categoria: Contenedor, titulo: "Sin root y con UID arbitrario", nivel: obligatoria, verifica: pipeline,
    regla: "El contenedor corre sin root (USER 1001) y funciona con cualquier UID que asigne OpenShift (restricted-v2 SCC): carpetas de escritura con grupo 0 y permisos g=u."}
-- {id: PD-04, area: Infraestructura, categoria: Contenedor, titulo: "Puerto no privilegiado", nivel: obligatoria, verifica: pipeline,
+- {id: PD-04, aplica: [openshift], area: Infraestructura, categoria: Contenedor, titulo: "Puerto no privilegiado", nivel: obligatoria, verifica: pipeline,
    regla: "La aplicación escucha en el puerto 8080 (nunca bajo 1024) y lo declara con EXPOSE."}
-- {id: PD-05, area: Seguridad, categoria: Configuración, titulo: "Configuración por variables de entorno", nivel: obligatoria, verifica: pipeline,
+- {id: PD-05, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Configuración, titulo: "Configuración por variables de entorno", nivel: obligatoria, verifica: pipeline,
    regla: "Toda configuración entra por variables de entorno desde ConfigMap; los secretos desde Secret. Ningún secreto, clave ni token en el código ni en la imagen."}
-- {id: PD-06, area: Operación, categoria: Salud, titulo: "Sondas de vida y disponibilidad", nivel: obligatoria, verifica: pipeline,
+- {id: PD-06, aplica: [openshift, jboss, springboot, quarkus], area: Operación, categoria: Salud, titulo: "Sondas de vida y disponibilidad", nivel: obligatoria, verifica: pipeline,
    regla: "Expone /health/live y /health/ready; el Deployment declara livenessProbe y readinessProbe sobre esas rutas."}
-- {id: PD-07, area: Infraestructura, categoria: Recursos, titulo: "Requests y limits declarados", nivel: obligatoria, verifica: pipeline,
+- {id: PD-07, aplica: [openshift], area: Infraestructura, categoria: Recursos, titulo: "Requests y limits declarados", nivel: obligatoria, verifica: pipeline,
    regla: "Cada contenedor declara requests y limits de CPU y memoria acordes a la aplicación (por defecto 100m/128Mi y 500m/512Mi)."}
-- {id: PD-08, area: Infraestructura, categoria: Despliegue, titulo: "Deployment, Service y Route con TLS", nivel: obligatoria, verifica: pipeline,
+- {id: PD-08, aplica: [openshift], area: Infraestructura, categoria: Despliegue, titulo: "Deployment, Service y Route con TLS", nivel: obligatoria, verifica: pipeline,
    regla: "deploy/ contiene Deployment, Service y Route con terminación TLS edge e insecureEdgeTerminationPolicy Redirect; etiquetas app.kubernetes.io/name, part-of y version."}
-- {id: PD-09, area: Arquitectura, categoria: Despliegue, titulo: "Sin estado local", nivel: obligatoria, verifica: revisión,
+- {id: PD-09, aplica: [openshift, iis, jboss, springboot, quarkus], area: Arquitectura, categoria: Despliegue, titulo: "Sin estado local", nivel: obligatoria, verifica: revisión,
    regla: "La aplicación no guarda estado en el contenedor: los datos van a una base de datos o servicio externo; si necesita disco, un PVC declarado en deploy/."}
-- {id: PD-10, area: Operación, categoria: Observabilidad, titulo: "Logs a la salida estándar en JSON", nivel: obligatoria, verifica: revisión,
+- {id: PD-10, aplica: [openshift, jboss, springboot, quarkus], area: Operación, categoria: Observabilidad, titulo: "Logs a la salida estándar en JSON", nivel: obligatoria, verifica: revisión,
    regla: "Los logs salen por stdout en formato JSON (nivel, mensaje, fecha, request id), sin datos personales ni secretos."}
-- {id: PD-11, area: Operación, categoria: Observabilidad, titulo: "Métricas para Prometheus", nivel: recomendada, verifica: revisión,
+- {id: PD-11, aplica: [openshift, jboss, springboot, quarkus], area: Operación, categoria: Observabilidad, titulo: "Métricas para Prometheus", nivel: recomendada, verifica: revisión,
    regla: "Expone /metrics en formato Prometheus con al menos solicitudes, errores y latencia."}
-- {id: PD-12, area: Seguridad, categoria: Seguridad, titulo: "Análisis estático sin hallazgos altos", nivel: obligatoria, verifica: pipeline,
+- {id: PD-12, aplica: [openshift], area: Seguridad, categoria: Seguridad, titulo: "Análisis estático sin hallazgos altos", nivel: obligatoria, verifica: pipeline,
    regla: "El código pasa el análisis estático (SAST) del pipeline sin hallazgos de severidad alta o crítica."}
-- {id: PD-13, area: Seguridad, categoria: Seguridad, titulo: "Dependencias fijas y sin CVE críticos", nivel: obligatoria, verifica: pipeline,
+- {id: PD-13, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Seguridad, titulo: "Dependencias fijas y sin CVE críticos", nivel: obligatoria, verifica: pipeline,
    regla: "Las dependencias se declaran con versión fija (requirements.txt, package-lock.json, pom.xml) y no tienen vulnerabilidades críticas conocidas."}
-- {id: PD-14, area: Seguridad, categoria: Seguridad, titulo: "Entradas validadas", nivel: obligatoria, verifica: revisión,
+- {id: PD-14, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Seguridad, titulo: "Entradas validadas", nivel: obligatoria, verifica: revisión,
    regla: "Toda entrada externa se valida (tipos, largo, formato) y las consultas a bases de datos son parametrizadas."}
-- {id: PD-15, area: Arquitectura, categoria: API, titulo: "API documentada con OpenAPI", nivel: recomendada, verifica: revisión,
+- {id: PD-15, aplica: [openshift], area: Arquitectura, categoria: API, titulo: "API documentada con OpenAPI", nivel: recomendada, verifica: revisión,
    regla: "Si expone una API REST, publica su contrato OpenAPI 3 en /openapi.json y responde errores con JSON {error, detalle}."}
-- {id: PD-16, area: Calidad, categoria: Pruebas, titulo: "Pruebas unitarias", nivel: obligatoria, verifica: pipeline,
+- {id: PD-16, aplica: [openshift], area: Calidad, categoria: Pruebas, titulo: "Pruebas unitarias", nivel: obligatoria, verifica: pipeline,
    regla: "Incluye pruebas unitarias que el pipeline ejecuta; cobertura mínima de 70 % de la lógica de negocio."}
-- {id: PD-17, area: Calidad, categoria: Git, titulo: "Gitflow y commits convencionales", nivel: obligatoria, verifica: revisión,
+- {id: PD-17, aplica: [openshift, iis, jboss, springboot, quarkus], area: Calidad, categoria: Git, titulo: "Gitflow y commits convencionales", nivel: obligatoria, verifica: revisión,
    regla: "Cada requerimiento se desarrolla en una rama feature/<nombre> desde develop; los commits siguen Conventional Commits (feat:, fix:, chore:)."}
-- {id: PD-18, area: Calidad, categoria: Git, titulo: "README y responsable", nivel: recomendada, verifica: revisión,
+- {id: PD-18, aplica: [openshift, iis, jboss, springboot, quarkus], area: Calidad, categoria: Git, titulo: "README y responsable", nivel: recomendada, verifica: revisión,
    regla: "El repositorio tiene README con propósito, cómo ejecutarlo localmente, variables de entorno y el responsable del componente."}
-- {id: PD-19, area: Arquitectura, categoria: Lenguajes, titulo: "Stack aceptado por el manifiesto", nivel: obligatoria, verifica: revisión,
+- {id: PD-19, aplica: [openshift, iis, jboss, springboot, quarkus], area: Arquitectura, categoria: Lenguajes, titulo: "Stack aceptado por el manifiesto", nivel: obligatoria, verifica: revisión,
    regla: "Solo lenguajes y frameworks aceptados en el manifiesto de arquitectura: Python 3.11+ (Flask/FastAPI), Node.js 20 (Express), Java 17+ (Quarkus o JBoss EAP)."}
+- {id: PD-20, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Seguridad, titulo: "Sin modo depuración ni errores detallados", nivel: obligatoria, verifica: revisión,
+   regla: "En los ambientes productivos la aplicación no corre en modo depuración ni muestra trazas o errores detallados al usuario (IIS: compilation debug y customErrors; Java: devtools, stacktrace y nivel DEBUG del log raíz)."}
+- {id: PD-21, aplica: [openshift, iis, jboss, springboot, quarkus], area: Seguridad, categoria: Seguridad, titulo: "Consolas y endpoints de administración no expuestos", nivel: obligatoria, verifica: revisión,
+   regla: "Las consolas y endpoints de administración (consola de JBoss, actuator de Spring, Swagger UI, listado de directorios de IIS) no quedan expuestos a todas las interfaces ni al público."}
+- {id: PD-22, aplica: [iis, jboss, springboot, quarkus], area: Infraestructura, categoria: Seguridad, titulo: "Tráfico cifrado con TLS y cookies seguras", nivel: obligatoria, verifica: revisión,
+   regla: "Las aplicaciones fuera de OpenShift atienden por HTTPS (o detrás de un proxy TLS declarado) y sus cookies de sesión van marcadas como seguras."}

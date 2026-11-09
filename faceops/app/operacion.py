@@ -1083,6 +1083,12 @@ def actualizar_tickets():
                     guardar_levantamiento(t, artefactos_ticket(aap, t))
                 except Exception as x:  # noqa: BLE001
                     print("Levantamiento de licencias:", str(x)[:200])
+            if est == "exitoso" and a_.get("nombre_aap") == "Políticas de desarrollo · Evaluar aplicaciones":
+                try:   # cumplimiento de las políticas de desarrollo por aplicación instalada
+                    from .politicas_eval import guardar as guardar_pol_eval
+                    guardar_pol_eval(t, artefactos_ticket(aap, t))
+                except Exception as x:  # noqa: BLE001
+                    print("Evaluación de políticas de desarrollo:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") in AUTOS_SO:
                 try:   # la última evaluación del sistema operativo queda a la mano en cada equipo
                     guardar_eval_so(t, artefactos_ticket(aap, t))

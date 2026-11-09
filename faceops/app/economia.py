@@ -171,11 +171,14 @@ def regla(a, c=None, medidos=None):
 
 def sincronizar_minutos():
     """El esfuerzo manual de cada automatización es la suma de sus tareas (lo usan el ahorro y los paneles)."""
+    from .bd import q as _q
+    if "minutos_editado" not in {r["name"] for r in _q("PRAGMA table_info(automatizaciones)")}:
+        ej("ALTER TABLE automatizaciones ADD COLUMN minutos_editado INTEGER DEFAULT 0")
     tareas, comp = catalogo_tareas()
     for nombre, codigos in comp.items():
         m = sum(tareas[c]["manual"] for c in codigos if c in tareas)
-        if m:
-            ej("UPDATE automatizaciones SET minutos_manual=? WHERE nombre_aap=?", int(round(m)), nombre)
+        if m:   # salvo donde el cliente lo ajustó en la ficha
+            ej("UPDATE automatizaciones SET minutos_manual=? WHERE nombre_aap=? AND COALESCE(minutos_editado, 0)=0", int(round(m)), nombre)
 
 
 def unidades(a, t, params, unidad):

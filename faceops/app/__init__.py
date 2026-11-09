@@ -36,11 +36,38 @@ def version_info():
     return v
 
 
+class PrefijoCliente:
+    """Cada URL lleva el código del cliente: /faceops/<código>/inventario. El código sale de PATH_INFO y pasa a SCRIPT_NAME,
+    así url_for genera todos los enlaces con el cliente y la sesión no decide por su cuenta en qué cliente se está."""
+    def __init__(self, wsgi, app):
+        self.wsgi, self.app, self._c = wsgi, app, (0.0, set())
+
+    def codigos(self):
+        import time
+        if time.time() - self._c[0] > 30:
+            try:
+                rutas = {r.rule.strip("/").split("/")[0] for r in self.app.url_map.iter_rules()}
+                self._c = (time.time(), {(c["codigo"] or "").lower() for c in bd.q("SELECT codigo FROM clientes")} - rutas - {""})
+            except Exception:  # noqa: BLE001
+                return self._c[1]
+        return self._c[1]
+
+    def __call__(self, environ, start_response):
+        partes = (environ.get("PATH_INFO") or "/").split("/", 2)
+        if len(partes) > 1 and partes[1].lower() in self.codigos():
+            environ["faceops.raiz"] = environ.get("SCRIPT_NAME", "")
+            environ["faceops.cliente"] = partes[1].lower()
+            environ["SCRIPT_NAME"] = environ.get("SCRIPT_NAME", "") + "/" + partes[1]
+            environ["PATH_INFO"] = "/" + (partes[2] if len(partes) > 2 else "")
+        return self.wsgi(environ, start_response)
+
+
 def create_app():
     from . import replay
     replay.activar()   # solo la maqueta: grabar o reproducir los servicios externos
     app = Flask(__name__)
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+    app.extensions["prefijo_cliente"] = pc_ = PrefijoCliente(app.wsgi_app, app)
+    app.wsgi_app = ProxyFix(pc_, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
     clave = os.environ.get("FACEOPS_CLAVE_SESION")
     if not clave:
         ruta = os.path.join(os.path.dirname(bd.RUTA), "clave-sesion")
@@ -81,9 +108,16 @@ def create_app():
         g.cliente = None
         if g.clientes:
             cid = session.get("cliente_id")
-            g.cliente = next((c for c in g.clientes if c["id"] == cid), g.clientes[0])
+            pref = request.environ.get("faceops.cliente")
+            por_url = next((c for c in g.clientes if (c["codigo"] or "").lower() == pref), None) if pref else None
+            g.cliente = por_url or next((c for c in g.clientes if c["id"] == cid), g.clientes[0])
             session["cliente_id"] = g.cliente["id"]
             g.perfil = perfil(g.usuario, g.cliente["id"])
+            cod = (g.cliente["codigo"] or "").lower()
+            if (request.method == "GET" and pref != cod and cod in app.extensions["prefijo_cliente"].codigos() and request.endpoint not in (None, "static", "consola.cambiar_cliente", "consola.salir")
+                    and not request.path.startswith("/api/") and "text/html" in (request.headers.get("Accept") or "")
+                    and not request.headers.get("X-Requested-With")):   # la URL siempre dice en qué cliente se está
+                return redirect(request.environ.get("faceops.raiz", request.script_root) + "/" + cod + request.full_path.rstrip("?"))
         g.acceso, g.ver_como = None, None
         if g.usuario and g.cliente:
             from . import rbac as _rbac

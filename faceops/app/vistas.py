@@ -355,10 +355,19 @@ def salir():
 @bp.route("/cliente/<int:cid>")
 @requiere_login
 def cambiar_cliente(cid):
-    if any(c["id"] == cid for c in g.clientes):
+    nuevo = next((c for c in g.clientes if c["id"] == cid), None)
+    if nuevo:
         session["cliente_id"] = cid
     ir = request.args.get("ir", "")
-    return redirect(ir if ir.startswith("/") and not ir.startswith("//") else (request.referrer or url_for("consola.inicio")))
+    ir = ir if ir.startswith("/") and not ir.startswith("//") else url_for("consola.inicio")
+    if nuevo:   # la URL lleva el código del cliente: se cambia el prefijo, no solo la sesión
+        raiz = request.environ.get("faceops.raiz", request.script_root)
+        resto = ir[len(raiz):] if raiz and ir.startswith(raiz + "/") else ir
+        seg = resto.split("/", 2)
+        if len(seg) > 1 and seg[1].lower() in current_app.extensions["prefijo_cliente"].codigos():
+            resto = "/" + (seg[2] if len(seg) > 2 else "")
+        ir = raiz + "/" + (nuevo["codigo"] or "").lower() + resto if (nuevo["codigo"] or "").lower() in current_app.extensions["prefijo_cliente"].codigos() else raiz + resto
+    return redirect(ir)
 
 
 # ------------------------------------------------------------------ panel
@@ -6504,6 +6513,21 @@ def politicas_desarrollo():
     """Gobierno › Arquitectura › Políticas de desarrollo: lo que todo código debe cumplir para correr en OpenShift; las usa el agente
     de la Fábrica de código para generar desarrollos y el pipeline verifica las automáticas."""
     from . import politicas_dev as PDV
+    from . import politicas_eval as PEV
+    if request.method == "POST" and request.form.get("accion") == "evaluar":
+        _escritura()
+        a_ = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], PEV.AUTO_EVALUAR)
+        if not a_:
+            flash(f"Falta «{PEV.AUTO_EVALUAR}» en el catálogo (sincroniza con AAP)", "error")
+            return redirect(url_for("consola.politicas_desarrollo", _anchor="cumplimiento"))
+        from .operacion import solicitar
+        try:
+            t = solicitar(g.usuario, g.cliente, a_, "*", {}, "Evaluar las aplicaciones instaladas contra las políticas de desarrollo")
+            flash(f"{t['numero']} creado: al aprobarse revisa las aplicaciones de IIS, JBoss, Spring Boot y Quarkus de cada máquina", "ok")
+            return redirect(url_for("consola.ticket", tid=t["id"]))
+        except (PermissionError, ErrorAAP, ValueError) as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.politicas_desarrollo", _anchor="cumplimiento"))
     if request.method == "POST":
         _escritura()
         try:
@@ -6521,7 +6545,10 @@ def politicas_desarrollo():
             cats.setdefault(p_["area"] or "Arquitectura", []).append(p_)
     ver = request.args.get("ver", "")
     hist = PDV.historial(g.cliente["id"], ver) if ver else []
+    cum = PEV.resumen(g.cliente["id"], {e["nombre"] for e in equipos_visibles()})
+    f_app = request.args.get("app", "")
     return render_template("politicas_desarrollo.html", cats=cats, ps=ps, niveles=PDV.NIVELES, verifica=PDV.VERIFICA, areas=PDV.AREAS, f_area=f_area,
+                           plataformas=PDV.PLATAFORMAS, aplica=PDV.aplica, cum=cum, f_app=f_app, estados=PEV.ESTADOS,
                            contrato=PDV.contrato(g.cliente["id"]), ver=ver, hist=hist,
                            fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and url_for("consola.fabrica_abrir"))
 

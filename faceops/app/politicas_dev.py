@@ -13,6 +13,12 @@ RUTA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 AREAS = ["Arquitectura", "Infraestructura", "Seguridad", "Operación", "Calidad"]   # quién define la política (hacia el desarrollo)
 NIVELES = {"obligatoria": "Obligatoria", "recomendada": "Recomendada"}
 VERIFICA = {"pipeline": "Pipeline (automática)", "revisión": "Revisión"}
+PLATAFORMAS = {"openshift": "OpenShift", "iis": "IIS (.NET)", "jboss": "JBoss EAP", "springboot": "Spring Boot", "quarkus": "Quarkus"}
+
+
+def aplica(p):
+    """Plataformas donde rige la política (lista)."""
+    return [x for x in (p.get("aplica") or "openshift").split(",") if x in PLATAFORMAS] or ["openshift"]
 
 
 def _tabla():
@@ -21,19 +27,24 @@ def _tabla():
     ej("CREATE TABLE IF NOT EXISTS politicas_desarrollo_hist (id INTEGER PRIMARY KEY, cliente_id INTEGER, codigo TEXT, version INTEGER, datos TEXT, "
        "autor TEXT, fecha TEXT, motivo TEXT)")
     from .bd import q as _q
-    if "area" not in {r["name"] for r in _q("PRAGMA table_info(politicas_desarrollo)")}:
+    cols = {r["name"] for r in _q("PRAGMA table_info(politicas_desarrollo)")}
+    if "area" not in cols:
         ej("ALTER TABLE politicas_desarrollo ADD COLUMN area TEXT DEFAULT ''")
+    if "aplica" not in cols:
+        ej("ALTER TABLE politicas_desarrollo ADD COLUMN aplica TEXT DEFAULT ''")
 
 
 def lista(cliente_id):
     _tabla()
-    if not q1("SELECT 1 FROM politicas_desarrollo WHERE cliente_id=?", cliente_id):
-        for p in yaml.safe_load(open(RUTA, encoding="utf-8")) or []:
-            ej("INSERT OR IGNORE INTO politicas_desarrollo (cliente_id, codigo, categoria, titulo, regla, nivel, verifica, area, autor, fecha) VALUES (?,?,?,?,?,?,?,?,?,?)",
-               cliente_id, p["id"], p["categoria"], p["titulo"], p["regla"], p["nivel"], p.get("verifica", "revisión"), p.get("area", "Arquitectura"), "base", ahora())
-    base = {p["id"]: p.get("area") for p in yaml.safe_load(open(RUTA, encoding="utf-8")) or []}
-    for r in q("SELECT id, codigo FROM politicas_desarrollo WHERE cliente_id=? AND COALESCE(area,'')=''", cliente_id):
-        ej("UPDATE politicas_desarrollo SET area=? WHERE id=?", base.get(r["codigo"]) or "Arquitectura", r["id"])
+    base = {p["id"]: p for p in yaml.safe_load(open(RUTA, encoding="utf-8")) or []}
+    for p in base.values():   # las políticas base que falten (las nuevas de cada versión) entran; las existentes no se tocan
+        ej("INSERT OR IGNORE INTO politicas_desarrollo (cliente_id, codigo, categoria, titulo, regla, nivel, verifica, area, aplica, autor, fecha) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+           cliente_id, p["id"], p["categoria"], p["titulo"], p["regla"], p["nivel"], p.get("verifica", "revisión"), p.get("area", "Arquitectura"),
+           ",".join(p.get("aplica") or ["openshift"]), "base", ahora())
+    for r in q("SELECT id, codigo FROM politicas_desarrollo WHERE cliente_id=? AND (COALESCE(area,'')='' OR COALESCE(aplica,'')='')", cliente_id):
+        b = base.get(r["codigo"]) or {}
+        ej("UPDATE politicas_desarrollo SET area=COALESCE(NULLIF(area,''), ?), aplica=COALESCE(NULLIF(aplica,''), ?) WHERE id=?",
+           b.get("area") or "Arquitectura", ",".join(b.get("aplica") or ["openshift"]), r["id"])
     orden = {a: i for i, a in enumerate(AREAS)}
     return sorted(q("SELECT * FROM politicas_desarrollo WHERE cliente_id=?", cliente_id), key=lambda p: (orden.get(p["area"], 99), p["categoria"], p["codigo"]))
 
@@ -48,19 +59,20 @@ def guardar(cliente_id, f, autor):
     ver = f.get("verifica") if f.get("verifica") in VERIFICA else "revisión"
     cat = (f.get("categoria") or "General").strip()[:60]
     area = f.get("area") if f.get("area") in AREAS else "Arquitectura"
+    apl = ",".join(x for x in PLATAFORMAS if x in (f.getlist("aplica") if hasattr(f, "getlist") else (f.get("aplica") or []))) or "openshift"
     actual = q1("SELECT * FROM politicas_desarrollo WHERE cliente_id=? AND codigo=?", cliente_id, cod) if cod else None
     if actual:
         ej("INSERT INTO politicas_desarrollo_hist (cliente_id, codigo, version, datos, autor, fecha, motivo) VALUES (?,?,?,?,?,?,?)", cliente_id, cod,
            actual["version"], json.dumps(actual, ensure_ascii=False), autor, ahora(), (f.get("motivo") or "")[:300])
-        ej("UPDATE politicas_desarrollo SET categoria=?, titulo=?, regla=?, nivel=?, verifica=?, area=?, activa=?, version=version+1, autor=?, fecha=? WHERE id=?",
-           cat, tit, regla, nivel, ver, area, 0 if f.get("activa") == "0" else 1, autor, ahora(), actual["id"])
+        ej("UPDATE politicas_desarrollo SET categoria=?, titulo=?, regla=?, nivel=?, verifica=?, area=?, aplica=?, activa=?, version=version+1, autor=?, fecha=? WHERE id=?",
+           cat, tit, regla, nivel, ver, area, apl, 0 if f.get("activa") == "0" else 1, autor, ahora(), actual["id"])
         return cod
     n = len(q("SELECT id FROM politicas_desarrollo WHERE cliente_id=?", cliente_id)) + 1
     while q1("SELECT 1 FROM politicas_desarrollo WHERE cliente_id=? AND codigo=?", cliente_id, f"PD-{n:02d}"):
         n += 1
     cod = f"PD-{n:02d}"
-    ej("INSERT INTO politicas_desarrollo (cliente_id, codigo, categoria, titulo, regla, nivel, verifica, area, autor, fecha) VALUES (?,?,?,?,?,?,?,?,?,?)",
-       cliente_id, cod, cat, tit, regla, nivel, ver, area, autor, ahora())
+    ej("INSERT INTO politicas_desarrollo (cliente_id, codigo, categoria, titulo, regla, nivel, verifica, area, aplica, autor, fecha) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+       cliente_id, cod, cat, tit, regla, nivel, ver, area, apl, autor, ahora())
     return cod
 
 
@@ -72,7 +84,7 @@ def historial(cliente_id, codigo):
 def contrato(cliente_id):
     """Lo que recibe el agente: las políticas activas, su versión y una huella del conjunto (cambia cuando cambia cualquier política)."""
     ps = [p for p in lista(cliente_id) if p["activa"]]
-    cuerpo = [{k: p[k] for k in ("codigo", "area", "categoria", "titulo", "regla", "nivel", "verifica", "version")} for p in ps]
+    cuerpo = [{**{k: p[k] for k in ("codigo", "area", "categoria", "titulo", "regla", "nivel", "verifica", "version")}, "aplica": aplica(p)} for p in ps]
     huella = hashlib.sha256(json.dumps(cuerpo, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
     return {"huella": huella, "fecha": ahora(), "politicas": cuerpo}
 
@@ -86,5 +98,6 @@ def markdown(cliente_id):
         if p["area"] != area:
             area = p["area"]
             lineas += ["", f"## Área {area}"]
-        lineas.append(f"- **{p['codigo']} · {p['titulo']}** [{p['categoria']}] ({p['nivel']}; verifica: {p['verifica']}): {p['regla']}")
+        lineas.append(f"- **{p['codigo']} · {p['titulo']}** [{p['categoria']}] ({p['nivel']}; verifica: {p['verifica']}; aplica a: "
+                      f"{', '.join(PLATAFORMAS[x] for x in p['aplica'])}): {p['regla']}")
     return "\n".join(lineas) + "\n"

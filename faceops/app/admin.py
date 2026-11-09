@@ -421,6 +421,9 @@ def catalogo():
         guia = dict(previa, **{k: f.get("g_" + k, "").strip() for k in CAMPOS_GUIA})
         guia.pop("_origen", None)  # editada a mano: ya no se pisa con datos/guias*.yml
         datos["guia"] = json.dumps({k: v for k, v in guia.items() if v}, ensure_ascii=False)
+        antes = q1("SELECT minutos_manual FROM automatizaciones WHERE id=? AND cliente_id=?", aid, cid) or {}
+        if antes and int(antes.get("minutos_manual") or 0) != datos["minutos_manual"]:
+            datos["minutos_editado"] = 1   # parámetro del cliente: el recálculo desde las tareas ya no lo pisa
         ej("UPDATE automatizaciones SET " + ", ".join(f"{k}=?" for k in datos) + " WHERE id=? AND cliente_id=?", *datos.values(), aid, cid)
         auditar(g.usuario["usuario"], cid, "editar ficha", datos["nombre"], datos)
         flash(f"Ficha de «{datos['nombre']}» guardada", "ok")
