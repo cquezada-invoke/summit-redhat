@@ -14,7 +14,7 @@ from flask import Flask, jsonify, render_template_string, request
 S3 = os.environ.get("S3_URL", "http://minio:9000").rstrip("/")
 TRINO = os.environ.get("TRINO_URL", "http://trino:8080").rstrip("/")
 BUCKET = "lake"
-LOTE, CADA = 100, 15          # se escribe al lake cada 100 registros o cada 15 segundos
+LOTE, CADA = 2000, 15          # se escribe al lake cada 100 registros o cada 15 segundos
 app = Flask(__name__)
 _buf, _cont, _ult, _gen, _tablas = {}, {}, {}, {}, set()
 _lock = threading.Lock()

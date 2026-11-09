@@ -1,0 +1,18 @@
+# Prueba de carga de la App de pagos (Job): cientos de miles de requests por el balanceador; el espejo los deriva al lake.
+apiVersion: batch/v1
+kind: Job
+metadata: {name: carga-pagos, namespace: demo-datalake}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: carga
+          image: registry.access.redhat.com/ubi9/python-311:1-77
+          command: ["python3", "/carga/carga-pagos.py"]
+          env: [{name: CARGA_BASE, value: "https://192.168.122.11"}, {name: CARGA_TOTAL, value: "300000"}, {name: CARGA_HILOS, value: "48"}]
+          volumeMounts: [{name: carga, mountPath: /carga}]
+          resources: {requests: {cpu: 200m, memory: 128Mi}, limits: {cpu: "1", memory: 256Mi}}
+      volumes: [{name: carga, configMap: {name: carga-pagos}}]

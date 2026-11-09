@@ -13,6 +13,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import agentes as A
 import lago
 import sectores  # noqa: F401  (registra Banca y Telco)
+import uso  # noqa: F401  (App de pagos real: tendencias por uso desde el lake de FaceOps)
 from lago import APPS
 
 app = Flask(__name__)
