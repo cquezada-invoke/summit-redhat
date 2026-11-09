@@ -1,0 +1,38 @@
+commit: 2f86b171f6392359fc691657861bd90e8ba7fc2c
+inicio: 2026-11-09T12:13:49-03:00
+---
+bajado deployment.apps/bd (1)
+bajado deployment.apps/web (1)
+bajado deployment.apps/ws (1)
+gestion-usuarios-8456bc56fd-mzjrs         0/1     Pending      0          4m55s   <none>         <none>   <none>           <none>
+postgres-usuarios-5b6b844f7-zn6qf         0/1     Pending      0          4m55s   <none>         <none>   <none>           <none>
+usuarios-demo-1-build                     0/1     Init:Error   0          34m     10.128.0.151   sno      <none>           <none>
+usuarios-demo-2-build                     0/1     Error        0          28m     10.128.0.154   sno      <none>           <none>
+usuarios-demo-54cdd4f8b8-8p74t            0/1     Pending      0          34m     <none>         <none>   <none>           <none>
+usuarios-demo-54cdd4f8b8-g7lgs            0/1     Pending      0          34m     <none>         <none>   <none>           <none>
+usuarios-demo-f85fc85f6-dk9cw             0/1     Pending      0          27m     <none>         sno      <none>           <none>
+usuarios-demo-postgres-864ffc49f6-x69mn   0/1     Pending      0          27m     <none>         <none>   <none>           <none>
+4m54s       Normal    ScalingReplicaSet              deployment/gestion-usuarios                    Scaled up replica set gestion-usuarios-746d9bd4fb from 0 to 1
+4m54s       Warning   FailedScheduling               pod/gestion-usuarios-746d9bd4fb-bsp5q          0/1 nodes are available: 1 Insufficient cpu, 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption
+2m55s       Warning   ProvisioningFailed             persistentvolumeclaim/usuarios-demo-postgres   storageclass.storage.k8s.io "ocs-storagecluster-ceph-rbd" not found
+2m46s       Warning   FailedGetResourceMetric        horizontalpodautoscaler/usuarios-demo          failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+2m9s        Warning   FailedScheduling               pod/usuarios-demo-postgres-864ffc49f6-x69mn    0/1 nodes are available: pod has unbound immediate PersistentVolumeClaims. preemption: 0/1 nodes are available: 1 Preemp
+115s        Warning   FailedComputeMetricsReplicas   horizontalpodautoscaler/gestion-usuarios       invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utiliza
+100s        Warning   FailedGetResourceMetric        horizontalpodautoscaler/gestion-usuarios       failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+10s         Normal    FailedBinding                  persistentvolumeclaim/postgres-usuarios-data   no persistent volumes available for this claim and no storage class is set
+--- pod/gestion-usuarios-746d9bd4fb-bsp5q
+--- pod/gestion-usuarios-8456bc56fd-mzjrs
+--- pod/postgres-usuarios-5b6b844f7-zn6qf
+--- pod/usuarios-demo-54cdd4f8b8-8p74t
+== gcloud en el lab
+project = master-ia-320218
+ERROR: (gcloud.compute.instances.list) You do not currently have an active account selected.
+Please run:
+
+  $ gcloud auth login
+<!DOCTYPE html>
+<html lang=en>
+  <meta charset=utf-8>
+  <meta name=viewport content="initial-scale=1, minimum-scale=1, width=device-width">
+  <title>Error 404 (Not Found)!!1</title>
+--- fin: 2026-11-09T12:13:55-03:00 · código: 0
