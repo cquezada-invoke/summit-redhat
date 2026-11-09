@@ -1,16 +1,29 @@
-commit: 9a7f27ec50d22bf718bc8d2e7901c3afcb0b2c25
-inicio: 2026-11-09T09:09:38-03:00
+commit: e516da2f0e2e32f5a357a31bdf1a09a401bab334
+inicio: 2026-11-09T09:20:13-03:00
 ---
 imagen faceops lista
 sno api: ok
-AVISO: no se encontró ANTHROPIC_API_KEY en FaceOps (la Fábrica no podrá generar código)
 Push successful
 error: timed out waiting for the condition
 Waiting for deployment "fabrica" rollout to finish: 1 old replicas are pending termination...
-Traceback (most recent call last):
-  File "/tmp/fab.py", line 12, in <module>
-    texto = open("/opt/faceops/datos/devsecops/app-fabrica.yaml").read().replace("__HOST__", "192.168.122.1")
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/opt/faceops/datos/devsecops/app-fabrica.yaml'
+fabrica-1-build            0/1     Completed   0          16m    10.128.0.105   sno      <none>           <none>
+fabrica-2-build            0/1     Completed   0          6m2s   10.128.0.106   sno      <none>           <none>
+fabrica-7dbbf98f4-4dbx8    0/1     Pending     0          5m     <none>         <none>   <none>           <none>
+fabrica-86d9554459-5rvkc   0/1     Pending     0          5m2s   <none>         <none>   <none>           <none>
+5m1s        Warning   FailedScheduling    pod/fabrica-7dbbf98f4-4dbx8     0/1 nodes are available: 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+5m1s        Normal    SuccessfulCreate    replicaset/fabrica-7dbbf98f4    Created pod: fabrica-7dbbf98f4-4dbx8
+5m1s        Warning   FailedScheduling    pod/fabrica-86d9554459-5rvkc    0/1 nodes are available: 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+5m1s        Normal    SuccessfulDelete    replicaset/fabrica-667d86c8cd   Deleted pod: fabrica-667d86c8cd-kn7f5
+5m1s        Normal    BuildCompleted      build/fabrica-2                 Build fabrica-codigo/fabrica-2 completed successfully
+5m1s        Warning   FailedScheduling    pod/fabrica-667d86c8cd-kn7f5    0/1 nodes are available: 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+5m1s        Normal    ScalingReplicaSet   deployment/fabrica              Scaled down replica set fabrica-667d86c8cd from 1 to 0
+5m1s        Normal    ScalingReplicaSet   deployment/fabrica              Scaled up replica set fabrica-7dbbf98f4 from 0 to 1
+Found 2 pods, using pod/fabrica-86d9554459-5rvkc
+secret fabrica-ocp en k3s
+org fabrica 201
+FaceOps con la Fábrica conectada
+app-fabrica.yaml app-jboss.yaml app-node-contenedor.yaml app-python-sast.yaml catalogo infra-ansible-calidad.yaml 
+pipeline app-fabrica en Git
+aplicar app-fabrica: FO-LAB-01356 exitoso 
 fabrica pública 503
---- fin: 2026-11-09T09:17:21-03:00 · código: 0
+--- fin: 2026-11-09T09:29:09-03:00 · código: 0
