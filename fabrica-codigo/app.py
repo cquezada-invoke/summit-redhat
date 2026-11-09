@@ -432,6 +432,12 @@ def _trabajo(tid, sid, req_, previo):
         paso("Listo" if not malos else f"Listo, con {len(malos)} pendiente{'s' if len(malos) != 1 else ''}")
         t["resultado"] = {"nombre": p["nombre"], "resumen": p.get("resumen", ""), "stack": p.get("stack", ""), "politicas": p.get("politicas_aplicadas", []),
                           "archivos": dict(p["archivos"]), "revision": malos, "huella": p["huella_politicas"]}
+        if t.get("origen") == "rhdh" and not malos:   # desde Developer Hub: se entrega solo, en su rama feature
+            paso("Entregando en Git (rama feature) y registrando en el catálogo de Developer Hub")
+            repo, rama = publicar(p, t.get("usuario", "rhdh"))
+            p.update(repo=repo, rama=rama, ticket=None)
+            t["resultado"]["entrega"] = {"repo": repo, "rama": rama, "url": f"{GITEA_PUBLICA}/{ORG}/{repo}/src/branch/{rama}"}
+            paso(f"Entregado: {repo} · {rama}")
     except requests.RequestException as x:
         rs = getattr(x, "response", None)
         det = ""
@@ -469,6 +475,27 @@ def api_generar():
         TRABAJOS.pop(k, None)
     threading.Thread(target=_trabajo, args=(tid, sid, req_, previo), daemon=True).start()
     return jsonify({"trabajo": tid})
+
+
+@app.route("/api/rhdh", methods=["POST"])
+def api_rhdh():
+    """Plantilla de Developer Hub: inicia el desarrollo; al terminar, si cumple las políticas, se entrega solo en su rama feature
+    y queda registrado en el catálogo. Responde de inmediato con el trabajo para seguir su avance."""
+    usuario, sid = _sesion()
+    d = request.get_json(silent=True) or {}
+    if d.get("usuario") and usuario == "developer-hub":   # quien lo pidió en Developer Hub (dueño del componente)
+        usuario = re.sub(r"[^a-z0-9._-]", "-", str(d["usuario"]).lower())[:60]
+        sid = "rhdh-" + hashlib.sha256(usuario.encode()).hexdigest()[:16]
+    req_ = (d.get("mensaje") or "").strip()[:4000]
+    if len(req_) < 10:
+        return jsonify({"error": "Describe el requerimiento funcional"}), 400
+    if d.get("nombre"):
+        req_ += f"\n\nNombre del componente (usar exactamente): {re.sub(r'[^a-z0-9-]', '-', d['nombre'].lower())[:40]}"
+    tid = secrets.token_hex(8)
+    TRABAJOS[tid] = {"sid": sid, "inicio": time.time(), "pasos": [], "listo": False, "motor": d.get("motor") if d.get("motor") in MOTORES else "claude",
+                     "origen": "rhdh", "usuario": usuario}
+    threading.Thread(target=_trabajo, args=(tid, sid, req_, None), daemon=True).start()
+    return jsonify({"trabajo": tid, "seguir": f"{FACEOPS_TRABAJOS}", "mensaje": "La Fábrica está generando el desarrollo; al terminar aparece en el catálogo."})
 
 
 @app.route("/api/motor", methods=["GET", "POST"])
@@ -515,11 +542,56 @@ def publicar(p, usuario):
     r = _git("GET", f"/repos/{ORG}/{repo}/git/trees/{sha_}", params={"recursive": "true", "per_page": 1000}) if sha_ else None
     if r is not None and r.ok:   # los archivos que ya están (p. ej. el README inicial) se actualizan, no se crean
         existentes = {x["path"]: x["sha"] for x in r.json().get("tree", []) if x.get("type") == "blob"}
+    archivos = dict(p["archivos"])
+    archivos.setdefault("catalog-info.yaml", catalogo_info(p, repo, rama, usuario))
     files = [{"operation": "update" if ruta in existentes else "create", "path": ruta, "sha": existentes.get(ruta),
-              "content": base64.b64encode(cont.encode()).decode()} for ruta, cont in p["archivos"].items()]
+              "content": base64.b64encode(cont.encode()).decode()} for ruta, cont in archivos.items()]
     msg = f"feat: {p['nombre']} desde la Fábrica de código\n\n{p.get('requerimiento', '')[:900]}\n\nPolíticas de desarrollo: versión {p['huella_politicas']}\nPedido por: {usuario}"
     _git("POST", f"/repos/{ORG}/{repo}/contents", json={"branch": rama, "message": msg, "files": files}).raise_for_status()
+    registrar_en_devhub(repo, rama)
     return repo, rama
+
+
+RHDH_URL = os.environ.get("RHDH_URL", "").rstrip("/")         # Red Hat Developer Hub (catálogo)
+RHDH_TOKEN = os.environ.get("RHDH_TOKEN", "")
+DOMINIO_APPS = os.environ.get("DOMINIO_APPS", "sno.34.176.42.56.sslip.io")
+FACEOPS_TRABAJOS = os.environ.get("FACEOPS_TRABAJOS", "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/fabrica/desarrollo")
+
+
+def catalogo_info(p, repo, rama, usuario):
+    """Componente para el catálogo de Developer Hub: dueño, fuente (rama feature), enlaces y la etiqueta que une el
+    componente con sus Deployments en OpenShift (Topology)."""
+    import yaml as _y
+    d = {"apiVersion": "backstage.io/v1alpha1", "kind": "Component",
+         "metadata": {"name": repo, "title": repo, "description": (p.get("resumen") or "")[:300],
+                      "tags": ["spring-boot", "openshift", "fabrica"],
+                      "annotations": {"backstage.io/kubernetes-label-selector": f"app.kubernetes.io/name={repo}",
+                                      "backstage.io/kubernetes-namespace": "fabrica-dev",
+                                      "backstage.io/source-location": f"url:{GITEA_PUBLICA}/{ORG}/{repo}/src/branch/{rama}",
+                                      "invoke.cl/rama-feature": rama, "invoke.cl/politicas": str(p.get("huella_politicas", ""))},
+                      "links": [{"url": f"{GITEA_PUBLICA}/{ORG}/{repo}/src/branch/{rama}", "title": "Repositorio (rama feature)"},
+                                {"url": f"https://{repo}.{DOMINIO_APPS}", "title": "Aplicación en desarrollo"},
+                                {"url": FACEOPS_TRABAJOS, "title": "Trabajos y ambientes (FaceOps)"}]},
+         "spec": {"type": "service", "lifecycle": "experimental", "owner": f"user:default/{re.sub(r'[^a-z0-9._-]', '-', usuario.lower())}",
+                  "system": "fabrica-de-software"}}
+    return _y.safe_dump(d, allow_unicode=True, sort_keys=False)
+
+
+def registrar_en_devhub(repo, rama):
+    """Da de alta (o refresca) el componente en el catálogo de Developer Hub. Si no está configurado, no hace nada."""
+    if not RHDH_URL or not RHDH_TOKEN:
+        return None
+    destino = f"{GITEA}/{ORG}/{repo}/src/branch/{rama}/catalog-info.yaml"
+    try:
+        r = requests.post(f"{RHDH_URL}/api/catalog/locations", json={"type": "url", "target": destino}, timeout=30, verify=False,
+                          headers={"Authorization": f"Bearer {RHDH_TOKEN}"})
+        if r.status_code == 409:   # ya registrado: se refresca
+            requests.post(f"{RHDH_URL}/api/catalog/refresh", json={"entityRef": f"component:default/{repo}"}, timeout=30, verify=False,
+                          headers={"Authorization": f"Bearer {RHDH_TOKEN}"})
+        return r.status_code
+    except requests.RequestException as x:
+        app.logger.warning("Developer Hub: %s", x)
+        return None
 
 
 @app.route("/api/publicar", methods=["POST"])
