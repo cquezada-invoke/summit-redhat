@@ -28,9 +28,10 @@ def esperar_fin(wj, aprobar=True, tope=900):
     t0 = time.time(); aprobados = set()
     while time.time() - t0 < tope:
         w = aap("GET", f"workflow_jobs/{wj}/")
-        for a in aap("GET", f"workflow_approvals/?status=pending&page_size=50")["results"]:
-            if (a["summary_fields"].get("source_workflow_job") or {}).get("id") == wj and a["id"] not in aprobados:
-                aap("POST", f"workflow_approvals/{a['id']}/{'approve' if aprobar else 'deny'}/", {}); aprobados.add(a["id"])
+        for n in aap("GET", f"workflow_jobs/{wj}/workflow_nodes/?page_size=50")["results"]:   # la aprobación de ESTE workflow
+            sj = n["summary_fields"].get("job") or {}
+            if sj.get("type") == "workflow_approval" and sj.get("status") == "pending" and sj["id"] not in aprobados:
+                aap("POST", f"workflow_approvals/{sj['id']}/{'approve' if aprobar else 'deny'}/", {}); aprobados.add(sj["id"])
         if w["status"] in ("successful", "failed", "canceled", "error"):
             return w
         time.sleep(4)
