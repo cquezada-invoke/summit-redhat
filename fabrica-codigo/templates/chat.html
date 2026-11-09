@@ -56,17 +56,20 @@ let ENTREGADO=false;
  else burbuja('<p class="ayuda">Conversación del trabajo <b>'+esc(d.repo)+'</b> · rama <code>'+esc(d.rama)+'</code> · '+esc(d.fecha||'')+' · '+esc(d.usuario||'')+'</p>');
  (d.conversacion||[]).forEach(m=>{const b=burbuja('',m.yo);b.style.whiteSpace='pre-wrap';b.textContent=m.texto;});
  burbuja('<p class="ayuda">Para seguir trabajando en él, escribe el ajuste y presiona Ajustar (el agente parte del código de esta rama).</p>');
- const [ok2]=await post('api/retomar',{repo:d.repo,rama:d.rama});if(ok2){ba.disabled=false;}})();
+ const [ok2]=await post('api/retomar',{repo:d.repo,rama:d.rama});if(ok2){ba.disabled=false;}
+ if(new URLSearchParams(location.search).get('lanzar')==='1')desplegar(null,{repo:d.repo,rama:d.rama});})();
 async function publicar(b){if(b)b.disabled=true;const w=burbuja('<p class="ayuda">Creando el repositorio, las ramas main y develop, y la rama feature con el desarrollo…</p>');
  const [ok,d]=await post('api/publicar',{conversacion:[...chat.children].slice(1).map(x=>({yo:x.classList.contains('yo'),texto:x.innerText.slice(0,6000)}))});
  if(!ok){w.innerHTML='<p class="chip mal">'+esc(d.error)+'</p>';if(b)b.disabled=false;return}
  ENTREGADO=true;
  w.innerHTML='<p><b>Repositorio entregado</b> en la rama <code>'+esc(d.rama)+'</code>:</p><p><a href="'+esc(d.repo)+'" target="_blank">'+esc(d.repo)+'</a></p><p class="ayuda">Clonar: <code>git clone -b '+esc(d.rama)+' '+esc(d.clonar)+'</code></p>'
   +'<p style="margin-top:8px"><button onclick="desplegar(this)">Desplegar en desarrollo</button></p><p class="ayuda">Se despliega con el pipeline de la Fábrica (Tekton): FaceOps crea el ticket con aprobación; revisa secretos, políticas, pruebas y análisis estático, construye en OpenShift y despliega en desarrollo.</p>'}
-async function desplegar(b){if(b)b.disabled=true;const w=burbuja('<p class="ayuda">Pidiendo a FaceOps el despliegue en desarrollo por el pipeline…</p>');
- const [ok,d]=await post('api/desplegar',{});
+async function desplegar(b,trabajo){if(b)b.disabled=true;const w=burbuja('<p class="ayuda">Pidiendo a FaceOps el despliegue en desarrollo por el pipeline'+(trabajo?' de la rama <code>'+esc(trabajo.rama)+'</code>':'')+'…</p>');
+ const [ok,d]=await post('api/desplegar',trabajo||{});
  if(!ok||!d.ticket){w.innerHTML='<p class="chip mal">'+esc(d.error||'FaceOps no creó el ticket')+'</p>';if(b)b.disabled=false;return}
- w.innerHTML='<p>Ticket en FaceOps: <b>'+esc(d.ticket)+'</b> · <span id="st-'+esc(d.ticket)+'" class="chip">pendiente de aprobación</span></p><p class="ayuda">El pipeline corre al aprobarse el ticket.</p>';
+ w.innerHTML='<p>Pipeline de <b>'+esc(d.repo||'')+'</b> · rama <code>'+esc(d.rama||'')+'</code> · ticket <b>'+esc(d.ticket)+'</b> · <span id="st-'+esc(d.ticket)+'" class="chip">pendiente de aprobación</span></p>'
+  +(d.pipeline_url?'<p><a href="'+esc(d.pipeline_url)+'" target="_blank" rel="noopener">Ver el pipeline (etapas en vivo)</a> · <a href="'+esc(d.ticket_url)+'" target="_blank" rel="noopener">ticket y aprobación</a></p>':'')
+  +'<p class="ayuda">El pipeline corre al aprobarse el ticket; aquí se actualiza su estado.</p>';
  seguir(d.ticket,d.app_url)}
 async function seguir(t,appUrl){const el=document.getElementById('st-'+t);for(let i=0;i<240;i++){const r=await fetch('api/ticket/'+encodeURIComponent(t));if(r.ok){const d=await r.json();el.textContent=d.estado.replace('_',' ');el.className='chip '+(d.estado==='exitoso'?'ok':d.estado==='fallido'?'mal':'');
  if(['exitoso','fallido','cancelado','rechazado'].includes(d.estado)){const u=(d.resultado.match(/https:\/\/[^\s"]+/)||[])[0]||(d.estado==='exitoso'?appUrl:'');burbuja('<p><b>'+esc(t)+'</b>: '+esc(d.estado)+'</p>'+(u?'<p>Aplicación: <a href="'+esc(u)+'" target="_blank">'+esc(u)+'</a></p>':'')+'<details><summary>Resultado</summary><pre>'+esc(d.resultado)+'</pre></details>');return}}

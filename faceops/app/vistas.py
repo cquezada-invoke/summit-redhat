@@ -6604,8 +6604,9 @@ def fabrica_desarrollo():
     t_ = request.args.get("trabajo", "")
     if not re.fullmatch(r"[a-z0-9-]{2,61}@feature/[a-z0-9-]{1,80}", t_):
         t_ = ""
+    extra = {"trabajo": t_, **({"lanzar": "1"} if request.args.get("lanzar") == "1" and g.perfil["modo"] == "escritura" else {})} if t_ else {}
     return render_template("fabrica_desarrollo.html", fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and
-                           url_for("consola.fabrica_app", ruta="", **({"trabajo": t_} if t_ else {})))
+                           url_for("consola.fabrica_app", ruta="", **extra))
 
 
 @bp.route("/fabrica/trabajos")

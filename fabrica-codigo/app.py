@@ -624,6 +624,12 @@ def api_publicar():
 def api_desplegar():
     """Despliega en desarrollo la rama feature entregada: FaceOps crea el ticket del pipeline (con aprobación) y Tekton revisa y despliega."""
     usuario, sid = _sesion()
+    d0 = request.get_json(silent=True) or {}
+    if d0.get("repo") or d0.get("rama"):   # botón «Lanzar pipeline» de la tabla de Trabajos: una rama feature concreta
+        if not _rama_ok(d0.get("repo"), d0.get("rama")):
+            return jsonify({"error": "Trabajo inválido"}), 400
+        p = PROYECTOS.setdefault(sid, {"nombre": d0["repo"], "archivos": {}, "revision": []})
+        p.update(repo=d0["repo"], rama=d0["rama"])
     p = PROYECTOS.get(sid)
     if not p or not p.get("repo"):
         return jsonify({"error": "Primero entrega el repositorio (rama feature)"}), 400
@@ -632,7 +638,8 @@ def api_desplegar():
                                                    "requerimiento": p.get("requerimiento", "")})
     d = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"error": f"FaceOps respondió {r.status_code}"}
     p["ticket"] = d.get("ticket")
-    return jsonify({"ticket": d.get("ticket"), "error": d.get("error"), "rama": p["rama"],
+    return jsonify({"ticket": d.get("ticket"), "error": d.get("error"), "rama": p["rama"], "repo": p["repo"],
+                    "pipeline_url": d.get("pipeline_url", ""), "ticket_url": d.get("ticket_url", ""),
                     "app_url": f"https://{p['repo']}.{DOMINIO_APPS}" if DOMINIO_APPS else ""}), (200 if r.ok else 502)
 
 

@@ -67,7 +67,9 @@ def api_fabrica_ejecutar():
     except Exception as x:  # noqa: BLE001
         return jsonify({"error": str(x)[:300]}), 409
     auditar("fabrica-codigo", cli["id"], "fábrica de código · pipeline pedido", nombre, {"repo": repo, "rama": rama, "ticket": t["numero"]})
-    return jsonify({"ticket": t["numero"], "id": t["id"], "estado": t.get("estado", "pendiente_aprobacion")})
+    pub = os.environ.get("FACEOPS_URL_PUBLICA", "https://faceops.34.176.42.56.sslip.io:8843/faceops").rstrip("/") + "/" + (cli.get("codigo") or "").lower()
+    return jsonify({"ticket": t["numero"], "id": t["id"], "estado": t.get("estado", "pendiente_aprobacion"),
+                    "pipeline_url": f"{pub}/devsecops/{PIPELINE}?corrida=ticket-{t['id']}", "ticket_url": f"{pub}/tickets/{t['id']}"})
 
 
 @bp.route("/api/fabrica/ticket/<numero>")
