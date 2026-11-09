@@ -1019,6 +1019,11 @@ def actualizar_tickets():
                            "apagado" if "shut" in ahora_ else "encendido", ahora(), t["cliente_id"], nombre_)
                 except Exception as x:  # noqa: BLE001
                     print("Energía:", str(x)[:200])
+            if est == "exitoso" and a_.get("nombre_aap") == "Infra · Ajustar recursos de máquinas":
+                try:   # la ficha muestra la CPU y la memoria nuevas sin esperar el próximo inventario
+                    ajustar_recursos_inventario(t)
+                except Exception as x:  # noqa: BLE001
+                    print("Recursos:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") in ("Sistema · Paquetes · inventario y respaldo", "Sistema · Inventariar máquina"):
                 try:   # FaceOps lee desde AAP lo que trajo la automatización (no se conecta a la máquina)
                     from .inventariado import guardar_paquetes, tras_inventariar
@@ -1957,3 +1962,11 @@ def trasladado(cliente, aap, mv):
     if e:
         ej("UPDATE equipos SET ip=COALESCE(NULLIF(?, ''), ip), ubicacion=COALESCE(NULLIF(?, ''), ubicacion) WHERE id=?", ip, ubic, e["id"])
     auditar("FaceOps", cliente["id"], "máquina trasladada", mv["maquina"], {"centro": ubic, "ip": ip, "modo": mv["modo"]})
+
+
+def ajustar_recursos_inventario(t):
+    """Aplica al inventario lo que pidió un ticket exitoso de «Ajustar recursos de máquinas» (ir_maquinas = nombre:vcpu:ram_mb, separados por coma)."""
+    for x in (j(t.get("parametros"), {}).get("ir_maquinas") or "").split(","):
+        p_ = x.strip().split(":")
+        if len(p_) == 3 and p_[1].isdigit() and p_[2].isdigit():
+            ej("UPDATE equipos SET cpu=?, ram_mb=? WHERE cliente_id=? AND nombre=?", int(p_[1]), int(p_[2]), t["cliente_id"], p_[0])
