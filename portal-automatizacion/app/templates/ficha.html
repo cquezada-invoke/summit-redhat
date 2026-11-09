@@ -6,7 +6,7 @@
 <p>Pasos:</p><ul>{% for p in pasos %}<li>{% if p.unified_job_type == 'workflow_approval' %}Aprobación (en AAP: <a href="{{ en_aap('aprobs', 0) }}" target="_blank">Workflow Approvals</a>){% else %}{{ p.name | replace('Portal · ', '') | replace(' (plantilla)', '') }}{% if p.aap %} — <a href="{{ p.aap }}" target="_blank">plantilla en AAP</a>{% endif %}{% if p.repo %} — <a href="{{ p.repo }}" target="_blank">{{ p.playbook }} en el repositorio</a>{% endif %}{% endif %}</li>{% endfor %}</ul>
 <form method="post" action="{{ url_for('lanzar', wid=w.id) }}">
 <input type="hidden" name="csrf" value="{{ csrf }}">
-{% if hosts %}<p>Servidores *<br><select name="_limite" multiple size="{{ [hosts | length, 8] | min }}" required>{% for h in hosts %}<option>{{ h }}</option>{% endfor %}</select></p>{% endif %}
+{% if hosts %}<p>Servidores * <span class="sub">— del inventario de AAP <a href="{{ en_aap('inv', w.inventory) }}" target="_blank">ver en AAP</a></span><br><select name="_limite" multiple size="{{ [hosts | length, 8] | min }}" required>{% for h in hosts %}<option>{{ h }}</option>{% endfor %}</select></p>{% endif %}
 {% for p in preguntas %}
 <p>{{ p.question_name }}{% if p.required %} *{% endif %}{% if p.question_description %} <span class="sub">— {{ p.question_description }}</span>{% endif %}<br>
 {% if p.type == 'multiplechoice' %}<select name="{{ p.variable }}">{% for c in (p.choices if p.choices is not string else p.choices.split('\n')) %}<option {{ 'selected' if c == p.default }}>{{ c }}</option>{% endfor %}</select>

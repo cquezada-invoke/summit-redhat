@@ -102,7 +102,9 @@ def _csrf():
 def en_aap(tipo, i):
     """Enlace a la consola de AAP (el portal no reemplaza a AAP: todo se ve y se audita allá)."""
     rutas = {"wf": "templates/workflow-template/{}/details", "jt": "templates/job-template/{}/details", "wj": "jobs/workflow/{}/output",
-             "job": "jobs/playbook/{}/output", "aprob": "workflow-approvals/{}/details", "aprobs": "workflow-approvals"}
+             "job": "jobs/playbook/{}/output", "aprob": "workflow-approvals/{}/details", "aprobs": "workflow-approvals",
+             "inv": "infrastructure/inventories/inventory/{}/details", "invs": "infrastructure/inventories", "host": "infrastructure/hosts/{}/details",
+             "cred": "infrastructure/credentials/{}/details", "proy": "projects/{}/details", "eda": "../decisions/rulebook-activations"}
     return f"{AAP_PUBLICO}/execution/" + rutas[tipo].format(i)
 
 
@@ -294,6 +296,16 @@ def api_aprobar(aid, accion):
         abort(400)
     aap("POST", f"workflow_approvals/{aid}/{accion}/", {})
     return jsonify(ok=True)
+
+
+@app.route("/inventario")
+def inventario():
+    """Servidores: los inventarios y hosts de AAP que el usuario puede ver (todo enlazado a AAP)."""
+    u = sesion() or abort(401)
+    invs = aap("GET", "inventories/?page_size=100&order_by=name")["results"]
+    sel = request.args.get("inv", type=int)
+    hosts = aap("GET", f"inventories/{sel}/hosts/?page_size=200&order_by=name")["results"] if sel else []
+    return render_template("inventario.html", u=u, invs=invs, sel=sel, hosts=hosts)
 
 
 @app.route("/aprobaciones")

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h3>Servidores (inventarios de AAP)</h3>
+<p class="sub">Es el inventario de Ansible Automation Platform: <a href="{{ en_aap('invs', 0) }}" target="_blank">ver inventarios en AAP</a>.</p>
+<ul>{% for i in invs %}<li><a href="{{ url_for('inventario', inv=i.id) }}">{{ i.name }}</a> — {{ i.total_hosts }} host(s){% if i.kind %} ({{ i.kind }}){% endif %} — <a href="{{ en_aap('inv', i.id) }}" target="_blank">AAP</a></li>{% endfor %}</ul>
+{% if sel %}
+<h4>Hosts de {{ (invs | selectattr('id', 'equalto', sel) | first).name }}</h4>
+<table><tr><th>Host</th><th>Habilitado</th><th>Último job</th><th>AAP</th></tr>
+{% for h in hosts %}<tr><td>{{ h.name }}</td><td>{{ 'sí' if h.enabled else 'no' }}</td>
+<td>{% set lj = h.summary_fields.last_job %}{% if lj %}<a href="{{ en_aap('job', lj.id) }}" target="_blank">#{{ lj.id }}</a> {{ lj.status }}{% else %}—{% endif %}</td>
+<td><a href="{{ en_aap('host', h.id) }}" target="_blank">ver host</a></td></tr>{% endfor %}</table>
+{% endif %}
+{% endblock %}
