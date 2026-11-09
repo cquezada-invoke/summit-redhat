@@ -8,9 +8,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-concurrency:
-  group: vm-canal
-  cancel-in-progress: false
+# Sin grupo de concurrencia: varias tareas a la vez, cada una en un runner libre de su tipo (larga / corta)
 jobs:
   tarea:
     runs-on: [self-hosted, summit-vm, "${{ startsWith(github.ref_name, 'vmt/c-') && 'corta' || 'larga' }}"]   # tareas cortas al runner "corta", largas a los "larga"
