@@ -393,5 +393,9 @@ async function ir(url,empujar){if(cargando)cargando.abort();cargando=new AbortCo
 document.addEventListener('click',e=>{if(e.defaultPrevented||e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;const a=e.target.closest('a[href]');
   if(!a||normal(a))return;e.preventDefault();ir(a.href,true)});
 addEventListener('popstate',()=>ir(location.href,false));history.replaceState({p:1},'',location.href);})();</script>
+<style>.fila-demo{background:rgba(240,171,0,.13)!important;box-shadow:inset 3px 0 0 #f0ab00}.fila-demo-caja{border-left:3px solid #f0ab00}</style>
+<script>/* Datos de demostración: toda fila o tarjeta con un registro demo («demo-…», «DEMO · …», «[demo]», «DEMO-0001») se pinta en ámbar */
+(()=>{const re=/(^|[\s(])(demo-[a-z0-9]|DEMO · |\[demo\]|DEMO-\d{4})/;const marcar=()=>document.querySelectorAll('main tr, main .card li, main .caja').forEach(el=>{if(re.test(el.textContent))el.classList.add('fila-demo')});
+marcar();document.addEventListener('faceops:pagina',marcar);})();</script>
 <style>body.navegando main{opacity:.55;transition:opacity .15s}body.navegando{cursor:progress}</style>
 </body></html>

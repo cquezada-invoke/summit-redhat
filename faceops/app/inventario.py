@@ -404,8 +404,8 @@ def sincronizar(cliente, usuario="sistema"):
         else:
             vistos.add(ej("INSERT INTO equipos(cliente_id, nombre, " + ", ".join(fila) + ") VALUES (?,?," +
                           ",".join("?" * len(fila)) + ")", cliente["id"], nombre, *fila.values()))
-    for e in q("SELECT id FROM equipos WHERE cliente_id=?", cliente["id"]):
-        if e["id"] not in vistos:
+    for e in q("SELECT id, nombre FROM equipos WHERE cliente_id=?", cliente["id"]):
+        if e["id"] not in vistos and not (e["nombre"] or "").startswith("demo-"):   # las máquinas demo no están en AAP: no se retiran
             ej("UPDATE equipos SET estado='retirado' WHERE id=?", e["id"])
     calcular(cliente)
     auditar(usuario, cliente["id"], "sincronizar inventario", "inventario", {"equipos": len(acum)})
@@ -518,11 +518,24 @@ def evaluar_control(e, c):
 
 def evaluar_hallazgos(cliente):
     cid = cliente["id"]
-    ej("DELETE FROM hallazgos WHERE cliente_id=?", cid)
+    ej("DELETE FROM hallazgos WHERE cliente_id=? AND COALESCE(titulo,'') NOT LIKE '[demo]%'", cid)   # los demo se quitan desde Administración
     segmentos = q("SELECT * FROM segmentos WHERE cliente_id=?", cid)
     hoy = datetime.now(timezone.utc)
     for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado'", cid):
-        if e["estado"] == "inventariado":
+        if e["estado"] == "inventariado" or (e["nombre"] or "").startswith("demo-"):
+            continue
+        propia = bool(j(e.get("datos"), {}).get("propia_faceops"))
+        if propia and not e.get("ultima_recoleccion"):
+            continue   # la máquina de FaceOps recién instalada parte limpia: se evalúa desde su primera recolección
+        if propia:
+            if e["estado"] == "con datos":
+                from .riesgo import hallazgos as hallazgos_riesgo
+                hallazgos_riesgo(cid, dict(e, skills=skills_de(e)), nuevo)
+            for p in politicas_de(e, cid, segmentos):
+                for c in j(p["controles"], []):
+                    ok, det = evaluar_control(e, c)
+                    if ok is False:
+                        nuevo(cid, e, "politica", p["severidad"], c["nombre"], det, politica=p["nombre"], sugerencia=c.get("remediacion", ""))
             continue
         if e["estado"] != "con datos":
             nuevo(cid, e, "recoleccion", "media", "Sin datos del recolector",

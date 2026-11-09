@@ -1,6 +1,11 @@
 {% extends "base.html" %}{% block titulo %}Admin{% endblock %}
 {% block cuerpo %}
 <h1>FaceOps-admin</h1><p class="sub">Clientes, valor generado y créditos consumidos · mes {{ mes }}</p>
+<div class="card fila-demo-caja" style="margin:0 0 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>Datos de demostración</b>
+  <span class="sub" style="flex:1;min-width:240px">Carga máquinas, segmentos, hallazgos y tickets ficticios solo en la base de FaceOps (no toca AAP ni máquinas). Quedan marcados en ámbar y se quitan con un clic.</span>
+  <form method="post" action="{{ url_for('admin.datos_demo') }}" style="display:flex;gap:6px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button class="btn sec" name="accion" value="cargar" onclick="return confirm('¿Cargar datos de demostración?')">Cargar datos demo</button>
+    <button class="btn sec" name="accion" value="quitar" onclick="return confirm('¿Quitar todos los datos de demostración?')">Quitar datos demo</button></form></div>
 <div class="grid g4">
   <div class="card kpi"><div class="n">{{ clientes|selectattr('activo')|list|length }}</div><div class="l">clientes activos · {{ usuarios }} usuarios</div></div>
   <div class="card kpi"><div class="n">{{ totales.ejecuciones }}</div><div class="l">ejecuciones este mes</div></div>
