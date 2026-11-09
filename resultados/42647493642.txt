@@ -1,0 +1,32 @@
+commit: 59ccd94a80a8e22c1b67eb909d02275a5df4b14a
+inicio: 2026-11-09T12:43:25-03:00
+---
+== pod/mantenedor-usuarios-55b84856f6-q7pgg
+Events:
+  Type     Reason          Age                   From               Message
+  ----     ------          ----                  ----               -------
+  Warning  Failed          29s (x27 over 5m34s)  kubelet            Error: configmap "mantenedor-usuarios" not found
+== pod/mantenedor-usuarios-5fb67b96b9-mjvx2
+Events:
+  Type     Reason          Age                   From               Message
+  ----     ------          ----                  ----               -------
+  Warning  Failed          25s (x27 over 5m34s)  kubelet            Error: configmap "mantenedor-usuarios" not found
+== pod/mantenedor-usuarios-db-7d447ff89c-fk5t6
+  ----     ------          ----                   ----               -------
+  Warning  Failed          2m35s (x5 over 5m33s)  kubelet            Failed to pull image "registry.access.redhat.com/rhel9/postgresql-16:9.6": initializing source docker://registry.access.redhat.com/rhel9/postgresql-16:9.6: reading manifest 9.6 in registry.ac
+  Warning  Failed          2m35s (x5 over 5m33s)  kubelet            Error: ErrImagePull
+  Warning  Failed          24s (x21 over 5m33s)   kubelet            Error: ImagePullBackOff
+== secrets (solo llaves)
+secret/mantenedor-usuarios-db: ['DB_PASSWORD', 'DB_USER', 'password', 'username']
+== env de la app
+JAVA_OPTS <- /
+DB_USERNAME <- mantenedor-usuarios-db/username
+DB_PASSWORD <- mantenedor-usuarios-db/password
+[{"configMapRef":{"name":"mantenedor-usuarios"}}]
+== imagen db
+registry.access.redhat.com/rhel9/postgresql-16:9.6
+postgresql-16:9.6 -> 0
+postgresql-16:1 -> 0
+postgresql-16:latest -> 0
+postgresql-16:9.5 -> 0
+--- fin: 2026-11-09T12:43:30-03:00 · código: 0
