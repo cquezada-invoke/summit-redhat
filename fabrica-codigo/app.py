@@ -544,6 +544,11 @@ def publicar(p, usuario):
         existentes = {x["path"]: x["sha"] for x in r.json().get("tree", []) if x.get("type") == "blob"}
     archivos = dict(p["archivos"])
     archivos.setdefault("catalog-info.yaml", catalogo_info(p, repo, rama, usuario))
+    archivos[".fabrica/conversacion.json"] = json.dumps({"repo": repo, "rama": rama, "usuario": usuario, "fecha": time.strftime("%Y-%m-%d %H:%M"),
+                                                         "requerimiento": p.get("requerimiento", ""), "resumen": p.get("resumen", ""),
+                                                         "conversacion": p.get("conversacion") or [{"yo": True, "texto": p.get("requerimiento", "")},
+                                                                                                    {"yo": False, "texto": p.get("resumen", "")}]},
+                                                        ensure_ascii=False, indent=1)
     files = [{"operation": "update" if ruta in existentes else "create", "path": ruta, "sha": existentes.get(ruta),
               "content": base64.b64encode(cont.encode()).decode()} for ruta, cont in archivos.items()]
     msg = f"feat: {p['nombre']} desde la Fábrica de código\n\n{p.get('requerimiento', '')[:900]}\n\nPolíticas de desarrollo: versión {p['huella_politicas']}\nPedido por: {usuario}"
@@ -601,6 +606,9 @@ def api_publicar():
     p = PROYECTOS.get(sid)
     if not p:
         return jsonify({"error": "Primero genera un proyecto"}), 400
+    conv = (request.get_json(silent=True) or {}).get("conversacion")
+    if isinstance(conv, list):   # la conversación del chat queda con el trabajo (se retoma desde la tabla de Trabajos)
+        p["conversacion"] = [{"yo": bool(m.get("yo")), "texto": str(m.get("texto", ""))[:6000]} for m in conv[:200] if isinstance(m, dict)]
     if p["revision"]:
         return jsonify({"error": "El proyecto aún no cumple las políticas obligatorias: " + "; ".join(p["revision"])}), 409
     try:
@@ -626,6 +634,50 @@ def api_desplegar():
     p["ticket"] = d.get("ticket")
     return jsonify({"ticket": d.get("ticket"), "error": d.get("error"), "rama": p["rama"],
                     "app_url": f"https://{p['repo']}.{DOMINIO_APPS}" if DOMINIO_APPS else ""}), (200 if r.ok else 502)
+
+
+def _rama_ok(repo, rama):
+    return re.fullmatch(r"[a-z0-9][a-z0-9-]{1,60}", repo or "") and re.fullmatch(r"feature/[a-z0-9-]{1,80}", rama or "")
+
+
+@app.route("/api/conversacion")
+def api_conversacion():
+    """Historia de la conversación de un trabajo (guardada con la entrega en .fabrica/conversacion.json de su rama feature)."""
+    _sesion()
+    repo, rama = request.args.get("repo", ""), request.args.get("rama", "")
+    if not _rama_ok(repo, rama):
+        return jsonify({"error": "Trabajo inválido"}), 400
+    r = _git("GET", f"/repos/{ORG}/{repo}/raw/.fabrica/conversacion.json", params={"ref": rama})
+    if not r.ok:
+        return jsonify({"error": "Este trabajo no tiene conversación guardada (se entregó antes de que existiera esta opción)",
+                        "repo": repo, "rama": rama}), 404
+    return jsonify(r.json())
+
+
+@app.route("/api/retomar", methods=["POST"])
+def api_retomar():
+    """Carga el código de la rama feature como proyecto actual de la sesión, para seguir ajustándolo desde el chat."""
+    usuario, sid = _sesion()
+    d = request.get_json(silent=True) or {}
+    repo, rama = d.get("repo", ""), d.get("rama", "")
+    if not _rama_ok(repo, rama):
+        return jsonify({"error": "Trabajo inválido"}), 400
+    b_ = _git("GET", f"/repos/{ORG}/{repo}/branches/{requests.utils.quote(rama, safe='')}")
+    sha_ = ((b_.json() or {}).get("commit") or {}).get("id") if b_.ok else ""
+    tr = _git("GET", f"/repos/{ORG}/{repo}/git/trees/{sha_}", params={"recursive": "true", "per_page": 1000}) if sha_ else None
+    if tr is None or not tr.ok:
+        return jsonify({"error": "No se pudo leer la rama"}), 404
+    archivos = {}
+    for x in tr.json().get("tree", []):
+        if x.get("type") == "blob" and not x["path"].startswith(".fabrica/") and x.get("size", 0) < 200000:
+            r = _git("GET", f"/repos/{ORG}/{repo}/raw/{requests.utils.quote(x['path'])}", params={"ref": rama})
+            if r.ok:
+                archivos[x["path"]] = r.text
+    conv = _git("GET", f"/repos/{ORG}/{repo}/raw/.fabrica/conversacion.json", params={"ref": rama})
+    c = conv.json() if conv.ok else {}
+    PROYECTOS[sid] = {"nombre": repo, "archivos": archivos, "revision": revisar(archivos), "requerimiento": c.get("requerimiento", ""),
+                      "resumen": c.get("resumen", ""), "conversacion": c.get("conversacion", []), "huella_politicas": "", "repo": repo, "rama": rama}
+    return jsonify({"ok": True, "archivos": len(archivos)})
 
 
 @app.route("/api/trabajos")
@@ -658,10 +710,20 @@ def api_trabajos():
                 return c.get("total_commits", len(c.get("commits") or []))
             except (requests.RequestException, ValueError):
                 return None
+        def titulo(rama):
+            try:
+                c = _git("GET", f"/repos/{ORG}/{n}/raw/.fabrica/conversacion.json", params={"ref": rama})
+                if c.ok:
+                    j = c.json()
+                    return {"titulo": (j.get("requerimiento") or "").strip().splitlines()[0][:110] if j.get("requerimiento") else n,
+                            "usuario": j.get("usuario", ""), "fecha": j.get("fecha", ""), "conversacion": True}
+            except (requests.RequestException, ValueError):
+                pass
+            return {"titulo": (r.get("description") or n)[:110], "conversacion": False}
         features = []
         for b in sorted((b for b in ramas if b.startswith("feature/")), key=lambda b: ramas[b]["commit"].get("timestamp", ""), reverse=True)[:5]:
             c = ramas[b]["commit"]
-            features.append({"rama": b, "sha": c.get("id", "")[:7], "fecha": c.get("timestamp", "")[:16].replace("T", " "),
+            features.append({**titulo(b), "rama": b, "sha": c.get("id", "")[:7], "fecha": c.get("timestamp", "")[:16].replace("T", " "),
                              "mensaje": (c.get("message") or "").splitlines()[0][:90], "por_integrar": adelante("develop", b),
                              "url": f"{GITEA_PUBLICA}/{ORG}/{n}/src/branch/{b}"})
         amb = {"dev": "develop" if "develop" in ramas else "", "qa": qa, "prod": "main" if "main" in ramas else ("master" if "master" in ramas else "")}

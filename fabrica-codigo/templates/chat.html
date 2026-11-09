@@ -49,8 +49,16 @@ async function enviar(ajustar){const t=msg.value.trim();if(!t)return;
   '<details><summary>Ver los '+n+' archivos</summary>'+Object.entries(d.archivos).map(([k,v])=>'<p><b>'+esc(k)+'</b></p><pre>'+esc(v)+'</pre>').join('')+'</details>'+
   (d.revision.length?'':'<p style="margin-top:8px"><button onclick="publicar(this)">Entregar el repositorio (rama feature)</button></p><p class="ayuda">Después puedes pedir «despliega en desarrollo» y se lanza el pipeline.</p>')}
 let ENTREGADO=false;
+(async()=>{const q=new URLSearchParams(location.search).get('trabajo');if(!q)return;   // volver a la conversación de un trabajo
+ const [repo,rama]=q.split('@');const r=await fetch('api/conversacion?repo='+encodeURIComponent(repo)+'&rama='+encodeURIComponent(rama||''));
+ const d=await r.json().catch(()=>({error:'sin respuesta'}));
+ if(!r.ok||d.error){burbuja('<p class="chip mal">'+esc(d.error||'No se encontró la conversación de este trabajo')+'</p>');return}
+ burbuja('<p class="ayuda">Conversación del trabajo <b>'+esc(d.repo)+'</b> · rama <code>'+esc(d.rama)+'</code> · '+esc(d.fecha||'')+' · '+esc(d.usuario||'')+'</p>');
+ (d.conversacion||[]).forEach(m=>{const b=burbuja('',m.yo);b.style.whiteSpace='pre-wrap';b.textContent=m.texto;});
+ burbuja('<p class="ayuda">Para seguir trabajando en él, escribe el ajuste y presiona Ajustar (el agente parte del código de esta rama).</p>');
+ const [ok2]=await post('api/retomar',{repo:d.repo,rama:d.rama});if(ok2){ba.disabled=false;}})();
 async function publicar(b){if(b)b.disabled=true;const w=burbuja('<p class="ayuda">Creando el repositorio, las ramas main y develop, y la rama feature con el desarrollo…</p>');
- const [ok,d]=await post('api/publicar',{});
+ const [ok,d]=await post('api/publicar',{conversacion:[...chat.children].slice(1).map(x=>({yo:x.classList.contains('yo'),texto:x.innerText.slice(0,6000)}))});
  if(!ok){w.innerHTML='<p class="chip mal">'+esc(d.error)+'</p>';if(b)b.disabled=false;return}
  ENTREGADO=true;
  w.innerHTML='<p><b>Repositorio entregado</b> en la rama <code>'+esc(d.rama)+'</code>:</p><p><a href="'+esc(d.repo)+'" target="_blank">'+esc(d.repo)+'</a></p><p class="ayuda">Clonar: <code>git clone -b '+esc(d.rama)+' '+esc(d.clonar)+'</code></p>'

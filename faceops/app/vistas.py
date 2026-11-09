@@ -6601,7 +6601,11 @@ def politicas_desarrollo():
 @requiere_login
 def fabrica_desarrollo():
     """Gobierno › Fábrica de software › Desarrollo: el chat de la Fábrica (solo OpenShift) dentro de FaceOps."""
-    return render_template("fabrica_desarrollo.html", fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and url_for("consola.fabrica_app", ruta=""))
+    t_ = request.args.get("trabajo", "")
+    if not re.fullmatch(r"[a-z0-9-]{2,61}@feature/[a-z0-9-]{1,80}", t_):
+        t_ = ""
+    return render_template("fabrica_desarrollo.html", fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and
+                           url_for("consola.fabrica_app", ruta="", **({"trabajo": t_} if t_ else {})))
 
 
 @bp.route("/fabrica/trabajos")
@@ -6643,6 +6647,7 @@ def fabrica_app(ruta):
         return {"error": "Necesitas perfil de escritura"}, 403
     try:
         r = requests.request(request.method, f"{url}/{ruta}", timeout=60, verify=False, data=request.get_data() if request.method == "POST" else None,
+                             params=request.args if request.method == "GET" else None,
                              headers={"X-Fabrica-Token": tok, "X-Fabrica-Usuario": g.usuario["usuario"], "Content-Type": request.headers.get("Content-Type", "application/json")})
     except requests.RequestException as x:
         return {"error": f"La Fábrica no responde ({type(x).__name__})"}, 502

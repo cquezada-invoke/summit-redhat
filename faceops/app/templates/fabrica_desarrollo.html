@@ -11,7 +11,7 @@
   <span class="sub" style="margin-left:10px">Lo que genera el agente vive solo en su rama <b>feature</b>; los ambientes avanzan por el pipeline. Se actualiza cada 20 s.</span></div>
   <div id="tr-curso" style="margin-top:8px"></div>
   <div style="overflow-x:auto"><table class="tabla" style="margin-top:8px;width:100%">
-    <thead><tr><th>Repositorio</th><th>Rama feature (trabajo)</th><th>Por integrar a develop</th><th>Desarrollo<br><span class="sub">develop</span></th><th>QA<br><span class="sub">release/qa</span></th><th>Producción<br><span class="sub">main</span></th><th>Misma versión</th></tr></thead>
+    <thead><tr><th>Trabajo</th><th>Rama feature</th><th>Por integrar a develop</th><th>Desarrollo<br><span class="sub">develop</span></th><th>QA<br><span class="sub">release/qa</span></th><th>Producción<br><span class="sub">main</span></th><th>Misma versión</th></tr></thead>
     <tbody id="tr-filas"><tr><td colspan="7" class="sub">Cargando…</td></tr></tbody></table></div>
 </div>
 <script>(()=>{const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -27,7 +27,8 @@ async function cargar(){let d;try{d=await (await fetch({{ url_for('consola.fabri
  f.innerHTML=d.repos.map(r=>{const fe=r.features[0];const extra=r.features.length>1?`<br><span class="sub">+${r.features.length-1} rama(s) feature más</span>`:'';
   const fuera=r.ramas_fuera_de_gitflow.length?`<br><span class="chip s-alta" title="Ramas que no siguen Gitflow">⚠ ${esc(r.ramas_fuera_de_gitflow.join(', '))}</span>`:'';
   const mv=r.misma_version?'<span class="chip s-ok">sí</span>'+(r.sin_qa?'<br><span class="sub">sin rama de QA</span>':''):`<span class="chip s-media">no</span><br><span class="sub">${r.dev_vs_prod!=null?'dev +'+r.dev_vs_prod+' vs prod':''}${r.qa_vs_prod!=null?' · qa +'+r.qa_vs_prod:''}</span>`;
-  return `<tr><td><a href="${esc(r.url)}" target="_blank" rel="noopener"><b>${esc(r.repo)}</b></a><br><span class="sub">${esc(r.actualizado)}</span>${fuera}</td>
+  const tr=fe?`<a href="?trabajo=${encodeURIComponent(r.repo+'@'+fe.rama)}" title="${fe.conversacion?'Volver a la conversación de este trabajo en el chat':'Trabajo entregado antes de guardar conversaciones: abre el chat con su código'}"><b>${esc(fe.titulo||r.repo)}</b></a><br><span class="sub">${esc(r.repo)}${fe.usuario?' · '+esc(fe.usuario):''} · ${esc(fe.fecha)}</span>`:`<b>${esc(r.repo)}</b>`;
+  return `<tr><td>${tr}${fuera}</td>
    <td>${fe?`<a href="${esc(fe.url)}" target="_blank" rel="noopener" class="mono">${esc(fe.rama)}</a><br><span class="sub">${esc(fe.sha)} · ${esc(fe.fecha)} · ${esc(fe.mensaje)}</span>${extra}`:'<span class="sub">sin rama feature</span>'}</td>
    <td>${fe&&fe.por_integrar!=null?(fe.por_integrar?fe.por_integrar+' commit(s)':'integrada'):'—'}</td>
    <td>${amb(r,'dev')}</td><td>${amb(r,'qa')}</td><td>${amb(r,'prod')}</td><td>${mv}</td></tr>`;}).join('');}
