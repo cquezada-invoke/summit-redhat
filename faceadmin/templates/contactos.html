@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block titulo %}Contactos{% endblock %}{% block cuerpo %}
+<div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Contactos</h1><p class="sub">Las personas con las que conversamos. Son independientes de las cuentas: si alguien cambia de empresa, se mueve a la otra cuenta y queda su historial.</p></div>
+<button class="btn der" type="button" onclick="document.getElementById('ct-nuevo').hidden=!document.getElementById('ct-nuevo').hidden">+ Nuevo contacto</button></div>
+<form method="post" class="card" id="ct-nuevo" hidden><input type="hidden" name="_csrf" value="{{ csrf }}"><div class="rejilla">
+<label>Nombre *<input name="nombre" required></label><label>Cuenta actual<select name="cliente_id"><option value="">— sin cuenta —</option>{% for c in cuentas %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}</select></label>
+<label>Cargo<input name="cargo"></label><label>Rol<select name="rol"><option value=""></option>{% for r in roles %}<option>{{ r }}</option>{% endfor %}</select></label>
+<label>Correo<input name="correo" type="email"></label><label>Teléfono<input name="telefono"></label></div>
+<label>Notas<textarea name="notas" rows="2"></textarea></label><div class="fila"><button class="btn">Crear contacto</button></div></form>
+{% from "_buscador.html" import buscador %}{{ buscador('Buscar contacto: nombre, cuenta, cargo, correo…') }}
+<div class="card tabla-scroll" style="padding:0"><table data-buscable><tr><th>Contacto</th><th>Cuenta actual</th><th>Cargo</th><th>Rol</th><th>Correo</th><th>Teléfono</th><th style="text-align:right">Cuentas</th></tr>
+{% for x in filas %}<tr><td><a href="{{ url_for('contacto', kid=x.id) }}">{{ x.nombre }}</a></td><td>{% if x.cuenta %}<a href="{{ url_for('cuenta', cid=x.cuenta.id) }}">{{ x.cuenta.nombre }}</a>{% else %}<span class="sub">sin cuenta</span>{% endif %}</td>
+<td>{{ x.cargo or '—' }}</td><td>{{ x.rol or '—' }}</td><td class="mono" style="font-size:12.5px">{{ x.correo or '—' }}</td><td>{{ x.telefono or '—' }}</td><td style="text-align:right">{{ x.n_cuentas }}</td></tr>
+{% else %}<tr><td colspan="7" class="sub">Aún no hay contactos.</td></tr>{% endfor %}</table></div>
+{% endblock %}

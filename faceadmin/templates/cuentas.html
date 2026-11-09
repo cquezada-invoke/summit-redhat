@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block titulo %}Cuentas{% endblock %}{% block cuerpo %}
-<div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Cuentas</h1><p class="sub">Toda empresa con la que conversamos, tenga o no contrato, con sus contactos. Cuando cierra un contrato aparece también en Clientes.</p></div>
+<div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Cuentas</h1><p class="sub">Toda empresa con la que conversamos, tenga o no contrato. Sus personas están en Contactos. Cuando cierra un contrato aparece también en Clientes.</p></div>
 <a class="btn der" href="{{ url_for('oportunidad_nueva') }}">+ Nueva cuenta con oportunidad</a></div>
 <div class="kpis"><div class="kpi"><span class="sub">Clientes (contrato cerrado)</span><b>{{ kpi.cliente }}</b></div><div class="kpi"><span class="sub">En demo</span><b>{{ kpi.demo }}</b></div>
 <div class="kpi"><span class="sub">Prospectos</span><b>{{ kpi.prospecto }}</b></div><div class="kpi"><span class="sub">Solo cuenta</span><b>{{ kpi.cuenta }}</b></div></div>

@@ -64,12 +64,16 @@ def cuenta(cid):
             else:
                 if f.get("principal"):
                     ej("UPDATE contactos SET principal=0 WHERE cliente_id=?", cid)
-                ej("INSERT INTO contactos (cliente_id, nombre, cargo, correo, telefono, rol, principal, notas, creado, por) VALUES (?,?,?,?,?,?,?,?,?,?)", cid, nom[:120],
+                kid_ = ej("INSERT INTO contactos (cliente_id, nombre, cargo, correo, telefono, rol, principal, notas, creado, por) VALUES (?,?,?,?,?,?,?,?,?,?)", cid, nom[:120],
                    (f.get("cargo") or "")[:120], (f.get("correo") or "").strip()[:160], (f.get("telefono") or "")[:40], f.get("rol") if f.get("rol") in ROLES else "",
                    1 if f.get("principal") else 0, (f.get("notas") or "")[:1000], ahora(), g.usuario["usuario"])
                 if f.get("principal"):
                     ej("UPDATE clientes SET contacto_nombre=?, contacto_cargo=?, contacto_correo=?, contacto_telefono=? WHERE id=?", nom[:120], (f.get("cargo") or "")[:120],
                        (f.get("correo") or "").strip()[:160], (f.get("telefono") or "")[:40], cid)
+                ej("CREATE TABLE IF NOT EXISTS contacto_cuentas (id INTEGER PRIMARY KEY, contacto_id INTEGER NOT NULL, cliente_id INTEGER, cargo TEXT DEFAULT '', "
+                   "desde TEXT, hasta TEXT DEFAULT '', por TEXT)")
+                ej("INSERT INTO contacto_cuentas (contacto_id, cliente_id, cargo, desde, por) VALUES (?,?,?,?,?)", kid_, cid, (f.get("cargo") or "")[:120], ahora()[:10],
+                   g.usuario["usuario"])
                 bitacora("contacto agregado", c["codigo"], {"nombre": nom})
                 flash(f"Contacto {nom} agregado", "ok")
         elif acc == "principal" and (f.get("id") or "").isdigit():
@@ -79,9 +83,10 @@ def cuenta(cid):
             flash(f"{x['nombre']} es ahora el contacto principal", "ok")
         elif acc == "quitar" and (f.get("id") or "").isdigit():
             x = q1("SELECT * FROM contactos WHERE id=? AND cliente_id=?", int(f["id"]), cid) or abort(404)
-            ej("DELETE FROM contactos WHERE id=?", x["id"])
-            bitacora("contacto quitado", c["codigo"], {"nombre": x["nombre"]})
-            flash(f"Contacto {x['nombre']} quitado", "ok")
+            ej("UPDATE contactos SET cliente_id=0, principal=0 WHERE id=?", x["id"])   # el contacto sigue existiendo, sin cuenta
+            ej("UPDATE contacto_cuentas SET hasta=? WHERE contacto_id=? AND COALESCE(hasta,'')=''", ahora()[:10], x["id"])
+            bitacora("contacto quitado de la cuenta", c["codigo"], {"nombre": x["nombre"]})
+            flash(f"{x['nombre']} ya no está en esta cuenta (se conserva en Contactos)", "ok")
         elif acc == "datos":
             for k in ("razon_social", "rut", "pais", "industria"):
                 if k in f:

@@ -12,10 +12,10 @@
 <label>Rol<select name="rol">{% for r in roles %}<option>{{ r }}</option>{% endfor %}</select></label><label style="display:flex;gap:6px;align-items:center;margin-top:18px"><input type="checkbox" name="principal" value="1"> Contacto principal</label>
 <div><button class="btn">Agregar</button></div></form></div></div>
 <div class="card tabla-scroll"><h2>Contactos</h2><table><tr><th>Nombre</th><th>Cargo</th><th>Rol</th><th>Correo</th><th>Teléfono</th><th></th></tr>
-{% for x in contactos %}<tr><td><b>{{ x.nombre }}</b>{% if x.principal %} <span class="chip ok" style="font-size:11px">principal</span>{% endif %}</td><td>{{ x.cargo or '—' }}</td><td>{{ x.rol or '—' }}</td>
+{% for x in contactos %}<tr><td><a href="{{ url_for('contacto', kid=x.id) }}">{{ x.nombre }}</a>{% if x.principal %} <span class="chip ok" style="font-size:11px">principal</span>{% endif %}</td><td>{{ x.cargo or '—' }}</td><td>{{ x.rol or '—' }}</td>
 <td>{% if x.correo %}<a href="mailto:{{ x.correo }}">{{ x.correo }}</a>{% else %}—{% endif %}</td><td>{{ x.telefono or '—' }}</td>
 <td style="white-space:nowrap;text-align:right">{% if not x.principal %}<form method="post" style="display:inline;margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="principal"><input type="hidden" name="id" value="{{ x.id }}"><button class="btn chico gris">Hacer principal</button></form>
-<form method="post" style="display:inline;margin:0" onsubmit="return confirm('¿Quitar a {{ x.nombre }} de los contactos?')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="quitar"><input type="hidden" name="id" value="{{ x.id }}"><button class="btn chico gris">Quitar</button></form>{% endif %}</td></tr>
+<form method="post" style="display:inline;margin:0" onsubmit="return confirm('¿Quitar a {{ x.nombre }} de esta cuenta? El contacto se conserva en Contactos.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="quitar"><input type="hidden" name="id" value="{{ x.id }}"><button class="btn chico gris">Quitar</button></form>{% endif %}</td></tr>
 {% else %}<tr><td colspan="6" class="sub">Sin contactos.</td></tr>{% endfor %}</table></div>
 <div class="grid g2">
 <div class="card tabla-scroll"><h2>Oportunidades</h2><table><tr><th>Oportunidad</th><th>Etapa</th><th style="text-align:right">Monto tentativo</th><th>Cierre</th></tr>

@@ -934,6 +934,7 @@ import instalacion  # noqa: E402,F401  (comando de instalación: valida el contr
 import negocio  # noqa: E402,F401  (ciclo comercial y tenants: registra sus rutas en esta app)
 import oportunidades  # noqa: E402,F401  (oportunidades y demos de FaceOps por semanas)
 import cuentas  # noqa: E402,F401  (cuentas y sus contactos: toda empresa, con o sin contrato)
+import contactos  # noqa: E402,F401  (contactos independientes de las cuentas, con historial de cuentas)
 import alcance  # noqa: E402,F401  (costo fijo por alcance: análisis con IA y confirmación del especialista de negocio)
 
 
