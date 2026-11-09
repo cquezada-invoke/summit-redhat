@@ -1,0 +1,12 @@
+commit: 5819e5a65546683c384ba37a4edb06e948336859
+inicio: 2026-11-09T12:58:32-03:00
+---
+Error from server (BadRequest): previous terminated container "docker-build" in pod "mantenedor-usuarios-1-build" not found
+== configmap
+{"DB_URL":"jdbc:postgresql://mantenedor-usuarios-postgres:5432/usuarios","KEYCLOAK_ISSUER_URI":"https://keycloak.dev.invoke.local/realms/invoke","OTEL_EXPORTER_OTLP_ENDPOINT":"http://otel-collector.openshift-opentelemetry:4318","SPRING_PROFILES_ACTIVE":"dev"}
+
+== env db
+POSTGRESQL_DATABASE <- usuarios
+POSTGRESQL_USER <- DB_USER
+POSTGRESQL_PASSWORD <- DB_PASSWORD
+--- fin: 2026-11-09T12:58:33-03:00 · código: 0
