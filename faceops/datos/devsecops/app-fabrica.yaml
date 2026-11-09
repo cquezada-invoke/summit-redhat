@@ -120,8 +120,11 @@ spec:
               oc login --server="$OCP_SERVER" --token="$OCP_TOKEN" --insecure-skip-tls-verify=true >/dev/null
               oc project "$OCP_NS" >/dev/null
               oc get bc "$A" >/dev/null 2>&1 || oc new-build --name "$A" --binary --strategy docker -l app.kubernetes.io/part-of=fabrica-codigo >/dev/null
+              [ -f Containerfile ] && oc patch bc "$A" --type=merge -p '{"spec":{"strategy":{"dockerStrategy":{"dockerfilePath":"Containerfile"}}}}' >/dev/null
               oc start-build "$A" --from-dir=. --wait --follow | tail -5
               IMG=$(oc get is "$A" -o jsonpath='{.status.dockerImageRepository}'):latest
+              EXTRA=""; case "$(params.ambiente)" in desarrollo) EXTRA="deploy/desarrollo deploy/dev";; qa) EXTRA="deploy/qa";; produccion) EXTRA="deploy/produccion deploy/prod";; esac
+              for d in $EXTRA; do [ -d "$d" ] && for f in "$d"/*.y*ml; do oc apply -f "$f"; done; done   # dependencias del ambiente (p. ej. PostgreSQL de desarrollo)
               for f in deploy/*.y*ml; do sed "s#IMAGEN_APP#$IMG#g" "$f" | oc apply -f -; done
               oc patch route "$A" --type=merge -p "{\"spec\":{\"host\":\"$A.$OCP_DOMINIO\"}}" >/dev/null 2>&1 || true
               [ "$(params.ambiente)" = "produccion" ] || oc patch hpa "$A" --type=merge -p '{"spec":{"minReplicas":1}}' >/dev/null 2>&1 || true   # PS-13: 2+ réplicas solo en producción
