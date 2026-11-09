@@ -87,7 +87,7 @@ spec:
             env: [{name: HOME, value: /tmp}, {name: MAVEN_OPTS, value: "-Xmx768m"}]
             script: |
               set -e
-              if [ -f pom.xml ]; then echo "Spring Boot: mvn verify (JUnit 5 y cobertura JaCoCo del pom)" && mvn -B -q -Dmaven.repo.local=/tmp/m2 verify; \
+              if [ -f pom.xml ]; then echo "Spring Boot: mvn verify (JUnit 5 y cobertura JaCoCo del pom)" && cp -r . /tmp/src && cd /tmp/src && mvn -B -q -Dmaven.repo.local=/tmp/m2 verify; \
               elif [ -f requirements.txt ]; then pip install -q -r requirements.txt pytest pytest-cov && python -m pytest -q --cov=. --cov-fail-under=70; \
               elif [ -f package.json ]; then echo "Node: npm test" && npx --yes npm@10 ci && npx --yes npm@10 test; \
               else echo "PS-25: sin pruebas reconocibles" && exit 1; fi
