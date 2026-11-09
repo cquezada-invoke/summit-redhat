@@ -23,7 +23,8 @@
 <label>Monto tentativo esperado (USD/año)<input name="monto_tentativo" inputmode="decimal" placeholder="vacío = precio de lista" value="{{ f.monto_tentativo }}"></label></div>
 <p class="sub" data-ten style="margin:6px 0 0;font-size:12.5px">En un tenant, la modalidad y el alcance de abajo son los de <b>un cliente típico</b>: se multiplican por los clientes estimados.</p></fieldset>
 <style>form [data-mod="alcance"]{display:none!important}</style>{# en la oportunidad, el alcance lo describe el vendedor y lo analiza la IA: sin el catálogo predefinido #}
-<div class="rejilla">{% include "_cobro_form.html" %}</div>
+<div class="rejilla" id="op-cobro">{% include "_cobro_form.html" %}</div>
+<style>#op-cobro fieldset,#op-cobro [data-total]{display:none!important}</style>{# sin «Modalidad de cobro» en la oportunidad: se describe el alcance y el precio se fija después #}
 <div class="card" data-alcance style="display:none;border-color:var(--acc)"><h2 style="margin:0 0 4px">Alcance del cliente</h2>
 <p class="sub" style="margin:0 0 6px;font-size:12.5px">Explica qué necesita el cliente (qué tareas, sobre cuántos equipos, con qué frecuencia). La IA propone las automatizaciones y su volumen; al crear la oportunidad se envía al especialista de negocio de Invoke, que evalúa la implementación y confirma el alcance antes de fijar el precio. Con la propuesta aprobada por el cliente se tarifica.</p>
 <textarea name="alcance_texto" rows="5" placeholder="ej. Parchar mensualmente 80 servidores RHEL y 20 Windows, respaldar 6 bases de datos PostgreSQL a diario, crear usuarios en AD a pedido de RRHH…">{{ f.alcance_texto }}</textarea>
@@ -72,6 +73,6 @@ function opCalc(f){cobroCalc(f);const n=v=>parseFloat(String(v||'0').replace(/\.
  document.getElementById('op-lista').innerHTML='<b>Precio de lista aproximado</b> · '+(mod==='creditos'?'por consumo (créditos al año)':'costo fijo por alcance')+
  '<br>Servicio '+fm((serv+rh)*cli)+(t!=='directo'?' + licencia de tenant '+fm(lic)+' + versiones y parches '+fm(ope)+' ('+inst+' instancia'+(inst>1?'s':'')+')':'')+' = <b>'+fm(men)+'/mes</b>'+
  ' · <b style="font-size:16px">'+fm(men*12)+' al año</b>'+(hab?' · habilitación '+fm(hab)+' una vez':'')+'<br><span class=sub style="font-size:12px">Valor referencial de lista para conversar con el cliente; el precio final se fija en el contrato.</span>'}
-(document.readyState==='loading'?(fn=>document.addEventListener('DOMContentLoaded',fn)):(fn=>fn()))(()=>{const f=document.querySelector('[name=tipo]').form;f.addEventListener('input',()=>opCalc(f));f.addEventListener('change',()=>{opCalc(f);opMod(f)});f.codigo.addEventListener('input',()=>f.codigo.dataset.manual=1);opTipo(f);opMod(f);if(f.empresa_id.value)opEmpresa(f.empresa_id)});</script>
+(document.readyState==='loading'?(fn=>document.addEventListener('DOMContentLoaded',fn)):(fn=>fn()))(()=>{const f=document.querySelector('[name=tipo]').form;f.addEventListener('input',()=>opCalc(f));f.addEventListener('change',()=>{opCalc(f);opMod(f)});f.codigo.addEventListener('input',()=>f.codigo.dataset.manual=1);const ra_=f.querySelector('[name=modalidad][value=alcance]');if(ra_)ra_.checked=true;opTipo(f);opMod(f);if(f.empresa_id.value)opEmpresa(f.empresa_id)});</script>
 <div class="fila"><button class="btn">Crear oportunidad</button><a class="btn gris" href="{{ url_for('oportunidades') }}">Cancelar</a></div></form>
 {% endblock %}
