@@ -1,32 +1,28 @@
-commit: 0e29748936fc2a4b59496b23ce2d6583a43c5747
-inicio: 2026-11-09T10:35:16-03:00
+commit: 200549a3e89a69ff0869bc6211685a7e858bc7b8
+inicio: 2026-11-09T10:37:19-03:00
 ---
-Nov 09 10:34:50 demo-ansible-summit faceops[416196]: 200.113.129.178 - - [09/Nov/2026:10:34:50 -0300] "GET /lab/mapa/rendimiento?segmento=App%20de%20pagos HTTP/1.0" 200 695 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/mapa?vista=aplicacion
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]: [2026-11-09 10:35:00,266] ERROR in app: Exception on /aplicaciones/1/entrar/ [GET]
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]: Traceback (most recent call last):
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:   File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:     response = self.full_dispatch_request()
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:   File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:     rv = self.handle_user_exception(e)
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:   File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:     rv = self.dispatch_request()
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:          ^^^^^^^^^^^^^^^^^^^^^^^
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:   File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:     return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:   File "/opt/faceops/app/__init__.py", line 369, in envoltura
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:     return f(*a, **kw)
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:            ^^^^^^^^^^^
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:   File "/opt/faceops/app/vistas.py", line 5220, in app_entrar
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:     return _proxy_web(e, w, sub, prefijo, auth=auth)
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:   File "/opt/faceops/app/vistas.py", line 2447, in _proxy_web
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:     f'Consola web de <b>{e["nombre"]}</b> ({w["producto"]}) a través de FaceOps · {w["url"]} · HTTP {r.status_code}</div>')
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]:                                             ~^^^^^^^^^^^^
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]: KeyError: 'producto'
-Nov 09 10:35:00 demo-ansible-summit faceops[416196]: 200.113.129.178 - - [09/Nov/2026:10:35:00 -0300] "GET /lab/aplicaciones/1/entrar/ HTTP/1.0" 500 265 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrom
-Nov 09 10:35:06 demo-ansible-summit faceops[416196]: 91.92.40.12 - - [09/Nov/2026:10:35:06 -0300] "GET / HTTP/1.0" 302 247 "https://faceops.34.176.42.56.sslip.io:8843/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-Nov 09 10:35:07 demo-ansible-summit faceops[416196]: 91.92.40.12 - - [09/Nov/2026:10:35:07 -0300] "GET /ingresar HTTP/1.0" 200 6464 "https://faceops.34.176.42.56.sslip.io:8843/faceops/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
---- fin: 2026-11-09T10:35:16-03:00 · código: 0
+faceops actualizado
+Push successful
+deployment "fabrica" successfully rolled out
+entrar app 200
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+nodo-jboss runner_on_unreachable All items completed
+hosts: [('nodo-jboss2', 2, 0, 0), ('nodo-jboss', 0, 0, 1), ('nodo-nginx', 2, 0, 0)]
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/adapters.py", line 690, in send
+    raise ReadTimeout(e, request=request)
+requests.exceptions.ReadTimeout: HTTPConnectionPool(host='192.168.122.11', port=80): Read timed out. (read timeout=10)
+--- fin: 2026-11-09T10:42:21-03:00 · código: 0
