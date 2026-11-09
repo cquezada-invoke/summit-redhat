@@ -556,6 +556,54 @@ def api_desplegar():
                     "app_url": f"https://{p['repo']}.{DOMINIO_APPS}" if DOMINIO_APPS else ""}), (200 if r.ok else 502)
 
 
+@app.route("/api/trabajos")
+def api_trabajos():
+    """Trabajos de la Fábrica: repositorios de la organización, su rama feature (donde vive todo lo que genera el agente) y si las
+    ramas de ambiente están en la misma versión: develop (desarrollo), release/* o qa (QA) y main (producción)."""
+    _sesion()
+    from concurrent.futures import ThreadPoolExecutor
+    en_curso = [{"inicio": round(time.time() - t["inicio"]), "paso": (t["pasos"][-1]["texto"] if t["pasos"] else "iniciando")[:140],
+                 "motor": t.get("motor", "claude")} for t in TRABAJOS.values() if not t["listo"]]
+    try:
+        repos = _git("GET", f"/orgs/{ORG}/repos", params={"limit": 50}).json() or []
+    except (requests.RequestException, ValueError):
+        return jsonify({"error": "Git no responde", "repos": [], "en_curso": en_curso})
+
+    def uno(r):
+        n = r["name"]
+        try:
+            ramas = {b["name"]: b for b in (_git("GET", f"/repos/{ORG}/{n}/branches", params={"limit": 100}).json() or [])}
+        except (requests.RequestException, ValueError):
+            ramas = {}
+        sha = lambda b: ((ramas.get(b) or {}).get("commit") or {}).get("id", "")   # noqa: E731
+        qa = "qa" if "qa" in ramas else max((b for b in ramas if b.startswith("release/")), default="")
+
+        def adelante(base, cabeza):   # commits de «cabeza» que no están en «base»
+            if not base or not cabeza or base not in ramas or cabeza not in ramas:
+                return None
+            try:
+                c = _git("GET", f"/repos/{ORG}/{n}/compare/{requests.utils.quote(base, safe='')}...{requests.utils.quote(cabeza, safe='')}").json()
+                return c.get("total_commits", len(c.get("commits") or []))
+            except (requests.RequestException, ValueError):
+                return None
+        features = []
+        for b in sorted((b for b in ramas if b.startswith("feature/")), key=lambda b: ramas[b]["commit"].get("timestamp", ""), reverse=True)[:5]:
+            c = ramas[b]["commit"]
+            features.append({"rama": b, "sha": c.get("id", "")[:7], "fecha": c.get("timestamp", "")[:16].replace("T", " "),
+                             "mensaje": (c.get("message") or "").splitlines()[0][:90], "por_integrar": adelante("develop", b),
+                             "url": f"{GITEA_PUBLICA}/{ORG}/{n}/src/branch/{b}"})
+        amb = {"dev": "develop" if "develop" in ramas else "", "qa": qa, "prod": "main" if "main" in ramas else ("master" if "master" in ramas else "")}
+        shas = {k: sha(v)[:7] for k, v in amb.items() if v}
+        fuera = [b for b in ramas if not (b.startswith(("feature/", "release/", "hotfix/")) or b in ("develop", "main", "master", "qa"))]
+        return {"repo": n, "url": f"{GITEA_PUBLICA}/{ORG}/{n}", "features": features, "ramas": amb, "shas": shas,
+                "misma_version": len(set(shas.values())) == 1 and len(shas) == 3,
+                "dev_vs_prod": adelante(amb["prod"], amb["dev"]), "qa_vs_prod": adelante(amb["prod"], amb["qa"]) if amb["qa"] else None,
+                "ramas_fuera_de_gitflow": fuera, "actualizado": (r.get("updated_at") or "")[:16].replace("T", " ")}
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        out = list(ex.map(uno, sorted(repos, key=lambda r: r.get("updated_at") or "", reverse=True)))
+    return jsonify({"repos": out, "en_curso": en_curso})
+
+
 @app.route("/api/ticket/<numero>")
 def api_ticket(numero):
     _sesion()

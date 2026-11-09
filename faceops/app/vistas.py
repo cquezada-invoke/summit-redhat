@@ -6602,6 +6602,32 @@ def fabrica_desarrollo():
     return render_template("fabrica_desarrollo.html", fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and url_for("consola.fabrica_app", ruta=""))
 
 
+@bp.route("/fabrica/trabajos")
+@requiere_login
+def fabrica_trabajos():
+    """Trabajos de la Fábrica (repositorio, rama feature, versión de cada ambiente) más el último despliegue de cada ambiente
+    según los tickets del pipeline en FaceOps."""
+    url, tok = os.environ.get("FACEOPS_FABRICA_URL", "").rstrip("/"), os.environ.get("FACEOPS_FABRICA_TOKEN", "")
+    if not url or not tok:
+        return {"repos": [], "en_curso": [], "error": "La Fábrica no está conectada"}
+    try:
+        d = requests.get(f"{url}/api/trabajos", timeout=40, verify=False,
+                         headers={"X-Fabrica-Token": tok, "X-Fabrica-Usuario": g.usuario["usuario"]}).json()
+    except (requests.RequestException, ValueError) as x:
+        return {"repos": [], "en_curso": [], "error": f"La Fábrica no responde ({type(x).__name__})"}
+    from .devsecops import AUTOMATIZACION as _PIPE
+    ult = {}
+    for t in q("SELECT t.id, t.numero, t.estado, t.creado, t.parametros FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+               "WHERE t.cliente_id=? AND a.nombre_aap=? ORDER BY t.id DESC LIMIT 400", g.cliente["id"], _PIPE):
+        dp = (j(t["parametros"], {}) or {}).get("dp_params") or {}
+        if dp.get("app") and dp.get("ambiente"):
+            ult.setdefault((dp["app"], dp["ambiente"]), {"numero": t["numero"], "estado": t["estado"], "fecha": (t["creado"] or "")[:16].replace("T", " "),
+                                                        "rama": dp.get("revision", ""), "url": url_for("consola.ticket", tid=t["id"])})
+    for r in d.get("repos") or []:
+        r["despliegues"] = {k: ult.get((r["repo"], v)) for k, v in (("dev", "desarrollo"), ("qa", "qa"), ("prod", "produccion"))}
+    return d
+
+
 @bp.route("/fabrica/app/", defaults={"ruta": ""}, methods=["GET", "POST"])
 @bp.route("/fabrica/app/<path:ruta>", methods=["GET", "POST"])
 @requiere_login
