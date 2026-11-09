@@ -54,9 +54,22 @@ def _atender_pedidos(url, tok, pedidos):
     acceso_admin: un enlace de un solo uso para que el técnico a cargo (cluster-admin) defina su clave; FaceAdmin se lo envía por correo."""
     from .bd import q1
     for p in pedidos:
-        if p.get("id") in _hechos or p.get("tipo") != "acceso_admin":
+        if p.get("id") in _hechos or p.get("tipo") not in ("acceso_admin", "datos_demo"):
             continue
         _hechos.add(p.get("id"))
+        if p.get("tipo") == "datos_demo":
+            try:
+                from . import demo_datos
+                c = q1("SELECT id FROM clientes ORDER BY id LIMIT 1")
+                n = demo_datos.quitar(c["id"]) if p.get("accion") == "quitar" else demo_datos.cargar(c["id"])
+                res = {"ok": True, "detalle": f"{p.get('accion') or 'cargar'}: {n} registros"}
+            except Exception as e:  # noqa: BLE001
+                res = {"ok": False, "motivo": type(e).__name__}
+            try:
+                requests.post(f"{url}/api/instancia/pedido/{p['id']}", json=res, headers={"X-FaceAdmin-Token": tok}, timeout=10, verify=False)
+            except requests.RequestException:
+                _hechos.discard(p.get("id"))
+            continue
         res = {"ok": False, "motivo": "usuario desconocido"}
         try:
             usr = (p.get("usuario") or "").strip().lower()

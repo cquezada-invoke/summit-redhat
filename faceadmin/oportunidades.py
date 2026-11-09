@@ -25,6 +25,10 @@ def quarter(fecha):
         return "—"
 
 
+def _notas_tabla():
+    ej("CREATE TABLE IF NOT EXISTS oportunidad_notas (id INTEGER PRIMARY KEY, oportunidad_id INTEGER, fecha TEXT, usuario TEXT, texto TEXT, cambios TEXT DEFAULT '')")
+
+
 def nivel_de(o):
     n = o.get("nivel")
     return n if n in NIVEL_P else _ETAPA_NIVEL.get(o.get("etapa"), 5)
@@ -205,6 +209,19 @@ def oportunidad(oid):
             f = f.copy()
             f["etapa"] = etp
             ej("UPDATE oportunidades SET nivel=? WHERE id=?", niv, oid)
+            _notas_tabla()
+            cambios = []
+            if niv != nivel_de(o):
+                cambios.append(f"nivel {nivel_de(o)} → {niv} ({NIVEL_P[niv]} %)")
+            if etp == "perdida" and o["etapa"] != "perdida":
+                cambios.append("marcada como perdida")
+            if (f.get("cierre_estimado") or "")[:10] and (f.get("cierre_estimado") or "")[:10] != (o.get("cierre_estimado") or ""):
+                cambios.append(f"cierre {quarter(o.get('cierre_estimado') or '')} → {quarter(f['cierre_estimado'])}")
+            nota = (f.get("nota") or "").strip()[:3000]
+            if nota or cambios:
+                ej("INSERT INTO oportunidad_notas (oportunidad_id, fecha, usuario, texto, cambios) VALUES (?,?,?,?,?)", oid, ahora(), g.usuario["usuario"], nota,
+                   " · ".join(cambios))
+            f["notas"] = o["notas"] or ""
             import cobro
             tent = cobro._n(f.get("monto_tentativo") or "", o.get("monto_tentativo") or 0)
             ej("UPDATE oportunidades SET etapa=?, notas=?, cierre_estimado=?, monto_tentativo=? WHERE id=?", f["etapa"], (f.get("notas") or o["notas"] or "")[:3000],
@@ -239,6 +256,8 @@ def oportunidad(oid):
     o["especialista"] = alcance.especialista()
     dem = [_demo_fila(x) for x in q("SELECT * FROM demos WHERE oportunidad_id=? ORDER BY id DESC", oid)]
     o["nivel_"], o["quarter"] = nivel_de(o), quarter(o.get("cierre_estimado") or "")
+    _notas_tabla()
+    o["historial"] = q("SELECT * FROM oportunidad_notas WHERE oportunidad_id=? ORDER BY id DESC", oid)
     return render_template("oportunidad.html", niveles=NIVELES, inst_t=INST_T, demos=dem, o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
                            inst=(intentos(c["id"]) or [None])[0], lic=licencias(c["id"]))
 

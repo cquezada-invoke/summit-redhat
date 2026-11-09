@@ -726,7 +726,7 @@ def pedidos_de(cid):
 
 def pedidos_pendientes(cid):
     """Lo que la instancia debe hacer en su próximo latido. Solo datos que FaceOps necesita (nunca el correo)."""
-    return [{"id": p["id"], "tipo": p["tipo"], "usuario": json.loads(p["datos"] or "{}").get("usuario", "")}
+    return [{"id": p["id"], "tipo": p["tipo"], "usuario": json.loads(p["datos"] or "{}").get("usuario", ""), "accion": json.loads(p["datos"] or "{}").get("accion", "")}
             for p in q("SELECT * FROM pedidos_instancia WHERE cliente_id=? AND estado='pendiente' ORDER BY id", cid)]
 
 
@@ -748,6 +748,20 @@ def acceso_admin(cid):
     return redirect(url_for("cliente", cid=cid))
 
 
+@app.route("/clientes/<int:cid>/datos-demo", methods=["POST"])
+@requiere_login
+def datos_demo_instancia(cid):
+    """Datos de demostración en la base del FaceOps del cliente (marcados en ámbar; se quitan igual). FaceOps los carga en su próximo latido."""
+    solo_invoke()
+    c = cliente_ok(cid)
+    acc = "quitar" if request.form.get("accion") == "quitar" else "cargar"
+    ej("UPDATE pedidos_instancia SET estado='reemplazado' WHERE cliente_id=? AND tipo='datos_demo' AND estado='pendiente'", cid)
+    ej("INSERT INTO pedidos_instancia (cliente_id, tipo, datos, creado, por) VALUES (?,?,?,?,?)", cid, "datos_demo", json.dumps({"accion": acc}), ahora(), g.usuario["usuario"])
+    bitacora(f"datos demo ({acc}) pedidos a la instancia", c["codigo"], {})
+    flash(f"Pedido enviado: FaceOps {'carga' if acc == 'cargar' else 'quita'} los datos demo en su próximo aviso (≈1 minuto)", "ok")
+    return redirect(url_for("cliente", cid=cid))
+
+
 @app.route("/api/instancia/pedido/<int:pid>", methods=["POST"])
 def api_pedido(pid):
     """FaceOps entrega el resultado de un pedido: para el acceso admin, la ruta del enlace de un solo uso que se envía al técnico."""
@@ -763,6 +777,10 @@ def api_pedido(pid):
     datos = json.loads(p["datos"] or "{}")
     if not d.get("ok"):
         ej("UPDATE pedidos_instancia SET estado='error', resuelto=?, detalle=? WHERE id=?", ahora(), str(d.get("motivo", ""))[:300], pid)
+        return {"ok": True}
+    if p["tipo"] == "datos_demo":
+        ej("UPDATE pedidos_instancia SET estado='hecho', resuelto=?, detalle=? WHERE id=?", ahora(), str(d.get("detalle", ""))[:300], pid)
+        bitacora("datos demo aplicados en la instancia", c["codigo"], {"detalle": str(d.get("detalle", ""))[:120]})
         return {"ok": True}
     ruta = str(d.get("ruta", ""))
     if not ruta.startswith("/definir-clave/"):
