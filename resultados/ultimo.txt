@@ -1,28 +1,15 @@
-commit: 599cd2e6d8f7674dede03e1187793864cd80d582
-inicio: 2026-11-09T20:15:53-03:00
+commit: b8b53ba8f68e0017ef8c1e2075da98c978e55c7c
+inicio: 2026-11-09T20:21:58-03:00
 ---
-== Puertos públicos de apolo vistos desde fuera
-443:200 8443:000 8843:500 8080:000 8444:000 
-== nginx de apolo
-== Traslado del tenant
-clave de destino leída (no se muestra)
-   · Origen: 14 workflows del tenant Claro Puerto Rico
-   · Organización Claro Puerto Rico
-   · Proyecto sincronizado: successful
-   · Portal · Amdocs · Activar orden de servicio: 7 pasos
-   · Portal · Amdocs · Desplegar release: 2 pasos
-   · Portal · Amdocs · Salud de la plataforma BSS: 2 pasos
-   · Portal · OpenShift · Actualizaciones y operadores: 2 pasos
-   · Portal · OpenShift · Alta de proyecto: 2 pasos
-   · Portal · OpenShift · Certificados: 2 pasos
-   · Portal · OpenShift · Optimizar recursos y limpiar: 2 pasos
-   · Portal · OpenShift · Regularizar línea base: 2 pasos
-   · Portal · OpenShift · Respaldo de etcd: 2 pasos
-   · Portal · OpenShift · Salud del clúster: 2 pasos
-   · Portal · Telco · Día 2 del clúster de cargas: 4 pasos
-   · Portal · Telco · Onboarding de CNF: 2 pasos
-   · Portal · Telco · Red del servicio (VLAN y BGP): 2 pasos
-   · Portal · Telco · Validar clúster para CNF: 2 pasos
-   · Usuario claro-demo: administrador del tenant (clave aleatoria no guardada; se fija en AAP › Users)
-LISTO · 14 workflows · 13 plantillas
---- fin: 2026-11-09T20:21:19-03:00 · código: 0
+
+[notice] A new release of pip is available: 23.2.1 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+imagen construida
+portal local: 200
+[2026-11-09 20:23:12 -0300] [1] [INFO] Starting gunicorn 23.0.0
+[2026-11-09 20:23:12 -0300] [1] [INFO] Listening at: https://0.0.0.0:8120 (1)
+[2026-11-09 20:23:12 -0300] [1] [INFO] Using worker: gthread
+[2026-11-09 20:23:12 -0300] [2] [INFO] Booting worker with pid: 2
+127.0.0.1 - - [09/Nov/2026:20:23:21 -0300] "GET /ingresar HTTP/1.1" 200 1111 "-" "curl/7.76.1"
+portal desde fuera (8120): 000
+--- fin: 2026-11-09T20:23:27-03:00 · código: 0
