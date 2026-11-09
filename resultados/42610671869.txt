@@ -1,0 +1,20 @@
+commit: 5c04ea5f7c44791b38bd468b849cb0bc50ca0ecc
+inicio: 2026-11-09T08:38:49-03:00
+---
+lab desplegado
+   · Plantilla «Licencias · Levantar desde las plataformas» (id 609)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+catálogo sincronizado
+pipeline app-jboss: repo invoke/app-jboss · ramas ['main', 'release/1.0', 'develop'] 
+pipeline app-node-contenedor: repo invoke/catalogo-front · ramas [] el repositorio no existe en Git
+pipeline infra-ansible-calidad: repo repositorio/politicas-seguridad · ramas ['main'] 
+pipeline app-python-sast: repo invoke/api-pagos · ramas [] el repositorio no existe en Git
+PIPE ejecutar sin ticket 302 /devsecops/app-jboss?ticket=1350#ejecuciones
+Traceback (most recent call last):
+  File "/tmp/plan2.py", line 66, in <module>
+    t = solicitar(u, cli, al, "*", {}, f"Plan de prueba · levantamiento {k}", prueba=True); tk = esperar(t["id"]); tks.append(tk["numero"])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/operacion.py", line 409, in solicitar
+    raise PermissionError("Elige un ambiente: cada ejecución va a un único ambiente")
+PermissionError: Elige un ambiente: cada ejecución va a un único ambiente
+--- fin: 2026-11-09T08:43:56-03:00 · código: 0
