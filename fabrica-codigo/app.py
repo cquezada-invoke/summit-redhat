@@ -110,6 +110,9 @@ Reglas de entrega:
   caché) sale SOLO del stack tecnológico aceptado que sigue; p. ej. base relacional = la aceptada (PostgreSQL) con Spring Data JPA,
   credenciales por Secret, y en deploy/ su Deployment/Service/PVC para el ambiente de desarrollo; en las pruebas usa H2 o Testcontainers.
 {stack}
+- Ambiente de desarrollo: sus dependencias (p. ej. PostgreSQL) van en deploy/desarrollo/ y usan almacenamiento efímero (emptyDir, sin PVC:
+  el clúster de desarrollo no tiene almacenamiento persistente). La aplicación y su base usan el MISMO Secret «<nombre-app>-db» con las
+  claves usuario, clave y base (secretKeyRef). El Secret NO va en el repositorio: fuera de producción lo crea el pipeline.
 - Si al requerimiento le falta algo que cambia el diseño (entidades, reglas, integraciones), NO construyas: responde en texto con hasta
   3 preguntas cortas y concretas. Si es razonable suponerlo, supónlo y dilo en el resumen.
 - Sé conciso: código mínimo y funcional, sin comentarios largos ni archivos de más (idealmente 12 a 20 archivos).
