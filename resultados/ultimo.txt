@@ -1,25 +1,21 @@
-commit: 5db3855f4146f420a983cbf647130b3e0b94e6f1
-inicio: 2026-11-09T13:16:51-03:00
+commit: 9f48e40da926063f1fe6ff9977d7f7cd4f8710a9
+inicio: 2026-11-09T13:17:42-03:00
 ---
-== ./src/main/resources/application.yaml
-4:  datasource:
-5-    url: ${DB_URL}
-6-    username: ${DB_USER:}
-7-    password: ${DB_PASSWORD:}
-8-  jpa:
-9-    open-in-view: false
-== ./src/test/resources/application-test.yaml
-2:  datasource:
-3-    url: jdbc:h2:mem:usuarios;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
-4-    driver-class-name: org.h2.Driver
-5-    username: sa
-6-    password: ""
-7-  jpa:
-56-            - name: JAVA_OPTS
-58-            - name: DB_USERNAME
-61-                  name: mantenedor-usuarios-db
-62-                  key: username
-63-            - name: DB_PASSWORD
-66-                  name: mantenedor-usuarios-db
-67-                  key: password
---- fin: 2026-11-09T13:16:51-03:00 · código: 0
+Push successful
+deployment "fabrica" successfully rolled out
+ deploy/deployment.yaml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rama corregida
+PIPE: FO-LAB-01385 exitoso AAP terminó (successful): ejecución 350 s, espera de aprobación 39 s
+NAME                                      READY   STATUS      RESTARTS      AGE
+mantenedor-usuarios-7b96587988-xd9tq      1/1     Running     1 (54s ago)   67s
+mantenedor-usuarios-db-8677cd7c4b-xl8r2   1/1     Running     0             67s
+INFO Started UsuariosApplication in 18.581 seconds (process running for 20.082)
+ERROR Failed to export spans. The request could not be executed. Full error message: otel-collector.openshift-opentelemetry: Name or service not known
+ERROR Failed to export spans. The request could not be executed. Full error message: otel-collector.openshift-opentelemetry: Name or service not known
+ERROR Failed to export spans. The request could not be executed. Full error message: otel-collector.openshift-opentelemetry: Name or service not known
+ERROR Failed to export spans. The request could not be executed. Full error message: otel-collector.openshift-opentelemetry: Name or service not known
+ERROR Failed to export spans. The request could not be executed. Full error message: otel-collector.openshift-opentelemetry: Name or service not known
+ERROR Failed to export spans. The request could not be executed. Full error message: otel-collector.openshift-opentelemetry: Name or service not known
+app 503
+--- fin: 2026-11-09T13:27:45-03:00 · código: 0
