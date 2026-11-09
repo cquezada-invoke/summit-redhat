@@ -139,7 +139,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       el.style.width='280px'; el.style.height='92px';
       el.innerHTML=svgRol(d.icono)+'<div class="tx"><div class="t">'+(d.nombre||'')+'</div><div class="s">'+(por?'por crear · ':'')+(d.ip?d.ip+' · ':'')+(d.rol||'')+'</div>'
         +'<div class="u">'+dc+(d.ambiente?' · '+d.ambiente:'')+(d.energia==='apagado'?' · <span style="color:#c9190b">apagado</span>':'')+'</div></div>'
-        +(d.energia==='apagado'?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px">apagada</span></div>':(!por&&(d.estado||0)>=3?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px;background:#c9190b;color:#fff">falla</span></div>':''));
+        +(d.energia==='apagado'?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px">apagada</span></div>':(!por&&(d.estado||0)>=3?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px;background:#c9190b;color:#fff" title="Tiene hallazgos de severidad alta (seguridad o configuración)">crítico</span></div>':''));
       if(d.ha){  // botón en la caja: replicar con alta disponibilidad (ticket con aprobación en AAP)
         const b=document.createElement('button'); b.type='button'; b.className='btn-ha'; b.title='Replicar con alta disponibilidad (balanceo round robin)';
         b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path d="M14 11v6M11 14h6"/></svg>HA';
@@ -419,12 +419,6 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=fila({izq:'Flujos',ic:s.bloqueados?SVG.mal:SVG.ok,txt:s.abiertos+'/'+s.flujos+' abiertos'+(s.bloqueados?' · '+s.bloqueados+' cerrados':'')});
     h+=fila({izq:'Hallazgos',ic:s.altos?SVG.mal:(s.hallazgos?SVG.warn:SVG.ok),txt:s.hallazgos?(s.hallazgos+(s.altos?' · '+s.altos+' altos':'')):'sin hallazgos'});
     if(s.entrada&&s.entrada.hacia) h+=fila({izq:'Entrada',ic:letra('E'),txt:(s.entrada.desde||'')+' → '+s.entrada.hacia+' :'+s.entrada.puerto});
-    if((s.salud||[]).length){
-      const IC={alta:SVG.mal,media:SVG.warn,ok:SVG.ok,info:SVG.gris}, n=s.salud.filter(x=>x.nivel==='alta'||x.nivel==='media').length;
-      h+=sec('Salud del segmento','<span class="act-n">'+(n?n+' por atender':'sin problemas')+'</span>');
-      s.salud.forEach((x,i)=>{ h+=fila({izq:x.area,ic:IC[x.nivel]||SVG.gris,txt:x.titulo,abierto:i===0&&x.nivel==='alta',
-        det:(x.detalle?'<span class="sub">'+x.detalle+'</span>':'')+(x.remedio?'<div style="margin-top:4px"><b>Remediación:</b> '+x.remedio+'</div>':'')}); });
-    }
     if((s.metricas_app||[]).length){
       const IC2={alta:SVG.mal,media:SVG.warn,ok:SVG.ok,info:SVG.gris};
       h+=sec('Aplicación e IA (informativo)');
@@ -433,7 +427,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=sec('Propiedad');
     [['Dueño',fi.dueno],['Área',fi.area_negocio],['Resp. técnico',fi.responsable_tecnico]].forEach(([k,x])=>{ if(x) h+=fila({izq:k,ic:letra(k[0]),txt:x}); });
     if(fi.criticidad) h+=fila({izq:'Criticidad',ic:fi.criticidad==='alta'?SVG.mal:SVG.warn,txt:fi.criticidad});
-    h+=sec('Recursos');
+    h+=sec('Recursos globales');
     h+=fila({izq:'Cómputo',ic:letra('R','#6753ac'),txt:s.vcpu+' vCPU · '+s.ram_gb+' GB RAM',det:'Disco: <b>'+fmt(s.disco_gb)+' GB</b>'});
     if(s.costo_mensual!=null) h+=fila({izq:'Costo',ic:letra('$','#4cb140'),txt:s.moneda+' '+fmt(s.costo_mensual)+'/mes',det:s.incremental?'Por crear: <b>'+s.moneda+' '+fmt(s.incremental)+'/mes</b>':'Todo el parque ya existe.'});
     h+=fila({izq:'Ambientes',ic:letra('A','#2b9af3'),txt:s.ambientes.join(', ')||'—'});
