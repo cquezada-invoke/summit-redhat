@@ -1,0 +1,12 @@
+commit: 84e95facec13015732962fe0cf507bf2d2878c17
+inicio: 2026-11-09T11:09:14-03:00
+---
+estado inicial: pendiente_aprobacion Fábrica de código · usuarios-demo · API REST de administración de usuarios con Spring Boot: listar, crear, actualizar y 
+aprobado
+PIPE: FO-LAB-01367 fallido AAP terminó (failed): ejecución 17 s, espera de aprobación 51 s | Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-fabrica-faceops-5gxpz del pipeline app-fabrica falló o no terminó: revisa sus etapas en FaceOps |  | TASK [Stages de cada ejecución (inicio y fin de cada TaskRun)] ***************** | ok: [anfitrion-kvm] |  | TASK [Resumen de cada ejecución] *********************************************** | ok: [anfitrion-kvm] => (item=app-fabrica-faceops-5gxpz) |  | TASK [Resultado para FaceOps] ************************************************** | ok: [anfitrion-kvm] |  | TASK [El pipeline terminó bien] ************************************************ | fatal: [anfitrion-kvm]: FAILED! => {"assertion": "(r_fin.stdout_lines | default([]) | select('match', '^FACEOPS_FIN ') | first | default('FACEOPS_FIN ')).split(' ')[-1] == 'True'", "changed": false, "evaluated_to": false, "msg": "La eje
+app-jboss-faceops-74tbp     False       Failed      124m        122m
+app-fabrica-faceops-5gxpz   False       Failed      30s         19s
+T        S        M
+clonar   Failed   "step-git" exited with code 128: Error
+app 503
+--- fin: 2026-11-09T11:10:21-03:00 · código: 0
