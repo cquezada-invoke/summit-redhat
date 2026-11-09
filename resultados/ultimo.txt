@@ -1,29 +1,37 @@
-commit: 92f959fa91285bfad91059fe6b1f587feaa253ea
-inicio: 2026-11-09T16:27:53-03:00
+commit: 0aa1f03f889de0415c0a710a1ff4b097a0e331c2
+inicio: 2026-11-09T16:30:59-03:00
 ---
-   · Proyecto 'Claro PR · automatizaciones' sincronizado
-   · 19 plantillas
-   · workflow 'Portal · OpenShift · Salud del clúster' (id 631)
-   · workflow 'Portal · OpenShift · Certificados' (id 633)
-   · workflow 'Portal · OpenShift · Regularizar línea base' (id 635)
-   · workflow 'Portal · OpenShift · Optimizar recursos y limpiar' (id 637)
-   · workflow 'Portal · OpenShift · Actualizaciones y operadores' (id 639)
-   · workflow 'Portal · OpenShift · Respaldo de etcd' (id 641)
-   · workflow 'Portal · OpenShift · Alta de proyecto' (id 643)
-   · workflow 'Portal · Telco · Validar clúster para CNF' (id 645)
-   · workflow 'Portal · Telco · Onboarding de CNF' (id 647)
-   · workflow 'Portal · Telco · Red del servicio (VLAN y BGP)' (id 649)
-   · workflow 'Portal · Telco · Día 2 del clúster de cargas' (id 651)
-   · workflow 'Portal · Amdocs · Activar orden de servicio' (id 653)
-   · workflow 'Portal · Amdocs · Salud de la plataforma BSS' (id 655)
-   · workflow 'Portal · Amdocs · Desplegar release' (id 657)
-   · workflow 'Portal · Infraestructura · Revisar CVE de servidores' (id 659)
-   · workflow 'Portal · Infraestructura · Escaneo de seguridad' (id 661)
-   · workflow 'Portal · Infraestructura · Aplicar parches de seguridad' (id 663)
-   · workflow 'Portal · Infraestructura · Inventariar servidor' (id 665)
-   · workflow 'Portal · Infraestructura · Inventario de certificados' (id 667)
-   · workflow 'Portal · Infraestructura · Encender o apagar servidor' (id 669)
-   · Usuario «claro-demo» administrador del tenant «Claro Puerto Rico» (fijar su clave en AAP › Usuarios)
-   · EDA: activación 'Amdocs · Órdenes de servicio' (running) escuchando en :5011
-   LISTO
---- fin: 2026-11-09T16:29:57-03:00 · código: 0
+Failed · Tasks Completed: 5 (Failed: 1, Cancelled 0), Skipped: 1
+ambiente=desarrollo  app=casa-cuentas  repo-url=http://192.168.122.1:3000/fabrica/casa-cuentas.git  revision=feature/casa-cuentas-11091815  
+analisis-estatico   Succeeded
+clonar              Succeeded
+politicas           Succeeded
+pruebas             Failed
+secretos            Succeeded
+== falló: pruebas
+	at org.springframework.test.web.servlet.result.StatusResultMatchers.lambda$is3xxRedirection$4(StatusResultMatchers.java:88)
+	at org.springframework.test.web.servlet.MockMvc$1.andExpect(MockMvc.java:214)
+	at com.invoke.casacuentas.web.HomeControllerTest.homeSinSesionRedirigeAlLogin(HomeControllerTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] Failures: 
+[ERROR]   HomeControllerTest.homeSinSesionRedirigeAlLogin:46 Range for response status value 401 expected:<REDIRECTION> but was:<CLIENT_ERROR>
+[ERROR] Errors: 
+[ERROR]   HomeControllerTest.formularioInvalidoVuelveAlHomeConErrores:76 » Servlet Request processing failed: org.thymeleaf.exceptions.TemplateProcessingException: Error during execution of processor 'org.thymeleaf.spring6.processor.SpringI
+[ERROR]   HomeControllerTest.homeMuestraLasCuentasDelUsuario:62 » Servlet Request processing failed: org.thymeleaf.exceptions.TemplateProcessingException: Error during execution of processor 'org.thymeleaf.spring6.processor.SpringInputGener
+[ERROR] Tests run: 18, Failures: 1, Errors: 2, Skipped: 0
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.4:test (default-test) on project casa-cuentas: There are test failures.
+[ERROR] 
+[ERROR] See /tmp/src/target/surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+2026/11/09 19:27:45 Entrypoint initialization
+--- fin: 2026-11-09T16:31:00-03:00 · código: 0
