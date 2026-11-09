@@ -20,7 +20,7 @@ async function cargar() {
   document.getElementById('meta').textContent = `Estado: ${d.estado} · lanzado por ${d.lanzado_por} · ${d.duracion} s`;
   document.getElementById('pasos').innerHTML = d.pasos.map((p, i) => {
     let h = `<h4>${i + 1}. ${p.aprobacion ? 'Aprobación' : esc(p.nombre.replace(/^Portal · /, '').replace(/ \(plantilla\)$/, ''))} — ${esc(p.estado)}${p.duracion ? ' (' + p.duracion + ' s)' : ''}</h4>`;
-    if (p.aprobacion) h += `<p><a href="${AAP}/execution/workflow-approvals/${p.aprobacion}/details" target="_blank">aprobación en AAP</a></p>`;
+    if (p.aprobacion) h += `<p><a href="${AAP}/execution/administration/workflow-approvals/${p.aprobacion}/details" target="_blank">aprobación en AAP</a></p>`;
     if (p.job) h += `<p><a href="${AAP}/execution/jobs/playbook/${p.job}/output" target="_blank">salida completa del job #${p.job} en AAP</a></p>`;
     if (p.aprobacion && p.estado === 'pending') h += `<p><button onclick="decidir(${p.aprobacion}, 'approve', this)">Aprobar</button> <button onclick="decidir(${p.aprobacion}, 'deny', this)">Rechazar</button></p>`;
     else if (p.aprobacion) h += `<p>${p.estado === 'successful' ? 'Aprobado' : 'Rechazado'}${p.aprobado_por ? ' por ' + esc(p.aprobado_por) : ''}</p>`;

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block contenido %}
-<p class="sub">Todo se ejecuta y se audita en Ansible Automation Platform: <a href="{{ en_aap('aprobs', 0) | replace('/workflow-approvals', '/templates') }}" target="_blank">plantillas en AAP</a> · <a href="{{ en_aap('aprobs', 0) }}" target="_blank">aprobaciones en AAP</a></p>
+<p class="sub">Todo se ejecuta y se audita en Ansible Automation Platform: <a href="{{ en_aap('tpls', 0) }}" target="_blank">plantillas en AAP</a> · <a href="{{ en_aap('aprobs', 0) }}" target="_blank">aprobaciones en AAP</a></p>
 {% if pendientes %}<p><a href="{{ en_aap('aprobs', 0) }}" target="_blank">{{ pendientes | length }} aprobación(es) pendiente(s) en AAP</a></p>{% endif %}
 {% for k, n, d in secciones if not seccion or seccion == k %}
   {% set lista = items | selectattr('seccion', 'equalto', k) | list %}
