@@ -1,6 +1,9 @@
 {% extends "base.html" %}{% block titulo %}Admin{% endblock %}
 {% block cuerpo %}
 <h1>FaceOps-admin</h1><p class="sub">Clientes, valor generado y créditos consumidos · mes {{ mes }}</p>
+<div class="card" style="margin:0 0 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>FaceOps multicliente</b>
+  <span class="sub" style="flex:1;min-width:240px">Una sola instancia administra la infraestructura de varios clientes, con sus datos aislados. Lo habilita el contrato con Invoke.</span>
+  {% if multicliente_permitido_f() %}<span class="chip ok">incluido en el contrato</span> <span class="sub">modo: {{ 'centralizado' if modo_administracion() == 'centralizado' else 'un cliente' }}</span> <a class="btn sec" href="{{ url_for('consola.multicliente') }}">Configurar</a>{% else %}<span class="chip">no incluido en el contrato</span>{% endif %}</div>
 <div class="card fila-demo-caja" style="margin:0 0 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>Datos de demostración</b>
   <span class="sub" style="flex:1;min-width:240px">Carga máquinas, segmentos, hallazgos y tickets ficticios solo en la base de FaceOps (no toca AAP ni máquinas). Quedan marcados en ámbar y se quitan con un clic.</span>
   <form method="post" action="{{ url_for('admin.datos_demo') }}" style="display:flex;gap:6px"><input type="hidden" name="_csrf" value="{{ csrf }}">

@@ -37,8 +37,20 @@ DEMO = [
 ]
 
 
+def permitido():
+    """Multicliente es una funcionalidad del producto que habilita el contrato: en la instancia de un cliente, FaceAdmin lo informa en el latido;
+    en el laboratorio de Invoke está siempre disponible."""
+    from .semillas import limpia
+    if not limpia():
+        return True
+    try:
+        return bool(json.loads(ajuste("faceadmin_estado") or "{}").get("multicliente"))
+    except ValueError:
+        return False
+
+
 def modo():
-    return ajuste("modo_administracion") or "cliente"
+    return (ajuste("modo_administracion") or "cliente") if permitido() else "cliente"
 
 
 def sembrar_demo():
@@ -105,6 +117,9 @@ def multicliente():
     if request.method == "POST":
         if not g.usuario["es_admin"] or request.form.get("modo") not in MODOS:
             abort(403)
+        if request.form["modo"] == "centralizado" and not permitido():
+            flash("Tu contrato no incluye FaceOps multicliente. Pídelo a Invoke.", "error")
+            return redirect(url_for("consola.multicliente"))
         ajuste("modo_administracion", request.form["modo"])
         flash(f"Modo de administración: {MODOS[request.form['modo']]}", "ok")
         return redirect(url_for("consola.multicliente"))
@@ -112,4 +127,4 @@ def multicliente():
     tot = {"clientes": len(filas), "equipos": sum(r["equipos"] for r in filas), "criticos": sum(r["sev"]["critica"] for r in filas),
            "pend": sum(r["pend"] for r in filas),
            "salud": round(sum(r["salud"] * r["equipos"] for r in filas) / max(1, sum(r["equipos"] for r in filas)))}
-    return render_template("multicliente.html", filas=filas, tot=tot, modo=modo(), modos=MODOS)
+    return render_template("multicliente.html", filas=filas, tot=tot, modo=modo(), modos=MODOS, permitido=permitido())

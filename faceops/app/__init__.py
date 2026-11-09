@@ -276,6 +276,7 @@ def create_app():
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo
     app.jinja_env.globals["es_demo"] = multicliente.es_demo
+    app.jinja_env.globals["multicliente_permitido_f"] = multicliente.permitido
     try:
         with app.app_context():
             multicliente.sembrar_demo()   # solo en Invoke Lab: clientes y máquinas ficticios, sin conexión a nada

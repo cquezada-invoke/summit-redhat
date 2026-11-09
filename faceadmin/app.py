@@ -540,7 +540,24 @@ def api_estado():
     from instalacion import pedidos_pendientes
     return {"bloqueado": fa["bloqueado"], "motivo": fa["motivo"] if fa["bloqueado"] else "", "aviso": aviso, "posible_bloqueo": fa["posible"],
             "contrato": contrato_vigente(b["cliente_id"]), "pedidos": pedidos_pendientes(b["cliente_id"]),
-            "sincronizar": bool((q1("SELECT sincronizar FROM clientes WHERE id=?", b["cliente_id"]) or {}).get("sincronizar", 1))}
+            "sincronizar": bool((q1("SELECT sincronizar FROM clientes WHERE id=?", b["cliente_id"]) or {}).get("sincronizar", 1)),
+            "multicliente": multicliente_permitido(b["cliente_id"])}
+
+
+def multicliente_permitido(cid):
+    """FaceOps multicliente (una instancia administra varios clientes): lo habilita el contrato. Por defecto, el FaceOps propio de un tenant
+    centralizado; Invoke puede forzarlo (sí/no) en la ficha del cliente."""
+    _col_sincronizar()
+    c = q1("SELECT * FROM clientes WHERE id=?", cid) or {}
+    if c.get("multicliente") in (0, 1):
+        return bool(c["multicliente"])
+    if c.get("propio") and c.get("tenant_id"):
+        try:
+            from cobro import despliegue_tenant
+            return despliegue_tenant(c["tenant_id"]).get("k") == "centralizado"
+        except Exception:  # noqa: BLE001
+            return False
+    return False
 
 
 ALCANCES = {
@@ -1016,11 +1033,29 @@ def correo_reenviar():
 
 def _col_sincronizar():
     with app.app_context():
+        if "multicliente" not in {r["name"] for r in q("PRAGMA table_info(clientes)")}:
+            ej("ALTER TABLE clientes ADD COLUMN multicliente INTEGER")   # NULL = según el contrato (tenant centralizado); 0/1 = decidido por Invoke
         if "sincronizar" not in {r["name"] for r in q("PRAGMA table_info(clientes)")}:
             ej("ALTER TABLE clientes ADD COLUMN sincronizar INTEGER DEFAULT 1")   # fase de pruebas: todas las instancias se mantienen en la última versión
 
 
 _col_sincronizar()
+
+
+app.jinja_env.globals["multicliente_permitido"] = multicliente_permitido
+
+
+@app.route("/clientes/<int:cid>/multicliente", methods=["POST"])
+@requiere_login
+def cliente_multicliente(cid):
+    """Invoke decide si la instancia puede operar en modo multicliente (además de lo que diga el contrato)."""
+    solo_invoke()
+    c = cliente_ok(cid)
+    v = {"si": 1, "no": 0}.get(request.form.get("v"))
+    ej("UPDATE clientes SET multicliente=? WHERE id=?", v, cid)
+    bitacora("multicliente " + {1: "permitido", 0: "no permitido", None: "según contrato"}[v], c["codigo"], {"por": g.usuario["usuario"]})
+    flash("Multicliente: " + ("permitido" if multicliente_permitido(cid) else "no permitido") + (" (según contrato)" if v is None else ""), "ok")
+    return redirect(url_for("cliente", cid=cid))
 
 
 @app.route("/clientes/<int:cid>/sincronizar", methods=["POST"])
