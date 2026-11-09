@@ -4933,13 +4933,24 @@ def mapa():
             acceso_app = next(iter(_accesos_apps([{"nombre": segmento, "ambientes": seg_info.get("ambientes") or []}])), None)
         except Exception as e_:  # noqa: BLE001
             current_app.logger.warning("acceso de la aplicación %s: %s", segmento, e_)
+    tickets_seg = []
+    if seg_info and segmento:   # actividad lanzada sobre el segmento o sus máquinas (encendidos, réplicas, certificados…)
+        maq_ = {e["nombre"] for e in equipos_visibles() if segmento in (e.get("segmentos") or [])}
+        for t_ in q("SELECT t.id, t.numero, t.estado, t.creado, t.motivo, t.limite, t.segmento, a.nombre AS accion FROM tickets t "
+                    "LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.cliente_id=? ORDER BY t.id DESC LIMIT 600", g.cliente["id"]):
+            en_ = set(x for x in re.split(r"[:,\s]+", t_["limite"] or "") if x) & maq_
+            if t_["segmento"] == segmento or en_:
+                t_["maquinas"] = sorted(en_)
+                tickets_seg.append(t_)
+            if len(tickets_seg) >= 40:
+                break
     radar_sec = None
     if vista == "aplicaciones" and not segmento:
         noms_ = {t["nombre"] for t in tarjetas}
         radar_sec = _radar_de([e for e in equipos_visibles() if noms_ & set(e["segmentos"])])
     return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info, accesos=accesos, ambs_acc=sorted({k for a in accesos for k in a["por_amb"]}, key=lambda k: (AMB_ORDEN.index(k) if k in AMB_ORDEN else 99, k)), radar_sec=radar_sec, acceso_app=acceso_app,
                            grupo=grupo if grupo in NOMBRE else "", grupos=GRUPOS, nombre_grupo=NOMBRE, areas=areas,
-                           archivados=archivados(g.cliente["id"]) if vista == "aplicaciones" and not segmento else [])
+                           archivados=archivados(g.cliente["id"]) if vista == "aplicaciones" and not segmento else [], tickets_seg=tickets_seg)
 
 
 def _homologar_segmento(segmento, arq):

@@ -70,6 +70,11 @@ v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('k
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
 <span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⇉ varios puertos · 🔒 TLS · <b style="color:var(--warn)">- - -</b> planificado (por crear) · <b style="color:#7f77dd">- - -</b> bifurcación: copia de cada request al data lake (clic para ver el punto) · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+{% if tickets_seg is defined and segmento %}<h2 style="margin:22px 0 6px;font-size:16px" id="actividad">Actividad lanzada en este segmento</h2>
+{% if tickets_seg %}<div class="tabla-scroll"><table style="font-size:13px"><tr><th>Ticket</th><th>Fecha</th><th>Acción</th><th>Máquinas</th><th>Motivo</th><th>Estado</th></tr>
+{% for t in tickets_seg %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td style="white-space:nowrap">{{ (t.creado or '')[:16].replace('T', ' ') }}</td>
+<td>{{ t.accion or '—' }}</td><td>{{ t.maquinas|join(', ') or '—' }}</td><td class="sub">{{ (t.motivo or '')[:110] }}</td><td><span class="chip e-{{ t.estado }}">{{ t.estado.replace('_', ' ') }}</span></td></tr>{% endfor %}</table></div>
+{% else %}<p class="sub">Aún no se ha lanzado ninguna acción sobre este segmento.</p>{% endif %}{% endif %}
 <script>const RESALTAR={{ request.args.get("equipo", "")|tojson }};const RES_SET=new Set(RESALTAR.split(',').map(x=>x.trim()).filter(Boolean));
 const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if cliente else 0) }}-'+{{ (request.args.get('segmento') or request.args.get('vista') or 'global')|tojson }};</script>
 <script>
