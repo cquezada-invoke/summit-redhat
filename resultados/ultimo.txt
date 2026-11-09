@@ -1,35 +1,15 @@
-commit: e540a86c92bea4f5a4dfee87dab6184a911c7135
-inicio: 2026-11-09T08:54:29-03:00
+commit: e17ce8a9cfbfaf305b7a918ebb858bfb727ec8b1
+inicio: 2026-11-09T08:55:11-03:00
 ---
-== pipelinerun app-jboss
-default     app-jboss-xkbss           True        Succeeded   13d         13d
-default     app-jboss-zzh52           True        Succeeded   17d         17d
-TASK                  ESTADO      MSG
-clonar                Succeeded   All Steps have completed executing
-compilar-y-probar     Succeeded   All Steps have completed executing
-preparar-plataforma   Failed      "step-pedir-a-aap" exited with code 1: Error
-publicar              Succeeded   All Steps have completed executing
-secretos              Succeeded   All Steps have completed executing
-vulnerabilidades      Succeeded   All Steps have completed executing
-2026/11/09 11:48:30 Entrypoint initialization
-2026/11/09 11:48:30 Decoded script /tekton/scripts/script-0-8qzgm
-    datos: {app_commit: "${commit}"}
-  - automatizacion: AUT-058          # Abrir acceso de red (con aprobación)
-    datos: {acceso_origen: "${balanceador}", acceso_destino: "${destino.ip}", acceso_puerto: "8080", acceso_nombre: "app-jboss ${ambiente}"}
-  - automatizacion: AUT-082          # Emitir certificado para el servicio
-    datos: {cert_nombre: app-jboss, cert_puerto: 8443, cert_recargar: "systemctl restart eap8-standalone"}
-  - automatizacion: AUT-002          # Publicar en Nginx
-    datos: {nombre_app: app-jboss, ambiente: "${ambiente}"}
-  - titulo: Modificar base de datos  # automatización por crear en el catálogo
-    automatizacion: ""
-  - titulo: Crear cliente en Keycloak
-    automatizacion: ""
-    datos: {realm: invoke, cliente: app-jboss}
-
-AAP job 19179 preparando la plataforma
-Resultado en AAP: failed · https://10.194.0.2/execution/jobs/playbook/19179/output
-== job de licencias
-vars env: ['FACEOPS_GITEA_TOKEN', 'FACEOPS_RESPALDO_TOKEN', 'FACEOPS_AAP_URL', 'FACEOPS_AAP_PUBLICA', 'FACEOPS_GUAC_CLAVE', 'FACEOPS_GITEA_ORG_TOKEN', 'FACEOPS_VAULT_ADDR', 'FACEOPS_VAULT_SECRET_ID', 'FACEOPS_VAULT_ROLE_ID', 'FACEOPS_AAP_TOKEN']
-job 19194 successful limit:  inventario: 2 hosts: {'ok': 9} artefactos: [] 0
-job 19191 successful limit:  inventario: 2 hosts: {'ok': 9} artefactos: [] 0
---- fin: 2026-11-09T08:54:30-03:00 · código: 0
+ 20   nodo-so                 running
+ 21   nodo-jboss-dev          running
+== licencias
+LIC 1: FO-LAB-01353 exitoso · filas 2 
+LIC 2: FO-LAB-01354 exitoso · filas 2 
+LIC tipos [(('RedHat 9.8', 'registrado'), 1), (('RedHat 9.8', 'acceso simple (SCA) · registrado'), 1)]
+LIC caducidad {'vencida': 2, 'vence en 30 días': 0, 'vence en 90 días': 5, 'vigente': 1, 'sin fecha': 1} · AAP: ['60 Day Product Trial of Red Hat Ansible Automation vence 2026-12-21']
+LIC casos [{'id': 'C1', 'resultado': 'ok'}, {'id': 'C2', 'resultado': 'ok'}, {'id': 'C3', 'resultado': 'ok'}]
+   ('nodo-jboss-dev', 'RedHat 9.8', 'registrado', '')
+   ('nodo-so', 'RedHat 9.8', 'acceso simple (SCA) · registrado', '')
+PIPE app-jboss@develop: FO-LAB-01355 fallido AAP terminó (failed): ejecución 168 s, espera de aprobación 29 s Falló en la tarea «El pipeline terminó bien» de anfitrion-kvm: La ejecución app-jboss-faceops-74tbp del pipeline app-jboss falló o no terminó: revisa sus etapas en FaceOps ok: [anfitrion-kvm] => 
+--- fin: 2026-11-09T09:09:04-03:00 · código: 0
