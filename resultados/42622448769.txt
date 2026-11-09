@@ -1,0 +1,24 @@
+commit: 24972ed3f0807f7163c335d998c8233bd2f13f47
+inicio: 2026-11-09T10:05:51-03:00
+---
+faceops actualizado
+Push successful
+deployment "colector" successfully rolled out
+colector interno 200
+   · Plantilla «Data lake · Derivar segmento» (id 613)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+catálogo sincronizado
+Traceback (most recent call last):
+  File "/tmp/dl.py", line 28, in <module>
+    t1 = correr("activar", "C1 activar")
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/dl.py", line 18, in correr
+    t = solicitar_en_equipo(u, cli, au, e, params_derivacion(cli["id"], "App de pagos", "nodo-nginx", accion), f"Plan de prueba · data lake {etiqueta}", prueba=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/operacion.py", line 334, in solicitar_en_equipo
+    raise PermissionError(f"Esta acción no aplica a {e['nombre']}: {no_}")
+PermissionError: Esta acción no aplica a nodo-nginx: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+grep: /etc/nginx/default.d/fo-lake-app-de-pagos.conf: No such file or directory
+app sigue respondiendo 404
+vista datos pública 200
+--- fin: 2026-11-09T10:11:24-03:00 · código: 0
