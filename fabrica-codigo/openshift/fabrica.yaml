@@ -23,6 +23,33 @@ metadata: {name: fabrica-pipeline-monitoreo, namespace: fabrica-dev}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: monitoring-edit}
 subjects: [{kind: ServiceAccount, name: fabrica-pipeline, namespace: fabrica-dev}]
 ---
+# Pruebas antes de entregar: la Fábrica corre las pruebas del código generado en pods efímeros de este namespace
+apiVersion: v1
+kind: Namespace
+metadata: {name: fabrica-pruebas, labels: {app.kubernetes.io/part-of: fabrica-codigo}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: fabrica, namespace: fabrica-codigo}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: fabrica-pruebas, namespace: fabrica-pruebas}
+rules:
+  - {apiGroups: [""], resources: [pods, configmaps], verbs: [create, get, list, delete]}
+  - {apiGroups: [""], resources: [pods/log], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: fabrica-pruebas, namespace: fabrica-pruebas}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: fabrica-pruebas}
+subjects: [{kind: ServiceAccount, name: fabrica, namespace: fabrica-codigo}]
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata: {name: pruebas, namespace: fabrica-pruebas}
+spec: {hard: {pods: "3", limits.memory: 6Gi}}
+---
 apiVersion: v1
 kind: Secret
 metadata: {name: fabrica-pipeline-token, namespace: fabrica-dev, annotations: {kubernetes.io/service-account.name: fabrica-pipeline}}
@@ -67,6 +94,7 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: fabrica, app.kubernetes.io/part-of: fabrica-codigo, app.kubernetes.io/version: "1.0"}}
     spec:
+      serviceAccountName: fabrica
       containers:
         - name: app
           image: image-registry.openshift-image-registry.svc:5000/fabrica-codigo/fabrica:latest

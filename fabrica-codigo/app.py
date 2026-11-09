@@ -414,6 +414,91 @@ def revisar(archivos):
     return sorted(set(malos))
 
 
+NS_PRUEBAS = os.environ.get("FABRICA_NS_PRUEBAS", "fabrica-pruebas")
+IMG_PRUEBAS = os.environ.get("FABRICA_IMAGEN_PRUEBAS", "registry.access.redhat.com/ubi9/openjdk-21:1.21")
+SA_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
+
+
+def _k8s(metodo, ruta, **kw):
+    """API del clúster con la cuenta de servicio de la Fábrica (solo el namespace de pruebas)."""
+    tok = open(f"{SA_DIR}/token").read().strip()
+    url = f"https://{os.environ['KUBERNETES_SERVICE_HOST']}:{os.environ.get('KUBERNETES_SERVICE_PORT', '443')}{ruta}"
+    return requests.request(metodo, url, headers={"Authorization": f"Bearer {tok}"}, verify=f"{SA_DIR}/ca.crt", timeout=30, **kw)
+
+
+def probar(archivos, paso=lambda t: None, espera=900):
+    """Corre las pruebas del proyecto (mvn test) en un pod efímero, igual que la etapa «pruebas» del pipeline.
+    Devuelve (ok, resumen): ok None si no se pudo correr (sin clúster o sin permisos)."""
+    import io
+    import tarfile
+    if "pom.xml" not in archivos or not os.path.exists(f"{SA_DIR}/token"):
+        return None, "sin proyecto Maven o sin acceso al clúster"
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for ruta, cont in archivos.items():
+            b = cont.encode()
+            ti = tarfile.TarInfo(ruta)
+            ti.size, ti.mode = len(b), 0o644
+            tf.addfile(ti, io.BytesIO(b))
+    nombre = f"pruebas-{secrets.token_hex(4)}"
+    base = f"/api/v1/namespaces/{NS_PRUEBAS}"
+    try:
+        r = _k8s("POST", f"{base}/configmaps", json={"metadata": {"name": nombre}, "binaryData": {"src.tgz": base64.b64encode(buf.getvalue()).decode()}})
+        if r.status_code >= 300:
+            return None, f"no se pudo preparar la prueba ({r.status_code})"
+        guion = ("mkdir -p /tmp/src && cd /tmp/src && tar xzf /in/src.tgz && "
+                 "mvn -B -ntp -Dmaven.repo.local=/tmp/m2 -Dstyle.color=never test > /tmp/salida.txt 2>&1; c=$?; "
+                 r"grep -E '^\[(ERROR|WARNING)\]|Tests run:|FAIL|expected' /tmp/salida.txt | grep -v 'Help 1\|cwiki\|re-run Maven\|^\[ERROR\] *$' | tail -60; exit $c")
+        pod = {"metadata": {"name": nombre, "labels": {"app.kubernetes.io/part-of": "fabrica-codigo"}},
+               "spec": {"restartPolicy": "Never", "activeDeadlineSeconds": espera,
+                        "containers": [{"name": "mvn", "image": IMG_PRUEBAS, "command": ["bash", "-c", guion],
+                                        "resources": {"requests": {"cpu": "200m", "memory": "768Mi"}, "limits": {"cpu": "1", "memory": "1536Mi"}},
+                                        "volumeMounts": [{"name": "src", "mountPath": "/in"}],
+                                        "securityContext": {"allowPrivilegeEscalation": False, "runAsNonRoot": True, "capabilities": {"drop": ["ALL"]},
+                                                            "seccompProfile": {"type": "RuntimeDefault"}}}],
+                        "volumes": [{"name": "src", "configMap": {"name": nombre}}]}}
+        r = _k8s("POST", f"{base}/pods", json=pod)
+        if r.status_code >= 300:
+            return None, f"no se pudo crear el pod de pruebas ({r.status_code})"
+        paso("Corriendo las pruebas del proyecto (mvn test), igual que la etapa de pruebas del pipeline")
+        fin = time.time() + espera + 60
+        fase = ""
+        while time.time() < fin:
+            time.sleep(8)
+            fase = (_k8s("GET", f"{base}/pods/{nombre}").json().get("status") or {}).get("phase", "")
+            if fase in ("Succeeded", "Failed"):
+                break
+        log = _k8s("GET", f"{base}/pods/{nombre}/log", params={"tailLines": 80}).text
+        if fase == "Succeeded":
+            m = re.findall(r"Tests run: (\d+), Failures: (\d+), Errors: (\d+)", log)
+            return True, (f"{m[-1][0]} pruebas, todas pasan" if m else "las pruebas pasan")
+        if fase == "Failed":
+            return False, log.strip()[-6000:]
+        return None, "las pruebas no terminaron a tiempo (el clúster no tenía capacidad o tardó demasiado)"
+    except requests.RequestException as x:
+        return None, f"no se pudo correr la prueba ({type(x).__name__})"
+    finally:
+        for k in ("pods", "configmaps"):
+            try:
+                _k8s("DELETE", f"{base}/{k}/{nombre}")
+            except requests.RequestException:
+                pass
+
+
+def _rutas_en_fallas(log, archivos):
+    """Archivos que mencionan las fallas de las pruebas (clases de prueba y las clases que prueban)."""
+    out = set()
+    for clase in set(re.findall(r"([A-Z][A-Za-z0-9]+)(?:Test)?\.\w+:\d+", log)) | set(re.findall(r"\b([A-Z][A-Za-z0-9]+Test)\b", log)):
+        base_ = clase[:-4] if clase.endswith("Test") else clase
+        for ruta in archivos:
+            nom = ruta.rsplit("/", 1)[-1]
+            if nom in (f"{clase}.java", f"{base_}.java", f"{base_}Test.java"):
+                out.add(ruta)
+    out |= {r for r in archivos if r.startswith("src/main/resources/templates/") and "thymeleaf" in log.lower()}
+    out |= {r for r in archivos if "/security/" in r.lower() or "securityconfig" in r.lower()} if re.search(r"\b(401|403)\b", log) else set()
+    return sorted(out)
+
+
 def _trabajo(tid, sid, req_, previo):
     t = TRABAJOS[tid]
     _hilo.motor = t.get("motor", "claude")
@@ -426,6 +511,29 @@ def _trabajo(tid, sid, req_, previo):
             paso(f"{len(malos)} incumplimiento{'s' if len(malos) != 1 else ''}: Claude los está corrigiendo")
             p2 = generar(req_, dict(p, requerimiento=req_), "\n".join(malos), paso=paso, solo=_archivos_de(malos, p["archivos"]))
             p, malos = p2, revisar(p2["archivos"])
+        if not malos:   # nunca se entrega código con pruebas que fallan: se corren aquí y se corrige hasta dos veces
+            for intento in range(3):
+                ok, res = probar(p["archivos"], paso=paso)
+                if ok is None:
+                    paso(f"No se pudieron correr las pruebas antes de entregar: {res}. El pipeline las corre igual")
+                    break
+                if ok:
+                    paso(f"Pruebas: {res}")
+                    break
+                if intento == 2:
+                    malos = ["PS-25: las pruebas fallan después de dos correcciones automáticas: " + " · ".join(
+                        l.strip() for l in res.splitlines() if re.search(r"Tests run:|ERROR\]\s+\w+Test", l))[:600]]
+                    paso("Las pruebas siguen fallando: no se entrega hasta corregirlas")
+                    break
+                n_f = re.findall(r"Tests run: \d+, Failures: (\d+), Errors: (\d+)", res)
+                paso("Fallan pruebas" + (f" ({int(n_f[-1][0]) + int(n_f[-1][1])})" if n_f else "") + f": Claude las está corrigiendo (intento {intento + 1} de 2)")
+                p2 = generar(req_, dict(p, requerimiento=req_), "Las pruebas (mvn test) fallan. Corrige el código o las pruebas para que todas pasen, "
+                             "sin desactivar pruebas ni bajar la seguridad. Salida de Maven:\n" + res, paso=paso,
+                             solo=_rutas_en_fallas(res, p["archivos"]) or sorted(k for k in p["archivos"] if k.endswith(".java")))
+                p = p2
+                malos = revisar(p["archivos"])
+                if malos:
+                    break
         p["requerimiento"] = (previo or {}).get("requerimiento", req_) if previo else req_
         p["revision"] = malos
         PROYECTOS[sid] = p
