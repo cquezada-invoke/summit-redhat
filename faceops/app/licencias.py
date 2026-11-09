@@ -250,11 +250,12 @@ def levantar_desde(artefactos):
                 out.append({"equipo": host, "fabricante": "Red Hat", "producto": s_.get("subscription name", ""), "sku": s_.get("sku", ""),
                             "contrato": s_.get("contract", ""), "vence": _fecha(s_.get("ends")), "fuente": "subscription-manager", "detalle": d.get("so", "")})
             if not subs:
+                so_ = re.sub(r"^RedHat\b", "Red Hat Enterprise Linux", d.get("so") or "RHEL")
                 est = d.get("estado") or ""
                 sca = "simple content access" in est.lower() or "content access mode" in est.lower()
                 reg = "unknown" not in est.lower() and bool(est.strip())
                 ident = (d.get("identidad") or "").splitlines()
-                out.append({"equipo": host, "fabricante": "Red Hat", "producto": d.get("so", "RHEL"), "sku": "", "contrato": "",
+                out.append({"equipo": host, "fabricante": "Red Hat", "producto": so_, "sku": "", "contrato": "",
                             "vence": "", "fuente": ("acceso simple (SCA) · " if sca else "") + ("registrado" if reg else "sin registrar"),
                             "detalle": " · ".join(x for x in ident if x)})
         elif d.get("familia") == "Windows":
