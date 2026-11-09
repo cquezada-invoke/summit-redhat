@@ -374,7 +374,7 @@ const base=location.origin, raiz={{ (request.script_root or '')|tojson }};let ca
 const normal=(a)=>{const h=a.getAttribute('href')||'';return !h||h.startsWith('#')||h.startsWith('javascript:')||a.target||a.hasAttribute('download')||a.dataset.completo!==undefined||
   a.origin!==base||/\/(salir|static|admin|cliente\/\d+|ver-como|ingresar)(\/|$)|\.(pdf|conf|log|zip|csv|json|png|svg)(\?|$)|\/consola-web\/|\/web\//.test(a.pathname)||a.closest('dialog,.top-ic-menu')};
 async function correr(cont){const ins=[];for(const v of [...cont.querySelectorAll('script')]){
-  if(v.src){if(!document.querySelector('script[src="'+v.getAttribute('src')+'"]')){const n=document.createElement('script');n.src=v.src;await new Promise(r=>{n.onload=n.onerror=r;document.head.appendChild(n);});}}
+  if(v.src){if(![...document.querySelectorAll('script[src="'+v.getAttribute('src')+'"]')].some(x=>!cont.contains(x))){const n=document.createElement('script');n.src=v.src;await new Promise(r=>{n.onload=n.onerror=r;document.head.appendChild(n);});}}
   else ins.push(v.textContent);v.remove()}
   if(ins.length){const n=document.createElement('script');n.textContent='{\n'+ins.join('\n;\n')+'\n}';document.body.appendChild(n);n.remove()}}
 async function ir(url,empujar){if(cargando)cargando.abort();cargando=new AbortController();document.body.classList.add('navegando');
@@ -385,7 +385,10 @@ async function ir(url,empujar){if(cargando)cargando.abort();cargando=new AbortCo
     m.replaceWith(nm);document.title=doc.title;if(empujar)history.pushState({p:1},'',r.url);window.scrollTo(0,0);
     const on=new Set([...doc.querySelectorAll('aside.lateral a.on')].map(a=>a.getAttribute('href')));
     document.querySelectorAll('aside.lateral a').forEach(a=>a.classList.toggle('on',on.has(a.getAttribute('href'))));
-    document.body.classList.remove('nav-abierta');await correr(nm);document.dispatchEvent(new Event('faceops:pagina'));
+    document.body.classList.remove('nav-abierta');
+    for(const v of [...doc.querySelectorAll('script[src]')].filter(v=>!v.closest('main'))){const src=v.getAttribute('src');if(!document.querySelector('script[src="'+src+'"]')){const n=document.createElement('script');n.src=src;await new Promise(r=>{n.onload=n.onerror=r;document.head.appendChild(n);});}}
+    for(const l of doc.querySelectorAll('head link[rel=stylesheet]')){const h=l.getAttribute('href');if(h&&!document.querySelector('link[href="'+h+'"]'))document.head.appendChild(l.cloneNode());}
+    await correr(nm);document.dispatchEvent(new Event('faceops:pagina'));
   }catch(e){if(e.name!=='AbortError')location.href=url}finally{document.body.classList.remove('navegando')}}
 document.addEventListener('click',e=>{if(e.defaultPrevented||e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;const a=e.target.closest('a[href]');
   if(!a||normal(a))return;e.preventDefault();ir(a.href,true)});
