@@ -1,0 +1,45 @@
+commit: bb0ce91b3b56206a516af78f91bf0966a2e32abb
+inicio: 2026-11-09T12:16:22-03:00
+---
+faceops actualizado
+Push successful
+deployment "fabrica" successfully rolled out
+limpio fabrica-dev
+chat vía FaceOps: 200 True True
+página desarrollo: 200 True
+pasos: ['Leí las 27 políticas de software vigentes (versión b02dc84f635d) y el stack acep', 'Claude (claude-sonnet-5-5) · Anthropic está planificando la aplicación · tiempo ', 'Plan listo: gestion-usuarios · 24 archivos', 'Escribiendo 24 archivos: primero pom.xml y el código en orden de dependencias, e', 'Revisando que el código compile: consistencia entre clases, constructores, métod', 'Revisión de compilación: sin problemas', 'Revisión previa de las políticas que verifica el pipeline', '1 incumplimiento: Claude los está corrigiendo', 'Leí las 27 políticas de software vigentes (versión b02dc84f635d) y el stack acep', 'Escribiendo 1 archivo: primero pom.xml y el código en orden de dependenci
+error: None proyecto: gestion-usuarios 24 revision: ['PS-07: posible secreto en README.md'] mvnw: []
+T                       S
+analisis-estatico       Succeeded
+clonar                  Succeeded
+construir-y-desplegar   Running
+politicas               Succeeded
+pruebas                 Succeeded
+secretos                Succeeded
+Uploading directory "." as binary input for the build ...
+
+Uploading finished
+Copying blob sha256:06a379e8d23950c12694f5e842e26e65c40a91fc46cf4b13960765948d76055c
+Copying config sha256:4208efd6b4ff617b869537a146b4f5087b4864f56ab185514c2be8b7c40ce01d
+Writing manifest to image destination
+Successfully pushed image-registry.openshift-image-registry.svc:5000/fabrica-dev/mantenedor-usuarios@sha256:3888f2da6c021bb5e6ba88a33a432fd2c31329dc9a6719e0c4a475e2e3a89d68
+Push successful
+configmap/mantenedor-usuarios-config created
+deployment.apps/mantenedor-usuarios created
+horizontalpodautoscaler.autoscaling/mantenedor-usuarios created
+poddisruptionbudget.policy/mantenedor-usuarios created
+persistentvolumeclaim/mantenedor-usuarios-db created
+deployment.apps/mantenedor-usuarios-db created
+service/mantenedor-usuarios-db created
+route.route.openshift.io/mantenedor-usuarios created
+service/mantenedor-usuarios created
+servicemonitor.monitoring.coreos.com/mantenedor-usuarios created
+Waiting for deployment "mantenedor-usuarios" rollout to finish: 1 old replicas are pending termination...
+2026/11/09 15:17:08 Entrypoint initialization
+2026/11/09 15:17:10 Decoded script /tekton/scripts/script-0-wgjbg
+NAME                                      READY   STATUS      RESTARTS   AGE
+mantenedor-usuarios-1-build               0/1     Completed   0          6m25s
+mantenedor-usuarios-688964bbb4-khrbp      0/1     Pending     0          2m54s
+mantenedor-usuarios-868cb7c968-s654x      0/1     Pending     0          2m56s
+mantenedor-usuarios-db-6ff48ffd9b-cglhs   0/1     Pending     0          2m55s
+--- fin: 2026-11-09T12:23:47-03:00 · código: 0
