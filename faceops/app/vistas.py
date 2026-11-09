@@ -3973,8 +3973,11 @@ ELIMINAR = "FaceOps · Eliminar servidor"
 
 
 def eliminable(e):
-    """Solo servidores creados por FaceOps (inventario «Servidores habilitados»): los nodos base del laboratorio no."""
-    return "Servidores habilitados" in j(e.get("inventarios"), []) and e.get("estado") != "retirado"
+    """Máquinas virtuales que FaceOps controla en el hipervisor (las mismas que puede encender o apagar), salvo los nodos de un
+    clúster OpenShift, que se retiran desde el clúster."""
+    d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    return e.get("estado") != "retirado" and not d.get("nodo_ocp") and (e.get("categoria") or "servidor") != "clúster openshift" \
+        and ("Servidores habilitados" in j(e.get("inventarios"), []) or energia_posible(e))
 
 
 @bp.route("/inventario/<int:eid>/eliminar", methods=["POST"])
@@ -3987,7 +3990,7 @@ def eliminar_equipo(eid):
     eqs = equipos_visibles()
     e = next((x for x in eqs if x["id"] == eid), None)
     if not e or not eliminable(e):
-        return {"error": "Solo se pueden eliminar servidores creados por FaceOps"}, 400
+        return {"error": "Esta máquina no se puede eliminar desde FaceOps (no es una máquina virtual del hipervisor o es nodo de OpenShift)"}, 400
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ELIMINAR)
     if not a:
         return {"error": f"Falta «{ELIMINAR}» en el catálogo (sincroniza con AAP)"}, 400
@@ -4331,7 +4334,12 @@ def equipo(eid):
     _sec_resp = {"almacenamiento": "storage", "router": "redes", "switch": "redes", "firewall": "redes", "balanceador": "redes",
                  "clúster openshift": "contenedores"}.get((e.get("categoria") or "servidor").lower(), "servidores")
     area_resp = _grupo_d(g.cliente["id"], _sec_resp)
-    return render_template("equipo.html", recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    try:
+        from .uso_energia import uso as _uso_energia
+        horas_eq = _uso_energia(e, j(e["datos"], {}))
+    except Exception:  # noqa: BLE001 - sin historial la ficha sigue
+        horas_eq = None
+    return render_template("equipo.html", horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

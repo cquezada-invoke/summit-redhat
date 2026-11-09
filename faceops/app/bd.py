@@ -157,6 +157,20 @@ def iniciar():
         for col, tipo in cols.items():
             if col not in hay:
                 con().execute(f"ALTER TABLE {tabla} ADD COLUMN {col} {tipo}")
+    # historial de energía: cada cambio de encendido/apagado abre un tramo (lo usan las horas encendida y el consumo de la ficha)
+    con().executescript("""
+CREATE TABLE IF NOT EXISTS energia_historial (id INTEGER PRIMARY KEY, equipo_id INTEGER NOT NULL, estado TEXT NOT NULL,
+                                              desde TEXT NOT NULL, hasta TEXT);
+CREATE INDEX IF NOT EXISTS energia_historial_eq ON energia_historial(equipo_id, desde);
+CREATE TRIGGER IF NOT EXISTS energia_historial_cambio AFTER UPDATE OF energia ON equipos
+WHEN COALESCE(OLD.energia, '') != COALESCE(NEW.energia, '') AND COALESCE(NEW.energia, '') != ''
+BEGIN
+  UPDATE energia_historial SET hasta = COALESCE(NULLIF(NEW.energia_cambio, ''), strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now'))
+   WHERE equipo_id = NEW.id AND hasta IS NULL;
+  INSERT INTO energia_historial(equipo_id, estado, desde)
+  VALUES (NEW.id, NEW.energia, COALESCE(NULLIF(NEW.energia_cambio, ''), strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now')));
+END;
+""")
     con().commit()
 
 

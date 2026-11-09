@@ -392,3 +392,8 @@ planes:
       - {id: C4, caso: "Servicio que no levanta en el destino", tipo: Error controlado, verificar: "falla con «no quedó igual»; no se hace el corte; el origen sigue sirviendo"}
       - {id: C5, caso: "Rechazar la aprobación", tipo: Aprobación, verificar: "no se crea nada en GCP"}
       - {id: C6, caso: "Limpieza", tipo: Funcional, verificar: "la VM de prueba se elimina en GCP al terminar el plan (no quedan costos)"}
+  "FaceOps · Eliminar servidor":
+    casos:
+      - {id: C1, caso: "eliminar una máquina virtual del hipervisor desde su ficha", verificar: "ticket con aprobación; la VM sale de libvirt (disco conservado aparte), sale de los inventarios de AAP (libera licencia) y queda retirada en FaceOps"}
+      - {id: C2, caso: "rechazar la aprobación", verificar: "el ticket termina rechazado y la máquina sigue igual (encendida o apagada, en AAP y en FaceOps)"}
+      - {id: C3, caso: "intentar eliminar un nodo de OpenShift o un equipo que no es VM del hipervisor", verificar: "FaceOps lo rechaza sin crear ticket"}
