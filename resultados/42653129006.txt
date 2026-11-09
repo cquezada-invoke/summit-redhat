@@ -1,0 +1,25 @@
+commit: 5db3855f4146f420a983cbf647130b3e0b94e6f1
+inicio: 2026-11-09T13:16:51-03:00
+---
+== ./src/main/resources/application.yaml
+4:  datasource:
+5-    url: ${DB_URL}
+6-    username: ${DB_USER:}
+7-    password: ${DB_PASSWORD:}
+8-  jpa:
+9-    open-in-view: false
+== ./src/test/resources/application-test.yaml
+2:  datasource:
+3-    url: jdbc:h2:mem:usuarios;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+4-    driver-class-name: org.h2.Driver
+5-    username: sa
+6-    password: ""
+7-  jpa:
+56-            - name: JAVA_OPTS
+58-            - name: DB_USERNAME
+61-                  name: mantenedor-usuarios-db
+62-                  key: username
+63-            - name: DB_PASSWORD
+66-                  name: mantenedor-usuarios-db
+67-                  key: password
+--- fin: 2026-11-09T13:16:51-03:00 · código: 0

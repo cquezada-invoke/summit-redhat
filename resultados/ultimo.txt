@@ -1,17 +1,25 @@
-commit: d9ca2931ea3ef2f2c291a941d2f37edcae2ceaa7
-inicio: 2026-11-09T13:16:23-03:00
+commit: 5db3855f4146f420a983cbf647130b3e0b94e6f1
+inicio: 2026-11-09T13:16:51-03:00
 ---
-WARN Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerF
-WARN The web application [ROOT] appears to have started a thread named [BatchSpanProcessor_WorkerThread-1] but has failed to stop it. This is very likely to create a memory leak. Stack trace of thread:
- java.base/jdk.internal.misc.Unsafe.park(Native Method)
- java.base/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:269)
- java.base/java.util.concurrent.locks.AbstractQueuedSynchronizer$
-WARN The web application [ROOT] appears to have started a thread named [BatchLogRecordProcessor_WorkerThread-1] but has failed to stop it. This is very likely to create a memory leak. Stack trace of thread:
- java.base/jdk.internal.misc.Unsafe.park(Native Method)
- java.base/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:269)
- java.base/java.util.concurrent.locks.AbstractQueuedSynchron
-ERROR Application run failed
-    Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/autoconfigure/flyway/FlywayAutoConfiguration$FlywayConfiguration.class]: Unable to obtain connection from database: FATAL: pa
-    Caused by: org.flywaydb.core.internal.exception.FlywaySqlException: Unable to obtain connection from database: FATAL: password authentication failed for user "1000890000"
-    Caused by: org.postgresql.util.PSQLException: FATAL: password authentication failed for user "1000890000"
---- fin: 2026-11-09T13:16:24-03:00 · código: 0
+== ./src/main/resources/application.yaml
+4:  datasource:
+5-    url: ${DB_URL}
+6-    username: ${DB_USER:}
+7-    password: ${DB_PASSWORD:}
+8-  jpa:
+9-    open-in-view: false
+== ./src/test/resources/application-test.yaml
+2:  datasource:
+3-    url: jdbc:h2:mem:usuarios;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+4-    driver-class-name: org.h2.Driver
+5-    username: sa
+6-    password: ""
+7-  jpa:
+56-            - name: JAVA_OPTS
+58-            - name: DB_USERNAME
+61-                  name: mantenedor-usuarios-db
+62-                  key: username
+63-            - name: DB_PASSWORD
+66-                  name: mantenedor-usuarios-db
+67-                  key: password
+--- fin: 2026-11-09T13:16:51-03:00 · código: 0
