@@ -1,10 +1,72 @@
-commit: e97a1e3d6d5cb055faf4c4ca30f9ff39158ca79a
-inicio: 2026-11-09T14:48:13-03:00
+commit: 0d2e4a827817997ef11696a79c11b1e97600c527
+inicio: 2026-11-09T14:50:16-03:00
 ---
-https://aap.34.176.42.56.sslip.io/execution/templates/workflow-template/663/details 200
-https://34.176.42.56/execution/templates/workflow-template/663/details 404
-portal actualizado
-faceops actualizado
-Push successful
-approve 204 b''
---- fin: 2026-11-09T14:49:39-03:00 · código: 0
+== OpenShift · Salud del clúster {"severidad_minima": "warning", "incluir_pods": "si"} → #19674 successful
+     · Portal · OpenShift · Salud del clúster (plantilla) → successful · Clúster CRITICO · OpenShift 4.19.51 [critico]
+         Nodos | 1 (1 no listos)
+         Operadores degradados | ninguno
+         Operadores no disponibles | authentication, baremetal, cloud-controller-manager, cloud-credential, cluster-autoscaler, config-operator, console, contr
+         Alertas activas | 0 (0 críticas)
+         Actualizaciones disponibles | 4 en el canal stable-4.19
+         Pods con problemas en catocp-prod | 4
+         Pods con problemas en demo-datalake | 2
+         Pods con problemas en openshift-kube-apiserver | 2
+== OpenShift · Certificados {"dias_alerta": 30, "aprobar_csr": "no"} → #19678 tiempo agotado
+
+== OpenShift · Actualizaciones y operadores {"aprobar_operadores": "no"} → #19690 successful
+     · Portal · OpenShift · Actualizaciones y operadores (plan → successful · OpenShift 4.19.51 · 4 actualizaciones disponibles · 7 operadores [atencion]
+         Canal | stable-4.19
+         Versiones disponibles | 4.19.55, 4.19.54, 4.19.53, 4.19.52
+         Condicionadas (revisar riesgos conocidos) | ninguna
+         Historial | 4.19.51 Completed
+         Operadores con aprobación manual | hawtio-operator, compliance-operator-sub, openshift-gitops-operator, datagrid, openshift-pipelines-operator-rh, rha
+         InstallPlans pendientes | 4
+         Operador hawtio-operator.v1.2.0 | Succeeded · faceops
+         Operador compliance-operator.v1.10.0 | Succeeded · openshift-compliance
+== OpenShift · Optimizar recursos y limpiar {"modo": "revisar", "umbral_ocioso": 20, "dias_antiguedad": 7} → #19694 failed
+     · Portal · OpenShift · Optimizar recursos y limpiar (plan → failed
+         FALLA en «Resumen»: The task includes an option with an undefined variable. The error was: {{ analisis.tot }}: 'ansible.utils.unsafe_proxy.AnsibleUnsafeText object' has no attribute 'tot'. 'ansible.utils.unsafe_proxy.AnsibleUnsafeText object' has no a
+== OpenShift · Alta de proyecto {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 1, "memoria_gi": 1, "accion": "cre → #19698 successful
+     · Portal · OpenShift · Alta de proyecto (plantilla) → successful · Proyecto demo-pagos creado [ok]
+         Ambiente | desarrollo
+         Cuota | 1 cores · 1 GiB (requests)
+         Permisos | equipo-pagos como admin
+         Red | solo su namespace, el Ingress y el monitoreo
+         Límites por contenedor | por defecto 50m/128Mi · máximo 2 cores/2Gi
+== OpenShift · Regularizar línea base {"modo": "revisar", "namespaces": ""} → #19701 failed
+     · Portal · OpenShift · Regularizar línea base (plantilla) → failed
+         FALLA en «Resumen»: The task includes an option with an undefined variable. The error was: 'ansible.utils.unsafe_proxy.AnsibleUnsafeText object' has no attribute 'ns'. 'ansible.utils.unsafe_proxy.AnsibleUnsafeText object' has no attribute 'ns'
+
+The error appears to be in '/runner/project/playbooks/ocp-regularizar.yml':
+== OpenShift · Regularizar línea base {"modo": "corregir", "namespaces": "demo-pagos"} → #19705 failed
+     · Portal · OpenShift · Regularizar línea base (plantilla) → failed
+         FALLA en «Corregir · LimitRange por defecto»: 'ansible.utils.unsafe_proxy.AnsibleUnsafeText object' has no attribute 'regla'. 'ansible.utils.unsafe_proxy.AnsibleUnsafeText object' has no attribute 'regla'
+== proyecto: ERROR HTTP Error 400: Bad Request
+== OpenShift · Salud del clúster {"severidad_minima": "critical", "incluir_pods": "no"} → #19709 failed
+
+== Amdocs · Salud de la plataforma BSS {"umbral_ms": 200} → #19711 failed
+     · Portal · Amdocs · Salud de la plataforma BSS (plantilla → failed
+         FALLA en «Datos válidos»: Assertion failed
+== Amdocs · Desplegar release {"servicio": "catalog", "version": "2.4.0", "simular_falla": "no"} → #19715 successful
+     · Portal · Amdocs · Desplegar release (plantilla) → successful · amdocs-catalog: release 2.4.0 en producción [ok]
+         Versión anterior | 2.3.0
+         Versión pedida | 2.4.0
+         Despliegue gradual | la versión nueva pasó la sonda de salud
+         Prueba posterior | /version 2.4.0 · /health 200
+         Vuelta atrás | no fue necesaria
+== Amdocs · Desplegar release {"servicio": "catalog", "version": "2.5.0", "simular_falla": "si"} → #19718 failed
+     · Portal · Amdocs · Desplegar release (plantilla) → failed · amdocs-catalog: release 2.5.0 revertido; sigue en 2.4.0 [revertido]
+         Versión anterior | 2.4.0
+         Versión pedida | 2.5.0 (con falla simulada)
+         Despliegue gradual | la versión nueva no pasó la sonda en 90 s: nunca recibió tráfico
+         Prueba posterior | /version 2.5.0 · /health 503
+         Vuelta atrás | automática a 2.4.0 (servicio sin corte)
+         FALLA en «Fallar el job si se revirtió»: 2.5.0 no quedó sana; amdocs-catalog volvió a 2.4.0 sin corte de servicio
+== Amdocs · Desplegar release {"servicio": "catalog", "version": "2.3.0", "simular_falla": "no"} → #19723 successful
+     · Portal · Amdocs · Desplegar release (plantilla) → successful · amdocs-catalog: release 2.3.0 en producción [ok]
+         Versión anterior | 2.4.0
+         Versión pedida | 2.3.0
+         Despliegue gradual | la versión nueva pasó la sonda de salud
+         Prueba posterior | /version 2.3.0 · /health 200
+         Vuelta atrás | no fue necesaria
+--- fin: 2026-11-09T15:10:38-03:00 · código: 0
