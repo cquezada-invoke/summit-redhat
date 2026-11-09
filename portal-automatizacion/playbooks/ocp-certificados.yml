@@ -1,0 +1,123 @@
+# OpenShift · Certificados: inventario de vencimientos de todos los certificados TLS del clúster (Secrets kubernetes.io/tls),
+# certificado del Ingress y de la API, y solicitudes de firma (CSR) pendientes. Opcionalmente aprueba las CSR de nodos.
+# Los certificados internos de la plataforma (namespaces openshift-*) los rota OpenShift; los de aplicaciones son responsabilidad
+# del dueño y son los que el informe destaca.
+# Variables: dias_alerta (30), aprobar_csr (no | si: aprueba solo las CSR de nodos: system:node:* y node-bootstrapper)
+# Credencial: "OpenShift · clúster (token)".
+- name: OpenShift · Certificados
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('env', 'K8S_AUTH_HOST') | regex_replace('/+$', '') }}"
+    cab: {Authorization: "Bearer {{ lookup('env', 'K8S_AUTH_API_KEY') }}", Content-Type: application/json}
+    dias: "{{ dias_alerta | default(30) | int }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - dias | int >= 1 and dias | int <= 365
+          - (aprobar_csr | default('no')) in ['si', 'no']
+        quiet: true
+
+    - name: Secrets TLS del clúster
+      kubernetes.core.k8s_info:
+        kind: Secret
+        field_selectors: ["type=kubernetes.io/tls"]
+      register: r_tls
+      no_log: true
+
+    - name: Leer vencimientos (solo el certificado público, nunca la llave)
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import json, sys, base64, datetime
+            from cryptography import x509
+            from cryptography.x509.oid import NameOID, ExtensionOID
+            hoy = datetime.datetime.now(datetime.timezone.utc); out = []
+            for s in json.load(sys.stdin):
+                try:
+                    c = x509.load_pem_x509_certificate(base64.b64decode(s["crt"]))
+                except Exception:
+                    continue
+                fin = c.not_valid_after_utc
+                cn = c.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+                try:
+                    san = c.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value.get_values_for_type(x509.DNSName)[:3]
+                except Exception:
+                    san = []
+                out.append({"ns": s["ns"], "nombre": s["nombre"], "cn": cn[0].value if cn else "", "san": san,
+                            "emisor": (c.issuer.get_attributes_for_oid(NameOID.COMMON_NAME) or [type("x", (), {"value": ""})])[0].value,
+                            "vence": fin.strftime("%Y-%m-%d"), "dias": (fin - hoy).days,
+                            "plataforma": s["ns"].startswith(("openshift", "kube-"))})
+            print(json.dumps(sorted(out, key=lambda x: x["dias"])))
+        stdin: >-
+          {% set out = [] %}{% for x in r_tls.resources if x.data is defined and 'tls.crt' in x.data %}{% set _ = out.append({'ns': x.metadata.namespace,
+          'nombre': x.metadata.name, 'crt': x.data['tls.crt']}) %}{% endfor %}{{ out | to_json }}
+      register: r_py
+      changed_when: false
+      no_log: true
+
+    - name: Certificado del Ingress por defecto y de la API
+      kubernetes.core.k8s_info: {api_version: operator.openshift.io/v1, kind: IngressController, namespace: openshift-ingress-operator, name: default}
+      register: r_ing
+
+    - name: Certificado propio de la API
+      kubernetes.core.k8s_info: {api_version: config.openshift.io/v1, kind: APIServer, name: cluster}
+      register: r_apis
+
+    - name: Solicitudes de firma (CSR)
+      kubernetes.core.k8s_info: {api_version: certificates.k8s.io/v1, kind: CertificateSigningRequest}
+      register: r_csr
+
+    - name: Clasificar
+      vars:
+        certs: "{{ r_py.stdout | from_json }}"
+        pend: "{{ r_csr.resources | rejectattr('status.conditions', 'defined') | list }}"
+      ansible.builtin.set_fact:
+        certs: "{{ certs }}"
+        vencidos: "{{ certs | selectattr('dias', 'lt', 0) | list }}"
+        por_vencer: "{{ certs | selectattr('dias', 'ge', 0) | selectattr('dias', 'le', dias | int) | list }}"
+        apps_alerta: "{{ certs | rejectattr('plataforma') | selectattr('dias', 'le', dias | int) | list }}"
+        csr_pend: "{{ pend }}"
+        csr_nodos: "{{ pend | selectattr('spec.username', 'match', '^(system:node:|system:serviceaccount:openshift-machine-config-operator:node-bootstrapper)') | list }}"
+        ingress_propio: "{{ (r_ing.resources[0].spec.defaultCertificate.name | default('')) or 'no (certificado autofirmado de OpenShift)' }}"
+        api_propio: "{{ (r_apis.resources[0].spec.servingCerts.namedCertificates | default([]) | map(attribute='servingCertificate.name') | join(', ')) or 'no (certificado interno)' }}"
+
+    - name: Aprobar CSR de nodos
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/certificates.k8s.io/v1/certificatesigningrequests/{{ item.metadata.name }}/approval"
+        method: PUT
+        headers: "{{ cab }}"
+        validate_certs: false
+        body_format: json
+        body: >-
+          {{ item | combine({'status': {'conditions': [{'type': 'Approved', 'status': 'True', 'reason': 'AprobadoPorAAP',
+             'message': 'Aprobado desde el portal de automatización por ' ~ (awx_user_name | default('AAP'))}]}}) }}
+      loop: "{{ csr_nodos }}"
+      loop_control: {label: "{{ item.metadata.name }} ({{ item.spec.username }})"}
+      when: (aprobar_csr | default('no')) == 'si'
+      no_log: false
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "Certificados revisados: {{ certs | length }} · vencidos: {{ vencidos | length }} · vencen en {{ dias }} días o menos: {{ por_vencer | length }}"
+          - "De aplicaciones (responsabilidad del dueño) en alerta: {{ apps_alerta | map(attribute='nombre') | list }}"
+          - "Ingress con certificado propio: {{ ingress_propio }} · API con certificado propio: {{ api_propio }}"
+          - "CSR pendientes: {{ csr_pend | length }} ({{ csr_nodos | length }} de nodos{{ ', aprobadas' if (aprobar_csr | default('no')) == 'si' and csr_nodos | length else '' }})"
+          - "Los 5 que vencen antes: {% for c in certs[:5] %}{{ c.ns }}/{{ c.nombre }} {{ c.vence }}{{ '; ' if not loop.last else '' }}{% endfor %}"
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "{{ certs | length }} certificados · {{ vencidos | length }} vencidos · {{ por_vencer | length }} vencen en {{ dias }} días"
+            estado: "{{ 'critico' if (vencidos | rejectattr('plataforma') | list | length) else ('atencion' if apps_alerta | length or csr_pend | length else 'ok') }}"
+            filas: >-
+              {% set f = [['Ingress con certificado propio', ingress_propio], ['API con certificado propio', api_propio],
+                 ['CSR pendientes', (csr_pend | length) ~ ' (' ~ (csr_nodos | length) ~ ' de nodos' ~ (', aprobadas' if (aprobar_csr | default('no')) == 'si' and csr_nodos | length else '') ~ ')']] %}
+              {% for c in (vencidos + por_vencer)[:15] %}{% set _ = f.append([c.ns ~ '/' ~ c.nombre,
+                 ('venció ' if c.dias < 0 else 'vence ') ~ c.vence ~ (' · rotación automática de OpenShift' if c.plataforma else ' · aplicación: renovar')]) %}{% endfor %}{{ f }}

@@ -1,0 +1,152 @@
+# Amdocs emulado en OpenShift (namespace amdocs-bss): tres microservicios con la misma imagen y distinto ROL.
+# La imagen la construye el BuildConfig «amdocs-emulado» (binario, desde esta carpeta). Recursos mínimos (lab).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: amdocs-bss
+  labels: {invoke.cl/demo: amdocs-emulado}
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata: {name: amdocs-emulado, namespace: amdocs-bss}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata: {name: amdocs-emulado, namespace: amdocs-bss}
+spec:
+  source: {type: Binary}
+  strategy:
+    type: Docker
+    dockerStrategy: {dockerfilePath: Containerfile}
+  output: {to: {kind: ImageStreamTag, name: "amdocs-emulado:latest"}}
+  resources: {requests: {cpu: 50m, memory: 128Mi}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: linea-base, namespace: amdocs-bss}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{podSelector: {}}]
+    - from: [{namespaceSelector: {matchLabels: {policy-group.network.openshift.io/ingress: ""}}}]
+    - from: [{namespaceSelector: {matchLabels: {network.openshift.io/policy-group: monitoring}}}]
+    - from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: openshift-kube-apiserver}}}]
+    - from: [{ipBlock: {cidr: 0.0.0.0/0}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amdocs-ordering
+  namespace: amdocs-bss
+  labels: {app.kubernetes.io/name: amdocs-ordering, app.kubernetes.io/part-of: amdocs-bss}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app.kubernetes.io/name: amdocs-ordering}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: amdocs-ordering, app.kubernetes.io/part-of: amdocs-bss}}
+    spec:
+      containers:
+        - name: servicio
+          image: image-registry.openshift-image-registry.svc:5000/amdocs-bss/amdocs-emulado:latest
+          env: [{name: ROL, value: ordering}, {name: VERSION, value: "2.3.0"}, {name: FALLA, value: "no"}, {name: EDA_WEBHOOK, value: "http://192.168.122.1:5011/endpoint"}]
+          ports: [{containerPort: 8080, name: http}]
+          readinessProbe: {httpGet: {path: /health, port: 8080}, periodSeconds: 3, failureThreshold: 2}
+          livenessProbe: {httpGet: {path: /version, port: 8080}, periodSeconds: 10}
+          resources: {requests: {cpu: 5m, memory: 32Mi}, limits: {cpu: 200m, memory: 96Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: ordering, namespace: amdocs-bss, labels: {app.kubernetes.io/part-of: amdocs-bss}}
+spec:
+  selector: {app.kubernetes.io/name: amdocs-ordering}
+  ports: [{name: http, port: 8080, targetPort: 8080}]
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: ordering, namespace: amdocs-bss}
+spec:
+  host: amdocs-ordering.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: ordering}
+  port: {targetPort: http}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amdocs-customer
+  namespace: amdocs-bss
+  labels: {app.kubernetes.io/name: amdocs-customer, app.kubernetes.io/part-of: amdocs-bss}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app.kubernetes.io/name: amdocs-customer}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: amdocs-customer, app.kubernetes.io/part-of: amdocs-bss}}
+    spec:
+      containers:
+        - name: servicio
+          image: image-registry.openshift-image-registry.svc:5000/amdocs-bss/amdocs-emulado:latest
+          env: [{name: ROL, value: customer}, {name: VERSION, value: "2.3.0"}, {name: FALLA, value: "no"}]
+          ports: [{containerPort: 8080, name: http}]
+          readinessProbe: {httpGet: {path: /health, port: 8080}, periodSeconds: 3, failureThreshold: 2}
+          livenessProbe: {httpGet: {path: /version, port: 8080}, periodSeconds: 10}
+          resources: {requests: {cpu: 5m, memory: 32Mi}, limits: {cpu: 200m, memory: 96Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: customer, namespace: amdocs-bss, labels: {app.kubernetes.io/part-of: amdocs-bss}}
+spec:
+  selector: {app.kubernetes.io/name: amdocs-customer}
+  ports: [{name: http, port: 8080, targetPort: 8080}]
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: customer, namespace: amdocs-bss}
+spec:
+  host: amdocs-customer.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: customer}
+  port: {targetPort: http}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amdocs-catalog
+  namespace: amdocs-bss
+  labels: {app.kubernetes.io/name: amdocs-catalog, app.kubernetes.io/part-of: amdocs-bss}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app.kubernetes.io/name: amdocs-catalog}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: amdocs-catalog, app.kubernetes.io/part-of: amdocs-bss}}
+    spec:
+      containers:
+        - name: servicio
+          image: image-registry.openshift-image-registry.svc:5000/amdocs-bss/amdocs-emulado:latest
+          env: [{name: ROL, value: catalog}, {name: VERSION, value: "2.3.0"}, {name: FALLA, value: "no"}]
+          ports: [{containerPort: 8080, name: http}]
+          readinessProbe: {httpGet: {path: /health, port: 8080}, periodSeconds: 3, failureThreshold: 2}
+          livenessProbe: {httpGet: {path: /version, port: 8080}, periodSeconds: 10}
+          resources: {requests: {cpu: 5m, memory: 32Mi}, limits: {cpu: 200m, memory: 96Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: catalog, namespace: amdocs-bss, labels: {app.kubernetes.io/part-of: amdocs-bss}}
+spec:
+  selector: {app.kubernetes.io/name: amdocs-catalog}
+  ports: [{name: http, port: 8080, targetPort: 8080}]
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: catalog, namespace: amdocs-bss}
+spec:
+  host: amdocs-catalog.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: catalog}
+  port: {targetPort: http}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}

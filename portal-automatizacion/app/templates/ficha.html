@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block titulo %}{{ w.name }} · Portal{% endblock %}
+{% block contenido %}
+{% set info = secciones | selectattr(0, 'equalto', sec) | first %}
+<div class="migas"><a href="{{ url_for('inicio', seccion=sec) }}">{{ info[1] if info else 'Automatizaciones' }}</a> › {{ w.name.split('·', 1)[-1] | trim }}</div>
+<h1>{{ w.name.split('·', 1)[-1] | trim }}</h1>
+<p class="sub">{{ w.description }}</p>
+<div class="dos">
+  <div>
+    <form class="panel" method="post" action="{{ url_for('lanzar', wid=w.id) }}" id="form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <h2 style="margin-top:0">Parámetros</h2>
+      {% for p in preguntas %}
+      <label class="campo">
+        <b>{{ p.question_name }}{% if p.required %} <span class="req">*</span>{% endif %}</b>
+        {% if p.question_description %}<small>{{ p.question_description }}</small>{% endif %}
+        {% if p.type == 'multiplechoice' %}
+          <select name="{{ p.variable }}">{% for c in (p.choices if p.choices is not string else p.choices.split('\n')) %}<option {{ 'selected' if c == p.default }}>{{ c }}</option>{% endfor %}</select>
+        {% elif p.type == 'multiselect' %}
+          <select name="{{ p.variable }}" multiple size="4">{% for c in (p.choices if p.choices is not string else p.choices.split('\n')) %}<option {{ 'selected' if c in (p.default or '').split('\n') }}>{{ c }}</option>{% endfor %}</select>
+        {% elif p.type == 'integer' %}
+          <input type="number" name="{{ p.variable }}" value="{{ p.default }}" {% if p.min is not none %}min="{{ p.min }}"{% endif %} {% if p.max is not none %}max="{{ p.max }}"{% endif %} {{ 'required' if p.required }}>
+        {% elif p.type == 'textarea' %}
+          <textarea name="{{ p.variable }}" rows="3" {{ 'required' if p.required }}>{{ p.default }}</textarea>
+        {% else %}
+          <input type="text" name="{{ p.variable }}" value="{{ p.default }}" {{ 'required' if p.required }} {% if p.max %}maxlength="{{ p.max }}"{% endif %}>
+        {% endif %}
+      </label>
+      {% else %}
+      <p class="sub">Esta automatización no pide datos.</p>
+      {% endfor %}
+      <button class="btn" {{ 'disabled' if not w.summary_fields.user_capabilities.start }}>Lanzar</button>
+      {% if not w.summary_fields.user_capabilities.start %}<span class="sub"> Su usuario no tiene permiso de ejecución en AAP.</span>{% endif %}
+    </form>
+  </div>
+  <div>
+    <div class="panel">
+      <h3>Cómo corre</h3>
+      <div class="flujo">
+        {% for p in pasos %}{% if not loop.first %}<i>→</i>{% endif %}<span class="nodo {{ 'ap' if p.unified_job_type == 'workflow_approval' }}">{{ 'Aprobación' if p.unified_job_type == 'workflow_approval' else (p.name | replace('Portal · ', '') | replace(' (plantilla)', '')) }}</span>{% endfor %}
+      </div>
+      <p class="sub" style="margin:10px 0 0;font-size:12px">Workflow «{{ w.name }}» en AAP. La aprobación la puede dar quien tenga ese permiso en AAP, aquí o en la consola de AAP.</p>
+    </div>
+    <div class="panel">
+      <h3>Ejecuciones recientes</h3>
+      {% if recientes %}
+      <table>{% for j in recientes %}<tr><td><a href="{{ url_for('ejecucion', jid=j.id) }}">#{{ j.id }}</a></td><td><span class="estado e-{{ j.status }}">{{ {'successful': 'exitosa', 'failed': 'falló', 'canceled': 'cancelada', 'running': 'en curso', 'pending': 'pendiente'}.get(j.status, j.status) }}</span></td><td class="sub">{{ (j.started or j.created or '')[:16] | replace('T', ' ') }}</td><td class="sub">{{ j.summary_fields.created_by.username if j.summary_fields.created_by else 'EDA' }}</td></tr>{% endfor %}</table>
+      {% else %}<p class="sub">Todavía no se ha ejecutado.</p>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

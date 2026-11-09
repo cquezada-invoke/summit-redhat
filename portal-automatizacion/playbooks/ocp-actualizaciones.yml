@@ -1,0 +1,86 @@
+# OpenShift · Actualizaciones del clúster y de los operadores (gestión, solo lectura salvo que se pida aprobar):
+# versión y canal, actualizaciones disponibles y condicionadas, último historial, operadores instalados (CSV) con su estado,
+# suscripciones con aprobación manual y sus InstallPlans pendientes.
+# Variables: aprobar_operadores (no | si: aprueba los InstallPlans pendientes de los operadores indicados),
+#            operadores (nombres de suscripción separados por coma; vacío = ninguno)
+# Credencial: "OpenShift · clúster (token)".
+- name: OpenShift · Actualizaciones
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - (aprobar_operadores | default('no')) in ['si', 'no']
+          - (operadores | default('')) is match('^[a-z0-9, .-]*$')
+        quiet: true
+
+    - name: Versión del clúster
+      kubernetes.core.k8s_info: {api_version: config.openshift.io/v1, kind: ClusterVersion, name: version}
+      register: r_cv
+
+    - name: Operadores instalados (CSV)
+      kubernetes.core.k8s_info: {api_version: operators.coreos.com/v1alpha1, kind: ClusterServiceVersion}
+      register: r_csv
+
+    - name: Suscripciones
+      kubernetes.core.k8s_info: {api_version: operators.coreos.com/v1alpha1, kind: Subscription}
+      register: r_sub
+
+    - name: InstallPlans
+      kubernetes.core.k8s_info: {api_version: operators.coreos.com/v1alpha1, kind: InstallPlan}
+      register: r_ip
+
+    - name: Analizar
+      vars:
+        st: "{{ r_cv.resources[0].status }}"
+        csv_unicos: >-
+          {% set d = {} %}{% for c in r_csv.resources if not (c.metadata.labels | default({}))['olm.copiedFrom'] is defined %}{% set _ = d.update({c.metadata.name: {'ns': c.metadata.namespace, 'fase': c.status.phase | default('?')}}) %}{% endfor %}{{ d }}
+        pend: "{{ r_ip.resources | selectattr('spec.approved', 'equalto', false) | list }}"
+      ansible.builtin.set_fact:
+        act:
+          version: "{{ st.desired.version }}"
+          canal: "{{ r_cv.resources[0].spec.channel | default('sin canal') }}"
+          disponibles: "{{ (st.availableUpdates | default([]) or []) | map(attribute='version') | list }}"
+          condicionadas: "{{ (st.conditionalUpdates | default([]) or []) | map(attribute='release.version') | list }}"
+          historial: "{{ (st.history | default([]))[:3] | map(attribute='version') | zip((st.history | default([]))[:3] | map(attribute='state')) | map('join', ' ') | list }}"
+          progresando: "{{ st.conditions | selectattr('type', 'equalto', 'Progressing') | map(attribute='status') | first | default('False') }}"
+        csv: "{{ csv_unicos }}"
+        csv_mal: "{{ csv_unicos | dict2items | rejectattr('value.fase', 'equalto', 'Succeeded') | list }}"
+        manuales: "{{ r_sub.resources | selectattr('spec.installPlanApproval', 'defined') | selectattr('spec.installPlanApproval', 'equalto', 'Manual') | map(attribute='metadata.name') | list }}"
+        pendientes: "{{ pend }}"
+
+    - name: Aprobar InstallPlans pendientes de los operadores indicados
+      kubernetes.core.k8s:
+        state: patched
+        api_version: operators.coreos.com/v1alpha1
+        kind: InstallPlan
+        name: "{{ item.metadata.name }}"
+        namespace: "{{ item.metadata.namespace }}"
+        definition: {spec: {approved: true}}
+      loop: "{{ pendientes }}"
+      loop_control: {label: "{{ item.metadata.namespace }}/{{ item.metadata.name }} → {{ item.spec.clusterServiceVersionNames | join(', ') }}"}
+      when:
+        - (aprobar_operadores | default('no')) == 'si'
+        - (item.metadata.ownerReferences | default([]) | map(attribute='name') | select('in', operadores | default('') | split(',') | map('trim') | list) | list | length) > 0
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "OpenShift {{ act.version }} · canal {{ act.canal }} · actualizándose: {{ act.progresando }}"
+          - "Disponibles: {{ act.disponibles or 'ninguna' }} · condicionadas: {{ act.condicionadas or 'ninguna' }}"
+          - "Historial: {{ act.historial }}"
+          - "Operadores: {{ csv | length }} ({{ csv_mal | length }} no Succeeded) · con aprobación manual: {{ manuales or 'ninguno' }} · InstallPlans pendientes: {{ pendientes | length }}"
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "OpenShift {{ act.version }} · {{ act.disponibles | length }} actualizaciones disponibles · {{ csv | length }} operadores"
+            estado: "{{ 'critico' if csv_mal else ('atencion' if act.disponibles or pendientes else 'ok') }}"
+            filas: >-
+              {% set f = [['Canal', act.canal], ['Versiones disponibles', act.disponibles | join(', ') or 'ninguna'],
+                 ['Condicionadas (revisar riesgos conocidos)', act.condicionadas | join(', ') or 'ninguna'], ['Historial', act.historial | join(' · ')],
+                 ['Operadores con aprobación manual', manuales | join(', ') or 'ninguno'], ['InstallPlans pendientes', pendientes | length | string]] %}
+              {% for c in csv | dict2items %}{% set _ = f.append(['Operador ' ~ c.key, c.value.fase ~ ' · ' ~ c.value.ns]) %}{% endfor %}{{ f }}

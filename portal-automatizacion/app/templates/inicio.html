@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block contenido %}
+{% set info = (secciones | selectattr(0, 'equalto', seccion) | first) if seccion else none %}
+<h1>{{ info[1] if info else 'Automatizaciones' }}</h1>
+<p class="sub">{{ info[2] if info else 'Elija una automatización, revise qué hace y qué datos pide, y lánzela. Cada una pasa por una aprobación en AAP antes de cambiar algo.' }}</p>
+{% if pendientes %}
+<div class="alerta info">Hay {{ pendientes | length }} aprobación{{ 'es' if pendientes | length != 1 }} pendiente{{ 's' if pendientes | length != 1 }}. <a href="{{ url_for('aprobaciones') }}">Revisarlas</a></div>
+{% endif %}
+{% if seccion == 'amdocs' %}
+<div class="panel">
+  <h3>Simular una orden desde Amdocs</h3>
+  <p class="sub" style="margin-bottom:12px">Crea una orden de servicio en Amdocs (emulado). Amdocs avisa a Event-Driven Ansible, que lanza «Amdocs · Activar orden» con su aprobación. Aquí se ve la orden y su avance.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;align-items:end">
+    <label class="campo" style="margin:0"><b>Cliente</b><select id="o-cliente"><option value="CLI-00001">Banco del Caribe</option><option value="CLI-00002">Hospital San Juan</option><option value="CLI-00003">Puerto de Ponce</option><option value="CLI-00004">Retail Isla</option></select></label>
+    <label class="campo" style="margin:0"><b>Oferta</b><select id="o-oferta"><option value="OFR-5G-EMP">Enlace 5G empresarial (UPF)</option><option value="OFR-IOT">Conectividad IoT (AMF)</option></select></label>
+    <label class="campo" style="margin:0"><b>Nombre del servicio</b><input type="text" id="o-nombre" value="upf-banco"></label>
+    <label class="campo" style="margin:0"><b>VLAN</b><input type="number" id="o-vlan" value="310" min="2" max="4094"></label>
+    <label class="campo" style="margin:0"><b>Prefijo</b><input type="text" id="o-prefijo" value="10.60.10.0/24"></label>
+    <button class="btn" id="o-crear">Crear orden en Amdocs</button>
+  </div>
+  <div id="o-estado" style="margin-top:14px"></div>
+</div>
+{% endif %}
+{% if not seccion %}
+<div class="filtros">{% for k, n, d in secciones %}<a href="{{ url_for('inicio', seccion=k) }}">{{ n }} · {{ items | selectattr('seccion', 'equalto', k) | list | length }}</a>{% endfor %}</div>
+{% endif %}
+{% for k, n, d in secciones if not seccion or seccion == k %}
+  {% set lista = items | selectattr('seccion', 'equalto', k) | list %}
+  {% if lista %}
+  {% if not seccion %}<h2>{{ n }}</h2>{% endif %}
+  <div class="tarjetas">
+    {% for i in lista %}
+    <div class="tarjeta {{ k }}">
+      <h3><a href="{{ url_for('ficha', wid=i.id) }}">{{ i.nombre }}</a></h3>
+      <p>{{ i.descripcion }}</p>
+      <div class="pie">
+        <span>{% if i.ultima %}Última: <span class="estado e-{{ i.ultima }}">{{ {'successful': 'exitosa', 'failed': 'falló', 'canceled': 'cancelada', 'running': 'en curso', 'pending': 'pendiente'}.get(i.ultima, i.ultima) }}</span>{% else %}Sin ejecuciones{% endif %}</span>
+        <a class="btn" href="{{ url_for('ficha', wid=i.id) }}">{{ 'Probar' if i.puede else 'Ver' }}</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endfor %}
+{% if not items %}<div class="vacia">Su usuario de AAP no tiene automatizaciones del portal asignadas. Pida acceso de ejecución a las plantillas con etiqueta «portal-…».</div>{% endif %}
+{% endblock %}
+{% block js %}
+{% if seccion == 'amdocs' %}
+<script>
+const caja = document.getElementById('o-estado');
+async function ordenes() {
+  const r = await fetch('/api/amdocs/ordenes'); if (!r.ok) return; const d = await r.json();
+  if (!d.ordenes.length) { caja.innerHTML = '<p class="sub">Sin órdenes todavía.</p>'; return; }
+  caja.innerHTML = '<table><tr><th>Orden</th><th>Cliente</th><th>Servicio</th><th>Estado en Amdocs</th><th>Ejecución en AAP</th></tr>' +
+    d.ordenes.map(o => { const j = d.ejecuciones.find(x => x.orden === o.id);
+      const est = {'completada': 'successful', 'fallida': 'failed', 'en aprobación': 'pending', 'nueva': 'waiting'}[o.estado] || 'running';
+      return `<tr><td><b>${esc(o.id)}</b></td><td>${esc(o.cliente)}</td><td>${esc(o.servicio.nombre)} · VLAN ${esc(o.servicio.vlan)} · ${esc(o.servicio.prefijo)}</td>
+        <td><span class="estado e-${est}">${esc(o.estado)}</span><br><small class="sub">${esc((o.historial.at(-1) || {}).detalle || (o.historial.at(-1) || {}).estado || '')}</small></td>
+        <td>${j ? `<a href="/ejecucion/${j.id}">#${j.id}</a> ${chip(j.estado)}` : '<span class="sub">esperando a EDA…</span>'}</td></tr>`; }).join('') + '</table>';
+}
+document.getElementById('o-crear').onclick = async (ev) => {
+  ev.target.disabled = true;
+  const d = await post('/amdocs/orden', {cliente: o('cliente'), oferta: o('oferta'), nombre: o('nombre'), vlan: +o('vlan'), prefijo: o('prefijo'),
+                                          cnf: o('oferta') === 'OFR-IOT' ? 'amf' : 'upf'});
+  ev.target.disabled = false;
+  if (d && d.error) caja.innerHTML = `<div class="alerta error">${esc(d.error)}</div>`; else ordenes();
+};
+const o = id => document.getElementById('o-' + id).value;
+ordenes(); setInterval(ordenes, 4000);
+</script>
+{% endif %}
+{% endblock %}

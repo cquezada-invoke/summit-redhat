@@ -1,0 +1,98 @@
+# OpenShift · Alta de proyecto (gestión): crea el namespace de un equipo con su línea base completa en un solo paso:
+# cuota, LimitRange, permisos del grupo del equipo, NetworkPolicy (solo su namespace, el Ingress y el monitoreo) y etiquetas
+# de ambiente y responsable. Con accion=eliminar lo retira (para limpiar la demo).
+# Variables: proyecto, equipo (grupo de OpenShift que administra el proyecto), ambiente (desarrollo | qa | produccion),
+#            cpu (cores de la cuota, 2), memoria_gi (GiB de la cuota, 4), accion (crear | eliminar)
+# Credencial: "OpenShift · clúster (token)".
+- name: OpenShift · Alta de proyecto
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    p: "{{ proyecto | default('') | trim | lower }}"
+    a: "{{ accion | default('crear') }}"
+    amb: "{{ ambiente | default('desarrollo') }}"
+    eq: "{{ equipo | default('') | trim }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - p is match('^[a-z][a-z0-9-]{1,40}[a-z0-9]$')
+          - not (p is match('^(openshift|kube|default)'))
+          - a in ['crear', 'eliminar']
+          - amb in ['desarrollo', 'qa', 'produccion']
+          - eq is match('^[A-Za-z0-9._-]{0,60}$')
+          - (cpu | default(2) | int) >= 1 and (cpu | default(2) | int) <= 64
+          - (memoria_gi | default(4) | int) >= 1 and (memoria_gi | default(4) | int) <= 256
+        fail_msg: "Proyecto en minúsculas (no openshift-/kube-), ambiente desarrollo|qa|produccion, cuota 1-64 cores y 1-256 GiB"
+        quiet: true
+
+    - name: Proyecto y su línea base
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ item }}"
+      loop:
+        - apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ p }}"
+            labels: {invoke.cl/ambiente: "{{ amb }}", invoke.cl/equipo: "{{ eq | default('sin-equipo', true) }}", invoke.cl/creado-por: aap}
+            annotations: {openshift.io/requester: "{{ awx_user_name | default('AAP') }}", openshift.io/display-name: "{{ p }} ({{ amb }})"}
+        - apiVersion: v1
+          kind: ResourceQuota
+          metadata: {name: cuota, namespace: "{{ p }}"}
+          spec:
+            hard:
+              requests.cpu: "{{ cpu | default(2) | int }}"
+              requests.memory: "{{ memoria_gi | default(4) | int }}Gi"
+              limits.cpu: "{{ (cpu | default(2) | int) * 2 }}"
+              limits.memory: "{{ (memoria_gi | default(4) | int) * 2 }}Gi"
+              pods: "{{ 20 if amb != 'produccion' else 60 }}"
+              persistentvolumeclaims: "10"
+        - apiVersion: v1
+          kind: LimitRange
+          metadata: {name: linea-base, namespace: "{{ p }}"}
+          spec:
+            limits: [{type: Container, defaultRequest: {cpu: 50m, memory: 128Mi}, default: {cpu: 500m, memory: 512Mi}, max: {cpu: "2", memory: 2Gi}}]
+        - apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata: {name: linea-base, namespace: "{{ p }}"}
+          spec:
+            podSelector: {}
+            policyTypes: [Ingress]
+            ingress:
+              - from: [{podSelector: {}}]
+              - from: [{namespaceSelector: {matchLabels: {policy-group.network.openshift.io/ingress: ""}}}]
+              - from: [{namespaceSelector: {matchLabels: {network.openshift.io/policy-group: monitoring}}}]
+      loop_control: {label: "{{ item.kind }}"}
+      when: a == 'crear'
+
+    - name: Permisos del equipo
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: RoleBinding
+          metadata: {name: equipo-admin, namespace: "{{ p }}"}
+          roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: "{{ 'admin' if amb != 'produccion' else 'view' }}"}
+          subjects: [{apiGroup: rbac.authorization.k8s.io, kind: Group, name: "{{ eq }}"}]
+      when: a == 'crear' and eq | length > 0
+
+    - name: Eliminar el proyecto
+      kubernetes.core.k8s:
+        state: absent
+        kind: Namespace
+        name: "{{ p }}"
+        wait: true
+        wait_timeout: 180
+      when: a == 'eliminar'
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Proyecto {{ p }} {{ 'creado' if a == 'crear' else 'eliminado' }}"
+            estado: ok
+            filas: "{{ [['Ambiente', amb], ['Cuota', (cpu | default(2)) ~ ' cores · ' ~ (memoria_gi | default(4)) ~ ' GiB (requests)'],
+                       ['Permisos', (eq ~ ' como ' ~ ('admin' if amb != 'produccion' else 'solo lectura (producción se cambia por pipeline)')) if eq else 'sin grupo'],
+                       ['Red', 'solo su namespace, el Ingress y el monitoreo'], ['Límites por contenedor', 'por defecto 50m/128Mi · máximo 2 cores/2Gi']] if a == 'crear' else [['Proyecto', p ~ ' eliminado']] }}"

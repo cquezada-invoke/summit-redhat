@@ -1,0 +1,125 @@
+# Catálogo del portal: cada entrada es un workflow «Portal · <nombre>» en AAP = aprobación → plantilla(s).
+# seccion: infra | ocp | telco | amdocs (etiqueta portal-<seccion>) · playbook: del proyecto del portal · red: true usa el
+# proyecto e inventario de la red del laboratorio · existente: usa una plantilla que ya existe en AAP.
+# La encuesta es lo que el portal muestra como parámetros (pregunta, ayuda, tipo, opciones, por defecto).
+- nombre: "OpenShift · Salud del clúster"
+  seccion: ocp
+  playbook: playbooks/ocp-salud.yml
+  descripcion: "Monitoreo en un clic: nodos, operadores del clúster, versión, alertas activas de Alertmanager y pods con problemas, con un semáforo. Solo lectura."
+  encuesta:
+    - {question_name: "Severidad mínima de alertas", variable: severidad_minima, type: multiplechoice, choices: [warning, critical], default: warning, required: true,
+       question_description: "warning muestra también las advertencias; critical solo lo urgente."}
+    - {question_name: "Incluir pods con problemas", variable: incluir_pods, type: multiplechoice, choices: [si, "no"], default: si, required: true}
+- nombre: "OpenShift · Certificados"
+  seccion: ocp
+  playbook: playbooks/ocp-certificados.yml
+  descripcion: "Inventario de vencimientos de todos los certificados TLS del clúster, del Ingress y de la API, y solicitudes de firma (CSR) pendientes. Puede aprobar las CSR de nodos."
+  encuesta:
+    - {question_name: "Avisar si vence en (días)", variable: dias_alerta, type: integer, min: 1, max: 365, default: 30, required: true}
+    - {question_name: "Aprobar CSR pendientes de nodos", variable: aprobar_csr, type: multiplechoice, choices: ["no", si], default: "no", required: true,
+       question_description: "Solo las de nodos (system:node y node-bootstrapper). Las demás se informan."}
+- nombre: "OpenShift · Regularizar línea base"
+  seccion: ocp
+  playbook: playbooks/ocp-regularizar.yml
+  descripcion: "Revisa los namespaces de aplicaciones contra la línea base (LimitRange, cuotas, NetworkPolicy, requests/limits, sondas, imágenes sin versión, privilegios, réplicas en producción). En modo corregir aplica lo que es seguro sin cortar servicio."
+  encuesta:
+    - {question_name: "Modo", variable: modo, type: multiplechoice, choices: [revisar, corregir], default: revisar, required: true,
+       question_description: "corregir aplica LimitRange y NetworkPolicy base donde faltan; lo demás lo corrige el dueño de la aplicación."}
+    - {question_name: "Namespaces", variable: namespaces, type: text, default: "", required: false, max: 400,
+       question_description: "Separados por coma. Vacío: todos los de aplicaciones."}
+- nombre: "OpenShift · Optimizar recursos y limpiar"
+  seccion: ocp
+  playbook: playbooks/ocp-optimizar.yml
+  descripcion: "Compara lo reservado con el uso real para encontrar capacidad ociosa, aplicaciones subdimensionadas y Deployments sin uso; sugiere requests y limpia pods y builds terminados."
+  encuesta:
+    - {question_name: "Modo", variable: modo, type: multiplechoice, choices: [revisar, corregir], default: revisar, required: true,
+       question_description: "corregir borra pods y builds terminados antiguos. Los ajustes de requests se sugieren, no se aplican."}
+    - {question_name: "Umbral de uso bajo (%)", variable: umbral_ocioso, type: integer, min: 1, max: 90, default: 20, required: true}
+    - {question_name: "Antigüedad para limpiar (días)", variable: dias_antiguedad, type: integer, min: 1, max: 365, default: 7, required: true}
+- nombre: "OpenShift · Actualizaciones y operadores"
+  seccion: ocp
+  playbook: playbooks/ocp-actualizaciones.yml
+  descripcion: "Versión y canal, actualizaciones disponibles y condicionadas, estado de cada operador y aprobación de InstallPlans pendientes de los operadores que se indiquen."
+  encuesta:
+    - {question_name: "Aprobar InstallPlans pendientes", variable: aprobar_operadores, type: multiplechoice, choices: ["no", si], default: "no", required: true}
+    - {question_name: "Operadores a aprobar", variable: operadores, type: text, default: "", required: false, max: 300,
+       question_description: "Nombres de suscripción separados por coma (p. ej. rhacs-operator)."}
+- nombre: "OpenShift · Respaldo de etcd"
+  seccion: ocp
+  playbook: playbooks/ocp-etcd-respaldo.yml
+  descripcion: "Respaldo oficial de etcd (cluster-backup.sh) en un nodo de control, con verificación previa de que etcd está sano y rotación de los últimos respaldos."
+  encuesta:
+    - {question_name: "Respaldos a conservar", variable: conservar, type: integer, min: 1, max: 15, default: 3, required: true}
+- nombre: "OpenShift · Alta de proyecto"
+  seccion: ocp
+  playbook: playbooks/ocp-onboarding-proyecto.yml
+  descripcion: "Crea el namespace de un equipo con su línea base completa: cuota, LimitRange, permisos del grupo, NetworkPolicy y etiquetas de ambiente y responsable. También lo retira."
+  encuesta:
+    - {question_name: "Proyecto", variable: proyecto, type: text, default: demo-pagos, required: true, min: 3, max: 42}
+    - {question_name: "Grupo del equipo", variable: equipo, type: text, default: equipo-pagos, required: false, max: 60}
+    - {question_name: "Ambiente", variable: ambiente, type: multiplechoice, choices: [desarrollo, qa, produccion], default: desarrollo, required: true}
+    - {question_name: "Cuota de CPU (cores)", variable: cpu, type: integer, min: 1, max: 64, default: 2, required: true}
+    - {question_name: "Cuota de memoria (GiB)", variable: memoria_gi, type: integer, min: 1, max: 256, default: 4, required: true}
+    - {question_name: "Acción", variable: accion, type: multiplechoice, choices: [crear, eliminar], default: crear, required: true}
+- nombre: "Telco · Validar clúster para CNF"
+  seccion: telco
+  playbook: playbooks/telco-validar-cnf.yml
+  descripcion: "Compara lo que pide la función de red de Nabstract (CPU aisladas, páginas grandes, kernel de tiempo real, NUMA, SR-IOV, MetalLB, PTP, SCTP) con lo que tiene el clúster de cargas y entrega el informe de brechas."
+  encuesta:
+    - {question_name: "Perfil de la CNF", variable: cnf_perfil, type: multiplechoice, choices: [upf, amf, smf, personalizado], default: upf, required: true,
+       question_description: "UPF es plano de usuario (más exigente: SR-IOV, tiempo real, PTP). AMF/SMF son plano de control."}
+    - {question_name: "Páginas grandes 1Gi (solo personalizado)", variable: hugepages_gi, type: integer, min: 0, max: 64, default: 8, required: false}
+    - {question_name: "CPU aisladas (solo personalizado)", variable: cpus_aisladas, type: integer, min: 0, max: 128, default: 8, required: false}
+    - {question_name: "Nodo", variable: nodo, type: text, default: "", required: false, max: 60, question_description: "Vacío: el primer nodo de cargas."}
+- nombre: "Telco · Onboarding de CNF"
+  seccion: telco
+  playbook: playbooks/telco-onboarding-cnf.yml
+  descripcion: "Prepara el clúster para recibir la CNF del proveedor: namespace, cuota con páginas grandes, red secundaria de la VLAN del servicio, dirección pública con MetalLB, permisos del proveedor y NetworkPolicy. También la retira."
+  encuesta:
+    - {question_name: "Nombre de la CNF", variable: cnf_nombre, type: text, default: upf-demo, required: true, min: 2, max: 31}
+    - {question_name: "Proveedor", variable: proveedor, type: text, default: nabstract, required: true, max: 30}
+    - {question_name: "VLAN del servicio", variable: vlan_id, type: integer, min: 2, max: 4094, default: 320, required: true}
+    - {question_name: "Prefijo del servicio", variable: svc_prefijo, type: text, default: 10.60.20.0/24, required: true, max: 18}
+    - {question_name: "IP pública (MetalLB)", variable: ip_publica, type: text, default: "", required: false, max: 15}
+    - {question_name: "Páginas grandes 1Gi (cuota)", variable: hugepages_gi, type: integer, min: 0, max: 64, default: 4, required: true}
+    - {question_name: "Acción", variable: accion, type: multiplechoice, choices: [crear, retirar], default: crear, required: true}
+- nombre: "Telco · Red del servicio (VLAN y BGP)"
+  seccion: telco
+  red: true
+  playbook: playbooks/telco-red-servicio.yml
+  descripcion: "Red como código: crea la VLAN del servicio en el firewall y anuncia su prefijo por BGP desde el router, declarado en Git. Toma una foto antes, prueba después y, si la prueba falla, vuelve atrás solo (router, firewall y Git)."
+  encuesta:
+    - {question_name: "Acción", variable: svc_accion, type: multiplechoice, choices: [activar, retirar], default: activar, required: true}
+    - {question_name: "Nombre del servicio", variable: svc_nombre, type: text, default: upf-demo, required: true, max: 31}
+    - {question_name: "VLAN", variable: vlan_id, type: integer, min: 2, max: 4094, default: 320, required: true}
+    - {question_name: "Prefijo", variable: svc_prefijo, type: text, default: 10.60.20.0/24, required: true, max: 18,
+       question_description: "Red 10.x.x.x de /24 a /29, escrita como red (termina en .0 para /24)."}
+    - {question_name: "Simular falla en la prueba", variable: simular_falla, type: multiplechoice, choices: ["no", si], default: "no", required: true,
+       question_description: "si fuerza la falla de la prueba posterior para mostrar la vuelta atrás automática."}
+- nombre: "Telco · Día 2 del clúster de cargas"
+  seccion: telco
+  pasos: ["OpenShift · Salud del clúster", "OpenShift · Certificados", "OpenShift · Respaldo de etcd"]
+  descripcion: "Rutina diaria del clúster de cargas en un solo flujo: salud y alertas, vencimiento de certificados y respaldo de etcd. Se puede programar en AAP para que corra sola."
+  encuesta: []
+- nombre: "Amdocs · Activar orden de servicio"
+  seccion: amdocs
+  orden: true
+  descripcion: "La orden de servicio llega desde Amdocs a Event-Driven Ansible. Ansible la valida, pide aprobación, crea la red del servicio (VLAN y BGP), prepara la CNF en OpenShift y devuelve el estado a Amdocs. Si algo falla, vuelve atrás y marca la orden fallida."
+  encuesta:
+    - {question_name: "Orden de Amdocs", variable: orden_id, type: text, default: "", required: true, min: 12, max: 12,
+       question_description: "ORD-XXXXXXXX. Normalmente la lanza EDA sola cuando Amdocs crea la orden; también se puede lanzar a mano."}
+- nombre: "Amdocs · Salud de la plataforma BSS"
+  seccion: amdocs
+  playbook: playbooks/amdocs-salud.yml
+  descripcion: "Por cada microservicio de Amdocs en OpenShift: pods listos, reinicios, versión desplegada y tiempo de respuesta, más las órdenes pendientes. Semáforo contra el umbral de respuesta."
+  encuesta:
+    - {question_name: "Umbral de respuesta (ms)", variable: umbral_ms, type: integer, min: 10, max: 5000, default: 200, required: true}
+- nombre: "Amdocs · Desplegar release"
+  seccion: amdocs
+  playbook: playbooks/amdocs-release.yml
+  descripcion: "Actualiza un microservicio de Amdocs con pre-chequeos, despliegue gradual sin corte y prueba posterior. Si la versión nueva no queda sana, vuelve sola a la anterior."
+  encuesta:
+    - {question_name: "Microservicio", variable: servicio, type: multiplechoice, choices: [catalog, customer, ordering], default: catalog, required: true}
+    - {question_name: "Versión", variable: version, type: text, default: 2.4.0, required: true, max: 12}
+    - {question_name: "Simular falla de la versión nueva", variable: simular_falla, type: multiplechoice, choices: ["no", si], default: "no", required: true,
+       question_description: "si hace que la versión nueva no pase su sonda de salud, para mostrar la vuelta atrás automática."}

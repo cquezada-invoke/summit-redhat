@@ -1,0 +1,252 @@
+# Telco · Red del servicio CNF (Claro PR, demo): VLAN del servicio en el firewall y anuncio BGP del prefijo, como código.
+#   1) Antes: valida los datos y toma una foto del estado (VLAN del firewall y rutas que el ISP recibe).
+#   2) Cambio: declara el prefijo en Git (config/rtr.conf: ruta hacia el firewall + network en BGP) y lo aplica en el router;
+#      crea la VLAN (subinterfaz 802.1Q) en el firewall VyOS con la puerta de enlace del prefijo.
+#   3) Después: comprueba que el ISP recibe el prefijo por BGP y que la VLAN está arriba.
+#   4) Si la prueba falla, vuelve atrás solo: restaura config/rtr.conf de Git, lo reaplica y retira la VLAN.
+# Variables: svc_accion (activar | retirar), svc_nombre (p. ej. cnf-upf), vlan_id (2-4094), svc_prefijo (CIDR /24 a /29),
+#            simular_falla (no | si: fuerza la falla de la prueba para mostrar la vuelta atrás), orden_amdocs (opcional)
+# Credenciales: "Red · laboratorio (ssh)", "Red · firewall VyOS", "Gitea · escritura red-laboratorio", "AAP · responder aprobaciones".
+- name: Telco · red del servicio · plan y Git
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    accion: "{{ svc_accion | default('activar') }}"
+    nombre: "{{ svc_nombre | default('cnf') | trim | lower | regex_replace('[^a-z0-9-]', '-') }}"
+    vid: "{{ vlan_id | default(0) | int }}"
+    pref: "{{ svc_prefijo | default('') | trim }}"
+    reservadas: ['10.0.0.0/30', '10.10.10.0/24', '10.20.20.0/24', '10.40.40.0/24', '172.20.20.0/24', '192.168.122.0/24', '203.0.113.0/24']
+    _g: "{{ gitea_url | default('http://192.168.122.1:3000') | regex_replace('/+$', '') }}/api/v1/repos/invoke/red-laboratorio/contents"
+    _gh: {Authorization: "token {{ gitea_token | default('') }}", Accept: application/json}
+  tasks:
+    - name: Datos del servicio
+      ansible.builtin.assert:
+        that:
+          - accion in ['activar', 'retirar']
+          - nombre is match('^[a-z][a-z0-9-]{1,30}$')
+          - vid | int >= 2 and vid | int <= 4094
+          - pref is match('^10\.([0-9]{1,3}\.){2}[0-9]{1,3}/(2[4-9])$')
+          - pref | ansible.utils.ipaddr('network/prefix') == pref
+        fail_msg: "Acción activar o retirar · nombre en minúsculas · VLAN 2-4094 · prefijo 10.x.x.x/24 a /29 escrito como red (p. ej. 10.60.10.0/24)"
+        quiet: true
+
+    - name: El prefijo no choca con redes del laboratorio
+      ansible.builtin.assert:
+        that:
+          - not (item | ansible.utils.network_in_network(pref))
+          - not (pref | ansible.utils.network_in_network(item))
+        fail_msg: "{{ pref }} se cruza con {{ item }}, red reservada del laboratorio"
+        quiet: true
+      loop: "{{ reservadas }}"
+      when: accion == 'activar'
+
+    - name: Git · config/rtr.conf actual
+      ansible.builtin.uri:
+        url: "{{ _g }}/config/rtr.conf?ref=main"
+        headers: "{{ _gh }}"
+      register: r_rtr
+      no_log: true
+
+    - name: Estado declarado
+      vars:
+        _nl: "\n"
+        _act: "{{ r_rtr.json.content | b64decode }}"
+        _gw: "{{ pref | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') }}/{{ pref.split('/')[1] }}"
+        _a1: >-
+          {{ _act if ('ip route ' ~ pref ~ ' ') in _act
+             else _act | replace(_nl ~ 'router bgp ', _nl ~ 'ip route ' ~ pref ~ ' 10.20.20.2' ~ _nl ~ '!' ~ _nl ~ 'router bgp ', 1) }}
+        _a2: >-
+          {{ _a1 if ('network ' ~ pref) in _a1
+             else _a1 | replace(_nl ~ ' exit-address-family', _nl ~ '  network ' ~ pref ~ _nl ~ ' exit-address-family', 1) }}
+        _r: "{{ _act | regex_replace('\\nip route ' ~ (pref | regex_escape) ~ ' [^\\n]*\\n!', '') | regex_replace('\\n  network ' ~ (pref | regex_escape) ~ '(?=\\n)', '') }}"
+      ansible.builtin.set_fact:
+        rtr_actual: "{{ _act }}"
+        rtr_sha: "{{ r_rtr.json.sha }}"
+        rtr_nuevo: "{{ _a2 if accion == 'activar' else _r }}"
+        svc: {nombre: "{{ nombre }}", vlan: "{{ vid }}", prefijo: "{{ pref }}", gw: "{{ _gw }}", accion: "{{ accion }}"}
+
+    - name: Plan del cambio
+      ansible.builtin.debug:
+        msg:
+          - "Servicio {{ nombre }} · {{ accion }} · VLAN {{ vid }} · prefijo {{ pref }} (puerta de enlace {{ svc.gw }})"
+          - "Router: {{ 'ruta ' ~ pref ~ ' → firewall y anuncio BGP' if accion == 'activar' else 'quitar ruta y anuncio de ' ~ pref }}"
+          - "Firewall: {{ 'crear' if accion == 'activar' else 'retirar' }} eth2 vif {{ vid }}"
+          - "{{ 'Git ya tiene este estado' if rtr_nuevo == rtr_actual else 'Git: se actualiza config/rtr.conf' }}"
+
+    - name: Git · guardar config/rtr.conf
+      ansible.builtin.uri:
+        url: "{{ _g }}/config/rtr.conf"
+        method: PUT
+        headers: "{{ _gh }}"
+        body_format: json
+        body:
+          branch: main
+          sha: "{{ rtr_sha }}"
+          message: "Telco: {{ accion }} {{ pref }} del servicio {{ nombre }}{{ (' (orden Amdocs ' ~ orden_amdocs ~ ')') if orden_amdocs | default('') else '' }}"
+          author: {name: Ansible Automation Platform, email: aap@invoke.cl}
+          content: "{{ rtr_nuevo | b64encode }}"
+      register: r_git
+      no_log: true
+      when: rtr_nuevo != rtr_actual
+
+- name: Telco · red del servicio · foto previa
+  hosts: rtr
+  gather_facts: false
+  tasks:
+    - name: Rutas que el ISP recibe hoy
+      ansible.builtin.raw: vtysh -c 'show bgp ipv4 unicast neighbors 10.0.0.1 advertised-routes json' 2>/dev/null | tr -d '\r'
+      register: r_antes
+      changed_when: false
+
+    - name: Foto previa
+      ansible.builtin.set_fact:
+        antes_anunciado: "{{ hostvars.localhost.svc.prefijo in r_antes.stdout }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+- name: Telco · red del servicio · router
+  hosts: rtr
+  gather_facts: false
+  tasks:
+    - name: Router · aplicar el estado de Git
+      ansible.builtin.raw: |
+        cat > /tmp/deseada.conf <<'FIN'
+        {{ hostvars.localhost.rtr_nuevo }}
+        FIN
+        python3 /usr/lib/frr/frr-reload.py --reload /tmp/deseada.conf >/dev/null 2>&1; echo aplicado
+      changed_when: true
+
+- name: Telco · red del servicio · firewall
+  hosts: fw
+  gather_facts: false
+  tasks:
+    - name: Firewall · VLAN {{ hostvars.localhost.svc.vlan }} del servicio
+      vyos.vyos.vyos_config:
+        lines:
+          - "set interfaces ethernet eth2 vif {{ hostvars.localhost.svc.vlan }} description '{{ hostvars.localhost.svc.nombre }}'"
+          - "set interfaces ethernet eth2 vif {{ hostvars.localhost.svc.vlan }} address {{ hostvars.localhost.svc.gw }}"
+        save: true
+      when: hostvars.localhost.svc.accion == 'activar'
+
+    - name: Firewall · retirar la VLAN {{ hostvars.localhost.svc.vlan }}
+      vyos.vyos.vyos_config:
+        lines: ["delete interfaces ethernet eth2 vif {{ hostvars.localhost.svc.vlan }}"]
+        save: true
+      when: hostvars.localhost.svc.accion == 'retirar'
+
+    - name: Firewall · estado de la VLAN
+      vyos.vyos.vyos_command:
+        commands: ["show interfaces ethernet eth2.{{ hostvars.localhost.svc.vlan }} brief"]
+      register: r_vif
+      failed_when: false
+
+    - name: Estado de la VLAN
+      ansible.builtin.set_fact:
+        vlan_arriba: "{{ (r_vif.stdout | default(['']))[0] is search('u/u') }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+- name: Telco · red del servicio · prueba posterior
+  hosts: rtr
+  gather_facts: false
+  tasks:
+    - name: El ISP recibe (o deja de recibir) el prefijo por BGP
+      ansible.builtin.raw: vtysh -c 'show bgp ipv4 unicast neighbors 10.0.0.1 advertised-routes json' 2>/dev/null | tr -d '\r'
+      register: r_desp
+      changed_when: false
+      until: (hostvars.localhost.svc.prefijo in r_desp.stdout) == (hostvars.localhost.svc.accion == 'activar')
+      retries: 8
+      delay: 3
+      failed_when: false
+
+    - name: Resultado de la prueba
+      vars:
+        _bgp_ok: "{{ (hostvars.localhost.svc.prefijo in r_desp.stdout) == (hostvars.localhost.svc.accion == 'activar') }}"
+        _vlan_ok: "{{ hostvars.localhost.vlan_arriba | bool == (hostvars.localhost.svc.accion == 'activar') }}"
+        _forzada: "{{ (simular_falla | default('no')) == 'si' }}"
+      ansible.builtin.set_fact:
+        prueba_bgp: "{{ _bgp_ok }}"
+        prueba_vlan: "{{ _vlan_ok }}"
+        prueba_ok: "{{ _bgp_ok | bool and _vlan_ok | bool and not _forzada | bool }}"
+        prueba_forzada: "{{ _forzada }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+- name: Telco · red del servicio · vuelta atrás si la prueba falló
+  hosts: "{{ 'rtr' if not (hostvars.localhost.prueba_ok | bool) else 'no_aplica' }}"
+  gather_facts: false
+  tasks:
+    - name: Router · volver al estado anterior
+      ansible.builtin.raw: |
+        cat > /tmp/deseada.conf <<'FIN'
+        {{ hostvars.localhost.rtr_actual }}
+        FIN
+        python3 /usr/lib/frr/frr-reload.py --reload /tmp/deseada.conf >/dev/null 2>&1; echo restaurado
+      changed_when: true
+
+- name: Telco · red del servicio · vuelta atrás del firewall
+  hosts: "{{ 'fw' if not (hostvars.localhost.prueba_ok | bool) and hostvars.localhost.svc.accion == 'activar' else 'no_aplica' }}"
+  gather_facts: false
+  tasks:
+    - name: Firewall · retirar la VLAN creada
+      vyos.vyos.vyos_config:
+        lines: ["delete interfaces ethernet eth2 vif {{ hostvars.localhost.svc.vlan }}"]
+        save: true
+
+- name: Telco · red del servicio · cierre
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    _g: "{{ gitea_url | default('http://192.168.122.1:3000') | regex_replace('/+$', '') }}/api/v1/repos/invoke/red-laboratorio/contents"
+    _gh: {Authorization: "token {{ gitea_token | default('') }}", Accept: application/json}
+  tasks:
+    - name: Git · deshacer el cambio declarado (vuelta atrás)
+      when: not (prueba_ok | bool) and r_git is defined and r_git is not skipped
+      block:
+        - name: Git · sha vigente
+          ansible.builtin.uri:
+            url: "{{ _g }}/config/rtr.conf?ref=main"
+            headers: "{{ _gh }}"
+          register: r_v
+          no_log: true
+
+        - name: Git · restaurar config/rtr.conf
+          ansible.builtin.uri:
+            url: "{{ _g }}/config/rtr.conf"
+            method: PUT
+            headers: "{{ _gh }}"
+            body_format: json
+            body:
+              branch: main
+              sha: "{{ r_v.json.sha }}"
+              message: "Telco: vuelta atrás de {{ svc.prefijo }} ({{ svc.nombre }}): la prueba posterior falló"
+              author: {name: Ansible Automation Platform, email: aap@invoke.cl}
+              content: "{{ rtr_actual | b64encode }}"
+          no_log: true
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "{{ 'Servicio ' ~ svc.nombre ~ (' activado' if svc.accion == 'activar' else ' retirado') if prueba_ok | bool else 'Cambio revertido: la prueba posterior falló' }}"
+            estado: "{{ 'ok' if prueba_ok | bool else 'revertido' }}"
+            filas:
+              - ["Antes", "{{ 'el ISP ya recibía ' ~ svc.prefijo if antes_anunciado | default(false) | bool else 'el ISP no recibía ' ~ svc.prefijo }}"]
+              - ["Git", "{{ 'config/rtr.conf actualizado' if r_git is defined and r_git is not skipped else 'sin cambios' }}{{ ' y restaurado' if not prueba_ok | bool and r_git is defined and r_git is not skipped else '' }}"]
+              - ["BGP hacia el ISP", "{{ 'ok' if prueba_bgp | bool else 'falla' }}"]
+              - ["VLAN {{ svc.vlan }} en el firewall", "{{ 'ok' if prueba_vlan | bool else 'falla' }}"]
+              - ["Prueba forzada a fallar", "{{ 'sí (demo de vuelta atrás)' if prueba_forzada | bool else 'no' }}"]
+            orden_amdocs: "{{ orden_amdocs | default('') }}"
+            servicio: "{{ svc }}"
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ 'Listo: ' ~ svc.nombre ~ ' · VLAN ' ~ svc.vlan ~ ' · ' ~ svc.prefijo ~ ' ' ~ ('anunciado por BGP' if svc.accion == 'activar' else 'retirado')
+                 if prueba_ok | bool else 'La prueba posterior falló: se volvió al estado anterior (router, firewall y Git)' }}"
+
+    - name: Fallar el job si se revirtió (el workflow lo toma como falla)
+      ansible.builtin.fail:
+        msg: "Cambio revertido: BGP {{ 'ok' if prueba_bgp | bool else 'falla' }} · VLAN {{ 'ok' if prueba_vlan | bool else 'falla' }}{{ ' · falla simulada' if prueba_forzada | bool else '' }}"
+      when: not (prueba_ok | bool)

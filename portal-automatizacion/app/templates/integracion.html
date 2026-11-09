@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Cómo integrarlo · Portal{% endblock %}
+{% block contenido %}
+<h1>Cómo integrarlo en su ambiente</h1>
+<p class="sub">Lo que se ve en la demo corre igual en su ambiente. Ansible Automation Platform (AAP) es el motor; este portal es solo una vitrina que usa la API de AAP.</p>
+
+<div class="panel">
+  <h2 style="margin-top:0">La idea en 30 segundos</h2>
+  <div class="flujo" style="font-size:13px">
+    <span class="nodo">Persona o evento (portal, AAP, Amdocs)</span><i>→</i><span class="nodo ap">Aprobación en AAP</span><i>→</i>
+    <span class="nodo">Playbook en Git</span><i>→</i><span class="nodo">AAP ejecuta con credenciales de su bóveda</span><i>→</i>
+    <span class="nodo">OpenShift · red · Amdocs</span><i>→</i><span class="nodo">Prueba posterior y vuelta atrás si falla</span>
+  </div>
+  <p style="margin:12px 0 0">Todo queda auditado en AAP: quién pidió, quién aprobó, qué cambió y el resultado. Las automatizaciones viven en Git, así que cada cambio es revisable y repetible.</p>
+</div>
+
+<ol class="pasos-guia">
+  <li>
+    <h3>Ansible Automation Platform</h3>
+    <p>AAP 2.5 o superior (controlador, Gateway y Event-Driven Ansible). En OpenShift se instala con su operador; también hay instalación en contenedores sobre RHEL. Un nodo de ejecución dentro de cada red que se quiere automatizar (por ejemplo, la red de gestión de los clústeres de Claro y la de los equipos de red).</p>
+  </li>
+  <li>
+    <h3>Repositorio de automatizaciones</h3>
+    <p>Un repositorio Git (GitLab, GitHub o Gitea) con los playbooks de esta demo. En AAP se registra como <b>Proyecto</b> y se sincroniza solo. Los cambios a las automatizaciones entran por merge request con revisión.</p>
+  </li>
+  <li>
+    <h3>Credenciales</h3>
+    <p>En AAP se crean las credenciales y se conectan a la bóveda del cliente (HashiCorp Vault, CyberArk u otra): nadie ve las claves.</p>
+    <table>
+      <tr><th>Para</th><th>Credencial en AAP</th><th>Qué pedirle al equipo</th></tr>
+      <tr><td>OpenShift (cada clúster)</td><td>OpenShift or Kubernetes API Bearer Token</td><td>URL de la API y un ServiceAccount con permisos acotados (lectura para monitoreo; escritura solo en lo que se automatiza)</td></tr>
+      <tr><td>Equipos de red</td><td>Machine / Network</td><td>Usuario de automatización en routers y firewalls, con su plataforma (Cisco, Juniper, Nokia, VyOS…)</td></tr>
+      <tr><td>Amdocs</td><td>Tipo de credencial propio (URL + token)</td><td>Endpoint de la API de órdenes (TMF641 o la de su versión) y un usuario de integración</td></tr>
+      <tr><td>Git</td><td>Source Control</td><td>Token de lectura del repositorio</td></tr>
+    </table>
+  </li>
+  <li>
+    <h3>Inventarios</h3>
+    <p>Los clústeres OpenShift (clúster de gestión con ACM y clúster de cargas) y los equipos de red. Se pueden sincronizar desde la fuente que ya usen (ACM, NetBox, CMDB de ServiceNow) para no mantener listas a mano.</p>
+  </li>
+  <li>
+    <h3>Plantillas, encuestas y aprobaciones</h3>
+    <p>Cada automatización es una plantilla con su <b>encuesta</b> (los parámetros que se ven en el portal) dentro de un <b>workflow con nodo de aprobación</b>. Los permisos se dan por equipo en AAP: quién puede lanzar, quién aprueba y quién solo mira. El portal muestra a cada usuario solo lo que AAP le permite.</p>
+  </li>
+  <li>
+    <h3>Integración con Amdocs</h3>
+    <p>Amdocs avisa cada orden de servicio a un <b>webhook de Event-Driven Ansible</b> (o AAP la consulta periódicamente). EDA lanza el workflow de activación con su aprobación y, al terminar, AAP actualiza el estado de la orden en Amdocs. Se necesita: el evento de orden nueva (o un callback de Amdocs Service Orchestration), conectividad de Amdocs hacia EDA y de AAP hacia la API de Amdocs.</p>
+  </li>
+  <li>
+    <h3>Usuarios y acceso</h3>
+    <p>El Gateway de AAP se conecta al directorio corporativo (LDAP/Active Directory, SAML u OIDC). El portal no tiene usuarios propios: ingresa con el usuario de AAP y lanza con sus permisos.</p>
+  </li>
+  <li>
+    <h3>Puesta en marcha sugerida</h3>
+    <p><b>Semana 1:</b> AAP, repositorio, credenciales e inventarios. <b>Semana 2:</b> automatizaciones de solo lectura (salud, certificados, validación para CNF, salud de Amdocs). <b>Semana 3:</b> automatizaciones que cambian (onboarding de CNF, red del servicio, releases) con aprobación y prueba en un ambiente de QA. <b>Semana 4:</b> orden de Amdocs de punta a punta con EDA y paso a producción.</p>
+  </li>
+</ol>
+
+<div class="panel">
+  <h2 style="margin-top:0">Qué es real y qué es emulado en esta demo</h2>
+  <table>
+    <tr><td>AAP, aprobaciones, EDA, Git y bóveda</td><td><span class="estado e-ok">real</span></td></tr>
+    <tr><td>OpenShift (un clúster de un nodo)</td><td><span class="estado e-ok">real</span> los chequeos telco muestran lo que falta porque el laboratorio no tiene tarjetas SR-IOV ni kernel de tiempo real</td></tr>
+    <tr><td>Router (FRR, BGP) y firewall (VyOS)</td><td><span class="estado e-ok">real</span> en contenedores; en Claro serían los equipos de su red</td></tr>
+    <tr><td>Amdocs</td><td><span class="estado e-revisar">emulado</span> un servicio pequeño que imita la API de órdenes y tres microservicios BSS en OpenShift</td></tr>
+  </table>
+</div>
+{% endblock %}

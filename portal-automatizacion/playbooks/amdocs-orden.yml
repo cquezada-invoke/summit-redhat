@@ -1,0 +1,79 @@
+# Amdocs (Claro PR, emulado) · Orden de servicio: lee la orden que llegó desde Amdocs (vía EDA) y actualiza su estado.
+#   fase=recibir: valida la orden, la marca «en aprobación» y deja los datos del servicio para los pasos siguientes del
+#                 workflow (red del servicio y onboarding de la CNF).
+#   fase=cerrar:  marca la orden «completada» o «fallida» (resultado) con el detalle, para que Amdocs la cierre.
+# Variables: orden_id (o el evento de EDA en ansible_eda.event.payload.orden), fase (recibir | cerrar), resultado (ok | falla)
+# Credencial: "OpenShift · clúster (token)" (llega a la API de Amdocs por el proxy de servicios de OpenShift).
+- name: Amdocs · Orden de servicio
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('env', 'K8S_AUTH_HOST') | regex_replace('/+$', '') }}"
+    amdocs: "{{ api }}/api/v1/namespaces/amdocs-bss/services/http:ordering:8080/proxy"
+    cab: {Authorization: "Bearer {{ lookup('env', 'K8S_AUTH_API_KEY') }}", Content-Type: application/json}
+    oid: "{{ orden_id | default('', true) or (ansible_eda.event.payload.orden.id | default('')) }}"
+    f: "{{ fase | default('recibir') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - oid is match('^ORD-[A-F0-9]{8}$')
+          - f in ['recibir', 'cerrar']
+        fail_msg: "Orden ORD-XXXXXXXX y fase recibir o cerrar"
+        quiet: true
+
+    - name: Leer la orden en Amdocs
+      ansible.builtin.uri: {url: "{{ amdocs }}/orders/{{ oid }}", headers: "{{ cab }}", validate_certs: false}
+      register: r_o
+      no_log: true
+
+    - name: Recibir · la orden es válida
+      ansible.builtin.assert:
+        that:
+          - r_o.json.estado in ['nueva', 'en aprobación']
+          - r_o.json.servicio.vlan | int >= 2 and r_o.json.servicio.vlan | int <= 4094
+          - r_o.json.servicio.prefijo is match('^10\.([0-9]{1,3}\.){2}[0-9]{1,3}/(2[4-9])$')
+          - r_o.json.servicio.nombre is match('^[a-z][a-z0-9-]{1,30}$')
+        fail_msg: "La orden {{ oid }} no es válida para activar (estado {{ r_o.json.estado }})"
+      when: f == 'recibir'
+
+    - name: Actualizar el estado en Amdocs
+      ansible.builtin.uri:
+        url: "{{ amdocs }}/orders/{{ oid }}"
+        method: PATCH
+        headers: "{{ cab }}"
+        validate_certs: false
+        body_format: json
+        body:
+          estado: "{{ 'en aprobación' if f == 'recibir' else ('completada' if (resultado | default('ok')) == 'ok' else 'fallida') }}"
+          detalle: >-
+            {{ ('Recibida por Ansible: VLAN ' ~ r_o.json.servicio.vlan ~ ', prefijo ' ~ r_o.json.servicio.prefijo ~ '; espera aprobación en AAP') if f == 'recibir'
+               else ('Servicio activo: red anunciada por BGP y CNF preparada en OpenShift' if (resultado | default('ok')) == 'ok'
+                     else 'No se pudo activar; se volvió al estado anterior. Revisar el job en AAP') }}
+      register: r_u
+
+    - name: Datos del servicio para los pasos siguientes del workflow
+      ansible.builtin.set_stats:
+        data:
+          orden_amdocs: "{{ oid }}"
+          svc_nombre: "{{ r_o.json.servicio.nombre }}"
+          cnf_nombre: "{{ r_o.json.servicio.nombre }}"
+          vlan_id: "{{ r_o.json.servicio.vlan | int }}"
+          svc_prefijo: "{{ r_o.json.servicio.prefijo }}"
+          ip_publica: "{{ r_o.json.servicio.ip_publica | default('') }}"
+          svc_accion: activar
+          accion: crear
+          proveedor: nabstract
+      when: f == 'recibir'
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Orden {{ oid }}: {{ r_u.json.estado }}"
+            estado: "{{ 'ok' if r_u.json.estado in ['en aprobación', 'completada'] else 'critico' }}"
+            filas: >-
+              {% set f2 = [['Cliente', r_o.json.cliente], ['Oferta', r_o.json.oferta], ['Servicio', r_o.json.servicio.nombre ~ ' (' ~ r_o.json.servicio.cnf ~ ')'],
+                 ['VLAN / prefijo', r_o.json.servicio.vlan ~ ' / ' ~ r_o.json.servicio.prefijo]] %}
+              {% for h in r_u.json.historial %}{% set _ = f2.append(['Historial ' ~ h.t[11:19], h.estado ~ ((' · ' ~ h.detalle) if h.detalle | default('') else '')]) %}{% endfor %}{{ f2 }}

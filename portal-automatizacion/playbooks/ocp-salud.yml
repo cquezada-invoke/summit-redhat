@@ -1,0 +1,109 @@
+# OpenShift · Salud del clúster (monitoreo, solo lectura): nodos, operadores del clúster, versión, alertas activas
+# de Alertmanager, pods con problemas y uso de recursos por nodo. Entrega un semáforo para el portal.
+# Variables: severidad_minima (warning | critical), incluir_pods (si | no)
+# Credencial: "OpenShift · clúster (token)" (K8S_AUTH_HOST, K8S_AUTH_API_KEY).
+- name: OpenShift · Salud del clúster
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('env', 'K8S_AUTH_HOST') | regex_replace('/+$', '') }}"
+    cab: {Authorization: "Bearer {{ lookup('env', 'K8S_AUTH_API_KEY') }}"}
+    sev: "{{ severidad_minima | default('warning') }}"
+  tasks:
+    - name: Nodos
+      kubernetes.core.k8s_info: {kind: Node}
+      register: r_nodos
+
+    - name: Operadores del clúster
+      kubernetes.core.k8s_info: {api_version: config.openshift.io/v1, kind: ClusterOperator}
+      register: r_co
+
+    - name: Versión
+      kubernetes.core.k8s_info: {api_version: config.openshift.io/v1, kind: ClusterVersion, name: version}
+      register: r_cv
+
+    - name: Alertas activas (Alertmanager, vía el proxy de la API)
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/openshift-monitoring/services/https:alertmanager-main:9094/proxy/api/v2/alerts?active=true&silenced=false"
+        headers: "{{ cab }}"
+        validate_certs: false
+      register: r_al
+      failed_when: false
+      no_log: true
+
+    - name: Pods con problemas
+      kubernetes.core.k8s_info:
+        kind: Pod
+        field_selectors: ["status.phase!=Running", "status.phase!=Succeeded"]
+      register: r_pods
+      when: (incluir_pods | default('si')) == 'si'
+
+    - name: Uso de los nodos (metrics.k8s.io)
+      kubernetes.core.k8s_info: {api_version: metrics.k8s.io/v1beta1, kind: NodeMetrics}
+      register: r_nm
+      failed_when: false
+
+    - name: Calcular el semáforo
+      vars:
+        nodos_mal: "{{ r_nodos.resources | rejectattr('status.conditions', 'contains', {'type': 'Ready', 'status': 'True'}) | map(attribute='metadata.name') | list }}"
+        co_deg: >-
+          {{ r_co.resources | selectattr('status.conditions', 'defined')
+             | selectattr('status.conditions', 'contains', {'type': 'Degraded', 'status': 'True'}) | map(attribute='metadata.name') | list }}
+        co_nodisp: >-
+          {{ r_co.resources | selectattr('status.conditions', 'defined')
+             | rejectattr('status.conditions', 'contains', {'type': 'Available', 'status': 'True'}) | map(attribute='metadata.name') | list }}
+        alertas: >-
+          {{ (r_al.json | default([])) | rejectattr('labels.alertname', 'in', ['Watchdog', 'InfoInhibitor', 'AlertmanagerReceiversNotConfigured'])
+             | selectattr('labels.severity', 'in', ['critical'] if sev == 'critical' else ['critical', 'warning']) | list }}
+        pods_mal: "{{ (r_pods.resources | default([])) | map(attribute='metadata.namespace') | list }}"
+        cv: "{{ r_cv.resources[0].status }}"
+      ansible.builtin.set_fact:
+        salud:
+          version: "{{ cv.desired.version }}"
+          canal: "{{ r_cv.resources[0].spec.channel | default('sin canal') }}"
+          actualizaciones: "{{ (cv.availableUpdates | default([]) or []) | length }}"
+          nodos: "{{ r_nodos.resources | length }}"
+          nodos_mal: "{{ nodos_mal }}"
+          co_degradados: "{{ co_deg }}"
+          co_no_disponibles: "{{ co_nodisp }}"
+          alertas: "{{ alertas | map(attribute='labels') | list }}"
+          alertas_n: "{{ alertas | length }}"
+          criticas: "{{ alertas | selectattr('labels.severity', 'equalto', 'critical') | list | length }}"
+          pods_mal_por_ns: "{% set d = {} %}{% for n in pods_mal %}{% set _ = d.update({n: d.get(n, 0) + 1}) %}{% endfor %}{{ d }}"
+          alertas_por_nombre: "{% set d = {} %}{% for a in alertas %}{% set n = a.labels.alertname ~ ' (' ~ a.labels.severity ~ ')' %}{% set _ = d.update({n: d.get(n, 0) + 1}) %}{% endfor %}{{ d }}"
+          uso: >-
+            {{ (r_nm.resources | default([])) | map(attribute='metadata.name')
+               | zip((r_nm.resources | default([])) | map(attribute='usage')) | list }}
+
+    - name: Estado general
+      ansible.builtin.set_fact:
+        estado: "{{ 'critico' if (salud.nodos_mal | length or salud.co_degradados | length or salud.criticas | int > 0)
+                    else ('atencion' if (salud.co_no_disponibles | length or salud.alertas_n | int > 0 or salud.pods_mal_por_ns | length) else 'ok') }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "Estado: {{ estado | upper }} · OpenShift {{ salud.version }} ({{ salud.canal }}) · {{ salud.actualizaciones }} actualizaciones disponibles"
+          - "Nodos: {{ salud.nodos }} ({{ salud.nodos_mal | length }} no listos {{ salud.nodos_mal }})"
+          - "Operadores degradados: {{ salud.co_degradados or 'ninguno' }} · no disponibles: {{ salud.co_no_disponibles or 'ninguno' }}"
+          - "Alertas activas: {{ salud.alertas_n }} ({{ salud.criticas }} críticas)"
+          - "{{ salud.alertas_por_nombre }}"
+          - "Pods con problemas por namespace: {{ salud.pods_mal_por_ns }}"
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Clúster {{ estado | upper }} · OpenShift {{ salud.version }}"
+            estado: "{{ estado }}"
+            filas: >-
+              {{ [['Nodos', salud.nodos ~ ' (' ~ (salud.nodos_mal | length) ~ ' no listos)'],
+                  ['Operadores degradados', salud.co_degradados | join(', ') or 'ninguno'],
+                  ['Operadores no disponibles', salud.co_no_disponibles | join(', ') or 'ninguno'],
+                  ['Alertas activas', salud.alertas_n ~ ' (' ~ salud.criticas ~ ' críticas)'],
+                  ['Actualizaciones disponibles', salud.actualizaciones ~ ' en el canal ' ~ salud.canal]]
+                 + (salud.alertas_por_nombre | dict2items | map(attribute='key') | map('regex_replace', '^', 'Alerta: ')
+                    | zip(salud.alertas_por_nombre | dict2items | map(attribute='value') | map('string')) | map('list') | list)
+                 + (salud.pods_mal_por_ns | dict2items | map(attribute='key') | map('regex_replace', '^', 'Pods con problemas en ')
+                    | zip(salud.pods_mal_por_ns | dict2items | map(attribute='value') | map('string')) | map('list') | list) }}

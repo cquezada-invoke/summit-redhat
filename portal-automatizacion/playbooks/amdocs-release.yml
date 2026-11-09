@@ -1,0 +1,132 @@
+# Amdocs (Claro PR, emulado) · Despliegue de un release: actualiza un microservicio con pre-chequeos, despliegue gradual
+# (RollingUpdate sin indisponibilidad: la versión nueva solo recibe tráfico si su sonda de salud pasa) y prueba posterior.
+# Si la versión nueva no queda sana en el tiempo de espera, vuelve sola a la versión anterior y lo informa.
+# Variables: servicio (ordering | customer | catalog), version (p. ej. 2.4.0), simular_falla (no | si), espera_s (90)
+# Credencial: "OpenShift · clúster (token)".
+- name: Amdocs · Despliegue de release
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('env', 'K8S_AUTH_HOST') | regex_replace('/+$', '') }}"
+    ns: amdocs-bss
+    dep: "amdocs-{{ servicio | default('catalog') }}"
+    cab: {Authorization: "Bearer {{ lookup('env', 'K8S_AUTH_API_KEY') }}"}
+    espera: "{{ espera_s | default(90) | int }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - (servicio | default('catalog')) in ['ordering', 'customer', 'catalog']
+          - (version | default('')) is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+          - (simular_falla | default('no')) in ['si', 'no']
+          - espera | int >= 30 and espera | int <= 300
+        fail_msg: "Servicio ordering|customer|catalog, versión X.Y.Z"
+        quiet: true
+
+    - name: Pre-chequeo · estado actual
+      kubernetes.core.k8s_info: {kind: Deployment, namespace: "{{ ns }}", name: "{{ dep }}"}
+      register: r_antes
+
+    - name: Pre-chequeo · el servicio está sano antes de tocarlo
+      ansible.builtin.assert:
+        that: (r_antes.resources[0].status.readyReplicas | default(0)) >= 1
+        fail_msg: "{{ dep }} no está sano: no se despliega sobre un servicio caído"
+
+    - name: Versión anterior
+      ansible.builtin.set_fact:
+        env_antes: "{{ r_antes.resources[0].spec.template.spec.containers[0].env }}"
+        version_antes: "{{ r_antes.resources[0].spec.template.spec.containers[0].env | selectattr('name', 'equalto', 'VERSION') | map(attribute='value') | first }}"
+
+    - name: Pre-chequeo · la versión es distinta
+      ansible.builtin.assert:
+        that: version != version_antes
+        fail_msg: "{{ dep }} ya está en {{ version }}"
+
+    - name: Desplegar {{ version }} (gradual, sin indisponibilidad)
+      kubernetes.core.k8s:
+        state: patched
+        kind: Deployment
+        namespace: "{{ ns }}"
+        name: "{{ dep }}"
+        definition:
+          metadata: {annotations: {invoke.cl/release: "{{ version }}", invoke.cl/desplegado-por: "{{ awx_user_name | default('AAP') }}"}}
+          spec:
+            template:
+              metadata: {annotations: {invoke.cl/release: "{{ version }}"}}
+              spec:
+                containers:
+                  - name: servicio
+                    env: >-
+                      {{ env_antes | rejectattr('name', 'in', ['VERSION', 'FALLA']) | list
+                         + [{'name': 'VERSION', 'value': version}, {'name': 'FALLA', 'value': simular_falla | default('no')}] }}
+
+    - name: Esperar que la versión nueva quede sana
+      kubernetes.core.k8s_info: {kind: Deployment, namespace: "{{ ns }}", name: "{{ dep }}"}
+      register: r_d
+      until: >-
+        (r_d.resources[0].status.updatedReplicas | default(0)) == r_d.resources[0].spec.replicas
+        and (r_d.resources[0].status.readyReplicas | default(0)) == r_d.resources[0].spec.replicas
+        and (r_d.resources[0].status.replicas | default(0)) == r_d.resources[0].spec.replicas
+      retries: "{{ (espera | int / 5) | int }}"
+      delay: 5
+      failed_when: false
+
+    - name: Prueba posterior · /version y /health
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ ns }}/services/http:{{ servicio | default('catalog') }}:8080/proxy/{{ item }}"
+        headers: "{{ cab }}"
+        validate_certs: false
+        status_code: [200, 503]
+      loop: [version, health]
+      register: r_post
+      failed_when: false
+      no_log: true
+
+    - name: Resultado de la prueba
+      ansible.builtin.set_fact:
+        sano: >-
+          {{ (r_d.resources[0].status.readyReplicas | default(0)) == r_d.resources[0].spec.replicas
+             and (r_d.resources[0].status.updatedReplicas | default(0)) == r_d.resources[0].spec.replicas
+             and (r_post.results[0].json.version | default('')) == version
+             and r_post.results[1].status == 200 }}
+
+    - name: Vuelta atrás a {{ version_antes }}
+      kubernetes.core.k8s:
+        state: patched
+        kind: Deployment
+        namespace: "{{ ns }}"
+        name: "{{ dep }}"
+        definition:
+          metadata: {annotations: {invoke.cl/release: "{{ version_antes }}", invoke.cl/vuelta-atras: "{{ version }} no quedó sana"}}
+          spec:
+            template:
+              metadata: {annotations: {invoke.cl/release: "{{ version_antes }}"}}
+              spec: {containers: [{name: servicio, env: "{{ env_antes }}"}]}
+      when: not sano | bool
+
+    - name: Esperar la versión anterior
+      kubernetes.core.k8s_info: {kind: Deployment, namespace: "{{ ns }}", name: "{{ dep }}"}
+      register: r_vuelta
+      until: (r_vuelta.resources[0].status.updatedReplicas | default(0)) == r_vuelta.resources[0].spec.replicas and (r_vuelta.resources[0].status.readyReplicas | default(0)) == r_vuelta.resources[0].spec.replicas and (r_vuelta.resources[0].status.replicas | default(0)) == r_vuelta.resources[0].spec.replicas
+      retries: 24
+      delay: 5
+      when: not sano | bool
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "{{ dep }}: {{ ('release ' ~ version ~ ' en producción') if sano | bool else ('release ' ~ version ~ ' revertido; sigue en ' ~ version_antes) }}"
+            estado: "{{ 'ok' if sano | bool else 'revertido' }}"
+            filas:
+              - ["Versión anterior", "{{ version_antes }}"]
+              - ["Versión pedida", "{{ version }}{{ ' (con falla simulada)' if (simular_falla | default('no')) == 'si' else '' }}"]
+              - ["Despliegue gradual", "{{ 'la versión nueva pasó la sonda de salud' if sano | bool else 'la versión nueva no pasó la sonda en ' ~ espera ~ ' s: nunca recibió tráfico' }}"]
+              - ["Prueba posterior", "{{ ('/version ' ~ (r_post.results[0].json.version | default('?')) ~ ' · /health ' ~ r_post.results[1].status) }}"]
+              - ["Vuelta atrás", "{{ 'no fue necesaria' if sano | bool else 'automática a ' ~ version_antes ~ ' (servicio sin corte)' }}"]
+
+    - name: Fallar el job si se revirtió
+      ansible.builtin.fail:
+        msg: "{{ version }} no quedó sana; {{ dep }} volvió a {{ version_antes }} sin corte de servicio"
+      when: not sano | bool

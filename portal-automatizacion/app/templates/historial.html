@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Ejecuciones</h1>
+<p class="sub">Últimas ejecuciones de las automatizaciones del portal (lanzadas desde aquí, desde AAP o por eventos de Amdocs).</p>
+{% if jobs %}
+<div class="panel"><table>
+<tr><th>#</th><th>Automatización</th><th>Estado</th><th>Lanzada por</th><th>Inicio (UTC)</th><th>Duración</th></tr>
+{% for j in jobs %}
+<tr><td><a href="{{ url_for('ejecucion', jid=j.id) }}">{{ j.id }}</a></td><td>{{ j.name.split('·', 1)[-1] | trim }}</td>
+<td><span class="estado e-{{ j.status }}">{{ {'successful': 'exitosa', 'failed': 'falló', 'canceled': 'cancelada', 'running': 'en curso', 'pending': 'pendiente'}.get(j.status, j.status) }}</span></td>
+<td>{{ j.summary_fields.created_by.username if j.summary_fields.created_by else 'EDA' }}</td><td class="sub">{{ (j.started or j.created or '')[:16] | replace('T', ' ') }}</td><td class="sub">{{ (j.elapsed or 0) | round | int }} s</td></tr>
+{% endfor %}
+</table></div>
+{% else %}<div class="vacia">Sin ejecuciones todavía.</div>{% endif %}
+{% endblock %}

@@ -1,0 +1,4 @@
+FROM registry.access.redhat.com/ubi9/python-311:1-77
+COPY servicio.py /opt/app-root/src/servicio.py
+EXPOSE 8080
+CMD ["python3", "/opt/app-root/src/servicio.py"]

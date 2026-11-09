@@ -1,0 +1,135 @@
+# OpenShift · Optimizar recursos y limpieza: compara lo reservado (requests) con el uso real (metrics.k8s.io) para encontrar
+# capacidad ociosa, aplicaciones subdimensionadas y Deployments sin uso; y limpia lo que sobra.
+#   Revisa: reservado vs. usado por contenedor y por nodo · pods terminados o fallidos · ReplicaSets viejos sin réplicas ·
+#           builds terminados antiguos.
+#   Corrige (modo corregir): borra pods terminados/fallidos y builds terminados con más de «dias_antiguedad» días.
+#   Las recomendaciones de requests NO se aplican solas: se entregan para que el dueño las apruebe.
+# Variables: modo (revisar | corregir), umbral_ocioso (porcentaje de uso bajo el cual algo está sobredimensionado, 20),
+#            dias_antiguedad (7)
+# Credencial: "OpenShift · clúster (token)".
+- name: OpenShift · Optimizar y limpiar
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    m: "{{ modo | default('revisar') }}"
+    umbral: "{{ umbral_ocioso | default(20) | int }}"
+    dias: "{{ dias_antiguedad | default(7) | int }}"
+    sistema: '^(openshift|kube-)'
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - m in ['revisar', 'corregir']
+          - umbral | int >= 1 and umbral | int <= 90
+          - dias | int >= 1 and dias | int <= 365
+        quiet: true
+
+    - name: Pods
+      kubernetes.core.k8s_info: {kind: Pod}
+      register: r_pods
+
+    - name: Uso real de los pods
+      kubernetes.core.k8s_info: {api_version: metrics.k8s.io/v1beta1, kind: PodMetrics}
+      register: r_pm
+
+    - name: Nodos y su uso
+      kubernetes.core.k8s_info: {kind: Node}
+      register: r_nodos
+
+    - name: Uso real de los nodos
+      kubernetes.core.k8s_info: {api_version: metrics.k8s.io/v1beta1, kind: NodeMetrics}
+      register: r_nm
+
+    - name: ReplicaSets
+      kubernetes.core.k8s_info: {kind: ReplicaSet}
+      register: r_rs
+
+    - name: Builds
+      kubernetes.core.k8s_info: {api_version: build.openshift.io/v1, kind: Build}
+      register: r_b
+      failed_when: false
+
+    - name: Analizar
+      ansible.builtin.set_fact:
+        analisis: >-
+          {% macro cpu(v) %}{{ (v[:-1] | float / 1000) if v.endswith('m') else ((v[:-1] | float / 1000000000) if v.endswith('n') else ((v[:-1] | float / 1000000) if v.endswith('u') else v | float)) }}{% endmacro %}
+          {% macro mem(v) %}{% set u = {'Ki': 1/1024, 'Mi': 1, 'Gi': 1024, 'K': 1/1000, 'M': 0.954, 'G': 954} %}{% set n = v | regex_replace('[A-Za-z]+$', '') | float %}{% set s = v | regex_search('[A-Za-z]+$') or '' %}{{ (n * u.get(s, 1/1048576)) | round(1) }}{% endmacro %}
+          {% set uso = {} %}
+          {% for p in r_pm.resources %}{% for c in p.containers %}{% set _ = uso.update({p.metadata.namespace ~ '/' ~ p.metadata.name ~ '/' ~ c.name: {'cpu': cpu(c.usage.cpu) | float, 'mem': mem(c.usage.memory) | float}}) %}{% endfor %}{% endfor %}
+          {% set sobre = [] %}{% set bajo = [] %}{% set ociosos = [] %}{% set tot = {'req_cpu': 0.0, 'uso_cpu': 0.0, 'req_mem': 0.0, 'uso_mem': 0.0} %}
+          {% for p in r_pods.resources if p.status.phase == 'Running' and not p.metadata.namespace is match(sistema) %}
+            {% for c in p.spec.containers %}
+              {% set k = p.metadata.namespace ~ '/' ~ p.metadata.name ~ '/' ~ c.name %}
+              {% set rq = c.resources.requests | default({}) %}
+              {% if k in uso %}
+                {% set rc = cpu(rq.cpu | default('0')) | float %}{% set rm = mem(rq.memory | default('0')) | float %}
+                {% set _ = tot.update({'req_cpu': tot.req_cpu + rc, 'uso_cpu': tot.uso_cpu + uso[k].cpu, 'req_mem': tot.req_mem + rm, 'uso_mem': tot.uso_mem + uso[k].mem}) %}
+                {% set owner = (p.metadata.ownerReferences | default([{'name': p.metadata.name}]))[0].name | regex_replace('-[a-z0-9]{8,10}$', '') %}
+                {% if rm > 0 and uso[k].mem / rm * 100 < umbral | int %}{% set _ = sobre.append({'ns': p.metadata.namespace, 'app': owner, 'c': c.name, 'recurso': 'memoria', 'reservado': rm | round(0) ~ 'Mi', 'usado': uso[k].mem | round(0) ~ 'Mi', 'sugerido': [((uso[k].mem * 1.3) | round(0) | int), 64] | max ~ 'Mi', 'ahorro': rm - [uso[k].mem * 1.3, 64] | max}) %}{% endif %}
+                {% if rc > 0 and uso[k].cpu / rc * 100 < umbral | int %}{% set _ = sobre.append({'ns': p.metadata.namespace, 'app': owner, 'c': c.name, 'recurso': 'cpu', 'reservado': (rc * 1000) | round(0) | int ~ 'm', 'usado': (uso[k].cpu * 1000) | round(0) | int ~ 'm', 'sugerido': [((uso[k].cpu * 1300) | round(0) | int), 10] | max ~ 'm', 'ahorro': 0}) %}{% endif %}
+                {% if rm > 0 and uso[k].mem > rm * 1.1 %}{% set _ = bajo.append({'ns': p.metadata.namespace, 'app': owner, 'c': c.name, 'recurso': 'memoria', 'reservado': rm | round(0) ~ 'Mi', 'usado': uso[k].mem | round(0) ~ 'Mi'}) %}{% endif %}
+                {% if uso[k].cpu < 0.002 %}{% set _ = ociosos.append(p.metadata.namespace ~ '/' ~ owner) %}{% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+          {% set terminados = r_pods.resources | selectattr('status.phase', 'in', ['Succeeded', 'Failed']) | list %}
+          {% set rs_viejos = r_rs.resources | selectattr('spec.replicas', 'equalto', 0) | list %}
+          {{ {'sobre': sobre | sort(attribute='ahorro', reverse=true), 'bajo': bajo, 'ociosos': ociosos | unique | list, 'tot': tot,
+              'terminados': terminados | map(attribute='metadata') | list,
+              'rs_viejos': rs_viejos | length,
+              'builds_viejos': (r_b.resources | default([])) | selectattr('status.phase', 'in', ['Complete', 'Failed', 'Cancelled', 'Error']) | map(attribute='metadata') | list } }}
+
+    - name: Antigüedad mínima para limpiar
+      ansible.builtin.set_fact:
+        corte: "{{ '%Y-%m-%dT%H:%M:%SZ' | strftime((now(utc=true).timestamp() | int) - (dias | int * 86400), utc=true) }}"
+
+    - name: Limpieza · pods terminados o fallidos antiguos
+      kubernetes.core.k8s:
+        state: absent
+        kind: Pod
+        namespace: "{{ item.namespace }}"
+        name: "{{ item.name }}"
+      loop: "{{ analisis.terminados | selectattr('creationTimestamp', 'lt', corte) | list }}"
+      loop_control: {label: "{{ item.namespace }}/{{ item.name }}"}
+      when: m == 'corregir'
+
+    - name: Limpieza · builds terminados antiguos
+      kubernetes.core.k8s:
+        state: absent
+        api_version: build.openshift.io/v1
+        kind: Build
+        namespace: "{{ item.namespace }}"
+        name: "{{ item.name }}"
+      loop: "{{ analisis.builds_viejos | selectattr('creationTimestamp', 'lt', corte) | list }}"
+      loop_control: {label: "{{ item.namespace }}/{{ item.name }}"}
+      when: m == 'corregir'
+
+    - name: Resumen
+      vars:
+        t: "{{ analisis.tot }}"
+        ahorro_mem: "{{ analisis.sobre | selectattr('recurso', 'equalto', 'memoria') | map(attribute='ahorro') | sum | round(0) | int }}"
+      ansible.builtin.set_fact:
+        resumen:
+          - ["Aplicaciones: memoria reservada vs. usada", "{{ (t.req_mem / 1024) | round(1) }} GiB reservada · {{ (t.uso_mem / 1024) | round(1) }} GiB usada ({{ ((t.uso_mem / t.req_mem * 100) if t.req_mem else 0) | round(0) | int }} %)"]
+          - ["Aplicaciones: CPU reservada vs. usada", "{{ t.req_cpu | round(2) }} cores reservados · {{ t.uso_cpu | round(2) }} usados"]
+          - ["Memoria que se puede liberar ajustando requests", "{{ (ahorro_mem | int / 1024) | round(1) }} GiB en {{ analisis.sobre | selectattr('recurso', 'equalto', 'memoria') | list | length }} contenedores"]
+          - ["Contenedores que usan más memoria de la reservada", "{{ analisis.bajo | length }}"]
+          - ["Deployments sin uso de CPU", "{{ analisis.ociosos | length }}{{ (': ' ~ analisis.ociosos[:6] | join(', ')) if analisis.ociosos else '' }}"]
+          - ["Pods terminados o fallidos", "{{ analisis.terminados | length }}{{ ' (borrados los de más de ' ~ dias ~ ' días)' if m == 'corregir' else '' }}"]
+          - ["Builds terminados", "{{ analisis.builds_viejos | length }}{{ ' (borrados los de más de ' ~ dias ~ ' días)' if m == 'corregir' else '' }}"]
+          - ["ReplicaSets viejos sin réplicas", "{{ analisis.rs_viejos }} (los conserva el historial de despliegue)"]
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ resumen | map('join', ': ') | list + ['Sugerencias de requests (las aplica el dueño):'] + (analisis.sobre[:10] | map(attribute='app') | zip(analisis.sobre[:10] | map(attribute='recurso'), analisis.sobre[:10] | map(attribute='reservado'), analisis.sobre[:10] | map(attribute='usado'), analisis.sobre[:10] | map(attribute='sugerido')) | map('join', ' · ') | list) }}"
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Capacidad ociosa y limpieza · {{ analisis.sobre | length }} ajustes sugeridos"
+            estado: "{{ 'atencion' if analisis.sobre or analisis.bajo else 'ok' }}"
+            filas: >-
+              {% set f = resumen %}{% for x in analisis.sobre[:12] %}{% set _ = f.append(['Sugerencia · ' ~ x.ns ~ '/' ~ x.app ~ ' (' ~ x.recurso ~ ')',
+                 'reservado ' ~ x.reservado ~ ' · usado ' ~ x.usado ~ ' · sugerido ' ~ x.sugerido]) %}{% endfor %}{{ f }}

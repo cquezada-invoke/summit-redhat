@@ -1,0 +1,134 @@
+# Telco (Claro PR) · Onboarding de una CNF: prepara el clúster de cargas para recibir la función de red del proveedor
+# (Nabstract) en un solo paso y deja todo declarado:
+#   namespace con etiquetas de servicio y proveedor · cuota que incluye páginas grandes · red secundaria de la VLAN del servicio
+#   (NetworkAttachmentDefinition macvlan con IPAM del prefijo) · pool de MetalLB con la dirección pública del servicio (si
+#   MetalLB está instalado) · permisos del grupo del proveedor · NetworkPolicy · ServiceAccount de la CNF.
+# Con accion=retirar deja el clúster como estaba.
+# Variables: cnf_nombre, proveedor (nabstract), vlan_id, svc_prefijo (CIDR del servicio), ip_publica (opcional, para MetalLB),
+#            hugepages_gi (cuota), interfaz (interfaz del nodo para la VLAN, br-ex), accion (crear | retirar), orden_amdocs (opcional)
+# Credencial: "OpenShift · clúster (token)".
+- name: Telco · Onboarding de CNF
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    cnf: "{{ cnf_nombre | default('') | trim | lower }}"
+    ns: "cnf-{{ cnf }}"
+    a: "{{ accion | default('crear') }}"
+    prov: "{{ proveedor | default('nabstract') | trim | lower }}"
+    vid: "{{ vlan_id | default(0) | int }}"
+    pref: "{{ svc_prefijo | default('') | trim }}"
+    ipp: "{{ ip_publica | default('') | trim }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - cnf is match('^[a-z][a-z0-9-]{1,30}$')
+          - a in ['crear', 'retirar']
+          - prov is match('^[a-z0-9-]{2,30}$')
+          - vid | int >= 2 and vid | int <= 4094
+          - pref is match('^([0-9]{1,3}\.){3}[0-9]{1,3}/(2[0-9]|30)$')
+          - ipp == '' or ipp is match('^([0-9]{1,3}\.){3}[0-9]{1,3}$')
+          - (hugepages_gi | default(4) | int) >= 0 and (hugepages_gi | default(4) | int) <= 64
+          - (interfaz | default('br-ex')) is match('^[a-z0-9.-]{2,15}$')
+        fail_msg: "CNF en minúsculas · VLAN 2-4094 · prefijo CIDR · IP pública opcional · hugepages 0-64"
+        quiet: true
+
+    - name: ¿MetalLB instalado?
+      kubernetes.core.k8s_info: {api_version: metallb.io/v1beta1, kind: IPAddressPool}
+      register: r_mlb
+      failed_when: false
+
+    - name: Objetos de la CNF
+      ansible.builtin.set_fact:
+        hay_metallb: "{{ not (r_mlb.msg | default('') is search('Failed to find|could not find|not found')) }}"
+        objetos:
+          - apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: "{{ ns }}"
+              labels: {invoke.cl/servicio: "{{ cnf }}", invoke.cl/proveedor: "{{ prov }}", invoke.cl/tipo: cnf, invoke.cl/creado-por: aap,
+                       pod-security.kubernetes.io/enforce: privileged, security.openshift.io/scc.podSecurityLabelSync: "false"}
+              annotations: {invoke.cl/orden-amdocs: "{{ orden_amdocs | default('') }}", invoke.cl/vlan: "{{ vid }}", invoke.cl/prefijo: "{{ pref }}"}
+          - apiVersion: v1
+            kind: ResourceQuota
+            metadata: {name: cuota-cnf, namespace: "{{ ns }}"}
+            spec:
+              hard:
+                requests.cpu: "16"
+                requests.memory: 32Gi
+                requests.hugepages-1Gi: "{{ hugepages_gi | default(4) | int }}Gi"
+          - apiVersion: v1
+            kind: ServiceAccount
+            metadata: {name: "{{ cnf }}", namespace: "{{ ns }}"}
+          - apiVersion: k8s.cni.cncf.io/v1
+            kind: NetworkAttachmentDefinition
+            metadata: {name: "vlan{{ vid }}", namespace: "{{ ns }}", annotations: {invoke.cl/prefijo: "{{ pref }}"}}
+            spec:
+              config: >-
+                {{ {'cniVersion': '0.3.1', 'name': 'vlan' ~ vid, 'type': 'vlan', 'master': interfaz | default('br-ex'), 'vlanId': vid | int,
+                    'ipam': {'type': 'whereabouts', 'range': pref, 'exclude': [pref | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') ~ '/32']}} | to_json }}
+          - apiVersion: networking.k8s.io/v1
+            kind: NetworkPolicy
+            metadata: {name: linea-base, namespace: "{{ ns }}"}
+            spec:
+              podSelector: {}
+              policyTypes: [Ingress]
+              ingress:
+                - from: [{podSelector: {}}]
+                - from: [{namespaceSelector: {matchLabels: {network.openshift.io/policy-group: monitoring}}}]
+          - apiVersion: rbac.authorization.k8s.io/v1
+            kind: RoleBinding
+            metadata: {name: "proveedor-{{ prov }}", namespace: "{{ ns }}"}
+            roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: admin}
+            subjects: [{apiGroup: rbac.authorization.k8s.io, kind: Group, name: "proveedor-{{ prov }}"}]
+
+    - name: Crear
+      kubernetes.core.k8s: {state: present, definition: "{{ item }}"}
+      loop: "{{ objetos }}"
+      loop_control: {label: "{{ item.kind }}"}
+      when: a == 'crear'
+
+    - name: MetalLB · dirección pública del servicio
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ item }}"
+      loop:
+        - apiVersion: metallb.io/v1beta1
+          kind: IPAddressPool
+          metadata: {name: "{{ ns }}", namespace: metallb-system}
+          spec: {addresses: ["{{ ipp }}/32"], autoAssign: false, serviceAllocation: {namespaces: ["{{ ns }}"]}}
+        - apiVersion: metallb.io/v1beta1
+          kind: L2Advertisement
+          metadata: {name: "{{ ns }}", namespace: metallb-system}
+          spec: {ipAddressPools: ["{{ ns }}"]}
+      loop_control: {label: "{{ item.kind }}"}
+      when: a == 'crear' and hay_metallb | bool and ipp | length > 0
+
+    - name: Retirar · MetalLB
+      kubernetes.core.k8s: {state: absent, api_version: metallb.io/v1beta1, kind: "{{ item }}", namespace: metallb-system, name: "{{ ns }}"}
+      loop: [L2Advertisement, IPAddressPool]
+      when: a == 'retirar' and hay_metallb | bool
+
+    - name: Retirar · namespace de la CNF
+      kubernetes.core.k8s: {state: absent, kind: Namespace, name: "{{ ns }}", wait: true, wait_timeout: 180}
+      when: a == 'retirar'
+
+    - name: Verificar
+      kubernetes.core.k8s_info: {api_version: k8s.cni.cncf.io/v1, kind: NetworkAttachmentDefinition, namespace: "{{ ns }}"}
+      register: r_nad
+      when: a == 'crear'
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "CNF {{ cnf }} ({{ prov }}) {{ 'lista para desplegar' if a == 'crear' else 'retirada del clúster' }}"
+            estado: "{{ 'ok' if a == 'retirar' or (r_nad.resources | default([]) | length) else 'critico' }}"
+            filas: >-
+              {{ [['Namespace', ns], ['Red secundaria', 'VLAN ' ~ vid ~ ' sobre ' ~ (interfaz | default('br-ex')) ~ ' · IPAM ' ~ pref],
+                  ['Cuota', '16 cores · 32 GiB · ' ~ (hugepages_gi | default(4)) ~ ' GiB de páginas grandes'],
+                  ['Publicación', ('MetalLB ' ~ ipp) if hay_metallb | bool and ipp else ('MetalLB no instalado: pendiente (ver «Validar clúster para CNF»)' if not hay_metallb | bool else 'sin IP pública')],
+                  ['Permisos', 'grupo proveedor-' ~ prov ~ ' como admin del namespace'],
+                  ['Orden Amdocs', orden_amdocs | default('') or '—']] if a == 'crear' else [['Namespace', ns ~ ' eliminado']] }}
+            servicio: {cnf: "{{ cnf }}", namespace: "{{ ns }}", vlan: "{{ vid }}", prefijo: "{{ pref }}"}

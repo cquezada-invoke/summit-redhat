@@ -1,0 +1,91 @@
+# Telco (Claro PR) · Validar el clúster para una CNF: compara lo que pide la función de red (perfil de Nabstract) con lo que
+# el clúster de cargas tiene configurado y entrega un informe de cumplimiento por requisito (cumple / falta / revisar).
+#   Requisitos: CPU aisladas y reservadas (PerformanceProfile del Node Tuning Operator), páginas grandes (hugepages 1Gi),
+#   kernel de tiempo real, Topology Manager (single-numa-node), operador SR-IOV y sus políticas, MetalLB para publicar
+#   servicios con dirección propia, operador PTP (sincronía de tiempo), NMState y SCTP habilitado.
+# Variables: cnf_perfil (upf | amf | smf | personalizado), hugepages_gi (por nodo), cpus_aisladas (cantidad), nodo (opcional)
+# Credencial: "OpenShift · clúster (token)". Solo lectura.
+- name: Telco · Validar el clúster para una CNF
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    perfiles:
+      upf: {hugepages_gi: 16, cpus_aisladas: 16, sriov: true, rt: true, ptp: true, sctp: false}
+      amf: {hugepages_gi: 4, cpus_aisladas: 4, sriov: false, rt: false, ptp: false, sctp: true}
+      smf: {hugepages_gi: 4, cpus_aisladas: 4, sriov: false, rt: false, ptp: false, sctp: true}
+      personalizado: {hugepages_gi: "{{ hugepages_gi | default(8) | int }}", cpus_aisladas: "{{ cpus_aisladas | default(8) | int }}", sriov: true, rt: false, ptp: false, sctp: false}
+    req: "{{ perfiles[cnf_perfil | default('upf')] }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - (cnf_perfil | default('upf')) in perfiles
+          - (nodo | default('')) is match('^[a-z0-9.-]*$')
+        quiet: true
+
+    - name: Nodos de cargas
+      kubernetes.core.k8s_info:
+        kind: Node
+        name: "{{ nodo | default(omit, true) }}"
+        label_selectors: "{{ [] if nodo | default('') else ['node-role.kubernetes.io/worker'] }}"
+      register: r_n
+
+    - name: Recursos opcionales del clúster (operadores telco)
+      kubernetes.core.k8s_info: {api_version: "{{ item.api }}", kind: "{{ item.kind }}"}
+      loop:
+        - {k: perf, api: performance.openshift.io/v2, kind: PerformanceProfile}
+        - {k: kc, api: machineconfiguration.openshift.io/v1, kind: KubeletConfig}
+        - {k: mc, api: machineconfiguration.openshift.io/v1, kind: MachineConfig}
+        - {k: sriov, api: sriovnetwork.openshift.io/v1, kind: SriovNetworkNodePolicy}
+        - {k: sriovst, api: sriovnetwork.openshift.io/v1, kind: SriovNetworkNodeState}
+        - {k: metallb, api: metallb.io/v1beta1, kind: MetalLB}
+        - {k: pool, api: metallb.io/v1beta1, kind: IPAddressPool}
+        - {k: ptp, api: ptp.openshift.io/v1, kind: PtpConfig}
+        - {k: nmstate, api: nmstate.io/v1, kind: NMState}
+      loop_control: {label: "{{ item.kind }}"}
+      register: r_opt
+      failed_when: false
+
+    - name: Evaluar requisitos
+      vars:
+        o: "{% set d = {} %}{% for x in r_opt.results %}{% set _ = d.update({x.item.k: {'hay_api': not (x.msg | default('') is search('Failed to find|could not find|not found')), 'res': x.resources | default([])}}) %}{% endfor %}{{ d }}"
+        n0: "{{ r_n.resources[0] if r_n.resources else {} }}"
+        hp: "{{ ((n0.status.allocatable | default({}))['hugepages-1Gi'] | default('0')) | regex_replace('Gi$', '') | int }}"
+        perf: "{{ o.perf.res[0].spec if o.perf.res else {} }}"
+        aisladas: "{{ (perf.cpu.isolated | default('')) }}"
+        n_aisladas: >-
+          {% set t = namespace(n=0) %}{% for r in aisladas.split(',') if r %}{% set a = r.split('-') %}{% set t.n = t.n + ((a[1] | int - a[0] | int + 1) if a | length == 2 else 1) %}{% endfor %}{{ t.n }}
+        rt: "{{ (perf.realTimeKernel.enabled | default(false)) or (o.mc.res | selectattr('spec.kernelType', 'defined') | selectattr('spec.kernelType', 'equalto', 'realtime') | list | length > 0) }}"
+        topo: "{{ (o.kc.res | map(attribute='spec.kubeletConfig.topologyManagerPolicy') | select('defined') | list + [perf.numa.topologyPolicy | default('')]) | select | list }}"
+        sctp: "{{ o.mc.res | selectattr('metadata.name', 'search', 'sctp') | list | length > 0 }}"
+        vfs: "{{ o.sriovst.res | map(attribute='status.interfaces') | flatten | select('defined') | selectattr('totalvfs', 'defined') | map(attribute='totalvfs') | sum }}"
+      ansible.builtin.set_fact:
+        nodo_eval: "{{ n0.metadata.name | default('sin nodos de cargas') }}"
+        filas: >-
+          {% set f = [] %}
+          {% set _ = f.append(['CPU aisladas para la CNF', req.cpus_aisladas ~ ' o más', (n_aisladas ~ ' (' ~ aisladas ~ ')') if aisladas else 'sin PerformanceProfile', 'cumple' if n_aisladas | int >= req.cpus_aisladas | int else 'falta']) %}
+          {% set _ = f.append(['Páginas grandes 1Gi por nodo', req.hugepages_gi ~ ' GiB', hp ~ ' GiB', 'cumple' if hp | int >= req.hugepages_gi | int else 'falta']) %}
+          {% set _ = f.append(['Kernel de tiempo real', 'sí' if req.rt else 'no requerido', 'sí' if rt else 'no', 'cumple' if (rt or not req.rt) else 'falta']) %}
+          {% set _ = f.append(['Topology Manager', 'single-numa-node', topo | join(', ') or 'por defecto (none)', 'cumple' if 'single-numa-node' in topo else 'falta']) %}
+          {% set _ = f.append(['Operador SR-IOV', 'instalado con políticas' if req.sriov else 'no requerido', ('instalado · ' ~ (o.sriov.res | length) ~ ' políticas · ' ~ vfs ~ ' VFs') if o.sriov.hay_api else 'no instalado', 'cumple' if (not req.sriov or (o.sriov.res | length > 0)) else 'falta']) %}
+          {% set _ = f.append(['MetalLB (servicios con dirección propia)', 'instalado con pool', ('instalado · ' ~ (o.pool.res | length) ~ ' pools') if o.metallb.hay_api else 'no instalado', 'cumple' if (o.metallb.res and o.pool.res) else 'falta']) %}
+          {% set _ = f.append(['PTP (sincronía de tiempo)', 'sí' if req.ptp else 'no requerido', ('configurado' if o.ptp.res else 'instalado sin configurar') if o.ptp.hay_api else 'no instalado', 'cumple' if (not req.ptp or o.ptp.res) else 'falta']) %}
+          {% set _ = f.append(['SCTP habilitado', 'sí' if req.sctp else 'no requerido', 'sí' if sctp else 'no', 'cumple' if (sctp or not req.sctp) else 'falta']) %}
+          {% set _ = f.append(['NMState (red declarativa de nodos)', 'recomendado', 'instalado' if o.nmstate.res else 'no instalado', 'cumple' if o.nmstate.res else 'revisar']) %}
+          {{ f }}
+
+    - name: Informe
+      ansible.builtin.debug:
+        msg: "{{ ['Perfil ' ~ (cnf_perfil | default('upf')) ~ ' · nodo ' ~ nodo_eval] + (filas | map('join', ' | ') | list) }}"
+
+    - name: Resultado para el portal
+      vars:
+        faltan: "{{ filas | selectattr('3', 'equalto', 'falta') | list | length }}"
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "CNF {{ cnf_perfil | default('upf') | upper }} en {{ nodo_eval }}: {{ (filas | length) - (faltan | int) }} de {{ filas | length }} requisitos listos"
+            estado: "{{ 'ok' if faltan | int == 0 else ('atencion' if faltan | int <= 3 else 'critico') }}"
+            columnas: [Requisito, Pide la CNF, Tiene el clúster, Estado]
+            filas: "{{ filas }}"

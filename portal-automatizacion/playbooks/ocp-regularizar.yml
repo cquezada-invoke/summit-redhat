@@ -1,0 +1,111 @@
+# OpenShift · Regularizar (cumplimiento de la línea base): revisa los namespaces de aplicaciones contra la línea base de
+# Invoke y, en modo corregir, aplica lo que es seguro de aplicar sin cortar servicio.
+#   Revisa: LimitRange y ResourceQuota por namespace · requests/limits y sondas en cada contenedor · imágenes :latest ·
+#           réplicas únicas en producción · contenedores privilegiados · NetworkPolicy por namespace.
+#   Corrige (modo corregir): LimitRange por defecto (requests/limits para lo que no los declara) y una NetworkPolicy que
+#           permite el tráfico del propio namespace y del Ingress, y etiqueta el namespace como regularizado.
+# Variables: modo (revisar | corregir), namespaces (separados por coma; vacío = todos los de aplicaciones)
+# Credencial: "OpenShift · clúster (token)".
+- name: OpenShift · Regularizar
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    m: "{{ modo | default('revisar') }}"
+    sistema: '^(openshift|kube-|default$|stackrox|rhacs|open-cluster|hive|multicluster|assisted|local-cluster)'
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - m in ['revisar', 'corregir']
+          - (namespaces | default('')) is match('^[a-z0-9, -]*$')
+        quiet: true
+
+    - name: Namespaces
+      kubernetes.core.k8s_info: {kind: Namespace}
+      register: r_ns
+
+    - name: Namespaces a revisar
+      ansible.builtin.set_fact:
+        nss: >-
+          {{ (namespaces | default('') | split(',') | map('trim') | select | list)
+             or (r_ns.resources | map(attribute='metadata.name') | reject('match', sistema) | list) }}
+
+    - name: Objetos por namespace
+      kubernetes.core.k8s_info: {kind: "{{ item.1 }}", namespace: "{{ item.0 }}"}
+      loop: "{{ nss | product(['Deployment', 'LimitRange', 'ResourceQuota', 'NetworkPolicy']) | list }}"
+      loop_control: {label: "{{ item.0 }}/{{ item.1 }}"}
+      register: r_obj
+
+    - name: Hallazgos
+      ansible.builtin.set_fact:
+        hallazgos: >-
+          {% set h = [] %}
+          {% for ns in nss %}
+            {% set objs = r_obj.results | selectattr('item.0', 'equalto', ns) | list %}
+            {% set de = (objs | selectattr('item.1', 'equalto', 'Deployment') | first).resources %}
+            {% if not (objs | selectattr('item.1', 'equalto', 'LimitRange') | first).resources %}{% set _ = h.append({'ns': ns, 'obj': '-', 'regla': 'Sin LimitRange', 'corrige': true}) %}{% endif %}
+            {% if not (objs | selectattr('item.1', 'equalto', 'ResourceQuota') | first).resources %}{% set _ = h.append({'ns': ns, 'obj': '-', 'regla': 'Sin ResourceQuota', 'corrige': false}) %}{% endif %}
+            {% if not (objs | selectattr('item.1', 'equalto', 'NetworkPolicy') | first).resources %}{% set _ = h.append({'ns': ns, 'obj': '-', 'regla': 'Sin NetworkPolicy', 'corrige': true}) %}{% endif %}
+            {% for d in de %}
+              {% for c in d.spec.template.spec.containers %}
+                {% if not (c.resources.requests | default({})) or not (c.resources.limits | default({})) %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name ~ '/' ~ c.name, 'regla': 'Sin requests o limits', 'corrige': false}) %}{% endif %}
+                {% if c.readinessProbe is not defined or c.livenessProbe is not defined %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name ~ '/' ~ c.name, 'regla': 'Sin sondas de salud', 'corrige': false}) %}{% endif %}
+                {% if c.image is match('.*:latest$') or ':' not in c.image.split('/')[-1] %}{% if '@sha256' not in c.image %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name ~ '/' ~ c.name, 'regla': 'Imagen sin versión fija', 'corrige': false}) %}{% endif %}{% endif %}
+                {% if (c.securityContext.privileged | default(false)) %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name ~ '/' ~ c.name, 'regla': 'Contenedor privilegiado', 'corrige': false}) %}{% endif %}
+              {% endfor %}
+              {% if ns is search('prod') and (d.spec.replicas | default(1)) | int < 2 %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name, 'regla': 'Una sola réplica en producción', 'corrige': false}) %}{% endif %}
+            {% endfor %}
+          {% endfor %}
+          {{ h }}
+
+    - name: Corregir · LimitRange por defecto
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: LimitRange
+          metadata: {name: linea-base, namespace: "{{ item.ns }}", labels: {invoke.cl/regularizado: "aap"}}
+          spec:
+            limits:
+              - type: Container
+                defaultRequest: {cpu: 50m, memory: 128Mi}
+                default: {cpu: 500m, memory: 512Mi}
+      loop: "{{ hallazgos | selectattr('regla', 'equalto', 'Sin LimitRange') | list }}"
+      loop_control: {label: "{{ item.ns }}"}
+      when: m == 'corregir'
+
+    - name: Corregir · NetworkPolicy del namespace y del Ingress
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata: {name: linea-base, namespace: "{{ item.ns }}", labels: {invoke.cl/regularizado: "aap"}}
+          spec:
+            podSelector: {}
+            policyTypes: [Ingress]
+            ingress:
+              - from: [{podSelector: {}}]
+              - from: [{namespaceSelector: {matchLabels: {policy-group.network.openshift.io/ingress: ""}}}]
+              - from: [{namespaceSelector: {matchLabels: {network.openshift.io/policy-group: monitoring}}}]
+      loop: "{{ hallazgos | selectattr('regla', 'equalto', 'Sin NetworkPolicy') | list }}"
+      loop_control: {label: "{{ item.ns }}"}
+      when: m == 'corregir'
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ ['Namespaces revisados: ' ~ (nss | length) ~ ' · hallazgos: ' ~ (hallazgos | length) ~ ' · '
+              ~ ('corregidos automáticamente: ' ~ (hallazgos | selectattr('corrige') | list | length) if m == 'corregir' else 'modo revisar: no se cambió nada')]
+             + (hallazgos | map(attribute='ns') | zip(hallazgos | map(attribute='obj'), hallazgos | map(attribute='regla')) | map('join', ' · ') | list) }}
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "{{ hallazgos | length }} hallazgos en {{ nss | length }} namespaces{{ ' · ' ~ (hallazgos | selectattr('corrige') | list | length) ~ ' corregidos' if m == 'corregir' else '' }}"
+            estado: "{{ 'ok' if not hallazgos else ('atencion' if m == 'corregir' or hallazgos | length < 10 else 'critico') }}"
+            filas: >-
+              {% set f = [] %}{% for x in hallazgos[:40] %}{% set _ = f.append([x.ns ~ (' · ' ~ x.obj if x.obj != '-' else ''),
+                 x.regla ~ (' → corregido' if m == 'corregir' and x.corrige else (' → se corrige en modo corregir' if x.corrige else ' → lo corrige el dueño de la app'))]) %}{% endfor %}{{ f }}

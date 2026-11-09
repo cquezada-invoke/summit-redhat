@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>No se pudo completar</h1>
+<div class="alerta error">AAP respondió {{ codigo }}: {{ texto[:400] }}</div>
+<a class="btn sec" href="{{ url_for('inicio') }}">Volver</a>
+{% endblock %}

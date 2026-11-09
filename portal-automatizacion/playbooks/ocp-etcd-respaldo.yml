@@ -1,0 +1,106 @@
+# OpenShift · Respaldo de etcd (día 2): ejecuta el respaldo oficial (cluster-backup.sh) en un nodo de control, igual que
+# «oc debug node/...», deja el snapshot y los recursos estáticos en /home/core/respaldos/<fecha> del nodo, conserva los
+# últimos N respaldos y verifica el resultado. Antes revisa que etcd esté sano.
+# Variables: conservar (cantidad de respaldos a conservar, 3)
+# Credencial: "OpenShift · clúster (token)" con permiso para crear pods privilegiados en el namespace del respaldo.
+- name: OpenShift · Respaldo de etcd
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: openshift-etcd
+    n: "{{ conservar | default(3) | int }}"
+    nombre: "respaldo-etcd-{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that: [n | int >= 1 and n | int <= 15]
+        quiet: true
+
+    - name: Operador de etcd sano
+      kubernetes.core.k8s_info: {api_version: config.openshift.io/v1, kind: ClusterOperator, name: etcd}
+      register: r_etcd
+
+    - name: etcd disponible y no degradado
+      ansible.builtin.assert:
+        that:
+          - r_etcd.resources[0].status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
+          - r_etcd.resources[0].status.conditions | selectattr('type', 'equalto', 'Degraded') | map(attribute='status') | first == 'False'
+        fail_msg: "etcd no está sano: no se respalda un etcd degradado (revisar con «OpenShift · Salud del clúster»)"
+
+    - name: Nodo de control
+      kubernetes.core.k8s_info:
+        kind: Node
+        label_selectors: ["node-role.kubernetes.io/master"]
+      register: r_m
+
+    - name: Imagen de herramientas del clúster (la misma que usa oc debug)
+      kubernetes.core.k8s_info: {api_version: image.openshift.io/v1, kind: ImageStreamTag, namespace: openshift, name: "tools:latest"}
+      register: r_tools
+
+    - name: Pod de respaldo en {{ r_m.resources[0].metadata.name }}
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata: {name: "{{ nombre }}", namespace: "{{ ns }}", labels: {app: respaldo-etcd-aap}}
+          spec:
+            nodeName: "{{ r_m.resources[0].metadata.name }}"
+            restartPolicy: Never
+            hostNetwork: true
+            hostPID: true
+            tolerations: [{operator: Exists}]
+            priorityClassName: system-node-critical
+            containers:
+              - name: respaldo
+                image: "{{ r_tools.resources[0].image.dockerImageReference }}"
+                command: [/bin/bash, -c]
+                args:
+                  - >-
+                    set -e; D=/home/core/respaldos/$(date +%Y%m%d-%H%M%S);
+                    chroot /host /usr/local/bin/cluster-backup.sh $D;
+                    chroot /host bash -c "ls -1dt /home/core/respaldos/*/ | tail -n +{{ n | int + 1 }} | xargs -r rm -rf";
+                    echo "RESPALDO $D"; chroot /host bash -c "ls -l $D; du -sh $D; ls -1d /home/core/respaldos/*/"
+                securityContext: {privileged: true, runAsUser: 0}
+                resources: {requests: {cpu: 10m, memory: 64Mi}}
+                volumeMounts: [{name: host, mountPath: /host}]
+            volumes: [{name: host, hostPath: {path: /}}]
+
+    - name: Esperar el respaldo
+      kubernetes.core.k8s_info: {kind: Pod, namespace: "{{ ns }}", name: "{{ nombre }}"}
+      register: r_p
+      until: r_p.resources and r_p.resources[0].status.phase in ['Succeeded', 'Failed']
+      retries: 60
+      delay: 5
+
+    - name: Salida del respaldo
+      kubernetes.core.k8s_log: {namespace: "{{ ns }}", name: "{{ nombre }}"}
+      register: r_log
+
+    - name: Quitar el pod de respaldo
+      kubernetes.core.k8s: {state: absent, kind: Pod, namespace: "{{ ns }}", name: "{{ nombre }}"}
+
+    - name: Verificar
+      vars:
+        ok: "{{ r_p.resources[0].status.phase == 'Succeeded' and 'snapshot_' in r_log.log }}"
+      ansible.builtin.set_fact:
+        respaldo_ok: "{{ ok }}"
+        carpeta: "{{ r_log.log | regex_search('RESPALDO (\\S+)', '\\1') | first | default('') }}"
+        archivos: "{{ r_log.log_lines | select('search', 'snapshot_|static_kuberesources') | map('regex_replace', '^.* ', '') | list }}"
+        tamano: "{{ r_log.log_lines | select('match', '^[0-9.]+[KMG]\\s') | map('regex_replace', '\\s.*$', '') | first | default('?') }}"
+        conservados: "{{ r_log.log_lines | select('match', '^/home/core/respaldos/') | list }}"
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ ('Respaldo listo en ' ~ r_m.resources[0].metadata.name ~ ':' ~ carpeta ~ ' (' ~ tamano ~ ') · ' ~ archivos | join(', ')) if respaldo_ok | bool else r_log.log_lines[-15:] }}"
+      failed_when: not respaldo_ok | bool
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Respaldo de etcd {{ 'listo' if respaldo_ok | bool else 'fallido' }}"
+            estado: "{{ 'ok' if respaldo_ok | bool else 'critico' }}"
+            filas: "{{ [['Nodo', r_m.resources[0].metadata.name], ['Carpeta', carpeta], ['Tamaño', tamano], ['Archivos', archivos | join(', ')],
+                       ['Respaldos conservados', conservados | length ~ ' (máximo ' ~ n ~ ')']] }}"

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block titulo %}Ejecución #{{ j.id }} · Portal{% endblock %}
+{% block contenido %}
+<div class="migas"><a href="{{ url_for('historial') }}">Ejecuciones</a> › #{{ j.id }}</div>
+<h1 id="titulo">{{ j.name.split('·', 1)[-1] | trim }} <span id="estado"></span></h1>
+<p class="sub" id="meta">Cargando…</p>
+<div class="dos">
+  <div><ul class="pasos" id="pasos"></ul></div>
+  <div>
+    <div class="panel"><h3>Datos con que se lanzó</h3><dl class="kv" id="vars"></dl></div>
+    <div class="panel"><h3>En AAP</h3><p class="sub" style="margin:0">Workflow job #{{ j.id }}. Todo queda registrado en AAP: quién lanzó, quién aprobó, la salida de cada tarea y los cambios hechos.</p></div>
+  </div>
+</div>
+{% endblock %}
+{% block js %}
+<script>
+const JID = {{ j.id }}; const abiertos = new Set(); let fin = false;
+function resultado(r) {
+  if (!r) return '';
+  const cols = r.columnas;
+  const filas = (r.filas || []).map(f => `<tr>${f.map((c, i) => `<td>${cols && i === f.length - 1 && ESTADOS[c] ? chip(c) : esc(c)}</td>`).join('')}</tr>`).join('');
+  return `<div class="resultado ${esc(r.estado)}"><h3>${esc(r.titulo)}</h3>${filas ? `<table>${cols ? '<tr>' + cols.map(c => `<th>${esc(c)}</th>`).join('') + '</tr>' : ''}${filas}</table>` : ''}</div>`;
+}
+function paso(p, i) {
+  let cuerpo = '';
+  if (p.aprobacion && p.estado === 'pending') {
+    cuerpo = `<div class="aprobar"><p><b>Esperando aprobación.</b> Revise los datos y apruebe para que AAP aplique el cambio.</p>
+      <button class="btn verde" onclick="decidir(${p.aprobacion}, 'approve', this)">Aprobar</button>
+      <button class="btn peligro" onclick="decidir(${p.aprobacion}, 'deny', this)">Rechazar</button></div>`;
+  } else if (p.aprobacion) {
+    cuerpo = `<p class="sub" style="margin:0">${p.estado === 'successful' ? 'Aprobado' : 'Rechazado o vencido'}${p.aprobado_por ? ' por ' + esc(p.aprobado_por) : ''}.</p>`;
+  } else if (p.tareas) {
+    cuerpo = `<ul class="tareas">${p.tareas.map(t => `<li>${chip(t.estado)}<span style="flex:1">${esc(t.tarea)}${t.msg ? `<span class="msg">${esc(t.msg)}</span>` : ''}</span><span class="h">${esc(t.host)}</span></li>`).join('')}</ul>${resultado(p.resultado)}`;
+  } else cuerpo = '<p class="sub" style="margin:0">Aún no comienza.</p>';
+  const ab = abiertos.has(p.nodo) || (p.aprobacion && p.estado === 'pending') || (!abiertos.size && p.estado === 'running');
+  return `<li class="paso ${ab ? 'abierto' : ''}" data-n="${p.nodo}"><div class="cab-paso" onclick="alternar(${p.nodo}, this)"><span class="n">${i + 1}</span>
+    <span class="t">${p.aprobacion ? 'Aprobación' : esc((p.nombre.replace(/^Portal · /, '').replace(/ \(plantilla\)$/, '')) || p.nombre)}</span>${p.duracion ? `<span class="sub">${p.duracion} s</span>` : ''}${chip(p.estado)}</div><div class="cuerpo">${cuerpo}</div></li>`;
+}
+function alternar(n, el) { const li = el.parentNode; li.classList.toggle('abierto'); li.classList.contains('abierto') ? abiertos.add(n) : abiertos.delete(n); }
+async function decidir(id, accion, b) { b.disabled = true; await post(`/api/aprobacion/${id}/${accion}`); setTimeout(cargar, 800); }
+async function cargar() {
+  const r = await fetch(`/api/ejecucion/${JID}`); if (r.status === 401) { location.href = '/ingresar'; return; }
+  const d = await r.json(); if (d.error) { document.getElementById('meta').textContent = d.error; return; }
+  document.getElementById('estado').innerHTML = chip(d.estado);
+  document.getElementById('meta').textContent = `Lanzado por ${d.lanzado_por}${d.inicio ? ' · ' + d.inicio.slice(0, 19).replace('T', ' ') + ' UTC' : ''}${d.duracion ? ' · ' + d.duracion + ' s' : ''}`;
+  document.getElementById('pasos').innerHTML = d.pasos.map(paso).join('');
+  document.getElementById('vars').innerHTML = Object.entries(d.variables).filter(([k]) => !k.startsWith('ansible_') && !k.startsWith('tower_') && !k.startsWith('awx_'))
+    .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(typeof v === 'object' ? JSON.stringify(v) : v)}</dd>`).join('') || '<dd class="sub">sin datos</dd>';
+  fin = ['successful', 'failed', 'canceled', 'error'].includes(d.estado);
+  setTimeout(cargar, fin ? 15000 : 2500);
+}
+cargar();
+</script>
+{% endblock %}

@@ -1,0 +1,117 @@
+# Amdocs (Claro PR, emulado) · Salud de la plataforma BSS en OpenShift: por microservicio revisa pods listos, reinicios,
+# versión desplegada, tiempo de respuesta de /health (5 muestras) y certificado de su Route; además el trabajo pendiente de
+# órdenes. Entrega un semáforo por servicio.
+# Variables: namespace (amdocs-bss), umbral_ms (200)
+# Credencial: "OpenShift · clúster (token)". Solo lectura.
+- name: Amdocs · Salud en OpenShift
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('env', 'K8S_AUTH_HOST') | regex_replace('/+$', '') }}"
+    ns: "{{ namespace | default('amdocs-bss') }}"
+    cab: {Authorization: "Bearer {{ lookup('env', 'K8S_AUTH_API_KEY') }}"}
+    umbral: "{{ umbral_ms | default(200) | int }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - ns is match('^[a-z0-9-]{2,60}$')
+          - umbral | int >= 10
+        quiet: true
+
+    - name: Deployments de Amdocs
+      kubernetes.core.k8s_info: {kind: Deployment, namespace: "{{ ns }}", label_selectors: ["app.kubernetes.io/part-of=amdocs-bss"]}
+      register: r_d
+
+    - name: Pods
+      kubernetes.core.k8s_info: {kind: Pod, namespace: "{{ ns }}", label_selectors: ["app.kubernetes.io/part-of=amdocs-bss"]}
+      register: r_p
+
+    - name: Routes
+      kubernetes.core.k8s_info: {api_version: route.openshift.io/v1, kind: Route, namespace: "{{ ns }}"}
+      register: r_r
+
+    - name: Tiempo de respuesta de /health (5 muestras por servicio)
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import json, os, ssl, sys, time, urllib.request, urllib.error
+            api, ns, svcs = sys.argv[1], sys.argv[2], sys.argv[3].split(",")
+            ctx = ssl._create_unverified_context(); h = {"Authorization": "Bearer " + os.environ["K8S_AUTH_API_KEY"]}
+            out = {}
+            for s in svcs:
+                ms, ok = [], 0
+                for _ in range(5):
+                    t = time.time()
+                    try:
+                        ok += urllib.request.urlopen(urllib.request.Request(f"{api}/api/v1/namespaces/{ns}/services/http:{s}:8080/proxy/health", headers=h), context=ctx, timeout=10).status == 200
+                    except urllib.error.HTTPError:
+                        pass
+                    except Exception:
+                        pass
+                    ms.append((time.time() - t) * 1000)
+                out[s] = {"ms": round(sum(ms) / len(ms)), "ok": ok}
+            print(json.dumps(out))
+          - "{{ api }}"
+          - "{{ ns }}"
+          - "{{ r_d.resources | map(attribute='metadata.name') | map('regex_replace', '^amdocs-', '') | join(',') }}"
+      register: r_h
+      changed_when: false
+
+    - name: Versión de cada servicio
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ ns }}/services/http:{{ item.metadata.name | regex_replace('^amdocs-', '') }}:8080/proxy/version"
+        headers: "{{ cab }}"
+        validate_certs: false
+      loop: "{{ r_d.resources }}"
+      loop_control: {label: "{{ item.metadata.name }}"}
+      register: r_v
+      failed_when: false
+      no_log: true
+
+    - name: Órdenes pendientes
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ ns }}/services/http:ordering:8080/proxy/orders"
+        headers: "{{ cab }}"
+        validate_certs: false
+      register: r_o
+      failed_when: false
+      no_log: true
+
+    - name: Semáforo por servicio
+      ansible.builtin.set_fact:
+        servicios: >-
+          {% set out = [] %}
+          {% for d in r_d.resources %}
+            {% set n = d.metadata.name %}
+            {% set m = (r_h.stdout | from_json)[n | regex_replace('^amdocs-', '')] %}{% set oks = m.ok %}
+            {% set mis = r_p.resources | selectattr('metadata.name', 'match', n ~ '-') | list %}
+            {% set reinicios = mis | map(attribute='status.containerStatuses') | flatten | select('defined') | map(attribute='restartCount') | sum %}
+            {% set v = (r_v.results | selectattr('item.metadata.name', 'equalto', n) | first).json.version | default('?') %}
+            {% set prom = m.ms %}
+            {% set listos = d.status.readyReplicas | default(0) %}
+            {% set e = 'critico' if listos == 0 or oks < 3 else ('atencion' if prom > umbral | int or reinicios > 3 or listos < d.spec.replicas else 'ok') %}
+            {% set _ = out.append({'n': n, 'version': v, 'listos': listos ~ '/' ~ d.spec.replicas, 'ms': prom, 'ok': oks, 'reinicios': reinicios, 'estado': e}) %}
+          {% endfor %}
+          {{ out }}
+        pendientes: "{{ (r_o.json | default([])) | rejectattr('estado', 'in', ['completada', 'fallida']) | list | length }}"
+        rutas_tls: "{{ r_r.resources | selectattr('spec.tls', 'defined') | list | length }} de {{ r_r.resources | length }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ servicios | map(attribute='n') | zip(servicios | map(attribute='estado'), servicios | map(attribute='version'), servicios | map(attribute='ms')) | map('join', ' · ') | list + ['Órdenes pendientes: ' ~ pendientes, 'Routes con TLS: ' ~ rutas_tls] }}"
+
+    - name: Resultado para el portal
+      vars:
+        peor: "{{ 'critico' if servicios | selectattr('estado', 'equalto', 'critico') | list else ('atencion' if servicios | selectattr('estado', 'equalto', 'atencion') | list else 'ok') }}"
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Amdocs BSS {{ peor | upper }} · {{ servicios | length }} microservicios · {{ pendientes }} órdenes pendientes"
+            estado: "{{ peor }}"
+            columnas: [Microservicio, Versión, Pods listos, Respuesta media, Health OK (de 5), Reinicios, Estado]
+            filas: >-
+              {% set f = [] %}{% for s in servicios %}{% set _ = f.append([s.n, s.version, s.listos, s.ms ~ ' ms', s.ok | string, s.reinicios | string, s.estado]) %}{% endfor %}{{ f }}
