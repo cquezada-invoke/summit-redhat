@@ -3976,6 +3976,8 @@ def eliminable(e):
     """Máquinas virtuales que FaceOps controla en el hipervisor (las mismas que puede encender o apagar), salvo los nodos de un
     clúster OpenShift, que se retiran desde el clúster."""
     d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    if "kvm" in (e.get("skills") or []) or (e.get("nombre") or "").startswith(("anfitrion", "hipervisor")) or d.get("hipervisor_de"):
+        return False   # un anfitrión (hipervisor) no se elimina desde FaceOps: arrastraría a todas sus máquinas
     return e.get("estado") != "retirado" and not d.get("nodo_ocp") and (e.get("categoria") or "servidor") != "clúster openshift" \
         and ("Servidores habilitados" in j(e.get("inventarios"), []) or energia_posible(e))
 
