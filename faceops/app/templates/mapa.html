@@ -388,6 +388,20 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+='<p class="sub" style="font-size:12px;padding:0 14px">Cada área parte en 100 %: −15 por situación grave y −6 por advertencia.</p>';
     pintar(h); enlazarEncenderTodas();
   }
+  // data lake del segmento (para JavIA): la bifurcación vive en su punto de entrada; aquí se activa para todo el segmento
+  function bifSegmento(){ const cy_=window._cy; if(!cy_) return null; const n=cy_.nodes().filter(x=>!!x.data('bif'))[0]; return n?{b:n.data('bif'),punto:n.data('nombre')||n.data('label')||''}:null; }
+  function htmlLakeSegmento(){ const x=bifSegmento(); if(!x) return ''; const b=x.b;
+    return sec('Data lake · JavIA')+fila({izq:'Derivación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
+      det:(b.activa?'Cada request del segmento se copia al data lake'+(b.por?' (activada por '+b.por+', '+(b.en||'').slice(0,16).replace('T',' ')+')':'')+'; JavIA la toma desde ahí.'
+          :'Al activarla, cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, para que JavIA la use después.')
+        +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif-seg">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
+        +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.explorador+'" target="_blank">Explorador del lake</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
+  function enlazarLakeSegmento(){ const bb=document.getElementById('b-bif-seg'), x=bifSegmento(); if(!bb||!x) return;
+    bb.onclick=()=>{ bb.disabled=true; const res=bb.parentElement.querySelector('.res'); res.textContent='guardando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',x.b.segmento); fd.append('punto',x.punto); fd.append('destino',x.b.destino);
+      fd.append('accion',x.b.activa?'desactivar':'activar');
+      fetch(x.b.url,{method:'POST',body:fd}).then(r=>r.json()).then(y=>{ if(y.error){res.textContent=y.error; bb.disabled=false; return;} res.textContent=y.activa?'activada':'desactivada'; cargar(); })
+        .catch(()=>{res.textContent='no se pudo guardar'; bb.disabled=false;}); }; }
   function mostrarSegmento(s){
     panel.dataset.fijo='';
     const fi=s.ficha||{};
@@ -396,6 +410,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=sec('Estado','<a href="'+s.inventario+'">Ver equipos</a>');
     h+=fila({izq:'Equipos',ic:s.apagados?SVG.mal:SVG.ok,txt:s.equipos+' · '+s.encendidos+' encendidos'+(s.apagados?' · '+s.apagados+' apagados':'')});
     h+=htmlEncenderTodas();
+    h+=htmlLakeSegmento();
     h+=fila({izq:'Flujos',ic:s.bloqueados?SVG.mal:SVG.ok,txt:s.abiertos+'/'+s.flujos+' abiertos'+(s.bloqueados?' · '+s.bloqueados+' cerrados':'')});
     h+=fila({izq:'Hallazgos',ic:s.altos?SVG.mal:(s.hallazgos?SVG.warn:SVG.ok),txt:s.hallazgos?(s.hallazgos+(s.altos?' · '+s.altos+' altos':'')):'sin hallazgos'});
     if(s.entrada&&s.entrada.hacia) h+=fila({izq:'Entrada',ic:letra('E'),txt:(s.entrada.desde||'')+' → '+s.entrada.hacia+' :'+s.entrada.puerto});
@@ -429,7 +444,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         if(o.gitops) h+=fila({izq:'GitOps',ic:letra('G','#4cb140'),txt:'<a href="'+o.gitops.replace('http://192.168.122.1:3000','http://34.176.42.56:3000')+'" target="_blank" rel="noopener">repositorio del estado deseado</a>'});
       });
     }
-    pintar(h); enlazarEncenderTodas();
+    pintar(h); enlazarEncenderTodas(); enlazarLakeSegmento();
   }
   const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }}, URL_SALUD={{ url_for('consola.salud_detalle')|tojson }};
   const PUEDE={{ (perfil_actual.modo == 'escritura')|tojson }}, CSRF={{ csrf|tojson }}, URL_FLUJO={{ url_for('consola.mapa_flujo')|tojson }};
