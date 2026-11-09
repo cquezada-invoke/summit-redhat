@@ -115,6 +115,10 @@ PLAN = {"name": "planificar_proyecto", "description": "Plan del proyecto: qué e
                 "ruta": {"type": "string"}, "proposito": {"type": "string", "description": "qué contiene, clases, endpoints, nombres clave"},
                 "cambia": {"type": "boolean", "description": "solo en un ajuste: true si este archivo cambia o es nuevo"}}}}}}}
 PARALELO = 4
+CORREGIR = {"name": "corregir_archivos", "description": "Archivos corregidos (contenido completo); lista vacía si no hay nada que corregir.",
+            "input_schema": {"type": "object", "required": ["archivos"], "properties": {"archivos": {"type": "array", "items": {
+                "type": "object", "required": ["ruta", "contenido"], "properties": {"ruta": {"type": "string"}, "contenido": {"type": "string"},
+                                                                                  "motivo": {"type": "string"}}}}}}}
 
 
 class Pregunta(Exception):
@@ -193,21 +197,53 @@ def generar(requerimiento, previo=None, correccion="", paso=lambda t: None, solo
     base = (f"Requerimiento:\n{requerimiento}\n\nPlan del proyecto «{plan.get('nombre')}» ({plan.get('stack')}):\n{plan.get('resumen')}\n\nArchivos:\n{lista}"
             + (f"\n\nCorregir:\n{correccion}" if correccion else ""))
     hechos = [0]
+    ORDEN = ("domain", "model", "entity", "repository", "dto", "mapper", "exception", "service", "config", "security", "web", "controller", "api")
 
-    def escribir(a):
+    def peso(r):
+        rl = r.lower()
+        return (next((i for i, k in enumerate(ORDEN) if f"/{k}" in rl), len(ORDEN)), r)
+
+    def escribir(a, contexto=""):
         previo_txt = f"\n\nContenido actual de este archivo:\n{contenidos[a['ruta']]}" if a["ruta"] in contenidos else ""
-        _, txt, parada_ = _claude(sistema, [{"role": "user", "content": base + previo_txt +
-                                            f"\n\nEscribe ahora el archivo {a['ruta']} ({a.get('proposito', '')}). Responde SOLO con su contenido completo, sin explicación ni bloque ```."}], 12000)
+        _, txt, parada_ = _claude(sistema, [{"role": "user", "content": base + contexto + previo_txt +
+                                            f"\n\nEscribe ahora el archivo {a['ruta']} ({a.get('proposito', '')}). Debe compilar con los archivos ya escritos "
+                                            "(mismos nombres de clases, paquetes, constructores, métodos y campos). Responde SOLO con su contenido completo, sin explicación ni bloque ```."}], 12000)
         if parada_ == "max_tokens":
             raise ValueError(f"{a['ruta']} quedó incompleto")
         hechos[0] += 1
         paso(f"Escribí {a['ruta']} ({hechos[0]}/{len(rehacer)})")
         return a["ruta"], _limpiar(txt)
 
-    paso(f"Escribiendo {len(rehacer)} archivo{'s' if len(rehacer) != 1 else ''} en paralelo ({PARALELO} a la vez)")
+    def java_ctx(excluir=""):
+        js_ = {k: v for k, v in contenidos.items() if (k.endswith(".java") or k == "pom.xml") and k != excluir}
+        return ("\n\nArchivos ya escritos (úsalos tal cual):\n" + "\n".join(f"### {k}\n{v}" for k, v in sorted(js_.items()))) if js_ else ""
+
+    principales = sorted([a for a in rehacer if a["ruta"].endswith(".java") and "/test/" not in a["ruta"]], key=lambda a: peso(a["ruta"]))
+    pruebas_ = [a for a in rehacer if a["ruta"].endswith(".java") and "/test/" in a["ruta"]]
+    pom_ = [a for a in rehacer if a["ruta"] == "pom.xml"]
+    otros = [a for a in rehacer if a not in principales and a not in pruebas_ and a not in pom_]
+    paso(f"Escribiendo {len(rehacer)} archivo{'s' if len(rehacer) != 1 else ''}: primero pom.xml y el código en orden de dependencias, el resto en paralelo")
     with ThreadPoolExecutor(PARALELO) as ex:
-        for ruta, txt in ex.map(escribir, rehacer):
-            contenidos[ruta] = txt
+        resto_f = [ex.submit(escribir, a) for a in otros]   # manifiestos, README, configuración: en paralelo
+        for a in pom_ + principales:                            # código principal: en orden, cada uno ve lo anterior
+            r_, t_ = escribir(a, java_ctx(a["ruta"]))
+            contenidos[r_] = t_
+        for r_, t_ in ex.map(lambda a: escribir(a, java_ctx(a["ruta"])), pruebas_):
+            contenidos[r_] = t_
+        for f_ in resto_f:
+            r_, t_ = f_.result()
+            contenidos[r_] = t_
+    if any(k.endswith(".java") for k in contenidos):
+        paso("Revisando que el código compile: consistencia entre clases, constructores, métodos e imports")
+        fixes, _, _ = _claude(sistema, [{"role": "user", "content": "Revisa este proyecto Spring Boot como lo haría el compilador y las pruebas: constructores y "
+                                         "métodos que no existen o son privados/protegidos, firmas distintas, imports faltantes, tipos incompatibles, anotaciones "
+                                         "mal usadas, pruebas que no compilan o no pasarían. Entrega con corregir_archivos SOLO los archivos que hay que cambiar "
+                                         "(contenido completo); si todo está bien, entrega la lista vacía." + java_ctx()}], 16000, CORREGIR)
+        cambios = [x for x in (fixes or {}).get("archivos") or [] if x.get("ruta") in contenidos]
+        for x in cambios:
+            contenidos[x["ruta"]] = _limpiar(x.get("contenido") or contenidos[x["ruta"]])
+        paso(f"Revisión de compilación: {len(cambios)} archivo{'s' if len(cambios) != 1 else ''} corregido{'s' if len(cambios) != 1 else ''}" if cambios
+             else "Revisión de compilación: sin problemas")
     validas = {a["ruta"] for a in plan["archivos"]}
     d = dict(plan, archivos={k: v for k, v in contenidos.items() if k in validas}, plan_archivos=plan["archivos"])
     d["nombre"] = re.sub(r"[^a-z0-9-]", "-", (d.get("nombre") or "app").lower()).strip("-")[:30] or "app"
