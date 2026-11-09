@@ -9,6 +9,7 @@ import re
 import secrets
 import time
 import base64
+import threading
 
 import requests
 from flask import Flask, abort, jsonify, redirect, render_template, request, session
@@ -28,6 +29,7 @@ ORG = os.environ.get("GITEA_ORG", "fabrica")
 DOMINIO_APPS = os.environ.get("FABRICA_DOMINIO_APPS", "")   # las apps quedan en https://<nombre>.<dominio>
 MODELO = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
 VERIFY = os.environ.get("FACEOPS_VERIFY", "false") == "true"
+TRABAJOS = {}    # id de trabajo → avance de una generación (pasos que ve el usuario)
 PROYECTOS = {}   # id de sesión → último proyecto generado (en memoria: el repositorio es la fuente de verdad)
 
 # ------------------------------------------------------------------ acceso: enlace firmado desde FaceOps (60 s)
@@ -61,7 +63,7 @@ def salud():
 def inicio():
     if not session.get("usuario"):
         return render_template("fuera.html", faceops=FACEOPS_PUBLICA), 401
-    return render_template("chat.html", usuario=session["usuario"], faceops=FACEOPS_PUBLICA)
+    return render_template("chat.html", usuario=session["usuario"], faceops=FACEOPS_PUBLICA, modelo=MODELO)
 
 # ------------------------------------------------------------------ FaceOps y políticas
 
@@ -105,24 +107,43 @@ HERRAMIENTA = {"name": "entregar_proyecto", "description": "Entrega el proyecto 
                                 "properties": {"ruta": {"type": "string"}, "contenido": {"type": "string"}}}}}}}
 
 
-def generar(requerimiento, previo=None, correccion=""):
+def generar(requerimiento, previo=None, correccion="", paso=lambda t: None):
+    """Claude escribe el proyecto (streaming): a medida que llegan los archivos se informa cuál está escribiendo."""
     pol = politicas()
+    paso(f"Leí las {len(pol['politicas'])} políticas de software vigentes (versión {pol['huella']})")
     texto_pol = "\n".join(f"- {p['codigo']} [{p['area']} · {p['nivel']}] {p['titulo']}: {p['regla']}" for p in pol["politicas"])
     msgs = [{"role": "user", "content": f"Requerimiento funcional:\n{requerimiento}"}]
     if previo:
         msgs = [{"role": "user", "content": f"Requerimiento funcional:\n{previo['requerimiento']}"},
                 {"role": "assistant", "content": json.dumps({k: previo[k] for k in ("nombre", "resumen", "stack", "archivos")}, ensure_ascii=False)},
                 {"role": "user", "content": correccion or requerimiento}]
-    r = requests.post("https://api.anthropic.com/v1/messages", timeout=300,
+    paso(f"Claude ({MODELO}) está diseñando la aplicación")
+    r = requests.post("https://api.anthropic.com/v1/messages", timeout=300, stream=True,
                       headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""), "anthropic-version": "2023-06-01", "content-type": "application/json"},
                       json={"model": MODELO, "max_tokens": 24000, "system": SISTEMA.format(politicas=texto_pol), "messages": msgs,
-                            "tools": [HERRAMIENTA], "tool_choice": {"type": "auto"}})
+                            "tools": [HERRAMIENTA], "tool_choice": {"type": "auto"}, "stream": True})
     r.raise_for_status()
-    rj = r.json()
-    uso = next((b for b in rj.get("content", []) if b.get("type") == "tool_use"), None)
-    if not uso or rj.get("stop_reason") == "max_tokens":
+    js, parada, vistos = "", "", 0
+    for linea in r.iter_lines(decode_unicode=True):
+        if not linea or not linea.startswith("data:"):
+            continue
+        try:
+            ev = json.loads(linea[5:])
+        except ValueError:
+            continue
+        if ev.get("type") == "content_block_delta" and (ev.get("delta") or {}).get("type") == "input_json_delta":
+            js += ev["delta"].get("partial_json", "")
+            rutas = re.findall(r'"ruta"\s*:\s*"([^"]+)"', js)
+            if len(rutas) > vistos:
+                vistos = len(rutas)
+                paso(f"Escribiendo {rutas[-1]} ({vistos} archivo{'s' if vistos != 1 else ''})")
+        elif ev.get("type") == "message_delta":
+            parada = (ev.get("delta") or {}).get("stop_reason") or parada
+        elif ev.get("type") == "error":
+            raise ValueError((ev.get("error") or {}).get("message", "error del agente"))
+    if not js or parada == "max_tokens":
         raise ValueError("respuesta incompleta del agente")
-    d = dict(uso["input"])
+    d = json.loads(js)
     arch = d.get("archivos") or []
     d["archivos"] = {a["ruta"].lstrip("/"): a["contenido"] for a in arch if a.get("ruta")} if isinstance(arch, list) else dict(arch)
     if not d["archivos"]:
@@ -169,6 +190,39 @@ def revisar(archivos):
     return sorted(set(malos))
 
 
+def _trabajo(tid, sid, req_, previo):
+    t = TRABAJOS[tid]
+    paso = lambda txt: t["pasos"].append({"t": round(time.time() - t["inicio"]), "texto": txt})   # noqa: E731
+    try:
+        p = generar(req_, previo, paso=paso)
+        paso("Revisión previa de las políticas que verifica el pipeline")
+        malos = revisar(p["archivos"])
+        if malos:   # una corrección automática antes de mostrarlo
+            paso(f"{len(malos)} incumplimiento{'s' if len(malos) != 1 else ''}: Claude los está corrigiendo")
+            p2 = generar(req_, dict(p, requerimiento=req_), "Corrige estos incumplimientos de las políticas y entrega el proyecto completo:\n" + "\n".join(malos), paso=paso)
+            p, malos = p2, revisar(p2["archivos"])
+        p["requerimiento"] = (previo or {}).get("requerimiento", req_) if previo else req_
+        p["revision"] = malos
+        PROYECTOS[sid] = p
+        paso("Listo" if not malos else f"Listo, con {len(malos)} pendiente{'s' if len(malos) != 1 else ''}")
+        t["resultado"] = {"nombre": p["nombre"], "resumen": p.get("resumen", ""), "stack": p.get("stack", ""), "politicas": p.get("politicas_aplicadas", []),
+                          "archivos": dict(p["archivos"]), "revision": malos, "huella": p["huella_politicas"]}
+    except requests.RequestException as x:
+        rs = getattr(x, "response", None)
+        det = ""
+        if rs is not None:
+            try:
+                det = f" {rs.status_code} · {str((rs.json().get('error') or {}).get('message', ''))[:200]}"
+            except Exception:  # noqa: BLE001
+                det = f" {rs.status_code}"
+        app.logger.warning("generar: %s%s", type(x).__name__, det)
+        t["error"] = f"No se pudo generar ({type(x).__name__}{det})"
+    except (ValueError, KeyError) as x:
+        app.logger.warning("generar: %s", x)
+        t["error"] = "El agente no devolvió un proyecto válido; intenta de nuevo o precisa el requerimiento"
+    t["listo"] = True
+
+
 @app.route("/api/generar", methods=["POST"])
 def api_generar():
     usuario, sid = _sesion()
@@ -177,29 +231,22 @@ def api_generar():
     if len(req_) < 10:
         return jsonify({"error": "Describe el requerimiento funcional"}), 400
     previo = PROYECTOS.get(sid) if d.get("ajustar") else None
-    try:
-        p = generar(req_, previo)
-        malos = revisar(p["archivos"])
-        if malos:   # una corrección automática antes de mostrarlo
-            p2 = generar(req_, dict(p, requerimiento=req_), "Corrige estos incumplimientos de las políticas y entrega el JSON completo:\n" + "\n".join(malos))
-            p, malos = p2, revisar(p2["archivos"])
-    except requests.RequestException as x:
-        rs = getattr(x, "response", None)
-        det = ""
-        if rs is not None:
-            try:
-                det = f" {rs.status_code} · {rs.url.split('/')[2]} · {str((rs.json().get('error') or {}).get('message', ''))[:200]}"
-            except Exception:  # noqa: BLE001
-                det = f" {rs.status_code}"
-        app.logger.warning("generar: %s%s", type(x).__name__, det)
-        return jsonify({"error": f"No se pudo generar ({type(x).__name__}{det})"}), 502
-    except (ValueError, KeyError):
-        return jsonify({"error": "El agente no devolvió un proyecto válido; intenta de nuevo o precisa el requerimiento"}), 502
-    p["requerimiento"] = (previo or {}).get("requerimiento", req_) if previo else req_
-    p["revision"] = malos
-    PROYECTOS[sid] = p
-    return jsonify({"nombre": p["nombre"], "resumen": p.get("resumen", ""), "stack": p.get("stack", ""), "politicas": p.get("politicas_aplicadas", []),
-                    "archivos": {k: v for k, v in p["archivos"].items()}, "revision": malos, "huella": p["huella_politicas"]})
+    tid = secrets.token_hex(8)
+    TRABAJOS[tid] = {"sid": sid, "inicio": time.time(), "pasos": [], "listo": False}
+    for k in [k for k, v in TRABAJOS.items() if time.time() - v["inicio"] > 3600]:
+        TRABAJOS.pop(k, None)
+    threading.Thread(target=_trabajo, args=(tid, sid, req_, previo), daemon=True).start()
+    return jsonify({"trabajo": tid})
+
+
+@app.route("/api/avance/<tid>")
+def api_avance(tid):
+    _, sid = _sesion()
+    t = TRABAJOS.get(tid)
+    if not t or t["sid"] != sid:
+        return jsonify({"error": "Trabajo no encontrado"}), 404
+    return jsonify({"pasos": t["pasos"], "listo": t["listo"], "error": t.get("error"), "resultado": t.get("resultado"),
+                    "segundos": round(time.time() - t["inicio"])})
 
 # ------------------------------------------------------------------ Git y pipeline
 

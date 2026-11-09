@@ -5191,7 +5191,7 @@ def app_entrar(sid, sub):
     cr = _cred_app(seg["nombre"])
     metodo = (cr.get("metodo") or ("basic" if cr.get("usuario") and not cr.get("login") else "form" if cr.get("usuario") else "ninguno")).lower()
     prefijo = url_for("consola.app_entrar", sid=sid, sub="").rstrip("/")
-    w = {"url": url}
+    w = {"url": url, "producto": "aplicación"}
     e = {"nombre": seg["nombre"]}
     if not sub and request.method == "GET":
         auditar(g.usuario["usuario"], g.cliente["id"], "entrar a aplicación", seg["nombre"],
@@ -5211,11 +5211,9 @@ def app_entrar(sid, sub):
                 for c in r_.cookies:
                     resp.set_cookie(c.name, c.value, path=prefijo + "/", httponly=True, secure=request.is_secure, samesite="Lax")
                 auditar(g.usuario["usuario"], g.cliente["id"], "ingreso a aplicación con credencial de la bóveda", seg["nombre"], {"usuario_app": cr["usuario"]})
-            else:
-                flash(f"{seg['nombre']}: FaceOps no pudo ingresar con la credencial de la bóveda (aplicaciones/{seg['nombre']}); se abre el ingreso manual", "error")
+            else:   # sin aviso (flash): se mostraría después en otra página de FaceOps; queda en la auditoría
+                auditar(g.usuario["usuario"], g.cliente["id"], "ingreso con credencial de la bóveda falló", seg["nombre"], {"login": login})
             return resp
-        if not cr.get("usuario"):
-            flash(f"{seg['nombre']}: sin credencial en la bóveda central (aplicaciones/{seg['nombre']}); se abre el ingreso manual", "error")
     auth = (cr["usuario"], cr.get("clave") or "") if metodo == "basic" and cr.get("usuario") else None
     return _proxy_web(e, w, sub, prefijo, auth=auth)
 

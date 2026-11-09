@@ -82,7 +82,16 @@ def lanzar(usuario, cliente, segmento, eqs):
                                limite=":".join(sorted({f["desde"] for f in fl})), inventario=inv, credenciales=list(creds)))
     ej("UPDATE rendimiento_canal SET jobs=?, entrada=? WHERE id=?", json.dumps(jobs), json.dumps({"url": en_, "pendiente": True} if en_ else {}), rid)
     if en_:
-        threading.Thread(target=_entrada, args=(rid, en_, RONDAS, MUESTRAS), daemon=True).start()
+        from flask import current_app
+        app_ = current_app._get_current_object()
+
+        def _hilo():
+            with app_.app_context():
+                try:
+                    _entrada(rid, en_, RONDAS, MUESTRAS)
+                except Exception as x:  # noqa: BLE001
+                    ej("UPDATE rendimiento_canal SET entrada=? WHERE id=?", json.dumps({"url": en_, "error": str(x)[:200]}), rid)
+        threading.Thread(target=_hilo, daemon=True).start()
     auditar(usuario["usuario"], cliente["id"], "prueba de rendimiento del canal", segmento, {"tramos": len(flujos), "trabajos": jobs})
     return {"id": rid, "tramos": len(flujos), "trabajos": jobs, "entrada": en_}
 

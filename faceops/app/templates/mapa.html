@@ -370,7 +370,8 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   }
   // ─────────── latencia del canal: total arriba (ruta crítica desde la entrada) y prueba de rendimiento no invasiva ───────────
   const URL_PERF={{ url_for('consola.mapa_rendimiento')|tojson }};
-  let PERF=null, PERF_ON=false, perfTimer=null;
+  let PERF=null, PERF_ON=false, perfTimer=null, perfFin=null;
+  const PERF_MIN=5;   // minutos que los tiempos medidos quedan sobre la gráfica antes de volver a lo normal
   const msDe=t=>{ const m=String(t||'').match(/([\d.]+)\s*ms/); return m?parseFloat(m[1]):null; };
   function rutaCritica(valor){  // suma máxima de ms desde la entrada siguiendo los flujos (DAG); valor(e) → ms o null
     const cy_=window._cy; if(!cy_) return null;
@@ -389,6 +390,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     const r=rutaCritica(e=>msDe(e.data('latencia'))||msDe(e.data('latencia_prom')));
     const b=cajaTotal(); const medidos=window._cy.edges('[tipo="flujo"]').filter(e=>msDe(e.data('latencia'))!=null).length, tot=window._cy.edges('[tipo="flujo"]').length;
     b.innerHTML='<b>Latencia del canal:</b> '+(r&&r.ms?r.ms.toFixed(r.ms<10?2:1)+' ms':'sin medir')+' <span class="sub">('+medidos+'/'+tot+' tramos medidos'+(r&&r.ms?' · ruta crítica desde la entrada':'')+')</span>'
+      +'<div class="sub" style="font-size:11.5px;margin-top:2px">Medición de red, no ping (ICMP): tiempo en abrir una conexión TCP al puerto del servicio, desde la máquina de origen de cada tramo; la entrada se mide con peticiones HTTP GET.</div>'
       +(PUEDE?' <button type="button" class="btn chico" id="b-perf" style="margin-left:6px">Prueba de rendimiento</button>':'')
       +(PERF&&PERF.estado==='listo'?' <button type="button" class="btn chico gris" id="b-perf-ver">'+(PERF_ON?'Volver a lo normal':'Ver tiempos medidos')+'</button>':'');
     const bp=document.getElementById('b-perf'); if(bp) bp.onclick=lanzarPerf;
@@ -408,6 +410,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function statEdge(e){ if(!PERF) return null; let peor=null;
     (e.data('fpuertos')||[]).forEach(p=>{ const t=(PERF.tramos||{})[claveEdge(e,p)]; const g=t&&t.global; if(g&&g.n&&(!peor||g.prom>peor.prom)) peor=Object.assign({puerto:p},g); }); return peor; }
   function ponerPerf(){ if(!PERF||!window._cy) return; PERF_ON=true; const cy_=window._cy;
+    clearTimeout(perfFin); perfFin=setTimeout(quitarPerf, PERF_MIN*60000);
     const r=rutaCritica(e=>{ const g=statEdge(e); return g?g.prom:null; });
     let cuello=null; cy_.edges('[tipo="flujo"]').forEach(e=>{ const g=statEdge(e); if(g&&(!cuello||g.prom>cuello.g.prom)) cuello={e,g}; });
     cy_.edges('[tipo="flujo"]').forEach(e=>{ const g=statEdge(e); e.data('perf', g?('⏱ '+g.prom.toFixed(g.prom<10?2:1)+' ms · p95 '+g.p95.toFixed(g.p95<10?2:1)+(g.perdidas?' · ✗'+g.perdidas:'')):'');
@@ -417,9 +420,10 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       .selector('edge[perf_cuello = 1]').style({'line-color':'#c9190b','target-arrow-color':'#c9190b','width':5,'color':'#a30000'}).update();
     const b=cajaTotal(); const en=(PERF.entrada||{}).global||{};
     pintarTotal(); b.insertAdjacentHTML('beforeend','<div style="margin-top:4px;color:#8a4b00"><b>Medido ahora:</b> '+(r&&r.ms?r.ms.toFixed(2)+' ms por la red':'—')
-      +(en.prom!=null?' · entrada HTTP '+en.prom.toFixed(1)+' ms (p95 '+(en.p95||0).toFixed(1)+')':'')+(cuello?' · cuello de botella: <b style="color:#a30000">'+cuello.e.data('fdesde')+' → '+cuello.e.data('fhacia')+'</b>':'')+'</div>');
+      +(en.prom!=null?' · entrada HTTP '+en.prom.toFixed(1)+' ms (p95 '+(en.p95||0).toFixed(1)+')':'')+(cuello?' · cuello de botella: <b style="color:#a30000">'+cuello.e.data('fdesde')+' → '+cuello.e.data('fhacia')+'</b>':'')
+      +' <span class="sub">· se muestra '+PERF_MIN+' min y vuelve a lo normal</span></div>');
   }
-  function quitarPerf(){ PERF_ON=false; const cy_=window._cy; if(!cy_) return; cy_.edges().forEach(e=>{ e.removeData('perf'); e.removeData('perf_cuello'); e.removeData('perf_ruta'); }); cy_.style().update(); pintarTotal(); }
+  function quitarPerf(){ PERF_ON=false; clearTimeout(perfFin); const cy_=window._cy; if(!cy_) return; cy_.edges().forEach(e=>{ e.removeData('perf'); e.removeData('perf_cuello'); e.removeData('perf_ruta'); }); cy_.style().update(); pintarTotal(); }
   function flotPerf(){ let f=document.getElementById('perf-flot');
     if(!f){ f=document.createElement('div'); f.id='perf-flot';
       f.style.cssText='position:fixed;left:24px;bottom:24px;z-index:60;width:min(760px,calc(100vw - 48px));max-height:60vh;overflow:auto;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);font-size:13px';
@@ -430,7 +434,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     const n2=v=>v==null?'—':v.toFixed(v<10?2:1);
     const tr=Object.entries(x.tramos||{}).map(([k,t])=>Object.assign({k},t)).sort((a,b)=>((b.global||{}).prom||0)-((a.global||{}).prom||0));
     const peor=tr.length&&tr[0].global&&tr[0].global.n?tr[0].k:'';
-    let h='<p class="sub" style="margin:0 0 8px">Prueba no invasiva: desde cada máquina de origen se abren y cierran conexiones TCP hacia el siguiente punto (sin datos de negocio), y unas pocas peticiones GET a la entrada. Ordenado del tramo más lento al más rápido.</p>';
+    let h='<p class="sub" style="margin:0 0 8px">Cómo se mide (no es ping ICMP): desde la máquina de origen de cada tramo, AAP abre y cierra una conexión TCP al puerto del servicio de destino (handshake, sin enviar datos de negocio), 3 rondas de 10 muestras con pausa; la entrada se mide desde FaceOps con 3 × 10 peticiones HTTP GET. Ordenado del tramo más lento al más rápido; «—» = el origen no respondió a AAP.</p>';
     const en=x.entrada||{};
     if(en.url) h+='<table style="width:100%;margin-bottom:10px"><tr><th style="text-align:left">Entrada HTTP</th><th>Ronda 1</th><th>Ronda 2</th><th>Ronda 3</th><th>p95</th><th>Pérdidas</th></tr><tr><td class="mono" style="font-size:12px">'+en.url+'</td>'
       +[0,1,2].map(i=>'<td style="text-align:center">'+(en.rondas&&en.rondas[i]&&en.rondas[i].n?n2(en.rondas[i].prom)+' ms':(en.pendiente?'…':'—'))+'</td>').join('')+'<td style="text-align:center">'+n2((en.global||{}).p95)+'</td><td style="text-align:center">'+((en.global||{}).perdidas||0)+'</td></tr></table>';
@@ -496,6 +500,9 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=sec('Estado','<a href="'+s.inventario+'">Ver equipos</a>');
     h+=fila({izq:'Equipos',ic:s.apagados?SVG.mal:SVG.ok,txt:s.equipos+' · '+s.encendidos+' encendidos'+(s.apagados?' · '+s.apagados+' apagados':'')});
     h+=htmlEncenderTodas();
+    if(PUEDE) h+=sec('Rendimiento del canal')+'<div class="act-acc"><button class="btn chico" id="b-perf-seg">Probar rendimiento del canal</button>'
+      +(PERF&&PERF.estado==='listo'?' <button class="btn chico gris" id="b-perf-seg-ver">Ver últimos tiempos medidos</button>':'')
+      +'<p class="sub" style="font-size:12px;margin:4px 0 0">Mide cada tramo entre cajas (conexión TCP al puerto, 3 × 10 muestras) y la entrada (HTTP). Los tiempos se ven '+PERF_MIN+' min sobre la gráfica y el detalle técnico en una ventana aparte.</p></div>';
     h+=htmlLakeSegmento();
     h+=fila({izq:'Flujos',ic:s.bloqueados?SVG.mal:SVG.ok,txt:s.abiertos+'/'+s.flujos+' abiertos'+(s.bloqueados?' · '+s.bloqueados+' cerrados':'')});
     h+=fila({izq:'Hallazgos',ic:s.altos?SVG.mal:(s.hallazgos?SVG.warn:SVG.ok),txt:s.hallazgos?(s.hallazgos+(s.altos?' · '+s.altos+' altos':'')):'sin hallazgos'});
@@ -525,6 +532,8 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       });
     }
     pintar(h); enlazarEncenderTodas(); enlazarLakeSegmento();
+    const bps=document.getElementById('b-perf-seg'); if(bps) bps.onclick=()=>{ bps.disabled=true; bps.textContent='midiendo…'; lanzarPerf(); };
+    const bpv=document.getElementById('b-perf-seg-ver'); if(bpv) bpv.onclick=()=>{ panelPerf(PERF); ponerPerf(); };
   }
   const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }}, URL_SALUD={{ url_for('consola.salud_detalle')|tojson }};
   const PUEDE={{ (perfil_actual.modo == 'escritura')|tojson }}, CSRF={{ csrf|tojson }}, URL_FLUJO={{ url_for('consola.mapa_flujo')|tojson }};

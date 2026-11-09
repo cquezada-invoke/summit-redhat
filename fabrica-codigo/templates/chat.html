@@ -12,8 +12,8 @@ footer{border-top:1px solid var(--l);background:var(--c);padding:12px 18px}foote
 textarea{flex:1;font:inherit;padding:10px;border:1px solid var(--l);border-radius:8px;resize:vertical;min-height:54px}
 button{font:inherit;background:var(--a);color:#fff;border:0;border-radius:6px;padding:9px 16px;cursor:pointer}button.sec{background:#fff;color:var(--a);border:1px solid var(--a)}button:disabled{opacity:.5}
 .ayuda{color:var(--s);font-size:13px}
-</style></head><body>
-<header><b>Fábrica de código</b><span>Desarrollo sobre OpenShift con las políticas de desarrollo de FaceOps · {{ usuario }}</span>{% if faceops %}<a href="{{ faceops }}/arquitectura/politicas-desarrollo" target="_blank">Políticas de desarrollo ↗</a>{% endif %}</header>
+.pasos{list-style:none;margin:0;padding:0;font-size:13.5px}.pasos li{padding:2px 0;color:#3c3f42}.pasos li.actual{font-weight:600;color:#151515}.pasos .seg{display:inline-block;min-width:42px;color:#8a8d90;font-variant-numeric:tabular-nums}.pasos li.actual::after{content:" ●";color:#0066cc;animation:pul 1s infinite}@keyframes pul{50%{opacity:.2}}</style></head><body>
+<header><b>Fábrica de software</b><span>Desarrollo Spring Boot sobre OpenShift con las políticas de software de FaceOps · agente: Claude ({{ modelo }}, Anthropic) · {{ usuario }}</span>{% if faceops %}<a href="{{ faceops }}/fabrica/politicas" target="_blank">Políticas de software ↗</a>{% endif %}</header>
 <main id="chat"><div class="m"><h3>¿Qué necesitas construir?</h3><p class="ayuda">Describe el requerimiento funcional (qué hace, qué datos recibe y entrega, quién lo usa). El agente arma la aplicación cumpliendo las políticas de desarrollo, la revisa y, cuando la apruebes, crea el repositorio y la rama <code>feature/…</code> y pide a FaceOps ejecutar el pipeline (revisión y despliegue en OpenShift, con aprobación).</p>
 <p class="ayuda">Ejemplo: «Una API que reciba solicitudes de vacaciones (empleado, desde, hasta), valide que no se crucen y liste las del mes».</p></div></main>
 <footer><form id="f"><textarea id="msg" placeholder="Escribe el requerimiento o un ajuste al proyecto actual…" required></textarea>
@@ -24,11 +24,17 @@ const esc=t=>String(t??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&g
 function burbuja(html,yo){const d=document.createElement('div');d.className='m'+(yo?' yo':'');d.innerHTML=html;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
 async function post(u,b){const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return [r.ok,await r.json().catch(()=>({error:'respuesta inválida'}))]}
 async function enviar(ajustar){const t=msg.value.trim();if(!t)return;burbuja(esc(t),true);msg.value='';bg.disabled=ba.disabled=true;
- const w=burbuja('<p class="ayuda">El agente está construyendo el proyecto con las políticas de desarrollo…</p>');
- const [ok,d]=await post('/api/generar',{mensaje:t,ajustar});bg.disabled=false;
- if(!ok){w.innerHTML='<p class="chip mal">'+esc(d.error)+'</p>';return}
- ba.disabled=false;const n=Object.keys(d.archivos).length;
- w.innerHTML='<h3>'+esc(d.nombre)+' <span class="chip">'+esc(d.stack)+'</span></h3><p>'+esc(d.resumen)+'</p>'+
+ const w=burbuja('<p class="ayuda">Enviando el requerimiento al agente…</p>');
+ const [ok0,d0]=await post('/api/generar',{mensaje:t,ajustar});
+ if(!ok0){w.innerHTML='<p class="chip mal">'+esc(d0.error)+'</p>';bg.disabled=false;return}
+ let d=null;
+ for(;;){await new Promise(r=>setTimeout(r,1500));const r=await fetch('/api/avance/'+d0.trabajo);const a=await r.json().catch(()=>({error:'sin respuesta'}));
+  if(!r.ok){w.innerHTML='<p class="chip mal">'+esc(a.error)+'</p>';bg.disabled=false;return}
+  w.innerHTML='<ul class="pasos">'+a.pasos.map((p,i)=>'<li'+(i===a.pasos.length-1&&!a.listo?' class="actual"':'')+'><span class="seg">'+p.t+' s</span> '+esc(p.texto)+'</li>').join('')+(a.listo?'':'<li class="actual sub">trabajando… '+a.segundos+' s</li>')+'</ul>';
+  chat.scrollTop=chat.scrollHeight;
+  if(a.listo){if(a.error){w.insertAdjacentHTML('beforeend','<p class="chip mal">'+esc(a.error)+'</p>');bg.disabled=false;return}d=a.resultado;break}}
+ bg.disabled=false;ba.disabled=false;const n=Object.keys(d.archivos).length;const w2=burbuja('');
+ w2.innerHTML='<h3>'+esc(d.nombre)+' <span class="chip">'+esc(d.stack)+'</span></h3><p>'+esc(d.resumen)+'</p>'+
   '<p>'+(d.politicas||[]).map(p=>'<span class="chip ok">'+esc(p)+'</span>').join('')+'</p>'+
   (d.revision.length?'<p><b>Aún no cumple:</b></p>'+d.revision.map(x=>'<span class="chip mal">'+esc(x)+'</span>').join('')+'<p class="ayuda">Pide un ajuste para corregirlo.</p>':'<p class="chip ok">Cumple las políticas que se revisan antes del pipeline · versión de políticas '+esc(d.huella)+'</p>')+
   '<details><summary>Ver los '+n+' archivos</summary>'+Object.entries(d.archivos).map(([k,v])=>'<p><b>'+esc(k)+'</b></p><pre>'+esc(v)+'</pre>').join('')+'</details>'+
