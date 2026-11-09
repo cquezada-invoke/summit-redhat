@@ -68,13 +68,31 @@ def iniciar():
 
 
 # ------------------------------------------------------------------ Git: repositorio/politicas-seguridad (fuente de verdad)
-GITEA = "http://192.168.122.1:3000/api/v1/repos/repositorio/politicas-seguridad"
+def _gitea():
+    """Repositorio de políticas: FACEOPS_POLITICAS_GIT o, en el laboratorio de Invoke, su Gitea. Una instancia de cliente sin Git
+    configurado usa el archivo base (no intenta conectarse)."""
+    v = os.environ.get("FACEOPS_POLITICAS_GIT", "").rstrip("/")
+    if v:
+        return v
+    from .semillas import limpia
+    return "" if limpia() else "http://192.168.122.1:3000/api/v1/repos/repositorio/politicas-seguridad"
+
+
+_caido = {"hasta": 0.0}
 
 
 def _git(m, ruta, **kw):
+    import time
     import requests
+    base = _gitea()
+    if not base or time.time() < _caido["hasta"]:
+        return None
     tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
-    r = requests.request(m, GITEA + ruta, timeout=15, headers={"Authorization": f"token {tok}"} if tok else {}, **kw)
+    try:
+        r = requests.request(m, base + ruta, timeout=4, headers={"Authorization": f"token {tok}"} if tok else {}, **kw)
+    except requests.RequestException:
+        _caido["hasta"] = time.time() + 600   # Git no responde: no se vuelve a intentar en 10 minutos (nunca frena la consola)
+        return None
     return r.json() if r.ok and r.content else (None if not r.ok else {})
 
 
@@ -150,6 +168,12 @@ def sincronizar(cliente_id, forzar=False):
     if not forzar and time.time() - _visto["t"] < 60:
         return
     _visto["t"] = time.time()
+    if not _gitea():
+        return cargar(cliente_id)   # sin Git configurado: el archivo base, sin conexión a nada
+    if not forzar:   # desde una página: en segundo plano, para no hacer esperar a nadie por Git
+        import threading
+        threading.Thread(target=sincronizar, args=(cliente_id, True), daemon=True).start()
+        return
     if _git("GET", "") is None:
         return cargar(cliente_id)   # sin Git: el archivo base
     en_git = {p.get("codigo") or p.get("id"): (p, sha, url, autor, msg) for p, sha, url, autor, msg in desde_git()}
