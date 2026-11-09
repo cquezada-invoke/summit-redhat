@@ -12,6 +12,7 @@
 <label>Tipo *<select name="tipo" onchange="opTipo(this.form)">{% for k, t in tipos.items() %}<option value="{{ k }}" {{ 'selected' if (f.tipo or 'directo') == k }}>{{ t }}</option>{% endfor %}</select></label>
 <label data-ten>Licencia de tenant (USD/mes, lista)<input name="licencia" inputmode="decimal" value="{{ f.licencia or licencia_def }}"></label>
 <label data-ten>Clientes estimados del tenant<input name="clientes_est" type="number" min="1" value="{{ f.clientes_est or 3 }}"></label>
+<label>Nivel *<select name="nivel">{% for n, p in niveles if n > 0 %}<option value="{{ n }}" {{ 'selected' if (f.nivel or '5')|string == n|string }}>Nivel {{ n }} · {{ p }} %</option>{% endfor %}</select></label>
 <label>Cuándo se espera cerrar *<input name="cierre_estimado" type="date" required value="{{ f.cierre_estimado }}"></label>
 <label>Monto tentativo esperado (USD/año)<input name="monto_tentativo" inputmode="decimal" placeholder="vacío = precio de lista" value="{{ f.monto_tentativo }}"></label></div>
 <p class="sub" data-ten style="margin:6px 0 0;font-size:12.5px">En un tenant, la modalidad y el alcance de abajo son los de <b>un cliente típico</b>: se multiplican por los clientes estimados.</p></fieldset>

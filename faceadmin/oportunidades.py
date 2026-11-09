@@ -10,6 +10,24 @@ from app import ahora, app, bitacora, cliente_ok, ej, en_alcance, es_invoke, nue
 
 ETAPAS = [("prospecto", "Prospecto"), ("demo", "En demo"), ("propuesta", "Propuesta enviada"), ("ganada", "Ganada"), ("perdida", "Perdida")]
 ETAPA_T = dict(ETAPAS)
+# nivel de la oportunidad (probabilidad de cierre): 5 → 10 % … 1 → 99 %; 0 = ya es negocio (se puede crear el contrato)
+NIVELES = [(5, 10), (4, 30), (3, 70), (2, 90), (1, 99), (0, 100)]
+NIVEL_P = dict(NIVELES)
+_ETAPA_NIVEL = {"prospecto": 5, "demo": 4, "propuesta": 3, "ganada": 0}
+
+
+def quarter(fecha):
+    """«2027-02-10» → «Q1 2027»."""
+    try:
+        y, m = int(fecha[:4]), int(fecha[5:7])
+        return f"Q{(m - 1) // 3 + 1} {y}"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def nivel_de(o):
+    n = o.get("nivel")
+    return n if n in NIVEL_P else _ETAPA_NIVEL.get(o.get("etapa"), 5)
 TIPOS = {"multitenant": "Multi-tenant (un FaceOps centralizado para sus clientes)", "tenant": "Tenant (un FaceOps por cada cliente)", "directo": "Cliente directo"}
 TIPO_CORTO = {"multitenant": "Multi-tenant", "tenant": "Tenant", "directo": "Directo"}
 LICENCIA_TENANT = 2700   # licencia mensual de lista del tenant (editable en la oportunidad)
@@ -43,7 +61,7 @@ def iniciar():
            "notas TEXT DEFAULT '', creado TEXT, por TEXT, demo_semanas INTEGER DEFAULT 0, demo_inicio TEXT DEFAULT '', demo_fin TEXT DEFAULT '', "
            "contrato_demo_id INTEGER)")
         cols = {r["name"] for r in q("PRAGMA table_info(oportunidades)")}
-        for col, t in (("modalidad", "TEXT DEFAULT ''"), ("estimacion", "TEXT DEFAULT '{}'"), ("monto_tentativo", "REAL DEFAULT 0")):
+        for col, t in (("modalidad", "TEXT DEFAULT ''"), ("estimacion", "TEXT DEFAULT '{}'"), ("monto_tentativo", "REAL DEFAULT 0"), ("nivel", "INTEGER")):
             if col not in cols:
                 ej(f"ALTER TABLE oportunidades ADD COLUMN {col} {t}")
         ej("UPDATE oportunidades SET tipo='directo' WHERE tipo NOT IN ('multitenant','tenant','directo')")
@@ -85,6 +103,8 @@ def _ops():
         if not c or not en_alcance(c):
             continue
         o["c"], o["demo"] = c, demo_estado(o)
+        o["nivel_"] = nivel_de(o)
+        o["prob"], o["quarter"] = NIVEL_P[o["nivel_"]], quarter(o.get("cierre_estimado") or "")
         out.append(o)
     return out
 
@@ -97,6 +117,7 @@ def oportunidades():
     abiertas = [o for o in ops if o["etapa"] not in ("ganada", "perdida")]
     return render_template("oportunidades.html", ops=ops, etapa_t=ETAPA_T, tipos=TIPO_CORTO,
                            kpi={"abiertas": len(abiertas), "demos": sum(1 for o in ops if o["demo"]["k"] == "activa"),
+                                "ponderado": sum((o.get("monto_tentativo") or o["monto_estimado"] or 0) * o["prob"] / 100 for o in abiertas),
                                 "pipeline": sum(o.get("monto_tentativo") or o["monto_estimado"] or 0 for o in abiertas), "ganadas": sum(1 for o in ops if o["etapa"] == "ganada")})
 
 
@@ -109,7 +130,7 @@ def oportunidad_nueva():
         from datetime import date, timedelta
         f0 = dict(request.args)
         f0.setdefault("cierre_estimado", (date.today() + timedelta(days=60)).isoformat())
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=f0, tipos=TIPOS, licencia_def=LICENCIA_TENANT)
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f0, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES)
     f = request.form
     import cobro
     from contratos import _empresa
@@ -134,19 +155,25 @@ def oportunidad_nueva():
         c = _empresa(f, "directo" if tipo == "directo" else "tenant", None)
     except ValueError as e:
         flash(str(e), "error")
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT), 400
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES), 400
     import alcance
     alcance.columnas()
     atexto = (f.get("alcance_texto") or "").strip()[:6000]
     if est["modalidad"] == "alcance" and len(atexto) < 20:
         flash("En costo fijo por alcance, describe el alcance (lo evalúa el especialista de negocio antes de fijar el precio)", "error")
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT), 400
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES), 400
     num = _numero(c)
     oid = ej("INSERT INTO oportunidades (cliente_id, numero, tipo, etapa, despliegue, plan, nodos, monto_estimado, cierre_estimado, notas, creado, por, modalidad, "
              "estimacion, monto_tentativo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], num, tipo, "prospecto",
              {"multitenant": "centralizado", "tenant": "por_cliente"}.get(tipo, ""), est["plan"], est["nodos"], est["anual"], (f.get("cierre_estimado") or "")[:10],
              (f.get("notas") or "").strip()[:3000], ahora(), g.usuario["usuario"], est["modalidad"], json.dumps(est, ensure_ascii=False), tent)
     monto = tent
+    try:
+        niv = int(f.get("nivel") or 5)
+    except ValueError:
+        niv = 5
+    niv = niv if niv in NIVEL_P and niv > 0 else 5   # nivel 0 (negocio) se alcanza desde la oportunidad
+    ej("UPDATE oportunidades SET nivel=? WHERE id=?", niv, oid)
     bitacora("oportunidad creada", c["codigo"], {"oportunidad": num, "monto": monto})
     aviso = ""
     if est["modalidad"] == "alcance":
@@ -172,13 +199,18 @@ def oportunidad(oid):
     if request.method == "POST":
         f = request.form
         acc = f.get("accion")
-        if acc == "etapa" and f.get("etapa") in ETAPA_T:
+        if acc == "etapa" and (f.get("etapa") in ETAPA_T or (f.get("nivel") or "").isdigit()):
+            niv = int(f["nivel"]) if (f.get("nivel") or "").isdigit() and int(f["nivel"]) in NIVEL_P else nivel_de(o)
+            etp = "perdida" if f.get("perdida") else ("ganada" if niv == 0 else (o["etapa"] if o["etapa"] in ("demo", "propuesta") else "prospecto"))
+            f = f.copy()
+            f["etapa"] = etp
+            ej("UPDATE oportunidades SET nivel=? WHERE id=?", niv, oid)
             import cobro
             tent = cobro._n(f.get("monto_tentativo") or "", o.get("monto_tentativo") or 0)
             ej("UPDATE oportunidades SET etapa=?, notas=?, cierre_estimado=?, monto_tentativo=? WHERE id=?", f["etapa"], (f.get("notas") or o["notas"] or "")[:3000],
                (f.get("cierre_estimado") or o["cierre_estimado"] or "")[:10], max(0, tent), oid)
             bitacora("oportunidad · etapa", c["codigo"], {"oportunidad": o["numero"], "etapa": f["etapa"]})
-            flash(f"Etapa: {ETAPA_T[f['etapa']]}", "ok")
+            flash("Oportunidad perdida" if etp == "perdida" else (f"Nivel {niv} · {NIVEL_P[niv]} %" + (": ya es negocio, crea el contrato" if niv == 0 else "")), "ok")
         elif acc in ("demo", "extender"):
             try:
                 sem = int(f.get("semanas") or 0)
@@ -206,7 +238,8 @@ def oportunidad(oid):
         o["aia"] = {}
     o["especialista"] = alcance.especialista()
     dem = [_demo_fila(x) for x in q("SELECT * FROM demos WHERE oportunidad_id=? ORDER BY id DESC", oid)]
-    return render_template("oportunidad.html", inst_t=INST_T, demos=dem, o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
+    o["nivel_"], o["quarter"] = nivel_de(o), quarter(o.get("cierre_estimado") or "")
+    return render_template("oportunidad.html", niveles=NIVELES, inst_t=INST_T, demos=dem, o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
                            inst=(intentos(c["id"]) or [None])[0], lic=licencias(c["id"]))
 
 

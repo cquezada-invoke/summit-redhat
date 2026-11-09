@@ -1,8 +1,8 @@
 {% extends "base.html" %}{% block titulo %}{{ o.numero }}{% endblock %}{% block cuerpo %}{% set hoy_ = ahora_fecha() %}
 <p class="sub" style="margin:0"><a href="{{ url_for('oportunidades') }}">Oportunidades</a> ›</p>
 <div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">{{ c.nombre }} <span class="mono" style="font-size:.6em;font-weight:600">{{ o.numero }}</span></h1>
-<span class="chip {{ 'ok' if o.etapa == 'ganada' else ('mal' if o.etapa == 'perdida' else ('med' if o.etapa == 'demo' else '')) }}">{{ etapa_t[o.etapa] }}</span>
-<a class="btn der" href="{{ url_for('contrato_nuevo', tipo='directo' if o.tipo == 'directo' else 'tenant', empresa_id=c.id, despliegue=o.despliegue or None) }}">Crear el contrato →</a></div>
+{% if o.etapa == 'perdida' %}<span class="chip mal">Perdida</span>{% elif o.nivel_ == 0 %}<span class="chip ok">Nivel 0 · negocio</span>{% else %}<span class="chip {{ 'med' if o.nivel_ <= 2 else '' }}">Nivel {{ o.nivel_ }} · {{ dict(niveles)[o.nivel_] }} %</span>{% endif %}
+{% if o.nivel_ == 0 and o.etapa != 'perdida' %}<a class="btn der" href="{{ url_for('contrato_nuevo', tipo='directo' if o.tipo == 'directo' else 'tenant', empresa_id=c.id, despliegue=o.despliegue or None) }}">Crear el negocio →</a>{% else %}<span class="sub der" style="font-size:12.5px">El negocio se crea al llegar a nivel 0</span>{% endif %}</div>
 <div class="grid g2" style="margin-top:12px">
 <div class="card"><h2>Oportunidad</h2><table>
 <tr><td class="sub">Cliente</td><td><b>{{ c.nombre }}</b> · {{ c.pais or '—' }}{{ ' · ' ~ c.industria if c.industria }}</td></tr>
@@ -11,10 +11,11 @@
 <tr><td class="sub">Modalidad</td><td>{{ 'Por consumo · ' ~ (o.plan or '') if o.modalidad == 'creditos' else ('Costo fijo por alcance · ' ~ (o.est.get('items') or [])|length ~ ' acciones' if o.modalidad == 'alcance' else '—') }}</td></tr>
 <tr><td class="sub">Precio de lista aproximado</td><td><b>USD {{ (o.monto_estimado or 0)|num }} al año</b>{% if o.est %}<br><span class="sub" style="font-size:12px">servicio {{ ((o.est.servicio or 0) + (o.est.rh or 0))|num }}{% if o.tipo != 'directo' %} + licencia {{ o.est.licencia|num }} + versiones y parches {{ o.est.operacion|num }} ({{ o.est.instancias }} instancia{{ 's' if o.est.instancias != 1 }}, {{ o.est.clientes }} cliente{{ 's' if o.est.clientes != 1 }}){% endif %} = {{ o.est.mensual|num }}/mes{% if o.est.habilitacion %} · habilitación {{ o.est.habilitacion|num }} una vez{% endif %}</span>{% endif %}</td></tr>
 <tr><td class="sub">Monto tentativo esperado</td><td><b style="font-size:16px">USD {{ (o.monto_tentativo or o.monto_estimado or 0)|num }} al año</b></td></tr>
-<tr><td class="sub">Se espera cerrar</td><td class="mono"><b>{{ o.cierre_estimado or '—' }}</b></td></tr>
+<tr><td class="sub">Se espera cerrar</td><td><b>{{ o.quarter }}</b> <span class="sub mono" style="font-size:12px">{{ o.cierre_estimado or '' }}</span></td></tr>
 <tr><td class="sub">Creada</td><td>{{ o.creado[:10] }} por {{ o.por }}</td></tr></table>
 <form method="post" class="fila" style="margin-top:12px;align-items:end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="etapa">
-<label>Etapa<select name="etapa">{% for k, t in etapas %}<option value="{{ k }}" {{ 'selected' if o.etapa == k }}>{{ t }}</option>{% endfor %}</select></label>
+<label>Nivel<select name="nivel">{% for n, p in niveles %}<option value="{{ n }}" {{ 'selected' if o.nivel_ == n }}>{{ 'Nivel 0 · negocio' if n == 0 else 'Nivel ' ~ n ~ ' · ' ~ p ~ ' %' }}</option>{% endfor %}</select></label>
+<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="perdida" value="1" style="width:auto" {{ 'checked' if o.etapa == 'perdida' }}> perdida</label>
 <label>Se espera cerrar<input type="date" name="cierre_estimado" value="{{ o.cierre_estimado }}"></label><label>Monto tentativo (USD/año)<input name="monto_tentativo" inputmode="decimal" value="{{ (o.monto_tentativo or 0)|int }}" style="width:130px"></label>
 <label style="flex:1;min-width:220px">Notas<input name="notas" value="{{ o.notas }}"></label><button class="btn gris">Guardar</button></form></div>
 {% if o.modalidad == 'alcance' or o.alcance_texto %}<div class="card" style="border-color:{{ 'var(--ok,#3e8635)' if o.alcance_estado == 'confirmado' else '#f0ab00' }}"><h2>Alcance del cliente
