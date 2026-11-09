@@ -1,41 +1,11 @@
 <!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block titulo %}Portal de automatización{% endblock %}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
-<meta name="csrf" content="{{ csrf }}">
-</head>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block titulo %}Automatizaciones{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}"><meta name="csrf" content="{{ csrf }}"></head>
 <body>
-<header class="cab">
-  <div class="marca"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#ee0000"/><path d="M9 21l7-12 7 12h-4l-3-5-3 5z" fill="#fff"/></svg>Portal de <span>automatización</span></div>
-  <div class="esp"></div>
-  {% if u %}
-  <div class="usuario">
-    <span>{{ u.nombre }} · usuario de AAP</span>
-    <form method="post" action="{{ url_for('salir') }}" style="margin:0"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Salir</button></form>
-  </div>
-  {% endif %}
-</header>
-<div class="marco">
-  {% if u %}
-  <nav class="nav">
-    <a href="{{ url_for('inicio') }}" class="{{ 'activo' if request.endpoint == 'inicio' and not request.args.get('seccion') }}">Todas las automatizaciones</a>
-    <div class="grupo">Secciones</div>
-    {% for k, n, d in secciones %}
-    <a href="{{ url_for('inicio', seccion=k) }}" class="{{ 'activo' if request.args.get('seccion') == k or (sec is defined and sec == k and request.endpoint == 'ficha') }}">{{ n }}</a>
-    {% endfor %}
-    <div class="grupo">Operación</div>
-    <a href="{{ url_for('aprobaciones') }}" class="{{ 'activo' if request.endpoint == 'aprobaciones' }}">Aprobaciones pendientes</a>
-    <a href="{{ url_for('historial') }}" class="{{ 'activo' if request.endpoint in ('historial', 'ejecucion') }}">Ejecuciones</a>
-    <div class="grupo">Guía</div>
-    <a href="{{ url_for('integracion') }}" class="{{ 'activo' if request.endpoint == 'integracion' }}">Cómo integrarlo en su ambiente</a>
-  </nav>
-  {% endif %}
-  <main class="contenido">{% block contenido %}{% endblock %}</main>
-</div>
+{% if u %}<p><a href="{{ url_for('inicio') }}">Automatizaciones</a> | <a href="{{ url_for('aprobaciones') }}">Aprobaciones</a> | <a href="{{ url_for('historial') }}">Ejecuciones</a> | <a href="{{ url_for('integracion') }}">Integración</a> |
+{{ u.usuario }} <form method="post" action="{{ url_for('salir') }}" style="display:inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Salir</button></form></p><hr>{% endif %}
+{% block contenido %}{% endblock %}
 <script>
 const CSRF = document.querySelector('meta[name=csrf]').content;
 async function post(url, datos) {
@@ -44,11 +14,7 @@ async function post(url, datos) {
   return r.json();
 }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-const ESTADOS = {successful: 'exitoso', failed: 'falló', running: 'en curso', pending: 'pendiente', waiting: 'en espera', canceled: 'cancelado',
-                 error: 'error', ok: 'ok', changed: 'cambió', fallo: 'falló', omitido: 'omitido', inalcanzable: 'inalcanzable', new: 'en cola',
-                 pendiente: 'pendiente', critico: 'crítico', atencion: 'atención', cumple: 'cumple', falta: 'falta', revisar: 'revisar', revertido: 'revertido'};
-const chip = e => `<span class="estado e-${esc(e)}">${esc(ESTADOS[e] || e)}</span>`;
+const chip = e => esc(e);
 </script>
 {% block js %}{% endblock %}
-</body>
-</html>
+</body></html>

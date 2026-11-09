@@ -1,28 +1,14 @@
 {% extends "base.html" %}
 {% block contenido %}
-<h1>Aprobaciones pendientes</h1>
-<p class="sub">Automatizaciones que esperan una decisión. Se aprueban aquí o en la consola de AAP; ambas quedan registradas en AAP.</p>
-{% if pendientes %}
-<div class="panel"><table>
-<tr><th>Solicitud</th><th>Esperando desde</th><th>Detalle</th><th></th></tr>
-{% for a in pendientes %}
-{% set wj = a.summary_fields.source_workflow_job %}
-<tr id="a{{ a.id }}">
-  <td><b>{{ (wj.name if wj else a.name).split('·', 1)[-1] | trim }}</b><br><span class="sub">{{ a.name }}</span></td>
-  <td class="sub">{{ (a.created or '')[:16] | replace('T', ' ') }} UTC</td>
-  <td>{% if wj %}<a href="{{ url_for('ejecucion', jid=wj.id) }}">Ver ejecución #{{ wj.id }}</a>{% endif %}</td>
-  <td style="white-space:nowrap"><button class="btn verde" onclick="decidir({{ a.id }}, 'approve', this)">Aprobar</button> <button class="btn peligro" onclick="decidir({{ a.id }}, 'deny', this)">Rechazar</button></td>
-</tr>
-{% endfor %}
-</table></div>
-{% else %}<div class="vacia">No hay aprobaciones pendientes.</div>{% endif %}
+<h3>Aprobaciones pendientes</h3>
+{% if pendientes %}<ul>{% for a in pendientes %}{% set wj = a.summary_fields.source_workflow_job %}
+<li id="a{{ a.id }}">{{ (wj.name if wj else a.name).split('·', 1)[-1] | trim }} {% if wj %}(<a href="{{ url_for('ejecucion', jid=wj.id) }}">#{{ wj.id }}</a>){% endif %}
+<button onclick="decidir({{ a.id }}, 'approve', this)">Aprobar</button> <button onclick="decidir({{ a.id }}, 'deny', this)">Rechazar</button></li>{% endfor %}</ul>
+{% else %}<p>No hay aprobaciones pendientes.</p>{% endif %}
 {% endblock %}
 {% block js %}
 <script>
-async function decidir(id, accion, b) {
-  b.disabled = true; const d = await post(`/api/aprobacion/${id}/${accion}`);
-  if (d && d.ok) document.getElementById('a' + id).innerHTML = `<td colspan="4">${accion === 'approve' ? 'Aprobada' : 'Rechazada'}.</td>`;
-  else { b.disabled = false; alert((d && d.error) || 'No se pudo'); }
-}
+async function decidir(id, accion, b) { b.disabled = true; const d = await post(`/api/aprobacion/${id}/${accion}`);
+  document.getElementById('a' + id).textContent = d && d.ok ? (accion === 'approve' ? 'Aprobada' : 'Rechazada') : ((d && d.error) || 'No se pudo'); }
 </script>
 {% endblock %}

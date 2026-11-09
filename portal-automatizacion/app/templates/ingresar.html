@@ -1,15 +1,11 @@
 {% extends "base.html" %}
-{% block contenido %}{% endblock %}
-{% block js %}
-<div class="ingreso" style="position:fixed;inset:0;z-index:10">
-  <form class="caja" method="post">
-    <h1>Portal de automatización</h1>
-    <p class="sub">Ingrese con su usuario de Ansible Automation Platform. El portal lanza con sus permisos y AAP registra quién ejecutó cada acción.</p>
-    {% if error %}<div class="alerta error">{{ error }}</div>{% endif %}
-    <label class="campo"><b>Usuario</b><input type="text" name="usuario" autocomplete="username" required autofocus></label>
-    <label class="campo"><b>Clave</b><input type="password" name="clave" autocomplete="current-password" required></label>
-    <button class="btn" style="width:100%;justify-content:center">Ingresar</button>
-    <p class="sub" style="margin:14px 0 0;font-size:12px">La clave se valida contra el Gateway de AAP y no se guarda: el portal usa un token personal que se revoca al salir.</p>
-  </form>
-</div>
+{% block contenido %}
+<h3>Ingresar</h3>
+<p class="sub">Usuario de Ansible Automation Platform.</p>
+{% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+<form method="post">
+<p>Usuario<br><input type="text" name="usuario" autocomplete="username" required autofocus></p>
+<p>Clave<br><input type="password" name="clave" autocomplete="current-password" required></p>
+<p><button>Ingresar</button></p>
+</form>
 {% endblock %}

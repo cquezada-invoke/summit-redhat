@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block titulo %}Cómo integrarlo · Portal{% endblock %}
 {% block contenido %}
-<h1>Cómo integrarlo en su ambiente</h1>
+<h3>Cómo integrarlo en su ambiente</h3>
 <p class="sub">Lo que se ve en la demo corre igual en su ambiente. Ansible Automation Platform (AAP) es el motor; este portal es solo una vitrina que usa la API de AAP.</p>
 
-<div class="panel">
-  <h2 style="margin-top:0">La idea en 30 segundos</h2>
+<div>
+  <h3>La idea en 30 segundos</h3>
   <div class="flujo" style="font-size:13px">
     <span class="nodo">Persona o evento (portal, AAP, Amdocs)</span><i>→</i><span class="nodo ap">Aprobación en AAP</span><i>→</i>
     <span class="nodo">Playbook en Git</span><i>→</i><span class="nodo">AAP ejecuta con credenciales de su bóveda</span><i>→</i>
@@ -14,7 +14,7 @@
   <p style="margin:12px 0 0">Todo queda auditado en AAP: quién pidió, quién aprobó, qué cambió y el resultado. Las automatizaciones viven en Git, así que cada cambio es revisable y repetible.</p>
 </div>
 
-<ol class="pasos-guia">
+<ol >
   <li>
     <h3>Ansible Automation Platform</h3>
     <p>AAP 2.5 o superior (controlador, Gateway y Event-Driven Ansible). En OpenShift se instala con su operador; también hay instalación en contenedores sobre RHEL. Un nodo de ejecución dentro de cada red que se quiere automatizar (por ejemplo, la red de gestión de los clústeres de Claro y la de los equipos de red).</p>
@@ -56,13 +56,13 @@
   </li>
 </ol>
 
-<div class="panel">
-  <h2 style="margin-top:0">Qué es real y qué es emulado en esta demo</h2>
+<div>
+  <h3>Qué es real y qué es emulado en esta demo</h3>
   <table>
-    <tr><td>AAP, aprobaciones, EDA, Git y bóveda</td><td><span class="estado e-ok">real</span></td></tr>
-    <tr><td>OpenShift (un clúster de un nodo)</td><td><span class="estado e-ok">real</span> los chequeos telco muestran lo que falta porque el laboratorio no tiene tarjetas SR-IOV ni kernel de tiempo real</td></tr>
-    <tr><td>Router (FRR, BGP) y firewall (VyOS)</td><td><span class="estado e-ok">real</span> en contenedores; en Claro serían los equipos de su red</td></tr>
-    <tr><td>Amdocs</td><td><span class="estado e-revisar">emulado</span> un servicio pequeño que imita la API de órdenes y tres microservicios BSS en OpenShift</td></tr>
+    <tr><td>AAP, aprobaciones, EDA, Git y bóveda</td><td>real</td></tr>
+    <tr><td>OpenShift (un clúster de un nodo)</td><td>real los chequeos telco muestran lo que falta porque el laboratorio no tiene tarjetas SR-IOV ni kernel de tiempo real</td></tr>
+    <tr><td>Router (FRR, BGP) y firewall (VyOS)</td><td>real en contenedores; en Claro serían los equipos de su red</td></tr>
+    <tr><td>Amdocs</td><td>emulado un servicio pequeño que imita la API de órdenes y tres microservicios BSS en OpenShift</td></tr>
   </table>
 </div>
 {% endblock %}
