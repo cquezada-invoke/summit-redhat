@@ -115,7 +115,7 @@ def generar(requerimiento, previo=None, correccion=""):
     r = requests.post("https://api.anthropic.com/v1/messages", timeout=300,
                       headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""), "anthropic-version": "2023-06-01", "content-type": "application/json"},
                       json={"model": MODELO, "max_tokens": 24000, "system": SISTEMA.format(politicas=texto_pol), "messages": msgs,
-                            "tools": [HERRAMIENTA], "tool_choice": {"type": "tool", "name": "entregar_proyecto"}})
+                            "tools": [HERRAMIENTA], "tool_choice": {"type": "auto"}})
     r.raise_for_status()
     rj = r.json()
     uso = next((b for b in rj.get("content", []) if b.get("type") == "tool_use"), None)
