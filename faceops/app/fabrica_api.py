@@ -34,7 +34,14 @@ def _autorizado():
 def api_fabrica_politicas():
     cli, _ = _autorizado()
     from .politicas_dev import contrato
-    return jsonify(contrato(cli["id"]))
+    c = contrato(cli["id"])
+    try:   # el stack tecnológico aceptado por el manifiesto de arquitectura del cliente (bases de datos, mensajería, etc.)
+        from .manifiesto import manifiesto, tecnologias
+        c["stack"] = [{"concepto": t["concepto"], "nombre": t["nombre"], "versiones": t.get("versiones") or []}
+                      for t in tecnologias(manifiesto(cli["id"])) if t.get("estado") == "aceptada"]
+    except Exception:  # noqa: BLE001
+        c["stack"] = []
+    return jsonify(c)
 
 
 @bp.route("/api/fabrica/ejecutar", methods=["POST"])

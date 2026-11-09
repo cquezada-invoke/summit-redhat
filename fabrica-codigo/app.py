@@ -88,7 +88,13 @@ requerimiento funcional, listas para correr en Red Hat OpenShift, y SIEMPRE cump
 {politicas}
 
 Reglas de entrega:
-- Stack: Spring Boot 3 con Java 21 y Maven (pom.xml y mvnw), como exigen las políticas.
+- Stack: Spring Boot 3 con Java 21 y Maven (pom.xml), como exigen las políticas. Cualquier otra pieza (base de datos, mensajería,
+  caché) sale SOLO del stack tecnológico aceptado que sigue; p. ej. base relacional = la aceptada (PostgreSQL) con Spring Data JPA,
+  credenciales por Secret, y en deploy/ su Deployment/Service/PVC para el ambiente de desarrollo; en las pruebas usa H2 o Testcontainers.
+{stack}
+- Si al requerimiento le falta algo que cambia el diseño (entidades, reglas, integraciones), NO construyas: responde en texto con hasta
+  3 preguntas cortas y concretas. Si es razonable suponerlo, supónlo y dilo en el resumen.
+- Sé conciso: código mínimo y funcional, sin comentarios largos ni archivos de más (idealmente 12 a 20 archivos).
 - Estructura mínima: Containerfile multi-stage (construye con registry.access.redhat.com/ubi9/openjdk-21:<versión fija> y ejecuta con
   ubi9/openjdk-21-runtime:<versión fija>, USER 185, EXPOSE 8080), código en src/main, pruebas en src/test, README.md y en deploy/:
   deployment.yaml, service.yaml, route.yaml, configmap.yaml, hpa.yaml y pdb.yaml.
@@ -96,40 +102,34 @@ Reglas de entrega:
   app.kubernetes.io/name, part-of: fabrica-codigo y version; sondas /actuator/health/liveness y /actuator/health/readiness en el puerto 8080; requests y limits.
 - deploy/route.yaml: tls termination edge con insecureEdgeTerminationPolicy Redirect.
 - Sin secretos en el código; configuración por variables de entorno.
-- Entrega el proyecto completo SOLO con la herramienta entregar_proyecto (cada archivo con su ruta y su contenido completo)."""
+- Trabajas en dos fases: primero el plan (herramienta planificar_proyecto: la aplicación y la lista de archivos con su propósito) y
+  luego cada archivo por separado, cuando se te pida."""
 
-HERRAMIENTA = {"name": "entregar_proyecto", "description": "Entrega el proyecto generado, completo.",
-               "input_schema": {"type": "object", "required": ["nombre", "resumen", "stack", "politicas_aplicadas", "archivos"], "properties": {
-                   "nombre": {"type": "string", "description": "kebab-case, máximo 30 caracteres"},
-                   "resumen": {"type": "string", "description": "qué hace, 2-3 frases"},
-                   "stack": {"type": "string"},
-                   "politicas_aplicadas": {"type": "array", "items": {"type": "string"}},
-                   "archivos": {"type": "array", "items": {"type": "object", "required": ["ruta", "contenido"],
-                                "properties": {"ruta": {"type": "string"}, "contenido": {"type": "string"}}}}}}}
+PLAN = {"name": "planificar_proyecto", "description": "Plan del proyecto: qué es y la lista completa de archivos a escribir (sin su contenido).",
+        "input_schema": {"type": "object", "required": ["nombre", "resumen", "stack", "politicas_aplicadas", "archivos"], "properties": {
+            "nombre": {"type": "string", "description": "kebab-case, máximo 30 caracteres"},
+            "resumen": {"type": "string", "description": "qué hace y qué supuestos tomaste, 2-4 frases"},
+            "stack": {"type": "string"},
+            "politicas_aplicadas": {"type": "array", "items": {"type": "string"}},
+            "archivos": {"type": "array", "items": {"type": "object", "required": ["ruta", "proposito"], "properties": {
+                "ruta": {"type": "string"}, "proposito": {"type": "string", "description": "qué contiene, clases, endpoints, nombres clave"},
+                "cambia": {"type": "boolean", "description": "solo en un ajuste: true si este archivo cambia o es nuevo"}}}}}}}
+PARALELO = 4
 
 
 class Pregunta(Exception):
-    """El agente respondió con texto (una pregunta o aclaración) en vez de entregar el proyecto."""
+    """El agente respondió con texto (una pregunta o aclaración) en vez de entregar el plan."""
 
 
-def generar(requerimiento, previo=None, correccion="", paso=lambda t: None):
-    """Claude escribe el proyecto (streaming): a medida que llegan los archivos se informa cuál está escribiendo."""
-    pol = politicas()
-    paso(f"Leí las {len(pol['politicas'])} políticas de software vigentes (versión {pol['huella']})")
-    texto_pol = "\n".join(f"- {p['codigo']} [{p['area']} · {p['nivel']}] {p['titulo']}: {p['regla']}" for p in pol["politicas"])
-    msgs = [{"role": "user", "content": f"Requerimiento funcional:\n{requerimiento}"}]
-    if previo:
-        msgs = [{"role": "user", "content": f"Requerimiento funcional:\n{previo['requerimiento']}"},
-                {"role": "assistant", "content": json.dumps({k: previo[k] for k in ("nombre", "resumen", "stack", "archivos")}, ensure_ascii=False)},
-                {"role": "user", "content": correccion or requerimiento}]
-    paso(f"Claude ({MODELO}) está diseñando la aplicación · tiempo estimado: {'1 a 2' if previo else '2 a 4'} minutos "
-         "(piensa cerca de un minuto y luego escribe archivo por archivo)")
-    r = requests.post("https://api.anthropic.com/v1/messages", timeout=300, stream=True,
-                      headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""), "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                      json={"model": MODELO, "max_tokens": 24000, "system": SISTEMA.format(politicas=texto_pol), "messages": msgs,
-                            "tools": [HERRAMIENTA], "tool_choice": {"type": "auto"}, "stream": True})
+def _claude(sistema, msgs, max_tokens, herramienta=None, al_texto=None):
+    """Una llamada a Claude (streaming). Devuelve (entrada de la herramienta o None, texto, motivo de parada)."""
+    cuerpo = {"model": MODELO, "max_tokens": max_tokens, "system": sistema, "messages": msgs, "stream": True}
+    if herramienta:
+        cuerpo.update(tools=[herramienta], tool_choice={"type": "auto"})
+    r = requests.post("https://api.anthropic.com/v1/messages", timeout=600, stream=True, json=cuerpo,
+                      headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""), "anthropic-version": "2023-06-01", "content-type": "application/json"})
     r.raise_for_status()
-    js, parada, vistos, texto = "", "", 0, ""
+    js, texto, parada = "", "", ""
     for linea in r.iter_lines(decode_unicode=True):
         if not linea or not linea.startswith("data:"):
             continue
@@ -137,30 +137,98 @@ def generar(requerimiento, previo=None, correccion="", paso=lambda t: None):
             ev = json.loads(linea[5:])
         except ValueError:
             continue
-        if ev.get("type") == "content_block_delta" and (ev.get("delta") or {}).get("type") == "input_json_delta":
-            js += ev["delta"].get("partial_json", "")
-            rutas = re.findall(r'"ruta"\s*:\s*"([^"]+)"', js)
-            if len(rutas) > vistos:
-                vistos = len(rutas)
-                paso(f"Escribiendo {rutas[-1]} ({vistos} archivo{'s' if vistos != 1 else ''})")
-        elif ev.get("type") == "content_block_delta" and (ev.get("delta") or {}).get("type") == "text_delta":
-            texto += ev["delta"].get("text", "")
+        de = ev.get("delta") or {}
+        if ev.get("type") == "content_block_delta" and de.get("type") == "input_json_delta":
+            js += de.get("partial_json", "")
+        elif ev.get("type") == "content_block_delta" and de.get("type") == "text_delta":
+            texto += de.get("text", "")
+            if al_texto:
+                al_texto(len(texto))
         elif ev.get("type") == "message_delta":
-            parada = (ev.get("delta") or {}).get("stop_reason") or parada
+            parada = de.get("stop_reason") or parada
         elif ev.get("type") == "error":
             raise ValueError((ev.get("error") or {}).get("message", "error del agente"))
-    if not js and texto.strip():
-        raise Pregunta(texto.strip())   # el agente pide precisar el requerimiento antes de construir
-    if not js or parada == "max_tokens":
-        raise ValueError(f"respuesta incompleta del agente (parada: {parada or 'sin datos'})")
-    d = json.loads(js)
-    arch = d.get("archivos") or []
-    d["archivos"] = {a["ruta"].lstrip("/"): a["contenido"] for a in arch if a.get("ruta")} if isinstance(arch, list) else dict(arch)
-    if not d["archivos"]:
-        raise ValueError("el agente no entregó archivos")
+    return (json.loads(js) if js else None), texto, parada
+
+
+def _limpiar(texto):
+    """El archivo tal cual: sin el bloque ``` que a veces lo envuelve."""
+    t = texto.strip("\n")
+    m = re.match(r"^```[\w.+-]*\n(.*)\n```\s*$", t, re.S)
+    return (m.group(1) if m else t) + "\n"
+
+
+def generar(requerimiento, previo=None, correccion="", paso=lambda t: None, solo=None):
+    """Fase 1: Claude planifica la aplicación y sus archivos (o pregunta). Fase 2: escribe cada archivo por separado, en paralelo.
+    solo: rutas a reescribir (correcciones de la revisión previa)."""
+    from concurrent.futures import ThreadPoolExecutor
+    pol = politicas()
+    paso(f"Leí las {len(pol['politicas'])} políticas de software vigentes (versión {pol['huella']}) y el stack aceptado")
+    texto_pol = "\n".join(f"- {p['codigo']} [{p['area']} · {p['nivel']}] {p['titulo']}: {p['regla']}" for p in pol["politicas"])
+    texto_stack = ("Stack tecnológico aceptado:\n" + "\n".join(f"  · {x['concepto']}: {x['nombre']} {', '.join(x['versiones'])}".rstrip()
+                                                             for x in pol.get("stack") or [])) if pol.get("stack") else ""
+    sistema = SISTEMA.format(politicas=texto_pol, stack=texto_stack)
+    if solo and previo:
+        plan = {k: previo[k] for k in ("nombre", "resumen", "stack", "politicas_aplicadas") if k in previo}
+        plan["archivos"] = previo["plan_archivos"]
+        rehacer = [a for a in plan["archivos"] if a["ruta"] in solo] or [{"ruta": r, "proposito": "corrección"} for r in solo]
+    else:
+        paso(f"Claude ({MODELO}) está planificando la aplicación · tiempo estimado: {'1 a 2' if previo else '2 a 4'} minutos")
+        msgs = [{"role": "user", "content": f"Requerimiento funcional:\n{requerimiento}\n\nEntrega el plan con planificar_proyecto, o pregunta si falta algo esencial."}]
+        if previo:
+            msgs = [{"role": "user", "content": f"Proyecto actual (plan):\n{json.dumps({'nombre': previo['nombre'], 'resumen': previo.get('resumen'), 'archivos': previo['plan_archivos']}, ensure_ascii=False)}"
+                     f"\n\nAjuste pedido:\n{correccion or requerimiento}\n\nEntrega el plan actualizado con planificar_proyecto, marcando cambia=true en los archivos que cambian o son nuevos."}]
+        plan, texto, parada = _claude(sistema, msgs, 8000, PLAN)
+        if not plan:
+            if texto.strip():
+                raise Pregunta(texto.strip())
+            raise ValueError(f"el agente no entregó el plan (parada: {parada or 'sin datos'})")
+        plan["archivos"] = [a for a in plan.get("archivos") or [] if a.get("ruta")][:40]
+        if not plan["archivos"]:
+            raise ValueError("el plan no trae archivos")
+        rehacer = [a for a in plan["archivos"] if not previo or a.get("cambia") or a["ruta"] not in previo["archivos"]]
+        paso(f"Plan listo: {plan.get('nombre')} · {len(plan['archivos'])} archivos" + (f" ({len(rehacer)} cambian)" if previo else ""))
+    contenidos = dict(previo["archivos"]) if previo else {}
+    lista = "\n".join(f"- {a['ruta']}: {a.get('proposito', '')}" for a in plan["archivos"])
+    base = (f"Requerimiento:\n{requerimiento}\n\nPlan del proyecto «{plan.get('nombre')}» ({plan.get('stack')}):\n{plan.get('resumen')}\n\nArchivos:\n{lista}"
+            + (f"\n\nCorregir:\n{correccion}" if correccion else ""))
+    hechos = [0]
+
+    def escribir(a):
+        previo_txt = f"\n\nContenido actual de este archivo:\n{contenidos[a['ruta']]}" if a["ruta"] in contenidos else ""
+        _, txt, parada_ = _claude(sistema, [{"role": "user", "content": base + previo_txt +
+                                            f"\n\nEscribe ahora el archivo {a['ruta']} ({a.get('proposito', '')}). Responde SOLO con su contenido completo, sin explicación ni bloque ```."}], 12000)
+        if parada_ == "max_tokens":
+            raise ValueError(f"{a['ruta']} quedó incompleto")
+        hechos[0] += 1
+        paso(f"Escribí {a['ruta']} ({hechos[0]}/{len(rehacer)})")
+        return a["ruta"], _limpiar(txt)
+
+    paso(f"Escribiendo {len(rehacer)} archivo{'s' if len(rehacer) != 1 else ''} en paralelo ({PARALELO} a la vez)")
+    with ThreadPoolExecutor(PARALELO) as ex:
+        for ruta, txt in ex.map(escribir, rehacer):
+            contenidos[ruta] = txt
+    validas = {a["ruta"] for a in plan["archivos"]}
+    d = dict(plan, archivos={k: v for k, v in contenidos.items() if k in validas}, plan_archivos=plan["archivos"])
     d["nombre"] = re.sub(r"[^a-z0-9-]", "-", (d.get("nombre") or "app").lower()).strip("-")[:30] or "app"
     d["huella_politicas"] = pol["huella"]
     return d
+
+
+def _archivos_de(malos, archivos):
+    """Qué archivos rehacer según los incumplimientos de la revisión previa."""
+    out = set()
+    for m in malos:
+        if "deploy/" in m:
+            out |= {k for k in archivos if k.startswith("deploy/")}
+        if "Containerfile" in m or m.startswith(("PS-01", "PS-08: debe", "PS-21: debe", "PS-21: falta")):
+            out.add("Containerfile")
+        if "pom.xml" in m or m.startswith(("PS-02", "PS-06", "PS-23")):
+            out.add("pom.xml")
+        mm = re.search(r"posible secreto en (\S+)", m)
+        if mm:
+            out.add(mm.group(1))
+    return sorted(out) or sorted(archivos)
 
 
 def revisar(archivos):
@@ -209,7 +277,7 @@ def _trabajo(tid, sid, req_, previo):
         malos = revisar(p["archivos"])
         if malos:   # una corrección automática antes de mostrarlo
             paso(f"{len(malos)} incumplimiento{'s' if len(malos) != 1 else ''}: Claude los está corrigiendo")
-            p2 = generar(req_, dict(p, requerimiento=req_), "Corrige estos incumplimientos de las políticas y entrega el proyecto completo:\n" + "\n".join(malos), paso=paso)
+            p2 = generar(req_, dict(p, requerimiento=req_), "\n".join(malos), paso=paso, solo=_archivos_de(malos, p["archivos"]))
             p, malos = p2, revisar(p2["archivos"])
         p["requerimiento"] = (previo or {}).get("requerimiento", req_) if previo else req_
         p["revision"] = malos
