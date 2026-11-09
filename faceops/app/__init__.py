@@ -244,6 +244,28 @@ def create_app():
     def dinero(v, moneda="USD"):
         return f"{moneda} {v:,.0f}".replace(",", ".")
 
+    @app.before_request
+    def _perfil_ini():
+        """Diagnóstico de rendimiento: con la cabecera X-FaceOps-Perfil: 1 (solo un administrador con sesión) se perfila la vista."""
+        if request.headers.get("X-FaceOps-Perfil") == "1" and session.get("uid"):
+            import cProfile
+            g._prof = cProfile.Profile()
+            g._prof.enable()
+
+    @app.after_request
+    def _perfil_fin(resp):
+        pr = g.pop("_prof", None)
+        if pr is not None:
+            pr.disable()
+            u = bd.q1("SELECT es_admin FROM usuarios WHERE id=?", session.get("uid")) or {}
+            if u.get("es_admin"):
+                import pstats
+                st = pstats.Stats(pr)
+                filas = sorted(((v[3], f"{k[0].rsplit('/', 1)[-1]}:{k[1]}:{k[2]}") for k, v in st.stats.items()
+                                if "/app/" in k[0] or "requests" in k[0] or "socket" in k[0] or "sqlite" in k[2]), reverse=True)[:15]
+                resp.headers["X-FaceOps-Perfil"] = " | ".join(f"{t:.2f}s {n}" for t, n in filas).encode("ascii", "replace").decode()[:3500]
+        return resp
+
     @app.after_request
     def _comprimir(resp):
         """Rendimiento: comprime con gzip el HTML, CSS, JS y JSON (las páginas pesan ~80 KB y quedan en ~12 KB)."""
