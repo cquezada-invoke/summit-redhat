@@ -1,39 +1,28 @@
-commit: 1d79f98d48772af9722753ec4a6323dbfa48493f
-inicio: 2026-11-09T20:14:37-03:00
+commit: 599cd2e6d8f7674dede03e1187793864cd80d582
+inicio: 2026-11-09T20:15:53-03:00
 ---
 == Puertos públicos de apolo vistos desde fuera
 443:200 8443:000 8843:500 8080:000 8444:000 
 == nginx de apolo
 == Traslado del tenant
 clave de destino leída (no se muestra)
-  File "/usr/lib64/python3.9/socket.py", line 856, in create_connection
-    raise err
-  File "/usr/lib64/python3.9/socket.py", line 844, in create_connection
-    sock.connect(sa)
-ConnectionRefusedError: [Errno 111] Connection refused
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/cquezada/summit-redhat/portal-automatizacion/trasladar_aap.py", line 61, in <module>
-    org_o = uno(o, "organizations", name=ORG)
-  File "/home/cquezada/summit-redhat/portal-automatizacion/trasladar_aap.py", line 50, in uno
-    r = f("GET", f"{recurso}/?" + "&".join(f"{k}={q(str(v))}" for k, v in filtro.items()))["results"]
-  File "/home/cquezada/summit-redhat/portal-automatizacion/trasladar_aap.py", line 35, in <lambda>
-    o = lambda m, p, d=None, t=False: http("https://localhost/api/controller/v2/", CLAVE_O, m, p, d, t)
-  File "/home/cquezada/summit-redhat/portal-automatizacion/trasladar_aap.py", line 26, in http
-    with urllib.request.urlopen(req, context=CTX, timeout=120) as r:
-  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
-    return opener.open(url, data, timeout)
-  File "/usr/lib64/python3.9/urllib/request.py", line 517, in open
-    response = self._open(req, data)
-  File "/usr/lib64/python3.9/urllib/request.py", line 534, in _open
-    result = self._call_chain(self.handle_open, protocol, protocol +
-  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
-    result = func(*args)
-  File "/usr/lib64/python3.9/urllib/request.py", line 1389, in https_open
-    return self.do_open(http.client.HTTPSConnection, req,
-  File "/usr/lib64/python3.9/urllib/request.py", line 1349, in do_open
-    raise URLError(err)
-urllib.error.URLError: <urlopen error [Errno 111] Connection refused>
---- fin: 2026-11-09T20:15:13-03:00 · código: 0
+   · Origen: 14 workflows del tenant Claro Puerto Rico
+   · Organización Claro Puerto Rico
+   · Proyecto sincronizado: successful
+   · Portal · Amdocs · Activar orden de servicio: 7 pasos
+   · Portal · Amdocs · Desplegar release: 2 pasos
+   · Portal · Amdocs · Salud de la plataforma BSS: 2 pasos
+   · Portal · OpenShift · Actualizaciones y operadores: 2 pasos
+   · Portal · OpenShift · Alta de proyecto: 2 pasos
+   · Portal · OpenShift · Certificados: 2 pasos
+   · Portal · OpenShift · Optimizar recursos y limpiar: 2 pasos
+   · Portal · OpenShift · Regularizar línea base: 2 pasos
+   · Portal · OpenShift · Respaldo de etcd: 2 pasos
+   · Portal · OpenShift · Salud del clúster: 2 pasos
+   · Portal · Telco · Día 2 del clúster de cargas: 4 pasos
+   · Portal · Telco · Onboarding de CNF: 2 pasos
+   · Portal · Telco · Red del servicio (VLAN y BGP): 2 pasos
+   · Portal · Telco · Validar clúster para CNF: 2 pasos
+   · Usuario claro-demo: administrador del tenant (clave aleatoria no guardada; se fija en AAP › Users)
+LISTO · 14 workflows · 13 plantillas
+--- fin: 2026-11-09T20:21:19-03:00 · código: 0
