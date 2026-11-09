@@ -46,13 +46,12 @@
 
     - name: Calcular el semáforo
       vars:
-        nodos_mal: "{{ r_nodos.resources | rejectattr('status.conditions', 'contains', {'type': 'Ready', 'status': 'True'}) | map(attribute='metadata.name') | list }}"
+        nodos_mal: >-
+          {% set o = [] %}{% for n in r_nodos.resources %}{% if not (n.status.conditions | selectattr('type', 'equalto', 'Ready') | selectattr('status', 'equalto', 'True') | list) %}{% set _ = o.append(n.metadata.name) %}{% endif %}{% endfor %}{{ o }}
         co_deg: >-
-          {{ r_co.resources | selectattr('status.conditions', 'defined')
-             | selectattr('status.conditions', 'contains', {'type': 'Degraded', 'status': 'True'}) | map(attribute='metadata.name') | list }}
+          {% set o = [] %}{% for c in r_co.resources %}{% if (c.status.conditions | default([])) | selectattr('type', 'equalto', 'Degraded') | selectattr('status', 'equalto', 'True') | list %}{% set _ = o.append(c.metadata.name) %}{% endif %}{% endfor %}{{ o }}
         co_nodisp: >-
-          {{ r_co.resources | selectattr('status.conditions', 'defined')
-             | rejectattr('status.conditions', 'contains', {'type': 'Available', 'status': 'True'}) | map(attribute='metadata.name') | list }}
+          {% set o = [] %}{% for c in r_co.resources %}{% if not ((c.status.conditions | default([])) | selectattr('type', 'equalto', 'Available') | selectattr('status', 'equalto', 'True') | list) %}{% set _ = o.append(c.metadata.name) %}{% endif %}{% endfor %}{{ o }}
         alertas: >-
           {{ (r_al.json | default([])) | rejectattr('labels.alertname', 'in', ['Watchdog', 'InfoInhibitor', 'AlertmanagerReceiversNotConfigured'])
              | selectattr('labels.severity', 'in', ['critical'] if sev == 'critical' else ['critical', 'warning']) | list }}

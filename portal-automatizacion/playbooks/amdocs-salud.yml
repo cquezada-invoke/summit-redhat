@@ -1,7 +1,7 @@
 # Amdocs (Claro PR, emulado) · Salud de la plataforma BSS en OpenShift: por microservicio revisa pods listos, reinicios,
 # versión desplegada, tiempo de respuesta de /health (5 muestras) y certificado de su Route; además el trabajo pendiente de
 # órdenes. Entrega un semáforo por servicio.
-# Variables: namespace (amdocs-bss), umbral_ms (200)
+# Variables: amdocs_namespace (amdocs-bss), umbral_ms (200)
 # Credencial: "OpenShift · clúster (token)". Solo lectura.
 - name: Amdocs · Salud en OpenShift
   hosts: localhost
@@ -9,7 +9,7 @@
   gather_facts: false
   vars:
     api: "{{ lookup('env', 'K8S_AUTH_HOST') | regex_replace('/+$', '') }}"
-    ns: "{{ namespace | default('amdocs-bss') }}"
+    ns: "{{ amdocs_namespace | default('amdocs-bss') }}"
     cab: {Authorization: "Bearer {{ lookup('env', 'K8S_AUTH_API_KEY') }}"}
     umbral: "{{ umbral_ms | default(200) | int }}"
   tasks:

@@ -51,34 +51,60 @@
       failed_when: false
 
     - name: Analizar
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import json, re, sys
+            d = json.load(sys.stdin); umbral = d["umbral"]
+            def cpu(v):
+                v = str(v or "0")
+                return float(v[:-1]) / 1000 if v.endswith("m") else float(v[:-1]) / 1e9 if v.endswith("n") else float(v[:-1]) / 1e6 if v.endswith("u") else float(v)
+            def mem(v):
+                m = re.match(r"([0-9.]+)([A-Za-z]*)", str(v or "0")); n, u = float(m.group(1)), m.group(2)
+                return n * {"Ki": 1 / 1024, "Mi": 1, "Gi": 1024, "K": 1 / 1000 / 1.048, "M": 0.954, "G": 954, "": 1 / 1048576}.get(u, 1)
+            uso = {}
+            for p in d["pm"]:
+                for c in p.get("containers", []):
+                    uso[(p["metadata"]["namespace"], p["metadata"]["name"], c["name"])] = (cpu(c["usage"]["cpu"]), mem(c["usage"]["memory"]))
+            sobre, bajo, ociosos = [], [], set(); tot = {"req_cpu": 0, "uso_cpu": 0, "req_mem": 0, "uso_mem": 0}
+            for p in d["pods"]:
+                ns = p["metadata"]["namespace"]
+                if p.get("status", {}).get("phase") != "Running" or re.match(r"^(openshift|kube-)", ns):
+                    continue
+                own = re.sub(r"-[a-z0-9]{8,10}$", "", ((p["metadata"].get("ownerReferences") or [{"name": p["metadata"]["name"]}])[0]["name"]))
+                for c in p["spec"]["containers"]:
+                    k = (ns, p["metadata"]["name"], c["name"])
+                    if k not in uso:
+                        continue
+                    rq = (c.get("resources") or {}).get("requests") or {}
+                    rc, rm = cpu(rq.get("cpu")), mem(rq.get("memory")); uc, um = uso[k]
+                    tot["req_cpu"] += rc; tot["uso_cpu"] += uc; tot["req_mem"] += rm; tot["uso_mem"] += um
+                    if rm > 0 and um / rm * 100 < umbral:
+                        sug = max(um * 1.3, 64)
+                        sobre.append({"ns": ns, "app": own, "c": c["name"], "recurso": "memoria", "reservado": f"{rm:.0f}Mi", "usado": f"{um:.0f}Mi", "sugerido": f"{sug:.0f}Mi", "ahorro": rm - sug})
+                    if rc > 0 and uc / rc * 100 < umbral:
+                        sobre.append({"ns": ns, "app": own, "c": c["name"], "recurso": "cpu", "reservado": f"{rc*1000:.0f}m", "usado": f"{uc*1000:.0f}m", "sugerido": f"{max(uc*1300, 10):.0f}m", "ahorro": 0})
+                    if rm > 0 and um > rm * 1.1:
+                        bajo.append({"ns": ns, "app": own, "c": c["name"], "recurso": "memoria", "reservado": f"{rm:.0f}Mi", "usado": f"{um:.0f}Mi"})
+                    if uc < 0.002:
+                        ociosos.add(f"{ns}/{own}")
+            term = [{"name": p["metadata"]["name"], "namespace": p["metadata"]["namespace"], "creationTimestamp": p["metadata"].get("creationTimestamp", "")}
+                    for p in d["pods"] if p.get("status", {}).get("phase") in ("Succeeded", "Failed")]
+            builds = [{"name": b["metadata"]["name"], "namespace": b["metadata"]["namespace"], "creationTimestamp": b["metadata"].get("creationTimestamp", "")}
+                      for b in d["builds"] if b.get("status", {}).get("phase") in ("Complete", "Failed", "Cancelled", "Error")]
+            print(json.dumps({"sobre": sorted(sobre, key=lambda x: -x["ahorro"]), "bajo": bajo, "ociosos": sorted(ociosos), "tot": tot, "terminados": term,
+                              "rs_viejos": sum(1 for r in d["rs"] if (r.get("spec") or {}).get("replicas") == 0), "builds_viejos": builds}))
+        stdin: >-
+          {{ {'umbral': umbral | int, 'pm': r_pm.resources, 'pods': r_pods.resources, 'rs': r_rs.resources,
+              'builds': r_b.resources | default([])} | to_json }}
+      register: r_an
+      changed_when: false
+
+    - name: Resultado del análisis
       ansible.builtin.set_fact:
-        analisis: >-
-          {% macro cpu(v) %}{{ (v[:-1] | float / 1000) if v.endswith('m') else ((v[:-1] | float / 1000000000) if v.endswith('n') else ((v[:-1] | float / 1000000) if v.endswith('u') else v | float)) }}{% endmacro %}
-          {% macro mem(v) %}{% set u = {'Ki': 1/1024, 'Mi': 1, 'Gi': 1024, 'K': 1/1000, 'M': 0.954, 'G': 954} %}{% set n = v | regex_replace('[A-Za-z]+$', '') | float %}{% set s = v | regex_search('[A-Za-z]+$') or '' %}{{ (n * u.get(s, 1/1048576)) | round(1) }}{% endmacro %}
-          {% set uso = {} %}
-          {% for p in r_pm.resources %}{% for c in p.containers %}{% set _ = uso.update({p.metadata.namespace ~ '/' ~ p.metadata.name ~ '/' ~ c.name: {'cpu': cpu(c.usage.cpu) | float, 'mem': mem(c.usage.memory) | float}}) %}{% endfor %}{% endfor %}
-          {% set sobre = [] %}{% set bajo = [] %}{% set ociosos = [] %}{% set tot = {'req_cpu': 0.0, 'uso_cpu': 0.0, 'req_mem': 0.0, 'uso_mem': 0.0} %}
-          {% for p in r_pods.resources if p.status.phase == 'Running' and not p.metadata.namespace is match(sistema) %}
-            {% for c in p.spec.containers %}
-              {% set k = p.metadata.namespace ~ '/' ~ p.metadata.name ~ '/' ~ c.name %}
-              {% set rq = c.resources.requests | default({}) %}
-              {% if k in uso %}
-                {% set rc = cpu(rq.cpu | default('0')) | float %}{% set rm = mem(rq.memory | default('0')) | float %}
-                {% set _ = tot.update({'req_cpu': tot.req_cpu + rc, 'uso_cpu': tot.uso_cpu + uso[k].cpu, 'req_mem': tot.req_mem + rm, 'uso_mem': tot.uso_mem + uso[k].mem}) %}
-                {% set owner = (p.metadata.ownerReferences | default([{'name': p.metadata.name}]))[0].name | regex_replace('-[a-z0-9]{8,10}$', '') %}
-                {% if rm > 0 and uso[k].mem / rm * 100 < umbral | int %}{% set _ = sobre.append({'ns': p.metadata.namespace, 'app': owner, 'c': c.name, 'recurso': 'memoria', 'reservado': rm | round(0) ~ 'Mi', 'usado': uso[k].mem | round(0) ~ 'Mi', 'sugerido': [((uso[k].mem * 1.3) | round(0) | int), 64] | max ~ 'Mi', 'ahorro': rm - [uso[k].mem * 1.3, 64] | max}) %}{% endif %}
-                {% if rc > 0 and uso[k].cpu / rc * 100 < umbral | int %}{% set _ = sobre.append({'ns': p.metadata.namespace, 'app': owner, 'c': c.name, 'recurso': 'cpu', 'reservado': (rc * 1000) | round(0) | int ~ 'm', 'usado': (uso[k].cpu * 1000) | round(0) | int ~ 'm', 'sugerido': [((uso[k].cpu * 1300) | round(0) | int), 10] | max ~ 'm', 'ahorro': 0}) %}{% endif %}
-                {% if rm > 0 and uso[k].mem > rm * 1.1 %}{% set _ = bajo.append({'ns': p.metadata.namespace, 'app': owner, 'c': c.name, 'recurso': 'memoria', 'reservado': rm | round(0) ~ 'Mi', 'usado': uso[k].mem | round(0) ~ 'Mi'}) %}{% endif %}
-                {% if uso[k].cpu < 0.002 %}{% set _ = ociosos.append(p.metadata.namespace ~ '/' ~ owner) %}{% endif %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {% set terminados = r_pods.resources | selectattr('status.phase', 'in', ['Succeeded', 'Failed']) | list %}
-          {% set rs_viejos = r_rs.resources | selectattr('spec.replicas', 'equalto', 0) | list %}
-          {{ {'sobre': sobre | sort(attribute='ahorro', reverse=true), 'bajo': bajo, 'ociosos': ociosos | unique | list, 'tot': tot,
-              'terminados': terminados | map(attribute='metadata') | list,
-              'rs_viejos': rs_viejos | length,
-              'builds_viejos': (r_b.resources | default([])) | selectattr('status.phase', 'in', ['Complete', 'Failed', 'Cancelled', 'Error']) | map(attribute='metadata') | list } }}
+        analisis: "{{ r_an.stdout | from_json }}"
 
     - name: Antigüedad mínima para limpiar
       ansible.builtin.set_fact:

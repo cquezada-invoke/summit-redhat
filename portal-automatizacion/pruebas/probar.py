@@ -78,7 +78,7 @@ CASOS = {
     "proyecto": lambda: (lanzar("OpenShift · Alta de proyecto", {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 1, "memoria_gi": 1, "accion": "crear"}),
                          lanzar("OpenShift · Regularizar línea base", {"modo": "revisar", "namespaces": ""}),
                          lanzar("OpenShift · Regularizar línea base", {"modo": "corregir", "namespaces": "demo-pagos"}),
-                         lanzar("OpenShift · Alta de proyecto", {"proyecto": "demo-pagos", "accion": "eliminar"})),
+                         lanzar("OpenShift · Alta de proyecto", {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 1, "memoria_gi": 1, "accion": "eliminar"})),
     "rechazo": lambda: lanzar("OpenShift · Salud del clúster", {"severidad_minima": "critical", "incluir_pods": "no"}, aprobar=False),
     "etcd": lambda: lanzar("OpenShift · Respaldo de etcd", {"conservar": 2}),
     "cnf": lambda: (lanzar("Telco · Validar clúster para CNF", {"cnf_perfil": "upf"}),
@@ -111,7 +111,7 @@ def orden():
     f = esperar_fin(wj)
     print(f"   workflow #{wj} {f['status']}\n{resumen(wj)}\n   orden en Amdocs: {amdocs('GET', '/orders/' + o['id'])['estado']}", flush=True)
     lanzar("Telco · Red del servicio (VLAN y BGP)", {"svc_accion": "retirar", "svc_nombre": "upf-banco", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "simular_falla": "no"})
-    lanzar("Telco · Onboarding de CNF", {"cnf_nombre": "upf-banco", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "accion": "retirar"})
+    lanzar("Telco · Onboarding de CNF", {"cnf_nombre": "upf-banco", "proveedor": "nabstract", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "hugepages_gi": 4, "accion": "retirar"})
 
 
 CASOS["orden"] = orden

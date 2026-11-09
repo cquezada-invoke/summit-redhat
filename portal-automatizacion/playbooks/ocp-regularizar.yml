@@ -38,26 +38,39 @@
       register: r_obj
 
     - name: Hallazgos
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import json, sys
+            datos = json.load(sys.stdin); h = []
+            por = {}
+            for (ns, tipo), res in datos:
+                por.setdefault(ns, {})[tipo] = res
+            for ns, o in por.items():
+                if not o.get("LimitRange"): h.append({"ns": ns, "obj": "-", "regla": "Sin LimitRange", "corrige": True})
+                if not o.get("ResourceQuota"): h.append({"ns": ns, "obj": "-", "regla": "Sin ResourceQuota", "corrige": False})
+                if not o.get("NetworkPolicy"): h.append({"ns": ns, "obj": "-", "regla": "Sin NetworkPolicy", "corrige": True})
+                for d in o.get("Deployment") or []:
+                    nom = d["metadata"]["name"]
+                    for c in d["spec"]["template"]["spec"].get("containers", []):
+                        r = c.get("resources") or {}
+                        ref = f"{nom}/{c['name']}"
+                        if not r.get("requests") or not r.get("limits"): h.append({"ns": ns, "obj": ref, "regla": "Sin requests o limits", "corrige": False})
+                        if "readinessProbe" not in c or "livenessProbe" not in c: h.append({"ns": ns, "obj": ref, "regla": "Sin sondas de salud", "corrige": False})
+                        img = c.get("image", "")
+                        if "@sha256" not in img and (img.endswith(":latest") or ":" not in img.split("/")[-1]): h.append({"ns": ns, "obj": ref, "regla": "Imagen sin versión fija", "corrige": False})
+                        if (c.get("securityContext") or {}).get("privileged"): h.append({"ns": ns, "obj": ref, "regla": "Contenedor privilegiado", "corrige": False})
+                    if "prod" in ns and (d["spec"].get("replicas") or 1) < 2: h.append({"ns": ns, "obj": nom, "regla": "Una sola réplica en producción", "corrige": False})
+            print(json.dumps(h))
+        stdin: "{{ r_obj.results | map(attribute='item') | zip(r_obj.results | map(attribute='resources')) | list | to_json }}"
+      register: r_h
+      changed_when: false
+
+    - name: Lista de hallazgos
       ansible.builtin.set_fact:
-        hallazgos: >-
-          {% set h = [] %}
-          {% for ns in nss %}
-            {% set objs = r_obj.results | selectattr('item.0', 'equalto', ns) | list %}
-            {% set de = (objs | selectattr('item.1', 'equalto', 'Deployment') | first).resources %}
-            {% if not (objs | selectattr('item.1', 'equalto', 'LimitRange') | first).resources %}{% set _ = h.append({'ns': ns, 'obj': '-', 'regla': 'Sin LimitRange', 'corrige': true}) %}{% endif %}
-            {% if not (objs | selectattr('item.1', 'equalto', 'ResourceQuota') | first).resources %}{% set _ = h.append({'ns': ns, 'obj': '-', 'regla': 'Sin ResourceQuota', 'corrige': false}) %}{% endif %}
-            {% if not (objs | selectattr('item.1', 'equalto', 'NetworkPolicy') | first).resources %}{% set _ = h.append({'ns': ns, 'obj': '-', 'regla': 'Sin NetworkPolicy', 'corrige': true}) %}{% endif %}
-            {% for d in de %}
-              {% for c in d.spec.template.spec.containers %}
-                {% if not (c.resources.requests | default({})) or not (c.resources.limits | default({})) %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name ~ '/' ~ c.name, 'regla': 'Sin requests o limits', 'corrige': false}) %}{% endif %}
-                {% if c.readinessProbe is not defined or c.livenessProbe is not defined %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name ~ '/' ~ c.name, 'regla': 'Sin sondas de salud', 'corrige': false}) %}{% endif %}
-                {% if c.image is match('.*:latest$') or ':' not in c.image.split('/')[-1] %}{% if '@sha256' not in c.image %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name ~ '/' ~ c.name, 'regla': 'Imagen sin versión fija', 'corrige': false}) %}{% endif %}{% endif %}
-                {% if (c.securityContext.privileged | default(false)) %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name ~ '/' ~ c.name, 'regla': 'Contenedor privilegiado', 'corrige': false}) %}{% endif %}
-              {% endfor %}
-              {% if ns is search('prod') and (d.spec.replicas | default(1)) | int < 2 %}{% set _ = h.append({'ns': ns, 'obj': d.metadata.name, 'regla': 'Una sola réplica en producción', 'corrige': false}) %}{% endif %}
-            {% endfor %}
-          {% endfor %}
-          {{ h }}
+        hallazgos: "{{ r_h.stdout | from_json }}"
 
     - name: Corregir · LimitRange por defecto
       kubernetes.core.k8s:
