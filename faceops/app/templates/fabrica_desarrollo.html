@@ -27,7 +27,8 @@ async function cargar(){let d;try{d=await (await fetch({{ url_for('consola.fabri
  f.innerHTML=d.repos.map(r=>{const fe=r.features[0];const extra=r.features.length>1?`<br><span class="sub">+${r.features.length-1} rama(s) feature más</span>`:'';
   const fuera=r.ramas_fuera_de_gitflow.length?`<br><span class="chip s-alta" title="Ramas que no siguen Gitflow">⚠ ${esc(r.ramas_fuera_de_gitflow.join(', '))}</span>`:'';
   const mv=r.misma_version?'<span class="chip s-ok">sí</span>'+(r.sin_qa?'<br><span class="sub">sin rama de QA</span>':''):`<span class="chip s-media">no</span><br><span class="sub">${r.dev_vs_prod!=null?'dev +'+r.dev_vs_prod+' vs prod':''}${r.qa_vs_prod!=null?' · qa +'+r.qa_vs_prod:''}</span>`;
-  const tr=fe?`<a href="?trabajo=${encodeURIComponent(r.repo+'@'+fe.rama)}" title="${fe.conversacion?'Volver a la conversación de este trabajo en el chat':'Trabajo entregado antes de guardar conversaciones: abre el chat con su código'}"><b>${esc(fe.titulo||r.repo)}</b></a><br><span class="sub">${esc(r.repo)}${fe.usuario?' · '+esc(fe.usuario):''} · ${esc(fe.fecha)}</span>`:`<b>${esc(r.repo)}</b>`;
+  const idTrabajo=rm=>{const m=(rm||'').match(/-(\d{6,})$/);return m?'T-'+m[1]:(rm||'').replace(/^feature\//,'')};
+  const tr=fe?`<a href="?trabajo=${encodeURIComponent(r.repo+'@'+fe.rama)}" title="${esc(fe.titulo||r.repo)} · ${fe.conversacion?'volver a la conversación en el chat':'entregado antes de guardar conversaciones: abre el chat con su código'}"><b class="mono">${esc(idTrabajo(fe.rama))}</b></a>`:`<b>${esc(r.repo)}</b>`;
   return `<tr><td>${tr}${fuera}</td>
    <td>${fe?`<a href="${esc(fe.url)}" target="_blank" rel="noopener" class="mono">${esc(fe.rama)}</a><br><span class="sub">${esc(fe.sha)} · ${esc(fe.fecha)} · ${esc(fe.mensaje)}</span>${extra}`:'<span class="sub">sin rama feature</span>'}</td>
    <td>${fe&&fe.por_integrar!=null?(fe.por_integrar?fe.por_integrar+' commit(s)':'integrada'):'—'}</td>
