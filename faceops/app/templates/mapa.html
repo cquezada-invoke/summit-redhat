@@ -421,7 +421,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function flujo(on){ const cy_=window._cy; if(!cy_) return;
     if(on&&!flujoAnim){
       cy_.style().selector('edge.fluyendo').style({'line-style':'dashed','line-dash-pattern':[7,7],'width':4}).update();
-      cy_.edges('[tipo="flujo"]').addClass('fluyendo');
+      cy_.edges().filter(e=>['flujo','bifurcacion','enlace'].includes(e.data('tipo'))&&e.data('estado_flujo')!=='bloqueado').addClass('fluyendo');   // usuario → entrada, tramos internos y bifurcación al data lake; un puerto bloqueado no fluye
       flujoAnim=setInterval(()=>{ flujoOff=(flujoOff+1.5)%1400; cy_.edges('.fluyendo').style('line-dash-offset',-flujoOff); },40);
     } else if(!on&&flujoAnim){ clearInterval(flujoAnim); flujoAnim=null; cy_.edges('.fluyendo').removeStyle('line-dash-offset').removeClass('fluyendo'); }
   }
@@ -431,7 +431,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function tickPerf(){ clearTimeout(perfTimer);
     fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=x; const corre=['corriendo','pausado','preparando'].includes(x.estado);
       if(corre||PERF_ON) ponerPerf();
-      flujo(x.estado==='corriendo');   // solo mientras de verdad pasa la carga por las líneas
+      flujo(x.estado==='corriendo'||x.estado==='preparando');   // la entrada HTTP se mide desde el primer segundo; los tramos internos se suman cuando AAP arranca
       if(!corre&&PERF_ON&&!perfFin) perfFin=setTimeout(quitarPerf, PERF_MIN*60000);
       pintarControles(); if(TABLA_ABIERTA) pintarTabla();
       if(corre) perfTimer=setTimeout(tickPerf, x.estado==='pausado'?3000:2000); }).catch(()=>{ perfTimer=setTimeout(tickPerf,4000); }); }
@@ -449,9 +449,8 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     c.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="font-size:12.5px">Umbral (ms) <input id="perf-umb" type="number" min="1" max="60000" value="'+umV+'" style="width:80px"></label><button type="button" class="btn chico gris" id="perf-umb-g">Guardar umbral</button></div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="font-size:12.5px">Segundos a probar <input id="perf-seg" type="number" min="1" max="120" value="'+(activo?x.duracion:segV)+'" style="width:70px"'+(activo?' disabled':'')+'></label>'
       +'<button type="button" class="btn chico" id="perf-ini"'+(activo?' disabled':'')+'>Iniciar</button>'
-      +'<button type="button" class="btn chico gris" id="perf-pau"'+(corre||pausa?'':' disabled')+'>'+(pausa?'Reanudar':'Pausar')+'</button>'
       +'<button type="button" class="btn chico gris" id="perf-det"'+(activo?'':' disabled')+'>Detener</button>'
-      +'<button type="button" class="btn chico gris" id="perf-tab"'+(x.tramos&&Object.keys(x.tramos).length?'':' disabled')+'>'+(TABLA_ABIERTA?'Ocultar tabla':'Ver tabla')+'</button></div>'
+      +'<button type="button" class="btn chico gris" id="perf-tab"'+((x.tramos&&Object.keys(x.tramos).length)||(x.entrada||{}).url?'':' disabled')+'>Descargar CSV</button></div>'
       +(x.estado&&x.estado!=='sin pruebas'?'<div><div style="display:flex;justify-content:space-between;font-size:13px"><b>⏱ '+Math.floor(x.transcurrido||0)+' / '+(x.duracion||0)+' s</b><span class="sub">'+({corriendo:'midiendo',pausado:'en pausa',preparando:'AAP arrancando la medición…',detenido:'detenida',listo:'terminada'}[x.estado]||x.estado)+'</span></div>'
         +'<div style="height:6px;background:var(--soft,#eee);border-radius:3px;overflow:hidden;margin-top:3px"><i style="display:block;height:100%;width:'+pct+'%;background:'+(pausa?'#8a8d90':'#0066cc')+'"></i></div>'
         +'<div style="font-size:12.5px;margin-top:4px">'+(r&&r.ms?'Ruta crítica: <b>'+n2(r.ms)+' ms</b> · ':'')+(cuellos?'<b style="color:#a30000">'+cuellos+' cuello'+(cuellos===1?'':'s')+' de botella</b> (sobre '+umV+' ms)':'sin cuellos de botella (umbral '+umV+' ms)')
@@ -462,11 +461,20 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     $('perf-umb-g').onclick=()=>postPerf('umbral',{umbral:$('perf-umb').value}).then(x=>{ if(x){ if(PERF_ON) ponerPerf(); pintarControles(); if(TABLA_ABIERTA) pintarTabla(); } });
     $('perf-ini').onclick=()=>{ const sg=Math.max(1,Math.min(120,parseInt($('perf-seg').value||'30',10))); $('perf-ini').disabled=true;
       postPerf('iniciar',{segundos:sg}).then(x=>{ if(x){ clearTimeout(perfFin); perfFin=null; PERF_ON=true; tickPerf(); } else $('perf-ini').disabled=false; }); };
-    $('perf-pau').onclick=()=>postPerf(pausa?'reanudar':'pausar').then(x=>{ if(x) tickPerf(); });
     $('perf-det').onclick=()=>postPerf('detener').then(x=>{ if(x){ perfFin=null; tickPerf(); } });
-    $('perf-tab').onclick=()=>{ TABLA_ABIERTA=!TABLA_ABIERTA; if(TABLA_ABIERTA) pintarTabla(); else { const f=$('perf-flot'); if(f) f.remove(); } pintarControles(); };
+    $('perf-tab').onclick=()=>descargarCSV();
     const nn=$('perf-norm'); if(nn) nn.onclick=ev=>{ ev.preventDefault(); quitarPerf(); };
     const vv=$('perf-ver'); if(vv) vv.onclick=ev=>{ ev.preventDefault(); ponerPerf(); perfFin=setTimeout(quitarPerf, PERF_MIN*60000); pintarControles(); };
+  }
+  function descargarCSV(){   // resultados de la prueba: un tramo por fila (tiempos en ms)
+    const x=PERF||{}, cols=['n','min','prom','p95','max','jitter'], q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+    const filas=[['tramo','desde','hacia','muestras','min_ms','prom_ms','p95_ms','max_ms','jitter_ms','perdidas','cuello_de_botella']];
+    const fila=(nom,de,a,g,cu)=>filas.push([nom,de,a].concat(cols.map(c=>c==='n'?(g.n||0):(g[c]!=null?Number(g[c]).toFixed(2):''))).concat([g.perdidas||0,cu?'si':'no']));
+    const en=x.entrada||{}; if(en.url) fila('Entrada HTTP '+en.url,'usuario',en.url,en.global||{},en.cuello);
+    Object.entries(x.tramos||{}).forEach(([k,t])=>fila(t.desde+' -> '+k.split('>')[1],t.desde,k.split('>')[1],t.global||{},t.cuello));
+    const csv='\ufeff'+filas.map(r=>r.map(q).join(';')).join('\r\n');
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download='rendimiento-'+(SEG||'segmento').replace(/[^\w-]+/g,'-')+'-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'')+'.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   }
   function pintarTabla(){ let f=document.getElementById('perf-flot');
     if(!f){ f=document.createElement('div'); f.id='perf-flot';
