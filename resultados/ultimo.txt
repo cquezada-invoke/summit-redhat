@@ -1,52 +1,134 @@
-commit: 39aa37bf21a05c865239e5d80e7f24120287ba0e
-inicio: 2026-11-10T20:35:17-03:00
+commit: d38168965fb770a5f0d515c3257074a4d4eefacd
+inicio: 2026-11-10T20:36:11-03:00
 ---
-ad hoc 22234 successful
-Identity added: /runner/artifacts/22234/ssh_key_data (cquezada@demo-ansible-summit)
-[0;33mnodo-jboss | CHANGED | rc=0 >>[0m
-[0;33m× eap8-standalone.service - JBoss EAP (standalone mode)[0m
-[0;33m     Loaded: loaded (/usr/lib/systemd/system/eap8-standalone.service; enabled; preset: disabled)[0m
-[0;33m     Active: failed (Result: exit-code) since Tue 2026-11-10 18:32:46 EST; 2min 41s ago[0m
-[0;33m   Duration: 1.084s[0m
-[0;33m    Process: 162504 ExecStart=/usr/bin/scl enable $EAP8_SCLS_ENABLED -- /opt/rh/eap8/root/usr/share/wildfly/bin/launch.sh $JAVA_HOME $JAVAPTH $WILDFLY_MODULEPATH $WILDFLY_SH $WILDFLY_SERVER_CONFIG $WILDFLY_BIND $WILDFLY_[0m
-[0;33m   Main PID: 162504 (code=exited, status=1/FAILURE)[0m
-[0;33m        CPU: 1.629s[0m
-[0;33m[0m
-[0;33mNov 10 18:32:45 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).[0m
-[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=1/FAILURE[0m
-[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.[0m
-[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Consumed 1.629s CPU time.[0m
-[0;33mNov 10 18:32:45 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).[0m
-[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=1/FAILURE[0m
-[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.[0m
-[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Consumed 1.629s CPU time.[0m
-[0;33m2026-11-10 18:17:36,910 ERROR [org.jboss.as.server] (management-handler-thread - 1) WFLYSRV0014: Replacement of deployment "app-jboss.war" by deployment "app-jboss.war" was rolled back with the following failure message: undefined[0m
-[0;33m2026-11-10 18:22:11,244 INFO  [org.jboss.as] (MSC service thread 1-1) WFLYSRV0050: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) stopped in 137ms[0m
-[0;33m               total        used        free      shared  buff/cache   available[0m
-[0;33mMem:            1707         561         835           7         470        1145[0m
-[0;33mSwap:              0           0           0[0m
-Identity added: /runner/artifacts/22234/ssh_key_data (cquezada@demo-ansible-summit)
+
+[0;33mdrwxrwxr-x.  3 root  jboss  4096 Nov 10 15:28 .[0m
+[0;33mdrwxrwxr-x.  5 root  jboss   128 Nov 10 18:22 ..[0m
+[0;33m-rw-------.  1 jboss jboss   711 Feb 19  2026 application-roles.properties[0m
+[0;33m-rw-------.  1 jboss jboss   935 Feb 19  2026 application-users.properties[0m
+[0;33m-rw-r--r--.  1 jboss jboss  2071 Nov  2 02:03 application.keystore[0m
+[0;33m-rw-------.  1 jboss jboss  1880 Nov 10 16:31 logging.properties[0m
+[0;33m-rw-------.  1 jboss jboss   670 Oct 26 16:28 mgmt-groups.properties[0m
+[0;33m-rw-------.  1 jboss jboss  1155 Oct 26 16:28 mgmt-users.properties[0m
+[0;33m-rw-rw-r--.  1 jboss jboss 38211 Feb 19  2026 standalone-full-ha.xml[0m
+[0;33m-rw-rw-r--.  1 jboss jboss 32741 Feb 19  2026 standalone-full.xml[0m
+[0;33m-rw-rw-r--.  1 jboss jboss 34340 Feb 19  2026 standalone-ha.xml[0m
+[0;33m-rw-rw-r--.  1 jboss jboss 12755 Feb 19  2026 standalone-load-balancer.xml[0m
+[0;33m-rw-r--r--.  1 jboss jboss 31752 Nov 10 15:28 standalone.xml[0m
+[0;33mdrwxr-xr-x. 27 jboss jboss  4096 Nov 10 16:31 standalone_xml_history[0m
+[0;33mNov 10 18:36:16 nodo-jboss.demo.local python3[782]: EDA no responde: <urlopen error [Errno 111] Connection refused>[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local sshd-session[166609]: Accepted publickey for ansible from 192.168.122.1 port 39266 ssh2: ED25519 SHA256:Fl0OlHkqcF/M51Yfhf9n7an5PHO2R9tItaE1PIsVf64[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Created slice User Slice of UID 1000.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Starting User Runtime Directory /run/user/1000...[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd-logind[727]: New session 53 of user ansible.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Finished User Runtime Directory /run/user/1000.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Starting User Manager for UID 1000...[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Queued start job for default target Main User Target.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Created slice User Application Slice.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Started Mark boot as successful after the user session has run 2 minutes.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Started Daily Cleanup of User's Temporary Directories.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Paths.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Timers.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Starting D-Bus User Message Bus Socket...[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Starting Create User's Volatile Files and Directories...[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Listening on D-Bus User Message Bus Socket.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Sockets.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Finished Create User's Volatile Files and Directories.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Basic System.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Started User Manager for UID 1000.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Main User Target.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Startup finished in 95ms.[0m
+[0;33mNov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Started Session 53 of User ansible.[0m
+[0;33mNov 10 18:36:21 nodo-jboss.demo.local python3[782]: EDA no responde: <urlopen error [Errno 111] Connection refused>[0m
+[0;33mNov 10 18:36:21 nodo-jboss.demo.local sudo[166861]:  ansible : TTY=pts/0 ; PWD=/home/ansible ; USER=root ; COMMAND=/bin/sh -c 'echo BECOME-SUCCESS-jabsxmbtvkxtuqmemzzffyxmmifwedvv ; /usr/bin/python3 /home/ansible/.ansible/tmp/ansible-tmp-1794353780.9[0m
+Identity added: /runner/artifacts/22235/ssh_key_data (cquezada@demo-ansible-summit)
 nodo-jboss | CHANGED | rc=0 >>
-× eap8-standalone.service - JBoss EAP (standalone mode)
-     Loaded: loaded (/usr/lib/systemd/system/eap8-standalone.service; enabled; preset: disabled)
-     Active: failed (Result: exit-code) since Tue 2026-11-10 18:32:46 EST; 2min 41s ago
-   Duration: 1.084s
-    Process: 162504 ExecStart=/usr/bin/scl enable $EAP8_SCLS_ENABLED -- /opt/rh/eap8/root/usr/share/wildfly/bin/launch.sh $JAVA_HOME $JAVAPTH $WILDFLY_MODULEPATH $WILDFLY_SH $WILDFLY_SERVER_CONFIG $WILDFLY_BIND $WILDFLY_
-   Main PID: 162504 (code=exited, status=1/FAILURE)
-        CPU: 1.629s
+/var/opt/rh/eap8/log/wildfly/standalone/console.log
+/var/opt/rh/eap8/log/wildfly/standalone/backupgc.log
+/var/opt/rh/eap8/log/wildfly/standalone/server.log
+/var/opt/rh/eap8/log/wildfly/standalone/gc.log
+/etc/opt/rh/eap8/wildfly/eap8-standalone.conf
+Environment=LAUNCH_JBOSS_IN_BACKGROUND=1
+Environment="JAVA_HOME=/usr/lib/jvm/jre"
+Environment="JAVAPTH=/usr/lib/jvm/jre/bin"
+Environment="WILDFLY_SH=/opt/rh/eap8/root/usr/share/wildfly/bin/standalone.sh"
+Environment="WILDFLY_SERVER_CONFIG=standalone.xml"
+Environment="WILDFLY_CONSOLE_LOG=/var/opt/rh/eap8/log/wildfly/standalone/console.log"
+Environment="WILDFLY_MODULEPATH=/opt/rh/eap8/root/usr/share/wildfly/modules"
+Environment="WILDFLY_BIND=0.0.0.0"
+Environment="WILDFLY_OPTS="
+EnvironmentFile=-/etc/opt/rh/eap8/wildfly/eap8-standalone.conf
+EnvironmentFile=-/opt/rh/eap8/service-environment
+User=jboss
+total 188
+drwxrwxr-x.  3 root  jboss  4096 Nov 10 15:28 .
+drwxrwxr-x.  5 root  jboss   128 Nov 10 18:22 ..
+-rw-------.  1 jboss jboss   711 Feb 19  2026 application-roles.properties
+-rw-------.  1 jboss jboss   935 Feb 19  2026 application-users.properties
+-rw-r--r--.  1 jboss jboss  2071 Nov  2 02:03 application.keystore
+-rw-------.  1 jboss jboss  1880 Nov 10 16:31 logging.properties
+-rw-------.  1 jboss jboss   670 Oct 26 16:28 mgmt-groups.properties
+-rw-------.  1 jboss jboss  1155 Oct 26 16:28 mgmt-users.properties
+-rw-rw-r--.  1 jboss jboss 38211 Feb 19  2026 standalone-full-ha.xml
+-rw-rw-r--.  1 jboss jboss 32741 Feb 19  2026 standalone-full.xml
+-rw-rw-r--.  1 jboss jboss 34340 Feb 19  2026 standalone-ha.xml
+-rw-rw-r--.  1 jboss jboss 12755 Feb 19  2026 standalone-load-balancer.xml
+-rw-r--r--.  1 jboss jboss 31752 Nov 10 15:28 standalone.xml
+drwxr-xr-x. 27 jboss jboss  4096 Nov 10 16:31 standalone_xml_history
+Nov 10 18:36:16 nodo-jboss.demo.local python3[782]: EDA no responde: <urlopen error [Errno 111] Connection refused>
+Nov 10 18:36:20 nodo-jboss.demo.local sshd-session[166609]: Accepted publickey for ansible from 192.168.122.1 port 39266 ssh2: ED25519 SHA256:Fl0OlHkqcF/M51Yfhf9n7an5PHO2R9tItaE1PIsVf64
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Created slice User Slice of UID 1000.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Starting User Runtime Directory /run/user/1000...
+Nov 10 18:36:20 nodo-jboss.demo.local systemd-logind[727]: New session 53 of user ansible.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Finished User Runtime Directory /run/user/1000.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Starting User Manager for UID 1000...
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Queued start job for default target Main User Target.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Created slice User Application Slice.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Started Mark boot as successful after the user session has run 2 minutes.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Started Daily Cleanup of User's Temporary Directories.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Paths.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Timers.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Starting D-Bus User Message Bus Socket...
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Starting Create User's Volatile Files and Directories...
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Listening on D-Bus User Message Bus Socket.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Sockets.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Finished Create User's Volatile Files and Directories.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Basic System.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Started User Manager for UID 1000.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Reached target Main User Target.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[166613]: Startup finished in 95ms.
+Nov 10 18:36:20 nodo-jboss.demo.local systemd[1]: Started Session 53 of User ansible.
+Nov 10 18:36:21 nodo-jboss.demo.local python3[782]: EDA no responde: <urlopen error [Errno 111] Connection refused>
+Nov 10 18:36:21 nodo-jboss.demo.local sudo[166861]:  ansible : TTY=pts/0 ; PWD=/home/ansible ; USER=root ; COMMAND=/bin/sh -c 'echo BECOME-SUCCESS-jabsxmbtvkxtuqmemzzffyxmmifwedvv ; /usr/bin/python3 /home/ansible/.ansible/tmp/ansible-tmp-1794353780.9
 
-Nov 10 18:32:45 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).
-Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=1/FAILURE
-Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.
-Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Consumed 1.629s CPU time.
-Nov 10 18:32:45 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).
-Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=1/FAILURE
-Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.
-Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Consumed 1.629s CPU time.
-2026-11-10 18:17:36,910 ERROR [org.jboss.as.server] (management-handler-thread - 1) WFLYSRV0014: Replacement of deployment "app-jboss.war" by deployment "app-jboss.war" was rolled back with the following failure message: undefined
-2026-11-10 18:22:11,244 INFO  [org.jboss.as] (MSC service thread 1-1) WFLYSRV0050: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) stopped in 137ms
-               total        used        free      shared  buff/cache   available
-Mem:            1707         561         835           7         470        1145
-Swap:              0           0           0
-
---- fin: 2026-11-10T20:35:31-03:00 · código: 0
+FO-LAB-01439 exitoso 22:38:30 FaceOps · Eliminar servidor | Limpieza del plan de prueba de «FaceOps · Habilitar servidor»: eliminar srv-prueba-hab-01- | {"el_equipo": "srv-prueba-hab-01-fallida-202611101934", "el_ip": "", "el_balanceadores": [], "hab_replicas_nuevas": 1}
+FO-LAB-01440 fallido 22:39:36 Migración · WebLogic a OpenShift · Evaluar | Plan de prueba WebLogic wl3 · E-C3 sin dominio | {}
+FO-LAB-01441 exitoso 22:42:13 Migración · WebLogic a OpenShift | Plan de prueba WebLogic wl3 · M-C2 migrar ventas | {"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+FO-LAB-01442 exitoso 22:48:58 Migración · WebLogic a OpenShift | Plan de prueba WebLogic wl3 · M-C3 migrar ventas de nuevo | {"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+FO-LAB-01443 fallido 22:51:13 Migración · WebLogic a OpenShift | Plan de prueba WebLogic wl3 · M-C4 migrar legado | {"wl_modo": "migrar", "wl_app": "legado", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+FO-LAB-01444 fallido 22:53:36 Migración · WebLogic a OpenShift | Plan de prueba WebLogic wl3 · M-C5 salud falla y vuelta atras | {"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/no-existe", "wl_cpu": "
+FO-LAB-01445 exitoso 23:01:25 Migración · WebLogic a OpenShift | Plan de prueba WebLogic wl3 · M-C6 revertir | {"wl_modo": "revertir", "wl_app": "ventas", "wl_namespace": "wl-ventas"}
+FO-LAB-01446 exitoso 23:04:41 Red · Inventariar equipo de red | Prueba C3a: inventariar sw-core-01 | {}
+FO-LAB-01447 exitoso 23:04:44 Red · Inventariar equipo de red | Prueba C3b: inventariar sw-acc-01 | {}
+FO-LAB-01448 exitoso 23:04:48 Red · Inventariar equipo de red | Prueba C4: inventariar lb-sede-01 | {}
+FO-LAB-01449 exitoso 23:04:51 Red · Inventariar equipo de red | Prueba C1b: inventariar fw-sede-01 | {}
+FO-LAB-01450 exitoso 23:04:55 Red · Inventariar equipo de red | Prueba C2b: inventariar rtr-wan-01 | {}
+FO-LAB-01451 exitoso 23:11:19 Red · Inventariar equipo de red | Prueba C3a: inventariar sw-core-01 | {}
+FO-LAB-01452 exitoso 23:11:23 Red · Inventariar equipo de red | Prueba C3b: inventariar sw-acc-01 | {}
+FO-LAB-01453 exitoso 23:11:27 Red · Inventariar equipo de red | Prueba C4: inventariar lb-sede-01 | {}
+FO-LAB-01454 exitoso 23:11:31 Red · Inventariar equipo de red | Prueba C1b: inventariar fw-sede-01 | {}
+FO-LAB-01455 exitoso 23:11:34 Red · Inventariar equipo de red | Prueba C2b: inventariar rtr-wan-01 | {}
+FO-LAB-01456 exitoso 23:12:05 Migración · WebLogic a OpenShift · Evaluar | Plan de prueba WebLogic wl4 · diagnostico git | {}
+FO-LAB-01457 exitoso 23:21:18 FaceOps · Aplicar política de seguridad | Aplicar APP-02 v1 · JBoss con consola de administración protegida | {"politica": {"nombre": "JBoss con consola de administración protegida", "categoria": "aplicaciones", "descripcion": "La
+FO-LAB-01458 exitoso 23:21:24 Migración · WebLogic a OpenShift | Plan de prueba WebLogic wl5 · M-C1 emular-origen | {"wl_modo": "emular-origen", "wl_app": "ventas", "wl_namespace": "wl-ventas"}
+FO-LAB-01459 exitoso 23:23:49 Migración · WebLogic a OpenShift · Evaluar | Plan de prueba WebLogic wl5 · E-C1 evaluar | {}
+FO-LAB-01460 exitoso 23:24:37 FaceOps · Habilitar servidor | Plan de prueba de «FaceOps · Habilitar servidor» · C1: crear 1 RHEL 9 de desarrollo en App | {"hab_interno": true, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_segmento": "App de pagos", "hab_nombre": "pago
+FO-LAB-01461 exitoso 23:26:12 Migración · WebLogic a OpenShift · Evaluar | Plan de prueba WebLogic wl5 · E-C2 repetir | {}
+FO-LAB-01462 exitoso 23:26:56 FaceOps · Vincular máquina a la bóveda | Vinculación automática a la bóveda · servidor creado en FO-LAB-01460 | {"vm_usuario": "faceops", "vm_tipo": "linux"}
+FO-LAB-01463 exitoso 23:27:06 FaceOps · Habilitar servidor | Plan de prueba de «FaceOps · Habilitar servidor» · C2: repetir la misma solicitud | {"hab_interno": true, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_segmento": "App de pagos", "hab_nombre": "pago
+FO-LAB-01464 fallido 23:28:34 FaceOps · Habilitar servidor | Plan de prueba de «FaceOps · Habilitar servidor» · C3: solicitud no válida | {"hab_interno": true, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_segmento": "App de pagos", "hab_nombre": "1X!"
+FO-LAB-01465 fallido 23:29:06 Migración · WebLogic a OpenShift · Evaluar | Plan de prueba WebLogic wl5 · E-C3 sin dominio | {}
+FO-LAB-01466 exitoso 23:30:33 FaceOps · Habilitar servidor | Plan de prueba de «FaceOps · Habilitar servidor» · C4: reemplazar conservando la caída | {"hab_interno": true, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_segmento": "App de pagos", "hab_nombre": "pago
+FO-LAB-01467 en_ejecucion 23:31:58 Migración · WebLogic a OpenShift | Plan de prueba WebLogic wl5 · M-C2 migrar ventas | {"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+FO-LAB-01468 exitoso 23:33:35 FaceOps · Eliminar servidor | Limpieza del plan de prueba de «FaceOps · Habilitar servidor»: eliminar srv-pagos-web-01 | {"el_equipo": "srv-pagos-web-01", "el_ip": "192.168.122.174", "el_balanceadores": [], "hab_replicas_nuevas": 1}
+--- fin: 2026-11-10T20:36:32-03:00 · código: 0
