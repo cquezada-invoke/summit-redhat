@@ -1,0 +1,24 @@
+commit: a8bc334671487577b0aa5452a2942c576b117436
+inicio: 2026-11-10T20:00:24-03:00
+---
+a661a77
+== 2. Alta de la sede en AAP y bóveda
+   · rtr-wan-01  172.20.20.71  router       frr
+   · fw-sede-01  172.20.20.72  firewall     vyos
+   · sw-core-01  172.20.20.73  switch       frr
+   · sw-acc-01   172.20.20.74  switch       frr
+   · lb-sede-01  172.20.20.75  balanceador  haproxy
+   · bóveda rtr-wan-01  job 22095: successful
+   · bóveda fw-sede-01  job 22096: failed
+   · bóveda sw-core-01  job 22097: successful
+   · bóveda sw-acc-01   job 22098: successful
+   · bóveda lb-sede-01  job 22099: successful
+== 3. Despliegue de FaceOps (exporta la topología de los laboratorios)
+   faceops actualizado
+sincronizar: 48
+equipos: {'rtr-wan-01': 123, 'fw-sede-01': 121, 'sw-core-01': 125, 'sw-acc-01': 124, 'lb-sede-01': 122}
+retirados ahora: ['pc-oficina-01', 'pc-oficina-02', 'srv-rocky-prueba-01', 'srv-servidor-de-ejemplo-01', 'srv-test-ubuntu-01']
+Error: container has already been removed
+Error: no container with name or ID "faceops" found: no such container
+CONTEO: 49 de 50 · libres 2
+--- fin: 2026-11-10T20:07:36-03:00 · código: 0

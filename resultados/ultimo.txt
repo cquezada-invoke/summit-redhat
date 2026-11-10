@@ -1,39 +1,24 @@
-commit: 9dfbe713d95d62c67f7d75696b6bfd3a8d7262a3
-inicio: 2026-11-10T20:06:29-03:00
+commit: a8bc334671487577b0aa5452a2942c576b117436
+inicio: 2026-11-10T20:00:24-03:00
 ---
-nodo-jboss enabled True | vars: ansible_host: 192.168.122.15 | grupos: ['jboss']
-nodo-jboss2 enabled True | vars: ansible_host: 192.168.122.18 | grupos: ['jboss']
-nodo-jboss3 enabled True | vars: ansible_host: 192.168.122.19 | grupos: ['jboss']
-nodo-jboss-dev enabled True | vars: ansible_host: 192.168.122.21 | grupos: ['jboss']
-nodo-jboss-qa enabled True | vars: ansible_host: 192.168.122.20 | grupos: ['jboss']
-nodo-nginx enabled True | vars: ansible_host: 192.168.122.11 | grupos: []
-nodo-postgres enabled True | vars: ansible_host: 192.168.122.13 | grupos: []
-nodo-tomcat enabled True | vars: ansible_host: 192.168.122.14 | grupos: []
-JT14 JBoss · Desplegar app playbook jboss/desplegar.yml limit '' ask_limit True proj 15
- job 21702 failed 2026-11-10T20:02 limit '' 1.0.41 desarrollo None
- job 21678 failed 2026-11-10T19:54 limit '' 1.0.40 desarrollo None
- job 21545 failed 2026-11-10T19:18 limit '' 1.0.40 desarrollo None
- job 9524 successful 2026-11-02T06:56 limit 'nodo-jboss' 1.0.35 None None
- job 8344 successful 2026-11-01T19:36 limit '' 1.0.37 None None
- job 2908 successful 2026-10-29T03:19 limit 'nodo-jboss-qa' 1.0.35 None None
- job 2897 successful 2026-10-29T03:17 limit 'nodo-jboss-dev' 1.0.35 None None
- job 1349 successful 2026-10-26T22:00 limit '' 1.0.35 None None
- job 1271 successful 2026-10-26T20:35 limit '' 1.0.34 None None
- job 1143 successful 2026-10-26T18:14 limit '' 1.0.33 None None
- job 1128 successful 2026-10-26T17:56 limit '' 1.0.30 None None
- job 1124 successful 2026-10-26T17:53 limit '' 1.0.29 None None
-{'nombre': 'nodo-jboss', 'ip': '192.168.122.15', 'ambiente': 'produccion', 'estado': 'con datos', 'energia': 'encendido', 'categoria': 'servidor'}
-{'nombre': 'nodo-jboss2', 'ip': '192.168.122.18', 'ambiente': 'produccion', 'estado': 'con datos', 'energia': 'encendido', 'categoria': 'servidor'}
-{'nombre': 'nodo-nginx', 'ip': '192.168.122.11', 'ambiente': 'produccion', 'estado': 'con datos', 'energia': 'encendido', 'categoria': 'servidor'}
-{'nombre': 'nodo-jboss3', 'ip': '192.168.122.19', 'ambiente': 'produccion', 'estado': 'con datos', 'energia': 'apagado', 'categoria': 'servidor'}
-{'nombre': 'nodo-jboss-dev', 'ip': '192.168.122.21', 'ambiente': 'desarrollo', 'estado': 'con datos', 'energia': 'encendido', 'categoria': 'servidor'}
-{'nombre': 'nodo-jboss-qa', 'ip': '192.168.122.20', 'ambiente': 'qa', 'estado': 'con datos', 'energia': 'apagado', 'categoria': 'servidor'}
- 21   nodo-jboss-dev               running
- 22   nodo-jboss2                  running
- 26   nodo-jboss                   running
- -    nodo-jboss-qa                shut off
- -    nodo-jboss3                  shut off
- -    srv-legado-jboss5-01         shut off
- -    srv-legado-jboss6-01         shut off
- -    srv-legado-jboss7-01         shut off
---- fin: 2026-11-10T20:06:37-03:00 · código: 0
+a661a77
+== 2. Alta de la sede en AAP y bóveda
+   · rtr-wan-01  172.20.20.71  router       frr
+   · fw-sede-01  172.20.20.72  firewall     vyos
+   · sw-core-01  172.20.20.73  switch       frr
+   · sw-acc-01   172.20.20.74  switch       frr
+   · lb-sede-01  172.20.20.75  balanceador  haproxy
+   · bóveda rtr-wan-01  job 22095: successful
+   · bóveda fw-sede-01  job 22096: failed
+   · bóveda sw-core-01  job 22097: successful
+   · bóveda sw-acc-01   job 22098: successful
+   · bóveda lb-sede-01  job 22099: successful
+== 3. Despliegue de FaceOps (exporta la topología de los laboratorios)
+   faceops actualizado
+sincronizar: 48
+equipos: {'rtr-wan-01': 123, 'fw-sede-01': 121, 'sw-core-01': 125, 'sw-acc-01': 124, 'lb-sede-01': 122}
+retirados ahora: ['pc-oficina-01', 'pc-oficina-02', 'srv-rocky-prueba-01', 'srv-servidor-de-ejemplo-01', 'srv-test-ubuntu-01']
+Error: container has already been removed
+Error: no container with name or ID "faceops" found: no such container
+CONTEO: 49 de 50 · libres 2
+--- fin: 2026-11-10T20:07:36-03:00 · código: 0
