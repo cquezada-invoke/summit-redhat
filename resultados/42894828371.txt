@@ -1,0 +1,14 @@
+commit: 04b26982796a9765cb3199be8b5d821a036754d0
+inicio: 2026-11-10T17:23:41-03:00
+---
+f95c260
+   · Proyecto «FaceOps · automatizaciones»: successful
+   · Plantilla «Red · Inventariar equipo de red» (id 1127)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+C1 fw FO-LAB-01412
+C2 rtr FO-LAB-01413
+ticket C1 FO-LAB-01412 exitoso job 21779 AAP terminó (successful): ejecución 18 s, espera de aprobación 44 s | Ficha de red actualizada en FaceOps (interfaces, VLAN, vecinos LLDP y rutas)
+ticket C2 FO-LAB-01413 exitoso job 21781 AAP terminó (successful): ejecución 5 s, espera de aprobación 47 s
+eq fw | VyOS VyOS 2026.10.23-0026-rolling | Red | con datos ifs: [('eth0', 'up', 'gestión', ['172.20.20.12/24']), ('dum1', 'up', 'ruteada', ['10.60.7.1/24']), ('eth1', 'up', 'ruteada', ['10.20.20.2/24']), ('eth2', 'up', 'ruteada', ['10.40.40.1/24']), ('eth2.320', 'up', 'SVI', ['10.60.20.1/24']), ('eth2.330', 'up', 'SVI', ['10.60.30.1/24'])] vec: 0 rutas: 15 {'local': 6, 'kernel': 1, 'static': 2, 'connected': 6} def: {'via': '172.20.20.1', 'prefijo': '0.0.0.0/0', 'interfaz': 'eth0', 'protocolo': 'kernel'} bgp: [] ver: VyOS 2026.10.23-0026-rolling  74400
+eq rtr | Linux (Alpine) | Red | inventariado ifs: [] vec: 0 rutas: None None def: None bgp: [] ver: None None None
+--- fin: 2026-11-10T17:30:55-03:00 · código: 0
