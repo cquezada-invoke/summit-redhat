@@ -1,0 +1,51 @@
+commit: ab135d670b1ed113a91989b4da6a5dbda30ae97e
+inicio: 2026-11-10T01:40:54-03:00
+---
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "activar", "svc_nombre": "upf-demo", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "simular_falla": "no → #20499 failed
+     · Portal · Informe de ejecución (PDF) → failed
+         FALLA en «Armar y enviar el informe de la ejecución 20499»: non-zero return code
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed · Cambio revertido: la prueba posterior falló [revertido]
+         FALLA en «Fallar el job si se revirtió (el workflow lo toma como falla)»: Cambio revertido: BGP falla · VLAN ok
+     · PDF por correo: enviado
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "retirar", "svc_nombre": "upf-demo", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "simular_falla": "no → #20507 failed
+     · Portal · Informe de ejecución (PDF) → failed
+         FALLA en «Armar y enviar el informe de la ejecución 20507»: non-zero return code
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed · Cambio revertido: la prueba posterior falló [revertido]
+         FALLA en «Fallar el job si se revirtió (el workflow lo toma como falla)»: Cambio revertido: BGP ok · VLAN falla
+     · PDF por correo: enviado
+== OpenShift · Actualización guiada con ACM {"fase": "pre", "rutas_criticas": "https://amdocs-ordering.sno.34.176.42.56.sslip.io/health"} → #20514 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Actualización guiada con ACM (plan → successful · Listo para actualizar: respaldo de etcd y clúster fuera del balanceador [ok]
+     · PDF por correo: enviado
+== OpenShift · Actualización guiada con ACM {"fase": "post", "rutas_criticas": "https://amdocs-ordering.sno.34.176.42.56.sslip.io/health"} → #20521 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Actualización guiada con ACM (plan → successful · Actualización validada: clúster de vuelta en el balanceador [ok]
+     · PDF por correo: enviado
+== Windows · Informe de seguridad {"correo": "cquezada@redhat.com"} → #20530 failed
+     · Portal · Windows · Informe de seguridad (plantilla) → failed
+         FALLA en «Hallazgos del servidor»: non-zero return code
+== Orden Amdocs ORD-A1B2890C creada
+== Amdocs · Activar orden de servicio {"orden_id": "ORD-A1B2890C"} → #20538 successful
+     · Portal · Amdocs · Orden de servicio (plantilla) → successful · Orden ORD-A1B2890C: en aprobación [ok]
+         Historial 04:45:42 | en aprobación · Recibida por Ansible: VLAN 330, prefijo 10.60.30.0/24; espera aprobación en AAP
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → successful · Servicio upf-banco activado [ok]
+     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-banco (nabstract) lista para desplegar [ok]
+         Red secundaria | VLAN 330 sobre br-ex · IPAM 10.60.30.0/24
+         Cuota | 16 cores · 32 GiB · 4 GiB de páginas grandes
+     · Portal · Amdocs · Orden de servicio (plantilla) → successful · Orden ORD-A1B2890C: completada [ok]
+         Historial 04:45:42 | en aprobación · Recibida por Ansible: VLAN 330, prefijo 10.60.30.0/24; espera aprobación en AAP
+         Historial 04:46:25 | completada · Servicio activo: red anunciada por BGP y CNF preparada en OpenShift
+     · Portal · Informe de ejecución (PDF) → successful
+     · PDF por correo: enviado
+   orden en Amdocs: completada
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "retirar", "svc_nombre": "upf-banco", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "simular_falla": "n → #20547 failed
+     · Portal · Informe de ejecución (PDF) → failed
+         FALLA en «Armar y enviar el informe de la ejecución 20547»: non-zero return code
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed · Cambio revertido: la prueba posterior falló [revertido]
+         FALLA en «Fallar el job si se revirtió (el workflow lo toma como falla)»: Cambio revertido: BGP ok · VLAN falla
+     · PDF por correo: enviado
+== Telco · Onboarding de CNF {"cnf_nombre": "upf-banco", "proveedor": "nabstract", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "hugepages_gi": 4, → #20553 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-banco (nabstract) retirada del clúster [ok]
+     · PDF por correo: enviado
+--- fin: 2026-11-10T01:48:18-03:00 · código: 0
