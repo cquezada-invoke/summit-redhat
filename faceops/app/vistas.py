@@ -4965,13 +4965,6 @@ def mapa():
             if request.args.get("ambiente") == "homologacion":
                 seg_info["ambiente"] = "homologacion"
                 seg_info["homolog"] = _homologar_segmento(segmento, arq)
-                from .topologia import resumen_segmento as _rs
-                eqs_h = equipos_visibles(); hs_h = hallazgos_visibles(eqs_h); ambs_h = []
-                for a_, n_ in (("produccion", "Producción"), ("qa", "QA"), ("desarrollo", "Desarrollo")):
-                    r_ = _rs(g.cliente, eqs_h, hs_h, segmento, a_)
-                    if r_["equipos"] or (a_ == "produccion" and r_.get("ocp")):
-                        ambs_h.append({"amb": a_, "etq": n_, "pct": r_["salud_pct"]})
-                seg_info["salud_media"] = {"pct": round(sum(x["pct"] for x in ambs_h) / len(ambs_h)) if ambs_h else None, "ambs": ambs_h}
     from .grupos_segmento import GRUPOS, NOMBRE, grupo_de
     grupo = request.args.get("grupo") or (grupo_de(seg_info) if seg_info else ("redes" if vista == "infra" else ""))
     from .segmentos_archivo import lista as archivados
@@ -5094,7 +5087,7 @@ def _homologar_segmento(segmento, arq):
                 celdas[a] = {"v": "—" if v is None else v, "est": est, "por": por,
                              "nodos": [{"n": e["nombre"], "u": url_for("consola.equipo", eid=e["id"]) if e.get("id") else ""} for e in por_amb.get(a) or []] if k == "cantidad" else []}
             mal = [c for c in celdas.values() if c["est"] in ("distinto", "falta")]
-            filas.append({"comp": cnom, "atr": etq, "grupo": grupo, "celdas": celdas, "sug": SUG.get(k) if mal else "",
+            filas.append({"comp": cnom, "atr": etq, "grupo": grupo, "celdas": celdas, "sug": SUG.get(k) if mal else "", "regularizar": bool(mal),
                           "url_comp": url_for("consola.homologacion_componente", segmento=segmento, comp=cnom)})
     # producción es la base (100 % por definición): el % de los otros ambientes es cuánto se parecen a producción, no su salud
     cajas = [{"amb": a, "etq": n, "pct": (100 if tot[a] else None) if a == "produccion" else (round(100 * iguales[a] / tot[a]) if tot[a] else None), "maquinas": sum(len(c.get(a, [])) for c in comps.values()),
