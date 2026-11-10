@@ -136,7 +136,7 @@ def sembrar(cliente_id):
              "", "", "OpenShift · SNO", "Centro de datos Santiago", "sin credencial"),
             ("Cloud GCP · invoke-summit-cloud", "gcp", "southamerica-west1 (Santiago)",
              {"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"},
-             "GCP · invoke-summit-cloud", "Nube GCP", "Cloud GCP", "Cloud GCP", "conectada"),
+             "GCP · invoke-summit-cloud", "Nube GCP", "Cloud GCP", "Cloud GCP", "sin probar"),
             ("KVM · Valparaíso", "kvm", "Valparaíso, Chile",
              {"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.150.0/24", "red_libvirt": "dc-valpo",
               "pool": "/var/lib/libvirt/dc-valpo", "hipervisor": "KVM / libvirt", "emulado": "sí: comparte el anfitrión con Santiago (red y pool propios)"},

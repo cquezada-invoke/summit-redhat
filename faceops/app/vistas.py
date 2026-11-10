@@ -6636,8 +6636,9 @@ def _infras_con_salud(infras):
             aap_ = AAP.de_cliente(g.cliente)
             for x in nubes_:
                 estado_nube(aap_, x, g.cliente["id"])
-        except ErrorAAP:
-            pass
+        except ErrorAAP as e_:   # sin AAP no se puede afirmar que la nube esté conectada
+            for x in nubes_:
+                x["estado"], x["mensaje"] = "sin verificar", f"No se pudo consultar AAP: {str(e_)[:120]}"
     for x in infras:
         es_ = [e for e in eqs_ if (e.get("ubicacion") or "") == x["ubicacion"]]
         x["res"] = _resumen_grupo(es_) if es_ else None

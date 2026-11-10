@@ -32,6 +32,7 @@ def nube(iid):
             hosts = maquinas_nube(aap, con["inv"]["id"])
     except ErrorAAP as e:
         err = str(e)[:200]
+        x["estado"], x["mensaje"] = "sin verificar", f"No se pudo consultar AAP: {err}"
     # máquinas: las que AAP trae de la nube y las que FaceOps ya tiene en esa nube (unidas por nombre)
     propias = [e for e in eqs_ if (e.get("ubicacion") or "") == x["ubicacion"] or (con and con.get("inv") and e.get("inventario") == con["inv"]["nombre"])]
     por_nombre = {e["nombre"]: e for e in propias}
