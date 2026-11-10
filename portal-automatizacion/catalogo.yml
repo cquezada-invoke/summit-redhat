@@ -196,7 +196,7 @@
   descripcion: "Renovar un certificado no termina en OpenShift: revisa el certificado que se ve desde fuera, emite uno nuevo con la CA si vence pronto, lo carga en la Route y en el balanceador externo que publica la aplicación, y verifica que la cadena nueva sea la que ve el cliente."
   encuesta:
     - {question_name: "Namespace", variable: namespace, type: text, default: "amdocs-bss", required: true, max: 63}
-    - {question_name: "Route", variable: ruta, type: text, default: "amdocs-ordering", required: true, max: 63}
+    - {question_name: "Route", variable: ruta, type: text, default: "ordering", required: true, max: 63}
     - {question_name: "Renovar si vence en menos de (días)", variable: umbral_dias, type: integer, min: 1, max: 365, default: 30, required: true}
     - {question_name: "Forzar renovación", variable: forzar, type: multiplechoice, choices: ["no", si], default: "no", required: true}
 - nombre: "OpenShift · Acceso de equipo"

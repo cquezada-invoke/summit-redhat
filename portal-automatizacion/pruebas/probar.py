@@ -120,7 +120,7 @@ CASOS = {
                            lanzar("Telco · Onboarding de CNF", {"cnf_nombre": "upf-demo", "proveedor": "nabstract", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "hugepages_gi": 4, "accion": "retirar"})),
     "acceso": lambda: (lanzar("OpenShift · Acceso de equipo", {"equipo": "equipo-demo", "miembros": "demo1,demo2", "namespaces": "amdocs-bss", "rol": "view", "accion": "alta"}),
                        lanzar("OpenShift · Acceso de equipo", {"equipo": "equipo-demo", "miembros": "", "namespaces": "amdocs-bss", "rol": "view", "accion": "baja"})),
-    "certapp": lambda: lanzar("OpenShift · Certificado de aplicación de punta a punta", {"namespace": "amdocs-bss", "ruta": "amdocs-ordering", "umbral_dias": 30, "forzar": "no"}),
+    "certapp": lambda: lanzar("OpenShift · Certificado de aplicación de punta a punta", {"namespace": "amdocs-bss", "ruta": "ordering", "umbral_dias": 30, "forzar": "no"}),
     "alerta": lambda: lanzar("OpenShift · De alerta a incidente", {"namespace": "amdocs-bss", "alerta": "KubePodCrashLooping", "remediar": "no"}),
     "infocp": lambda: lanzar("OpenShift · Informe de seguridad del clúster", {"correo": "cquezada@invoke.cl", "dias_secretos": 180}),
     "infamd": lambda: lanzar("Amdocs · Informe de operación y conciliación", {"correo": "cquezada@invoke.cl", "minutos_atasco": 60}),
