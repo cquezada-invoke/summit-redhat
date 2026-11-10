@@ -202,12 +202,12 @@ def etiqueta(nombre, o):
     return etiqueta_ids[(nombre, o)]
 
 
-def plantilla(nombre, playbook, red=False, descripcion="", base=None, credencial=None):
+def plantilla(nombre, playbook, red=False, descripcion="", base=None, credencial=None, limite=True):
     b_ = uno("job_templates", name=base) if base else None   # servidores: inventario y credenciales de máquina de esa plantilla
     jt = asegurar("job_templates", nombre, {
         "organization": org if not red else jt_red["organization"],
         "inventory": (b_["inventory"] if b_ else inv) if not red else jt_red["inventory"],
-        "project": proy if not red else jt_red["project"], "playbook": playbook, "ask_variables_on_launch": True, "ask_limit_on_launch": True,
+        "project": proy if not red else jt_red["project"], "playbook": playbook, "ask_variables_on_launch": True, "ask_limit_on_launch": limite,
         "execution_environment": ee if not red else jt_red.get("execution_environment"), "description": descripcion,
         "allow_simultaneous": False})["id"]
     ya = {c["id"] for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]}
@@ -254,7 +254,7 @@ tipo_aap = uno("credential_types", name="Red Hat Ansible Automation Platform")
 asegurar("credentials", "AAP · informe de ejecución", {"organization": org, "credential_type": tipo_aap["id"],
          "inputs": {"host": "https://192.168.122.1", "username": "admin", "password": CLAVE, "verify_ssl": False}})
 jts["_informe"] = plantilla("Portal · Informe de ejecución (PDF)", "playbooks/informe-ejecucion.yml",
-                            descripcion="Último paso de los workflows del portal: PDF por correo con lo que se hizo.", credencial="AAP · informe de ejecución")
+                            descripcion="Último paso de los workflows del portal: PDF por correo con lo que se hizo.", credencial="AAP · informe de ejecución", limite=False)   # corre en localhost aunque el workflow elija servidores
 
 
 def workflow(it):
