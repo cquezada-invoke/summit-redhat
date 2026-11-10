@@ -21,7 +21,20 @@ ACCESO = [("acc_usuario", "Usuario en las máquinas (ej. ansible, ec2-user, Admi
           ("acc_llave", "Llave privada SSH (Linux)", True, "area"), ("acc_clave", "Clave (Windows / WinRM)", True, "password")]
 PROVEEDORES = {
     "gcp": {"nombre": "Google Cloud", "ambito": "nube", "fuente": "gce", "credencial_aap": "Google Compute Engine",
-            "ayuda": "Cuenta de servicio con rol Compute Admin del proyecto (IAM → Cuentas de servicio → Claves → JSON)",
+            "ayuda": "Cuenta de servicio del proyecto con su llave JSON: rol Compute Viewer para leer; Compute Admin si FaceOps también creará o migrará máquinas",
+            "guia": ("Todo de una vez en Cloud Shell: «gcloud iam service-accounts create faceops-lectura» · «gcloud projects add-iam-policy-binding &lt;PROYECTO&gt; "
+                     "--member=serviceAccount:faceops-lectura@&lt;PROYECTO&gt;.iam.gserviceaccount.com --role=roles/compute.viewer» · "
+                     "«gcloud iam service-accounts keys create faceops.json --iam-account=faceops-lectura@&lt;PROYECTO&gt;.iam.gserviceaccount.com»; pega el contenido de faceops.json.",
+                     "https://cloud.google.com/iam/docs/keys-create-delete"),
+            "ayudas": {
+                "proyecto": ("master-ia-320218", "ID del proyecto (no el nombre): selector de proyectos en la consola · CLI: gcloud config get-value project",
+                             "https://console.cloud.google.com/home/dashboard"),
+                "zona": ("southamerica-west1-a", "Zona donde están las máquinas · CLI: gcloud compute zones list",
+                         "https://cloud.google.com/compute/docs/regions-zones"),
+                "cuenta": ("{ \"type\": \"service_account\", … }", "IAM › Cuentas de servicio › Crear (faceops-lectura, rol Compute Viewer) › Claves › Agregar clave › JSON; pega el archivo completo",
+                           "https://console.cloud.google.com/iam-admin/serviceaccounts"),
+                "red": ("default", "Nombre de la red VPC (opcional) · Red de VPC › Redes de VPC",
+                        "https://console.cloud.google.com/networking/networks/list")},
             "campos": [("proyecto", "ID del proyecto", False, "text"), ("zona", "Zona (ej. southamerica-west1-a)", False, "text"),
                        ("cuenta", "Cuenta de servicio (JSON completo)", True, "area"), ("red", "Red VPC", False, "text")]},
     "aws": {"nombre": "Amazon Web Services", "ambito": "nube", "fuente": "ec2", "credencial_aap": "Amazon Web Services",
