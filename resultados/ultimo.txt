@@ -1,65 +1,120 @@
-commit: f0af785879049d9ff0636d9317a8bd61a4e3855c
-inicio: 2026-11-10T00:56:41-03:00
+commit: c9bfd52fc1f2a0c4bad6d920cc2f8de2169b59cf
+inicio: 2026-11-10T01:23:43-03:00
 ---
-== Telco · Onboarding de CNF {"cnf_nombre": "upf-demo", "proveedor": "nabstract", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "hugepages_gi": 4,  → #20333 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-demo (nabstract) lista para desplegar [ok]
-     · PDF por correo: enviado
-== Telco · Onboarding de CNF {"cnf_nombre": "upf-demo", "proveedor": "nabstract", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "hugepages_gi": 4,  → #20341 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-demo (nabstract) retirada del clúster [ok]
-     · PDF por correo: enviado
-== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "activar", "svc_nombre": "upf-demo", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "simular_falla": "no → #20350 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed · Cambio revertido: la prueba posterior falló [revertido]
-         FALLA en «Fallar el job si se revirtió (el workflow lo toma como falla)»: Cambio revertido: BGP falla · VLAN ok
-     · PDF por correo: enviado
-== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "retirar", "svc_nombre": "upf-demo", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "simular_falla": "no → #20370 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed · Cambio revertido: la prueba posterior falló [revertido]
-         FALLA en «Fallar el job si se revirtió (el workflow lo toma como falla)»: Cambio revertido: BGP ok · VLAN falla
-     · PDF por correo: enviado
-== Telco · Día 2 del clúster de cargas {} → #20382 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · Salud del clúster (plantilla) → successful · Clúster ATENCION · OpenShift 4.19.51 [atencion]
-     · Portal · OpenShift · Certificados (plantilla) → successful · 177 certificados · 0 vencidos · 18 vencen en 30 días [ok]
-     · Portal · OpenShift · Respaldo de etcd (plantilla) → successful · Respaldo de etcd listo [ok]
-     · PDF por correo: enviado
-== Linux · Informe de seguridad {"correo": "cquezada@redhat.com"} → #20398 successful
-     · Portal · Linux · Informe de seguridad (plantilla) → successful · Informe PDF: enviado a cquezada@redhat.com [critico]
-== Windows · Informe de seguridad {"correo": "cquezada@redhat.com"} → #20406 failed
-     · Portal · Windows · Informe de seguridad (plantilla) → failed
-== Linux · Liberar espacio en disco {"umbral": 85, "forzar": "no"} → #20413 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · Linux · Liberar espacio en disco (plantilla) → successful · nodo-jboss /: 23% → 23% (bajo el umbral, no se limpió) [ok]
-     · PDF por correo: enviado
-== Infra · Atender ticket de Odoo {"ticket": 1, "accion": "diagnostico", "servicio": "nginx"} → #20423 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · Infra · Atender ticket de Odoo (plantilla) → successful · Ticket Odoo #1 · diagnostico en nodo-jboss: ticket 1 actualizado [ok]
-     · PDF por correo: enviado
-== Orden Amdocs ORD-176C5BA1 creada
-== Amdocs · Activar orden de servicio {"orden_id": "ORD-176C5BA1"} → #20430 successful
-     · Portal · Amdocs · Orden de servicio (plantilla) → successful · Orden ORD-176C5BA1: en aprobación [ok]
-         Historial 04:04:32 | enviada a Ansible (EDA)
-     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed
-         FALLA en «Datos del servicio»: Acción activar o retirar · nombre en minúsculas · VLAN 2-4094 · prefijo 10.x.x.x/24 a /29 escrito como red (p. ej. 10.60.10.0/24)
-     · Portal · Amdocs · Orden de servicio (plantilla) → successful · Orden ORD-176C5BA1: fallida [critico]
-         Historial 04:04:32 | enviada a Ansible (EDA)
-     · Portal · Informe de ejecución (PDF) → successful
-     · PDF por correo: enviado
-   orden en Amdocs: fallida
-== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "retirar", "svc_nombre": "upf-banco", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "simular_falla": "n → #20444 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → successful · Servicio upf-banco retirado [ok]
-     · PDF por correo: enviado
-== Telco · Onboarding de CNF {"cnf_nombre": "upf-banco", "proveedor": "nabstract", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "hugepages_gi": 4, → #20457 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-banco (nabstract) retirada del clúster [ok]
-     · PDF por correo: enviado
-== ServiceNow «Solicitar acceso de red» pedido REQ0010061; esperando que EDA lance «Red · Solicitar acceso con aprobación»
-   EDA no lanzó el workflow (revisar vigía y activación)
-== ServiceNow «Revocar acceso de red» pedido REQ0010062; esperando que EDA lance «Red · Revocar acceso con aprobación»
-   EDA no lanzó el workflow (revisar vigía y activación)
-== ServiceNow «Preparar red para clúster OpenShift» pedido REQ0010063; esperando que EDA lance «Red · Preparar red OpenShift con aprobación»
-   EDA no lanzó el workflow (revisar vigía y activación)
---- fin: 2026-11-10T01:22:29-03:00 · código: 0
+=== wf 20350 job 20353
+TASK [Datos del servicio] ******************************************************
+ok: [localhost]
+TASK [El prefijo no choca con redes del laboratorio] ***************************
+ok: [localhost] => (item=10.0.0.0/30)
+ok: [localhost] => (item=10.10.10.0/24)
+ok: [localhost] => (item=10.20.20.0/24)
+ok: [localhost] => (item=10.40.40.0/24)
+ok: [localhost] => (item=172.20.20.0/24)
+ok: [localhost] => (item=192.168.122.0/24)
+ok: [localhost] => (item=203.0.113.0/24)
+TASK [Git · config/rtr.conf actual] ********************************************
+ok: [localhost]
+TASK [Estado declarado] ********************************************************
+ok: [localhost]
+TASK [Plan del cambio] *********************************************************
+ok: [localhost] => {
+    "msg": [
+        "Servicio upf-demo · activar · VLAN 320 · prefijo 10.60.20.0/24 (puerta de enlace 10.60.20.1/24)",
+        "Router: ruta 10.60.20.0/24 → firewall y anuncio BGP",
+TASK [Git · guardar config/rtr.conf] *******************************************
+ok: [localhost]
+TASK [Rutas que el ISP recibe hoy] *********************************************
+ok: [rtr]
+TASK [Foto previa] *************************************************************
+ok: [rtr -> localhost]
+TASK [Router · aplicar el estado de Git] ***************************************
+changed: [rtr]
+TASK [Firewall · VLAN 320 del servicio] ****************************************
+changed: [fw]
+TASK [Firewall · retirar la VLAN 320] ******************************************
+skipping: [fw]
+TASK [Firewall · estado de la VLAN] ********************************************
+ok: [fw]
+TASK [Estado de la VLAN] *******************************************************
+ok: [fw -> localhost]
+TASK [El ISP recibe (o deja de recibir) el prefijo por BGP] ********************
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (8 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (7 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (6 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (5 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (4 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (3 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (2 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (1 retries left).
+ok: [rtr]
+TASK [Resultado de la prueba] **************************************************
+ok: [rtr -> localhost]
+TASK [Router · volver al estado anterior] **************************************
+changed: [rtr]
+TASK [Firewall · retirar la VLAN creada] ***************************************
+changed: [fw]
+TASK [Git · sha vigente] *******************************************************
+ok: [localhost]
+TASK [Git · restaurar config/rtr.conf] *****************************************
+ok: [localhost]
+TASK [Resultado para el portal] ************************************************
+ok: [localhost]
+TASK [Resultado] ***************************************************************
+ok: [localhost] => {
+    "msg": "La prueba posterior falló: se volvió al estado anterior (router, firewall y Git)"
+=== wf 20370 job 20372
+TASK [Datos del servicio] ******************************************************
+ok: [localhost]
+TASK [El prefijo no choca con redes del laboratorio] ***************************
+skipping: [localhost] => (item=10.0.0.0/30) 
+skipping: [localhost] => (item=10.10.10.0/24) 
+skipping: [localhost] => (item=10.20.20.0/24) 
+skipping: [localhost] => (item=10.40.40.0/24) 
+skipping: [localhost] => (item=172.20.20.0/24) 
+skipping: [localhost] => (item=192.168.122.0/24) 
+skipping: [localhost] => (item=203.0.113.0/24) 
+skipping: [localhost]
+TASK [Git · config/rtr.conf actual] ********************************************
+ok: [localhost]
+TASK [Estado declarado] ********************************************************
+ok: [localhost]
+TASK [Plan del cambio] *********************************************************
+ok: [localhost] => {
+    "msg": [
+        "Servicio upf-demo · retirar · VLAN 320 · prefijo 10.60.20.0/24 (puerta de enlace 10.60.20.1/24)",
+        "Router: quitar ruta y anuncio de 10.60.20.0/24",
+TASK [Git · guardar config/rtr.conf] *******************************************
+skipping: [localhost]
+TASK [Rutas que el ISP recibe hoy] *********************************************
+ok: [rtr]
+TASK [Foto previa] *************************************************************
+ok: [rtr -> localhost]
+TASK [Router · aplicar el estado de Git] ***************************************
+changed: [rtr]
+TASK [Firewall · VLAN 320 del servicio] ****************************************
+skipping: [fw]
+TASK [Firewall · retirar la VLAN 320] ******************************************
+changed: [fw]
+TASK [Firewall · estado de la VLAN] ********************************************
+ok: [fw]
+TASK [Estado de la VLAN] *******************************************************
+ok: [fw -> localhost]
+TASK [El ISP recibe (o deja de recibir) el prefijo por BGP] ********************
+ok: [rtr]
+TASK [Resultado de la prueba] **************************************************
+ok: [rtr -> localhost]
+TASK [Router · volver al estado anterior] **************************************
+changed: [rtr]
+skipping: no hosts matched
+TASK [Git · sha vigente] *******************************************************
+skipping: [localhost]
+TASK [Git · restaurar config/rtr.conf] *****************************************
+skipping: [localhost]
+TASK [Resultado para el portal] ************************************************
+ok: [localhost]
+TASK [Resultado] ***************************************************************
+ok: [localhost] => {
+    "msg": "La prueba posterior falló: se volvió al estado anterior (router, firewall y Git)"
+TASK [Fallar el job si se revirtió (el workflow lo toma como falla)] ***********
+fatal: [localhost]: FAILED! => {"changed": false, "msg": "Cambio revertido: BGP ok · VLAN falla"}
+--- fin: 2026-11-10T01:23:44-03:00 · código: 0
