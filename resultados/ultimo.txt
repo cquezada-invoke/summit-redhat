@@ -1,110 +1,23 @@
-commit: b7307eddba0ff4c260b607242c984a236bc4d1ee
-inicio: 2026-11-10T19:04:10-03:00
+commit: ce1df2e2bb9a721e8704c657465d3e6553cd7a54
+inicio: 2026-11-10T19:15:10-03:00
 ---
-rm: cannot remove '/tmp/wl-plan-a.json': Operation not permitted
-===== EVALUAR
-catalogo: 223
-estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
-M-C1 emular-origen
-  reanudo FO-LAB-01424 en_ejecucion
-   ('FO-LAB-01424', 'exitoso', [('ventas', True), ('legado', False)]) 
-E-C1
-  pedido FO-LAB-01425
-  aprobado
-   ('FO-LAB-01425', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
-E-C2
-  pedido FO-LAB-01426
-Error: container has already been removed
---- reintento 1 (contenedor reiniciado)
-catalogo: 223
-estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
-M-C1 emular-origen
-  reanudo FO-LAB-01424 exitoso
-   ('FO-LAB-01424', 'exitoso', [('ventas', True), ('legado', False)]) 
-E-C1
-  reanudo FO-LAB-01425 exitoso
-   ('FO-LAB-01425', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
-E-C2
-  reanudo FO-LAB-01426 pendiente_aprobacion
-  aprobado
-Error: no container with ID 926162b66d23a82a3f321a0987d499ad4f189a77fb29fd19b2a5cd7ae55f4b5b found in database: no such container
---- reintento 2 (contenedor reiniciado)
-catalogo: 223
-estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
-M-C1 emular-origen
-  reanudo FO-LAB-01424 exitoso
-   ('FO-LAB-01424', 'exitoso', [('ventas', True), ('legado', False)]) 
-E-C1
-  reanudo FO-LAB-01425 exitoso
-   ('FO-LAB-01425', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
-E-C2
-  reanudo FO-LAB-01426 exitoso
-   ('FO-LAB-01426', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
-E-C3
-  pedido FO-LAB-01427
-  aprobado
---- reintento 3 (contenedor reiniciado)
-catalogo: 223
-estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
-M-C1 emular-origen
-  reanudo FO-LAB-01424 exitoso
-   ('FO-LAB-01424', 'exitoso', [('ventas', True), ('legado', False)]) 
-E-C1
-  reanudo FO-LAB-01425 exitoso
-   ('FO-LAB-01425', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
-E-C2
-  reanudo FO-LAB-01426 exitoso
-   ('FO-LAB-01426', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
-E-C3
-  reanudo FO-LAB-01427 fallido
-   ('FO-LAB-01427', 'fallido', None, None, [], None)
-   … config.xml en /u01, /opt/oracle, /opt/weblogic, /home/oracle o /srv); indícalo en wl_dominio"} |  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-PLAN EVALUAR OK: False
-FIN-SCRIPT
-===== MIGRAR C2-C4
-catalogo: 223
-M-C2
-  pedido FO-LAB-01428
-  aprobado
-Error: container has already been removed
---- reintento 1 (contenedor reiniciado)
-catalogo: 223
-M-C2
-  reanudo FO-LAB-01428 en_ejecucion
-   ["FO-LAB-01428", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null}]
-   … ED! => {"msg": "Unexpected templating type error occurred on ({{ (espera / 10) | int }}): unsupported operand type(s) for /: 'str' and 'int'. unsupported operand type(s) for /: 'str' and 'int'"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=44   changed=13   unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
-M-C3
-  pedido FO-LAB-01430
-  aprobado
-   ["FO-LAB-01430", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null}]
-   … ED! => {"msg": "Unexpected templating type error occurred on ({{ (espera / 10) | int }}): unsupported operand type(s) for /: 'str' and 'int'. unsupported operand type(s) for /: 'str' and 'int'"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=41   changed=11   unreachable=0    failed=1    skipped=8    rescued=0    ignored=0   
-M-C4
-  pedido FO-LAB-01431
-  aprobado
-   ["FO-LAB-01431", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null}]
-   … pietaria (ServletAuthentication); Contexto JNDI propietario (WLInitialContextFactory / t3); Propiedades con JNDI remoto de WebLogic (t3 / WLInitialContextFactory). No se creó nada en OpenShift"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=27   changed=9    unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
-FIN-SCRIPT
-== objetos
-imagestream.image.openshift.io/ventas default-route-openshift-image-registry.apps.sno.invoke.lab/wl-ventas/ventas latest
-buildconfig.build.openshift.io/ventas Source Binary
-build.build.openshift.io/ventas-1 Source Binary
-deployment.apps/ventas 1/1 1
-service/ventas ClusterIP 172.30.161.40
-route.route.openshift.io/ventas ventas-wl-ventas.apps.sno.invoke.lab ventas
-configmap/ventas-config 4 4m30s
-secret/ventas-ds Opaque 1
-== legado (debe estar vacío)
-Warning: apps.openshift.io/v1 DeploymentConfig is deprecated in v4.14+, unavailable in v4.10000+
-No resources found in wl-ventas namespace.
-== ConfigMap: llaves (sin claves)
-['WL_DS_VENTASDS_URL', 'WL_DS_VENTASDS_USUARIO', 'config.cli', 'prop-ventas.properties']
-clave en cm: False
-== Secret: llaves
-['WL_DS_VENTASDS_CLAVE']
-== env del pod (claves por secretKeyRef)
-[('WL_DS_VENTASDS_URL', 'configMapKeyRef'), ('WL_DS_VENTASDS_USUARIO', 'configMapKeyRef'), ('WL_DS_VENTASDS_CLAVE', 'secretKeyRef'), ('JAVA_OPTS_APPEND', 'value')]
-{'limits': {'memory': '768Mi'}, 'requests': {'cpu': '10m', 'memory': '16Mi'}} {'path': '/ventas/salud', 'port': 8080, 'scheme': 'HTTP'}
-{"estado":"ok","datasource":"enlazado","cola":"enlazado","propiedades":"cargadas"} http=200
-ventas-1-build            0/1   Completed   0     9m48s
-ventas-5579997c84-h2rdr   1/1   Running     0     4m30s
---- fin: 2026-11-10T19:24:45-03:00 · código: 0
+51d1f82
+1
+   · Plantilla «FaceOps · Habilitar servidor» (id 106) e inventarios «FaceOps · Infraestructura» y «Servidores habilitados»
+   · Workflow «FaceOps · Replicar con alta disponibilidad» (id 116): aprobación → Habilitar servidor → Replicar y balancear
+   · Workflow «Satellite · Instalar servidor» (id 484): aprobación → Habilitar servidor → Instalar Satellite
+   · Workflow «VPN · Preparar servidor» (id 494): aprobación → Habilitar servidor → Instalar VPN
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+faceops actualizado
+estado cambiada 06c22cf55d68
+ticket C1 FO-LAB-01429
+fin C1 FO-LAB-01429 exitoso job 21977 AAP terminó (successful): ejecución 61 s, espera de aprobación 35 s
+--- anfitrión
+srv-prueba-hab-01
+State:          running
+CPU(s):         1
+Max memory:     2097152 KiB
+Autostart:      enable
+Autostart Once: disable
+srv-prueba-hab-01.qcow2
+--- fin: 2026-11-10T19:25:22-03:00 · código: 0
