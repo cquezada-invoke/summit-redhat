@@ -1,15 +1,11 @@
-commit: 974ea23949de6a8b81ef2d6f8a5c46409ced790c
-inicio: 2026-11-10T20:19:39-03:00
+commit: 5cde7f515edbab23d46b06f7729d0e1f2ef336a6
+inicio: 2026-11-10T20:20:35-03:00
 ---
-ad hoc 22171 error
-
-Traceback (most recent call last):
-  File "/tmp/m.py", line 5, in <module>
-    for t in q("SELECT t.numero, t.estado, t.creado, t.actualizado, a.nombre_aap, substr(t.motivo,1,120) m FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.numero IN ('FO-LAB-01404','FO-LAB-01405','FO-LAB-01403','FO-LAB-01406')"):
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/bd.py", line 178, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: t.actualizado
-Tue Nov 10 08:20:05 PM -03 2026
---- fin: 2026-11-10T20:20:05-03:00 · código: 0
+ad hoc 22174 successful
+Identity added: /runner/artifacts/22174/ssh_key_data (cquezada@demo-ansible-summit)
+{'numero': 'FO-LAB-01403', 'estado': 'fallido', 'parametros': '{"cert_bits": 2048, "cert_nombre": "jboss-https", "cert_formato": "pkcs12", "cert_recargar": "systemctl restart eap8-standalone", "cert_san"', 'motivo': 'Plan de prueba · reemplazar certificado (nuevo + revocar el anterior)', 'creado': '2026-11-10T19:40:41+00:00', 'inicio': '2026-11-10T19:40:44+00:00', 'fin': '2026-11-10T19:42:30+00:00', 'nombre_aap': 'Certificados · Emitir para servicio'}
+{'numero': 'FO-LAB-01404', 'estado': 'exitoso', 'parametros': '{"sp_accion": "apagar", "sp_unidades": ["keycloak"], "sp_plataforma": "Keycloak"}', 'motivo': 'Keycloak instalado por error en nodo-jboss (job 15130) ocupa el puerto 8080 de JBoss: se apaga', 'creado': '2026-11-10T19:50:25+00:00', 'inicio': '2026-11-10T19:50:30+00:00', 'fin': '2026-11-10T19:52:04+00:00', 'nombre_aap': 'Plataforma · Controlar servicio'}
+{'numero': 'FO-LAB-01405', 'estado': 'exitoso', 'parametros': '{"sp_accion": "reiniciar", "sp_unidades": ["eap8-standalone"], "sp_plataforma": "JBoss EAP"}', 'motivo': 'Reiniciar JBoss para que tome el puerto 8080 liberado', 'creado': '2026-11-10T19:53:25+00:00', 'inicio': '2026-11-10T19:53:28+00:00', 'fin': '2026-11-10T19:54:55+00:00', 'nombre_aap': 'Plataforma · Controlar servicio'}
+{'numero': 'FO-LAB-01406', 'estado': 'fallido', 'parametros': '{"cert_bits": 2048, "cert_nombre": "jboss-https", "cert_formato": "pkcs12", "cert_recargar": "systemctl restart eap8-standalone", "cert_san"', 'motivo': 'Plan de prueba · reemplazar certificado (nuevo + revocar el anterior)', 'creado': '2026-11-10T19:57:33+00:00', 'inicio': '2026-11-10T19:57:36+00:00', 'fin': '2026-11-10T19:59:11+00:00', 'nombre_aap': 'Certificados · Emitir para servicio'}
+Tue Nov 10 08:20:54 PM -03 2026
+--- fin: 2026-11-10T20:20:54-03:00 · código: 0
