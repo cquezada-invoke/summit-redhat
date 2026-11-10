@@ -1,20 +1,105 @@
-commit: 9a2401d2e3545c911c872a23e93256ee426998f1
-inicio: 2026-11-10T16:37:17-03:00
+commit: 3d8c21ad5471ec24a9da40a1a102b9b2dc156ed6
+inicio: 2026-11-10T16:38:05-03:00
 ---
-e6cca6a
-faceops actualizado
-    e = q1("SELECT nombre, ip, skills, servicios FROM equipos WHERE id=?", i); print(i, e["nombre"], e["ip"], "skills:", (e["skills"] or "")[:120], "| servicios con keycloak/nginx/eap:", [x for x in json.loads(e["servicios"] or "[]") if any(k in str(x).lower() for k in ("keycloak", "rhbk", "nginx", "eap", "jboss"))][:5])
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/bd.py", line 182, in q1
-    r = con().execute(sql, args).fetchone()
-        ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: skills
-192.168.122.11 http 200 → 
-192.168.122.11 https 404
-192.168.122.15 http 000 → 
-192.168.122.15 https 000
-192.168.122.18 http 000 → 
-192.168.122.18 https 000
-15:8080/admin/ 404
-15:8080/app-jboss/ 404
---- fin: 2026-11-10T16:37:51-03:00 · código: 0
+clientes: [(1, 'Invoke Lab'), (2, 'Minera Los Andes (demo)'), (3, 'Banco del Pacífico Sur (demo)'), (4, 'Clínica Santa Lucía (demo)')]
+categorias: Counter({(1, 'servidor'): 80, (3, 'servidor'): 6, (1, 'router'): 5, (2, 'servidor'): 5, (1, 'firewall'): 4, (4, 'servidor'): 4, (1, 'almacenamiento'): 2, (1, 'estación de trabajo'): 2, (2, 'red'): 2, (3, 'plataforma'): 2, (3, 'red'): 2, (1, 'balanceador'): 1, (1, 'clúster openshift'): 1, (1, 'otro'): 1, (1, 'switch'): 1, (2, 'plataforma'): 1, (4, 'red'): 1})
+1 68 lb-dmz balanceador 172.20.20.54 Red · laboratorio ["balanceador", "red-corporativa"] Red corporativa · Centro de datos Santiago  inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+1 13 fgt firewall 172.20.20.12 Red · laboratorio ["fortigate"] Centro de datos Santiago FortiOS retirado datos: ['carga_1m', 'hostname', 'kernel', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'uptime_dias', 'virtual', 'virtual_rol']
+1 14 fw firewall 172.20.20.12 Red · laboratorio ["firewall"] Centro de datos Santiago VyOS inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+1 66 fw-interno firewall 172.20.20.57 Red · laboratorio ["firewall", "red-corporativa"] Red corporativa · Centro de datos Santiago VyOS inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+1 67 fw-perimetral firewall 172.20.20.53 Red · laboratorio ["firewall", "red-corporativa"] Red corporativa · Centro de datos Santiago VyOS inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+1 63 borde router 172.20.20.52 Red · laboratorio ["red-corporativa", "router"] Red corporativa · Centro de datos Santiago  inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+1 16 rtr router 172.20.20.11 Red · laboratorio ["gestionados"] Centro de datos Santiago Linux (Alpine) inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+1 17 suc1 router 192.168.122.1 Red · laboratorio ["sucursales"] Centro de datos Santiago Linux (Alpine) inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+1 18 suc2 router 192.168.122.1 Red · laboratorio ["sucursales"] Centro de datos Santiago Linux (Alpine) inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+1 19 suc3 router 192.168.122.1 Red · laboratorio ["sucursales"] Centro de datos Santiago Linux (Alpine) inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+1 64 core switch 172.20.20.58 Red · laboratorio ["red-corporativa", "switch"] Red corporativa · Centro de datos Santiago  inventariado datos: ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+--- otros (nombre ip inventario ubicacion) cliente 1:
+  69 nas-01 almacenamiento 172.20.20.62 Red · laboratorio Red corporativa · Centro de datos Santiago
+  27 nodo-storage almacenamiento 192.168.122.167 Servidores habilitados Centro de datos Santiago
+  29 ocp-sno clúster openshift 192.168.122.50 OpenShift · clústeres Centro de datos Santiago
+  70 pc-campus-01 estación de trabajo 172.20.20.61 Red · laboratorio Red corporativa · Centro de datos Santiago
+  15 pc-usuario estación de trabajo 172.20.20.22 Red · laboratorio Centro de datos Santiago
+  23 anfitrion-kvm otro 192.168.122.1 FaceOps · Infraestructura 
+  24 anfitrion-stand servidor 192.168.122.1 Plataforma del stand Centro de datos Santiago
+  1 dc1-ad01 servidor 10.101.20.10 Data center 1 Centro de datos Santiago
+  2 dc1-ds01 servidor 10.101.20.12 Data center 1 Centro de datos Santiago
+  3 dc1-idm01 servidor 10.101.20.11 Data center 1 Centro de datos Santiago
+  4 dc1-iga01 servidor 10.101.20.13 Data center 1 Centro de datos Santiago
+  77 dc1-sat01 servidor 192.168.122.2 Servidores habilitados Centro de datos Santiago
+  75 dc1-sql01 servidor 192.168.122.89 Servidores habilitados Centro de datos Santiago
+  5 dc1-sso01 servidor 10.101.20.14 Data center 1 Centro de datos Santiago
+  79 dc1-vpn01 servidor 192.168.122.75 Servidores habilitados Centro de datos Santiago
+  76 dc2-sql01 servidor 192.168.122.78 Servidores habilitados Centro de datos Santiago
+  65 dns-dmz servidor 172.20.20.56 Red · laboratorio Red corporativa · Centro de datos Santiago
+  6 nodo-jboss servidor 192.168.122.15 Servidores de aplicación Centro de datos Santiago
+  21 nodo-jboss-dev servidor 192.168.122.21 Servidores de aplicación Centro de datos Santiago
+  22 nodo-jboss-qa servidor 192.168.122.20 Servidores de aplicación Centro de datos Santiago
+  7 nodo-jboss2 servidor 192.168.122.18 Servidores de aplicación Centro de datos Santiago
+  20 nodo-jboss3 servidor 192.168.122.19 Servidores de aplicación Centro de datos Santiago
+  8 nodo-nginx servidor 192.168.122.11 Servidores de aplicación Centro de datos Santiago
+  9 nodo-postgres servidor 192.168.122.13 Servidores de aplicación Centro de datos Santiago
+  11 nodo-so servidor 192.168.122.12 Nodos demo Centro de datos Santiago
+  10 nodo-tomcat servidor 192.168.122.14 Servidores de aplicación Centro de datos Santiago
+  26 nodo-vault servidor 192.168.122.210 Servidores habilitados Centro de datos Santiago
+  12 nodo-windows servidor 192.168.122.17 Servidores Windows Centro de datos Santiago
+  81 pc-oficina-01 servidor pendiente Servidores habilitados Centro de datos Santiago
+  82 pc-oficina-02 servidor pendiente Servidores habilitados Centro de datos Santiago
+  71 proxy-dmz servidor 172.20.20.55 Red · laboratorio Red corporativa · Centro de datos Santiago
+  41 sno servidor 192.168.122.50 OpenShift · nodos Centro de datos Santiago
+  30 srv-ad-dc02 servidor  Infra · VMware · Santiago VMware · Santiago
+  72 srv-app-01 servidor 172.20.20.59 Red · laboratorio Red corporativa · Centro de datos Santiago
+  31 srv-archivos01 servidor  Infra · VMware · Santiago VMware · Santiago
+  73 srv-bd-01 servidor 172.20.20.60 Red · laboratorio Red corporativa · Centro de datos Santiago
+  85 srv-cisco-c240-01 servidor 192.168.122.138 Servidores habilitados Centro de datos Santiago
+  37 srv-cliente-nueva-01 servidor  Infra · VMware · Santiago VMware · Santiago
+  93 srv-dell-r660xs-01 servidor 192.168.122.88 Servidores habilitados Centro de datos Santiago
+  86 srv-dell-r760-01 servidor 192.168.122.69 Servidores habilitados Centro de datos Santiago
+  32 srv-erp-app01 servidor  Infra · VMware · Santiago VMware · Santiago
+  33 srv-erp-app02 servidor  Infra · VMware · Santiago VMware · Santiago
+  34 srv-erp-bd01 servidor  Infra · VMware · Santiago VMware · Santiago
+  94 srv-fujitsu-rx2540-01 servidor 192.168.122.203 Servidores habilitados Centro de datos Santiago
+  95 srv-hpe-dl360-01 servidor 192.168.122.122 Servidores habilitados Centro de datos Santiago
+  87 srv-hpe-dl380-01 servidor 192.168.122.187 Servidores habilitados Centro de datos Santiago
+  74 srv-jenkins-01 servidor 192.168.122.29 Servidores habilitados Centro de datos Santiago
+  35 srv-legado-jboss5 servidor  Infra · VMware · Santiago VMware · Santiago
+  62 srv-legado-jboss5-01 servidor 192.168.122.190 Servidores habilitados Centro de datos Santiago
+  83 srv-legado-jboss6-01 servidor 192.168.122.165 Servidores habilitados Centro de datos Santiago
+  84 srv-legado-jboss7-01 servidor 192.168.122.85 Servidores habilitados Centro de datos Santiago
+  36 srv-legado-reportes servidor  Infra · VMware · Santiago VMware · Santiago
+  96 srv-lenovo-sr630-01 servidor 192.168.122.163 Servidores habilitados Centro de datos Santiago
+  88 srv-lenovo-sr650-01 servidor 192.168.122.93 Servidores habilitados Centro de datos Santiago
+  25 srv-pagos-app-01 servidor 192.168.122.60 Servidores habilitados Centro de datos Santiago
+  47 srv-pn-rhel10-01 servidor 192.168.122.223 Servidores habilitados Centro de datos Santiago
+  48 srv-pn-rhel5-01 servidor 192.168.122.22 Servidores habilitados Centro de datos Santiago
+  46 srv-pn-rhel6-01 servidor pendiente Servidores habilitados Centro de datos Santiago
+  45 srv-pn-rhel7-01 servidor 192.168.122.200 Servidores habilitados Centro de datos Santiago
+  44 srv-pn-rhel8-01 servidor 192.168.122.154 Servidores habilitados Centro de datos Santiago
+  43 srv-pn-rhel9-01 servidor 192.168.122.143 Servidores habilitados Centro de datos Santiago
+  49 srv-pn-ubuntu-01 servidor 192.168.122.52 Servidores habilitados Centro de datos Santiago
+  42 srv-pn-vmware-01 servidor  Infra · VMware · Santiago VMware · Santiago
+  50 srv-pn-win-01 servidor pendiente Servidores habilitados Centro de datos Santiago
+  52 srv-pn2-rhel5-01 servidor 192.168.122.235 Servidores habilitados Centro de datos Santiago
+  51 srv-pn2-rhel6-01 servidor pendiente Servidores habilitados Centro de datos Santiago
+  54 srv-pn3-rhel5-01 servidor 192.168.122.230 Servidores habilitados Centro de datos Santiago
+  53 srv-pn3-rhel6-01 servidor pendiente Servidores habilitados Centro de datos Santiago
+  55 srv-pn4-rhel6-01 servidor 192.168.122.124 Servidores habilitados Centro de datos Santiago
+  57 srv-pn5-rhel5-01 servidor 192.168.122.125 Servidores habilitados Centro de datos Santiago
+  56 srv-pn5-rhel6-01 servidor 192.168.122.252 Servidores habilitados Centro de datos Santiago
+  59 srv-pn6-rhel5-01 servidor 192.168.122.136 Servidores habilitados Centro de datos Santiago
+  58 srv-pn6-rhel6-01 servidor 192.168.122.178 Servidores habilitados Centro de datos Santiago
+  61 srv-pn7-rhel5-01 servidor 192.168.122.69 Servidores habilitados Centro de datos Santiago
+  60 srv-pn7-rhel6-01 servidor 192.168.122.211 Servidores habilitados Centro de datos Santiago
+  92 srv-prueba-rhel8-01 servidor 192.168.122.64 Servidores habilitados Centro de datos Santiago
+  91 srv-prueba-rhel9-01 servidor 192.168.122.247 Servidores habilitados Centro de datos Santiago
+  90 srv-prueba-rocky-01 servidor 192.168.122.216 Servidores habilitados Centro de datos Santiago
+  78 srv-rocky-demo-01 servidor 192.168.122.123 Servidores habilitados Centro de datos Santiago
+  80 srv-rocky-prueba-01 servidor 192.168.122.5 Servidores habilitados Centro de datos Santiago
+  28 srv-servidor-de-ejemplo-01 servidor 192.168.122.198 Servidores habilitados Centro de datos Santiago
+  89 srv-supermicro-01 servidor 192.168.122.152 Servidores habilitados Centro de datos Santiago
+  40 srv-test-ubuntu-01 servidor 192.168.122.113 Servidores habilitados Centro de datos Santiago
+  39 srv-test-vinculacion-01 servidor 192.168.122.151 Servidores habilitados Centro de datos Santiago
+  38 srv-test-vmware-01 servidor  Infra · VMware · Santiago VMware · Santiago
+  97 srv-xfusion-2288h-01 servidor 192.168.122.22 Servidores habilitados Centro de datos Santiago
+infra: [('KVM · Santiago', 'kvm', 'Centro de datos Santiago'), ('Cloud GCP · invoke-summit-cloud', 'gcp', 'Cloud GCP'), ('OpenShift · SNO', 'openshift', 'OpenShift · SNO'), ('VMware · Santiago', 'vmware', 'VMware · Santiago'), ('Dell · Centro de datos Santiago', 'fisico', 'Dell · Centro de datos Santiago'), ('KVM · Valparaíso', 'kvm', 'Centro de datos Valparaíso'), ('KVM · Santiago', 'kvm', 'Centro de datos Santiago'), ('OpenShift · SNO', 'openshift', 'OpenShift · SNO'), ('Cloud GCP · invoke-summit-cloud', 'gcp', 'Cloud GCP'), ('KVM · Valparaíso', 'kvm', 'Centro de datos Valparaíso'), ('KVM · Santiago', 'kvm', 'Centro de datos Santiago'), ('OpenShift · SNO', 'openshift', 'OpenShift · SNO'), ('Cloud GCP · invoke-summit-cloud', 'gcp', 'Cloud GCP'), ('KVM · Valparaíso', 'kvm', 'Centro de datos Valparaíso'), ('KVM · Santiago', 'kvm', 'Centro de datos Santiago'), ('OpenShift · SNO', 'openshift', 'OpenShift · SNO'), ('Cloud GCP · invoke-summit-cloud', 'gcp', 'Cloud GCP'), ('KVM · Valparaíso', 'kvm', 'Centro de datos Valparaíso')]
+--- fin: 2026-11-10T16:38:11-03:00 · código: 0
