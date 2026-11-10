@@ -1,0 +1,38 @@
+commit: 10eceeb35709d722812d8de30b37d33711a8b9ba
+inicio: 2026-11-10T19:28:57-03:00
+---
+faceops-guacd Up About an hour (healthy)
+faceops-vcsim Up About an hour
+faceops-maqueta Up About an hour
+faceops-validador Up About an hour
+faceops-kb Up About an hour
+faceops-sni Up About an hour
+faceops-guacamole Up About an hour
+faceops-publico Up About an hour
+faceops Up 42 seconds
+Nov 10 19:25:21 demo-ansible-summit systemd[1]: Stopping FaceOps · consola del Managed Service...
+Nov 10 19:25:22 demo-ansible-summit systemd[1]: Stopped FaceOps · consola del Managed Service.
+Nov 10 19:25:22 demo-ansible-summit systemd[1]: Started FaceOps · consola del Managed Service.
+Nov 10 19:25:39 demo-ansible-summit systemd[1]: Stopping FaceOps · consola del Managed Service...
+Nov 10 19:25:50 demo-ansible-summit systemd[1]: Stopped FaceOps · consola del Managed Service.
+Nov 10 19:25:50 demo-ansible-summit systemd[1]: Started FaceOps · consola del Managed Service.
+Nov 10 19:28:15 demo-ansible-summit systemd[1]: Stopping FaceOps · consola del Managed Service...
+Nov 10 19:28:15 demo-ansible-summit systemd[1]: Stopped FaceOps · consola del Managed Service.
+Nov 10 19:28:16 demo-ansible-summit systemd[1]: Started FaceOps · consola del Managed Service.
+FO-LAB-01429 exitoso 21977 AAP terminó (successful): ejecución 61 s, espera de aprobación 35 s
+FO-LAB-01432 exitoso 21995 AAP terminó (successful): ejecución 10 s, espera de aprobación 59 s
+aud {'accion': 'error alta de servidores', 'objeto': 'FO-LAB-01432', 'detalle': '{"error": "AAP POST hosts/ → 403: {\\"detail\\":\\"License count of 50 instances has been reached.\\"}"}'}
+aud {'accion': 'aprobar', 'objeto': 'FO-LAB-01432', 'detalle': '{"comentario": "Aprobado por Claude (regla de Cristian)", "etapa": 1, "area": "servidores", "aprobacion_aap": 21996}'}
+aud {'accion': 'espera aprobación en AAP', 'objeto': 'FO-LAB-01432', 'detalle': '{"aprobacion": "Etapa 1/1 · Servidores · ¿Ejecutar «Habilitar servidor»?", "id": 21996}'}
+aud {'accion': 'ticket en Odoo', 'objeto': 'FO-LAB-01432', 'detalle': '{"odoo": 1251}'}
+aud {'accion': 'solicitar', 'objeto': 'FO-LAB-01432', 'detalle': '{"automatizacion": "Habilitar servidor", "version": "FaceOps · automatizaciones @ bd6d41e8", "segmento": null, "filtros": null, "limite": "", "parametros": {"hab_interno": true, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_segmento": "App de pagos", "hab_nombre": "prueba-hab", "hab_replicas": "1", "hab_cpu": "1", "hab_ram_gb": "2", "hab_disco_gb": "20", "hab_ambiente": "desarrollo"}}'}
+aud {'accion': 'error alta de servidores', 'objeto': 'FO-LAB-01429', 'detalle': '{"error": "AAP POST hosts/ → 403: {\\"detail\\":\\"License count of 50 instances has been reached.\\"}"}'}
+aud {'accion': 'aprobar', 'objeto': 'FO-LAB-01429', 'detalle': '{"comentario": "Aprobado por Claude (regla de Cristian)", "etapa": 1, "area": "servidores", "aprobacion_aap": 21978}'}
+aud {'accion': 'espera aprobación en AAP', 'objeto': 'FO-LAB-01429', 'detalle': '{"aprobacion": "Etapa 1/1 · Servidores · ¿Ejecutar «Habilitar servidor»?", "id": 21978}'}
+aud {'accion': 'ticket en Odoo', 'objeto': 'FO-LAB-01429', 'detalle': '{"odoo": 1248}'}
+aud {'accion': 'solicitar', 'objeto': 'FO-LAB-01429', 'detalle': '{"automatizacion": "Habilitar servidor", "version": "FaceOps · automatizaciones @ bd6d41e8", "segmento": null, "filtros": null, "limite": "", "parametros": {"hab_interno": true, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_segmento": "App de pagos", "hab_nombre": "prueba-hab", "hab_replicas": "1", "hab_cpu": "1", "hab_ram_gb": "2", "hab_disco_gb": "20", "hab_ambiente": "desarrollo"}}'}
+Traceback (most recent call last):
+  File "/tmp/v.py", line 9, in <module>
+    from app.aap import cliente_aap
+ImportError: cannot import name 'cliente_aap' from 'app.aap' (/opt/faceops/app/aap.py)
+--- fin: 2026-11-10T19:29:05-03:00 · código: 0
