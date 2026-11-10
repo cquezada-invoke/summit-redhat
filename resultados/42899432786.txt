@@ -1,0 +1,33 @@
+commit: 3808f14fe957cd75293871261ed27ccd4493d76f
+inicio: 2026-11-10T17:52:08-03:00
+---
+libs
+META-INF
+org.eclipse.transformer.cli-0.5.0.jar
+imagestream.image.openshift.io/ventas configured
+buildconfig.build.openshift.io/ventas configured
+configmap/ventas-config created
+deployment.apps/ventas created
+service/ventas created
+route.route.openshift.io/ventas created
+secret/ventas-ds created
+ventas-1   Source   Binary   Failed (GenericBuildFailed)   10 minutes ago   6m45s
+ventas-2   Source   Binary   Complete                      3 minutes ago    3m11s
+Copyright (c) Contributors to the Eclipse Foundation
+org.eclipse.transformer.cli.JakartaTransformerCLI Version [ 0.5.0 ]
+FaceOps: ventas.ear transformado a Jakarta EE
+[INFO] Installing packages
+INFO Installing server
+{"outcome" => "success"}
+{"outcome" => "success"}
+Pushing image image-registry.openshift-image-registry.svc:5000/wl-proto/ventas:latest ...
+Push successful
+IMG=image-registry.openshift-image-registry.svc:5000/wl-proto/ventas@sha256:0df29b494d84a84abdebfd966bde3bc76e7229917560f1c19ffadca10f3023e7
+ventas-1-build            0/1   Error              0              16m
+ventas-2-build            0/1   Completed          0              8m36s
+ventas-6799dd449c-9pp6j   0/1   CrashLoopBackOff   5 (2m1s ago)   5m23s
+host=ventas-wl-proto.apps.sno.invoke.lab
+ http=000
+index=000
+error: unable to upgrade connection: container not found ("ventas")
+--- fin: 2026-11-10T18:00:49-03:00 · código: 0
