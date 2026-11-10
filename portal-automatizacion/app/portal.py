@@ -32,6 +32,7 @@ SECCIONES = [
     ("amdocs", "Telco · Amdocs", "Órdenes de servicio, conciliación con la red y OpenShift, y despliegue de releases"),
     ("linux", "Linux", "Análisis de seguridad de servidores Linux con informe en PDF"),
     ("windows", "Windows", "Análisis de seguridad de servidores Windows con informe en PDF"),
+    ("servicenow", "Se lanzan desde ServiceNow", "El usuario las pide con un formulario de ServiceNow; Ansible las ejecuta con aprobación y cierra el ticket"),
 ]
 SESIONES = {}   # id → {usuario, token, token_id, nombre, creada}; solo en memoria
 app = Flask(__name__)
@@ -205,6 +206,8 @@ def estado_pruebas():
 def catalogo():
     ep = estado_pruebas()
     wf = aap("GET", f"workflow_job_templates/?labels__name__startswith=portal-&page_size=200&order_by=name{_ORG}")["results"]
+    ya_ = {x["id"] for x in wf}
+    wf += [x for x in aap("GET", "workflow_job_templates/?labels__name=portal-servicenow&page_size=50&order_by=name")["results"] if x["id"] not in ya_]
     items = []
     for w in wf:
         etiquetas = [x["name"] for x in w["summary_fields"].get("labels", {}).get("results", [])]
@@ -222,6 +225,7 @@ def catalogo():
         items[-1]["tipo"] = "Informe de análisis" if "análisis" in tipo else ("Hace cambios" if "cambios" in tipo else ("Solo lectura" if tipo else ""))
         items[-1]["para"] = lineas.get("Para qué", w["description"])
         items[-1]["origen"] = lineas.get("Se lanza desde", "")
+        items[-1]["snow"] = lineas.get("Formulario ServiceNow", "")
     return items
 
 
@@ -241,7 +245,10 @@ def ficha(wid):
     u = sesion() or abort(401)
     w = aap("GET", f"workflow_job_templates/{wid}/")
     enc = aap("GET", f"workflow_job_templates/{wid}/survey_spec/") if w.get("survey_enabled") else {}
-    nodos = aap("GET", f"workflow_job_templates/{wid}/workflow_nodes/?page_size=50")["results"]
+    try:
+        nodos = aap("GET", f"workflow_job_templates/{wid}/workflow_nodes/?page_size=50")["results"]
+    except ErrorAAP:
+        nodos = []
     pasos = []
     for n in nodos:
         u = dict(n["summary_fields"].get("unified_job_template", {}))
@@ -256,13 +263,20 @@ def ficha(wid):
                 pass
         if u.get("id") not in [p.get("id") for p in pasos] or u.get("unified_job_type") != "job":
             pasos.append(u)
-    recientes = aap("GET", f"workflow_jobs/?workflow_job_template={wid}&order_by=-id&page_size=6")["results"]
+    try:
+        recientes = aap("GET", f"workflow_jobs/?workflow_job_template={wid}&order_by=-id&page_size=6")["results"]
+    except ErrorAAP:
+        recientes = []
     etiquetas = [x["name"] for x in w["summary_fields"].get("labels", {}).get("results", [])]
     sec = next((e.split("-", 1)[1] for e in etiquetas if e.startswith("portal-")), "infra")
     hosts = []
     if w.get("ask_limit_on_launch") and w.get("inventory"):
-        hosts = [h["name"] for h in aap("GET", f"inventories/{w['inventory']}/hosts/?page_size=200&order_by=name")["results"]]
-    return render_template("ficha.html", servidor_prueba=os.environ.get("PORTAL_SERVIDOR_PRUEBA", "nodo-jboss"), u=u, w=w, preguntas=enc.get("spec", []), pasos=pasos, recientes=recientes, sec=sec, hosts=hosts)
+        try:
+            hosts = [h["name"] for h in aap("GET", f"inventories/{w['inventory']}/hosts/?page_size=200&order_by=name")["results"]]
+        except ErrorAAP:   # sin permiso de lectura del inventario: se ofrece el servidor de prueba
+            hosts = [os.environ.get("PORTAL_SERVIDOR_PRUEBA", "nodo-jboss")]
+    snow = next((l.split(":", 1)[1].strip() for l in (w.get("description") or "").split("\n") if l.startswith("Formulario ServiceNow:")), "")
+    return render_template("ficha.html", snow=snow, servidor_prueba=os.environ.get("PORTAL_SERVIDOR_PRUEBA", "nodo-jboss"), u=u, w=w, preguntas=enc.get("spec", []), pasos=pasos, recientes=recientes, sec=sec, hosts=hosts)
 
 
 @app.route("/automatizacion/<int:wid>/lanzar", methods=["POST"])

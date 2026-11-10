@@ -207,7 +207,7 @@ def plantilla(nombre, playbook, red=False, descripcion="", base=None, credencial
     jt = asegurar("job_templates", nombre, {
         "organization": org if not red else jt_red["organization"],
         "inventory": (b_["inventory"] if b_ else inv) if not red else jt_red["inventory"],
-        "project": proy if not red else jt_red["project"], "playbook": playbook, "ask_variables_on_launch": True,
+        "project": proy if not red else jt_red["project"], "playbook": playbook, "ask_variables_on_launch": True, "ask_limit_on_launch": True,
         "execution_environment": ee if not red else jt_red.get("execution_environment"), "description": descripcion,
         "allow_simultaneous": False})["id"]
     ya = {c["id"] for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]}
@@ -343,6 +343,41 @@ if rd and rd.get("results") and cu:
     if jt_rs:
         aap("POST", "role_user_assignments/", {"role_definition": rd["results"][0]["id"], "user": cu["id"], "object_id": str(jt_rs)}, t=True)
 paso(f"Usuario «{USUARIO_CLARO}» administrador del tenant «{ORG_N}» (fijar su clave en AAP › Usuarios)")
+
+# Inventarios de servidores que usan las automatizaciones con «limite»: el usuario demo los puede ver y usar
+if cu0:
+    for it in cat:
+        if it.get("limite") and not it.get("oculto") and it["nombre"] in jts:
+            inv_ = aap("GET", f"job_templates/{jts[it['nombre']]}/")["inventory"]
+            if inv_:
+                r_ = aap("GET", f"inventories/{inv_}/")["summary_fields"]["object_roles"]
+                for k_ in ("read_role", "use_role"):
+                    aap("POST", f"users/{cu0['id']}/roles/", {"id": r_[k_]["id"]}, t=True)
+
+# Se lanzan desde ServiceNow (demo de redes): el portal los muestra con el link al formulario; se lanzan solo desde ServiceNow.
+SNOW = "https://dev459364.service-now.com/sp?id=sc_cat_item&sys_id="
+for wn, sid, dsc in [
+        ("Red · Solicitar acceso con aprobación", "1cf24fd3c3041310bfc1be13e40131b3",
+         "Tipo: Hace cambios · pide aprobación en AAP\n"
+         "Para qué: que un acceso de red se pida como cualquier ticket y quede abierto en minutos, con control.\n"
+         "Qué hace: el usuario llena el formulario «Solicitar acceso de red» en ServiceNow (red de origen, servidor de destino, puerto y motivo); "
+         "Event-Driven Ansible recibe la solicitud, AAP pide la aprobación, abre el acceso en el firewall, lo prueba y cierra el ticket en ServiceNow con el resultado.\n"
+         "Qué obtienes: el acceso abierto y el ticket de ServiceNow cerrado con la evidencia."),
+        ("Red · Preparar red OpenShift con aprobación", "a384aa27c3cc5310bfc1be13e4013180",
+         "Tipo: Hace cambios · pide aprobación en AAP\n"
+         "Para qué: tener lista la red para un clúster OpenShift nuevo sin coordinar a mano con el equipo de redes.\n"
+         "Qué hace: el usuario llena el formulario «Preparar red para clúster OpenShift» en ServiceNow; Ansible prepara el plan (segmento, accesos y nombres DNS), "
+         "AAP pide la aprobación y lo aplica; el ticket de ServiceNow queda con el resultado.\n"
+         "Qué obtienes: el segmento, los accesos y los nombres DNS del clúster listos para instalar.")]:
+    w_ = uno("workflow_job_templates", name=wn)
+    if not w_:
+        continue
+    aap("PATCH", f"workflow_job_templates/{w_['id']}/", {"description": dsc + f"\nSe lanza desde: ServiceNow\nFormulario ServiceNow: {SNOW}{sid}"})
+    if "portal-servicenow" not in {x["name"] for x in aap("GET", f"workflow_job_templates/{w_['id']}/labels/")["results"]}:
+        aap("POST", f"workflow_job_templates/{w_['id']}/labels/", {"id": etiqueta("portal-servicenow", w_["organization"])})
+    if cu0:
+        aap("POST", f"users/{cu0['id']}/roles/", {"id": w_["summary_fields"]["object_roles"]["read_role"]["id"]}, t=True)
+    paso(f"ServiceNow: «{wn}» visible en el portal")
 
 # 4. EDA -----------------------------------------------------------------------------------------------------------------
 if "--sin-eda" not in sys.argv:

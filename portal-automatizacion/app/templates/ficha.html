@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block contenido %}
 <h3>{{ w.name.split('·', 1)[-1] | trim }}</h3>
-<p style="white-space:pre-line">{{ w.description }}</p>
+<p style="white-space:pre-line">{{ w.description.split('\nFormulario ServiceNow:')[0] }}</p>
 <p>Ver en AAP: <a href="{{ en_aap('wf', w.id) }}" target="_blank">workflow «{{ w.name }}»</a></p>
 <p>Pasos:</p><ul>{% for p in pasos %}<li>{% if p.unified_job_type == 'workflow_approval' %}Aprobación (en AAP: <a href="{{ en_aap('aprobs', 0) }}" target="_blank">Workflow Approvals</a>){% else %}{{ p.name | replace('Portal · ', '') | replace(' (plantilla)', '') }}{% if p.aap %} — <a href="{{ p.aap }}" target="_blank">plantilla en AAP</a>{% endif %}{% if p.repo %} — <a href="{{ p.repo }}" target="_blank">{{ p.playbook }} en el repositorio</a>{% endif %}{% endif %}</li>{% endfor %}</ul>
+{% if snow %}
+<p><a href="{{ snow }}" target="_blank"><b>Abrir el formulario en ServiceNow</b></a> <span class="sub">— se pide desde ahí como cualquier solicitud; Event-Driven Ansible la recibe y AAP pide la aprobación.</span></p>
+{% else %}
 <form method="post" action="{{ url_for('lanzar', wid=w.id) }}" target="_blank">
 <input type="hidden" name="csrf" value="{{ csrf }}">
 {% if hosts %}<p>Servidores * <span class="sub">— del inventario de AAP <a href="{{ en_aap('inv', w.inventory) }}" target="_blank">ver en AAP</a></span><br><select name="_limite" multiple size="{{ [hosts | length, 8] | min }}" required>{% for h in hosts %}<option {{ 'selected' if h == servidor_prueba }}>{{ h }}</option>{% endfor %}</select></p>{% endif %}
@@ -17,5 +20,6 @@
 {% endfor %}
 <p><button {{ 'disabled' if not w.summary_fields.user_capabilities.start }}>Lanzar</button> <span class="sub">Al lanzar se abre la ejecución en AAP, donde se aprueba y se ve el avance.</span></p>
 </form>
+{% endif %}
 {% if recientes %}<p>Ejecuciones recientes:</p><ul>{% for j in recientes %}<li><a href="{{ en_aap('wj', j.id) }}" target="_blank">#{{ j.id }}</a> {{ j.status }} {{ (j.started or j.created or '')[:16] | replace('T', ' ') }}</li>{% endfor %}</ul>{% endif %}
 {% endblock %}
