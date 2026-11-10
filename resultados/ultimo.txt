@@ -1,26 +1,17 @@
-commit: f9ce19e5dd03ad87dea9124dfa66f00fb35a7b8b
-inicio: 2026-11-10T01:32:58-03:00
+commit: f0bfb96e0a316cf94cc9bf5e2037bb43b2b4e84e
+inicio: 2026-11-10T01:33:43-03:00
 ---
-=== hosts windows
-22 nodo-windows 6 Servidores Windows ansible_host: 192.168.122.17 ansible_connection: winrm ansible_port: 5985 ansible_winrm_transport: ntlm ansible_winrm_scheme: http ansible_winrm_serve
-cred 22 DC1 · Windows ansible ssh
-cred 17 Windows · ansible (WinRM) ssh
-jt 61 Drift · Windows inv 6
-jt 55 Monitoreo · Exportador en Windows inv 6
-jt 703 Portal · Windows · Informe de seguridad (plantilla) inv 2
-jt 49 Remediación · IIS en Windows inv 6
-jt 209 Windows · Habilitar escritorio remoto inv 2
-jt 48 Windows · Preparar IIS inv 6
-jt 50 Windows · Provocar caída de IIS (demo) inv 6
-=== vigía
-Failed to connect to bus: No medium found
-No journal files were found.
--- No entries --
-● vigia-servicenow.service - Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible
-     Loaded: loaded (/etc/systemd/system/vigia-servicenow.service; enabled; preset: disabled)
-     Active: active (running) since Tue 2026-11-10 00:45:35 -03; 47min ago
-   Main PID: 966980 (python3)
-{'number': 'RITM0010064', 'cat_item.name': 'Revocar acceso de red', 'sys_created_on': '2026-11-10 04:12:02', 'active': 'true', 'state': '1', 'work_notes': ''}
-{'number': 'RITM0010063', 'cat_item.name': 'Solicitar acceso de red', 'sys_created_on': '2026-11-10 04:06:47', 'active': 'true', 'state': '1', 'work_notes': ''}
-{'number': 'RITM0010065', 'cat_item.name': 'Preparar red para clúster OpenShift', 'sys_created_on': '2026-11-10 04:17:16', 'active': 'true', 'state': '1', 'work_notes': ''}
---- fin: 2026-11-10T01:33:00-03:00 · código: 0
+User=cquezada
+ExecStart=/usr/bin/python3 /home/cquezada/summit-redhat/demo4-redes/servicenow/vigia_servicenow.py
+Nov 10 01:33:43 demo-ansible-summit systemd[1]: Stopping Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible...
+Nov 10 01:33:43 demo-ansible-summit systemd[1]: vigia-servicenow.service: Deactivated successfully.
+Nov 10 01:33:43 demo-ansible-summit systemd[1]: Stopped Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible.
+Nov 10 01:33:43 demo-ansible-summit systemd[1]: vigia-servicenow.service: Consumed 9.777s CPU time, 10.9M memory peak.
+Nov 10 01:33:43 demo-ansible-summit systemd[1]: Started Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible.
+Nov 10 01:33:44 demo-ansible-summit python3[1170700]: 01:33:44 vigilando 'Solicitar acceso de red' en https://dev459364.service-now.com
+15132 Red · Solicitar acceso con aprobación failed 2026-11-06T17:48:49
+14704 Red · Solicitar acceso con aprobación failed 2026-11-05T22:53:01
+13521 Red · Solicitar acceso con aprobación failed 2026-11-04T18:34:06
+12627 Red · Solicitar acceso con aprobación successful 2026-11-04T00:31:03
+11540 Red · Solicitar acceso con aprobación canceled 2026-11-03T03:13:26
+--- fin: 2026-11-10T01:34:59-03:00 · código: 0
