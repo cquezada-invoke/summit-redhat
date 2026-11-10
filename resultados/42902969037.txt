@@ -1,0 +1,20 @@
+commit: 8775d9c5df1c74038880425f64b33377d6198066
+inicio: 2026-11-10T18:23:51-03:00
+---
+657b664
+faceops actualizado
+ERROR GET https://localhost/api/controller/v2/organizations/ -> 503: no healthy upstream
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET job_templates/ → 503: no healthy upstream
+Traceback (most recent call last):
+  File "/tmp/wl-pa.py", line 3, in <module>
+    print("estado:", {n: __import__("app.pruebas", fromlist=["estado"]).estado(dict(auto(n)))["estado"] for n in (EVAL, MIG)}, flush=True)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/wl-pa.py", line 3, in <dictcomp>
+    print("estado:", {n: __import__("app.pruebas", fromlist=["estado"]).estado(dict(auto(n)))["estado"] for n in (EVAL, MIG)}, flush=True)
+                                                                               ^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not iterable
+
+--- fin: 2026-11-10T18:28:01-03:00 · código: 0
