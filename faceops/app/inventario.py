@@ -158,6 +158,18 @@ def resumir(facts, host_vars):
                 "datos": {"ocp": ocp, "recolectado": ocp.get("recolectado", ""),
                           **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {})}}
     hv = host_vars or {}
+    red = f.get("faceops_red")
+    if isinstance(red, dict) and red.get("plataforma") and (not f.get("ansible_os_family")
+                                                            or hv.get("faceops_categoria") in ("router", "switch", "firewall", "balanceador")):
+        # equipo de red (lo trae «Red · Inventariar equipo de red»): su sistema es la plataforma de red, no un SO de servidor
+        ver = str(red.get("version") or "")
+        return {"so": f"{red['plataforma']} {ver}".strip(), "so_familia": "Red", "so_version": ver.split(".")[0],
+                "ip": hv.get("ansible_host") or (red.get("gestion") or {}).get("ip", ""), "cpu": None, "ram_mb": None,
+                "discos": [], "servicios": [],
+                "datos": {"red": red, "recolectado": red.get("recolectado", ""), "hostname": red.get("hostname", ""),
+                          "uptime_dias": round((red.get("uptime_s") or 0) / 86400, 1),
+                          "hardware": {k: v for k, v in {"fabricante": red.get("fabricante"), "modelo": red.get("modelo"),
+                                                         "serie": red.get("serie")}.items() if v}}}
     if not f.get("ansible_os_family") and hv.get("config.guestId"):  # VM de vSphere sin facts: lo que dice el vCenter
         return _vsphere(hv)
     fam = f.get("ansible_os_family", "")

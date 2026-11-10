@@ -1,0 +1,13 @@
+# Equipo de red abierto para los laboratorios de FaceOps: FRR (enrutamiento) + puente Linux con VLAN (conmutación),
+# LLDP (vecinos) y HAProxy (balanceo). El usuario «netadmin» entra directo a la CLI de FRR (vtysh) por SSH, como en un
+# equipo de red; AAP lee con la llave del laboratorio. La clave de netadmin se fija al desplegar (no va en la imagen).
+ARG BASE=localhost/frr-summit:1
+FROM ${BASE}
+RUN apk add --no-cache lldpd iproute2 haproxy \
+ && grep -qx /usr/bin/vtysh /etc/shells || echo /usr/bin/vtysh >> /etc/shells \
+ && adduser -D -s /usr/bin/vtysh -g "Administrador de red" netadmin \
+ && addgroup netadmin frrvty && addgroup netadmin frr \
+ && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+ && printf 'Banner /etc/issue.net\n' >> /etc/ssh/sshd_config \
+ && printf 'Equipo de red del laboratorio Invoke · acceso solo autorizado\n' > /etc/issue.net
+COPY arranque-red.sh /usr/local/bin/arranque-red.sh

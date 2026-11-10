@@ -1,0 +1,43 @@
+#!/bin/vbash
+# Firewall de la Sede Providencia (VyOS): separa la WAN (eth1, hacia rtr-wan-01) de la red interna de la sede
+# (eth2, hacia sw-core-01). La sede sale a la WAN; desde fuera solo se llega al VIP web del balanceador (80/tcp).
+# Anuncia LLDP en sus puertos para que FaceOps (vía AAP) dibuje con quién está conectado.
+source /opt/vyatta/etc/functions/script-template
+configure
+set system host-name fw-sede-01
+set interfaces ethernet eth0 address 172.20.20.72/24
+set interfaces ethernet eth0 description 'gestion fuera de banda'
+set interfaces ethernet eth1 address 10.255.20.2/30
+set interfaces ethernet eth1 description 'Outside · hacia rtr-wan-01'
+set interfaces ethernet eth2 address 10.255.21.1/30
+set interfaces ethernet eth2 description 'Inside · hacia sw-core-01'
+set protocols static route 0.0.0.0/0 next-hop 10.255.20.1
+set protocols static route 10.20.0.0/16 next-hop 10.255.21.2
+set firewall group network-group red-sede network 10.20.0.0/16
+set firewall group network-group red-sede description 'Redes internas de la Sede Providencia'
+set firewall group address-group vip-web-sede address 10.20.30.100
+set firewall ipv4 forward filter default-action drop
+set firewall ipv4 forward filter default-log
+set firewall ipv4 forward filter rule 1 action accept
+set firewall ipv4 forward filter rule 1 state established
+set firewall ipv4 forward filter rule 1 state related
+set firewall ipv4 forward filter rule 10 action accept
+set firewall ipv4 forward filter rule 10 source group network-group red-sede
+set firewall ipv4 forward filter rule 10 description 'La sede sale a la WAN'
+set firewall ipv4 forward filter rule 20 action accept
+set firewall ipv4 forward filter rule 20 destination group address-group vip-web-sede
+set firewall ipv4 forward filter rule 20 protocol tcp
+set firewall ipv4 forward filter rule 20 destination port 80
+set firewall ipv4 forward filter rule 20 description 'Publicacion del VIP web del balanceador'
+set service lldp interface eth1
+set service lldp interface eth2
+set service lldp management-address 172.20.20.72
+set service ssh port 22
+set system login user vyos authentication plaintext-password '__FW_CLAVE__'
+set system login user vyos authentication public-keys lab type __LLAVE_TIPO__
+set system login user vyos authentication public-keys lab key __LLAVE_CLAVE__
+set system login user netadmin full-name 'Administrador de red'
+set system login user netadmin authentication plaintext-password '__NET_CLAVE__'
+commit
+save
+exit

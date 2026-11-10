@@ -1,0 +1,79 @@
+{# Ficha de un equipo de red (router, switch, firewall, balanceador): lo que tiene sentido en red, en vez de CPU, discos y
+   paquetes de un servidor. Los datos los trae AAP («Red · Inventariar equipo de red») y FaceOps los lee de su caché de facts. #}
+{% macro bytes_(n) %}{% if n is none %}—{% elif n >= 1073741824 %}{{ (n / 1073741824)|round(1) }} GB{% elif n >= 1048576 %}{{ (n / 1048576)|round(1) }} MB{% elif n >= 1024 %}{{ (n / 1024)|round|int }} KB{% else %}{{ n }} B{% endif %}{% endmacro %}
+{% macro uptime_(s) %}{% if not s %}—{% else %}{% set d_ = (s // 86400)|int %}{% set h_ = ((s % 86400) // 3600)|int %}{% set m_ = ((s % 3600) // 60)|int %}{{ (d_ ~ ' d ') if d_ }}{{ h_ }} h {{ m_ }} min{% endif %}{% endmacro %}
+{% macro equipo_(n) %}{% set id_ = eq_id_de(n) if n else none %}{% if id_ %}<a href="{{ url_for('consola.equipo', eid=id_) }}" class="mono"><b>{{ n }}</b></a>{% else %}<span class="mono">{{ n or '—' }}</span>{% endif %}{% endmacro %}
+<style>
+.red-ficha .red-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 4px}
+.red-ficha .red-res>div{border:1px solid var(--borde,#d2d2d2);border-radius:8px;padding:8px 12px;min-width:0}
+.red-ficha .red-res b{display:block;font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+.red-ficha .red-res span{font-size:12px;color:var(--sub,#6a6e73)}
+.red-ficha h3{font-size:14px;margin:16px 0 6px}
+.red-ficha table{font-size:12.5px}
+.red-ficha .red-tabla{overflow-x:auto}
+.red-ficha .est{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.red-ficha .est i{width:9px;height:9px;border-radius:50%;background:#c7c7c7;display:inline-block}
+.red-ficha .est.up i{background:var(--ok)}.red-ficha .est.down i{background:var(--bad)}
+.red-ficha .modo{font-size:11px;padding:1px 7px;border-radius:10px;background:var(--soft,#f0f0f0);white-space:nowrap}
+.red-ficha .vec{font-size:12px}
+.red-ficha .acc-ssh{display:inline-flex;gap:6px;align-items:center}
+</style>
+{% set so_r = (componentes or [])|selectattr('so')|first %}
+<div class="card red-ficha" style="margin-top:14px" id="red" data-equipo="{{ e.nombre }}">
+<div class="fila"><h2 style="margin:0">Equipo de red</h2>
+<span class="sub der" style="font-size:12px">{% if rd %}leído por AAP por SSH · {{ rd.recolectado|fecha if rd.recolectado else '—' }}{% else %}sin lectura todavía{% endif %}</span></div>
+{% if not rd %}
+<p class="vacio" style="margin-top:10px">Este equipo no tiene un sistema operativo de servidor: no aplica CPU, discos ni paquetes. Su ficha de red
+(plataforma, interfaces, VLAN, vecinos y rutas) la trae AAP con «Red · Inventariar equipo de red»: usa el botón <b>Inventariar</b> de arriba.</p>
+{% else %}
+<div class="red-res">
+<div><span>Plataforma</span><b>{{ rd.plataforma }} {{ rd.version }}</b>{% if rd.detalle %}<span>{{ rd.detalle }}</span>{% endif %}</div>
+<div><span>Fabricante · modelo</span><b style="font-size:14px">{{ rd.fabricante or '—' }}</b><span>{{ rd.modelo or '' }}{% if rd.serie %} · serie {{ rd.serie }}{% endif %}</span></div>
+<div><span>Funcionando hace</span><b>{{ uptime_(rd.uptime_s) }}</b><span>nombre en el equipo: <span class="mono">{{ rd.hostname or e.nombre }}</span></span></div>
+{% set ifs_ = rd.interfaces or [] %}{% set datos_ = ifs_|rejectattr('modo', 'equalto', 'gestión')|list %}
+<div><span>Interfaces de datos</span><b>{{ datos_|selectattr('estado', 'equalto', 'up')|list|length }} / {{ datos_|length }} arriba</b><span>{{ (rd.vecinos or [])|length }} vecino{{ 's' if (rd.vecinos or [])|length != 1 }} LLDP{% if rd.vlans %} · {{ rd.vlans|length }} VLAN{% endif %}</span></div>
+<div><span>Gestión</span><b class="mono" style="font-size:15px">{{ (rd.gestion or {}).ip or e.ip }}</b><span>{{ (rd.gestion or {}).interfaz or 'eth0' }} · fuera de banda</span></div>
+<div><span>Acceso</span>{% if so_r and so_r.entrar %}<b style="font-size:14px"><a class="acc-ssh" href="{{ so_r.entrar.url }}" target="_blank" rel="noopener" title="{{ so_r.entrar.t }}">Consola SSH ↗</a></b><span>{{ (rd.gestion or {}).acceso or 'ssh' }} · credencial en la bóveda</span>{% else %}<b style="font-size:14px">SSH</b><span>{{ (rd.gestion or {}).acceso or 'sin credencial de consola en la bóveda' }}</span>{% endif %}</div>
+</div>
+{% if rd.rol %}<p class="sub" style="font-size:12.5px;margin:6px 0 0">{{ rd.rol }}{% if rd.zona %} · zona <b>{{ rd.zona }}</b>{% endif %}</p>{% endif %}
+
+<h3>Interfaces</h3>
+<div class="red-tabla"><table class="hist no-apilar"><tr><th>Interfaz</th><th>Estado</th><th>Modo · VLAN</th><th>Dirección IP</th><th>Descripción</th><th>Conectada a (LLDP)</th><th class="num">Recibido / enviado</th></tr>
+{% for i in ifs_ %}<tr><td class="mono"><b>{{ i.nombre }}</b>{% if i.mac %}<div class="sub" style="font-size:11px">{{ i.mac }}</div>{% endif %}</td>
+<td><span class="est {{ i.estado }}" title="administrativo {{ i.admin }} · operativo {{ i.estado }}{{ ' · ' ~ i.errores ~ ' errores' if i.errores }}"><i></i>{{ 'arriba' if i.estado == 'up' else 'abajo' }}</span>{% if i.admin == 'down' %} <span class="sub" style="font-size:11px">(apagada)</span>{% endif %}</td>
+<td><span class="modo">{{ i.modo }}</span>{% if i.vlans and i.vlans.pvid and not i.modo.startswith('acceso') %}<div class="sub" style="font-size:11px">nativa {{ i.vlans.pvid }}</div>{% endif %}</td>
+<td class="mono" style="font-size:12px">{{ i.ips|join('<br>')|safe if i.ips else '—' }}</td>
+<td style="font-size:12px">{{ i.descripcion or '—' }}</td>
+<td class="vec">{% if i.vecino %}{{ equipo_(i.vecino.equipo) }} <span class="sub">· {{ i.vecino.puerto }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td class="num sub" style="font-size:12px;white-space:nowrap">{{ bytes_(i.rx_bytes) }} / {{ bytes_(i.tx_bytes) }}</td></tr>{% endfor %}</table></div>
+
+{% if rd.vlans %}<h3>VLAN</h3>
+<div class="red-tabla"><table class="hist no-apilar"><tr><th>VLAN</th><th>Nombre</th><th>Interfaz de capa 3 (SVI)</th><th>Puertos de acceso</th><th>Troncales</th></tr>
+{% for v in rd.vlans %}<tr><td class="mono"><b>{{ v.id }}</b></td><td>{{ v.nombre or '—' }}</td><td class="mono" style="font-size:12px">{{ v.svi or '—' }}</td>
+<td class="mono" style="font-size:12px">{{ v.acceso|join(', ') or '—' }}</td><td class="mono" style="font-size:12px">{{ v.troncal|join(', ') or '—' }}</td></tr>{% endfor %}</table></div>{% endif %}
+
+<h3>Vecinos (LLDP)</h3>
+{% if rd.vecinos %}<div class="red-tabla"><table class="hist no-apilar"><tr><th>Puerto local</th><th>Equipo vecino</th><th>Puerto del vecino</th><th>IP de gestión</th><th>Descripción</th></tr>
+{% for v in rd.vecinos %}<tr><td class="mono">{{ v.interfaz }}</td><td>{{ equipo_(v.equipo) }}</td><td class="mono">{{ v.puerto }}{% if v.puerto_desc %} <span class="sub">· {{ v.puerto_desc }}</span>{% endif %}</td>
+<td class="mono" style="font-size:12px">{{ v.ip_gestion or '—' }}</td><td class="sub" style="font-size:12px">{{ v.descripcion or '—' }}</td></tr>{% endfor %}</table></div>
+{% else %}<p class="sub" style="font-size:12.5px;margin:0">El equipo no informa vecinos por LLDP (o no lo tiene activo).</p>{% endif %}
+
+{% set rt = rd.rutas or {} %}<h3>Tabla de rutas · {{ rt.total or 0 }} activas</h3>
+<p style="margin:0 0 6px">{% for p, n in (rt.por_protocolo or {})|dictsort %}<span class="chip" style="font-size:11.5px">{{ {'connected': 'conectadas', 'static': 'estáticas', 'bgp': 'BGP', 'ospf': 'OSPF', 'kernel': 'del sistema', 'local': 'locales'}.get(p, p) }} {{ n }}</span> {% endfor %}
+{% if rt.defecto %}<span class="sub" style="font-size:12.5px">· ruta por defecto vía <span class="mono">{{ rt.defecto.via }}</span> ({{ rt.defecto.protocolo }}{{ ', ' ~ rt.defecto.interfaz if rt.defecto.interfaz }})</span>{% else %}<span class="sub" style="font-size:12.5px">· sin ruta por defecto</span>{% endif %}</p>
+{% if rt.lista %}<details><summary class="sub" style="font-size:12.5px;cursor:pointer">Ver las rutas</summary><div class="red-tabla"><table class="hist no-apilar" style="margin-top:6px"><tr><th>Prefijo</th><th>Origen</th><th>Siguiente salto</th><th>Interfaz</th></tr>
+{% for r in rt.lista %}<tr><td class="mono">{{ r.prefijo }}</td><td>{{ r.protocolo }}</td><td class="mono">{{ r.via }}</td><td class="mono">{{ r.interfaz or '—' }}</td></tr>{% endfor %}</table></div></details>{% endif %}
+
+{% if rd.bgp %}<h3>Sesiones BGP{% if rd.bgp_as %} · AS {{ rd.bgp_as }}{% endif %}</h3>
+<div class="red-tabla"><table class="hist no-apilar"><tr><th>Vecino</th><th>AS remoto</th><th>Estado</th><th class="num">Prefijos recibidos / enviados</th><th>Desde</th></tr>
+{% for b in rd.bgp %}<tr><td class="mono">{{ b.vecino }}{% if b.descripcion %}<div class="sub" style="font-size:11px;font-family:inherit">{{ b.descripcion }}</div>{% endif %}</td><td class="mono">{{ b.as_remoto }}</td>
+<td><span class="est {{ 'up' if b.estado == 'Established' else 'down' }}"><i></i>{{ 'establecida' if b.estado == 'Established' else b.estado }}</span></td>
+<td class="num">{{ b.prefijos_recibidos if b.prefijos_recibidos is not none else '—' }} / {{ b.prefijos_enviados if b.prefijos_enviados is not none else '—' }}</td><td class="sub" style="font-size:12px">{{ b.desde or '—' }}</td></tr>{% endfor %}</table></div>{% endif %}
+
+{% if rd.balanceo %}{% set lb = rd.balanceo %}<h3>Balanceo{% if lb.version %} · HAProxy {{ lb.version }}{% endif %}</h3>
+<p style="margin:0 0 6px">{% for f in lb.frontends %}<span class="chip" style="font-size:11.5px">entrada {{ f.nombre }} · {{ f.estado }} · {{ f.sesiones or 0 }} sesiones</span> {% endfor %}{% if lb.vip %}<span class="sub" style="font-size:12.5px">· VIP <span class="mono">{{ lb.vip|join(', ') }}</span></span>{% endif %}</p>
+{% for b in lb.backends %}<div class="red-tabla"><table class="hist no-apilar"><tr><th colspan="3">Grupo <span class="mono">{{ b.nombre }}</span> · <span class="est {{ 'up' if b.estado == 'UP' else 'down' }}"><i></i>{{ b.estado or '—' }}</span></th></tr>
+<tr><th>Servidor</th><th>Estado</th><th>Último chequeo</th></tr>
+{% for sv in b.servidores %}<tr><td class="mono">{{ sv.nombre }}{% if sv.direccion %} <span class="sub">· {{ sv.direccion }}</span>{% endif %}</td><td><span class="est {{ 'up' if sv.estado == 'UP' else 'down' }}"><i></i>{{ sv.estado }}</span></td><td class="sub" style="font-size:12px">{{ sv.chequeo or '—' }}</td></tr>{% endfor %}</table></div>{% endfor %}{% endif %}
+{% endif %}
+</div>

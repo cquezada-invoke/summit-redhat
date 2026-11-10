@@ -1,0 +1,64 @@
+# Red · Inventariar equipo de red: lee un router, switch, firewall o balanceador por SSH, sin tocar su configuración, y
+# deja su ficha en la caché de facts de AAP (faceops_red) para que FaceOps la tome desde AAP (FaceOps no entra al equipo).
+#   · Equipos con colección del fabricante (VyOS: vyos.vyos por network_cli): identidad, versión, modelo y serie.
+#   · Todos: comandos de solo lectura por SSH (files/red-lectura.sh): interfaces con estado/IP/VLAN, vecinos LLDP, rutas,
+#     BGP y, en balanceadores HAProxy, frontends y backends. El nodo de ejecución lo normaliza (files/red_normalizar.py).
+# Credenciales: «Red · laboratorio (ssh)» (llave del laboratorio) y «Red · firewall VyOS» (usuario y clave del VyOS).
+# Requiere «Usar caché de facts» en la plantilla.
+- name: Red · Inventariar equipo de red
+  hosts: all
+  gather_facts: false
+  vars:
+    plataforma: "{{ 'vyos' if (ansible_network_os | default('')) is search('vyos') else (faceops_plataforma | default('frr')) }}"
+  tasks:
+    - name: Identidad del equipo con la colección del fabricante (VyOS · network_cli)
+      vyos.vyos.vyos_facts:
+        gather_subset: [default]
+      register: r_fab
+      ignore_errors: true
+      when: plataforma == 'vyos'
+
+    - name: Lectura por SSH (solo comandos de consulta)
+      ansible.builtin.raw: "{{ lookup('ansible.builtin.file', 'files/red-lectura.sh') }}"
+      register: r_lect
+      changed_when: false
+      vars:
+        ansible_connection: ssh
+        ansible_user: "{{ 'vyos' if plataforma == 'vyos' else (red_usuario_ssh | default('root')) }}"
+        ansible_password: ""
+        ansible_ssh_pass: ""
+        ansible_become: false
+
+    - name: Ficha normalizada (en el nodo de ejecución)
+      ansible.builtin.command:
+        cmd: "python3 {{ playbook_dir }}/files/red_normalizar.py"
+        stdin: "{{ {'salida': r_lect.stdout, 'hv': {'ansible_host': ansible_host | default(''), 'faceops_plataforma': plataforma,
+                    'faceops_fabricante': faceops_fabricante | default(''), 'faceops_modelo': faceops_modelo | default(''),
+                    'faceops_zona': faceops_zona | default(''), 'descripcion': descripcion | default(''),
+                    'faceops_consola': faceops_consola | default('ssh')},
+                    'facts': (r_fab.ansible_facts | default({})) if r_fab is defined else {}} | to_json }}"
+      delegate_to: localhost
+      register: r_norm
+      changed_when: false
+      vars:
+        ansible_connection: local
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+    - name: Ficha en la caché de facts de AAP (FaceOps la lee desde ahí)
+      ansible.builtin.set_fact:
+        faceops_red: "{{ r_norm.stdout | from_json }}"
+        cacheable: true
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{ faceops_red.plataforma }} {{ faceops_red.version }} ·
+          {{ faceops_red.interfaces | length }} interfaces ({{ faceops_red.interfaces | selectattr('estado', 'equalto', 'up') | list | length }} arriba) ·
+          {{ faceops_red.vlans | length }} VLAN · {{ faceops_red.vecinos | length }} vecinos LLDP ·
+          {{ faceops_red.rutas.total }} rutas{{ (' · BGP ' ~ (faceops_red.bgp | map(attribute='estado') | join(', '))) if faceops_red.bgp else '' }}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_red_equipos: "{{ {inventory_hostname: {'plataforma': faceops_red.plataforma, 'version': faceops_red.version,
+                                   'interfaces': faceops_red.interfaces | length, 'vecinos': faceops_red.vecinos | length}} }}"

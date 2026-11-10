@@ -167,6 +167,9 @@ shutil.copy(f"{AQUI}/k8s-ocp-migrar.yml", f"{tmp}/playbooks/k8s-ocp-migrar.yml")
 shutil.copy(f"{AQUI}/k8s-ocp-conmutar.yml", f"{tmp}/playbooks/k8s-ocp-conmutar.yml")
 shutil.copy(f"{AQUI}/registrar-rhel.yml", f"{tmp}/playbooks/registrar-rhel.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
+shutil.copy(f"{AQUI}/red-inventariar.yml", f"{tmp}/playbooks/red-inventariar.yml")   # Red · Inventariar equipo de red
+for f_ in ("red-lectura.sh", "red_normalizar.py"):
+    shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
 shutil.copy(f"{AQUI}/escaneo-servidores.yml", f"{tmp}/playbooks/escaneo-servidores.yml")
@@ -690,6 +693,19 @@ if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jdl[
     aap("POST", f"job_templates/{jdl['id']}/credentials/", {"id": cred["id"]})
 paso(f"Plantilla «Data lake · Derivar segmento» (id {jdl['id']})")
 paso(f"Plantilla «FaceOps · Vincular máquina a la bóveda» (id {jvm['id']})" + ("" if cr_bov else " · falta crear la credencial «FaceOps · Bóveda (escritura)»"))
+# Red · Inventariar equipo de red: ficha de red (interfaces, VLAN, LLDP, rutas, BGP, balanceo) en la caché de facts
+inv_red = uno("inventories", name="Red · laboratorio")
+if inv_red:
+    jrd = asegurar("job_templates", "Red · Inventariar equipo de red", {
+        "organization": org["id"], "project": proy, "playbook": "playbooks/red-inventariar.yml", "inventory": inv_red["id"],
+        "execution_environment": ee["id"], "use_fact_cache": True, "ask_limit_on_launch": True, "ask_variables_on_launch": True, "forks": 10,
+        "description": "Solo lectura: plataforma, versión, interfaces con estado/IP/VLAN, vecinos LLDP, rutas, BGP y balanceo de routers, switches, firewalls y balanceadores"})
+    ya_r = {c["id"] for c in aap("GET", f"job_templates/{jrd['id']}/credentials/")["results"]}
+    for n_ in ("Red · laboratorio (ssh)", "Red · firewall VyOS"):
+        c_ = uno("credentials", name=n_)
+        if c_ and c_["id"] not in ya_r:
+            aap("POST", f"job_templates/{jrd['id']}/credentials/", {"id": c_["id"]})
+    paso(f"Plantilla «Red · Inventariar equipo de red» (id {jrd['id']})")
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)
 jch = asegurar("job_templates", "Sistema · Cambio de hora del país", {

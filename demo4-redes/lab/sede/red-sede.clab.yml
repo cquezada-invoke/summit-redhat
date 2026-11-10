@@ -1,0 +1,152 @@
+# Sede Providencia (demo de equipos de red sin sistema operativo de servidor): router WAN, firewall, switch core,
+# switch de acceso y balanceador. Gestión fuera de banda por eth0 en la red del laboratorio (172.20.20.0/24), por donde
+# AAP los administra por SSH; el plano de datos no sale por la gestión.
+#   pe-isp (proveedor, AS 64600) ─BGP─ rtr-wan-01 (AS 65020) ─ fw-sede-01 (VyOS) ─ sw-core-01 (L3, VLAN 10/20/30/99)
+#   sw-core-01 ═troncal 10,20,99═ sw-acc-01 ─ pc-piso1 (VLAN 10) · pc-piso2 (VLAN 20)
+#   sw-core-01 ─ VLAN 30 servidores: lb-sede-01 (VIP 10.20.30.100) · srv-web-01 · srv-web-02
+# Equipos registrados en AAP/FaceOps: rtr-wan-01 .71 · fw-sede-01 .72 · sw-core-01 .73 · sw-acc-01 .74 · lb-sede-01 .75
+# (pe-isp .70 y los equipos finales solo completan la topología). Claves: se completan al desplegar (instalar-red-sede.sh).
+name: red-sede
+
+mgmt:
+  network: clab-summit
+  ipv4-subnet: 172.20.20.0/24
+
+topology:
+  defaults:
+    kind: linux
+    image: localhost/frr-red:1
+  nodes:
+    pe-isp:
+      mgmt-ipv4: 172.20.20.70
+      binds: [../config/daemons:/etc/frr/daemons, config/pe-isp.conf:/etc/frr/frr.conf]
+      exec:
+        - touch /etc/frr/vtysh.conf
+        - sysctl -qw net.ipv4.ip_forward=1
+        - ip addr add 100.64.20.1/30 dev eth1
+        - ip addr add 203.0.113.1/24 dev lo
+        - ip addr add 192.0.2.1/24 dev lo
+        - ip route del default
+
+    rtr-wan-01:                           # router WAN de la sede: BGP con el proveedor, ruta estática hacia la sede
+      mgmt-ipv4: 172.20.20.71
+      binds: [../config/daemons:/etc/frr/daemons, config/rtr-wan-01.conf:/etc/frr/frr.conf, config/clave-netadmin:/run/red/clave:ro]
+      exec:
+        - sysctl -qw net.ipv4.ip_forward=1
+        - ip addr add 100.64.20.2/30 dev eth1
+        - ip addr add 10.255.20.1/30 dev eth2
+        - ip link set eth1 alias "WAN · enlace al proveedor (AS 64600)"
+        - ip link set eth2 alias "Hacia fw-sede-01 (outside)"
+        - ip route del default
+        - /usr/local/bin/arranque-red.sh "Router WAN · Sede Providencia" 172.20.20.71
+
+    fw-sede-01:                           # firewall VyOS · eth1 outside · eth2 inside
+      image: localhost/vyos:2026.10.23
+      cmd: /sbin/init
+      mgmt-ipv4: 172.20.20.72
+      binds:
+        - /lib/modules:/lib/modules:ro
+        - config/fw-sede-01.vbash:/usr/local/bin/fw-base.vbash
+        - config/fws-arranque.sh:/usr/local/bin/fws-arranque.sh
+      exec:
+        - sh -c "setsid bash /usr/local/bin/fws-arranque.sh /usr/local/bin/fw-base.vbash eth1,eth2 red-sede > /var/log/fw-arranque.log 2>&1 < /dev/null &"
+
+    sw-core-01:                           # switch core L3: puente con VLAN, una SVI por VLAN y uplink ruteado al firewall
+      mgmt-ipv4: 172.20.20.73
+      binds: [../config/daemons:/etc/frr/daemons, config/sw-core-01.conf:/etc/frr/frr.conf, config/clave-netadmin:/run/red/clave:ro]
+      exec:
+        - sysctl -qw net.ipv4.ip_forward=1
+        - ip addr add 10.255.21.2/30 dev eth1
+        - ip link set eth1 alias "Uplink ruteado hacia fw-sede-01"
+        - ip link add br0 type bridge vlan_filtering 1
+        - sh -c "for i in eth2 eth3 eth4 eth5; do ip link set $i master br0; bridge vlan del dev $i vid 1; done"
+        - sh -c "for v in 10 20 99; do bridge vlan add dev eth2 vid $v; done"
+        - sh -c "for i in eth3 eth4 eth5; do bridge vlan add dev $i vid 30 pvid untagged; done"
+        - sh -c "for v in 10 20 30 99; do bridge vlan add dev br0 vid $v self; done"
+        - ip link set eth2 alias "Troncal hacia sw-acc-01"
+        - ip link set eth3 alias "Acceso VLAN 30 · lb-sede-01"
+        - ip link set eth4 alias "Acceso VLAN 30 · srv-web-01"
+        - ip link set eth5 alias "Acceso VLAN 30 · srv-web-02"
+        - ip link set br0 up
+        - sh -c "for v in 10 20 30 99; do ip link add link br0 name vlan$v type vlan id $v; ip link set vlan$v up; done"
+        - ip addr add 10.20.10.1/24 dev vlan10
+        - ip addr add 10.20.20.1/24 dev vlan20
+        - ip addr add 10.20.30.1/24 dev vlan30
+        - ip addr add 10.20.99.1/24 dev vlan99
+        - ip link set vlan10 alias "Usuarios"
+        - ip link set vlan20 alias "Telefonia IP"
+        - ip link set vlan30 alias "Servidores"
+        - ip link set vlan99 alias "Gestion de switches"
+        - ip route del default
+        - /usr/local/bin/arranque-red.sh "Switch core L3 · Sede Providencia" 172.20.20.73
+
+    sw-acc-01:                            # switch de acceso del piso 1: troncal al core y puertos de acceso por VLAN
+      mgmt-ipv4: 172.20.20.74
+      binds: [../config/daemons:/etc/frr/daemons, config/sw-acc-01.conf:/etc/frr/frr.conf, config/clave-netadmin:/run/red/clave:ro]
+      exec:
+        - ip link add br0 type bridge vlan_filtering 1
+        - sh -c "for i in eth1 eth2 eth3; do ip link set $i master br0; bridge vlan del dev $i vid 1; done"
+        - sh -c "for v in 10 20 99; do bridge vlan add dev eth1 vid $v; done"
+        - bridge vlan add dev eth2 vid 10 pvid untagged
+        - bridge vlan add dev eth3 vid 20 pvid untagged
+        - bridge vlan add dev br0 vid 99 self
+        - ip link set eth1 alias "Troncal hacia sw-core-01"
+        - ip link set eth2 alias "Acceso VLAN 10 · puesto piso 1"
+        - ip link set eth3 alias "Acceso VLAN 20 · telefono piso 1"
+        - ip link set br0 up
+        - ip link add link br0 name vlan99 type vlan id 99
+        - ip link set vlan99 up
+        - ip addr add 10.20.99.11/24 dev vlan99
+        - ip link set vlan99 alias "Gestion en banda"
+        - ip route del default
+        - /usr/local/bin/arranque-red.sh "Switch de acceso piso 1 · Sede Providencia" 172.20.20.74
+
+    lb-sede-01:                           # balanceador: VIP 10.20.30.100:80 → srv-web-01/02:8080 (HAProxy)
+      mgmt-ipv4: 172.20.20.75
+      binds: [../config/daemons:/etc/frr/daemons, config/lb-sede-01.conf:/etc/frr/frr.conf, config/clave-netadmin:/run/red/clave:ro,
+              config/lb-sede-01.haproxy.cfg:/etc/haproxy/haproxy.cfg:ro]
+      exec:
+        - ip addr add 10.20.30.10/24 dev eth1
+        - ip addr add 10.20.30.100/24 dev eth1
+        - ip link set eth1 alias "Hacia sw-core-01 (VLAN 30)"
+        - ip route del default
+        - haproxy -D -f /etc/haproxy/haproxy.cfg
+        - /usr/local/bin/arranque-red.sh "Balanceador HAProxy · Sede Providencia" 172.20.20.75
+
+    srv-web-01:
+      image: docker.io/library/alpine:3.20
+      cmd: sleep infinity
+      exec:
+        - ip addr add 10.20.30.21/24 dev eth1
+        - ip route replace default via 10.20.30.1
+        - sh -c "mkdir -p /www && echo 'srv-web-01 responde OK' > /www/index.html && httpd -p 8080 -h /www"
+    srv-web-02:
+      image: docker.io/library/alpine:3.20
+      cmd: sleep infinity
+      exec:
+        - ip addr add 10.20.30.22/24 dev eth1
+        - ip route replace default via 10.20.30.1
+        - sh -c "mkdir -p /www && echo 'srv-web-02 responde OK' > /www/index.html && httpd -p 8080 -h /www"
+    pc-piso1:
+      image: docker.io/library/alpine:3.20
+      cmd: sleep infinity
+      exec:
+        - ip addr add 10.20.10.10/24 dev eth1
+        - ip route replace default via 10.20.10.1
+    pc-piso2:
+      image: docker.io/library/alpine:3.20
+      cmd: sleep infinity
+      exec:
+        - ip addr add 10.20.20.10/24 dev eth1
+        - ip route replace default via 10.20.20.1
+
+  links:
+    - endpoints: ["pe-isp:eth1", "rtr-wan-01:eth1"]
+    - endpoints: ["rtr-wan-01:eth2", "fw-sede-01:eth1"]
+    - endpoints: ["fw-sede-01:eth2", "sw-core-01:eth1"]
+    - endpoints: ["sw-core-01:eth2", "sw-acc-01:eth1"]
+    - endpoints: ["sw-core-01:eth3", "lb-sede-01:eth1"]
+    - endpoints: ["sw-core-01:eth4", "srv-web-01:eth1"]
+    - endpoints: ["sw-core-01:eth5", "srv-web-02:eth1"]
+    - endpoints: ["sw-acc-01:eth2", "pc-piso1:eth1"]
+    - endpoints: ["sw-acc-01:eth3", "pc-piso2:eth1"]

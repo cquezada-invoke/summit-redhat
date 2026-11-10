@@ -6,6 +6,8 @@ for i in $(seq 1 60); do sudo podman info >/dev/null 2>&1 && break; sleep 5; don
 bash "$D/herramientas/reiniciar-lab.sh"
 # Routers de sucursal (si reiniciar-lab.sh redesplegó todo el laboratorio no pasó por ellos)
 bash "$D/herramientas/sucursales-arriba.sh"
+# Sede Providencia (equipos de red de FaceOps: router WAN, firewall, switch core, switch de acceso y balanceador)
+bash "$D/herramientas/sede-arriba.sh"
 # Switches (Nokia SR Linux, spine-leaf)
 # (apagados para ahorrar recursos; levantar a mano cuando se usen) bash "$D/herramientas/switches-arriba.sh"
 sudo podman start summit-dns >/dev/null 2>&1 && echo "DNS del laboratorio: arriba" || echo "DNS del laboratorio: no existe (instalar-dns.sh)"

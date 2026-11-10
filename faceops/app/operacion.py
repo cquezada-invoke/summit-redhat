@@ -1225,6 +1225,14 @@ def actualizar_tickets():
                             ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error construcción de segmento", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "Red · Inventariar equipo de red":
+                try:   # la ficha de red (interfaces, VLAN, vecinos, rutas) queda al día: FaceOps la lee de la caché de facts de AAP
+                    from .inventario import sincronizar
+                    sincronizar(c, "FaceOps")
+                    res += "\nFicha de red actualizada en FaceOps (interfaces, VLAN, vecinos LLDP y rutas)"
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error inventario de red", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "OpenShift · Recolectar clúster":
                 try:   # el clúster, sus nodos, operadores y namespaces quedan al día en FaceOps
                     from .inventario import sincronizar
