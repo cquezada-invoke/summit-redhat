@@ -41,11 +41,11 @@
     menu.hidden = true; quien.innerHTML = '';
     vista.innerHTML = `<div class="login"><div class="tarjeta"><h1>Ingresar</h1>
       <form class="f" id="fLogin" autocomplete="on">
-        <label>Usuario<input name="usuario" autocomplete="username" required autofocus></label>
-        <label>Clave<input name="clave" type="password" autocomplete="current-password" required></label>
+        <label>Usuario<input name="usuario" autocomplete="username" value="demo" required autofocus></label>
+        <label>Clave<input name="clave" type="password" autocomplete="current-password" value="demo" required></label>
         <div id="eLogin">${msg ? `<div class="error">${esc(msg)}</div>` : ''}</div>
         <button class="p" type="submit">Entrar</button>
-        <p class="sub">Usuarios de demostración: ver <code>src/main/resources/bd/usuarios-demo.properties</code> en el repositorio.</p>
+        <p class="sub">Demostración: usuario <b>demo</b> · clave <b>demo</b></p>
       </form></div></div>`;
     $('#fLogin').addEventListener('submit', async (ev) => {
       ev.preventDefault();
