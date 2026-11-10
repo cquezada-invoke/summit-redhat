@@ -84,8 +84,13 @@ jt = asegurar_aap("job_templates", JT, {
     "organization": org, "project": base["project"], "inventory": inv, "playbook": "playbooks/preparar-red-openshift.yml",
     "ask_variables_on_launch": True, "description": "Red para un clúster OpenShift: IPAM, router (Git), firewall y DNS"})["id"]
 ya = {c["id"] for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]}
-quiero = [c["id"] for c in aap("GET", f"job_templates/{base['id']}/credentials/")["results"]]
+tipo_git = aap("GET", f"credentials/{cred}/")["credential_type"]   # la de escritura reemplaza a la de lectura del mismo tipo
+quiero = [c["id"] for c in aap("GET", f"job_templates/{base['id']}/credentials/")["results"] if c["credential_type"] != tipo_git]
 quiero += [cred, uno("credentials", name="AAP · responder aprobaciones")["id"]]
+for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]:
+    if c["credential_type"] == tipo_git and c["id"] != cred:
+        aap("POST", f"job_templates/{jt}/credentials/", {"id": c["id"], "disassociate": True})
+        ya.discard(c["id"])
 for cid in quiero:
     if cid not in ya:
         aap("POST", f"job_templates/{jt}/credentials/", {"id": cid})
