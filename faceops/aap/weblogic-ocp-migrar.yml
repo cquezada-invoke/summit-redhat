@@ -394,30 +394,28 @@
       loop_control: {label: "{{ item.1 }}"}
       when: not sano and dep_antes | length == 0
 
-    - name: Artefactos y decisión en Git (repositorio/migraciones-weblogic/<origen>/<app>/)
-      ansible.builtin.uri:
-        url: "{{ (faceops_gitea | default('http://192.168.122.1:3000')) }}/api/v1/repos/repositorio/migraciones-weblogic/contents"
-        method: POST
-        headers: {Authorization: "token {{ faceops_respaldo_token }}", Content-Type: application/json}
-        body_format: json
-        body:
-          message: "{{ inventory_hostname }}/{{ app_n }}: artefactos de OpenShift ({{ faceops_ticket | default('manual') }}, {{ 'sano' if sano else 'vuelta atrás' }})"
-          files:
-            - {operation: upload, path: "{{ inventory_hostname }}/{{ app_n }}/{{ now(utc=true).strftime('%Y%m%dT%H%M%SZ') }}/manifiestos.json",
-               content: "{{ prep.manifiestos | to_nice_json | b64encode }}"}
-            - {operation: upload, path: "{{ inventory_hostname }}/{{ app_n }}/{{ now(utc=true).strftime('%Y%m%dT%H%M%SZ') }}/config.cli",
-               content: "{{ prep.cli | join('\n') | b64encode }}"}
-            - {operation: upload, path: "{{ inventory_hostname }}/{{ app_n }}/{{ now(utc=true).strftime('%Y%m%dT%H%M%SZ') }}/decision.md",
-               content: "{{ ('# ' ~ app_n ~ ' → ' ~ ns ~ '\n\n- Destino: JBoss EAP 8 en OpenShift · ' ~ ap.destino.motivo ~ '\n- Capas: ' ~ prep.capas | join(', ')
-                            ~ '\n- javax → jakarta: ' ~ ('sí (Eclipse Transformer en la construcción)' if ap.destino.transformar_javax else 'no')
-                            ~ '\n- jboss-web.xml generado: ' ~ prep.jboss_web | join(', ')
-                            ~ '\n- Datasources: ' ~ (prep.datasources | map(attribute='nombre') | zip(prep.datasources | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—')
-                            ~ '\n- JMS: ' ~ (prep.jms | map(attribute='nombre') | zip(prep.jms | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—')
-                            ~ '\n- Imagen: ' ~ (imagen or '—') ~ '\n- Resultado: ' ~ ('sano (HTTP 200 por la Route)' if sano else 'falló; vuelta atrás') ~ '\n') | b64encode }}"}
-        status_code: [201]
-        timeout: 90
+    - name: Artefactos y decisión (para Git)
+      ansible.builtin.copy:
+        dest: "/tmp/faceops-wl-ocp/{{ k8s }}/git/{{ item.0 }}"
+        content: "{{ item.1 }}"
+        mode: "0644"
+      loop:
+        - [manifiestos.json, "{{ prep.manifiestos | to_nice_json }}"]
+        - [config.cli, "{{ prep.cli | join('\n') }}\n"]
+        - [decision.md, "# {{ app_n }} → {{ ns }}\n\n- Destino: JBoss EAP 8 en OpenShift · {{ ap.destino.motivo }}\n- Capas: {{ prep.capas | join(', ') }}\n- javax → jakarta: {{ 'sí (Eclipse Transformer en la construcción)' if ap.destino.transformar_javax else 'no' }}\n- jboss-web.xml generado: {{ prep.jboss_web | join(', ') }}\n- Datasources: {{ prep.datasources | map(attribute='nombre') | zip(prep.datasources | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—' }}\n- JMS: {{ prep.jms | map(attribute='nombre') | zip(prep.jms | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—' }}\n- Imagen: {{ imagen or '—' }}\n- Resultado: {{ 'sano (HTTP 200 por la Route)' if sano else 'falló; vuelta atrás' }}\n"]
+      loop_control: {label: "{{ item.0 }}"}
+
+    - name: Publicar artefactos y decisión en Git (repositorio/migraciones-weblogic/<origen>/<app>/)
+      ansible.builtin.command:
+        argv: >-
+          {% set l = ['python3', playbook_dir ~ '/files/weblogic_git.py'] %}{% for f in ['manifiestos.json', 'config.cli', 'decision.md'] %}{% set _ = l.extend([inventory_hostname ~ '/' ~ app_n ~ '/' ~ f, '/tmp/faceops-wl-ocp/' ~ k8s ~ '/git/' ~ f]) %}{% endfor %}{{ l }}
+      environment:
+        G: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+        T: "{{ faceops_respaldo_token }}"
+        MSG: "{{ inventory_hostname }}/{{ app_n }}: artefactos de OpenShift ({{ faceops_ticket | default('manual') }}, {{ 'sano' if sano else 'vuelta atrás' }})"
       when: faceops_respaldo_token | default('') | length > 0
       register: r_art
+      changed_when: "'git ok 3' in r_art.stdout"
       failed_when: false
       no_log: true
 
@@ -434,7 +432,7 @@
             route: "{{ r_rt.json.spec.host | default('') }}"
             salud: "{{ prep.salud }} → {{ r_http.status | default('sin respuesta') }}"
             sano: "{{ sano }}"
-            artefactos_git: "{{ r_art.status | default('-') }} {{ (r_art.msg | default('')) | truncate(160) }}"
+            artefactos_git: "{{ (r_art.stdout | default('sin token')) | truncate(160) }}"
             vuelta_atras: "{{ 'versión anterior restaurada (HTTP ' ~ (r_http2.status | default('?')) ~ ')' if r_vuelta is changed else ('retirado lo creado' if not sano else 'no') }}"
 
     - name: Resumen

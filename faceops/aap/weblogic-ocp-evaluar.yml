@@ -178,28 +178,16 @@
       delegate_to: localhost
       register: r_inf
 
-    - name: Informe anterior en Git
-      ansible.builtin.uri:
-        url: "{{ gitea }}/api/v1/repos/repositorio/migraciones-weblogic/contents/{{ inventory_hostname }}/evaluacion.md"
-        headers: {Authorization: "token {{ faceops_respaldo_token }}"}
-        status_code: [200, 404]
-      when: faceops_respaldo_token | default('') | length > 0
-      register: r_prev
-      failed_when: false
-      no_log: true
-
     - name: Publicar el informe en Git (repositorio/migraciones-weblogic)
-      ansible.builtin.uri:
-        url: "{{ gitea }}/api/v1/repos/repositorio/migraciones-weblogic/contents/{{ inventory_hostname }}/evaluacion.md"
-        method: "{{ 'PUT' if r_prev.status | default(0) == 200 else 'POST' }}"
-        headers: {Authorization: "token {{ faceops_respaldo_token }}", Content-Type: application/json}
-        body_format: json
-        body: "{{ {'content': lookup('ansible.builtin.file', r_inf.dest) | b64encode, 'message': inventory_hostname ~ ': evaluación WebLogic → OpenShift (' ~ (faceops_ticket | default('manual')) ~ ')'}
-                  | combine({'sha': r_prev.json.sha} if r_prev.status | default(0) == 200 else {}) }}"
-        status_code: [200, 201]
-        timeout: 90
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/weblogic_git.py", "{{ inventory_hostname }}/evaluacion.md", "{{ r_inf.dest }}"]
+      environment:
+        G: "{{ gitea }}"
+        T: "{{ faceops_respaldo_token }}"
+        MSG: "{{ inventory_hostname }}: evaluación WebLogic → OpenShift ({{ faceops_ticket | default('manual') }})"
       when: faceops_respaldo_token | default('') | length > 0
       register: r_git
+      changed_when: "'git ok 1' in r_git.stdout"
       failed_when: false
       no_log: true
 
@@ -213,15 +201,15 @@
             aplicaciones: >-
               {% set l = [] %}{% for a in analisis.aplicaciones %}{% set _ = l.append({'aplicacion': a.aplicacion, 'destino': a.destino.runtime, 'migrable': a.destino.migrable,
               'complejidad': a.complejidad, 'criticos': a.hallazgos | selectattr('severidad', 'equalto', 'crítica') | map(attribute='titulo') | list}) %}{% endfor %}{{ l }}
-            informe_git: "{{ (r_git.status | default(0)) in [200, 201] }}"
-            git: "{{ {'token': faceops_respaldo_token | default('') | length > 0, 'anterior': r_prev.status | default('-'), 'publicar': r_git.status | default('-'), 'detalle': (r_git.msg | default('')) | regex_replace('token \\S+', 'token ***') | truncate(220)} }}"
+            informe_git: "{{ 'git ok 1' in (r_git.stdout | default('')) }}"
+            git: "{{ (r_git.stdout | default('sin token')) | regex_replace('token \\S+', 'token ***') | truncate(200) }}"
 
     - name: Resumen
       ansible.builtin.debug:
         msg: >-
           {{ ['Origen ' ~ inventory_hostname ~ ' · dominio ' ~ analisis.dominio.nombre ~ ' (WebLogic ' ~ analisis.dominio.version ~ ') · '
                ~ analisis.aplicaciones | length ~ ' aplicación(es) · informe ' ~ (('en Git: ' ~ gitea ~ '/repositorio/migraciones-weblogic/src/branch/main/'
-               ~ inventory_hostname ~ '/evaluacion.md') if (r_git.status | default(0)) in [200, 201] else 'local: ' ~ r_inf.dest)]
+               ~ inventory_hostname ~ '/evaluacion.md') if 'git ok 1' in (r_git.stdout | default('')) else 'local: ' ~ r_inf.dest)]
              + (analisis.aplicaciones | map(attribute='aplicacion') | zip(analisis.aplicaciones | map(attribute='complejidad'),
                  analisis.aplicaciones | map(attribute='destino.migrable') | map('ternary', 'migrable a EAP 8 en OpenShift', 'requiere cambios de código'),
                  analisis.aplicaciones | map(attribute='hallazgos') | map('selectattr', 'severidad', 'equalto', 'crítica') | map('map', attribute='titulo') | map('join', '; '))

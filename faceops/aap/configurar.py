@@ -194,7 +194,7 @@ for f_ in ("jboss_eap8_analizar.py", "jboss_eap8_ajustar.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 for f_ in ("weblogic-ocp-evaluar.yml", "weblogic-ocp-migrar.yml"):   # Migración · WebLogic a OpenShift (análisis, artefactos y dominio emulado de laboratorio)
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
-for f_ in ("weblogic_analizar.py", "weblogic_ocp_preparar.py"):
+for f_ in ("weblogic_analizar.py", "weblogic_ocp_preparar.py", "weblogic_git.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copytree(f"{AQUI}/files/weblogic-ejemplo", f"{tmp}/playbooks/files/weblogic-ejemplo", dirs_exist_ok=True, ignore=shutil.ignore_patterns("fuentes"))
 for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py", "ocp_diagnostico.py", "ocp_alertamiento.py", "ocp_imagenes.py"):
