@@ -240,7 +240,7 @@ def _antes():
     g.usuario = q1("SELECT id, usuario, nombre, tenant_id FROM usuarios WHERE id=?", session["uid"]) if session.get("uid") else None
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
-    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro", "api_uso", "api_activar", "api_inst_evento", "api_pedido", "api_recuperar") and request.form.get("_csrf") != session["csrf"]:
+    if request.method == "POST" and request.endpoint not in ("ingresar", "recuperar", "api_registro", "api_uso", "api_activar", "api_inst_evento", "api_pedido", "api_recuperar") and request.form.get("_csrf") != session["csrf"]:
         abort(403)
 
 
@@ -352,6 +352,46 @@ def ingresar():
         time.sleep(1)
         flash("Usuario o clave incorrectos", "error")
     return render_template("ingresar.html")
+
+
+@app.route("/recuperar", methods=["GET", "POST"])
+def recuperar():
+    """Recuperar acceso: pide usuario o correo y envía un enlace de un solo uso (1 hora) al correo registrado del usuario.
+    Siempre responde lo mismo, exista o no, para no revelar qué usuarios hay."""
+    if request.method == "POST":
+        dato = (request.form.get("usuario") or "").strip()
+        u = q1("SELECT * FROM usuarios WHERE usuario=? OR (correo<>'' AND lower(correo)=lower(?))", dato, dato) if dato else None
+        if u and (u["correo"] or "").strip():
+            tok = nueva_activacion(u["usuario"], horas=1)
+            enlace = request.host_url.rstrip("/") + url_for("activar", tok=tok)
+            cuerpo = (f"Hola {u['nombre'] or u['usuario']},\n\nPediste recuperar el acceso a FaceAdmin (usuario {u['usuario']}).\n"
+                      f"Define tu nueva clave aquí (vale 1 hora y se usa una sola vez):\n{enlace}\n\nSi no lo pediste, ignora este correo.")
+            _enviar_simple(u["correo"].strip(), "Recuperar acceso a FaceAdmin", cuerpo)
+            bitacora("recuperación de acceso solicitada", u["usuario"])
+        time.sleep(1)
+        return render_template("ingresar.html", aviso_ok="Si el usuario existe y tiene correo registrado, te enviamos un enlace para definir una nueva clave (vale 1 hora).")
+    return render_template("ingresar.html", recuperar=True)
+
+
+def _enviar_simple(para, asunto, cuerpo):
+    """Correo sin registro en la bandeja (lleva un enlace secreto): usa el SMTP configurado en FaceAdmin."""
+    import smtplib
+    from email.message import EmailMessage
+    cfg = smtp_config()
+    if not cfg.get("host"):
+        return False
+    m = EmailMessage()
+    m["From"], m["To"], m["Subject"] = cfg.get("de") or cfg.get("usuario") or "faceadmin@invoke.cl", para, asunto
+    m.set_content(cuerpo)
+    try:
+        with smtplib.SMTP(cfg["host"], int(cfg.get("puerto") or 587), timeout=20) as s_:
+            s_.starttls()
+            if cfg.get("usuario"):
+                s_.login(cfg["usuario"], cfg.get("clave", ""))
+            s_.send_message(m)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def nueva_activacion(usuario, horas=24):
