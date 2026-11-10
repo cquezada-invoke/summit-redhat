@@ -59,6 +59,23 @@ def resumen(wj):
     return "\n".join(out)
 
 
+ESTADO = "/var/lib/portal-informes/estado_pruebas.yml"   # el portal lo lee en vivo: cada prueba libera (o no) su automatización
+
+
+def registrar(nombre, ok, nota):
+    import yaml
+    try:
+        d = yaml.safe_load(open(ESTADO)) or {}
+    except OSError:
+        d = {}
+    previo = d.get(nombre, {})
+    if previo.get("estado") == "repetir" and ok:   # un caso falló antes en esta misma corrida: no se libera
+        return
+    d[nombre] = {"estado": "probada" if ok else "repetir", "nota": nota}
+    with open(ESTADO, "w") as f:
+        yaml.safe_dump(d, f, allow_unicode=True)
+
+
 def lanzar(nombre, ev=None, limite=None, aprobar=True):
     w = aap("GET", "workflow_job_templates/?name=" + urllib.parse.quote(f"Portal · {nombre}"))["results"][0]
     cuerpo = {"extra_vars": ev or {}}
@@ -67,6 +84,8 @@ def lanzar(nombre, ev=None, limite=None, aprobar=True):
     wj = aap("POST", f"workflow_job_templates/{w['id']}/launch/", cuerpo)["workflow_job"]
     f = esperar_fin(wj, aprobar)
     print(f"== {nombre} {json.dumps(ev or {}, ensure_ascii=False)[:120]} → #{wj} {f['status']}\n{resumen(wj)}", flush=True)
+    esperado = "failed" if (not aprobar or (ev or {}).get("simular_falla") == "si") else "successful"
+    registrar(nombre, f["status"] == esperado, f"{time.strftime('%d-%m %H:%M')} · #{wj} {f['status']}" + ("" if f["status"] == esperado else " (revisar)"))
     return f["status"]
 
 
@@ -93,6 +112,10 @@ CASOS = {
                         lanzar("Amdocs · Desplegar release", {"servicio": "catalog", "version": "2.5.0", "simular_falla": "si", }),
                         lanzar("Amdocs · Desplegar release", {"servicio": "catalog", "version": "2.3.0", "simular_falla": "no"})),
     # --- automatizaciones nuevas de alto valor -------------------------------------------------------------------------
+    "alta": lambda: (lanzar("OpenShift · Alta de proyecto", {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 1, "memoria_gi": 1, "accion": "crear"}),
+                     lanzar("OpenShift · Alta de proyecto", {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 1, "memoria_gi": 1, "accion": "eliminar"})),
+    "onboarding": lambda: (lanzar("Telco · Onboarding de CNF", {"cnf_nombre": "upf-demo", "proveedor": "nabstract", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "hugepages_gi": 4, "accion": "crear"}),
+                           lanzar("Telco · Onboarding de CNF", {"cnf_nombre": "upf-demo", "proveedor": "nabstract", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "hugepages_gi": 4, "accion": "retirar"})),
     "acceso": lambda: (lanzar("OpenShift · Acceso de equipo", {"equipo": "equipo-demo", "miembros": "demo1,demo2", "namespaces": "amdocs-bss", "rol": "view", "accion": "alta"}),
                        lanzar("OpenShift · Acceso de equipo", {"equipo": "equipo-demo", "miembros": "", "namespaces": "amdocs-bss", "rol": "view", "accion": "baja"})),
     "certapp": lambda: lanzar("OpenShift · Certificado de aplicación de punta a punta", {"namespace": "amdocs-bss", "ruta": "amdocs-ordering", "umbral_dias": 30, "forzar": "no"}),
@@ -131,8 +154,9 @@ if host:
     CASOS["infra"] = lambda: (lanzar("Infraestructura · Revisar CVE de servidores", {}, limite=host),
                               lanzar("Infraestructura · Escaneo de seguridad", {}, limite=host),
                               lanzar("Infraestructura · Inventario de certificados", {"cert_dias": 30}, limite=host))
-for k, f in CASOS.items():
-    if not args or k in args:
+for k in (args or list(CASOS)):
+    f = CASOS.get(k)
+    if f:
         try:
             f()
         except Exception as x:  # noqa: BLE001

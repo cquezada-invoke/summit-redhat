@@ -193,7 +193,11 @@ ETQ_PRUEBA = {"probada": "probada", "repetir": "falta volver a probar", "sin_pro
 def estado_pruebas():
     try:
         import yaml
-        return yaml.safe_load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "estado_pruebas.yml"))) or {}
+        base = yaml.safe_load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "estado_pruebas.yml"))) or {}
+        vivo = os.path.join(os.environ.get("PORTAL_INFORMES", "/tmp/informes"), "estado_pruebas.yml")   # lo actualiza cada prueba
+        if os.path.exists(vivo):
+            base.update(yaml.safe_load(open(vivo)) or {})
+        return base
     except (ImportError, OSError, ValueError):
         return {}
 
