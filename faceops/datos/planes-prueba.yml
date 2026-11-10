@@ -3,6 +3,15 @@
 # verificación. Se ejecuta completo con tickets reales (aprobados por Claude con «Aprobado por Claude (regla de Cristian)»);
 # solo con todos los casos ok la versión vigente queda certificada. Si la automatización cambia, se ejecuta de nuevo.
 planes:
+  "Red · Inventariar equipo de red":
+    casos:
+      - {id: C1, caso: "Firewall VyOS (fw): colección vyos.vyos por network_cli y lectura por SSH", verificar: "ticket exitoso; faceops_red en la caché de facts con plataforma VyOS y versión, interfaces con estado e IP, rutas con su ruta por defecto; FaceOps deja so «VyOS …», familia Red"}
+      - {id: C2, caso: "Router FRR (rtr): lectura por SSH sin colección del fabricante", verificar: "ticket exitoso; plataforma FRRouting y versión, interfaces ruteadas con IP, sesiones BGP con su estado y prefijos, tabla de rutas por protocolo"}
+      - {id: C3, caso: "Switch con VLAN y vecinos LLDP (sw-core-01, sw-acc-01)", verificar: "puertos con modo acceso/troncal y VLAN, SVI con IP, tabla de VLAN y vecinos LLDP que calzan en ambos extremos"}
+      - {id: C4, caso: "Balanceador HAProxy (lb-sede-01)", verificar: "versión de HAProxy, frontend abierto, backend con sus servidores y estado de chequeo, VIP"}
+      - {id: C5, caso: "Ficha del equipo en FaceOps", verificar: "la ficha muestra plataforma, modelo, uptime, interfaces, VLAN, vecinos, rutas, BGP o balanceo; no muestra CPU, discos, usuarios ni puntos de restauración"}
+      - {id: C6, caso: "Repetir la lectura", verificar: "solo lectura e idempotente: el equipo no cambia (sin changed), mismos conteos de interfaces y rutas"}
+      - {id: C7, caso: "Equipo que no responde (borde, laboratorio detenido)", verificar: "ticket fallido controlado (inalcanzable); no se toca nada y la ficha anterior del equipo se conserva"}
   "Políticas de desarrollo · Evaluar aplicaciones":
     casos:
       - {id: C1, caso: "Evaluar todo el parque (con máquinas apagadas)", verificar: "ticket exitoso; las apagadas quedan fuera; aparecen las aplicaciones de JBoss (srv-legado-jboss7-01, nodo-jboss-dev) y de IIS (srv-pn-win-01) con su plataforma y producto"}

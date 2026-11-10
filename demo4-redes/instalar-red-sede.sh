@@ -61,7 +61,7 @@ p "Sede → WAN 203.0.113.1 (pasa por el firewall)" ex pc-piso1 ping -c1 -W2 203
 p "WAN → VIP web publicado (permitido)" ex pe-isp wget -qO- -T 4 http://10.20.30.100/
 p "WAN → servidor directo :8080 (debe estar BLOQUEADO)" sh -c "! sudo podman exec clab-red-sede-pe-isp wget -qO- -T 3 http://10.20.30.21:8080/ && echo bloqueado"
 p "Vecinos LLDP de sw-core-01" sh -c "sudo podman exec clab-red-sede-sw-core-01 lldpcli show neighbors summary | grep -c SysName"
-p "Backends del balanceador arriba" sh -c "sudo podman exec clab-red-sede-lb-sede-01 wget -qO- 'http://127.0.0.1:8404/stats;csv' | grep -cE '^be-web-sede,srv-web-0[12],UP'"
+p "Backends del balanceador arriba" sh -c "sudo podman exec clab-red-sede-lb-sede-01 wget -qO- 'http://127.0.0.1:8404/stats;csv' | grep -E '^be-web-sede,srv-web-0[12],' | grep -c ',UP,'"
 cat > /tmp/askpass-sede.sh <<'EOF'
 #!/bin/sh
 sudo cat /opt/summit-red/sede/config/clave-netadmin
