@@ -155,8 +155,10 @@ def nivel(p):
     return None if p is None else (1 if p < 25 else 2 if p < 50 else 3 if p < 75 else 4)
 
 
-def nist(cliente, m, v):
-    """Perfil actual por categoría de NIST CSF 2.0 (evidencia de FaceOps), nivel 1–4 y brecha contra el objetivo."""
+def nist(cliente, m, v, pols=None):
+    """Perfil actual por categoría de NIST CSF 2.0 (evidencia de FaceOps), nivel 1–4 y brecha contra el objetivo.
+    pols: políticas de seguridad con su estado por equipo (politicas_seg.tablero); su cumplimiento alimenta las categorías
+    NIST que cubren (tabla de mapeo datos/escaneo-marcos.yml) y GV.PO mide qué categorías técnicas cubren las vigentes."""
     cid = cliente["id"]
     eqs = m["equipos"]
     srv = [x for x in eqs if x["cat"] in ("servidor", "almacenamiento", "estación de trabajo")]
@@ -192,6 +194,8 @@ def nist(cliente, m, v):
         ("RS", "RS.MI", "Mitigación automática", "CIS 17", v.get("autos_certificadas_pct"), "Remediaciones probadas (regla de prueba)", "Remediaciones con aprobación"),
         ("RC", "RC.RP", "Plan de recuperación", "CIS 11", _prom(pct_ok(srv, "recuperacion"), v.get("segmentos_rto_pct")), "Respaldo continuo y RTO/RPO por segmento", "Recuperar servidor · ficha del segmento"),
     ]
+    cat = [list(c) for c in cat]
+    _politicas_en_nist(cid, cat, pols, n_pol)
     out = []
     for fk, fn in FUNCIONES:
         cs = [{"id": c[1], "nombre": c[2], "cis": c[3], "pct": c[4], "nivel": nivel(c[4] if c[4] is not None else 0), "evidencia": c[5], "accion": c[6],
@@ -200,6 +204,48 @@ def nist(cliente, m, v):
         p = round(sum(vals) / len(vals)) if vals else 0
         out.append({"id": fk, "nombre": fn, "pct": p, "nivel": nivel(p), "categorias": cs})
     return out
+
+
+def _politicas_en_nist(cid, cat, pols, n_pol):
+    """GV.PO = categorías técnicas cubiertas por políticas vigentes (seguridad y desarrollo); cada categoría técnica promedia
+    además el % de equipos al día en sus políticas de seguridad. Las políticas sin mapeo NIST no suman (quedan sin clasificar)."""
+    try:
+        from .escaneo import refs_politicas
+        refs = refs_politicas()
+    except Exception:  # noqa: BLE001
+        return
+    if pols is None:
+        try:
+            from .politicas_seg import vigentes
+            pols = [dict(p, total=0) for p in vigentes(cid)]
+        except Exception:  # noqa: BLE001
+            pols = []
+    try:
+        from .politicas_dev import lista
+        dev = [p["codigo"] for p in lista(cid) if p.get("activa", 1)]
+    except Exception:  # noqa: BLE001
+        dev = []
+    cubre, pct_cat, sin = set(), {}, 0
+    for p in pols:
+        ns = {n["cat"] for n in (refs.get(p["codigo"]) or {}).get("nist") or []}
+        sin += not ns
+        cubre |= ns
+        if p.get("total"):
+            pc = round(100 * (p.get("cuenta") or {}).get("al_dia", 0) / p["total"])
+            for c in ns:
+                pct_cat.setdefault(c, []).append(pc)
+    for cod in dev:
+        cubre |= {n["cat"] for n in (refs.get(cod) or {}).get("nist") or []}
+    tecnicas = [c[1] for c in cat if not c[1].startswith("GV.")]
+    k = len([c for c in tecnicas if c in cubre])
+    for c in cat:
+        if c[1] == "GV.PO":
+            c[4] = round(100 * k / len(tecnicas)) if tecnicas and (pols or dev) else 0
+            c[5] = f"{len(pols) or n_pol} políticas de seguridad y {len(dev)} de desarrollo vigentes cubren {k} de {len(tecnicas)} categorías técnicas" + (f" ({sin} sin clasificar)" if sin else "")
+        elif pct_cat.get(c[1]):
+            pp = round(sum(pct_cat[c[1]]) / len(pct_cat[c[1]]))
+            c[4] = _prom(c[4], pp)
+            c[5] = f"{c[5]} · políticas {pp} % al día ({len(pct_cat[c[1]])})"
 
 
 def _prom(*xs):

@@ -5889,7 +5889,18 @@ def arquitectura_app():
 @requiere_login
 def politicas():
     from .politicas_seg import CATEGORIAS, DESC_CAT, ETIQUETA, tablero
+    from .escaneo import cis_controles, refs_politicas
+    from .seguridad_mapa import FUNCIONES
     pols, _ = tablero(g.cliente["id"], equipos_visibles())
+    refs = refs_politicas()
+    for p_ in pols:
+        p_["refs"] = refs.get(p_["codigo"]) or {"nist": [], "cis": []}
+    f_nist, f_cis = request.args.get("nist", ""), request.args.get("cis", "")
+    filtro = bool(f_nist or f_cis)
+    if f_nist:
+        pols = [p_ for p_ in pols if (f_nist == "sin" and not p_["refs"]["nist"]) or any(n["fn"] == f_nist for n in p_["refs"]["nist"])]
+    if f_cis:
+        pols = [p_ for p_ in pols if (f_cis == "sin" and not p_["refs"]["cis"]) or any(str(c["control"]) == f_cis for c in p_["refs"]["cis"])]
     cat = request.args.get("categoria", "")
     conteo = {k: len([p for p in pols if p["categoria"] == k]) for k, _ in CATEGORIAS}
     total = {k: sum(p["cuenta"][k] for p in pols) for k in ETIQUETA}
@@ -5899,7 +5910,8 @@ def politicas():
     cajas = [{"codigo": k, "nombre": n, "pols": [p for p in pols if p["categoria"] == k], "desc": DESC_CAT.get(k, ""),
               "cuenta": {e: sum(p["cuenta"][e] for p in pols if p["categoria"] == k) for e in ETIQUETA}} for k, n in CATEGORIAS]
     return render_template("politicas.html", pols=[p for p in pols if not cat or p["categoria"] == cat], categorias=CATEGORIAS, cat=cat,
-                           conteo=conteo, total=total, etiqueta=ETIQUETA, cajas=cajas, cat_nombre=dict(CATEGORIAS).get(cat, ""))
+                           conteo=conteo, total=total, etiqueta=ETIQUETA, cajas=cajas, cat_nombre=dict(CATEGORIAS).get(cat, ""),
+                           filtro=filtro, f_nist=f_nist, f_cis=f_cis, funciones_nist=FUNCIONES, controles_cis=cis_controles())
 
 
 @bp.route("/politicas/nueva", methods=["GET", "POST"])
@@ -6273,7 +6285,12 @@ def seguridad_mapa():
     nube = {e["id"] for e in eqs if seccion_eq(e) == "nubes"}
     m = SM.calcular(g.cliente, [dict(e, _datos=j(e["datos"], {})) for e in eqs], hs, nube)
     v = _indicadores()["v"]
-    funciones = SM.nist(g.cliente, m, v)
+    try:
+        from .politicas_seg import tablero as _tab_pol
+        pols_t = _tab_pol(g.cliente["id"], eqs)[0]
+    except Exception:  # noqa: BLE001
+        pols_t = None
+    funciones = SM.nist(g.cliente, m, v, pols_t)
     obj = yaml.safe_load(open(os.path.join(RAIZ_DATOS, "seguridad-objetivo.yml"), encoding="utf-8")) or {}
     for fn in funciones:
         fn["objetivo"] = int(obj.get(fn["id"], 3))
@@ -6748,7 +6765,8 @@ def politicas_desarrollo():
             cats.setdefault(p_["area"] or "Arquitectura", []).append(p_)
     ver = request.args.get("ver", "")
     hist = PDV.historial(g.cliente["id"], ver) if ver else []
-    return render_template("politicas_desarrollo.html", cats=cats, ps=ps, niveles=PDV.NIVELES, verifica=PDV.VERIFICA, areas=PDV.AREAS, f_area=f_area,
+    from .escaneo import refs_politicas
+    return render_template("politicas_desarrollo.html", refs=refs_politicas(), cats=cats, ps=ps, niveles=PDV.NIVELES, verifica=PDV.VERIFICA, areas=PDV.AREAS, f_area=f_area,
                            contrato=PDV.contrato(g.cliente["id"]), ver=ver, hist=hist,
                            fabrica_url=os.environ.get("FACEOPS_FABRICA_URL", "") and url_for("consola.fabrica_abrir"))
 

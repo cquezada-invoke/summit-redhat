@@ -7,7 +7,13 @@
   <div class="card kpi"><div class="l">Pendientes</div><div class="n">{{ total.pendiente }}</div><div class="l">nunca aplicadas</div></div>
   <div class="card kpi"><div class="l">No cumplen / fallaron</div><div class="n" style="color:var(--bad)">{{ total.no_cumple + total.fallida }}</div><div class="l">según la última verificación</div></div>
 </div>
-{% if not cat %}
+<form method="get" class="fila" style="gap:8px;margin:0 0 12px;align-items:center;flex-wrap:wrap">{% if cat %}<input type="hidden" name="categoria" value="{{ cat }}">{% endif %}
+<span class="sub" style="font-size:12.5px">Filtrar por marco:</span>
+<select name="nist" style="width:auto" onchange="this.form.submit()"><option value="">NIST CSF 2.0 · todas las funciones</option>{% for k, n in funciones_nist %}<option value="{{ k }}" {{ 'selected' if f_nist == k }}>{{ k }} · {{ n }}</option>{% endfor %}<option value="sin" {{ 'selected' if f_nist == 'sin' }}>sin clasificar</option></select>
+<select name="cis" style="width:auto" onchange="this.form.submit()"><option value="">CIS v8 · todos los controles</option>{% for k, n in controles_cis.items() %}<option value="{{ k }}" {{ 'selected' if f_cis == k|string }}>CIS {{ k }} · {{ n }}</option>{% endfor %}<option value="sin" {{ 'selected' if f_cis == 'sin' }}>sin clasificar</option></select>
+{% if filtro %}<a class="sub" href="{{ url_for('consola.politicas', categoria=cat or None) }}">quitar filtro</a> <span class="sub" style="font-size:12.5px">· {{ pols|length }} política{{ 's' if pols|length != 1 }}</span>{% endif %}</form>
+{% macro marcos(p) %}<div style="margin-top:3px">{% for n in p.refs.nist %}<span class="chip" style="font-size:11px" title="NIST CSF 2.0 · {{ n.nombre }}">{{ n.id }}</span> {% endfor %}{% for c in p.refs.cis %}<span class="chip" style="font-size:11px" title="CIS v8 {{ c.id }} · {{ c.nombre }} (control {{ c.control }} · {{ c.control_nombre }})">CIS {{ c.id }}{% if c.ig %} · IG{{ c.ig }}{% endif %}</span> {% endfor %}{% if not p.refs.nist and not p.refs.cis %}<span class="chip" style="font-size:11px">sin clasificar</span>{% elif not p.refs.nist %}<span class="chip" style="font-size:11px">NIST sin clasificar</span>{% elif not p.refs.cis %}<span class="chip" style="font-size:11px">CIS sin clasificar</span>{% endif %}</div>{% endmacro %}
+{% if not cat and not filtro %}
 <style>.cajas-pol{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
 .caja-pol{display:flex;flex-direction:column;gap:8px;color:inherit;text-decoration:none;border-left:4px solid var(--ok);border-radius:0;transition:transform .1s}
 .caja-pol:hover{transform:translateY(-2px)}.caja-pol.mal{border-left-color:var(--bad)}.caja-pol.medio{border-left-color:var(--warn)}.caja-pol.vacia{border-left-color:var(--line)}
@@ -22,11 +28,11 @@
 {% if c.cuenta.desactualizada + c.cuenta.pendiente %}<span class="chip e-pendiente_aprobacion">{{ c.cuenta.desactualizada + c.cuenta.pendiente }} por aplicar</span>{% endif %}{% endif %}</div>
 </a>{% endfor %}</div>
 {% else %}
-<div class="fila" style="margin-bottom:8px"><p style="margin:0"><a class="sub" href="{{ url_for('consola.politicas') }}">‹ Todas las categorías</a></p>{% if perfil_actual.modo == 'escritura' %}<a class="btn chico der" href="{{ url_for('consola.politica_nueva', categoria=cat) }}">+ Agregar política a {{ cat_nombre }}</a>{% endif %}</div>
+<div class="fila" style="margin-bottom:8px"><p style="margin:0"><a class="sub" href="{{ url_for('consola.politicas') }}">‹ Todas las categorías</a></p>{% if cat and perfil_actual.modo == 'escritura' %}<a class="btn chico der" href="{{ url_for('consola.politica_nueva', categoria=cat) }}">+ Agregar política a {{ cat_nombre }}</a>{% endif %}</div>
 {% for c in categorias|map(attribute=0) %}{% set ps = pols|selectattr('categoria', 'equalto', c)|list %}{% if ps %}
 <div class="card" style="margin-top:14px;padding:0"><h2 style="padding:16px 16px 4px">{{ dict(categorias)[c] if false else (categorias|selectattr(0, "equalto", c)|map(attribute=1)|first) }}</h2>
 <table><tr><th>Política</th><th>Severidad</th><th>Versión (Git)</th><th class="num">Equipos</th><th>Estado en los equipos</th><th></th></tr>
-{% for p in ps %}<tr><td><a href="{{ url_for('consola.politica', codigo=p.codigo) }}"><b>{{ p.codigo }}</b> · {{ p.nombre }}</a><br><span class="sub" style="font-size:12px">{{ p.descripcion }}</span></td>
+{% for p in ps %}<tr><td><a href="{{ url_for('consola.politica', codigo=p.codigo) }}"><b>{{ p.codigo }}</b> · {{ p.nombre }}</a><br><span class="sub" style="font-size:12px">{{ p.descripcion }}</span>{{ marcos(p) }}</td>
 <td>{{ sev(p.severidad or 'media') }}</td><td>{% if p.git_url %}<a class="chip" href="{{ p.git_url }}" target="_blank" title="commit {{ p.git_commit[:7] }}">v{{ p.version }} · {{ p.git_commit[:7] }}</a>{% else %}<span class="chip">v{{ p.version }}</span>{% endif %}<br><span class="sub" style="font-size:11px">{{ p.creado|fecha }}</span></td><td class="num">{{ p.total }}</td>
 <td style="font-size:12.5px">{% for k in ['al_dia','desactualizada','pendiente','no_cumple','fallida'] if p.cuenta[k] %}<span class="chip e-{{ {'al_dia':'exitoso','desactualizada':'pendiente_aprobacion','pendiente':'en_cola','no_cumple':'fallido','fallida':'fallido'}[k] }}">{{ p.cuenta[k] }} {{ etiqueta[k] }}</span> {% else %}<span class="sub">no aplica a ningún equipo</span>{% endfor %}</td>
 <td style="text-align:right;white-space:nowrap"><a class="btn chico gris" href="{{ url_for('consola.politica', codigo=p.codigo) }}">{{ 'Editar' if perfil_actual.modo == 'escritura' else 'Ver' }}</a>

@@ -229,3 +229,21 @@ def marcos(hall, n_srv):
     return {"funciones": funciones, "sin_nist": sin_nist, "controles": controles, "sin_cis": sin_cis, "NIVELES": NIVELES,
             "no_evaluados": [f"{n} · {nom}" for n, nom in (mp.get("cis_controles") or {}).items() if int(n) not in {c["num"] for c in controles}],
             "fuente": mp.get("fuente", ""), "n_tipos": len(tipos)}
+
+
+def refs_politicas():
+    """Referencias NIST CSF 2.0 / CIS v8 de cada política (seguridad y desarrollo), desde la tabla de mapeo compartida.
+    Una política sin entrada (o con listas vacías) queda «sin clasificar»."""
+    mp = _mapeo()
+    subs, sg, ctl = mp.get("nist_subcategorias") or {}, mp.get("cis_salvaguardas") or {}, mp.get("cis_controles") or {}
+    out = {}
+    for cod, r in (mp.get("politicas") or {}).items():
+        r = r or {}
+        out[cod] = {"nist": [{"id": n, "cat": n.split("-")[0], "fn": n[:2], "nombre": subs.get(n, "")} for n in r.get("nist") or []],
+                    "cis": [{"id": str(c), "control": int(str(c).split(".")[0]), "nombre": (sg.get(str(c)) or {}).get("nombre", ""),
+                             "ig": (sg.get(str(c)) or {}).get("ig"), "control_nombre": ctl.get(int(str(c).split(".")[0]), "")} for c in r.get("cis") or []]}
+    return out
+
+
+def cis_controles():
+    return {int(k): v for k, v in (_mapeo().get("cis_controles") or {}).items()}
