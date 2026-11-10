@@ -6596,6 +6596,11 @@ def manifiesto_arquitectura():
         from . import stack as S
         r = S.ultimo(g.cliente["id"]) or S.evaluar(g.cliente["id"], {})
         M.con_instalado(m, eqs, r.get("filas"))
+    try:   # madurez (COBIT/CMMI) de cada tecnología y de cada capa, sobre los equipos que la usan
+        from .madurez import con_madurez
+        con_madurez(m, g.cliente["id"], eqs, hallazgos_visibles(eqs))
+    except Exception as e_:  # noqa: BLE001
+        current_app.logger.warning("madurez del manifiesto: %s", e_)
     apps = [x["nombre"] for x in segmentos_visibles(g.usuario, g.cliente["id"]) if __import__("app.grupos_segmento", fromlist=["x"]).grupo_de(x) == "aplicaciones"]
     cuenta = Counter(t["estado"] for t in M.tecnologias(m))
     aceptadas = sorted({t["nombre"] for t in M.tecnologias(m) if t.get("estado") in ("aceptada", "evaluacion")})

@@ -186,3 +186,34 @@ def radar_svg(actual, meta, tam=760, enlace=None):
                  f'<text x="{x:.1f}" y="{y + dy + 16:.1f}" text-anchor="{anc}" font-size="12" fill="var(--muted)">hoy N{nivel(act[i])["n"]} ({act[i]:.0f} %) · meta N{nivel(met[i])["n"]} ({met[i]:.0f} %)</text>{b1}')
     o.append("</svg>")
     return Markup("".join(o))
+
+
+def con_madurez(m, cliente_id, eqs, hallazgos):
+    """Cruza el manifiesto de arquitectura con la madurez: a cada tecnología, los 6 pilares medidos solo sobre los equipos
+    que la usan (por skill, igual que «instalado»), su % y nivel (COBIT/CMMI) frente a la meta; a cada capa (y al
+    gobierno), el promedio de sus tecnologías con equipos. Sin equipos: n = 0 («sin equipos que medir»)."""
+    meta = metas()
+    meta_pct = round(sum(meta.values()) / len(meta))
+    pr = _practicas(cliente_id, eqs, hallazgos)
+
+    def de(ids):
+        if not ids:
+            return {"n": 0}
+        pp = _pct(ids, pr)
+        vals = [v for v in pp.values() if v is not None]
+        pct = round(sum(vals) / len(vals)) if vals else 0
+        return {"n": len(ids), "pct": pct, "nivel": nivel(pct), "pilares": pp, "meta_pct": meta_pct, "meta_nivel": nivel(meta_pct),
+                "brecha": max(0, meta_pct - pct)}
+
+    for capa in m["capas"] + [m["gobierno"]]:
+        vals = []
+        for c in capa["conceptos"]:
+            for t in c["tecnologias"]:
+                sk = t.get("skill") or t["clave"]
+                t["madurez"] = de([e["id"] for e in eqs if sk in (e.get("skills") or [])])
+                if t["madurez"]["n"]:
+                    vals.append(t["madurez"]["pct"])
+        pct = round(sum(vals) / len(vals)) if vals else None
+        capa["madurez"] = {"pct": pct, "nivel": nivel(pct) if pct is not None else None, "tecnologias": len(vals),
+                           "meta_pct": meta_pct, "meta_nivel": nivel(meta_pct)}
+    return m
