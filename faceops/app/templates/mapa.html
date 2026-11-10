@@ -541,6 +541,20 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       fd.append('accion',x.b.activa?'desactivar':'activar');
       fetch(x.b.url,{method:'POST',body:fd}).then(r=>r.json()).then(y=>{ if(y.error){res.textContent=y.error; bb.disabled=false; return;} res.innerHTML='<a href="'+y.url+'" target="_blank">'+y.ticket+'</a> <span class="chip e-'+y.estado+'">'+y.estado.replace(/_/g,' ')+'</span> · cambia al terminar el ticket'; })
         .catch(()=>{res.textContent='no se pudo guardar'; bb.disabled=false;}); }; }
+  // disponibilidad: criterio del segmento (sus aplicaciones y su infraestructura); misma cuenta que el pilar Disponibilidad de la salud
+  function htmlDisponibilidad(s){
+    const d=s.disponibilidad; if(!d||!d.total) return '';
+    const pil=(s.salud_areas||[]).find(a=>a.area==='Disponibilidad');
+    let h=sec('Disponibilidad',pil?'<span class="sub">pilar '+pil.pct+'%</span>':'');
+    const lista=xs=>xs.map(x=>'<b>'+x.funcion+'</b> · '+x.equipos.map(e=>e[1]).join(', ')).join('<br>');
+    h+=fila({izq:'Redundancia',ic:d.pct===100?SVG.ok:(d.pct>=50?SVG.warn:SVG.mal),txt:d.pct+'% · '+d.ha+' de '+d.total+' funciones con 2+ instancias',
+      det:d.funciones.map(f=>f.funcion+': '+f.on+'/'+f.n+' encendidas · '+f.estado).join('<br>')+(d.balanceo?'<br><span class="sub">Con balanceo de carga.</span>':'<br><span class="sub">Sin balanceador detectado.</span>')});
+    h+=fila({izq:'Punto único',ic:d.spof.length?(d.exige?SVG.warn:SVG.gris):SVG.ok,txt:d.spof.length?d.spof.length+' función(es) con una sola instancia'+(d.exige?' en producción':' (no se exige fuera de producción)'):'ninguno',
+      det:d.spof.length?lista(d.spof)+(d.exige?'<div style="margin-top:4px"><b>Sugerencia:</b> Replicar con alta disponibilidad desde su caja (botón HA)</div>':''):''});
+    if(d.caidas.length) h+=fila({izq:'Caídas',ic:SVG.mal,txt:d.caidas.length+' función(es) sin instancias encendidas',det:lista(d.caidas)});
+    h+=fila({izq:'RTO / RPO',ic:d.rto&&d.rpo?SVG.ok:SVG.warn,txt:d.rto&&d.rpo?'RTO '+d.rto+' · RPO '+d.rpo:'sin definir en la ficha',det:d.rto&&d.rpo?'':'Definir en la ficha cuánto puede estar caído (RTO) y cuántos datos se pueden perder (RPO).'});
+    return h;
+  }
   function mostrarSegmento(s){
     panel.dataset.fijo='';
     const fi=s.ficha||{};
@@ -556,6 +570,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       h+=sec('Aplicación e IA (informativo)');
       s.metricas_app.forEach(x=>{ h+=fila({izq:x.area,ic:IC2[x.nivel]||SVG.gris,txt:x.titulo,det:(x.detalle?'<span class="sub">'+x.detalle+'</span>':'')+(x.remedio?'<div style="margin-top:4px"><b>Sugerencia:</b> '+x.remedio+'</div>':'')}); });
     }
+    h+=htmlDisponibilidad(s);
     h+=sec('Propiedad');
     [['Dueño',fi.dueno],['Área',fi.area_negocio],['Resp. técnico',fi.responsable_tecnico]].forEach(([k,x])=>{ if(x) h+=fila({izq:k,ic:letra(k[0]),txt:x}); });
     if(fi.criticidad) h+=fila({izq:'Criticidad',ic:fi.criticidad==='alta'?SVG.mal:SVG.warn,txt:fi.criticidad});

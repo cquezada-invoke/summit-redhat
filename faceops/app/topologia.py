@@ -841,6 +841,8 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
     disco = sum(sum(d.get("gb", 0) for d in j(e.get("discos"), [])) for e in es)
     k = costo(arq["m"], eqs) if arq else None
     tarjeta = next((t for t in resumen_segmentos(cliente, es, hallazgos, [seg]) if t["nombre"] == segmento), {}) if seg else {}
+    es_d = es if ambiente else ([e for e in es if (e.get("ambiente") or "") == "produccion"] or es)   # disponibilidad: la de producción
+    disp = disponibilidad_segmento(es_d, j(seg.get("ficha"), {}), exige=ambiente in ("", "produccion"))
     if k and ambiente:  # costo solo de este ambiente
         filas = [f for f in k["filas"] if f["ambiente"] == ambiente]
         k = dict(k, mensual=round(sum(f["mensual"] for f in filas), 2), incremental=round(sum(f["incremental"] for f in filas), 2))
@@ -857,7 +859,8 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
             "ocp": [{"ambiente": o["ambiente"], "namespace": o["namespace"], "rutas": o["rutas_d"], "gitops": o["gitops"], "version": o["version"]}
                     for o in _ocp_de(cliente["id"], segmento)],
             "ocp_comps": [c["nombre"] for c in arq["m"]["componentes"] if c.get("plataforma") == "openshift"] if arq else [],
-            **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq)),
+            **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq, disp)),
+            "disponibilidad": {k_: v for k_, v in disp.items() if k_ != "funciones"} | {"funciones": [{x_: f[x_] for x_ in ("funcion", "n", "on", "estado")} for f in disp["funciones"]]},
             "salud_meta": metas_salud(j(seg.get("ficha"), {})),
             "metricas_app": _indicadores_app(arq)}
 
@@ -976,7 +979,37 @@ def q1_seg(cliente, segmento):
     return q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", cliente["id"], segmento)
 
 
-def salud_segmento(cliente, eqs, es, hs, segmento, arq):
+def disponibilidad_segmento(es, ficha=None, riesgos=None, exige=True):
+    """Disponibilidad del segmento (antes Gobierno › Disponibilidad): cada función (sistema o plataforma) con sus instancias
+    encendidas. Con dos o más es alta disponibilidad; con una sola, punto único de falla; sin ninguna, caída. Un clúster
+    OpenShift es redundante por sí mismo (sus réplicas viven dentro). `exige`: en producción la redundancia se exige
+    (alimenta el pilar Disponibilidad de la salud); en QA o desarrollo solo se informa."""
+    from .asistente import PLATAFORMAS
+    from .vistas import _familia_so, _plataformas_de
+    nombre = {c: n for c, n, _ in PLATAFORMAS}
+    funciones = defaultdict(list)
+    for e in es:
+        ps_ = [c for c in _plataformas_de(e, (riesgos or {}).get(e["id"]) or {}) if not c.startswith("so:") and c not in ("rhel", "windows-server")]
+        for c in ps_ or ["so:" + _familia_so(e.get("so"))]:
+            funciones[c].append(e)
+    fx = []
+    for c, lst in sorted(funciones.items()):
+        on = [e for e in lst if e.get("energia") == "encendido"]
+        ha = len(on) >= 2 or (c == "openshift" and on)
+        estado = "alta disponibilidad" if ha else ("punto único de falla" if len(on) == 1 else "caída")
+        fx.append({"codigo": c, "funcion": nombre.get(c, c[3:] if c.startswith("so:") else c), "n": len(lst), "on": len(on), "estado": estado,
+                   "equipos": [(e["id"], e["nombre"], e.get("energia")) for e in lst],
+                   "uptime": max((j(e.get("datos"), {}).get("uptime_dias") or 0) for e in on) if on else None})
+    balanceo = any(c in ("nginx", "haproxy", "f5-bigip") for c in funciones) \
+        or any((e.get("categoria") or "") in ("", "servidor") and {"nginx", "haproxy", "f5-bigip"} & set(e.get("skills") or []) for e in es)
+    ha_ = sum(1 for x in fx if x["estado"] == "alta disponibilidad")
+    fi_ = ficha or {}
+    return {"funciones": fx, "balanceo": balanceo, "total": len(fx), "ha": ha_, "pct": round(100 * ha_ / len(fx)) if fx else None,
+            "spof": [x for x in fx if x["estado"] == "punto único de falla"], "caidas": [x for x in fx if x["estado"] == "caída"],
+            "rto": fi_.get("rto") or "", "rpo": fi_.get("rpo") or "", "exige": exige}
+
+
+def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None):
     """Salud consolidada del segmento con su mecanismo de remediación: máquinas apagadas, hallazgos, flujos cerrados,
     flujos sin TLS, latencias altas, métricas de la aplicación (p. ej. tiempos de respuesta del modelo de IA) y la
     [{nivel: alta|media|ok|info, area, titulo, detalle, remedio}]"""
@@ -989,15 +1022,14 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq):
     elif apagadas:   # apagada no es falla: puede ser a propósito (advertencia)
         out.append({"nivel": "media", "area": "Disponibilidad", "titulo": f"{len(apagadas)} máquina(s) apagada(s)", "detalle": ", ".join(apagadas[:8]),
                     "remedio": "Encenderlas desde su caja si se necesitan (ticket «Encender o apagar equipo» con aprobación)"})
-    if arq:   # sin alta disponibilidad: componente de producción con una sola máquina
-        from .arquitectura import asignacion as _asig
-        nombres_es = {e["nombre"] for e in es}
-        for cid, por_amb in _asig(arq["m"], eqs).items():
-            c = next((x for x in arq["m"]["componentes"] if x["id"] == cid), {})
-            prod = [x for x in por_amb.get("produccion", []) if x["nombre"] in nombres_es]
-            if c.get("plataforma") != "openshift" and len(prod) == 1:
-                out.append({"nivel": "media", "area": "Disponibilidad", "titulo": f"{c.get('nombre', cid)} sin alta disponibilidad (una sola máquina en producción)",
-                            "detalle": prod[0]["nombre"], "remedio": "Replicar con alta disponibilidad desde su caja (botón HA)"})
+    # sin alta disponibilidad: función con una sola instancia encendida en producción (la misma cuenta que la sección
+    # «Disponibilidad» del segmento en el mapa: disponibilidad_segmento)
+    if disp is None:
+        disp = disponibilidad_segmento(es, j((q1_seg(cliente, segmento) or {}).get("ficha"), {}))
+    if disp.get("exige"):
+        for x in disp["spof"]:
+            out.append({"nivel": "media", "area": "Disponibilidad", "titulo": f"{x['funcion']} sin alta disponibilidad (una sola máquina en producción)",
+                        "detalle": next((n for _, n, en in x["equipos"] if en == "encendido"), ""), "remedio": "Replicar con alta disponibilidad desde su caja (botón HA)"})
     # recuperación: cada máquina con respaldo para reconstruirla, y el segmento con su RTO/RPO definidos
     sin_resp = [e["nombre"] for e in es if (e.get("categoria") or "servidor") == "servidor" and "respaldo-git" not in (e.get("skills") or [])]
     if sin_resp:

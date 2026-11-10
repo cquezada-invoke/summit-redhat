@@ -516,7 +516,8 @@ def inicio():
 def madurez_detalle():
     """Lo que falta para llegar a la meta de madurez (el área ámbar del radar): por pilar, qué práctica falta, en qué
     equipos y cómo abordarlo, con la acción del catálogo que lo resuelve."""
-    from .madurez import dominios, madurez as madurez_parque, pilares_info, radar_svg
+    from .madurez import EVIDENCIA, PROPAGACION, dominios, madurez as madurez_parque, pilares_info, radar_svg
+    from .radar import CRITERIOS_EQ
     eqs = equipos_visibles()
     doms = [(k, n, ids) for k, n, ids in dominios(eqs) if ids]
     ctx = request.args.get("contexto", "")
@@ -525,7 +526,8 @@ def madurez_detalle():
     m = madurez_parque(g.cliente["id"], eqs_, hallazgos_visibles(eqs_))
     m["svg"] = radar_svg(m["actual"], m["meta"], tam=560, enlace=url_for("consola.madurez_detalle", contexto=ctx or None))
     orden = sorted(m["detalle"], key=lambda p: -m["detalle"][p]["brecha"])
-    return render_template("madurez.html", m=m, orden=orden, info=pilares_info(), doms=doms, ctx=ctx, ctx_nombre=sel[1] if sel else "")
+    return render_template("madurez.html", m=m, orden=orden, info=pilares_info(), doms=doms, ctx=ctx, ctx_nombre=sel[1] if sel else "",
+                           prop=PROPAGACION, evid=EVIDENCIA, crit_eq=CRITERIOS_EQ)
 
 
 @bp.route("/buscar")
@@ -1731,9 +1733,8 @@ def buenas_practicas_tec(tec):
 def disponibilidad():
     """Gobierno › Disponibilidad: por segmento de negocio, cada función (sistema o plataforma) con sus instancias encendidas.
     Una función con una sola instancia es un punto único de falla; con dos o más (y balanceo, si atiende tráfico) es alta disponibilidad."""
-    from .asistente import PLATAFORMAS
     from .grupos_segmento import NOMBRE as NOM_GRUPO, grupo_de
-    nombre = {c: n for c, n, _ in PLATAFORMAS}
+    from .topologia import disponibilidad_segmento   # misma cuenta que la sección «Disponibilidad» del segmento en el mapa
     amb = request.args.get("ambiente", "produccion")
     riesgos = {e["id"]: r for e, r in _riesgo_parque()}
     segs = segmentos_visibles(g.usuario, g.cliente["id"])
@@ -1743,23 +1744,10 @@ def disponibilidad():
         es = [e for e in equipos_visibles() if sg["nombre"] in (e.get("segmentos") or []) and (not amb or (e.get("ambiente") or "") == amb)]
         if not es:
             continue
-        funciones = defaultdict(list)
-        for e in es:
-            ps_ = [c for c in _plataformas_de(e, riesgos.get(e["id"]) or {}) if not c.startswith("so:") and c not in ("rhel", "windows-server")]
-            for c in ps_ or ["so:" + _familia_so(e.get("so"))]:
-                funciones[c].append(e)
-        fx = []
-        for c, lst in sorted(funciones.items()):
-            on = [e for e in lst if e.get("energia") == "encendido"]
-            estado = "alta disponibilidad" if len(on) >= 2 else ("punto único de falla" if len(on) == 1 else "caída")
-            fx.append({"funcion": nombre.get(c, c[3:] if c.startswith("so:") else c), "n": len(lst), "on": len(on), "estado": estado,
-                       "equipos": [(e["id"], e["nombre"], e.get("energia")) for e in lst],
-                       "uptime": max((j(e.get("datos"), {}).get("uptime_dias") or 0) for e in on) if on else None})
-        balanceo = any(c in ("nginx", "haproxy") for c in funciones) or any(grupo_periferico(e) == "balanceadores" for e in es)
-        ha_ = sum(1 for x in fx if x["estado"] == "alta disponibilidad")
-        tot_f += len(fx); tot_ha += ha_
-        filas.append({"segmento": sg["nombre"], "grupo": NOM_GRUPO.get(grupo_de(sg), ""), "funciones": fx, "balanceo": balanceo,
-                      "pct": round(100 * ha_ / len(fx)) if fx else None, "spof": sum(1 for x in fx if x["estado"] != "alta disponibilidad")})
+        d_ = disponibilidad_segmento(es, j(sg.get("ficha"), {}), riesgos)
+        tot_f += d_["total"]; tot_ha += d_["ha"]
+        filas.append({"segmento": sg["nombre"], "grupo": NOM_GRUPO.get(grupo_de(sg), ""), "funciones": d_["funciones"], "balanceo": d_["balanceo"],
+                      "pct": d_["pct"], "spof": d_["total"] - d_["ha"]})
     filas.sort(key=lambda x: (x["pct"] if x["pct"] is not None else 101, x["segmento"]))
     return render_template("disponibilidad.html", filas=filas, amb=amb, global_=round(100 * tot_ha / tot_f) if tot_f else None,
                            a_rep=a_rep)
@@ -7261,7 +7249,7 @@ def menu_nav():
     if ep_.startswith(("consola.devsecops", "consola.buenas_practicas", "consola.stack_")):
         activo = "consola.ecosistema"
     elif ep_.startswith("consola.respaldo"):
-        activo = "consola.disponibilidad"
+        activo = "consola.gobierno_ti"
     if request.endpoint == "consola.equipo" and (request.view_args or {}).get("eid"):
         e_m = q1("SELECT * FROM equipos WHERE id=? AND cliente_id=?", request.view_args["eid"], g.cliente["id"])
         if e_m:
@@ -7299,13 +7287,12 @@ def menu_nav():
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
                  ("consola.mapa", "Segmentos de negocio", "apps", [("Todos", {"vista": "aplicaciones"})]   # un solo punto: se filtra por grupo y
                   + [(gn, {"vista": "aplicaciones", "grupo": gk}) for gk, gn, _, _ in GRUPOS if any(grupo_de(x) == gk for x in segs_v)]),   # cada perfil ve solo sus segmentos
-                 ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Industria y país", {"_ancla": "n3"}), ("Plano de control", {"_ep": "consola.plano_control"})]),
+                 ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Industria y país", {"_ancla": "n3"}), ("Plano de control", {"_ep": "consola.plano_control"}),
+                                                                        ("Respaldos y recuperación", {"_ep": "consola.respaldos"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Mapa de seguridad", {"_ep": "consola.seguridad_mapa"}), ("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
-                                                                ("Incidentes", {"_ep": "consola.incidentes"}),
-                                                                ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
-                 ("consola.disponibilidad", "Disponibilidad", "gobierno", [("Producción", {}), ("QA", {"ambiente": "qa"}), ("Desarrollo", {"ambiente": "desarrollo"}),
-                                                                      ("Respaldos y recuperación", {"_ep": "consola.respaldos"})]),
+                                                                ("Incidentes", {"_ep": "consola.incidentes"})]),   # «VPN y accesos remotos» fuera del menú por ahora (la ruta sigue)
+                 # «Disponibilidad» ya no es una sección: es un criterio de cada segmento de negocio (sección en su flotante del mapa)
                  ("consola.ecosistema", "Arquitectura", "segmentos", [("Manifiesto de arquitectura", {"_ep": "consola.manifiesto_arquitectura"}), ("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Políticas de desarrollo", {"_ep": "consola.politicas_desarrollo"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
                                                                       ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True}),
                                                                       ("Buenas prácticas por tecnología", {"_ep": "consola.buenas_practicas"})]),
