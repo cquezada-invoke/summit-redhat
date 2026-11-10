@@ -16,7 +16,10 @@
   tasks:
     - name: Datos válidos
       ansible.builtin.assert:
-        that: [ns is match('^[a-z0-9-]{1,63}$'), (ruta | default('')) is match('^[a-z0-9-]{1,63}$'), (forzar | default('no')) in ['si', 'no']]
+        that:
+          - ns is match('^[a-z0-9-]{1,63}$')
+          - (ruta | default('')) is match('^[a-z0-9-]{1,63}$')
+          - (forzar | default('no')) in ['si', 'no']
         quiet: true
 
     - name: Route de la aplicación
