@@ -114,7 +114,9 @@
         cat > /tmp/deseada.conf <<'FIN'
         {{ hostvars.localhost.rtr_nuevo }}
         FIN
-        python3 /usr/lib/frr/frr-reload.py --reload /tmp/deseada.conf >/dev/null 2>&1; echo aplicado
+        python3 /usr/lib/frr/frr-reload.py --reload /tmp/deseada.conf > /tmp/reload.log 2>&1; echo "rc=$?"; grep -E "ERROR|WARNING" /tmp/reload.log | tail -5
+        vtysh -c 'show running-config' | grep -E "^ip route|  network" ; true
+      register: r_reload
       changed_when: true
 
 - name: Telco · red del servicio · firewall
@@ -132,6 +134,7 @@
     - name: Firewall · retirar la VLAN {{ hostvars.localhost.svc.vlan }}
       vyos.vyos.vyos_config:
         lines: ["delete interfaces ethernet eth2 vif {{ hostvars.localhost.svc.vlan }}"]
+        match: none   # sin esto el módulo descarta el «delete» porque no hay una línea idéntica en la configuración
         save: true
       when: hostvars.localhost.svc.accion == 'retirar'
 
@@ -192,6 +195,7 @@
     - name: Firewall · retirar la VLAN creada
       vyos.vyos.vyos_config:
         lines: ["delete interfaces ethernet eth2 vif {{ hostvars.localhost.svc.vlan }}"]
+        match: none   # sin esto el módulo descarta el «delete» porque no hay una línea idéntica en la configuración
         save: true
 
 - name: Telco · red del servicio · cierre

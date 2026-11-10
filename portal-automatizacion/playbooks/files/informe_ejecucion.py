@@ -58,3 +58,5 @@ datos = {"tipo": "ejecucion", "titulo": nombre, "archivo": "resultado-" + str(wf
 req = urllib.request.Request(portal, data=json.dumps(datos).encode(), headers={"Content-Type": "application/json"}, method="POST")
 with urllib.request.urlopen(req, timeout=180) as r:
     print(r.read().decode())
+if estado != "ok":   # el PDF ya salió; el workflow debe quedar como fallido para que nadie lo lea como éxito
+    sys.exit("La automatización no se completó (" + {"atencion": "un paso falló", "no_aprobada": "no fue aprobada"}.get(estado, estado) + "); el PDF con el detalle se envió igual.")

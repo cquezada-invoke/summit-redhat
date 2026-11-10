@@ -219,7 +219,8 @@
   encuesta:
     - {question_name: "Fase", variable: fase, type: multiplechoice, choices: [pre, post], default: pre, required: true,
        question_description: "pre: antes de actualizar · post: después de actualizar."}
-    - {question_name: "Versión destino", variable: version_destino, type: text, default: "4.19.55", required: false, max: 12}
+    - {question_name: "Versión destino", variable: version_destino, type: text, default: "", required: false, max: 12,
+       question_description: "En «post», la versión a la que ACM actualizó (p. ej. 4.19.55). Vacío: la versión que tiene hoy el clúster."}
     - {question_name: "Rutas críticas a probar", variable: rutas_criticas, type: textarea, default: "https://amdocs-ordering.sno.34.176.42.56.sslip.io/health", required: false, max: 1000,
        question_description: "URLs separadas por coma (solo en fase post)."}
 - nombre: "OpenShift · De alerta a incidente"
