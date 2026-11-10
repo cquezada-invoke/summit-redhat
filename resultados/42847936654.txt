@@ -1,0 +1,27 @@
+commit: dcf416cb810b6db79ade1c77838fde84f920f0d0
+inicio: 2026-11-10T12:47:02-03:00
+---
+volumen listo
+   namespace/portal-claro created
+   imagestream.image.openshift.io/portal created
+   buildconfig.build.openshift.io/portal created
+   persistentvolume/portal-claro-datos created
+   persistentvolumeclaim/datos created
+   deployment.apps/portal created
+   service/portal created
+   route.route.openshift.io/portal created
+   networkpolicy.networking.k8s.io/desde-portal-claro created
+secret aplicado
+Error from server (BadRequest): unable to wait for build portal-1 to run: timed out waiting for the condition
+error: timed out waiting for the condition
+Waiting for deployment "portal" rollout to finish: 0 of 1 updated replicas are available...
+== datos
+error: unable to upgrade connection: container not found ("portal")
+tar: -: Cannot write: Broken pipe
+tar: Error is not recoverable: exiting now
+error: unable to upgrade connection: container not found ("portal")
+== alcance desde el pod
+error: unable to upgrade connection: container not found ("portal")
+== desde el lab
+nodeport /ingresar: 000
+--- fin: 2026-11-10T12:56:12-03:00 · código: 0
