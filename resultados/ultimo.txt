@@ -1,21 +1,110 @@
-commit: b365c717b0c210b9f3d2d8ca863e85b6b02bed7f
-inicio: 2026-11-10T19:13:24-03:00
+commit: b7307eddba0ff4c260b607242c984a236bc4d1ee
+inicio: 2026-11-10T19:04:10-03:00
 ---
-Matching Defaults entries for aap-kvm on demo-ansible-summit:
-    !visiblepw, always_set_home, match_group_by_gid, always_query_group_plugin, env_reset, env_keep="COLORS DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS", env_keep+="MAIL PS1 PS2 QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY", secure_path=/sbin\:/bin\:/usr/sbin\:/usr/bin
-
-User aap-kvm may run the following commands on demo-ansible-summit:
-    (root) NOPASSWD: /usr/bin/virsh, /usr/bin/virt-install
-drwxr-xr-x. 4 aap-kvm aap-kvm 8192 Nov  7 15:44 /var/lib/libvirt/images/faceops
--rw-r--r--. 1 aap-kvm aap-kvm   902823936 Nov  7 11:10 srv-no-existe-99.reemplazado-202611071115.qcow2
--rw-r--r--. 1 qemu    qemu     2267742208 Nov 10 19:12 srv-prueba-resp-01.qcow2
--rw-r--r--. 1 aap-kvm aap-kvm   808321024 Nov  7 11:12 srv-prueba-resp-01.reemplazado-202611071113.qcow2
--rw-r--r--. 1 qemu    qemu     8869511168 Nov 10 19:13 srv-prueba-rhel8-01.qcow2
--rw-r--r--. 1 qemu    qemu     2639003648 Nov 10 19:13 srv-prueba-rhel9-01.qcow2
--rw-r--r--. 1 qemu    qemu     5963251712 Nov 10 19:13 srv-prueba-rocky-01.qcow2
--rw-r-----. 1 aap-kvm aap-kvm         368 Nov  7 04:24 srv-prueba-rocky-01-user-data.yml
-    <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2'/>
-      <source file='/var/lib/libvirt/images/faceops/srv-prueba-rhel9-01.qcow2'/>
-      <target dev='vda' bus='virtio'/>
---- fin: 2026-11-10T19:13:25-03:00 · código: 0
+rm: cannot remove '/tmp/wl-plan-a.json': Operation not permitted
+===== EVALUAR
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
+M-C1 emular-origen
+  reanudo FO-LAB-01424 en_ejecucion
+   ('FO-LAB-01424', 'exitoso', [('ventas', True), ('legado', False)]) 
+E-C1
+  pedido FO-LAB-01425
+  aprobado
+   ('FO-LAB-01425', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
+E-C2
+  pedido FO-LAB-01426
+Error: container has already been removed
+--- reintento 1 (contenedor reiniciado)
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
+M-C1 emular-origen
+  reanudo FO-LAB-01424 exitoso
+   ('FO-LAB-01424', 'exitoso', [('ventas', True), ('legado', False)]) 
+E-C1
+  reanudo FO-LAB-01425 exitoso
+   ('FO-LAB-01425', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
+E-C2
+  reanudo FO-LAB-01426 pendiente_aprobacion
+  aprobado
+Error: no container with ID 926162b66d23a82a3f321a0987d499ad4f189a77fb29fd19b2a5cd7ae55f4b5b found in database: no such container
+--- reintento 2 (contenedor reiniciado)
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
+M-C1 emular-origen
+  reanudo FO-LAB-01424 exitoso
+   ('FO-LAB-01424', 'exitoso', [('ventas', True), ('legado', False)]) 
+E-C1
+  reanudo FO-LAB-01425 exitoso
+   ('FO-LAB-01425', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
+E-C2
+  reanudo FO-LAB-01426 exitoso
+   ('FO-LAB-01426', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
+E-C3
+  pedido FO-LAB-01427
+  aprobado
+--- reintento 3 (contenedor reiniciado)
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
+M-C1 emular-origen
+  reanudo FO-LAB-01424 exitoso
+   ('FO-LAB-01424', 'exitoso', [('ventas', True), ('legado', False)]) 
+E-C1
+  reanudo FO-LAB-01425 exitoso
+   ('FO-LAB-01425', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
+E-C2
+  reanudo FO-LAB-01426 exitoso
+   ('FO-LAB-01426', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False)
+E-C3
+  reanudo FO-LAB-01427 fallido
+   ('FO-LAB-01427', 'fallido', None, None, [], None)
+   … config.xml en /u01, /opt/oracle, /opt/weblogic, /home/oracle o /srv); indícalo en wl_dominio"} |  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+PLAN EVALUAR OK: False
+FIN-SCRIPT
+===== MIGRAR C2-C4
+catalogo: 223
+M-C2
+  pedido FO-LAB-01428
+  aprobado
+Error: container has already been removed
+--- reintento 1 (contenedor reiniciado)
+catalogo: 223
+M-C2
+  reanudo FO-LAB-01428 en_ejecucion
+   ["FO-LAB-01428", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null}]
+   … ED! => {"msg": "Unexpected templating type error occurred on ({{ (espera / 10) | int }}): unsupported operand type(s) for /: 'str' and 'int'. unsupported operand type(s) for /: 'str' and 'int'"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=44   changed=13   unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
+M-C3
+  pedido FO-LAB-01430
+  aprobado
+   ["FO-LAB-01430", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null}]
+   … ED! => {"msg": "Unexpected templating type error occurred on ({{ (espera / 10) | int }}): unsupported operand type(s) for /: 'str' and 'int'. unsupported operand type(s) for /: 'str' and 'int'"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=41   changed=11   unreachable=0    failed=1    skipped=8    rescued=0    ignored=0   
+M-C4
+  pedido FO-LAB-01431
+  aprobado
+   ["FO-LAB-01431", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null}]
+   … pietaria (ServletAuthentication); Contexto JNDI propietario (WLInitialContextFactory / t3); Propiedades con JNDI remoto de WebLogic (t3 / WLInitialContextFactory). No se creó nada en OpenShift"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=27   changed=9    unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
+FIN-SCRIPT
+== objetos
+imagestream.image.openshift.io/ventas default-route-openshift-image-registry.apps.sno.invoke.lab/wl-ventas/ventas latest
+buildconfig.build.openshift.io/ventas Source Binary
+build.build.openshift.io/ventas-1 Source Binary
+deployment.apps/ventas 1/1 1
+service/ventas ClusterIP 172.30.161.40
+route.route.openshift.io/ventas ventas-wl-ventas.apps.sno.invoke.lab ventas
+configmap/ventas-config 4 4m30s
+secret/ventas-ds Opaque 1
+== legado (debe estar vacío)
+Warning: apps.openshift.io/v1 DeploymentConfig is deprecated in v4.14+, unavailable in v4.10000+
+No resources found in wl-ventas namespace.
+== ConfigMap: llaves (sin claves)
+['WL_DS_VENTASDS_URL', 'WL_DS_VENTASDS_USUARIO', 'config.cli', 'prop-ventas.properties']
+clave en cm: False
+== Secret: llaves
+['WL_DS_VENTASDS_CLAVE']
+== env del pod (claves por secretKeyRef)
+[('WL_DS_VENTASDS_URL', 'configMapKeyRef'), ('WL_DS_VENTASDS_USUARIO', 'configMapKeyRef'), ('WL_DS_VENTASDS_CLAVE', 'secretKeyRef'), ('JAVA_OPTS_APPEND', 'value')]
+{'limits': {'memory': '768Mi'}, 'requests': {'cpu': '10m', 'memory': '16Mi'}} {'path': '/ventas/salud', 'port': 8080, 'scheme': 'HTTP'}
+{"estado":"ok","datasource":"enlazado","cola":"enlazado","propiedades":"cargadas"} http=200
+ventas-1-build            0/1   Completed   0     9m48s
+ventas-5579997c84-h2rdr   1/1   Running     0     4m30s
+--- fin: 2026-11-10T19:24:45-03:00 · código: 0
