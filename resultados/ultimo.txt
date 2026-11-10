@@ -1,27 +1,16 @@
-commit: dcf416cb810b6db79ade1c77838fde84f920f0d0
-inicio: 2026-11-10T12:47:02-03:00
+commit: 329fa876ae72a28bbc6c0f70bc5f62ffa2ac8737
+inicio: 2026-11-10T12:57:51-03:00
 ---
-volumen listo
-   namespace/portal-claro created
-   imagestream.image.openshift.io/portal created
-   buildconfig.build.openshift.io/portal created
-   persistentvolume/portal-claro-datos created
-   persistentvolumeclaim/datos created
-   deployment.apps/portal created
-   service/portal created
-   route.route.openshift.io/portal created
-   networkpolicy.networking.k8s.io/desde-portal-claro created
-secret aplicado
-Error from server (BadRequest): unable to wait for build portal-1 to run: timed out waiting for the condition
-error: timed out waiting for the condition
-Waiting for deployment "portal" rollout to finish: 0 of 1 updated replicas are available...
-== datos
-error: unable to upgrade connection: container not found ("portal")
-tar: -: Cannot write: Broken pipe
-tar: Error is not recoverable: exiting now
-error: unable to upgrade connection: container not found ("portal")
-== alcance desde el pod
-error: unable to upgrade connection: container not found ("portal")
-== desde el lab
-nodeport /ingresar: 000
---- fin: 2026-11-10T12:56:12-03:00 · código: 0
+build.build.openshift.io/portal-1   Docker   Binary@3afc3a7   Cancelled (CancelledBuild)   5 minutes ago   
+pod/portal-57c79fc544-ztmgd   0/1   ImagePullBackOff   0     10m
+Status:		[1mCancelled[0m (The build was cancelled by the user.)
+  Type		Reason		Age	From			Message
+10m         Warning   FailedScheduling    pod/portal-1-build             0/1 nodes are available: 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming
+10m         Normal    AddedInterface      pod/portal-57c79fc544-ztmgd    Add eth0 [10.128.0.151/23] from ovn-kubernetes
+7m39s       Normal    Pulling             pod/portal-57c79fc544-ztmgd    Pulling image "image-registry.openshift-image-registry.svc:5000/portal-claro/portal:latest"
+7m39s       Warning   Failed              pod/portal-57c79fc544-ztmgd    Failed to pull image "image-registry.openshift-image-registry.svc:5000/portal-claro/portal:latest": initializing source docker:
+7m39s       Warning   Failed              pod/portal-57c79fc544-ztmgd    Error: ErrImagePull
+5m40s       Normal    BuildCancelled      build/portal-1                 Build portal-claro/portal-1 has been cancelled
+30s         Normal    BackOff             pod/portal-57c79fc544-ztmgd    Back-off pulling image "image-registry.openshift-image-registry.svc:5000/portal-claro/portal:latest"
+30s         Warning   Failed              pod/portal-57c79fc544-ztmgd    Error: ImagePullBackOff
+--- fin: 2026-11-10T12:57:51-03:00 · código: 0
