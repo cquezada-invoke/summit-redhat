@@ -1,7 +1,74 @@
-commit: 75375f2ca0354a642250b50718461f603da5c27f
-inicio: 2026-11-09T22:59:27-03:00
+commit: 12ca543879086733eb941403d9ec7bcc11a3597c
+inicio: 2026-11-09T23:01:43-03:00
 ---
-portal actualizado
-   · 27 plantillas
-   LISTO
---- fin: 2026-11-09T23:01:13-03:00 · código: 0
+== OpenShift · Acceso de equipo {"equipo": "equipo-demo", "miembros": "demo1,demo2", "namespaces": "amdocs-bss", "rol": "view", "accion": "alta"} → #20027 successful
+     · Portal · OpenShift · Acceso de equipo (plantilla) → successful · Equipo equipo-demo: acceso dado en 1 namespace(s) [ok]
+         Miembros | demo1, demo2
+         OpenShift | grupo equipo-demo · rol view en amdocs-bss
+         Git | sin credencial de Git: se omitió
+         Vault | sin credencial de Vault: se omitió
+== OpenShift · Acceso de equipo {"equipo": "equipo-demo", "miembros": "", "namespaces": "amdocs-bss", "rol": "view", "accion": "baja"} → #20032 successful
+     · Portal · OpenShift · Acceso de equipo (plantilla) → successful · Equipo equipo-demo: acceso retirado en 1 namespace(s) [ok]
+         Miembros | -
+         OpenShift | grupo equipo-demo · rol view en amdocs-bss
+         Git | sin credencial de Git: se omitió
+         Vault | sin credencial de Vault: se omitió
+== OpenShift · Certificado de aplicación de punta a punta {"namespace": "amdocs-bss", "ruta": "amdocs-ordering", "umbral_dias": 30, "forzar": "no"} → #20037 failed
+     · Portal · OpenShift · Certificado de aplicación de punta → failed
+         FALLA en «Route de la aplicación»: {'changed': False, 'resources': [], 'api_found': True, 'invocation': {'module_args': {'api_version': 'route.openshift.io/v1', 'kind': 'Route', 'namespace': 'amdocs-bss', 'name': 'amdocs-ordering', 'wait': False, 'wait_sleep': 5, 'wait_timeout': 120, 'label_selectors': [], 'field_selectors': [], 'kub
+== OpenShift · De alerta a incidente {"namespace": "amdocs-bss", "alerta": "KubePodCrashLooping", "remediar": "no"} → #20041 successful
+     · Portal · OpenShift · De alerta a incidente (plantilla) → successful · KubePodCrashLooping en amdocs-bss: INC4276205 abierto con la evidencia [atencion]
+         Pods con problemas | ninguno
+         Remediación | ninguna
+         Evento | network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns er
+         Evento | MountVolume.SetUp failed for volume "kube-api-access-h8hqs" : [object "amdocs-bss"/"kube-root-ca.crt" not registered, object "amdocs-bss"/"o
+         Evento | Failed to pull image "image-registry.openshift-image-registry.svc:5000/amdocs-bss/amdocs-emulado:latest": rpc error: code = DeadlineExceeded
+         Evento | Error: ErrImagePull
+         Evento | Error: ImagePullBackOff
+         Evento | network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns er
+== OpenShift · Informe de seguridad del clúster {"correo": "cquezada@invoke.cl", "dias_secretos": 180} → #20045 successful
+     · Portal · OpenShift · Informe de seguridad del clúster ( → successful · Informe PDF: enviado a cquezada@invoke.cl [critico]
+         alto | 11
+         bajo | 0
+         critico | 1
+         medio | 2
+         ok | 0
+== Amdocs · Informe de operación y conciliación {"correo": "cquezada@invoke.cl", "minutos_atasco": 60} → #20048 successful
+     · Portal · Amdocs · Informe de operación y conciliación ( → successful · Informe PDF: enviado a cquezada@invoke.cl [critico]
+         alto | 0
+         bajo | 1
+         critico | 2
+         medio | 0
+         ok | 1
+== OpenShift · Alta de proyecto {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 1, "memoria_gi": 1, "accion": "cre → #20054 successful
+     · Portal · OpenShift · Alta de proyecto (plantilla) → successful · Proyecto demo-pagos creado [ok]
+         Ambiente | desarrollo
+         Cuota | 1 cores · 1 GiB (requests)
+         Permisos | equipo-pagos como admin
+         Red | solo su namespace, el Ingress y el monitoreo
+         Límites por contenedor | por defecto 50m/128Mi · máximo 2 cores/2Gi
+== OpenShift · Alta de proyecto {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 1, "memoria_gi": 1, "accion": "eli → #20059 successful
+     · Portal · OpenShift · Alta de proyecto (plantilla) → successful · Proyecto demo-pagos eliminado [ok]
+         Proyecto | demo-pagos eliminado
+== OpenShift · Optimizar recursos y limpiar {"modo": "revisar", "umbral_ocioso": 20, "dias_antiguedad": 7} → #20070 successful
+     · Portal · OpenShift · Optimizar recursos y limpiar (plan → successful · Capacidad ociosa y limpieza · 28 ajustes sugeridos [atencion]
+         Aplicaciones: memoria reservada vs. usada | 6.6 GiB reservada · 3.5 GiB usada (53 %)
+         Aplicaciones: CPU reservada vs. usada | 1.93 cores reservados · 0.07 usados
+         Memoria que se puede liberar ajustando requests | 3.6 GiB en 5 contenedores
+         Contenedores que usan más memoria de la reservada | 7
+         Deployments sin uso de CPU | 18: amdocs-bss/amdocs-catalog, amdocs-bss/amdocs-customer, amdocs-bss/amdocs-ordering, demo-datalake/colector, demo-datal
+         Pods terminados o fallidos | 97
+         Builds terminados | 31
+         ReplicaSets viejos sin réplicas | 117 (los conserva el historial de despliegue)
+== Telco · Onboarding de CNF {"cnf_nombre": "upf-demo", "proveedor": "nabstract", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "hugepages_gi": 4,  → #20074 successful
+     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-demo (nabstract) lista para desplegar [ok]
+         Namespace | cnf-upf-demo
+         Red secundaria | VLAN 320 sobre br-ex · IPAM 10.60.20.0/24
+         Cuota | 16 cores · 32 GiB · 4 GiB de páginas grandes
+         Publicación | MetalLB no instalado: pendiente (ver «Validar clúster para CNF»)
+         Permisos | grupo proveedor-nabstract como admin del namespace
+         Orden Amdocs | —
+== Telco · Onboarding de CNF {"cnf_nombre": "upf-demo", "proveedor": "nabstract", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "hugepages_gi": 4,  → #20078 successful
+     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-demo (nabstract) retirada del clúster [ok]
+         Namespace | cnf-upf-demo eliminado
+--- fin: 2026-11-09T23:06:58-03:00 · código: 0
