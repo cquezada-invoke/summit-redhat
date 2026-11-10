@@ -4661,7 +4661,15 @@ def escaneo_seguridad():
     on, off = esc.objetivos(equipos_visibles())
     v = esc.vista(g.cliente["id"])
     eq_ids = {e["nombre"]: e["id"] for e in equipos_visibles()}
-    return render_template("seguridad_escaneo.html", v=v, dims=esc.DIMENSIONES, sev_txt=esc.SEV_TXT, on=on, off=off, eq_ids=eq_ids)
+    vista_sel = request.args.get("vista") if request.args.get("vista") in ("servidores", "nist", "cis") else "servidores"
+    mk = esc.marcos(v["hallazgos"], (v["ultimo"] or {}).get("n_escaneados") or 0) if v["ultimo"] else None
+    if mk:
+        import yaml
+        obj = yaml.safe_load(open(os.path.join(RAIZ_DATOS, "seguridad-objetivo.yml"), encoding="utf-8")) or {}
+        for fn in mk["funciones"]:
+            fn["objetivo"] = int(obj.get(fn["id"], 3))
+    return render_template("seguridad_escaneo.html", v=v, dims=esc.DIMENSIONES, sev_txt=esc.SEV_TXT, on=on, off=off, eq_ids=eq_ids,
+                           vista=vista_sel, mk=mk)
 
 
 @bp.route("/devsecops/catalogo")

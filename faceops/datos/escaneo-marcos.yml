@@ -1,0 +1,91 @@
+# Mapeo de cada tipo de hallazgo del escaneo de servidores (aap/escaneo-servidores.yml) a NIST CSF 2.0 y CIS Controls v8.
+# Base: mapeo oficial CIS Controls v8 ↔ NIST CSF 2.0 (Center for Internet Security), a nivel de salvaguarda CIS y
+# subcategoría NIST. Cada tipo tiene UNA subcategoría NIST y UNA salvaguarda CIS, para que las tres vistas sumen el mismo
+# total. Si un tipo no tiene mapeo claro se deja en null y la página lo muestra en «sin clasificar» (no se inventa).
+# «control» es el identificador exacto que emite el escaneo; «prefijo» agrupa los que llevan el puerto o el servicio.
+
+fuente: "Mapeo oficial CIS Controls v8 ↔ NIST CSF 2.0 (Center for Internet Security)"
+
+nist_categorias:
+  GV.PO: Políticas de ciberseguridad
+  GV.RR: Roles, responsabilidades y autoridades
+  GV.OV: Supervisión
+  ID.AM: Gestión de activos
+  ID.RA: Evaluación de riesgos
+  ID.IM: Mejora
+  PR.AA: Gestión de identidades, autenticación y control de acceso
+  PR.AT: Concienciación y formación
+  PR.DS: Seguridad de los datos
+  PR.PS: Seguridad de las plataformas
+  PR.IR: Resiliencia de la infraestructura tecnológica
+  DE.CM: Monitoreo continuo
+  DE.AE: Análisis de eventos adversos
+  RS.MA: Gestión de incidentes
+  RS.AN: Análisis de incidentes
+  RS.CO: Comunicación de la respuesta
+  RS.MI: Mitigación de incidentes
+  RC.RP: Ejecución del plan de recuperación
+  RC.CO: Comunicación de la recuperación
+
+nist_subcategorias:
+  PR.AA-01: Las identidades y credenciales de usuarios, servicios y equipos autorizados se gestionan
+  PR.AA-05: Los permisos de acceso se definen, gestionan y revisan con mínimo privilegio y separación de funciones
+  PR.PS-01: Se establecen y aplican prácticas de gestión de la configuración
+  PR.PS-02: El software se mantiene, reemplaza y retira según el riesgo
+  PR.IR-01: Las redes y entornos se protegen del acceso y uso lógico no autorizado
+
+cis_controles:
+  1: Inventario y control de activos empresariales
+  2: Inventario y control de activos de software
+  3: Protección de datos
+  4: Configuración segura de activos empresariales y software
+  5: Gestión de cuentas
+  6: Gestión del control de acceso
+  7: Gestión continua de vulnerabilidades
+  8: Gestión de registros de auditoría
+  9: Protecciones de correo electrónico y navegador web
+  10: Defensas contra malware
+  11: Recuperación de datos
+  12: Gestión de la infraestructura de red
+  13: Monitoreo y defensa de la red
+  14: Concienciación y formación en seguridad
+  15: Gestión de proveedores de servicios
+  16: Seguridad del software de aplicación
+  17: Gestión de respuesta a incidentes
+  18: Pruebas de penetración
+
+# Salvaguardas usadas y su grupo de implementación (IG) mínimo: IG1 higiene básica, IG2 y IG3 madurez creciente
+cis_salvaguardas:
+  "2.2": {nombre: Asegurar que el software autorizado tenga soporte vigente, ig: 1}
+  "4.1": {nombre: Establecer y mantener un proceso de configuración segura, ig: 1}
+  "4.4": {nombre: Implementar y gestionar un firewall en los servidores, ig: 1}
+  "4.8": {nombre: Desinstalar o deshabilitar servicios innecesarios, ig: 2}
+  "5.2": {nombre: Usar contraseñas únicas, ig: 1}
+  "5.4": {nombre: Restringir los privilegios de administrador a cuentas de administración dedicadas, ig: 1}
+  "7.3": {nombre: Gestión automatizada de parches del sistema operativo, ig: 1}
+
+tipos:
+  # Parches y ciclo de vida
+  - {control: cve-criticos, nombre: Avisos de seguridad críticos sin aplicar, nist: PR.PS-02, cis: "7.3"}
+  - {control: cve-importantes, nombre: Avisos de seguridad importantes sin aplicar, nist: PR.PS-02, cis: "7.3"}
+  - {control: reinicio, nombre: Parches instalados sin cargar (requiere reinicio), nist: PR.PS-02, cis: "7.3"}
+  - {control: sin-suscripcion, nombre: Sin suscripción (no recibe parches del fabricante), nist: PR.PS-02, cis: "2.2"}
+  - {control: eol, nombre: Sistema operativo fuera de soporte, nist: PR.PS-02, cis: "2.2"}
+  # Acceso SSH
+  - {control: ssh-root, nombre: SSH permite entrar como root, nist: PR.AA-05, cis: "5.4"}
+  - {control: ssh-clave, nombre: SSH acepta contraseñas (no solo llaves), nist: PR.PS-01, cis: "4.1"}
+  - {control: ssh-vacia, nombre: SSH acepta contraseñas vacías, nist: PR.AA-01, cis: "5.2"}
+  # Cuentas, sudo y contraseñas
+  - {control: uid0, nombre: Otras cuentas con privilegios de root, nist: PR.AA-05, cis: "5.4"}
+  - {control: sudo-nopasswd, nombre: sudo sin contraseña, nist: PR.AA-05, cis: "5.4"}
+  - {control: sin-clave, nombre: Cuentas sin contraseña, nist: PR.AA-01, cis: "5.2"}
+  # CIS v8 (5.2) ya no exige el vencimiento periódico de contraseñas: no tiene salvaguarda CIS clara
+  - {control: vigencia-clave, nombre: Contraseñas que no vencen, nist: PR.AA-01, cis: null}
+  # Endurecimiento y permisos
+  - {control: selinux, nombre: SELinux fuera de Enforcing, nist: PR.PS-01, cis: "4.1"}
+  - {control: escritura-mundial, nombre: Archivos de /etc modificables por cualquiera, nist: PR.PS-01, cis: "4.1"}
+  # Red, puertos y servicios
+  - {control: firewall, nombre: Firewall local detenido, nist: PR.IR-01, cis: "4.4"}
+  - {prefijo: puerto-, nombre: Puertos de protocolos inseguros abiertos a la red, nist: PR.PS-01, cis: "4.8"}
+  - {prefijo: servicio-, nombre: Servicios inseguros activos, nist: PR.PS-01, cis: "4.8"}
+  - {prefijo: expuesto-, nombre: Bases de datos o cachés escuchando en todas las interfaces, nist: PR.IR-01, cis: "4.4"}

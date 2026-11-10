@@ -138,3 +138,94 @@ def vista(cliente_id):
     en_curso = next((e for e in escs if e["estado"] == "en curso"), None)
     return {"escaneos": escs, "ultimo": ult, "hallazgos": hall, "por_area": por_area,
             "por_equipo": sorted(por_equipo.items(), key=lambda kv: (-kv[1]["critica"], -kv[1]["alta"], -kv[1]["n"])), "en_curso": en_curso}
+
+
+# ── Miradas NIST CSF 2.0 y CIS Controls v8 ──────────────────────────────────────────────────────────────────────────
+def _mapeo():
+    import os
+
+    import yaml
+    ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "escaneo-marcos.yml")
+    with open(ruta, encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def _tipo(mp, control):
+    for t in mp.get("tipos") or []:
+        if t.get("control") == control or (t.get("prefijo") and (control or "").startswith(t["prefijo"])):
+            return t
+    return None
+
+
+def _cuenta(hs):
+    return {s_: sum(1 for h in hs if h["severidad"] == s_) for s_ in SEV_ORDEN}
+
+
+def _pct(hs, tipos, n_srv):
+    """Cumplimiento = pares (servidor × verificación) sin hallazgo sobre el total de pares evaluados."""
+    if not tipos or not n_srv:
+        return None
+    malos = {(h["equipo"], h["_tipo"]) for h in hs if h.get("_tipo")}
+    return round(100 * (1 - len(malos) / (len(tipos) * n_srv)))
+
+
+def marcos(hall, n_srv):
+    """Agrupa los hallazgos por función/categoría NIST CSF 2.0 y por control CIS v8, con «sin clasificar» visible."""
+    from .seguridad_mapa import FUNCIONES, NIVELES, nivel
+    mp = _mapeo()
+    cats, subs, sg = mp.get("nist_categorias") or {}, mp.get("nist_subcategorias") or {}, mp.get("cis_salvaguardas") or {}
+    for h in hall:
+        t = _tipo(mp, h["control"])
+        h["_tipo"] = (t.get("control") or t.get("prefijo")) if t else None
+        h["_tnom"] = t.get("nombre") if t else h["control"]
+        h["_nist"] = t.get("nist") if t else None
+        h["_cis"] = str(t["cis"]) if t and t.get("cis") else None
+    tipos = mp.get("tipos") or []
+    tid = lambda t: t.get("control") or t.get("prefijo")  # noqa: E731
+    # NIST
+    funciones = []
+    for fk, fn in FUNCIONES:
+        cs = []
+        for ck, cn in cats.items():
+            if not ck.startswith(fk + "."):
+                continue
+            ts = [t for t in tipos if (t.get("nist") or "").startswith(ck + "-")]
+            hs = [h for h in hall if (h["_nist"] or "").startswith(ck + "-")]
+            if not ts and not hs:
+                continue
+            p = _pct(hs, [tid(t) for t in ts], n_srv)
+            sub = {}
+            for h in hs:
+                sub.setdefault(h["_nist"], []).append(h)
+            cs.append({"id": ck, "nombre": cn, "n": len(hs), "sev": _cuenta(hs), "pct": p, "nivel": nivel(p),
+                       "verificaciones": [t["nombre"] for t in ts],
+                       "sub": [{"id": k, "nombre": subs.get(k, ""), "hallazgos": sorted(v, key=lambda h: (SEV_ORDEN[h["severidad"]], h["equipo"]))}
+                               for k, v in sorted(sub.items())]})
+        ts_f = [tid(t) for t in tipos if (t.get("nist") or "").startswith(fk + ".")]
+        hs_f = [h for h in hall if (h["_nist"] or "").startswith(fk + ".")]
+        p = _pct(hs_f, ts_f, n_srv)
+        funciones.append({"id": fk, "nombre": fn, "n": len(hs_f), "sev": _cuenta(hs_f), "pct": p, "nivel": nivel(p),
+                          "evaluada": bool(ts_f), "categorias": cs})
+    sin_nist = [h for h in hall if not h["_nist"]]
+    # CIS
+    controles = []
+    for num, nom in (mp.get("cis_controles") or {}).items():
+        ts = [t for t in tipos if t.get("cis") and str(t["cis"]).split(".")[0] == str(num)]
+        hs = [h for h in hall if h["_cis"] and h["_cis"].split(".")[0] == str(num)]
+        if not ts and not hs:
+            continue
+        sal = {}
+        for t in ts:
+            sal.setdefault(str(t["cis"]), {"id": str(t["cis"]), **(sg.get(str(t["cis"])) or {"nombre": "", "ig": None}), "hallazgos": [], "tipos": []})["tipos"].append(t["nombre"])
+        for h in hs:
+            sal.setdefault(h["_cis"], {"id": h["_cis"], **(sg.get(h["_cis"]) or {"nombre": "", "ig": None}), "hallazgos": [], "tipos": []})["hallazgos"].append(h)
+        for s in sal.values():
+            s["hallazgos"].sort(key=lambda h: (SEV_ORDEN[h["severidad"]], h["equipo"]))
+        p = _pct(hs, [tid(t) for t in ts], n_srv)
+        igs = sorted({s["ig"] for s in sal.values() if s.get("ig")})
+        controles.append({"num": int(num), "nombre": nom, "n": len(hs), "sev": _cuenta(hs), "pct": p,
+                          "igs": igs, "salvaguardas": sorted(sal.values(), key=lambda s: [int(x) for x in s["id"].split(".")])})
+    sin_cis = [h for h in hall if not h["_cis"]]
+    return {"funciones": funciones, "sin_nist": sin_nist, "controles": controles, "sin_cis": sin_cis, "NIVELES": NIVELES,
+            "no_evaluados": [f"{n} · {nom}" for n, nom in (mp.get("cis_controles") or {}).items() if int(n) not in {c["num"] for c in controles}],
+            "fuente": mp.get("fuente", ""), "n_tipos": len(tipos)}

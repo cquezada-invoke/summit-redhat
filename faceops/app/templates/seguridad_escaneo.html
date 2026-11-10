@@ -1,5 +1,15 @@
 {% extends "base.html" %}{% block titulo %}Escaneo de seguridad{% endblock %}
+{% macro sevs(x) %}{% for s_ in ['critica', 'alta', 'media', 'baja'] if x.get(s_) %}<span class="chip sv-{{ s_ }}">{{ x[s_] }} {{ sev_txt[s_] }}</span> {% endfor %}{% endmacro %}
+{% macro filas(hs) %}{% for h in hs %}<tr><td><span class="chip sv-{{ h.severidad }}">{{ sev_txt[h.severidad] }}</span></td>
+<td>{% if eq_ids.get(h.equipo) %}<a href="{{ url_for('consola.equipo', eid=eq_ids[h.equipo]) }}">{{ h.equipo }}</a>{% else %}{{ h.equipo }}{% endif %}</td>
+<td><b>{{ h.titulo }}</b><div class="sub" style="font-size:11.5px">{{ h._tnom }}</div></td>
+<td style="font-size:12.5px">{{ h.recomendacion }}{% if h.remedio %}<div><a href="{{ url_for('consola.automatizacion', aid=h.remedio.id) }}">→ {{ h.remedio.nombre }}</a></div>{% endif %}</td></tr>{% endfor %}{% endmacro %}
 {% block cuerpo %}
+<style>
+.mf-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}
+.esc-crit{font-size:12.5px;margin:0 0 10px}
+.esc-ig{display:inline-block;font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-left:4px;background:var(--soft)}
+</style>
 {% set u = v.ultimo %}
 <div class="fila"><div><h1>Escaneo de seguridad</h1><p class="sub">Evalúa toda la infraestructura en busca de puntos de vulnerabilidad. Se incorpora por dimensiones: hoy evalúa <b>servidores</b>; las demás se suman gradualmente. Solo lee: no cambia nada en las máquinas.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn" {{ 'disabled' if v.en_curso }} title="{{ 'Hay un escaneo en curso' if v.en_curso else 'Un ticket por inventario de AAP, con su aprobación' }}">▶ Lanzar escaneo</button></form>{% endif %}</div>
@@ -16,6 +26,41 @@
 <div class="card"><span class="sub">Hallazgos por severidad</span><div class="esc-sevs">{% for s_ in ['critica', 'alta', 'media', 'baja'] %}<div class="esc-sev sv-{{ s_ }}"><b>{{ u.resumen.por_severidad.get(s_, 0) if u.resumen.por_severidad else 0 }}</b><span>{{ sev_txt[s_] }}</span></div>{% endfor %}</div></div>
 <div class="card"><span class="sub">Por área</span>{% for a, x in v.por_area.items() %}<div class="fila" style="font-size:13px;padding:2px 0"><span>{{ a }}</span><span class="der"><span class="chip sv-{{ x.peor }}">{{ x.n }}</span></span></div>{% else %}<p class="sub">Sin hallazgos 🎉</p>{% endfor %}</div></div>
 
+<div class="mf-tabs" data-total="{{ v.hallazgos|length }}">{% for k, t in [('servidores', 'Por servidor y hallazgo'), ('nist', 'NIST CSF 2.0'), ('cis', 'CIS Controls v8')] %}<a class="chip {{ 'e-en_cola' if vista == k }}" href="{{ url_for('consola.escaneo_seguridad', vista=k) }}">{{ t }}</a>{% endfor %}</div>
+
+{% if vista == 'nist' %}
+<section class="card" style="padding:12px 16px" data-vista="nist" data-suma="{{ mk.funciones|sum(attribute='n') + mk.sin_nist|length }}">
+<h2 style="margin:0 0 4px">Mirada NIST CSF 2.0</h2>
+<p class="sub esc-crit">Criterio: <b>ciclo de vida del riesgo</b>. NIST agrupa por qué parte de la gestión del riesgo falla (gobernar, identificar, proteger, detectar, responder, recuperar) y su categoría. Cumplimiento = verificaciones del escaneo que pasan en cada servidor evaluado; nivel 1 Parcial · 2 Informado por el riesgo · 3 Repetible · 4 Adaptativo (misma escala que el Mapa de seguridad). Las funciones que este escaneo no verifica se miden en el <a href="{{ url_for('consola.seguridad_mapa') }}">Mapa de seguridad</a>.</p>
+<div class="nist-fn">{% for fn in mk.funciones %}<div class="nist-c"><b>{{ fn.nombre }}</b><span class="sub">{{ fn.id }}{% if fn.evaluada %} · {{ fn.pct }} %{% endif %}</span>
+{% if fn.evaluada %}<div class="nist-esc">{% for n in range(1, 5) %}<i class="{{ 'act' if n <= (fn.nivel or 1) }} {{ 'obj' if n == fn.objetivo }}" title="{{ mk.NIVELES[n] }}">{{ n }}</i>{% endfor %}</div>
+<span class="sub" style="font-size:11.5px">nivel {{ fn.nivel }} · {{ mk.NIVELES[fn.nivel] }} · objetivo {{ fn.objetivo }}</span>
+<span>{{ sevs(fn.sev) }}{% if not fn.n %}<span class="sub" style="font-size:11.5px">sin hallazgos</span>{% endif %}</span>
+{% else %}<span class="sub" style="font-size:11.5px">no se verifica en este escaneo</span>{% endif %}</div>{% endfor %}</div>
+{% for fn in mk.funciones if fn.categorias %}{% for c in fn.categorias %}<details class="nist-det"{{ ' open' if c.n }}><summary><b>{{ fn.nombre }} · <span class="mono">{{ c.id }}</span> {{ c.nombre }}</b> <span class="sub">· {{ c.n }} hallazgos · {{ c.pct }} % · nivel {{ c.nivel }}</span> {{ sevs(c.sev) }}</summary>
+<p class="sub" style="font-size:12px;margin:6px 0">Verifica: {{ c.verificaciones|join(' · ') }}</p>
+{% for sb in c.sub %}<div style="font-size:12.5px;margin:8px 0 4px"><span class="mono">{{ sb.id }}</span> <span class="sub">{{ sb.nombre }}</span></div>
+<table><tr><th>Severidad</th><th>Servidor</th><th>Hallazgo</th><th>Qué hacer</th></tr>{{ filas(sb.hallazgos) }}</table>{% endfor %}</details>{% endfor %}{% endfor %}
+{% if mk.sin_nist %}<details class="nist-det" open><summary><b>Sin clasificar</b> <span class="sub">· {{ mk.sin_nist|length }} hallazgos sin mapeo NIST en datos/escaneo-marcos.yml</span></summary>
+<table><tr><th>Severidad</th><th>Servidor</th><th>Hallazgo</th><th>Qué hacer</th></tr>{{ filas(mk.sin_nist) }}</table></details>{% endif %}
+<p class="sub" style="font-size:11.5px;margin:8px 0 0">Mapeo: {{ mk.fuente }} · {{ mk.n_tipos }} tipos de hallazgo.</p></section>
+
+{% elif vista == 'cis' %}
+<section class="card" style="padding:12px 16px" data-vista="cis" data-suma="{{ mk.controles|sum(attribute='n') + mk.sin_cis|length }}">
+<h2 style="margin:0 0 4px">Mirada CIS Controls v8</h2>
+<p class="sub esc-crit">Criterio: <b>acción técnica priorizada</b>. CIS agrupa por el control concreto que hay que aplicar (1 a 18) y sus salvaguardas, ordenadas por grupo de implementación: <b>IG1</b> higiene básica que toda organización debe cumplir primero, <b>IG2</b> y <b>IG3</b> madurez creciente. Cumplimiento = verificaciones del control que pasan en cada servidor evaluado.</p>
+<table><tr><th>Control CIS</th><th>IG</th><th class="num">Hallazgos</th><th>Severidad</th><th style="width:150px">Cumplimiento</th></tr>
+{% for c in mk.controles %}<tr><td><b>{{ c.num }} · {{ c.nombre }}</b></td><td>{% for g_ in c.igs %}<span class="esc-ig">IG{{ g_ }}</span>{% endfor %}</td><td class="num">{{ c.n }}</td><td>{{ sevs(c.sev) }}</td>
+<td>{% if c.pct is not none %}<span class="kp-barra"><i class="{{ 'c-ok' if c.pct >= 75 else ('c-med' if c.pct >= 50 else 'c-mal') }}" style="width:{{ c.pct }}%"></i></span> {{ c.pct }} %{% endif %}</td></tr>{% endfor %}</table>
+{% for c in mk.controles %}<details class="nist-det"{{ ' open' if c.n }}><summary><b>CIS {{ c.num }} · {{ c.nombre }}</b> <span class="sub">· {{ c.n }} hallazgos</span> {{ sevs(c.sev) }}</summary>
+{% for sl in c.salvaguardas %}<div style="font-size:12.5px;margin:8px 0 4px"><span class="mono">{{ sl.id }}</span> {{ sl.nombre }}{% if sl.ig %}<span class="esc-ig">IG{{ sl.ig }}</span>{% endif %} <span class="sub">· verifica: {{ sl.tipos|join(' · ') }}</span></div>
+{% if sl.hallazgos %}<table><tr><th>Severidad</th><th>Servidor</th><th>Hallazgo</th><th>Qué hacer</th></tr>{{ filas(sl.hallazgos) }}</table>{% else %}<p class="sub" style="font-size:12px;margin:0 0 6px">Sin hallazgos.</p>{% endif %}{% endfor %}</details>{% endfor %}
+{% if mk.sin_cis %}<details class="nist-det" open><summary><b>Sin clasificar</b> <span class="sub">· {{ mk.sin_cis|length }} hallazgos sin salvaguarda CIS clara en datos/escaneo-marcos.yml</span></summary>
+<table><tr><th>Severidad</th><th>Servidor</th><th>Hallazgo</th><th>Qué hacer</th></tr>{{ filas(mk.sin_cis) }}</table></details>{% endif %}
+<p class="sub" style="font-size:11.5px;margin:8px 0 0">Controles que este escaneo no verifica: {{ mk.no_evaluados|join(' · ') }}. Mapeo: {{ mk.fuente }}.</p></section>
+
+{% else %}
+<div data-vista="servidores" data-suma="{{ v.hallazgos|length }}"></div>
 <div class="grid g2" style="align-items:start;gap:14px">
 <div class="card" style="padding:0"><div class="fila" style="padding:12px 16px 6px"><h2 style="margin:0">Hallazgos</h2><select id="esc-f" class="der" style="width:auto"><option value="">todas las severidades</option>{% for s_ in ['critica', 'alta', 'media', 'baja'] %}<option value="{{ s_ }}">{{ sev_txt[s_] }}</option>{% endfor %}</select></div>
 <table id="esc-tabla"><tr><th>Severidad</th><th>Servidor</th><th>Hallazgo</th><th>Qué hacer</th></tr>
@@ -28,6 +73,7 @@
 <table><tr><th>Servidor</th><th class="num">Críticos</th><th class="num">Altos</th><th class="num">Total</th></tr>
 {% for n, x in v.por_equipo[:15] %}<tr><td>{% if eq_ids.get(n) %}<a href="{{ url_for('consola.equipo', eid=eq_ids[n]) }}">{{ n }}</a>{% else %}{{ n }}{% endif %}</td><td class="num">{{ x.critica or '' }}</td><td class="num">{{ x.alta or '' }}</td><td class="num">{{ x.n }}</td></tr>{% endfor %}
 {% if u.sin_respuesta %}<tr><td colspan="4" class="sub" style="font-size:12px">Sin evaluar (apagados o sin respuesta): {{ u.sin_respuesta|join(', ') }}</td></tr>{% endif %}</table></div></div>
+{% endif %}
 {% elif not v.en_curso %}<div class="card" style="margin-top:14px"><p class="sub" style="margin:0">Aún no hay escaneos. Usa «▶ Lanzar escaneo»: crea un ticket por inventario de AAP con su aprobación y al terminar aparecen aquí los hallazgos.</p></div>{% endif %}
 
 <div class="card" style="padding:0;margin-top:14px"><div style="padding:12px 16px 6px"><h2 style="margin:0">Historial de escaneos</h2></div>
