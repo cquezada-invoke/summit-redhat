@@ -446,17 +446,17 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     const r=PERF_ON?rutaCritica(e=>{ const g=statEdge(e); return g?g.prom:null; }):null;
     const pct=x.duracion?Math.min(100,Math.round(100*(x.transcurrido||0)/x.duracion)):0;
     const segV=(document.getElementById('perf-seg')||{}).value||30, umV=Math.round(UMB());
-    c.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="font-size:12.5px">Umbral (ms) <input id="perf-umb" type="number" min="1" max="60000" value="'+umV+'" style="width:80px"></label><button type="button" class="btn chico gris" id="perf-umb-g">Guardar umbral</button></div>'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="font-size:12.5px">Segundos a probar <input id="perf-seg" type="number" min="1" max="120" value="'+(activo?x.duracion:segV)+'" style="width:70px"'+(activo?' disabled':'')+'></label>'
-      +'<button type="button" class="btn chico" id="perf-ini"'+(activo?' disabled':'')+'>Iniciar</button>'
-      +'<button type="button" class="btn chico gris" id="perf-det"'+(activo?'':' disabled')+'>Detener</button>'
-      +'<button type="button" class="btn chico gris" id="perf-tab"'+((x.tramos&&Object.keys(x.tramos).length)||(x.entrada||{}).url?'':' disabled')+'>Descargar CSV</button></div>'
+    c.innerHTML='<div class="perf-fila"><label for="perf-umb">Umbral (ms)</label><input id="perf-umb" type="number" min="1" max="60000" value="'+umV+'"><div><button type="button" class="btn chico gris" id="perf-umb-g" title="Sobre este tiempo promedio un tramo se marca como cuello de botella (vale para toda la aplicación)">Guardar umbral</button></div></div>'
+      +'<div class="perf-fila"><label for="perf-seg">Segundos a probar</label><input id="perf-seg" type="number" min="1" max="120" value="'+(activo?x.duracion:segV)+'"'+(activo?' disabled':'')+'><div>'
+      +'<button type="button" class="btn chico" id="perf-ini"'+(activo?' disabled':'')+' title="No es ping (ICMP): desde la máquina de origen de cada tramo AAP abre y cierra conexiones TCP al puerto del servicio de destino (sin datos de negocio), varias por segundo; la entrada se mide con una petición HTTP GET por segundo. Máximo 120 s.">Iniciar</button>'
+      +'<button type="button" class="btn chico gris" id="perf-det"'+(activo?'':' disabled')+' title="Detiene la medición y deja los resultados tomados hasta ahora">Detener</button>'
+      +'<button type="button" class="btn chico gris" id="perf-tab"'+((x.tramos&&Object.keys(x.tramos).length)||(x.entrada||{}).url?'':' disabled')+' title="Resultados por tramo: muestras, mínimo, promedio, p95, máximo, jitter y pérdidas (ms)">Descargar CSV</button></div></div>'
       +(x.estado&&x.estado!=='sin pruebas'?'<div><div style="display:flex;justify-content:space-between;font-size:13px"><b>⏱ '+Math.floor(x.transcurrido||0)+' / '+(x.duracion||0)+' s</b><span class="sub">'+({corriendo:'midiendo',pausado:'en pausa',preparando:'AAP arrancando la medición…',detenido:'detenida',listo:'terminada'}[x.estado]||x.estado)+'</span></div>'
         +'<div style="height:6px;background:var(--soft,#eee);border-radius:3px;overflow:hidden;margin-top:3px"><i style="display:block;height:100%;width:'+pct+'%;background:'+(pausa?'#8a8d90':'#0066cc')+'"></i></div>'
         +'<div style="font-size:12.5px;margin-top:4px">'+(r&&r.ms?'Ruta crítica: <b>'+n2(r.ms)+' ms</b> · ':'')+(cuellos?'<b style="color:#a30000">'+cuellos+' cuello'+(cuellos===1?'':'s')+' de botella</b> (sobre '+umV+' ms)':'sin cuellos de botella (umbral '+umV+' ms)')
-        +' · '+tr.reduce((a,t)=>a+((t.global||{}).n||0),0)+' muestras</div>'+(!activo&&PERF_ON?'<div class="sub" style="font-size:12px">Los tiempos medidos quedan sobre la gráfica '+PERF_MIN+' min. <a href="#" id="perf-norm">Volver a lo normal</a></div>':'')
-        +(!activo&&!PERF_ON&&x.tramos?'<div class="sub" style="font-size:12px"><a href="#" id="perf-ver">Ver la última medición sobre la gráfica</a></div>':'')+'</div>':'')
-      +'<div id="perf-msg" style="font-size:12.5px"></div><p class="sub" style="font-size:11.5px;margin:0">No es ping (ICMP): desde la máquina de origen de cada tramo AAP abre y cierra conexiones TCP al puerto del servicio de destino (sin datos de negocio), varias por segundo; la entrada se mide con una petición HTTP GET por segundo. Máximo 120 s.</p>';
+        +' · '+tr.reduce((a,t)=>a+((t.global||{}).n||0),0)+' muestras</div>'+(!activo&&PERF_ON?'<div><button type="button" class="btn chico gris" id="perf-norm" title="Los tiempos medidos quedan sobre la gráfica '+PERF_MIN+' min; esto los quita ahora">Volver a lo normal</button></div>':'')
+        +(!activo&&!PERF_ON&&x.tramos?'<div><button type="button" class="btn chico gris" id="perf-ver" title="Pone sobre la gráfica los tiempos de la última medición">Ver última medición</button></div>':'')+'</div>':'')
+      +'<div id="perf-msg" style="font-size:12.5px"></div>';
     const $=id=>document.getElementById(id);
     $('perf-umb-g').onclick=()=>postPerf('umbral',{umbral:$('perf-umb').value}).then(x=>{ if(x){ if(PERF_ON) ponerPerf(); pintarControles(); if(TABLA_ABIERTA) pintarTabla(); } });
     $('perf-ini').onclick=()=>{ const sg=Math.max(1,Math.min(120,parseInt($('perf-seg').value||'30',10))); $('perf-ini').disabled=true;
@@ -527,7 +527,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function bifSegmento(){ const cy_=window._cy; if(!cy_) return null; const n=cy_.nodes().filter(x=>!!x.data('bif'))[0]; return n?{b:n.data('bif'),punto:n.data('nombre')||n.data('label')||''}:null; }
   function htmlLakeSegmento(){ const x=bifSegmento(); if(!x) return ''; const b=x.b;
     return sec('Data lake · JavIA')+fila({izq:'Derivación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
-      det:(b.activa?'Cada request del segmento se copia al data lake'+(b.por?' (activada por '+b.por+', '+(b.en||'').slice(0,16).replace('T',' ')+')':'')+'; JavIA la toma desde ahí.'
+      det:(b.activa?'Cada request del segmento se copia al data lake'+(b.por?' (activada por '+b.por+', '+(b.en||'').slice(0,16).replace('T',' ')+')':'')+'; JavIA la toma desde ahí.'+(b.enviado_mb!=null?'<div style="margin-top:4px"><b>Enviado al lake:</b> '+n2(b.enviado_mb)+' MB · <b>ocupa hoy en S3:</b> '+n2(b.s3_mb)+' MB <span class="sub">(la rotación borra lo más antiguo sobre el 70 %)</span></div>':'')
           :'Al activarla (ticket con aprobación), cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, y arrancan flujos funcionales de prueba; JavIA la usa después.')
         +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif-seg">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
         +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.datos+'" target="_blank"><b>Ver los datos</b></a> · <a href="'+b.explorador+'" target="_blank">Explorador SQL</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
@@ -602,8 +602,8 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(d.ticket) { h+=sec('En curso'); h+=fila({izq:'Ticket',ic:SVG.gris,txt:'<a href="{{ url_for('consola.tickets') }}/'+d.ticket.id+'" target="_blank">'+d.ticket.numero+'</a> · '+d.ticket.accion}); }
     else if(PUEDE && d.origen_ip && d.puerto){
       const abrir=d.estado_flujo!=='abierto', cerrar=d.estado_flujo!=='bloqueado';
-      h+=sec('Acciones')+'<div class="act-acc">'+(abrir?'<button class="btn chico" data-acc="abrir">Abrir con ticket</button> ':'')+(cerrar?'<button class="btn chico gris" data-acc="bloquear">Cerrar con ticket</button>':'')
-        +'<p class="sub">AAP pide la aprobación y FaceOps abre el ticket en ServiceNow. Al terminar, el flujo se vuelve a verificar solo.</p><p class="res"></p></div>';
+      h+=sec('Acciones')+'<div class="act-acc">'+(abrir?'<button class="btn chico" data-acc="abrir" title="AAP pide la aprobación y FaceOps abre el ticket en ServiceNow. Al terminar, el flujo se vuelve a verificar solo.">Abrir con ticket</button> ':'')+(cerrar?'<button class="btn chico gris" data-acc="bloquear" title="AAP pide la aprobación y FaceOps abre el ticket en ServiceNow. Al terminar, el flujo se vuelve a verificar solo.">Cerrar con ticket</button>':'')
+        +'<p class="res"></p></div>';
     }
     pintar(h);
     const bc=document.getElementById('b-cert');
@@ -676,7 +676,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       det:'La arquitectura declara este componente en <b>'+(AMBN[d.ambiente]||d.ambiente)+'</b>, pero todavía no hay una máquina que lo cumpla. Por eso la caja va punteada.'});
     h+=sec('Detalles');
     Object.entries(d.info||{}).forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); });
-    if(PUEDE && !d.red) h+=sec('Acciones')+'<div class="act-acc"><button class="btn chico" id="b-crear">Crear con ticket (Habilitar servidor)</button> <span class="res"></span><p class="sub">Lanza «Habilitar servidor» con el sistema, los recursos y las réplicas de la arquitectura. Pide aprobación en AAP.</p></div>';
+    if(PUEDE && !d.red) h+=sec('Acciones')+'<div class="act-acc"><button class="btn chico" id="b-crear" title="Lanza «Habilitar servidor» con el sistema, los recursos y las réplicas de la arquitectura. Pide aprobación en AAP.">Crear con ticket</button> <span class="res"></span></div>';
     else if(d.red) h+='<p class="act-desc">Es un servicio de red: Infraestructura lo asigna a un equipo existente o provisiona el appliance.</p>';
     pintar(h);
     const b=document.getElementById('b-crear');
@@ -706,7 +706,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=fila({izq:'Algoritmo',ic:letra('⟳','#0066cc'),txt:'round robin (sin least_conn ni ip_hash)'});
     h+=fila({izq:'Aprobación',ic:SVG.warn,txt:'en AAP antes de crear nada',det:'Workflow «FaceOps · Replicar con alta disponibilidad»: aprobación → Habilitar servidor (réplicas) → Replicar y balancear. Al terminar, las réplicas quedan en el inventario y en este segmento.'});
     const puede=ha.balanceador||ha.candidatos.length;
-    if(puede) h+=sec('Acciones')+'<div class="act-acc"><button class="btn chico" id="b-ha">Solicitar con ticket</button> <span class="res"></span><p class="sub">Crea el ticket de una vez; la acción arranca solo cuando se apruebe en AAP.</p></div>';
+    if(puede) h+=sec('Acciones')+'<div class="act-acc"><button class="btn chico" id="b-ha" title="Crea el ticket de una vez; la acción arranca solo cuando se apruebe en AAP.">Solicitar con ticket</button> <span class="res"></span></div>';
     pintar(h);
     panel.querySelector('.act-cab a').onclick=ev=>{ev.preventDefault(); mostrar(d);};
     const b=document.getElementById('b-ha');

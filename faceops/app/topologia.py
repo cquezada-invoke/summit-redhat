@@ -517,6 +517,26 @@ LAKE = {"nombre": "Data lake corporativo", "detalle": "S3 + Trino (demo-datalake
 PRIORIDAD_PUNTO = ["balanceo", "web", "servicios", "base_datos"]   # dónde es más factible copiar cada request: el que la recibe primero
 
 
+_USO_LAKE = {}
+
+
+def _uso_lake(pref):
+    """MB enviados al lake por el segmento (acumulado) y MB que ocupa hoy en S3; lo cuenta el colector. Caché de 60 s."""
+    import time
+    import requests
+    c = _USO_LAKE.get(pref)
+    if c and time.time() - c[0] < 60:
+        return c[1]
+    try:
+        j = requests.get(f"{LAKE['colector']}/estado/{pref}", timeout=3).json()
+        u = {"enviado_mb": round(j["enviado_bytes"] / 1048576, 1), "s3_mb": round(j["en_s3_bytes"] / 1048576, 1),
+             "desde": j.get("enviado_desde", "")} if "enviado_bytes" in j else {}
+    except Exception:  # noqa: BLE001 - informativo
+        u = {}
+    _USO_LAKE[pref] = (time.time(), u)
+    return u
+
+
 def prefijo_lake(segmento):
     import unicodedata
     t = unicodedata.normalize("NFKD", segmento).encode("ascii", "ignore").decode().lower()
@@ -571,8 +591,9 @@ def _bifurcacion_lake(els, cliente, segmento, m, asg):
     b = bifurcacion_de(cliente["id"], segmento)
     activa = bool(b and b["activa"])
     url = _url_app(cliente["id"], segmento, m)
+    uso = _uso_lake(pref) if activa else {}
     for n in punto:
-        nodos[n]["bif"] = {"segmento": segmento, "destino": f"s3://lake/{pref}/", "activa": activa, "como": como, "declarada": declarada,
+        nodos[n]["bif"] = {"enviado_mb": uso.get("enviado_mb"), "s3_mb": uso.get("s3_mb"), "desde": uso.get("desde", ""),"segmento": segmento, "destino": f"s3://lake/{pref}/", "activa": activa, "como": como, "declarada": declarada,
                            "por": (b or {}).get("por") or "", "en": (b or {}).get("en") or "", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"],
                            "datos": LAKE["datos"] + pref}
         if url and not nodos[n].get("app_url"):

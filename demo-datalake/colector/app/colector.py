@@ -51,14 +51,59 @@ def asegurar_tabla(pref):
     _tablas.add(pref)
 
 
+def ocupado(pref):
+    """Bytes y archivos que hay hoy en s3://lake/<pref>/requests/ (la rotación borra los más antiguos)."""
+    import urllib.parse
+    import xml.etree.ElementTree as ET
+    ns, tot, n, token = {"s": "http://s3.amazonaws.com/doc/2006-03-01/"}, 0, 0, None
+    while True:
+        q = {"list-type": "2", "max-keys": "1000", "prefix": f"{pref}/requests/"}
+        if token:
+            q["continuation-token"] = token
+        x = ET.fromstring(requests.get(f"{S3}/{BUCKET}?" + urllib.parse.urlencode(q), timeout=20).content)
+        for c in x.findall("s:Contents", ns):
+            tot += int(c.find("s:Size", ns).text)
+            n += 1
+        t = x.find("s:NextContinuationToken", ns)
+        if t is None or not t.text:
+            return tot, n
+        token = t.text
+
+
+_uso_lock = threading.Lock()
+
+
+def leer_uso(pref):
+    """Total enviado al lake por el segmento (acumulado; no baja cuando la rotación borra). Vive en s3://lake/<pref>/_uso.json."""
+    r = requests.get(f"{S3}/{BUCKET}/{pref}/_uso.json", timeout=10)
+    if r.status_code == 200:
+        return r.json()
+    b, n = ocupado(pref)   # primera vez: parte desde lo que ya hay guardado
+    return {"bytes": b, "archivos": n, "registros": 0, "desde": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z", "base": True}
+
+
+def sumar_uso(pref, b, regs):
+    with _uso_lock:
+        u = leer_uso(pref)
+        u["bytes"] += b
+        u["archivos"] += 1
+        u["registros"] = u.get("registros", 0) + regs
+        requests.put(f"{S3}/{BUCKET}/{pref}/_uso.json", data=json.dumps(u).encode(), headers={"Content-Type": "application/json"},
+                     timeout=10).raise_for_status()
+
+
 def volcar(pref):
     with _lock:
         lote, _buf[pref] = _buf.get(pref, []), []
     if not lote:
         return 0
     clave = f"{pref}/requests/{datetime.datetime.utcnow():%Y%m%d-%H%M%S}-{len(lote)}-{int(time.time() * 1000) % 1000:03d}.json"
-    requests.put(f"{S3}/{BUCKET}/{clave}", data="\n".join(json.dumps(x, ensure_ascii=False) for x in lote).encode(),
-                 headers={"Content-Type": "application/json"}, timeout=30).raise_for_status()
+    datos = "\n".join(json.dumps(x, ensure_ascii=False) for x in lote).encode()
+    requests.put(f"{S3}/{BUCKET}/{clave}", data=datos, headers={"Content-Type": "application/json"}, timeout=30).raise_for_status()
+    try:
+        sumar_uso(pref, len(datos), len(lote))
+    except Exception as e:  # noqa: BLE001 - el contador es informativo
+        app.logger.warning("uso %s: %s", pref, e)
     try:
         asegurar_tabla(pref)
     except Exception as e:  # noqa: BLE001 - el archivo ya quedó en S3; la tabla se reintenta en el próximo lote
@@ -115,7 +160,15 @@ def ingesta(pref, resto):
 @app.route("/estado/<pref>")
 def estado(pref):
     g = _gen.get(pref) or {}
-    return jsonify({"segmento": pref, "recibidos": _cont.get(pref, 0), "ultimo": _ult.get(pref, ""), "en_cola": len(_buf.get(pref, [])),
+    uso = {}
+    if RE_PREF.match(pref):
+        try:
+            u = leer_uso(pref)
+            b, n = ocupado(pref)
+            uso = {"enviado_bytes": u["bytes"], "enviado_desde": u.get("desde", ""), "en_s3_bytes": b, "en_s3_archivos": n}
+        except Exception as e:  # noqa: BLE001
+            app.logger.warning("uso %s: %s", pref, e)
+    return jsonify({"segmento": pref, **uso, "recibidos": _cont.get(pref, 0), "ultimo": _ult.get(pref, ""), "en_cola": len(_buf.get(pref, [])),
                     "generador": {k: g.get(k) for k in ("activo", "enviados", "errores", "hasta", "base")}})
 
 

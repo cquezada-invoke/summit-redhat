@@ -1288,3 +1288,9 @@ tr.u-faceops td{background:rgba(62,134,53,.07)}
 .comp.n-mal{border-left:3px solid var(--bad)}
 .ag-est{font-size:12.5px;margin:6px 0}.ag-est .punto{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--muted);margin-right:6px}.ag-est .punto.on{background:var(--ok)}.ag-est .punto.off{background:var(--bad)}
 html,body{overscroll-behavior:none}   /* sin rebote al hacer scroll: la barra superior no se mueve */
+
+/* controles de la prueba de rendimiento: etiqueta | caja | botones, en columnas alineadas */
+.perf-fila{display:grid;grid-template-columns:118px 76px 1fr;gap:8px;align-items:center;font-size:12.5px}
+.perf-fila input{width:76px;box-sizing:border-box;height:28px;padding:3px 6px;font:13px var(--sans);border:1px solid #c7c7c7;border-radius:3px;margin:0}
+.perf-fila>div{display:flex;gap:6px;flex-wrap:wrap}
+.perf-fila .btn.chico{height:28px;box-sizing:border-box;line-height:1}
