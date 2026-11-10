@@ -1,0 +1,24 @@
+commit: 55fd03068ead6b93b39b35a7ba954f5a5f14ab5d
+inicio: 2026-11-09T21:46:21-03:00
+---
+== Correo e IA del portal (desde la configuración de FaceOps; no se muestran)
+  FACEOPS_SMTP_HOST: no está en FaceOps
+  FACEOPS_SMTP_PUERTO: no está en FaceOps
+  FACEOPS_SMTP_USUARIO: no está en FaceOps
+  FACEOPS_SMTP_CLAVE: no está en FaceOps
+  FACEOPS_SMTP_DE: no está en FaceOps
+  ANTHROPIC_API_KEY: no está en FaceOps
+  ANTHROPIC_API_KEY: no encontrada (el PDF sale sin resumen de Claude)
+== Portal
+
+[notice] A new release of pip is available: 23.2.1 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+portal actualizado
+== AAP
+   · Gitea: invoke/portal-automatizaciones y telco-red-servicio.yml en invoke/red-laboratorio
+   · OpenShift: ServiceAccount aap-portal (token en Vault secret/portal/ocp)
+   · Organizaciones «Claro Puerto Rico» (tenant) y «Portal de automatización»
+   · Credencial 'OpenShift · clúster (token)' enlazada a Vault
+   · Proyecto 'Claro PR · automatizaciones' sincronizado
+ERROR POST https://localhost/api/controller/v2/job_templates/ -> 400: {"playbook":["Playbook not found for project."]}
+--- fin: 2026-11-09T21:47:08-03:00 · código: 0
