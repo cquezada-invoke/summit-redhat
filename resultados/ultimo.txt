@@ -1,5 +1,5 @@
-commit: 030e23f50942b251e41917a6165962dde50d02b9
-inicio: 2026-11-10T00:11:03-03:00
+commit: d636b922edaf6212b0a44fadb559cce22e9721b5
+inicio: 2026-11-10T00:11:33-03:00
 ---
 == error original del job:
 None
@@ -7,9 +7,6 @@ Traceback (most recent call last):
   File "<string>", line 36, in <module>
 KeyError: 'host'
 == prueba directa del script con el workflow 20208:
-  File "/home/cquezada/summit-redhat/portal-automatizacion/playbooks/files/informe_ejecucion.py", line 39, in <module>
-    obj = [f"{h['summary_fields']['host']['name']}: {h['changed']} cambio(s), {h['ok']} ok, {h['failures'] + h['dark']} falla(s)" for h in res]
-  File "/home/cquezada/summit-redhat/portal-automatizacion/playbooks/files/informe_ejecucion.py", line 39, in <listcomp>
-    obj = [f"{h['summary_fields']['host']['name']}: {h['changed']} cambio(s), {h['ok']} ok, {h['failures'] + h['dark']} falla(s)" for h in res]
-KeyError: 'host'
---- fin: 2026-11-10T00:11:06-03:00 · código: 0
+{"archivo":"ejecucion-20208-20261110-0011.pdf","cuenta":{"alto":0,"bajo":0,"critico":0,"medio":0,"ok":2},"envio":"enviado a cquezada@invoke.cl"}
+
+--- fin: 2026-11-10T00:11:46-03:00 · código: 0
