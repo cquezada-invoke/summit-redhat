@@ -29,6 +29,7 @@ def hipervisor(iid):
     host = next((e for e in eqs_ if d_.get("anfitrion") and e.get("ip") == d_["anfitrion"] and (e.get("categoria") or "servidor") == "servidor"), None)
     vms = [e for e in vms if not host or e["id"] != host["id"]]
     cap = d_.get("capacidad") or {}
+    fisicos = nodos_fisicos(x, eqs_)
     asig = {"cpu": sum(e.get("cpu") or 0 for e in vms), "ram": round(sum(e.get("ram_mb") or 0 for e in vms) / 1024),
             "ram_on": round(sum(e.get("ram_mb") or 0 for e in vms if e.get("energia") == "encendido") / 1024),
             "disco": round(sum(sum(dd.get("gb") or 0 for dd in j(e.get("discos"), [])) for e in vms))}
@@ -38,6 +39,28 @@ def hipervisor(iid):
         cat = {}
     autos = (cat.get("todos") or []) + (cat.get(x["tipo"]) or [])
     areas = list(dict.fromkeys(a["area"] for a in autos))
-    return render_template("hipervisor.html", x=x, info=d_.get("info") or {}, cap=cap, asig=asig, vms=vms, host=host,
+    return render_template("hipervisor.html", x=x, info=d_.get("info") or {}, cap=cap, asig=asig, vms=vms, host=host, fisicos=fisicos,
                            res=_resumen_grupo(vms) if vms else None, autos=autos, areas=areas,
                            etiq=etiqueta_centro([i for i in infras if i["centro"] == x["centro"]]))
+
+
+def nodos_fisicos(x, eqs):
+    """Máquinas físicas que levantan el hipervisor: las que declara su detalle («nodos», p. ej. un clúster vSphere o Nutanix)
+    o, si no, su anfitrión con el hardware leído al probar el acceso."""
+    d_ = x.get("detalle_d") or {}
+    info, cap = d_.get("info") or {}, d_.get("capacidad") or {}
+    por_ip = {e.get("ip"): e for e in eqs if e.get("ip")}
+    out = []
+    for n in d_.get("nodos") or []:
+        e = por_ip.get(n.get("ip"))
+        out.append({"nombre": n.get("nombre") or (e or {}).get("nombre") or n.get("ip"), "ip": n.get("ip"), "equipo": e,
+                    "cpu": n.get("cpu"), "sockets": n.get("sockets"), "cores": n.get("cores"), "hilos": n.get("hilos"), "virt": n.get("virt"),
+                    "ram_gb": n.get("ram_gb"), "ram_libre": n.get("ram_disp_gb"), "disco_gb": n.get("disco_gb"), "disco_libre": n.get("disco_disp_gb"),
+                    "estado": n.get("estado") or "—"})
+    if not out and (d_.get("anfitrion") or info):
+        e = por_ip.get(d_.get("anfitrion"))
+        out.append({"nombre": info.get("nombre") or (e or {}).get("nombre") or d_.get("anfitrion"), "ip": d_.get("anfitrion"), "equipo": e,
+                    "cpu": info.get("cpu"), "sockets": info.get("sockets"), "cores": cap.get("cores"), "hilos": info.get("hilos"), "virt": info.get("virt"),
+                    "ram_gb": cap.get("ram_gb"), "ram_libre": cap.get("ram_disp_gb"), "disco_gb": cap.get("disco_gb"), "disco_libre": cap.get("disco_disp_gb"),
+                    "estado": "encendido" if x.get("estado") == "conectada" else (x.get("estado") or "—")})
+    return out

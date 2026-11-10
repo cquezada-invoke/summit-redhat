@@ -455,7 +455,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         +'<div style="height:6px;background:var(--soft,#eee);border-radius:3px;overflow:hidden;margin-top:3px"><i style="display:block;height:100%;width:'+pct+'%;background:'+(pausa?'#8a8d90':'#0066cc')+'"></i></div>'
         +'<div style="font-size:12.5px;margin-top:4px">'+(r&&r.ms?'Ruta crítica: <b>'+n2(r.ms)+' ms</b> · ':'')+(cuellos?'<b style="color:#a30000">'+cuellos+' cuello'+(cuellos===1?'':'s')+' de botella</b> (sobre '+umV+' ms)':'sin cuellos de botella (umbral '+umV+' ms)')
         +' · '+tr.reduce((a,t)=>a+((t.global||{}).n||0),0)+' muestras</div>'+(!activo&&PERF_ON?'<div><button type="button" class="btn chico gris" id="perf-norm" title="Los tiempos medidos quedan sobre la gráfica '+PERF_MIN+' min; esto los quita ahora">Volver a lo normal</button></div>':'')
-        +(!activo&&!PERF_ON&&x.tramos?'<div><button type="button" class="btn chico gris" id="perf-ver" title="Pone sobre la gráfica los tiempos de la última medición">Ver última medición</button></div>':'')+'</div>':'')
++'</div>':'')
       +'<div id="perf-msg" style="font-size:12.5px"></div>';
     const $=id=>document.getElementById(id);
     $('perf-umb-g').onclick=()=>postPerf('umbral',{umbral:$('perf-umb').value}).then(x=>{ if(x){ if(PERF_ON) ponerPerf(); pintarControles(); if(TABLA_ABIERTA) pintarTabla(); } });
