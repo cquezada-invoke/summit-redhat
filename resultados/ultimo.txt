@@ -1,129 +1,15 @@
-commit: 216f88abd490f1052a9ade8fdcbfd463055f3838
-inicio: 2026-11-10T20:05:22-03:00
+commit: e6ea64a800ef83d56c19b1f31574ff1ec68fd885
+inicio: 2026-11-10T20:05:58-03:00
 ---
-== tareas
-clonar                Succeeded   2026-11-10T20:01:15Z   2026-11-10T20:01:31Z
-compilar-y-probar     Succeeded   2026-11-10T20:01:36Z   2026-11-10T20:01:56Z
-desplegar-con-aap     Failed      2026-11-10T20:02:27Z   2026-11-10T20:03:19Z
-preparar-plataforma   Succeeded   2026-11-10T20:02:20Z   2026-11-10T20:02:27Z
-publicar              Succeeded   2026-11-10T20:02:06Z   2026-11-10T20:02:20Z
-secretos              Succeeded   2026-11-10T20:01:31Z   2026-11-10T20:01:36Z
-vulnerabilidades      Succeeded   2026-11-10T20:01:56Z   2026-11-10T20:02:06Z
-taskrun taskrun.tekton.dev/app-jboss-rnkw6-desplegar-con-aap
-"step-lanzar-plantilla" exited with code 1: Error
-1h0m0s
-pod app-jboss-rnkw6-desplegar-con-aap-pod
-AAP job 21702 lanzado en ambiente desarrollo sobre todo el grupo jboss: versión 1.0.41, solicitado por invoke
-Resultado en AAP: failed · https://10.194.0.2/execution/jobs/playbook/21702/output
-2026/11/10 20:02:28 Entrypoint initialization
-2026/11/10 20:02:29 Decoded script /tekton/scripts/script-0-5sqln
-{"pipeline":"1h0m0s"}
-Tasks Completed: 7 (Failed: 1, Cancelled 0), Skipped: 0
-job=21702
-job 21702 failed inv 3 Servidores de aplicación limit  elapsed 36.529 jt 14 proj Despliegues de aplicaciones
-extra_vars keys: ['app_version', 'app_commit', 'solicitado_por', 'correo_solicitante', 'ambiente', 'origen']
-host_status_counts: {'dark': 1, 'changed': 2}
-Identity added: /runner/artifacts/21702/ssh_key_data (cquezada@demo-ansible-summit)
+post=404 t=0.018815
+{"errors":null,"message":"The target couldn't be found.","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
 
-PLAY [Desplegar app en JBoss EAP] **********************************************
-
-TASK [Solicitud de despliegue] *************************************************
-ok: [nodo-jboss] => {
-    "msg": "Despliegue de la versión 1.0.41 solicitado por invoke (invoke@noreply.faceops.34.176.42.56.sslip.io) · commit c671dd1 · vía Tekton · pipeline app-jboss"
-}
-
-TASK [Carpeta de versiones] ****************************************************
-ok: [nodo-jboss]
-
-TASK [Versión en producción] ***************************************************
-ok: [nodo-jboss]
-
-TASK [Descargar versión 1.0.41 publicada por el pipeline] **********************
-changed: [nodo-jboss]
-
-TASK [Desplegar en JBoss con jboss-cli] ****************************************
-changed: [nodo-jboss]
-
-TASK [La app responde con la versión 1.0.41] ***********************************
-ok: [nodo-jboss]
-
-TASK [Guardar como versión en producción] **************************************
-changed: [nodo-jboss]
-
-TASK [Huella del artefacto desplegado] *****************************************
-ok: [nodo-jboss]
-
-TASK [Carpeta de registros de FaceOps] *****************************************
-ok: [nodo-jboss]
-
-TASK [Registro de la aplicación desplegada (lo guarda en Git el respaldo continuo de la máquina)] ***
-changed: [nodo-jboss]
-
-TASK [Resultado del despliegue] ************************************************
-ok: [nodo-jboss]
-
-TASK [Mostrar URL] *************************************************************
-ok: [nodo-jboss] => {
-    "msg": "Versión 1.0.41 en nodo-jboss, solicitada por invoke: http://34-176-42-56.sslip.io:8090/app-jboss/"
-}
-
-PLAY [Desplegar app en JBoss EAP] **********************************************
-
-TASK [Solicitud de despliegue] *************************************************
-ok: [nodo-jboss2] => {
-    "msg": "Despliegue de la versión 1.0.41 solicitado por invoke (invoke@noreply.faceops.34.176.42.56.sslip.io) · commit c671dd1 · vía Tekton · pipeline app-jboss"
-}
-
-TASK [Carpeta de versiones] ****************************************************
-ok: [nodo-jboss2]
-
-TASK [Versión en producción] ***************************************************
-ok: [nodo-jboss2]
-
-TASK [Descargar versión 1.0.41 publicada por el pipeline] **********************
-changed: [nodo-jboss2]
-
-TASK [Desplegar en JBoss con jboss-cli] ****************************************
-changed: [nodo-jboss2]
-
-TASK [La app responde con la versión 1.0.41] ***********************************
-ok: [nodo-jboss2]
-
-TASK [Guardar como versión en producción] **************************************
-changed: [nodo-jboss2]
-
-TASK [Huella del artefacto desplegado] *****************************************
-ok: [nodo-jboss2]
-
-TASK [Carpeta de registros de FaceOps] *****************************************
-ok: [nodo-jboss2]
-
-TASK [Registro de la aplicación desplegada (lo guarda en Git el respaldo continuo de la máquina)] ***
-changed: [nodo-jboss2]
-
-TASK [Resultado del despliegue] ************************************************
-ok: [nodo-jboss2]
-
-TASK [Mostrar URL] *************************************************************
-ok: [nodo-jboss2] => {
-    "msg": "Versión 1.0.41 en nodo-jboss2, solicitada por invoke: http://34-176-42-56.sslip.io:8090/app-jboss/"
-}
-
-PLAY [Desplegar app en JBoss EAP] **********************************************
-
-TASK [Solicitud de despliegue] *************************************************
-ok: [nodo-jboss3] => {
-    "msg": "Despliegue de la versión 1.0.41 solicitado por invoke (invoke@noreply.faceops.34.176.42.56.sslip.io) · commit c671dd1 · vía Tekton · pipeline app-jboss"
-}
-
-TASK [Carpeta de versiones] ****************************************************
-fatal: [nodo-jboss3]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.19 port 22: Connection timed out", "unreachable": true}
-
-PLAY RECAP *********************************************************************
-nodo-jboss                 : ok=12   changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-nodo-jboss2                : ok=12   changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-nodo-jboss3                : ok=1    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
-
-hosts inv: ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss-dev', 'nodo-jboss-qa', 'nodo-nginx', 'nodo-postgres', 'nodo-tomcat']
-grupo jboss hosts: ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss-dev', 'nodo-jboss-qa']
---- fin: 2026-11-10T20:05:24-03:00 · código: 0
+del=404
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "<string>", line 1, in <listcomp>
+TypeError: string indices must be integers
+Nov 10 20:05:58 demo-ansible-summit gitea[6781]: 2026/11/10 23:05:58 ...eb/routing/logger.go:102:func1() [I] router: completed POST /api/v1/repos/repositorio/migraciones-weblogic/contents/prueba/x.md 
+Nov 10 20:05:58 demo-ansible-summit gitea[6781]: 2026/11/10 23:05:58 ...eb/routing/logger.go:102:func1() [I] router: completed DELETE /api/v1/repos/repositorio/migraciones-weblogic/contents/prueba/x.m
+Nov 10 20:05:58 demo-ansible-summit gitea[6781]: 2026/11/10 23:05:58 ...eb/routing/logger.go:102:func1() [I] router: completed GET /api/v1/repos/repositorio/migraciones-weblogic/contents for 10.194.0.
+--- fin: 2026-11-10T20:06:01-03:00 · código: 0
