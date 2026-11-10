@@ -1,30 +1,69 @@
-commit: 1e1d3223d1a94f9b58758de88138d1880fc1fde0
-inicio: 2026-11-10T20:38:09-03:00
+commit: 62ff7584df151fb96b91731ed2ff7e1059f21766
+inicio: 2026-11-10T20:21:09-03:00
 ---
-ad hoc 22243 successful
-Identity added: /runner/artifacts/22243/ssh_key_data (cquezada@demo-ansible-summit)
-[0;33mnodo-jboss | CHANGED | rc=0 >>[0m
-[0;33mnodo-jboss eap=failed 8080= 9990= salud=[0m
-[0;33m28:#WILDFLY_OPTS=""[0m
-[0;33m29:WILDFLY_OPTS="-bmanagement=0.0.0.0"[0m
-[0;33m30:WILDFLY_OPTS="$WILDFLY_OPTS -Djboss.bind.address.management=127.0.0.1"[0m
-[0;33mnodo-jboss2 | CHANGED | rc=0 >>[0m
-[0;33mnodo-jboss2 eap=active 8080="java" 9990=127.0.0.1:9990 salud=ok 1.0.41[0m
-[0;33m28:#WILDFLY_OPTS=""[0m
-[0;33mnodo-jboss-dev | CHANGED | rc=0 >>[0m
-[0;33mnodo-jboss-dev eap=active 8080="java" 9990=127.0.0.1:9990 salud=ok 1.0.37[0m
-[0;33m28:#WILDFLY_OPTS=""[0m
-Identity added: /runner/artifacts/22243/ssh_key_data (cquezada@demo-ansible-summit)
-nodo-jboss | CHANGED | rc=0 >>
-nodo-jboss eap=failed 8080= 9990= salud=
-28:#WILDFLY_OPTS=""
-29:WILDFLY_OPTS="-bmanagement=0.0.0.0"
-30:WILDFLY_OPTS="$WILDFLY_OPTS -Djboss.bind.address.management=127.0.0.1"
-nodo-jboss2 | CHANGED | rc=0 >>
-nodo-jboss2 eap=active 8080="java" 9990=127.0.0.1:9990 salud=ok 1.0.41
-28:#WILDFLY_OPTS=""
-nodo-jboss-dev | CHANGED | rc=0 >>
-nodo-jboss-dev eap=active 8080="java" 9990=127.0.0.1:9990 salud=ok 1.0.37
-28:#WILDFLY_OPTS=""
-
---- fin: 2026-11-10T20:38:22-03:00 · código: 0
+c5ad016
+1
+1
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+faceops actualizado
+0
+estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
+ticket C1 FO-LAB-01460
+fin C1 FO-LAB-01460 exitoso job 22186 AAP terminó (successful): ejecución 41 s, espera de aprobación 47 s
+--- C1 verificación
+State:          running
+CPU(s):         1
+Max memory:     2097152 KiB
+aap hosts srv-pagos-web-01 [(163, 'Servidores habilitados')]
+faceops {'nombre': 'srv-pagos-web-01', 'ip': '192.168.122.67', 'so': '', 'ambiente': 'desarrollo', 'estado': 'sin datos', 'inventarios': '["Servidores habilitados"]'}
+rol [('web', 'Balanceador Nginx', 'desarrollo')]
+paso web desarrollo pendiente: []
+tickets relacionados [('FO-LAB-01462', 'en_cola', 'Vinculación automática a la bóveda · servidor creado en FO-L')]
+estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
+ticket C2 FO-LAB-01463
+fin C2 FO-LAB-01463 exitoso job 22203 AAP terminó (successful): ejecución 12 s, espera de aprobación 29 s
+--- C2 verificación
+1
+aap hosts srv-pagos-web-01 [(163, 'Servidores habilitados')]
+faceops {'nombre': 'srv-pagos-web-01', 'ip': '192.168.122.67', 'so': '', 'ambiente': 'desarrollo', 'estado': 'sin datos', 'inventarios': '["Servidores habilitados"]'}
+estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
+ticket C3 FO-LAB-01464
+fin C3 FO-LAB-01464 fallido job 22207 ] ****************************************************************** | ok: [localhost] |  | TASK [Solicitud no válida (no se creó nada)] *********************************** | fatal: [localhost]: FAILED! => {"changed": false, "msg": "el nombre base debe tener 3 a 20 letras minúsculas, números o guiones; recursos fuera de rango (1-8 vCPU, 2-32 GB, 20-200 GB); memoria total sobre 48 GB: divide la solicitud"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+--- C3 verificación
+0
+tickets relacionados [('FO-LAB-01462', 'exitoso', 'Vinculación automática a la bóveda · servidor creado en FO-L')]
+--- antes C4
+52:54:00:23:3c:23
+estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
+ticket C4 FO-LAB-01466
+fin C4 FO-LAB-01466 exitoso job 22217 AAP terminó (successful): ejecución 39 s, espera de aprobación 53 s
+--- C4 verificación
+== srv-pagos-web-01
+State:          running
+Autostart:      enable
+ vda      /var/lib/libvirt/images/faceops/srv-pagos-web-01.qcow2
+52:54:00:5a:fb:d9
+== srv-pagos-web-01-fallida-202611102032
+State:          shut off
+Autostart:      disable
+ vda      /var/lib/libvirt/images/faceops/srv-pagos-web-01-fallida-202611102032.qcow2
+52:54:00:e1:a3:00
+aap hosts srv-pagos-web-01 [(163, 'Servidores habilitados')]
+faceops {'nombre': 'srv-pagos-web-01', 'ip': '192.168.122.67', 'so': '', 'ambiente': 'desarrollo', 'estado': 'sin datos', 'inventarios': '["Servidores habilitados"]'}
+tickets relacionados [('FO-LAB-01462', 'exitoso', 'Vinculación automática a la bóveda · servidor creado en FO-L')]
+--- C5 limpieza
+estado FaceOps · Eliminar servidor certificada 287ee5a99bfb
+ticket C5-srv-pagos-web-01 FO-LAB-01468
+fin C5-srv-pagos-web-01 FO-LAB-01468 exitoso job 22228 AAP terminó (successful): ejecución 12 s, espera de aprobación 23 s | srv-pagos-web-01 eliminado: fuera del balanceo, VM retirada de KVM (disco conservado aparte), fuera de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git.
+estado FaceOps · Eliminar servidor certificada 287ee5a99bfb
+ticket C5-srv-pagos-web-01-fallida-202611102032 FO-LAB-01469
+fin C5-srv-pagos-web-01-fallida-202611102032 FO-LAB-01469 exitoso job 22236 AAP terminó (successful): ejecución 11 s, espera de aprobación 29 s | srv-pagos-web-01-fallida-202611102032 eliminado: fuera del balanceo, VM retirada de KVM (disco conservado aparte), fuera de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git.
+--- final
+srv-pagos-web-01.eliminado-202611102036.qcow2
+srv-pagos-web-01-fallida-202611102032.eliminado-202611102038.qcow2
+aap hosts srv-pagos-web-01 []
+faceops {'nombre': 'srv-pagos-web-01', 'ip': '192.168.122.67', 'so': '', 'ambiente': 'desarrollo', 'estado': 'retirado', 'inventarios': '["Servidores habilitados"]'}
+rol []
+paso web desarrollo pendiente: ['Crear 1 servidor rhel9 para Balanceador Nginx (desarrollo)']
+tickets relacionados [('FO-LAB-01462', 'exitoso', 'Vinculación automática a la bóveda · servidor creado en FO-L'), ('FO-LAB-01468', 'exitoso', 'Limpieza del plan de prueba de «FaceOps · Habilitar servidor'), ('FO-LAB-01469', 'exitoso', 'Limpieza del plan de prueba de «FaceOps · Habilitar servidor')]
+--- fin: 2026-11-10T20:38:54-03:00 · código: 0
