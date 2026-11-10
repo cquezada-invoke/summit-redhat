@@ -180,7 +180,7 @@
 
     - name: Repositorio de informes en Git (se crea si falta)
       ansible.builtin.uri:
-        url: "{{ gitea }}/api/v1/orgs/repositorio/repos"
+        url: "{{ gitea }}/api/v1/user/repos"   # el token de respaldo es de la cuenta «repositorio»
         method: POST
         headers: {Authorization: "token {{ faceops_respaldo_token }}", Content-Type: application/json}
         body_format: json
