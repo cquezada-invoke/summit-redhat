@@ -2,7 +2,8 @@
 # Portal de automatización (demo Claro PR): instala todo en el anfitrión del laboratorio. Idempotente.
 #   1. Amdocs emulado en OpenShift (namespace amdocs-bss).
 #   2. AAP y EDA (configurar_aap.py): repositorio, credencial desde Vault, plantillas, workflows con aprobación, activación EDA.
-#   3. El portal como contenedor (Quadlet, 192.168.122.1:8120) publicado en https://ansible.<ip>.sslip.io:<puerto>/ con TLS.
+#   3. (Histórico) El portal como contenedor Quadlet en 192.168.122.1:8120. Hoy corre en OpenShift: openshift/portal.yaml
+#      (namespace portal-claro, NodePort 30120) y el nginx público apunta a 192.168.122.50:30120. Ver openshift/desplegar.sh.
 set -euo pipefail
 cd "$(dirname "$0")"
 IP=${FACEOPS_IP_PUBLICA:-34.176.42.56}; PUERTO=${FACEOPS_PUERTO_PUBLICO:-8843}

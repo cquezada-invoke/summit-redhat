@@ -100,7 +100,7 @@ def _error_aap(e):
 
 @app.before_request
 def _csrf():
-    if request.method == "POST" and request.endpoint not in ("ingresar", "api_informe"):
+    if request.method == "POST" and request.endpoint not in ("ingresar", "api_informe", "api_estado_pruebas"):
         if not secrets.compare_digest(request.headers.get("X-CSRF", request.form.get("csrf", "")), session.get("csrf", "-")):
             abort(400)
 
