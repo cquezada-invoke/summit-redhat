@@ -1,176 +1,47 @@
-commit: 9923db1715922a6920453451c08d079eb1e882c6
-inicio: 2026-11-10T16:40:50-03:00
+commit: 042b697436617f785f7141a3660f8d23aad81261
+inicio: 2026-11-10T16:44:57-03:00
 ---
-== memoria
-               total        used        free      shared  buff/cache   available
-Mem:          128386      105323        3189        4929       25838       23062
-Swap:              0           0           0
-32
-== contenedores clab
-summit-dns localhost/dns-summit:1 Up 20 hours
-kc-doble-factor quay.io/keycloak/keycloak:26.0.7 Up 20 hours
-summit-prometheus docker.io/prom/prometheus:v2.55.1 Up 20 hours
-summit-blackbox docker.io/prom/blackbox-exporter:v0.25.0 Up 20 hours
-summit-alertmanager docker.io/prom/alertmanager:v0.27.0 Up 20 hours
-summit-grafana docker.io/grafana/grafana:11.3.1 Up 20 hours
-clab-summit-red-fw localhost/vyos:2026.10.23 Up 20 hours
-clab-summit-red-srv-app docker.io/library/python:3.12-alpine Up 20 hours
-clab-summit-red-isp localhost/frr-summit:1 Up 20 hours
-clab-summit-red-rtr localhost/frr-summit:1 Up 20 hours
-clab-summit-red-pc-usuario localhost/frr-summit:1 Up 20 hours
-suc1 quay.io/frrouting/frr:9.1.0 Up 20 hours
-suc2 quay.io/frrouting/frr:9.1.0 Up 20 hours
-suc3 quay.io/frrouting/frr:9.1.0 Up 20 hours
-== stats
-summit-dns 1.991MB / 134.6GB
-clab-summit-red-fw 435.4MB / 134.6GB
-clab-summit-red-srv-app 29.82MB / 134.6GB
-clab-summit-red-isp 48.48MB / 134.6GB
-clab-summit-red-pc-usuario 24.42MB / 134.6GB
-clab-summit-red-rtr 76.3MB / 134.6GB
-suc1 102.1MB / 134.6GB
-suc2 98.34MB / 134.6GB
-suc3 97.34MB / 134.6GB
-== imagenes red
-localhost/vyos:2026.10.23 1.83 GB
-localhost/frr-summit:1 190 MB
-docker.io/library/python:3.12-alpine 51.2 MB
-docker.io/library/alpine:3.20 8.1 MB
-docker.io/library/nginx:1.27-alpine 49.7 MB
-ghcr.io/nokia/srlinux:24.10.1 2.42 GB
-quay.io/frrouting/frr:9.1.0 165 MB
-== labs
-[1m╭[0m[1m───────────────────────────────────────────────────────────────────────[0m[1m┬[0m[1m─────────────────[0m[1m┬[0m[1m────────────────────────────────────[0m[1m┬[0m[1m──────────────────────────────────────[0m[1m┬[0m[1m─────────[0m[1m┬[0m[1m────────────────[0m[1m╮[0m
-[1m│[0m[1m                                Topology                               [0m[1m│[0m[1m     Lab Name    [0m[1m│[0m[1m                Name                [0m[1m│[0m[1m              Kind/Image              [0m[1m│[0m[1m  State  [0m[1m│[0m[1m IPv4/6 Address [0m[1m│[0m
-[1m├[0m[1m───────────────────────────────────────────────────────────────────────[0m[1m┼[0m[1m─────────────────[0m[1m┼[0m[1m────────────────────────────────────[0m[1m┼[0m[1m──────────────────────────────────────[0m[1m┼[0m[1m─────────[0m[1m┼[0m[1m────────────────[0m[1m┤[0m
-│ /opt/summit-red/corporativa/red-corporativa.clab.yml                  │ red-corporativa │ clab-red-corporativa-borde         │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-core          │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-dns-dmz       │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-fw-interno    │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/vyos:2026.10.23            │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-fw-perimetral │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/vyos:2026.10.23            │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-isp-a         │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-isp-b         │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-lb-dmz        │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-nas-01        │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-pc-campus-01  │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-proxy-dmz     │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-srv-app-01    │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-red-corporativa-srv-bd-01     │ linux                                │ exited  │ N/A            │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-├───────────────────────────────────────────────────────────────────────┼─────────────────┼────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│ /opt/summit-red/summit-red.clab.yml                                   │ summit-red      │ clab-summit-red-fw                 │ linux                                │ running │ 172.20.20.12   │
-│                                                                       │                 │                                    │ localhost/vyos:2026.10.23            │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-summit-red-isp                │ linux                                │ running │ 172.20.20.10   │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-summit-red-pc-usuario         │ linux                                │ running │ 172.20.20.22   │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-summit-red-rtr                │ linux                                │ running │ 172.20.20.11   │
-│                                                                       │                 │                                    │ localhost/frr-summit:1               │         │ N/A            │
-│                                                                       │                 ├────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                                                       │                 │ clab-summit-red-srv-app            │ linux                                │ running │ 172.20.20.21   │
-│                                                                       │                 │                                    │ docker.io/library/python:3.12-alpine │         │ N/A            │
-├───────────────────────────────────────────────────────────────────────┼─────────────────┼────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│ /opt/summit-red/suc1.clab.yml                                         │ summit-suc1     │ suc1                               │ linux                                │ running │ 172.20.20.41   │
-│                                                                       │                 │                                    │ quay.io/frrouting/frr:9.1.0          │         │ N/A            │
-├───────────────────────────────────────────────────────────────────────┼─────────────────┼────────────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-INV 18 Claro PR · local 0 red: []
-INV 8 Data center 1 5 red: []
-INV 1 Demo Inventory 0 red: []
-INV 5 Drift · Servidores 6 red: []
-INV 9 FaceOps · Infraestructura 1 red: []
-INV 16 FaceOps · Todos los servidores 37 red: []
-INV 15 Fiscalía · avisos 0 red: []
-INV 13 Infra · VMware · Santiago 0 red: []
-INV 2 Nodos demo 9 red: []
-INV 7 Nube GCP 0 red: []
-INV 12 OpenShift · clústeres 1 red: []
-INV 14 OpenShift · nodos 1 red: []
-INV 11 Plataforma del stand 1 red: []
-INV 17 Portal · local 0 red: []
-INV 4 Red · laboratorio 21 red: [('borde', {}), ('core', {}), ('fw', {}), ('fw-interno', {}), ('fw-perimetral', {}), ('lb-dmz', {})]
-INV 3 Servidores de aplicación 8 red: []
-INV 10 Servidores habilitados 28 red: []
-INV 6 Servidores Windows 1 red: []
-JT 92 DC · Red Hat IdM playbooks/idm.yml 87
-JT 89 DC · Registrar en Red Hat playbooks/registrar.yml 87
-JT 98 DC · Satellite playbooks/satellite.yml 87
-JT 255 FaceOps · Preparar imágenes RHEL playbooks/imagenes-rhel.yml 99
-JT 108 FaceOps · Verificar flujos de red playbooks/verificar-flujos.yml 99
-JT 163 FaceOps · Vincular máquina a la bóveda playbooks/vincular-maquina.yml 99
-JT 578 Identidad · Fuente de usuarios de FaceOps playbooks/identidad-fuente.yml 99
-JT 543 Infra · Mover máquina entre centros de datos playbooks/infra-mover-maquina.yml 99
-JT 542 Infra · Preparar centro de datos emulado playbooks/infra-dc-emulado.yml 99
-JT 152 Migración · RHEL a versión soportada playbooks/migrar-so.yml 99
-JT 84 Nube · Cerrar ticket tras falla playbooks/ticket-error.yml 62
-JT 272 OpenShift · Agente de ACS playbooks/openshift-acs.yml 99
-JT 256 OpenShift · Operadores OLM playbooks/openshift-olm-regularizar.yml 99
-JT 235 OpenShift · Preparar instalación IPI VMware playbooks/openshift-ipi-vmware-preparar.yml 99
-JT 162 Plataforma · Controlar servicio playbooks/servicio-plataforma.yml 99
-JT 624 Portal · OpenShift · Alta de proyecto (plantilla) playbooks/ocp-onboarding-proyecto.yml 671
-JT 700 Portal · OpenShift · Informe de seguridad del clúster (plantilla) playbooks/ocp-informe-seguridad.yml 671
-JT 623 Portal · OpenShift · Respaldo de etcd (plantilla) playbooks/ocp-etcd-respaldo.yml 671
-JT 626 Portal · Telco · Onboarding de CNF (plantilla) playbooks/telco-onboarding-cnf.yml 671
-JT 627 Portal · Telco · Red del servicio (VLAN y BGP) (plantilla) playbooks/telco-red-servicio.yml 17
-JT 625 Portal · Telco · Validar clúster para CNF (plantilla) playbooks/telco-validar-cnf.yml 671
-JT 604 PostgreSQL · Preparar servidor playbooks/postgresql-servidor.yml 99
-JT 77 Red · Actualizar firmware playbooks/actualizar-firmware.yml 17
-JT 18 Red · Aplicar configuración playbooks/aplicar.yml 17
-JT 40 Red · Bloquear IP playbooks/bloquear-ip.yml 17
-JT 425 Red · Configurar VLAN playbooks/configurar-vlan.yml 17
-JT 159 Redis · Instalar Redis Insight playbooks/redis-insight.yml 99
-JT 142 Redis · Preparar servidor playbooks/redis-servidor.yml 99
-JT 39 Red · Responder solicitud playbooks/responder-solicitud.yml 17
-JT 56 Red · Revocar acceso playbooks/revocar-acceso.yml 17
-JT 59 Red · Revocar accesos vencidos playbooks/revocar-vencidos.yml 17
-JT 20 Red · Solicitar acceso playbooks/solicitar-acceso.yml 17
-JT 19 Red · Verificar drift playbooks/drift.yml 17
-JT 490 Satellite · Actualizar playbooks/satellite-actualizar.yml 99
-JT 483 Satellite · Instalar playbooks/satellite-instalar.yml 99
-JT 131 Seguridad · Revisar CVEs playbooks/revisar-cves.yml 99
-JT 447 Sistema · Registrar en Red Hat playbooks/registrar-rhel.yml 99
-CRED 1 Demo Credential 7
-CRED 16 Gitea · escritura red-laboratorio 39
-CRED 14 Red · firewall VyOS 38
-CRED 12 Red · FortiGate (API) 36
-CRED 39 Red Hat · Llave de activación 48
-CRED 35 Red Hat · Offline token 50
-CRED 8 Red · laboratorio (ssh) 7
-EQ {'id': 13, 'nombre': 'fgt', 'categoria': 'firewall', 'ip': '172.20.20.12', 'so': 'FortiOS', 'inventario': 'Red · laboratorio', 'estado': 'retirado'}
-EQ {'id': 14, 'nombre': 'fw', 'categoria': 'firewall', 'ip': '172.20.20.12', 'so': 'VyOS', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
-EQ {'id': 16, 'nombre': 'rtr', 'categoria': 'router', 'ip': '172.20.20.11', 'so': 'Linux (Alpine)', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
-EQ {'id': 17, 'nombre': 'suc1', 'categoria': 'router', 'ip': '192.168.122.1', 'so': 'Linux (Alpine)', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
-EQ {'id': 18, 'nombre': 'suc2', 'categoria': 'router', 'ip': '192.168.122.1', 'so': 'Linux (Alpine)', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
-EQ {'id': 19, 'nombre': 'suc3', 'categoria': 'router', 'ip': '192.168.122.1', 'so': 'Linux (Alpine)', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
-EQ {'id': 63, 'nombre': 'borde', 'categoria': 'router', 'ip': '172.20.20.52', 'so': '', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
-EQ {'id': 64, 'nombre': 'core', 'categoria': 'switch', 'ip': '172.20.20.58', 'so': '', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
-EQ {'id': 66, 'nombre': 'fw-interno', 'categoria': 'firewall', 'ip': '172.20.20.57', 'so': 'VyOS', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
-EQ {'id': 67, 'nombre': 'fw-perimetral', 'categoria': 'firewall', 'ip': '172.20.20.53', 'so': 'VyOS', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
-EQ {'id': 68, 'nombre': 'lb-dmz', 'categoria': 'balanceador', 'ip': '172.20.20.54', 'so': '', 'inventario': 'Red · laboratorio', 'estado': 'inventariado'}
---- fin: 2026-11-10T16:43:07-03:00 · código: 0
+LIC {'instance_count': 50, 'current_instances': 64, 'free_instances': 0, 'automated_instances': 52, 'subscription_name': '60 Day Product Trial of Red Hat Ansible Automation Platform, Self-Supported (50 Managed Nodes)'}
+EE 5 Control Plane Execution Environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
+EE 4 Default execution environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
+EE 3 Minimal execution environment registry.redhat.io/ansible-automation-platform-27/ee-minimal-rhel9:2.16
+EE 2 Hub Default execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-supported-rhel9:latest
+EE 1 Hub Minimal execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-minimal-rhel9:2.16
+H borde True ansible_host: 172.20.20.52 | faceops_categoria: router | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: borde | descripcion: Router d
+H core True ansible_host: 172.20.20.58 | faceops_categoria: switch | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: core | descripcion: Core L3 ·
+H dns-dmz True ansible_host: 172.20.20.56 | faceops_categoria: servidor | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: dmz | descripcion: DNS de l
+H fw True ansible_host: 172.20.20.12 | ansible_connection: ansible.netcommon.network_cli | ansible_network_os: vyos.vyos.vyos | ansible_user: '{{ fw_usuario }}' | descripcion: Firewall VyOS (eth1 WAN · eth2 LAN usuarios)
+H fw-interno True ansible_host: 172.20.20.57 | faceops_categoria: firewall | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: interno | descripcion: Fire
+H fw-perimetral True ansible_host: 172.20.20.53 | faceops_categoria: firewall | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: perimetro | descripcion: Fi
+H lb-dmz True ansible_host: 172.20.20.54 | faceops_categoria: balanceador | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: dmz | descripcion: Balan
+H nas-01 True ansible_host: 172.20.20.62 | faceops_categoria: almacenamiento | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: storage | descripcion
+H nodo-jboss True ansible_host: 192.168.122.15 | ansible_user: ansible | ansible_connection: ssh
+H nodo-nginx True {"ansible_host": "192.168.122.11", "ansible_user": "ansible"}
+H nodo-postgres True ansible_host: 192.168.122.13 | ansible_user: ansible | ansible_connection: ssh
+H nodo-so True {"ansible_host": "192.168.122.12", "ansible_user": "ansible"}
+H pc-campus-01 True ansible_host: 172.20.20.61 | faceops_categoria: estación de trabajo | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: campus | descrip
+H pc-usuario True ansible_host: 172.20.20.22 | ansible_python_interpreter: /usr/bin/python3 | descripcion: Equipo de usuario detrás del FortiGate
+H proxy-dmz True ansible_host: 172.20.20.55 | faceops_categoria: servidor | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: dmz | descripcion: Proxy in
+H rtr True ansible_host: 172.20.20.11 | bgp_vecino: 10.0.0.1 | descripcion: Router de borde (FRR)
+H srv-app-01 True ansible_host: 172.20.20.59 | faceops_categoria: servidor | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: aplicaciones | descripcion:
+H srv-bd-01 True ansible_host: 172.20.20.60 | faceops_categoria: servidor | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: datos | descripcion: Base d
+H suc1 True {"ansible_host": "192.168.122.1", "ansible_user": "aap-lab", "lab_nodo": "suc1", "lab_ip": "172.20.20.41", "lab_red": "10.30.1.0/24"}
+H suc2 True {"ansible_host": "192.168.122.1", "ansible_user": "aap-lab", "lab_nodo": "suc2", "lab_ip": "172.20.20.42", "lab_red": "10.30.2.0/24"}
+H suc3 True {"ansible_host": "192.168.122.1", "ansible_user": "aap-lab", "lab_nodo": "suc3", "lab_ip": "172.20.20.43", "lab_red": "10.30.3.0/24"}
+JT 18 4 None 17 ['Red · laboratorio (ssh)']
+JT 19 4 None 17 ['Red · laboratorio (ssh)']
+JT 425 4 None 17 ['AAP · responder aprobaciones', 'Gitea · escritura red-laboratorio', 'Red · firewall VyOS', 'Red · laboratorio (ssh)', 'ServiceNow · ansible.automatizacion']
+EEIMGS 
+== apk
+apk-ok
+3.20.3
+% Can't open configuration file /etc/frr/vtysh.conf due to 'No such file or directory'.
+Configuration file[/etc/frr/frr.conf] processing failure: 11
+Exiting: failed to connect to any daemons.
+== llave lab
+total 12
+drwx------. .
+drwx------. ..
+-rw-------. llave-lab
+-rw-r--r--. llave-lab.pub
+--- fin: 2026-11-10T16:45:04-03:00 · código: 0
