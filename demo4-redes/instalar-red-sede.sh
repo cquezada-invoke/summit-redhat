@@ -61,14 +61,15 @@ p "Sede → WAN 203.0.113.1 (pasa por el firewall)" ex pc-piso1 ping -c1 -W2 203
 p "WAN → VIP web publicado (permitido)" ex pe-isp wget -qO- -T 4 http://10.20.30.100/
 p "WAN → servidor directo :8080 (debe estar BLOQUEADO)" sh -c "! sudo podman exec clab-red-sede-pe-isp wget -qO- -T 3 http://10.20.30.21:8080/ && echo bloqueado"
 p "Vecinos LLDP de sw-core-01" sh -c "sudo podman exec clab-red-sede-sw-core-01 lldpcli show neighbors summary | grep -c SysName"
-p "Backends del balanceador arriba" sh -c "sudo podman exec clab-red-sede-lb-sede-01 wget -qO- 'http://127.0.0.1:8404/stats;csv' | grep -c ',UP,'"
+p "Backends del balanceador arriba" sh -c "sudo podman exec clab-red-sede-lb-sede-01 wget -qO- 'http://127.0.0.1:8404/stats;csv' | grep -cE '^be-web-sede,srv-web-0[12],UP'"
 cat > /tmp/askpass-sede.sh <<'EOF'
 #!/bin/sh
 sudo cat /opt/summit-red/sede/config/clave-netadmin
 EOF
 chmod 700 /tmp/askpass-sede.sh
-for ip in 172.20.20.73 172.20.20.72; do
-  p "SSH netadmin@$ip (clave de la bóveda)" sh -c "SSH_ASKPASS=/tmp/askpass-sede.sh SSH_ASKPASS_REQUIRE=force setsid ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PubkeyAuthentication=no -o ConnectTimeout=6 netadmin@$ip 'show version' < /dev/null | grep -m1 -iE 'FRRouting|Version'"
+for par in "172.20.20.73|show version" "172.20.20.72|/opt/vyatta/bin/vyatta-op-cmd-wrapper show version"; do
+  ip=${par%%|*}; cmd=${par#*|}
+  p "SSH netadmin@$ip con usuario y clave" sh -c "SSH_ASKPASS=/tmp/askpass-sede.sh SSH_ASKPASS_REQUIRE=force setsid ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PubkeyAuthentication=no -o ConnectTimeout=6 netadmin@$ip '$cmd' < /dev/null | grep -m1 -iE 'FRRouting|Version'"
 done
 rm -f /tmp/askpass-sede.sh
 unset NET
