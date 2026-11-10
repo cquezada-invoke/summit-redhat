@@ -21,7 +21,8 @@ def _resumen_ia(d):
     clave = os.environ.get("ANTHROPIC_API_KEY", "")
     if not clave:
         return ""
-    hallazgos = [{"seccion": s["titulo"], **{k: h.get(k) for k in ("sev", "titulo", "detalle")}} for s in d.get("secciones", []) for h in s.get("hallazgos", [])]
+    hallazgos = [{"seccion": s["titulo"], "afectados": len(h.get("objetos") or []), **{k: h.get(k) for k in ("sev", "titulo", "detalle", "porque")}}
+                 for s in d.get("secciones", []) for h in s.get("hallazgos", [])]
     pedido = ("Eres un arquitecto de Red Hat que escribe para la gerencia de TI de un cliente. Con estos hallazgos de un análisis automático "
               f"«{d.get('titulo')}», escribe en español: 1) un resumen ejecutivo de 4 a 6 líneas (estado general y riesgo de negocio), "
               "2) las 3 a 5 acciones prioritarias en orden, cada una con su porqué en una línea. Sin inventar datos que no estén en los hallazgos. "
@@ -61,6 +62,11 @@ def pdf(d):
                [Paragraph(f"<b>{cuenta[k]}</b>", s_t) for k in ORDEN]], colWidths=[36 * mm] * 5)
     t.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#d2d2d2")), ("INNERGRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#e5e5e5"))]))
     out.append(t)
+    out.append(Spacer(1, 4))
+    out.append(Paragraph("Cómo leer este informe: cada revisión tiene una severidad fija según su impacto (crítico: explotable o con "
+                         "pérdida de servicio; alto: riesgo serio de seguridad; medio: buena práctica incumplida; bajo: informativo). Dentro de "
+                         "cada sección los hallazgos van de más a menos grave, con los objetos afectados, por qué importa, qué hacer y su "
+                         "referencia (CIS, NIST o Red Hat).", s_s))
     ia = _resumen_ia(d)
     if ia:
         out.append(Paragraph("Resumen ejecutivo", s_h))
@@ -80,8 +86,15 @@ def pdf(d):
                                 + (f" · <i>{esc(h.get('objeto'))}</i>" if h.get("objeto") else ""), s_n)]]
             if h.get("detalle"):
                 filas.append([Paragraph(esc(h["detalle"]), s_s)])
+            if h.get("porque"):
+                filas.append([Paragraph(f"<i>Por qué importa:</i> {esc(h['porque'])}", s_n)])
+            if h.get("objetos"):
+                obj = list(h["objetos"])
+                filas.append([Paragraph(f"<b>Afectados ({len(obj)}):</b> " + esc(", ".join(obj[:150])) + (" …" if len(obj) > 150 else ""), s_s)])
             if h.get("recomendacion"):
                 filas.append([Paragraph(f"<i>Qué hacer:</i> {esc(h['recomendacion'])}", s_n)])
+            if h.get("referencia"):
+                filas.append([Paragraph(f"Referencia: {esc(h['referencia'])}", s_s)])
             tb = Table(filas, colWidths=[180 * mm])
             tb.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#d2d2d2")), ("LINEBEFORE", (0, 0), (0, -1), 3, colors.HexColor(c)),
                                     ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2), ("LEFTPADDING", (0, 0), (-1, -1), 7)]))

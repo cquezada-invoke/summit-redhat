@@ -48,15 +48,18 @@
                         if not x["name"].startswith("system:") and not (x["kind"] == "ServiceAccount" and sistema(x.get("namespace", ""))):
                             adm.append(f"{x['kind']} {x.get('namespace', '') + '/' if x.get('namespace') else ''}{x['name']}")
             if adm:
-                s["Accesos privilegiados"].append({"sev": "alto" if len(adm) > 3 else "medio", "titulo": f"{len(adm)} identidades con cluster-admin", "detalle": ", ".join(adm[:15]),
+                s["Accesos privilegiados"].append({"sev": "alto" if len(adm) > 3 else "medio", "titulo": f"{len(adm)} identidades con cluster-admin", "objetos": adm,
+                                                   "porque": "cluster-admin puede leer todos los secretos y cambiar cualquier cosa del clúster: cada identidad extra es un camino más para un incidente grave o un error humano.",
+                                                   "referencia": "CIS Red Hat OpenShift 5.1.1 · NIST AC-6 (mínimo privilegio)",
                                                    "recomendacion": "Dejar cluster-admin solo a un grupo de administradores; el resto con roles por namespace."})
             if e["kubeadmin"]:
-                s["Accesos privilegiados"].append({"sev": "alto", "titulo": "La cuenta kubeadmin sigue activa", "recomendacion": "Con el IdP corporativo configurado, eliminar el secreto kube-system/kubeadmin."})
+                s["Accesos privilegiados"].append({"sev": "alto", "titulo": "La cuenta kubeadmin sigue activa", "porque": "Es una cuenta compartida sin nombre ni MFA: lo que se hace con ella no se puede atribuir a una persona.", "referencia": "Documentación de OpenShift: eliminar kubeadmin tras configurar el IdP", "recomendacion": "Con el IdP corporativo configurado, eliminar el secreto kube-system/kubeadmin."})
             for scc in o["SecurityContextConstraints"]:
                 if scc.get("allowPrivilegedContainer"):
                     us = [u for u in scc.get("users") or [] if not u.startswith("system:serviceaccount:openshift") and not u.startswith("system:admin")]
                     if us:
-                        s["Accesos privilegiados"].append({"sev": "alto", "titulo": f"SCC privilegiada «{scc['metadata']['name']}» asignada a cuentas de aplicaciones", "detalle": ", ".join(us[:10]),
+                        s["Accesos privilegiados"].append({"sev": "alto", "titulo": f"SCC privilegiada «{scc['metadata']['name']}» asignada a cuentas de aplicaciones", "objetos": us,
+                                                           "porque": "Una SCC privilegiada deja a los pods de esas cuentas actuar como root en el nodo: si la aplicación se compromete, se compromete el nodo.", "referencia": "CIS Red Hat OpenShift 5.2.x",
                                                            "recomendacion": "Usar restricted-v2; si una CNF lo necesita, una SCC propia y acotada."})
             priv, root, latest = [], [], []
             for p in o["Pod"]:
@@ -74,29 +77,30 @@
                     if "@sha256" not in img and (img.endswith(":latest") or ":" not in img.split("/")[-1]):
                         latest.append(f"{ref} ({img.split('/')[-1]})")
             if priv:
-                s["Cargas de trabajo"].append({"sev": "critico", "titulo": f"{len(priv)} contenedores privilegiados en aplicaciones", "detalle": ", ".join(sorted(set(priv))[:12]),
+                s["Cargas de trabajo"].append({"sev": "critico", "titulo": f"{len(priv)} contenedores privilegiados en aplicaciones", "objetos": sorted(set(priv)),
+                                               "porque": "Un contenedor privilegiado tiene acceso total al nodo y a los demás contenedores que corren en él.", "referencia": "CIS Red Hat OpenShift 5.2.1",
                                                "recomendacion": "Quitar privileged; si es una CNF, documentar la excepción y aislarla en su namespace."})
             if root:
-                s["Cargas de trabajo"].append({"sev": "alto", "titulo": f"{len(root)} contenedores corren como root", "detalle": ", ".join(sorted(set(root))[:12]), "recomendacion": "Imágenes que no requieran root (UBI)."})
+                s["Cargas de trabajo"].append({"sev": "alto", "titulo": f"{len(root)} contenedores corren como root", "objetos": sorted(set(root)), "porque": "Si alguien explota la aplicación, queda como root dentro del contenedor, más cerca de escapar al nodo.", "referencia": "CIS Red Hat OpenShift 5.2.6", "recomendacion": "Imágenes que no requieran root (UBI)."})
             if latest:
-                s["Cargas de trabajo"].append({"sev": "medio", "titulo": f"{len(latest)} contenedores con imagen sin versión fija", "detalle": ", ".join(sorted(set(latest))[:12]),
+                s["Cargas de trabajo"].append({"sev": "medio", "titulo": f"{len(latest)} contenedores con imagen sin versión fija", "objetos": sorted(set(latest)), "porque": "Con :latest cada reinicio puede traer otra versión: no se sabe qué corre, no se puede auditar ni volver atrás.", "referencia": "Buenas prácticas de Red Hat para imágenes",
                                                "recomendacion": "Usar etiquetas de versión o digest: con :latest no se sabe qué corre ni se puede volver atrás."})
             con_np = {n["metadata"]["namespace"] for n in o["NetworkPolicy"]}
             sin_np = [n["metadata"]["name"] for n in o["Namespace"] if not sistema(n["metadata"]["name"]) and n["metadata"]["name"] not in con_np]
             if sin_np:
-                s["Red y exposición"].append({"sev": "alto", "titulo": f"{len(sin_np)} namespaces de aplicaciones sin NetworkPolicy", "detalle": ", ".join(sin_np[:20]),
+                s["Red y exposición"].append({"sev": "alto", "titulo": f"{len(sin_np)} namespaces de aplicaciones sin NetworkPolicy", "objetos": sin_np, "porque": "Sin NetworkPolicy, cualquier pod del clúster puede hablar con estos: un pod comprometido llega a todos (movimiento lateral).", "referencia": "CIS Red Hat OpenShift 5.3.2",
                                               "recomendacion": "Política por defecto que niegue y abra solo lo necesario («Regularizar» la crea)."})
             sin_tls = [f"{r['metadata']['namespace']}/{r['spec']['host']}" for r in o["Route"] if not r["spec"].get("tls")]
             http_ok = [f"{r['metadata']['namespace']}/{r['spec']['host']}" for r in o["Route"] if (r["spec"].get("tls") or {}).get("insecureEdgeTerminationPolicy") == "Allow"]
             if sin_tls:
-                s["Red y exposición"].append({"sev": "alto", "titulo": f"{len(sin_tls)} rutas publicadas sin TLS", "detalle": ", ".join(sin_tls[:12]), "recomendacion": "Terminación edge o reencrypt con redirección a HTTPS."})
+                s["Red y exposición"].append({"sev": "alto", "titulo": f"{len(sin_tls)} rutas publicadas sin TLS", "objetos": sin_tls, "porque": "El tráfico viaja en texto plano: credenciales y datos se pueden leer en la red.", "referencia": "PCI DSS 4.2.1 · NIST SC-8", "recomendacion": "Terminación edge o reencrypt con redirección a HTTPS."})
             if http_ok:
-                s["Red y exposición"].append({"sev": "medio", "titulo": f"{len(http_ok)} rutas aceptan HTTP sin redirigir", "detalle": ", ".join(http_ok[:12]), "recomendacion": "insecureEdgeTerminationPolicy: Redirect."})
+                s["Red y exposición"].append({"sev": "medio", "titulo": f"{len(http_ok)} rutas aceptan HTTP sin redirigir", "objetos": http_ok, "porque": "Un usuario que entra por http:// queda sin cifrar aunque la ruta tenga TLS.", "referencia": "NIST SC-8", "recomendacion": "insecureEdgeTerminationPolicy: Redirect."})
             viejos = [f"{x['metadata']['namespace']}/{x['metadata']['name']}" for x in o["Secret"]
                       if not sistema(x["metadata"]["namespace"]) and x.get("type") in ("Opaque", "kubernetes.io/basic-auth")
                       and edad(x["metadata"]["creationTimestamp"]) > e["dias"]]
             if viejos:
-                s["Secretos y certificados"].append({"sev": "medio", "titulo": f"{len(viejos)} secretos sin rotar hace más de {e['dias']} días", "detalle": ", ".join(viejos[:15]),
+                s["Secretos y certificados"].append({"sev": "medio", "titulo": f"{len(viejos)} secretos sin rotar hace más de {e['dias']} días", "objetos": viejos, "porque": "Un secreto viejo pudo haberse filtrado (logs, personas que ya no están) y sigue sirviendo.", "referencia": "NIST IA-5 (gestión de credenciales)",
                                                      "recomendacion": "Rotarlos o moverlos a Vault con rotación automática."})
             for x in o["Secret"]:
                 if x.get("type") == "kubernetes.io/tls" and x["metadata"]["namespace"] in ("openshift-ingress", "openshift-config", "openshift-kube-apiserver"):
