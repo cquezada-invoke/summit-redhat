@@ -96,11 +96,17 @@ def explorador():
     esqs = {}
     for esq, tab, tipo in filas:
         esqs.setdefault(esq, []).append((tab, tipo))
+    # ficha y conteo de todas las tablas en paralelo (antes iban una por una: decenas de consultas seguidas)
+    from concurrent.futures import ThreadPoolExecutor
+    def _datos(et):
+        esq, tab, tipo = et
+        return (esq, tab), ((("VISTA", None) if tipo == "VIEW" else _ficha(esq, tab)), _cuenta(esq, tab))
+    with ThreadPoolExecutor(max_workers=12) as ex:
+        info = dict(ex.map(_datos, filas))
     for esq, tabs in esqs.items():
         cuerpo += f"<h2>Esquema lake.{html.escape(esq)} <a class=sub href='{LAKE_WEB}{esq}/' target=_blank>ver carpeta en S3 ↗</a></h2><div class=tab><table><tr><th>Tabla</th><th>Formato</th><th>Filas</th><th>Ubicación en S3</th><th></th></tr>"
         for tab, tipo in tabs:
-            fmt, loc = ("VISTA", None) if tipo == "VIEW" else _ficha(esq, tab)
-            n = _cuenta(esq, tab)
+            (fmt, loc), n = info[(esq, tab)]
             ubic = (f"<a href='{LAKE_WEB}{html.escape(loc[len('s3://lake/'):])}' target=_blank>{html.escape(loc)}</a>" if loc
                     else "<span class=sub>vista: une tablas del lake</span>")
             cuerpo += (f"<tr><td><b>{html.escape(tab)}</b></td><td><span class='chip {fmt}'>{fmt}</span></td><td>{'' if n is None else f'{n:,}'.replace(',', '.')}</td>"
