@@ -1,0 +1,41 @@
+commit: 28a94d65cfff0433e40c3e5074ac9b4c107b5c14
+inicio: 2026-11-10T01:31:22-03:00
+---
+=== job 20353
+-- fw Firewall · VLAN 320 del servicio
+{'commands': ["set interfaces ethernet eth2 vif 320 description 'upf-demo'", 'set interfaces ethernet eth2 vif 320 address 10.60.20.1/24'], 'updates': None, 'filtered': [], 'diff': None, 'msg': None}
+-- fw Firewall · estado de la VLAN
+{'commands': None, 'updates': None, 'filtered': None, 'diff': None, 'msg': None}
+-- fw Estado de la VLAN
+{'commands': None, 'updates': None, 'filtered': None, 'diff': None, 'msg': None}
+-- fw Firewall · retirar la VLAN creada
+{'commands': [], 'updates': None, 'filtered': [], 'diff': None, 'msg': None}
+=== job 20372
+-- fw Firewall · retirar la VLAN 320
+{'commands': [], 'updates': None, 'filtered': [], 'diff': None, 'msg': None}
+-- fw Firewall · estado de la VLAN
+{'commands': None, 'updates': None, 'filtered': None, 'diff': None, 'msg': None}
+-- fw Estado de la VLAN
+{'commands': None, 'updates': None, 'filtered': None, 'diff': None, 'msg': None}
+host borde ansible_host: 172.20.20.52 faceops_categoria: router faceops_forma: virtual faceops_ubicacion: Red corporativa · Centro 
+host core ansible_host: 172.20.20.58 faceops_categoria: switch faceops_forma: virtual faceops_ubicacion: Red corporativa · Centro 
+host dns-dmz ansible_host: 172.20.20.56 faceops_categoria: servidor faceops_forma: virtual faceops_ubicacion: Red corporativa · Centr
+host fw ansible_host: 172.20.20.12 ansible_connection: ansible.netcommon.network_cli ansible_network_os: vyos.vyos.vyos ansible_
+host fw-interno ansible_host: 172.20.20.57 faceops_categoria: firewall faceops_forma: virtual faceops_ubicacion: Red corporativa · Centr
+host fw-perimetral ansible_host: 172.20.20.53 faceops_categoria: firewall faceops_forma: virtual faceops_ubicacion: Red corporativa · Centr
+host lb-dmz ansible_host: 172.20.20.54 faceops_categoria: balanceador faceops_forma: virtual faceops_ubicacion: Red corporativa · Ce
+host nas-01 ansible_host: 172.20.20.62 faceops_categoria: almacenamiento faceops_forma: virtual faceops_ubicacion: Red corporativa ·
+host nodo-jboss ansible_host: 192.168.122.15 ansible_user: ansible ansible_connection: ssh
+host nodo-nginx {"ansible_host": "192.168.122.11", "ansible_user": "ansible"}
+host nodo-postgres ansible_host: 192.168.122.13 ansible_user: ansible ansible_connection: ssh
+host nodo-so {"ansible_host": "192.168.122.12", "ansible_user": "ansible"}
+host pc-campus-01 ansible_host: 172.20.20.61 faceops_categoria: estación de trabajo faceops_forma: virtual faceops_ubicacion: Red corporat
+host pc-usuario ansible_host: 172.20.20.22 ansible_python_interpreter: /usr/bin/python3 descripcion: Equipo de usuario detrás del FortiG
+host proxy-dmz ansible_host: 172.20.20.55 faceops_categoria: servidor faceops_forma: virtual faceops_ubicacion: Red corporativa · Centr
+host rtr ansible_host: 172.20.20.11 bgp_vecino: 10.0.0.1 descripcion: Router de borde (FRR)
+host srv-app-01 ansible_host: 172.20.20.59 faceops_categoria: servidor faceops_forma: virtual faceops_ubicacion: Red corporativa · Centr
+host srv-bd-01 ansible_host: 172.20.20.60 faceops_categoria: servidor faceops_forma: virtual faceops_ubicacion: Red corporativa · Centr
+host suc1 {"ansible_host": "192.168.122.1", "ansible_user": "aap-lab", "lab_nodo": "suc1", "lab_ip": "172.20.20.41", "lab_red": "1
+host suc2 {"ansible_host": "192.168.122.1", "ansible_user": "aap-lab", "lab_nodo": "suc2", "lab_ip": "172.20.20.42", "lab_red": "1
+host suc3 {"ansible_host": "192.168.122.1", "ansible_user": "aap-lab", "lab_nodo": "suc3", "lab_ip": "172.20.20.43", "lab_red": "1
+--- fin: 2026-11-10T01:31:23-03:00 · código: 0
