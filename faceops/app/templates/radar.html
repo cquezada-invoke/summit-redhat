@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% from "_radar.html" import col %}{% block titulo %}Radar de salud{% endblock %}
 {% block cuerpo %}
-<div class="fila"><div><h1>Radar de salud</h1><p class="sub">La característica principal de Monitoreo: cinco principios, cada uno con sus criterios. Cada criterio es un caso con su barra de cumplimiento. Los mismos puntos se ven en segmentos, plataformas, sistemas operativos, storage y redes.</p></div></div>
+<div class="fila"><div><h1>Radar de salud</h1><p class="sub">La característica principal de Monitoreo: seis pilares (alineados con AWS Well-Architected), cada uno con sus criterios. Cada criterio es un caso con su barra de cumplimiento. Los mismos puntos se ven en segmentos, plataformas, sistemas operativos, storage y redes.</p></div></div>
 <div class="tabs-pf"><a class="{{ 'on' if vista != 'segmentos' }}" href="{{ url_for('consola.radar_salud') }}">Parque (equipos)</a>{% if ind.seg %}<a class="{{ 'on' if vista == 'segmentos' }}" href="{{ url_for('consola.radar_salud', vista='segmentos') }}">Segmentos de negocio en producción</a>{% endif %}</div>
 {{ kpi_panel(kpi) }}
 <div class="card rd-top" style="margin:0 0 14px">

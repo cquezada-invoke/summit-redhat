@@ -1,4 +1,4 @@
-"""Radar de salud: los mismos 5 principios (Disponibilidad, Hallazgos, Rendimiento, Seguridad, Recuperación) en todo FaceOps.
+"""Radar de salud: los mismos 6 pilares (Disponibilidad, Rendimiento, Seguridad, Recuperación, Costo, Excelencia operativa; AWS Well-Architected) en todo FaceOps.
 
 - Segmentos de negocio: la salud de cada segmento (topologia.salud_segmento) con sus criterios.
 - Cualquier conjunto de equipos (servidores, storage, redes, sistemas operativos, plataformas, bases de datos…): criterios
@@ -13,26 +13,30 @@ from .topologia import PRINCIPIOS_SALUD, metas_salud
 CRITERIOS_EQ = [
     ("D1", "Disponibilidad", "Encendido", "El equipo está encendido o respondiendo"),
     ("D2", "Disponibilidad", "Vigilado: alerta de disponibilidad", "Tiene configurada en Ansible la alerta «sin respuesta» (botón Alertas)"),
-    ("H1", "Hallazgos", "Sin hallazgos graves", "Ningún hallazgo de severidad alta abierto"),
-    ("H2", "Hallazgos", "Sin advertencias", "Ningún hallazgo de severidad media abierto"),
+    ("H1", "Excelencia operativa", "Sin hallazgos graves", "Ningún hallazgo de severidad alta abierto"),
+    ("H2", "Excelencia operativa", "Sin advertencias", "Ningún hallazgo de severidad media abierto"),
     ("P1", "Rendimiento", "Con métricas de rendimiento", "Tiene el agente de métricas (node_exporter o windows_exporter)"),
     ("P2", "Rendimiento", "Vigilado: alertas de capacidad", "Tiene alertas de CPU, memoria o disco configuradas"),
     ("S1", "Seguridad", "Sin hallazgos de seguridad", "Sin hallazgos de seguridad, CVE, accesos o cifrado abiertos"),
     ("S2", "Seguridad", "Con soporte del fabricante", "Su sistema o plataforma recibe parches (no está fuera de soporte ni solo con soporte extendido)"),
     ("R1", "Recuperación", "Con respaldo continuo", "Configuración, paquetes y servicios respaldados en Git para reconstruirlo"),
+    ("C1", "Costo", "Sin recursos ociosos", "No tiene hallazgos de recursos sin uso (CPU, memoria o máquina completa)"),
+    ("C2", "Costo", "Costo imputable", "Pertenece a un segmento de negocio: su costo se asigna a un servicio"),
+    ("E1", "Excelencia operativa", "Gestionado por Ansible", "Está en el inventario de AAP: se opera con automatizaciones, no a mano"),
 ]
 # Criterios por segmento: los de topologia.salud_segmento, reconocidos por su título
 CRITERIOS_SEG = [
     ("SD1", "Disponibilidad", "Con servicio", "No está completamente apagado", r"completamente apagado"),
     ("SD2", "Disponibilidad", "Máquinas encendidas", "Ninguna máquina del segmento apagada", r"máquina\(s\) apagada"),
     ("SD3", "Disponibilidad", "Alta disponibilidad en producción", "Ningún componente con una sola máquina", r"sin alta disponibilidad"),
-    ("SH1", "Hallazgos", "Sin hallazgos graves", "Ningún hallazgo alto en sus máquinas", None),
-    ("SH2", "Hallazgos", "Sin advertencias", "Ningún hallazgo medio en sus máquinas", None),
+    ("SH1", "Excelencia operativa", "Sin hallazgos graves", "Ningún hallazgo alto en sus máquinas", None),
+    ("SH2", "Excelencia operativa", "Sin advertencias", "Ningún hallazgo medio en sus máquinas", None),
     ("SP1", "Rendimiento", "Flujos abiertos", "Todos los flujos entre componentes pasan", r"flujo\(s\) cerrado"),
     ("SP2", "Rendimiento", "Latencia bajo 20 ms", "Ningún flujo con latencia alta", r"Latencia alta"),
     ("SS1", "Seguridad", "Flujos cifrados", "Todos los flujos con TLS", r"sin TLS"),
     ("SR1", "Recuperación", "Máquinas con respaldo", "Todas con respaldo continuo", r"sin respaldo continuo"),
     ("SR2", "Recuperación", "RTO y RPO definidos", "La ficha del segmento define RTO y RPO", r"RTO/RPO"),
+    ("SC1", "Costo", "Sin máquinas ociosas", "Ninguna máquina del segmento sin uso o sobredimensionada", r"sin uso|ocios|sobredimension"),
 ]
 SEG_KW = re.compile(r"seguridad|cve|vulner|acceso|ssh|root|tls|cifr|certific|contraseñ|firewall|selinux|puerto", re.I)
 
@@ -66,6 +70,9 @@ def casos_equipo(e, hs_eq):
         "S1": not any(SEG_KW.search(f"{h.get('titulo', '')} {h.get('tipo', '')} {h.get('politica', '')}") for h in hs_eq),
         "S2": (cv.get("fase") not in ("fuera", "extendido")) if cv.get("fase") not in (None, "desconocido") else None,
         "R1": ("respaldo-git" in sk) if es_srv else None,
+        "C1": not any((h.get("tipo") or "") == "sin_uso" for h in hs_eq),
+        "C2": bool(e.get("segmentos")) if es_srv else None,
+        "E1": bool(e.get("aap_host_id")) or bool(e.get("inventarios") and e.get("inventarios") not in ("[]", [])),
     }
 
 
@@ -121,9 +128,9 @@ def radar_segmentos(cliente, eqs, hallazgos, ambiente="produccion", grupo="aplic
         filas.append({"nombre": sg, "pct": r["salud_pct"], "areas": {a["area"]: a["pct"] for a in r["salud_areas"]}})
         for cid, pr, nom, exp, rx in CRITERIOS_SEG:
             if cid == "SH1":
-                falla = any(x["area"] == "Hallazgos" and x["nivel"] == "alta" for x in items)
+                falla = any(x["area"] == "Excelencia operativa" and x["nivel"] == "alta" for x in items)
             elif cid == "SH2":
-                falla = any(x["area"] == "Hallazgos" and x["nivel"] == "media" for x in items)
+                falla = any(x["area"] == "Excelencia operativa" and x["nivel"] == "media" for x in items)
             else:
                 falla = any(re.search(rx, x.get("titulo", ""), re.I) for x in items)
             cuenta[cid][1] += 1
@@ -140,7 +147,7 @@ def radar_segmentos(cliente, eqs, hallazgos, ambiente="produccion", grupo="aplic
 
 
 def radar_componente(r_maq, c):
-    """Radar de una plataforma instalada en la máquina: los mismos 5 principios. Disponibilidad, Hallazgos y Seguridad
+    """Radar de una plataforma instalada en la máquina: los mismos pilares. Disponibilidad, Excelencia operativa (remediaciones) y Seguridad
     salen de lo medido para la plataforma (su servicio, sus remediaciones, sus CVEs y políticas); Rendimiento y Recuperación
     son los de la máquina que la aloja (la plataforma comparte sus métricas y su respaldo)."""
     import copy
@@ -157,7 +164,7 @@ def radar_componente(r_maq, c):
                 p["criterios"] = p["criterios"] + [{"id": "PL", "nombre": f"{c.get('nombre')}: " + ", ".join(k for k in claves if secs.get(k) is not None),
                                                     "pct": v, "explica": "medido para esta plataforma", "principio": nombre}]
     fijar("Disponibilidad", "servicio")
-    fijar("Hallazgos", "remediaciones", base=False)
+    fijar("Excelencia operativa", "remediaciones", base=False)
     fijar("Seguridad", "cves", "politicas")
     vals = [p["pct"] for p in pri if p["pct"] is not None]
     return dict(r_maq, principios=pri, pct=round(sum(vals) / len(vals)) if vals else None, n=1)
@@ -176,7 +183,7 @@ def _pct_uso(u):
 
 def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=None, inv_horas=None):
     """Radar de UNA máquina con los principios medidos en continuo (no solo criterios sí/no):
-    Disponibilidad por instancias (ella y sus réplicas), Hallazgos con el mismo cálculo de las remediaciones preventivas,
+    Disponibilidad por instancias (ella y sus réplicas), Excelencia operativa con el mismo cálculo de las remediaciones preventivas,
     Rendimiento por uso de CPU, memoria y disco frente a lo asignado, Recuperación por la efectividad real de recuperarla
     (cobertura del último punto de restauración y su frescura). Cada principio dice qué falta para llegar al 100 %."""
     import copy
@@ -204,8 +211,8 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
             d["falta"].append("Una tercera instancia lleva la disponibilidad al 100 %")
         if vig == 0:
             d["falta"].append("Configurar la alerta de disponibilidad (sin respuesta) en Alertas")
-    # Hallazgos: igual que las remediaciones preventivas (sistema y plataformas)
-    h = pri.get("Hallazgos")
+    # Excelencia operativa: igual que las remediaciones preventivas (sistema y plataformas)
+    h = pri.get("Excelencia operativa")
     if h is not None:
         vals = [(c.get("nombre"), s.get("salud"), s.get("motivos") or []) for c in componentes or [] for s in (c.get("secciones") or [])
                 if s.get("clave") == "remediaciones" and s.get("salud") is not None]

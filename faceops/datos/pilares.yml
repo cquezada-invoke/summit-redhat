@@ -1,6 +1,6 @@
 # Apertura de cada pilar de salud: qué considera en general y qué mirar en cada contexto tecnológico (ítems del menú).
 # Lo usan el panel (radar de madurez) y el detalle «Qué falta para llegar a la meta». Alineado con AWS Well-Architected,
-# ISO/IEC 25010, NIST CSF 2.0 e ISO 22301; la escala de madurez sigue la idea de niveles de COBIT 2019 / CMMI.
+# ISO/IEC 25010, NIST CSF 2.0 e ISO 22301; la escala de madurez sigue los niveles de COBIT 2019 / CMMI (1 a 5).
 Disponibilidad:
   definicion: "Que el servicio esté arriba cuando el negocio lo necesita y que una falla no lo detenga."
   considerar: ["Redundancia de lo crítico (sin puntos únicos de falla)", "Monitoreo con alertas atendidas", "Capacidad de reserva ante picos o caídas", "Ventanas de mantenimiento sin corte"]
@@ -13,18 +13,6 @@ Disponibilidad:
     contenedores: ["Control plane de 3 nodos y workers suficientes", "Réplicas y PodDisruptionBudget en las apps", "Sondas de vida y de disponibilidad"]
     nube: ["Despliegue en más de una zona", "Grupos de autoescalado", "Alertas del proveedor conectadas"]
     aplicaciones: ["Todos los componentes del flujo con redundancia", "Pruebas de punta a punta periódicas", "Dependencias externas monitoreadas"]
-Hallazgos:
-  definicion: "Que lo que se detecta mal (configuración, inventario, uso) se corrija y no se acumule."
-  considerar: ["Inventario completo y al día", "Hallazgos con dueño y plazo", "Atención por severidad (altos primero)", "Causa raíz para que no se repitan"]
-  por_contexto:
-    servidores: ["Recolección diaria del inventario", "Configuración igual a la línea base", "Servicios y paquetes sin uso retirados"]
-    redes: ["Configuración igual a la declarada en Git (sin drift)", "Reglas sin uso depuradas", "Firmware dentro de soporte"]
-    storage: ["Volúmenes huérfanos identificados", "Snapshots viejos depurados"]
-    bd: ["Parámetros según la buena práctica del motor", "Usuarios y permisos revisados"]
-    plataformas: ["Versiones dentro de soporte", "Configuración versionada"]
-    contenedores: ["Recursos (requests/limits) declarados", "Imágenes con versión fija", "Namespaces con cuota"]
-    nube: ["Recursos huérfanos y sin etiqueta", "Reglas de red abiertas a internet"]
-    aplicaciones: ["Hallazgos de código y dependencias atendidos", "Ambientes homologados a producción"]
 Rendimiento:
   definicion: "Que el servicio responda en el tiempo esperado con los recursos justos."
   considerar: ["Métricas de uso reales (CPU, memoria, disco, red)", "Tiempos de respuesta medidos", "Recursos dimensionados al uso", "Pruebas de carga antes de cambios grandes"]
@@ -61,3 +49,27 @@ Recuperación:
     contenedores: ["Respaldo de etcd", "Manifiestos en Git (GitOps)", "Respaldo de volúmenes persistentes"]
     nube: ["Snapshots y respaldo entre regiones"]
     aplicaciones: ["Plan de recuperación del segmento completo", "Prueba anual de recuperación"]
+Costo:
+  definicion: "Que lo que se paga esté bien usado: sin capacidad ociosa, con dueño y sin sorpresas en la factura."
+  considerar: ["Recursos dimensionados al uso real", "Costo asignado a cada servicio (dueño claro)", "Licencias y suscripciones en uso", "Huérfanos y lo que no se usa, retirado"]
+  por_contexto:
+    servidores: ["CPU y memoria ajustadas al uso", "Máquinas sin uso apagadas o retiradas", "Cada máquina asignada a un servicio"]
+    redes: ["Enlaces contratados acordes al tráfico", "Equipos sin uso dados de baja"]
+    storage: ["Volúmenes y snapshots huérfanos eliminados", "Nivel de almacenamiento según el uso (caliente / frío)"]
+    bd: ["Instancias consolidadas cuando el uso es bajo", "Licencias del motor ajustadas a los núcleos usados"]
+    plataformas: ["Suscripciones acordes a las instancias en uso"]
+    contenedores: ["Requests sin sobredimensionar", "Nodos ajustados a la carga (autoescalado)"]
+    nube: ["Reservas o compromisos de uso para lo estable", "Recursos huérfanos y sin etiqueta eliminados", "Presupuesto y alertas de gasto"]
+    aplicaciones: ["Costo mensual por segmento conocido", "Ambientes no productivos apagados fuera de horario"]
+Excelencia operativa:
+  definicion: "Que la operación sea predecible: automatizada, documentada, con cambios controlados y sin trabajo manual repetitivo."
+  considerar: ["Todo el parque gestionado por automatizaciones (no a mano)", "Inventario completo y al día", "Hallazgos con dueño y plazo, atendidos por severidad", "Cambios con aprobación y vuelta atrás", "Configuración como código (Git)"]
+  por_contexto:
+    servidores: ["En el inventario de AAP", "Recolección diaria del inventario", "Configuración igual a la línea base"]
+    redes: ["Configuración declarada en Git y sin drift", "Cambios por ticket con aprobación"]
+    storage: ["Asignación y ampliación por automatización", "Inventario de volúmenes al día"]
+    bd: ["Tareas de mantenimiento automatizadas", "Parámetros versionados"]
+    plataformas: ["Instalación y configuración por automatización", "Versiones dentro de soporte"]
+    contenedores: ["GitOps para aplicaciones y configuración del clúster", "Actualizaciones guiadas con validación"]
+    nube: ["Infraestructura como código", "Etiquetado obligatorio"]
+    aplicaciones: ["Pipelines con pruebas y vuelta atrás", "Ambientes homologados a producción"]

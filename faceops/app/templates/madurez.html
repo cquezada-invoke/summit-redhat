@@ -6,8 +6,8 @@
 <p class="sub" style="max-width:900px">El área ámbar del radar es el camino por recorrer: la distancia entre la foto de hoy (azul) y la meta competitiva (contorno punteado). Abajo, cada pilar ordenado por su brecha, con las prácticas que faltan, los equipos donde faltan y cómo abordarlo. Cada corrección suma; la cifra «correcciones para la meta» dice cuántas hacen falta para cerrar la brecha de ese pilar.</p>
 <div class="card" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
   <div style="flex:1;min-width:260px">
-    <div style="font-size:28px;font-weight:700">{{ m.pct }} % <span class="sub" style="font-size:14px;font-weight:400">hoy · meta {{ m.meta_pct }} % · brecha {{ [m.meta_pct - m.pct, 0]|max }} puntos</span></div>
-    <table style="margin-top:10px">{% for p in orden %}{% set d = m.detalle[p] %}<tr><td><a href="#{{ p }}"><b>{{ p }}</b></a></td><td>{{ m.actual[p] }} % → {{ m.meta[p]|int }} %</td>
+    <div style="font-size:28px;font-weight:700">Nivel {{ m.nivel.n }} · {{ m.nivel.nombre }} <span class="sub" style="font-size:14px;font-weight:400">{{ m.pct }} % hoy · meta {{ m.meta_pct }} % · brecha {{ [m.meta_pct - m.pct, 0]|max }} puntos</span></div>
+    <table style="margin-top:10px">{% for p in orden %}{% set d = m.detalle[p] %}<tr><td><a href="#{{ p }}"><b>{{ p }}</b></a></td><td>N{{ m.niveles[p].hoy.n }} ({{ m.actual[p] }} %) → N{{ m.niveles[p].meta.n }} ({{ m.meta[p]|int }} %)</td>
       <td>{% if d.por_hacer %}<b>{{ d.por_hacer }}</b> correcciones para la meta{% else %}<span style="color:var(--ok)">meta alcanzada</span>{% endif %}</td></tr>{% endfor %}</table>
   </div>
   <div style="flex:1;min-width:360px;text-align:center">{{ m.svg }}</div>
@@ -15,7 +15,7 @@
 {% for p in orden %}{% set d = m.detalle[p] %}
 <div class="card" id="{{ p }}" style="margin-top:14px">
   <div class="fila" style="align-items:baseline;flex-wrap:wrap;gap:4px 14px"><h2 style="margin:0">{{ p }}</h2>
-    <span>hoy <b>{{ m.actual[p] }} %</b> · meta <b>{{ m.meta[p]|int }} %</b> · brecha <b>{{ d.brecha }}</b> puntos</span>
+    <span>hoy <b>nivel {{ m.niveles[p].hoy.n }} · {{ m.niveles[p].hoy.nombre }}</b> ({{ m.actual[p] }} %) · meta <b>nivel {{ m.niveles[p].meta.n }} · {{ m.niveles[p].meta.nombre }}</b> ({{ m.meta[p]|int }} %) · brecha <b>{{ d.brecha }}</b> puntos</span>
     <span class="der">{% if d.por_hacer %}<b>{{ d.por_hacer }}</b> correcciones para llegar a la meta (de {{ d.total - d.hechas }} pendientes){% else %}<span style="color:var(--ok)">meta alcanzada</span>{% endif %}</span></div>
   {% set I = info.get(p) or {} %}{% if I %}<p style="margin:6px 0 4px">{{ I.definicion }}</p>
   <details{{ ' open' if ctx }} style="margin:0 0 8px"><summary style="cursor:pointer"><b>Qué considera este pilar</b>{% if ctx_nombre %} · en {{ ctx_nombre }}{% endif %}</summary>
@@ -29,5 +29,5 @@
     <td>{% if x.faltan %}{{ x.como }}{% if x.buscar %}<br><a href="{{ url_for('consola.automatizaciones', q=x.buscar) }}">Ver la acción en el catálogo ›</a>{% endif %}{% else %}<span style="color:var(--ok)">Cumplida en todos los equipos</span>{% endif %}</td>
     <td style="font-size:12.5px">{% for e in x.faltan[:24] %}<a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a>{{ ', ' if not loop.last }}{% endfor %}{% if x.faltan|length > 24 %} <span class="sub">y {{ x.faltan|length - 24 }} más</span>{% endif %}</td></tr>{% endfor %}</table>
 </div>{% endfor %}
-<p class="sub" style="margin-top:12px">Las metas de cada pilar se acuerdan con el cliente (datos/madurez.yml).</p>
+<p class="sub" style="margin-top:12px">Pilares alineados con AWS Well-Architected; escala de madurez según COBIT 2019 / CMMI: N1 Inicial (0-20 %) · N2 Gestionado (20-40 %) · N3 Definido (40-60 %) · N4 Medido (60-80 %) · N5 Optimizado (80-100 %). Las metas de cada pilar se acuerdan con el cliente (datos/madurez.yml).</p>
 {% endblock %}

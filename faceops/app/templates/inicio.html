@@ -4,9 +4,9 @@
 <p class="sub">{{ cliente.descripcion }}</p>
 {% if mad %}<div class="card" style="margin-top:16px">
   <div class="fila" style="align-items:baseline;flex-wrap:wrap;gap:6px 16px"><h2 style="margin:0">Madurez operativa</h2>
-    <div style="font-size:26px;font-weight:700">{{ mad.pct }} %<span class="sub" style="font-size:13px;font-weight:400"> hoy · meta {{ mad.meta_pct }} % · brecha {{ [mad.meta_pct - mad.pct, 0]|max }} puntos</span></div>
+    <div style="font-size:26px;font-weight:700">Nivel {{ mad.nivel.n }} · {{ mad.nivel.nombre }}<span class="sub" style="font-size:13px;font-weight:400"> {{ mad.pct }} % hoy · meta {{ mad.meta_pct }} % · brecha {{ [mad.meta_pct - mad.pct, 0]|max }} puntos</span></div>
     <a class="btn der" href="{{ url_for('consola.madurez_detalle') }}">Qué falta y cómo abordarlo ›</a></div>
-  <p class="sub" style="margin:4px 0 0">Escala de 0 a 100 % por pilar. Ámbar punteado: la <b>meta</b>, el nivel que se necesita para ser competitivo (no es 100 %). Azul: la <b>foto de hoy</b>, medida con prácticas verificables en cada equipo. Lo que queda entre ambos es la brecha: haz clic en el radar para ver qué falta y cómo abordarlo.</p>
+  <p class="sub" style="margin:4px 0 0">Seis pilares (AWS Well-Architected) medidos en la escala de madurez de COBIT 2019 / CMMI: cada anillo es un nivel, de N1 Inicial a N5 Optimizado. Ámbar punteado: la <b>meta</b>, el nivel que se necesita para ser competitivo (no es 100 %). Azul: la <b>foto de hoy</b>, medida con prácticas verificables en cada equipo. Lo que queda entre ambos es la brecha: haz clic en el radar para ver qué falta y cómo abordarlo.</p>
   <div style="display:flex;justify-content:center;margin:4px 0 6px">{{ mad.svg }}</div>
   <div class="mad-grid">{% for f in mad.filas if f.pct is not none %}<div class="mad-fila">
     <span class="mad-n"><a href="{{ url_for('consola.madurez_detalle', contexto=f.clave if f.clave != 'infraestructura' else None) }}" title="Qué falta en {{ f.nombre }} y cómo abordarlo">{{ f.nombre }}</a><small class="sub"> · {{ f.equipos }} equipo{{ 's' if f.equipos != 1 }}</small></span>

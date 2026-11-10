@@ -1236,7 +1236,7 @@ def _radar_maquina(e, componentes, puntos_r):
 
 
 def _radar_de(eqs):
-    """Radar de salud (los 5 principios con sus criterios) de un conjunto de equipos, para cualquier vista."""
+    """Radar de salud (los 6 pilares con sus criterios) de un conjunto de equipos, para cualquier vista."""
     if not eqs:
         return None
     try:
@@ -1426,7 +1426,7 @@ def _instancia(e, r, cod, corto=False):
          "motivos": [m.get("t") or m.get("texto") or "" for m in (sal or {}).get("motivos") or []],
          "estado": e.get("energia") or "sin dato", "ambiente": e.get("ambiente") or "", "ubicacion": e.get("ubicacion") or "",
          "segmentos": e.get("segmentos") or [], "equipo": {"id": e["id"], "nombre": e["nombre"], "ip": e.get("ip") or "", "so": e.get("so") or ""}}
-    try:   # radar de salud de la instancia: los 5 principios (servicio, remediaciones y CVEs propios; el resto, de su máquina)
+    try:   # radar de salud de la instancia: los 6 pilares (servicio, remediaciones y CVEs propios; el resto, de su máquina)
         from .radar import radar_componente
         x["radar"] = radar_componente(_radar_de([e]), {"nombre": nom, "secciones": (sal or {}).get("secciones") or []})
     except Exception:  # noqa: BLE001
@@ -2279,7 +2279,7 @@ def inventario(seccion="inventario"):
         por_pag = 10
     eqs = sorted(eqs, key=lambda e: (e.get("energia") != "encendido", (e.get("nombre") or "").lower()))   # encendidos primero
     n_filtrados = len(eqs)
-    radar_sec = _radar_de(eqs)   # los 5 principios del radar de salud sobre lo que se está viendo
+    radar_sec = _radar_de(eqs)   # los 6 pilares del radar de salud sobre lo que se está viendo
     paginas = max(1, -(-n_filtrados // por_pag))
     try:
         pag = max(1, min(paginas, int(request.args.get("p", 1))))
@@ -6175,7 +6175,7 @@ def kpi_de_global(clave):
 @bp.route("/monitoreo/radar")
 @requiere_login
 def radar_salud():
-    """Monitoreo › Radar de salud: la característica principal de Monitoreo. Los 5 principios del parque y de los segmentos,
+    """Monitoreo › Radar de salud: la característica principal de Monitoreo. Los 6 pilares del parque y de los segmentos,
     cada uno con sus criterios (casos) y su barra de cumplimiento, y los equipos o segmentos que no lo cumplen."""
     from .topologia import estrella_svg
     ind = _indicadores()

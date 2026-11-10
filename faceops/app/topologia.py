@@ -837,7 +837,7 @@ def _indicadores_app(arq):
     return (mt or {}).get("indicadores") or [{"area": "Aplicación", "nivel": "media", "titulo": "No responde el endpoint de métricas de la aplicación", "detalle": url}]
 
 
-PRINCIPIOS_SALUD = ["Disponibilidad", "Hallazgos", "Rendimiento", "Seguridad", "Recuperación"]
+PRINCIPIOS_SALUD = ["Disponibilidad", "Rendimiento", "Seguridad", "Recuperación", "Costo", "Excelencia operativa"]   # pilares (AWS Well-Architected)
 
 
 def metas_salud(ficha=None):
@@ -859,7 +859,7 @@ def estrella_svg(actual, meta, tam=320, etiquetas=True):
     W, H = 520, 340
     cx, cy, R = W / 2, 178, 118
     def pt(i, v):
-        a = math.radians(-90 + 72 * i)
+        a = math.radians(-90 + 360 / len(PRINCIPIOS_SALUD) * i)
         r = R * max(0, min(100, v)) / 100
         return cx + r * math.cos(a), cy + r * math.sin(a)
     pol = lambda vals: " ".join(f"{x:.1f},{y:.1f}" for x, y in (pt(i, v) for i, v in enumerate(vals)))
@@ -867,21 +867,21 @@ def estrella_svg(actual, meta, tam=320, etiquetas=True):
     met = [meta.get(p, 100) for p in PRINCIPIOS_SALUD]
     out = [f'<svg class="estrella" viewBox="0 0 {W} {H}" width="{tam}" role="img" aria-label="Radar de salud">']
     for f in (1, .5):
-        out.append(f'<polygon points="{pol([100 * f] * 5)}" fill="none" stroke="var(--line)" stroke-width="1"/>')
-    for i in range(5):
+        out.append(f'<polygon points="{pol([100 * f] * len(PRINCIPIOS_SALUD))}" fill="none" stroke="var(--line)" stroke-width="1"/>')
+    for i in range(len(PRINCIPIOS_SALUD)):
         x, y = pt(i, 100)
         out.append(f'<line x1="{cx}" y1="{cy}" x2="{x:.1f}" y2="{y:.1f}" stroke="var(--line)" stroke-width="1"/>')
     out.append(f'<polygon points="{pol(met)}" fill="#fac775" fill-opacity=".55" stroke="#ba7517" stroke-width="1.6" stroke-dasharray="6 4"/>')
     out.append(f'<polygon points="{pol(act)}" fill="#e6f1fb" stroke="#185fa5" stroke-width="2.2"/>')
-    for i in range(5):
+    for i in range(len(PRINCIPIOS_SALUD)):
         for vals, col in ((met, "#ba7517"), (act, "#185fa5")):
             x, y = pt(i, vals[i])
             out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.6" fill="{col}"/>')
         if etiquetas:
-            a = math.radians(-90 + 72 * i)
+            a = math.radians(-90 + 360 / len(PRINCIPIOS_SALUD) * i)
             x, y = cx + (R + 22) * math.cos(a), cy + (R + 22) * math.sin(a)
             anc = "middle" if abs(math.cos(a)) < .3 else ("start" if math.cos(a) > 0 else "end")
-            dy = -14 if i == 0 else (6 if i in (2, 3) else 0)
+            dy = -14 if i == 0 else (6 if math.sin(a) > .5 else 0)
             out.append(f'<text x="{x:.1f}" y="{y + dy:.1f}" text-anchor="{anc}" font-size="13" font-weight="700" fill="currentColor">{escape(PRINCIPIOS_SALUD[i])}</text>'
                        f'<text x="{x:.1f}" y="{y + dy + 15:.1f}" text-anchor="{anc}" font-size="11.5" fill="var(--muted)">{act[i]:.0f} % · meta {met[i]:.0f} %</text>')
     out.append("</svg>")
@@ -912,7 +912,7 @@ def estrella_parque(cliente, eqs, hallazgos):
 def _puntaje_salud(salud):
     """% de salud por área (parte en 100: −15 por situación grave, −6 por advertencia) y del segmento (promedio de sus áreas)."""
     pen = {"alta": 15, "media": 6}
-    areas = {a: 100 for a in PRINCIPIOS_SALUD}   # los 5 principios siempre se muestran (100 % si no hay nada que atender)
+    areas = {a: 100 for a in PRINCIPIOS_SALUD}   # los pilares siempre se muestran (100 % si no hay nada que atender)
     for x in salud:
         if x["area"] not in areas:
             continue
@@ -977,7 +977,7 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq):
     for h in hs:
         por_t[(h["severidad"], h["titulo"])].append(h)
     for (sev, tit), xs in sorted(por_t.items(), key=lambda x: {"alta": 0, "media": 1}.get(x[0][0], 2))[:8]:
-        out.append({"nivel": "alta" if sev == "alta" else "media", "area": "Hallazgos", "titulo": tit,
+        out.append({"nivel": "alta" if sev == "alta" else "media", "area": "Excelencia operativa", "titulo": tit,
                     "detalle": ", ".join(sorted({x.get("equipo") or "" for x in xs}))[:160],
                     "remedio": (xs[0].get("sugerencia") or "Reparar desde la caja de cada máquina (botón Reparar)")[:200]})
     estados = _estados(cliente)
