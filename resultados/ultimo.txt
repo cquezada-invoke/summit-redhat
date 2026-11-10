@@ -1,17 +1,10 @@
-commit: eb9654a210e68df867e84b1d256ebfb1409ea5ba
-inicio: 2026-11-10T00:52:34-03:00
+commit: e7811859df09a15eecc69c6ae4fa50fadaf29017
+inicio: 2026-11-10T00:53:11-03:00
 ---
-wf Portal · Linux · Liberar espacio en disco successful 2026-11-10T03:49:12
- nodo aprobacion workflow_approval 20308 successful
- nodo informe job 20315 successful
- nodo paso1 job 20312 successful
-[WARNING]: provided hosts list is empty, only localhost is available. Note that
-the implicit localhost does not match 'all'
-[WARNING]: Could not match supplied host pattern, ignoring: nodo-jboss
+   LISTO
+== reenviar PDF de 20307:
+{"archivo":"resultado-20307-20261110-0055.pdf","cuenta":{},"envio":"enviado a cquezada@redhat.com"}
 
-PLAY [Informe de ejecución (PDF por correo con lo que se hizo)] ****************
-skipping: no hosts matched
-
-PLAY RECAP *********************************************************************
-Nov 10 00:39:16 demo-ansible-summit portal-automatizacion[932929]: 192.168.122.1 - - [10/Nov/2026:00:39:16 -0300] "POST /api/informe HTTP/1.1" 200 145 "-" "ansible-httpget"
---- fin: 2026-11-10T00:52:35-03:00 · código: 0
+== prueba completa (Liberar disco con servidor elegido):
+== Linux · Liberar espacio en disco {"umbral": 85, "forzar": "no"} → #20323 successful
+--- fin: 2026-11-10T00:55:55-03:00 · código: 0
