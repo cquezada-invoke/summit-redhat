@@ -202,7 +202,7 @@ def etiqueta(nombre, o):
     return etiqueta_ids[(nombre, o)]
 
 
-def plantilla(nombre, playbook, red=False, descripcion="", base=None):
+def plantilla(nombre, playbook, red=False, descripcion="", base=None, credencial=None):
     b_ = uno("job_templates", name=base) if base else None   # servidores: inventario y credenciales de máquina de esa plantilla
     jt = asegurar("job_templates", nombre, {
         "organization": org if not red else jt_red["organization"],
@@ -212,6 +212,8 @@ def plantilla(nombre, playbook, red=False, descripcion="", base=None):
         "allow_simultaneous": False})["id"]
     ya = {c["id"] for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]}
     creds = [c["id"] for c in aap("GET", f"job_templates/{b_['id']}/credentials/")["results"]] if b_ else (cred_red if red else [cred_ocp])
+    if credencial:   # credencial de máquina de los servidores (la que FaceOps adjunta al lanzar)
+        creds.append(uno("credentials", name=credencial)["id"])
     for c in creds:
         if c not in ya:
             aap("POST", f"job_templates/{jt}/credentials/", {"id": c})
@@ -224,7 +226,7 @@ cat = yaml.safe_load(open(os.path.join(AQUI, "catalogo.yml")))
 jts = {}
 for it in cat:
     if it.get("playbook"):
-        jts[it["nombre"]] = plantilla(f"Portal · {it['nombre']} (plantilla)", it["playbook"], it.get("red", False), it["descripcion"], it.get("base"))
+        jts[it["nombre"]] = plantilla(f"Portal · {it['nombre']} (plantilla)", it["playbook"], it.get("red", False), it["descripcion"], it.get("base"), it.get("credencial"))
     elif it.get("existente"):
         jts[it["nombre"]] = uno("job_templates", name=it["existente"])["id"]
 jts["_orden"] = plantilla("Portal · Amdocs · Orden de servicio (plantilla)", "playbooks/amdocs-orden.yml",

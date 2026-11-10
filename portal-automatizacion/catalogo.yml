@@ -229,6 +229,7 @@
   seccion: linux
   playbook: playbooks/linux-informe-seguridad.yml
   base: "Seguridad · Revisar CVEs"
+  credencial: "Nodos demo (ansible)"
   limite: true
   descripcion: "Informe en PDF por correo de los servidores Linux elegidos: parches de seguridad pendientes y críticos, reinicio pendiente, SELinux, SSH (root y contraseñas), cuentas con UID 0 y sudo sin contraseña, firewall, puertos expuestos, intentos de acceso fallidos y servicios inseguros. Semáforo, qué hacer y resumen ejecutivo escrito por Claude."
   encuesta:
@@ -238,6 +239,7 @@
   seccion: windows
   playbook: playbooks/windows-informe-seguridad.yml
   base: "Seguridad · Revisar CVEs"
+  credencial: "Windows · ansible (WinRM)"
   limite: true
   descripcion: "Informe en PDF por correo de los servidores Windows elegidos: actualizaciones pendientes y críticas, días sin actualizar, versión fuera de soporte, administradores locales, firewall, Defender, BitLocker, SMBv1, RDP sin NLA, cuenta Guest y política de contraseñas. Semáforo, qué hacer y resumen ejecutivo escrito por Claude."
   encuesta:
