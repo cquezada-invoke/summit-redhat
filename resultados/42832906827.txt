@@ -1,0 +1,82 @@
+commit: 383743a757aa898486b375820d5a8a2ff8806934
+inicio: 2026-11-10T11:19:32-03:00
+---
+=== contenedores podman en el lab
+summit-dns | localhost/dns-summit:1
+faceops-vcsim | docker.io/vmware/vcsim:v0.52.0
+kc-doble-factor | quay.io/keycloak/keycloak:26.0.7
+faceops-maqueta | localhost/faceops:latest
+faceops | localhost/faceops:latest
+faceops-validador | localhost/faceops-validador:latest
+faceops-guacd | docker.io/guacamole/guacd:1.5.5
+summit-prometheus | docker.io/prom/prometheus:v2.55.1
+faceops-sni | docker.io/library/nginx:1.27-alpine
+summit-blackbox | docker.io/prom/blackbox-exporter:v0.25.0
+summit-alertmanager | docker.io/prom/alertmanager:v0.27.0
+summit-grafana | docker.io/grafana/grafana:11.3.1
+faceops-kb | docker.io/library/postgres:16.4
+faceops-publico | docker.io/library/nginx:1.27-alpine
+faceops-guacamole | docker.io/guacamole/guacamole:1.5.5
+clab-summit-red-fw | localhost/vyos:2026.10.23
+clab-summit-red-srv-app | docker.io/library/python:3.12-alpine
+clab-summit-red-isp | localhost/frr-summit:1
+clab-summit-red-rtr | localhost/frr-summit:1
+clab-summit-red-pc-usuario | localhost/frr-summit:1
+suc1 | quay.io/frrouting/frr:9.1.0
+suc2 | quay.io/frrouting/frr:9.1.0
+suc3 | quay.io/frrouting/frr:9.1.0
+portal-automatizacion | localhost/portal-automatizacion:latest
+=== servicios systemd propios
+actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit-2.service
+actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit-3.service
+actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit.service
+app-publica.service
+dc-construir@dc1.service
+dirsrv@pki.service
+doble-factor-app.service
+faceops-guacamole.service
+faceops-kb.service
+faceops-maqueta.service
+faceops-publico.service
+faceops-sni.service
+faceops-validador.service
+faceops-vcsim.service
+faceops.service
+google-guest-agent-manager.service
+google-guest-compat-manager.service
+google-osconfig-agent.service
+k3s.service
+kc-doble-factor.service
+node_exporter.service
+panel-cumplimiento.service
+portal-automatizacion.service
+rngd.service
+summit-alertmanager.service
+summit-artemis-exporter.service
+summit-blackbox.service
+summit-estado-ecosistema.service
+summit-grafana.service
+summit-nube-exportador.service
+=== OpenShift (namespaces de demos)
+amdocs-bss / amdocs-catalog
+amdocs-bss / amdocs-customer
+amdocs-bss / amdocs-ordering
+catocp-prod / bd
+catocp-prod / web
+catocp-prod / ws
+demo-datalake / colector
+demo-datalake / consola
+demo-datalake / minio
+demo-datalake / trino
+demo-fiscalia / inteligencia
+demo-fiscalia / registro
+demo-ia-analitica / analitica
+demo-ia-analitica / ollama
+demo-industrias / banca
+demo-industrias / telco
+demo-javia / javia
+fabrica-codigo / fabrica
+fabrica-dev / mantenedor-usuarios
+fabrica-dev / mantenedor-usuarios-db
+faceops / hawtio-operator
+--- fin: 2026-11-10T11:19:33-03:00 · código: 0
