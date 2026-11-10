@@ -1,7 +1,65 @@
-commit: bbb9f11459e5306b387a6b0820ac3fa20b95d4dc
-inicio: 2026-11-10T19:11:29-03:00
+commit: 25d6935abea56c3b615f5b5a20c59d1909c3c757
+inicio: 2026-11-10T19:12:24-03:00
 ---
-37431e8
-faceops actualizado
-200 Gob arq: 10 Visión global: 0
---- fin: 2026-11-10T19:12:10-03:00 · código: 0
+               total        used        free      shared  buff/cache   available
+Mem:             125          87           3           2          37          37
+lrwxrwxrwx. 1 root root 4 Feb 15  2024 /bin/sh -> bash
+ Id   Name                         State
+---------------------------------------------
+ 1    srv-no-existe-99             running
+ 2    nodo-vault                   running
+ 3    srv-prueba-rocky-01          running
+ 4    srv-prueba-resp-01           running
+ 5    srv-prueba-rhel9-01          running
+ 6    srv-prueba-rhel8-01          running
+ 7    nodo-windows                 running
+ 8    nodo-storage                 running
+ 9    srv-dell-r660xs-01           running
+ 10   srv-hpe-dl360-01             running
+ 11   srv-lenovo-sr630-01          running
+ 12   srv-fujitsu-rx2540-01        running
+ 13   srv-xfusion-2288h-01         running
+ 14   srv-dell-r760-01             running
+ 15   srv-hpe-dl380-01             running
+ 16   srv-lenovo-sr650-01          running
+ 17   srv-cisco-c240-01            running
+ 18   srv-supermicro-01            running
+ 19   sno                          running
+ 20   nodo-so                      running
+ 21   nodo-jboss-dev               running
+ 22   nodo-jboss2                  running
+ 23   nodo-tomcat                  running
+ 24   nodo-postgres                running
+ 25   nodo-nginx                   running
+ 26   nodo-jboss                   running
+ -    dc1-ad01                     shut off
+ -    dc1-ds01                     shut off
+ -    dc1-idm01                    shut off
+ -    dc1-iga01                    shut off
+ -    dc1-sat01                    shut off
+ -    dc1-sql01                    shut off
+ -    dc1-sso01                    shut off
+ -    dc1-vpn01                    shut off
+ -    dc2-sql01                    shut off
+ -    ee-centro-datos-prod         shut off
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss3                  shut off
+FaceOps · Habilitar servidor 62 cambiada 9ef1c43d6566 1
+FaceOps · Eliminar servidor 78 certificada 287ee5a99bfb 1
+FaceOps · Apagar equipo 60 certificada 5a2fcf06b0a8 1
+{'id': 42, 'huella': '6c0ec08d46be', 'resultado': 'aprobada', 'por': 'Claude (regla de Cristian)', 'fecha': '2026-11-05T18:09:36+00:00', 'tickets': '["FO-LAB-00891", "FO-LAB-00890", "FO-LAB-00882"]'}
+[{'nombre_aap': 'Autoservicio · Retirar app', 'nombre': 'Retirar app'}, {'nombre_aap': 'Drift · Retirar servidor', 'nombre': 'Retirar servidor del control de drift'}, {'nombre_aap': 'FaceOps · Apagar equipo', 'nombre': 'Apagar equipo vacío'}, {'nombre_aap': 'Infra · Encender o apagar equipo', 'nombre': 'Encender o apagar equipo'}, {'nombre_aap': 'Portal · Infraestructura · Encender o apagar servidor', 'nombre': 'Infraestructura · Encender o apagar servidor'}]
+codigo pagos destino? None [('web', 'Balanceador Nginx', 'rhel9', {'produccion': 1, 'qa': 1, 'desarrollo': 1}, {'cpu': 1, 'ram_gb': 2, 'disco_gb': 20}), ('app', 'JBoss EAP (app-jboss)', 'rhel9', {'produccion': 2, 'qa': 1, 'desarrollo': 1}, {'cpu': 2, 'ram_gb': 4, 'disco_gb': 20}), ('bd', 'PostgreSQL', 'rhel9', {'produccion': 1, 'qa': 1, 'desarrollo': 1}, {'cpu': 1, 'ram_gb': 2, 'disco_gb': 20}), ('mensajeria', 'Colas (Artemis) y caché (Valkey)', 'rhel9', {'produccion': 1, 'qa': 1, 'desarrollo': 
+paso habilitar hab:web:qa Crear 1 servidor rhel9 para Balanceador Nginx (qa) None {'hab_interno': True, 'hab_so': 'rhel9', 'hab_destino': 'onpremise', 'hab_segmento': 'App de pagos', 'hab_nombre': 'pagos-web', 'hab_replicas': '1', 'hab_cpu': '1', 'hab_ram_gb': '2', 'hab_disco_gb': '20', 'hab_ambiente': 'qa'}
+paso habilitar hab:web:desarrollo Crear 1 servidor rhel9 para Balanceador Nginx (desarrollo) None {'hab_interno': True, 'hab_so': 'rhel9', 'hab_destino': 'onpremise', 'hab_segmento': 'App de pagos', 'hab_nombre': 'pagos-web', 'hab_replicas': '1', 'hab_cpu': '1', 'hab_ram_gb': '2', 'hab_disco_gb': '20', 'hab_ambiente': 'desarrollo'}
+paso habilitar hab:bd:qa Crear 1 servidor rhel9 para PostgreSQL (qa) None {'hab_interno': True, 'hab_so': 'rhel9', 'hab_destino': 'onpremise', 'hab_segmento': 'App de pagos', 'hab_nombre': 'pagos-bd', 'hab_replicas': '1', 'hab_cpu': '1', 'hab_ram_gb': '2', 'hab_disco_gb': '20', 'hab_ambiente': 'qa'}
+paso habilitar hab:bd:desarrollo Crear 1 servidor rhel9 para PostgreSQL (desarrollo) None {'hab_interno': True, 'hab_so': 'rhel9', 'hab_destino': 'onpremise', 'hab_segmento': 'App de pagos', 'hab_nombre': 'pagos-bd', 'hab_replicas': '1', 'hab_cpu': '1', 'hab_ram_gb': '2', 'hab_disco_gb': '20', 'hab_ambiente': 'desarrollo'}
+paso habilitar hab:mensajeria:qa Crear 1 servidor rhel9 para Colas (Artemis) y caché (Valkey) (qa) None {'hab_interno': True, 'hab_so': 'rhel9', 'hab_destino': 'onpremise', 'hab_segmento': 'App de pagos', 'hab_nombre': 'pagos-mensajeria', 'hab_replicas': '1', 'hab_cpu': '2', 'hab_ram_gb': '6', 'hab_disco_gb': '20', 'hab_ambiente': 'qa'}
+paso habilitar hab:mensajeria:desarrollo Crear 1 servidor rhel9 para Colas (Artemis) y caché (Valkey) (desarrollo) None {'hab_interno': True, 'hab_so': 'rhel9', 'hab_destino': 'onpremise', 'hab_segmento': 'App de pagos', 'hab_nombre': 'pagos-mensajeria', 'hab_replicas': '1', 'hab_cpu': '2', 'hab_ram_gb': '6', 'hab_disco_gb': '20', 'hab_ambiente': 'desarrollo'}
+{'numero': 'FO-LAB-01248', 'estado': 'exitoso', 'motivo': 'Plan de prueba alta prueba-rhel8 de «FaceOps · Habilitar servidor» (regla de prueba)', 'creado': '2026-11-07T14:39:46+00:00'}
+{'numero': 'FO-LAB-01246', 'estado': 'exitoso', 'motivo': 'Plan de prueba alta prueba-rocky de «FaceOps · Habilitar servidor» (regla de prueba)', 'creado': '2026-11-07T14:38:13+00:00'}
+{'numero': 'FO-LAB-01244', 'estado': 'exitoso', 'motivo': 'Plan de prueba alta prueba-rhel9 de «FaceOps · Habilitar servidor» (regla de prueba)', 'creado': '2026-11-07T14:36:19+00:00'}
+{'numero': 'FO-LAB-01200', 'estado': 'exitoso', 'motivo': 'Plan de prueba alta prueba-rocky de «FaceOps · Habilitar servidor» (regla de prueba)', 'creado': '2026-11-07T11:21:19+00:00'}
+{'numero': 'FO-LAB-01134', 'estado': 'exitoso', 'motivo': 'Plan de prueba alta prueba-rocky de «FaceOps · Habilitar servidor» (regla de prueba)', 'creado': '2026-11-07T07:22:57+00:00'}
+{'numero': 'FO-LAB-00948', 'estado': 'exitoso', 'motivo': 'Fuentes JBoss 6 y 7 para la demo de migración a EAP 8', 'creado': '2026-11-06T15:28:13+00:00'}
+--- fin: 2026-11-10T19:12:30-03:00 · código: 0
