@@ -1,9 +1,15 @@
-commit: bd1b1b62ae8f87ecf4ecb6d7eb6d268345373053
-inicio: 2026-11-10T17:22:29-03:00
+commit: 4a0d901e4036cafbf613d1cf646c1c33b4fe5c59
+inicio: 2026-11-10T17:22:04-03:00
 ---
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-ticket C1 FO-LAB-01408 fallido job 21749 AAP terminó (failed): ejecución 4 s, espera de aprobación 343 s | Identity added: /runner/artifacts/21762/ssh_key_data (red-laboratorio) | [WARNING]: Invalid characters were found in group names but not replaced, use | -vvvv to see details | ERROR! couldn't resolve module/action 'vyos.vyos.vyos_facts'. This often indicates a misspelling, missing collection, or incorrect module path. |  | The error appears to be in '/runner/project/playbooks/red-inventariar.yml': line 14, column 7, but may | be elsewhere in the file depending on the exact syntax problem. |  | The offending line appears to be: |  |   tasks: |     - name: Identidad del equipo con la colección del fabricante (VyOS · network_cli) |       ^ here
-ticket C2 FO-LAB-01409 fallido job 21751 AAP terminó (failed): ejecución 4 s, espera de aprobación 340 s | Identity added: /runner/artifacts/21763/ssh_key_data (red-laboratorio) | [WARNING]: Invalid characters were found in group names but not replaced, use | -vvvv to see details | ERROR! couldn't resolve module/action 'vyos.vyos.vyos_facts'. This often indicates a misspelling, missing collection, or incorrect module path. |  | The error appears to be in '/runner/project/playbooks/red-inventariar.yml': line 14, column 7, but may | be elsewhere in the file depending on the exact syntax problem. |  | The offending line appears to be: |  |   tasks: |     - name: Identidad del equipo con la colección del fabricante (VyOS · network_cli) |       ^ here
-eq fw | VyOS | Red | inventariado ifs: [] vec: 0 rutas: None None def: None bgp: [] ver: None None None
-eq rtr | Linux (Alpine) | Red | inventariado ifs: [] vec: 0 rutas: None None def: None bgp: [] ver: None None None
---- fin: 2026-11-10T17:22:36-03:00 · código: 0
+namespace/wl-sonda created
+pod/eap8r created
+pod/eap8b created
+eap8b   0/1   Pending   0     4m4s
+eap8r   0/1   Pending   0     4m5s
+== eap8r
+Error from server (BadRequest): pod eap8r does not have a host assigned
+== eap8b
+Error from server (BadRequest): pod eap8b does not have a host assigned
+
+borrado
+--- fin: 2026-11-10T17:26:11-03:00 · código: 0
