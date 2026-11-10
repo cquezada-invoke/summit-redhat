@@ -78,6 +78,19 @@ def registrar(nombre, ok, nota):
         yaml.safe_dump(d, f, allow_unicode=True)
 
 
+def pdf_enviado(wj):
+    """None si el workflow no tiene paso de informe; True/False según si el PDF salió por correo."""
+    for n in aap("GET", f"workflow_jobs/{wj}/workflow_nodes/?page_size=50")["results"]:
+        if n.get("identifier") == "informe":
+            sj = n["summary_fields"].get("job")
+            if not sj:
+                return False
+            r = urllib.request.Request(C + f"jobs/{sj['id']}/stdout/?format=txt", headers=H)
+            with urllib.request.urlopen(r, context=CTX, timeout=60) as x:
+                return "enviado a" in x.read().decode(errors="replace")
+    return None
+
+
 def lanzar(nombre, ev=None, limite=None, aprobar=True, completo=None):
     w = aap("GET", "workflow_job_templates/?name=" + urllib.parse.quote(completo or f"Portal · {nombre}"))["results"][0]
     cuerpo = {"extra_vars": ev or {}}
@@ -87,7 +100,11 @@ def lanzar(nombre, ev=None, limite=None, aprobar=True, completo=None):
     f = esperar_fin(wj, aprobar)
     print(f"== {nombre} {json.dumps(ev or {}, ensure_ascii=False)[:120]} → #{wj} {f['status']}\n{resumen(wj)}", flush=True)
     esperado = "failed" if (not aprobar or (ev or {}).get("simular_falla") == "si") else "successful"
-    registrar(nombre, f["status"] == esperado, f"{time.strftime('%d-%m %H:%M')} · #{wj} {f['status']}" + ("" if f["status"] == esperado else " (revisar)"))
+    pdf = pdf_enviado(wj)
+    if pdf is not None:
+        print(f"     · PDF por correo: {'enviado' if pdf else 'NO ENVIADO'}", flush=True)
+    ok = f["status"] == esperado and pdf is not False
+    registrar(nombre, ok, f"{time.strftime('%d-%m %H:%M')} · #{wj} {f['status']}" + ("" if ok else (" (revisar)" if pdf is not False else " (PDF no enviado)")))
     return f["status"]
 
 
