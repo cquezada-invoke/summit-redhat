@@ -409,3 +409,74 @@ def salud():
 
 if __name__ == "__main__":
     app.run("0.0.0.0", 8120)
+
+
+# ------------------------------------------------------------------ Odoo Helpdesk → Event-Driven Ansible
+ODOO = {k: os.environ.get(f"ODOO_{k.upper()}", "") for k in ("url", "db", "usuario", "clave")}
+ODOO_ETIQUETA = os.environ.get("ODOO_ETIQUETA", "Claro PR")
+EDA_ODOO = os.environ.get("EDA_ODOO", "http://127.0.0.1:5012/endpoint")
+
+
+def _odoo(modelo, metodo, args, kw=None):
+    def rpc(srv, met, *a):
+        r = urllib.request.Request(ODOO["url"].rstrip("/") + "/jsonrpc", headers={"Content-Type": "application/json"},
+                                   data=json.dumps({"jsonrpc": "2.0", "method": "call", "id": 1, "params": {"service": srv, "method": met, "args": list(a)}}).encode())
+        x = json.load(urllib.request.urlopen(r, timeout=30))
+        if x.get("error"):
+            raise ValueError(str(x["error"])[:200])
+        return x["result"]
+    uid = rpc("common", "authenticate", ODOO["db"], ODOO["usuario"], ODOO["clave"], {})
+    return rpc("object", "execute_kw", ODOO["db"], uid, ODOO["clave"], modelo, metodo, args, kw or {})
+
+
+def _entender(texto):
+    """Qué pide el ticket: acción, servidor y servicio (reglas simples y explicables)."""
+    t = texto.lower()
+    srv = re.search(r"\b(nodo-[a-z0-9-]+)\b", t)
+    serv = re.search(r"servicio\s+([a-z0-9@._-]+)", t)
+    if any(k in t for k in ("disco", "espacio", "lleno", "filesystem")):
+        acc = "liberar_disco"
+    elif "reinici" in t and serv:
+        acc = "reiniciar_servicio"
+    else:
+        acc = "diagnostico"
+    return acc, (srv.group(1) if srv else ""), (serv.group(1) if serv else "")
+
+
+def _vigilar_odoo():
+    """Cada 30 s: tickets abiertos con la etiqueta «Claro PR» que aún no se enviaron → evento a EDA y nota en el ticket."""
+    import threading
+    enviados_f = os.path.join(os.environ.get("PORTAL_INFORMES", "/tmp/informes"), "odoo_enviados.json")
+
+    def ciclo():
+        while True:
+            try:
+                env = set(json.load(open(enviados_f))) if os.path.exists(enviados_f) else set()
+                tag = _odoo("helpdesk.tag", "search", [[["name", "=ilike", ODOO_ETIQUETA]]], {"limit": 1})
+                if tag:
+                    cerr = _odoo("helpdesk.stage", "search", [[["fold", "=", True]]])
+                    for tk in _odoo("helpdesk.ticket", "search_read", [[["tag_ids", "in", tag], ["stage_id", "not in", cerr]]],
+                                    {"fields": ["id", "name", "description"], "limit": 20, "order": "id"}):
+                        if tk["id"] in env:
+                            continue
+                        acc, srv, serv = _entender(f"{tk['name']} {re.sub('<[^>]+>', ' ', tk.get('description') or '')}")
+                        if not srv:
+                            _odoo("helpdesk.ticket", "message_post", [[tk["id"]]], {"body": "Ansible: indica el servidor (por ejemplo nodo-jboss) para atender el ticket.",
+                                                                                    "message_type": "comment", "subtype_xmlid": "mail.mt_note"})
+                        else:
+                            urllib.request.urlopen(urllib.request.Request(EDA_ODOO, headers={"Content-Type": "application/json"}, data=json.dumps(
+                                {"origen": "odoo", "ticket": tk["id"], "accion": acc, "servidor": srv, "servicio": serv}).encode()), timeout=10)
+                            _odoo("helpdesk.ticket", "message_post", [[tk["id"]]], {
+                                "body": f"Recibido por Ansible (Event-Driven Ansible): <b>{acc.replace('_', ' ')}</b> en <b>{srv}</b>. Espera aprobación en AAP.",
+                                "message_type": "comment", "subtype_xmlid": "mail.mt_note"})
+                        env.add(tk["id"])
+                        os.makedirs(os.path.dirname(enviados_f), exist_ok=True)
+                        json.dump(sorted(env), open(enviados_f, "w"))
+            except Exception as x:  # noqa: BLE001 - se reintenta en el próximo ciclo
+                print("odoo:", type(x).__name__, str(x)[:150], flush=True)
+            time.sleep(30)
+    threading.Thread(target=ciclo, daemon=True).start()
+
+
+if ODOO["url"] and ODOO["clave"]:
+    _vigilar_odoo()

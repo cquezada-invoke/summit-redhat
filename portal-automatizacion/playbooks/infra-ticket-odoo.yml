@@ -1,0 +1,93 @@
+# Infra · Atender ticket de Odoo: un ticket de Helpdesk en Odoo con la etiqueta «Claro PR» llega a Event-Driven Ansible y
+# se atiende solo, con aprobación en AAP. Al terminar, el ticket recibe una nota con el resultado y pasa a «Resuelto»
+# (o queda «En curso» con el detalle si algo falló).
+#   Acciones: liberar_disco (en el servidor indicado) · reiniciar_servicio (servicio indicado) · diagnostico (estado general:
+#   carga, memoria, discos, servicios caídos y últimos errores).
+# Variables (las arma EDA desde el ticket): ticket (id en Odoo), accion, servidor (limit), servicio (opcional)
+# Credencial: «Odoo · Helpdesk» (URL, base, usuario y clave de API inyectados como variables de entorno).
+- name: Infra · Atender ticket de Odoo
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    acc: "{{ accion | default('diagnostico') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - acc in ['liberar_disco', 'reiniciar_servicio', 'diagnostico']
+          - (ticket | default('0') | string) is match('^[0-9]+$')
+          - acc != 'reiniciar_servicio' or (servicio | default('')) is match('^[a-zA-Z0-9@._-]+$')
+        quiet: true
+
+    - name: Liberar espacio en disco
+      ansible.builtin.shell: |
+        a=$(df --output=pcent / | tail -1 | tr -dc 0-9)
+        journalctl --vacuum-size=200M >/dev/null 2>&1; dnf -q clean all >/dev/null 2>&1
+        find /var/log -type f \( -name '*.gz' -o -regex '.*\.[1-9]$' \) -mtime +7 -delete 2>/dev/null
+        find /tmp /var/tmp -xdev -type f -mtime +10 -delete 2>/dev/null
+        echo "Disco / pasó de ${a}% a $(df --output=pcent / | tail -1 | tr -dc 0-9)%"
+      register: r_acc_disco
+      when: acc == 'liberar_disco'
+
+    - name: Reiniciar servicio
+      ansible.builtin.shell: "systemctl restart {{ servicio }} && sleep 3 && echo \"{{ servicio }}: $(systemctl is-active {{ servicio }})\""
+      register: r_acc_serv
+      when: acc == 'reiniciar_servicio'
+
+    - name: Diagnóstico
+      ansible.builtin.shell: |
+        echo "Carga: $(cut -d' ' -f1-3 /proc/loadavg) · CPUs: $(nproc)"
+        free -h | awk '/Mem/{print "Memoria: "$3" usados de "$2}'
+        df -h -x tmpfs -x devtmpfs --output=target,pcent | tail -n +2 | awk '{printf "Disco %s: %s · ", $1, $2} END {print ""}'
+        f=$(systemctl --failed --no-legend --plain | awk '{print $1}' | paste -sd,); echo "Servicios caídos: ${f:-ninguno}"
+        journalctl -p err --since -1h --no-pager -q | tail -3 | cut -c1-160
+      register: r_acc_diag
+      changed_when: false
+      when: acc == 'diagnostico'
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        texto: "{{ ([r_acc_disco, r_acc_serv, r_acc_diag] | selectattr('stdout', 'defined') | map(attribute='stdout') | first | default('sin salida')) }}"
+
+    - name: Nota y estado en el ticket de Odoo
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import json, os, sys, urllib.request
+            d = json.load(sys.stdin); u = os.environ.get("ODOO_URL", "").rstrip("/")
+            if not u:
+                print("sin credencial de Odoo: no se actualizó el ticket"); sys.exit(0)
+            def rpc(srv, met, *a):
+                r = urllib.request.Request(u + "/jsonrpc", data=json.dumps({"jsonrpc": "2.0", "method": "call", "id": 1,
+                    "params": {"service": srv, "method": met, "args": list(a)}}).encode(), headers={"Content-Type": "application/json"})
+                x = json.load(urllib.request.urlopen(r, timeout=30))
+                if x.get("error"):
+                    raise SystemExit(str(x["error"])[:300])
+                return x["result"]
+            db, us, cl = os.environ["ODOO_DB"], os.environ["ODOO_USUARIO"], os.environ["ODOO_CLAVE"]
+            uid = rpc("common", "authenticate", db, us, cl, {})
+            x = lambda m, me, a, k=None: rpc("object", "execute_kw", db, uid, cl, m, me, a, k or {})
+            t = int(d["ticket"])
+            x("helpdesk.ticket", "message_post", [[t]], {"body": f"<p><b>Ansible Automation Platform</b> · {d['accion']} en {d['servidor']}</p><pre>{d['texto']}</pre>"
+                                                          f"<p>Ejecución AAP #{d['job']}</p>", "message_type": "comment", "subtype_xmlid": "mail.mt_note"})
+            st = x("helpdesk.stage", "search", [[["name", "ilike", "Solved" if d["ok"] else "In Progress"]]], {"limit": 1}) \
+                 or x("helpdesk.stage", "search", [[["name", "ilike", "Resuelto" if d["ok"] else "En curso"]]], {"limit": 1})
+            if st:
+                x("helpdesk.ticket", "write", [[t], {"stage_id": st[0]}])
+            print(f"ticket {t} actualizado")
+        stdin: "{{ {'ticket': ticket | default(0), 'accion': acc, 'servidor': inventory_hostname, 'texto': texto, 'ok': true, 'job': tower_job_id | default(awx_job_id | default('-'))} | to_json }}"
+      delegate_to: localhost
+      become: false
+      register: r_odoo
+      changed_when: true
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Ticket Odoo #{{ ticket | default('-') }} · {{ acc }} en {{ inventory_hostname }}: {{ r_odoo.stdout }}"
+            estado: ok
+            filas: "{{ [['Acción', acc], ['Servidor', inventory_hostname]] + (texto.splitlines() | map('regex_replace', '^', 'Resultado: ') | map('split', ': ', 1) | list) }}"

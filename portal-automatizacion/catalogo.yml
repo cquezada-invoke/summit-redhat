@@ -245,3 +245,24 @@
   encuesta:
     - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
        question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
+- nombre: "Linux · Liberar espacio en disco"
+  seccion: linux
+  playbook: playbooks/linux-liberar-disco.yml
+  base: "Seguridad · Revisar CVEs"
+  credencial: "Nodos demo (ansible)"
+  limite: true
+  descripcion: "Remediación de «disco casi lleno»: la lanza Grafana sola (alerta → Event-Driven Ansible → aprobación) o un ticket de Odoo. Solo limpiezas seguras (journal, caché de dnf, logs rotados, temporales antiguos y kernels viejos) y deja constancia de cuánto liberó."
+  encuesta:
+    - {question_name: "Limpiar si el uso supera (%)", variable: umbral, type: integer, min: 50, max: 99, default: 85, required: true}
+    - {question_name: "Forzar limpieza", variable: forzar, type: multiplechoice, choices: ["no", si], default: "no", required: true}
+- nombre: "Infra · Atender ticket de Odoo"
+  seccion: linux
+  playbook: playbooks/infra-ticket-odoo.yml
+  base: "Seguridad · Revisar CVEs"
+  credencial: ["Nodos demo (ansible)", "Odoo · Helpdesk Claro PR"]
+  limite: true
+  descripcion: "Un ticket de Odoo Helpdesk con la etiqueta «Claro PR» llega a Event-Driven Ansible y se atiende solo, con aprobación en AAP: liberar disco, reiniciar un servicio o diagnosticar el servidor. Al terminar, el ticket recibe la nota con el resultado y pasa a Resuelto."
+  encuesta:
+    - {question_name: "Ticket de Odoo", variable: ticket, type: integer, min: 1, max: 99999999, default: 1, required: true}
+    - {question_name: "Acción", variable: accion, type: multiplechoice, choices: [diagnostico, liberar_disco, reiniciar_servicio], default: diagnostico, required: true}
+    - {question_name: "Servicio (si reinicia)", variable: servicio, type: text, default: "", required: false, max: 80}

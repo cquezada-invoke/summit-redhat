@@ -1,0 +1,40 @@
+# Claro PR · Eventos de operación → Event-Driven Ansible:
+#   - Odoo Helpdesk: el portal lee los tickets con la etiqueta «Claro PR» y los envía a :5012; cada ticket de infraestructura
+#     se atiende con «Infra · Atender ticket de Odoo» (con aprobación en AAP) y Odoo recibe el resultado.
+#   - Grafana: las alertas (contact point webhook a :5013) lanzan la remediación que corresponde, también con aprobación:
+#     disco casi lleno → «Linux · Liberar espacio en disco» en ese servidor; alerta de un namespace de OpenShift →
+#     «OpenShift · De alerta a incidente» (evidencia, remediación segura e incidente).
+- name: Claro PR · Eventos de operación (Odoo y Grafana)
+  hosts: all
+  sources:
+    - ansible.eda.webhook: {host: 0.0.0.0, port: 5012}
+    - ansible.eda.webhook: {host: 0.0.0.0, port: 5013}
+  rules:
+    - name: Ticket de infraestructura en Odoo
+      condition: event.payload.origen == "odoo"
+      action:
+        run_workflow_template:
+          name: "Portal · Infra · Atender ticket de Odoo"
+          organization: "Claro Puerto Rico"
+          job_args:
+            limit: "{{ event.payload.servidor }}"
+            extra_vars: {ticket: "{{ event.payload.ticket }}", accion: "{{ event.payload.accion }}", servicio: "{{ event.payload.servicio | default('') }}"}
+
+    - name: Grafana · disco casi lleno
+      condition: event.payload.status == "firing" and event.payload.commonLabels.alertname == "DiscoCasiLleno"
+      action:
+        run_workflow_template:
+          name: "Portal · Linux · Liberar espacio en disco"
+          organization: "Claro Puerto Rico"
+          job_args:
+            limit: "{{ event.payload.commonLabels.servidor }}"
+            extra_vars: {origen: "alerta de Grafana", umbral: 85}
+
+    - name: Grafana · alerta de un namespace de OpenShift
+      condition: event.payload.status == "firing" and event.payload.commonLabels.namespace is defined
+      action:
+        run_workflow_template:
+          name: "Portal · OpenShift · De alerta a incidente"
+          organization: "Claro Puerto Rico"
+          job_args:
+            extra_vars: {namespace: "{{ event.payload.commonLabels.namespace }}", alerta: "{{ event.payload.commonLabels.alertname }}", remediar: "si"}

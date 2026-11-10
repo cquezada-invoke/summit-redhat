@@ -1,0 +1,42 @@
+# Linux · Liberar espacio en disco: la remediación que dispara una alerta de Grafana («disco casi lleno») vía Event-Driven
+# Ansible, o un ticket de Odoo. Hace solo limpiezas seguras y deja constancia de cuánto liberó:
+#   journal de systemd sobre 200 MB, caché de dnf, logs rotados (.gz y .1..9) de más de 7 días en /var/log,
+#   archivos de /tmp y /var/tmp de más de 10 días, y kernels antiguos (deja los 2 últimos).
+# Variables: punto (/ por defecto), umbral (85: no limpia si el uso está bajo ese porcentaje, salvo forzar=si)
+- name: Linux · Liberar espacio en disco
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    mp: "{{ punto | default('/') }}"
+    uso_cmd: "df --output=pcent {{ mp }} | tail -1 | tr -dc 0-9"
+  tasks:
+    - name: Uso antes
+      ansible.builtin.shell: "{{ uso_cmd }}"
+      register: r_antes
+      changed_when: false
+
+    - name: Limpiezas seguras
+      ansible.builtin.shell: |
+        journalctl --vacuum-size=200M >/dev/null 2>&1
+        dnf -q clean all >/dev/null 2>&1
+        find /var/log -type f \( -name '*.gz' -o -regex '.*\.[1-9]$' \) -mtime +7 -delete 2>/dev/null
+        find /tmp /var/tmp -xdev -type f -mtime +10 -delete 2>/dev/null
+        dnf -q -y remove --oldinstallonly --setopt installonly_limit=2 kernel >/dev/null 2>&1 || true
+      when: (r_antes.stdout | int) >= (umbral | default(85) | int) or (forzar | default('no')) == 'si'
+      register: r_limpia
+
+    - name: Uso después
+      ansible.builtin.shell: "{{ uso_cmd }}"
+      register: r_despues
+      changed_when: false
+
+    - name: Resultado para el portal (y para el ticket de Odoo si vino de ahí)
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "{{ inventory_hostname }} {{ mp }}: {{ r_antes.stdout }}% → {{ r_despues.stdout }}%{{ '' if r_limpia is changed else ' (bajo el umbral, no se limpió)' }}"
+            estado: "{{ 'ok' if (r_despues.stdout | int) < (umbral | default(85) | int) else 'atencion' }}"
+            filas: [["Antes", "{{ r_antes.stdout }}%"], ["Después", "{{ r_despues.stdout }}%"], ["Origen", "{{ origen | default('manual') }}"]]
+          resultado_texto: "Disco {{ mp }} de {{ inventory_hostname }}: {{ r_antes.stdout }}% → {{ r_despues.stdout }}%"
+        per_host: false

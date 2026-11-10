@@ -212,8 +212,10 @@ def plantilla(nombre, playbook, red=False, descripcion="", base=None, credencial
         "allow_simultaneous": False})["id"]
     ya = {c["id"] for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]}
     creds = [c["id"] for c in aap("GET", f"job_templates/{b_['id']}/credentials/")["results"]] if b_ else (cred_red if red else [cred_ocp])
-    if credencial:   # credencial de máquina de los servidores (la que FaceOps adjunta al lanzar)
-        creds.append(uno("credentials", name=credencial)["id"])
+    for cn in ([credencial] if isinstance(credencial, str) else (credencial or [])):   # máquina de los servidores, Odoo, ...
+        cx = uno("credentials", name=cn)
+        if cx:
+            creds.append(cx["id"])
     for c in creds:
         if c not in ya:
             aap("POST", f"job_templates/{jt}/credentials/", {"id": c})
@@ -224,6 +226,19 @@ def plantilla(nombre, playbook, red=False, descripcion="", base=None, credencial
 
 cat = yaml.safe_load(open(os.path.join(AQUI, "catalogo.yml")))
 jts = {}
+# Odoo Helpdesk: tipo de credencial que inyecta la conexión como variables de entorno (la clave viaja cifrada en AAP)
+if os.environ.get("ODOO_URL") and os.environ.get("ODOO_CLAVE"):
+    tipo_o = uno("credential_types", name="Odoo · Helpdesk")
+    defi = {"name": "Odoo · Helpdesk", "kind": "cloud", "description": "URL, base, usuario y clave de API de Odoo",
+            "inputs": {"fields": [{"id": "url", "label": "URL", "type": "string"}, {"id": "db", "label": "Base", "type": "string"},
+                                  {"id": "usuario", "label": "Usuario", "type": "string"}, {"id": "clave", "label": "Clave de API", "type": "string", "secret": True}],
+                       "required": ["url", "db", "usuario", "clave"]},
+            "injectors": {"env": {"ODOO_URL": "{{ url }}", "ODOO_DB": "{{ db }}", "ODOO_USUARIO": "{{ usuario }}", "ODOO_CLAVE": "{{ clave }}"}}}
+    tipo_o = aap("PATCH", f"credential_types/{tipo_o['id']}/", defi) if tipo_o else aap("POST", "credential_types/", defi)
+    asegurar("credentials", "Odoo · Helpdesk Claro PR", {"organization": org, "credential_type": tipo_o["id"], "inputs": {
+        "url": os.environ["ODOO_URL"], "db": os.environ["ODOO_DB"], "usuario": os.environ["ODOO_USUARIO"], "clave": os.environ["ODOO_CLAVE"]}})
+    paso("Credencial «Odoo · Helpdesk Claro PR»")
+
 for it in cat:
     if it.get("playbook"):
         jts[it["nombre"]] = plantilla(f"Portal · {it['nombre']} (plantilla)", it["playbook"], it.get("red", False), it["descripcion"], it.get("base"), it.get("credencial"))
@@ -333,33 +348,33 @@ if "--sin-eda" not in sys.argv:
         if st in ("completed", "failed"):
             break
         time.sleep(3)
-    rb = None
-    for _ in range(10):
-        rb = uno("rulebooks", eda, project_id=ep, name="amdocs-ordenes.yml")
-        if rb:
-            break
-        time.sleep(3)
-    if not rb:
-        sys.exit("ERROR: el proyecto EDA no trae rulebooks/amdocs-ordenes.yml")
     des = eda("GET", "decision-environments/?page_size=50")["results"]
     de = next((d for d in des if d["name"] == "Hub Default Decision Environment"), des[0])["id"]
-    ACT = "Amdocs · Órdenes de servicio"
-    a = uno("activations", eda, name=ACT)
-    if a:
-        eda("POST", f"activations/{a['id']}/disable/", {}, t=True)
-        time.sleep(5)
-        eda("DELETE", f"activations/{a['id']}/", t=True)
-        for _ in range(20):
-            if not uno("activations", eda, name=ACT):
+    for ACT, ARCH, PUERTOS, DESC in [("Amdocs · Órdenes de servicio", "amdocs-ordenes.yml", "5011", "Recibe las órdenes de Amdocs (emulado) y lanza la activación con aprobación"),
+                                     ("Claro PR · Eventos (Odoo y Grafana)", "claro-eventos.yml", "5012 y 5013", "Tickets de Odoo y alertas de Grafana lanzan la automatización que corresponde, con aprobación")]:
+        rb = None
+        for _ in range(10):
+            rb = uno("rulebooks", eda, project_id=ep, name=ARCH)
+            if rb:
                 break
             time.sleep(3)
-    act = eda("POST", "activations/", {"name": ACT, "description": "Recibe las órdenes de Amdocs (emulado) y lanza la activación con aprobación",
-                                        "is_enabled": True, "decision_environment_id": de, "rulebook_id": rb["id"], "eda_credentials": [ecred],
-                                        "organization_id": eorg["id"], "restart_policy": "on-failure", "log_level": "info"})["id"]
-    for _ in range(60):
-        st = eda("GET", f"activations/{act}/")["status"]
-        if st in ("running", "failed", "error"):
-            break
-        time.sleep(5)
-    paso(f"EDA: activación '{ACT}' ({st}) escuchando en :5011")
+        if not rb:
+            sys.exit(f"ERROR: el proyecto EDA no trae rulebooks/{ARCH}")
+        a = uno("activations", eda, name=ACT)
+        if a:
+            eda("POST", f"activations/{a['id']}/disable/", {}, t=True)
+            time.sleep(5)
+            eda("DELETE", f"activations/{a['id']}/", t=True)
+            for _ in range(20):
+                if not uno("activations", eda, name=ACT):
+                    break
+                time.sleep(3)
+        act = eda("POST", "activations/", {"name": ACT, "description": DESC, "is_enabled": True, "decision_environment_id": de, "rulebook_id": rb["id"],
+                                            "eda_credentials": [ecred], "organization_id": eorg["id"], "restart_policy": "on-failure", "log_level": "info"})["id"]
+        for _ in range(60):
+            st = eda("GET", f"activations/{act}/")["status"]
+            if st in ("running", "failed", "error"):
+                break
+            time.sleep(5)
+        paso(f"EDA: activación '{ACT}' ({st}) escuchando en :{PUERTOS}")
 print("   LISTO")
