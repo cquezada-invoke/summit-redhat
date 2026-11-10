@@ -28,6 +28,10 @@
           - nss | length > 0
           - r in ['view', 'edit', 'admin'] and a in ['alta', 'baja']
           - usuarios | select('match', '^[a-z0-9._@-]+$') | list | length == usuarios | length
+          - nss | select('match', '^[a-z0-9-]{1,63}$') | list | length == nss | length
+        fail_msg: >-
+          Revisa los datos: equipo en minúsculas (3 a 40), al menos un miembro para el alta y namespaces con su nombre exacto
+          separados por coma (no se acepta «*»: el acceso se da namespace por namespace).
         quiet: true
 
     - name: Grupo en OpenShift
