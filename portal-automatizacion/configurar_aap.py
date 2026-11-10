@@ -164,18 +164,18 @@ paso("Credencial 'OpenShift · clúster (token)' enlazada a Vault")
 proy = asegurar("projects", "Claro PR · automatizaciones", {
     "organization": org, "scm_type": "git", "scm_url": f"http://192.168.122.1:3000/invoke/{REPO}.git", "scm_branch": "main",
     "scm_update_on_launch": True, "scm_update_cache_timeout": 30, "description": "Playbooks del portal de automatización"})["id"]
-for _ in range(60):
+for _ in range(60):   # espera una sincronización en curso y luego sincroniza siempre: Gitea pudo cambiar recién
     st = aap("GET", f"projects/{proy}/")["status"]
-    if st in ("successful", "failed", "error", "canceled"):
+    if st in ("successful", "failed", "error", "canceled", "never updated", "missing"):
         break
     time.sleep(3)
-if st != "successful":
-    aap("POST", f"projects/{proy}/update/", {})
-    for _ in range(60):
-        time.sleep(3)
-        st = aap("GET", f"projects/{proy}/")["status"]
-        if st in ("successful", "failed", "error"):
-            break
+aap("POST", f"projects/{proy}/update/", {})
+time.sleep(3)
+for _ in range(80):
+    st = aap("GET", f"projects/{proy}/")["status"]
+    if st in ("successful", "failed", "error"):
+        break
+    time.sleep(3)
 if st != "successful":
     sys.exit(f"ERROR al sincronizar el proyecto del portal: {st}")
 proy_red = uno("projects", name="Red · laboratorio")
