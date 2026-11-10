@@ -1,16 +1,16 @@
-commit: 6e7af37e335c3805ac75e9bf17ec6c3abd2fa62f
-inicio: 2026-11-10T16:19:33-03:00
+commit: fa62e66ceabb53a76b74453916ed22966c254f88
+inicio: 2026-11-10T16:19:47-03:00
 ---
-formulario: {'modo': 'emitir', 'cert_cn': 'nodo-jboss.demo.local', 'cert_san': 'nodo-jboss.demo.local', 'cert_nombre': 'jboss-https', 'cert_puerto': '8443', 'cert_propietario': 'root', 'cert_recargar': 'systemctl restart eap8-standalone', 'motivo': 'Reemplazo del certificado nodo-jboss.demo.local pedido desde su detalle', 'cert_formato': 'pkcs12', 'cert_bits': '2048'}
-Traceback (most recent call last):
-  File "/tmp/rc.py", line 21, in <module>
-    f0 = bs(leer_c(g.cliente, equipos_visibles()), S)
-                              ^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/vistas.py", line 68, in equipos_visibles
-    if equipo_visible(g.perfil, e, e["segmentos"]):
-       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/permisos.py", line 47, in equipo_visible
-    return "*" in p["segmentos"] or bool(set(segmentos_del_equipo) & set(p["segmentos"]))
-                  ~^^^^^^^^^^^^^
-KeyError: 'segmentos'
---- fin: 2026-11-10T16:19:44-03:00 · código: 0
+clonar Succeeded app-jboss-xc5jc-clonar-pod
+compilar-y-probar Succeeded app-jboss-xc5jc-compilar-y-probar-pod
+desplegar-con-aap Failed app-jboss-xc5jc-desplegar-con-aap-pod
+preparar-plataforma Succeeded app-jboss-xc5jc-preparar-plataforma-pod
+publicar Succeeded app-jboss-xc5jc-publicar-pod
+secretos Succeeded app-jboss-xc5jc-secretos-pod
+vulnerabilidades Succeeded app-jboss-xc5jc-vulnerabilidades-pod
+--- log app-jboss-xc5jc-desplegar-con-aap-pod
+['step-lanzar-plantilla']
+== step-lanzar-plantilla
+AAP job 21545 lanzado en ambiente desarrollo sobre todo el grupo jboss: versión 1.0.40, solicitado por invoke
+Resultado en AAP: failed · https://10.194.0.2/execution/jobs/playbook/21545/output
+--- fin: 2026-11-10T16:19:47-03:00 · código: 0
