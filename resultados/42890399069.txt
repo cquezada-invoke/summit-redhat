@@ -1,0 +1,60 @@
+commit: a0cd320429e3421dba70dd1850ce093478e73701
+inicio: 2026-11-10T16:57:21-03:00
+---
+6afe8e8
+memoria disponible antes: 22551 MB
+== 2. Archivos del laboratorio en /opt/summit-red/sede
+== 3. Imagen de los equipos abiertos (FRR + puente Linux + LLDP + HAProxy)
+   localhost/frr-red:1 lista
+== 4. Desplegar
+├──────────────────────────┼───────────────────────────────┼─────────┼────────────────┤
+│ clab-red-sede-rtr-wan-01 │ linux                         │ running │ 172.20.20.71   │
+│                          │ localhost/frr-red:1           │         │ N/A            │
+├──────────────────────────┼───────────────────────────────┼─────────┼────────────────┤
+│ clab-red-sede-srv-web-01 │ linux                         │ running │ 172.20.20.5    │
+│                          │ docker.io/library/alpine:3.20 │         │ N/A            │
+├──────────────────────────┼───────────────────────────────┼─────────┼────────────────┤
+│ clab-red-sede-srv-web-02 │ linux                         │ running │ 172.20.20.3    │
+│                          │ docker.io/library/alpine:3.20 │         │ N/A            │
+├──────────────────────────┼───────────────────────────────┼─────────┼────────────────┤
+│ clab-red-sede-sw-acc-01  │ linux                         │ running │ 172.20.20.74   │
+│                          │ localhost/frr-red:1           │         │ N/A            │
+├──────────────────────────┼───────────────────────────────┼─────────┼────────────────┤
+│ clab-red-sede-sw-core-01 │ linux                         │ running │ 172.20.20.73   │
+│                          │ localhost/frr-red:1           │         │ N/A            │
+╰──────────────────────────┴───────────────────────────────┴─────────┴────────────────╯
+   esperando fw-sede-01....... listo
+== 5. Pruebas
+   BGP rtr-wan-01 ↔ proveedor                         OK  3
+   Usuario piso 1 (VLAN 10) → VIP web 10.20.30.100    FALLA wget: download timed out
+   Teléfono piso 1 (VLAN 20) → servidores            OK  PING 10.20.30.21 (10.20.30.21): 56 data bytes
+64 bytes from 10.20.30.2
+   Sede → WAN 203.0.113.1 (pasa por el firewall)      FALLA PING 203.0.113.1 (203.0.113.1): 56 data bytes
+
+--- 203.0.113.1 ping statistics ---
+1 packe
+   WAN → VIP web publicado (permitido)                FALLA wget: can't connect to remote host (10.20.30.100): Network unreachable
+   WAN → servidor directo :8080 (debe estar BLOQUEADO) OK  wget: can't connect to remote host (10.20.30.21): Network unreachable
+
+   Vecinos LLDP de sw-core-01                           OK  3
+   Backends del balanceador arriba                      OK  1
+  Invalid command: [show]
+== 6. AAP: equipos en «Red · laboratorio» (grupo red-sede) y credencial de consola en la bóveda de FaceOps
+   ! rtr-wan-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! fw-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! sw-core-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! sw-acc-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! lb-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+== LISTO
+memoria disponible después: 22449 MB
+clab-red-sede-srv-web-01 704.5kB / 134.6GB
+clab-red-sede-pc-piso2 516.1kB / 134.6GB
+clab-red-sede-srv-web-02 512kB / 134.6GB
+clab-red-sede-pc-piso1 733.2kB / 134.6GB
+clab-red-sede-fw-sede-01 450.7MB / 134.6GB
+clab-red-sede-rtr-wan-01 25.83MB / 134.6GB
+clab-red-sede-lb-sede-01 34.94MB / 134.6GB
+clab-red-sede-sw-core-01 25.08MB / 134.6GB
+clab-red-sede-sw-acc-01 24.85MB / 134.6GB
+clab-red-sede-pe-isp 23.41MB / 134.6GB
+--- fin: 2026-11-10T16:58:48-03:00 · código: 0
