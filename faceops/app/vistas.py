@@ -7260,7 +7260,7 @@ def menu_nav():
         g_seg.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva"}))
     secciones = [
                  ("consola.automatizaciones", "Acciones", "autos", g_autos),
-                 ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Centros de datos", {"_ep": "consola.centros_datos"}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
+                 ("consola.centros_datos", "Infraestructura", "infra", [("Centros de datos", {}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),   # sin «Visión global»
                  ("consola.inventario", "Servidores", "inventario", g_inv),
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Arquitectura", {"_ep": "consola.redes_arquitectura"})]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
