@@ -1,7 +1,38 @@
 # Despliega en JBoss EAP la versión que publicó el pipeline; si no pasa la validación, vuelve a la anterior.
-- name: Desplegar app en JBoss EAP
-  # En todos los JBoss del grupo "jboss", uno a la vez: si uno falla, se detiene y los demás siguen con la versión anterior.
+
+# Destino: si el despliegue no fija máquinas (limit; p. ej. un push a Gitea que dispara el pipeline sin FaceOps), va a las
+# del grupo "jboss" que responden y las apagadas quedan fuera con aviso. Si las fija, todas deben responder o no parte.
+- name: Destino del despliegue
   hosts: jboss
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: La máquina responde
+      ansible.builtin.wait_for_connection:
+        timeout: 20
+      register: r_conexion
+      ignore_errors: "{{ ansible_limit is not defined }}"
+
+    - name: Máquina fuera de este despliegue
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} no responde (apagada o sin red): sigue con la versión que tenía y no recibe la {{ app_version }}."
+      when: r_conexion is failed
+
+    - name: Máquina en el despliegue
+      ansible.builtin.group_by:
+        key: jboss_destino
+      when: r_conexion is succeeded
+
+    - name: Hay al menos una máquina para desplegar
+      ansible.builtin.assert:
+        that: groups['jboss_destino'] | default([]) | length > 0
+        fail_msg: "Ninguna máquina del grupo jboss responde: no se desplegó la versión {{ app_version }}."
+        quiet: true
+      run_once: true
+
+- name: Desplegar app en JBoss EAP
+  # En los JBoss de destino, uno a la vez: si uno falla, se detiene y los demás siguen con la versión anterior.
+  hosts: jboss_destino
   serial: 1
   max_fail_percentage: 0
   become: true
