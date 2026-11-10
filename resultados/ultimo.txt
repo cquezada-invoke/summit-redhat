@@ -1,69 +1,17 @@
-commit: 62ff7584df151fb96b91731ed2ff7e1059f21766
-inicio: 2026-11-10T20:21:09-03:00
+commit: cca0ec9be657692bfce5f633623348f0cfecb492
+inicio: 2026-11-10T20:39:09-03:00
 ---
-c5ad016
-1
-1
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-faceops actualizado
-0
-estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
-ticket C1 FO-LAB-01460
-fin C1 FO-LAB-01460 exitoso job 22186 AAP terminó (successful): ejecución 41 s, espera de aprobación 47 s
---- C1 verificación
-State:          running
-CPU(s):         1
-Max memory:     2097152 KiB
-aap hosts srv-pagos-web-01 [(163, 'Servidores habilitados')]
-faceops {'nombre': 'srv-pagos-web-01', 'ip': '192.168.122.67', 'so': '', 'ambiente': 'desarrollo', 'estado': 'sin datos', 'inventarios': '["Servidores habilitados"]'}
-rol [('web', 'Balanceador Nginx', 'desarrollo')]
-paso web desarrollo pendiente: []
-tickets relacionados [('FO-LAB-01462', 'en_cola', 'Vinculación automática a la bóveda · servidor creado en FO-L')]
-estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
-ticket C2 FO-LAB-01463
-fin C2 FO-LAB-01463 exitoso job 22203 AAP terminó (successful): ejecución 12 s, espera de aprobación 29 s
---- C2 verificación
-1
-aap hosts srv-pagos-web-01 [(163, 'Servidores habilitados')]
-faceops {'nombre': 'srv-pagos-web-01', 'ip': '192.168.122.67', 'so': '', 'ambiente': 'desarrollo', 'estado': 'sin datos', 'inventarios': '["Servidores habilitados"]'}
-estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
-ticket C3 FO-LAB-01464
-fin C3 FO-LAB-01464 fallido job 22207 ] ****************************************************************** | ok: [localhost] |  | TASK [Solicitud no válida (no se creó nada)] *********************************** | fatal: [localhost]: FAILED! => {"changed": false, "msg": "el nombre base debe tener 3 a 20 letras minúsculas, números o guiones; recursos fuera de rango (1-8 vCPU, 2-32 GB, 20-200 GB); memoria total sobre 48 GB: divide la solicitud"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
---- C3 verificación
-0
-tickets relacionados [('FO-LAB-01462', 'exitoso', 'Vinculación automática a la bóveda · servidor creado en FO-L')]
---- antes C4
-52:54:00:23:3c:23
-estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
-ticket C4 FO-LAB-01466
-fin C4 FO-LAB-01466 exitoso job 22217 AAP terminó (successful): ejecución 39 s, espera de aprobación 53 s
---- C4 verificación
-== srv-pagos-web-01
-State:          running
-Autostart:      enable
- vda      /var/lib/libvirt/images/faceops/srv-pagos-web-01.qcow2
-52:54:00:5a:fb:d9
-== srv-pagos-web-01-fallida-202611102032
-State:          shut off
-Autostart:      disable
- vda      /var/lib/libvirt/images/faceops/srv-pagos-web-01-fallida-202611102032.qcow2
-52:54:00:e1:a3:00
-aap hosts srv-pagos-web-01 [(163, 'Servidores habilitados')]
-faceops {'nombre': 'srv-pagos-web-01', 'ip': '192.168.122.67', 'so': '', 'ambiente': 'desarrollo', 'estado': 'sin datos', 'inventarios': '["Servidores habilitados"]'}
-tickets relacionados [('FO-LAB-01462', 'exitoso', 'Vinculación automática a la bóveda · servidor creado en FO-L')]
---- C5 limpieza
-estado FaceOps · Eliminar servidor certificada 287ee5a99bfb
-ticket C5-srv-pagos-web-01 FO-LAB-01468
-fin C5-srv-pagos-web-01 FO-LAB-01468 exitoso job 22228 AAP terminó (successful): ejecución 12 s, espera de aprobación 23 s | srv-pagos-web-01 eliminado: fuera del balanceo, VM retirada de KVM (disco conservado aparte), fuera de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git.
-estado FaceOps · Eliminar servidor certificada 287ee5a99bfb
-ticket C5-srv-pagos-web-01-fallida-202611102032 FO-LAB-01469
-fin C5-srv-pagos-web-01-fallida-202611102032 FO-LAB-01469 exitoso job 22236 AAP terminó (successful): ejecución 11 s, espera de aprobación 29 s | srv-pagos-web-01-fallida-202611102032 eliminado: fuera del balanceo, VM retirada de KVM (disco conservado aparte), fuera de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git.
---- final
-srv-pagos-web-01.eliminado-202611102036.qcow2
-srv-pagos-web-01-fallida-202611102032.eliminado-202611102038.qcow2
-aap hosts srv-pagos-web-01 []
-faceops {'nombre': 'srv-pagos-web-01', 'ip': '192.168.122.67', 'so': '', 'ambiente': 'desarrollo', 'estado': 'retirado', 'inventarios': '["Servidores habilitados"]'}
-rol []
-paso web desarrollo pendiente: ['Crear 1 servidor rhel9 para Balanceador Nginx (desarrollo)']
-tickets relacionados [('FO-LAB-01462', 'exitoso', 'Vinculación automática a la bóveda · servidor creado en FO-L'), ('FO-LAB-01468', 'exitoso', 'Limpieza del plan de prueba de «FaceOps · Habilitar servidor'), ('FO-LAB-01469', 'exitoso', 'Limpieza del plan de prueba de «FaceOps · Habilitar servidor')]
---- fin: 2026-11-10T20:38:54-03:00 · código: 0
+ad hoc 22244 successful
+Identity added: /runner/artifacts/22244/ssh_key_data (cquezada@demo-ansible-summit)
+[0;33mnodo-jboss | CHANGED | rc=0 >>[0m
+[0;33mfailed[0m
+[0;33mRestart=no[0m
+[0;33mWantedBy=[0m
+[0;33mFragmentPath=[0m
+[0;33mSourcePath=[0m
+[0;33mUnitFileState=[0m
+[0;33mActiveEnterTimestamp=Tue 2026-11-10 16:30:39 EST[0m
+[0;33mCONTAINER ID  IMAGE                                COMMAND     CREATED      STATUS      PORTS                   NAMES[0m
+[0;33m36b4f6bf51ef  docker.io/redis/redisinsight:latest              2 hours ago  Up 2 hours  0.0.0.0:5540->5540/tcp  redisinsightFailed to get unit file state for keycloak.service: No such file or directory[0m
+
+--- fin: 2026-11-10T20:39:22-03:00 · código: 0
