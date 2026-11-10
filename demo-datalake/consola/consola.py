@@ -75,6 +75,12 @@ def _pagina(titulo, cuerpo):
 <style>{CSS}</style></head><body><nav><a href=/lake>Explorador del lake</a><a href=/>Consola SQL</a></nav>{cuerpo}</body></html>"""
 
 
+@app.route("/salud")
+def salud():
+    """Para la sonda de OpenShift: no consulta Trino (una consulta lenta no debe sacar la consola de servicio)."""
+    return "ok"
+
+
 @app.route("/lake")
 def explorador():
     try:

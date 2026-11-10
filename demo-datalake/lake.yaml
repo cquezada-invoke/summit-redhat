@@ -19,7 +19,7 @@ spec:
         - name: minio   # almacenamiento S3 (SeaweedFS: las imágenes públicas de MinIO ya no se pueden descargar)
           image: docker.io/chrislusf/seaweedfs:3.80
           command: [/usr/bin/weed]
-          args: [server, -dir=/data, -ip=127.0.0.1, -ip.bind=0.0.0.0, -master.volumeSizeLimitMB=64, -volume.max=30, -filer, -s3, -s3.port=9000]
+          args: [server, -dir=/data, -ip=127.0.0.1, -ip.bind=0.0.0.0, -master.volumeSizeLimitMB=64, -volume.max=400, -filer, -s3, -s3.port=9000]
           ports: [{containerPort: 9000}, {containerPort: 8888}]
           resources: {requests: {cpu: 10m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
           readinessProbe: {tcpSocket: {port: 9000}, periodSeconds: 10}
