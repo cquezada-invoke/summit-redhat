@@ -1,0 +1,64 @@
+commit: 9769b2c10095fc102c6e8acc4dcbf7947f419fe1
+inicio: 2026-11-10T14:50:38-03:00
+---
+jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'id'
+500 /lab/certificados/d3m0a2 · N1-5: 0 · Well-Architected: 0 · Última lectura: 0 · Reemplazar: 0
+[2026-11-10 14:50:50,152] ERROR in app: Exception on /certificados/d3m0a3 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 371, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 6393, in certificado
+    return render_template("certificado.html", f=f, r=r, maquinas=afectadas(f, eqs), servidores=servidores, clientes=clientes,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/certificado.html", line 1, in top-level template code
+    {% extends "base.html" %}{% block titulo %}{{ f.cn }} · Certificado{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 62, in top-level template code
+    {% if sel_cli %}<select class="persp-sel" onchange="location.href=this.value" aria-label="Cambiar de cliente" title="Cambiar de cliente">{% for c in clientes %}<option value="{{ url_for('consola.cambiar_cliente', cid=c.id, ir=url_for('consola.inicio')) }}" {{ 'selected' if cliente and c.id == cliente.id }}>{{ c.nombre }}</option>{% endfor %}{% if usuario.es_admin and multicliente_permitido_f() %}<option value="{{ url_for('admin.cliente_alta') }}">＋ Agregar cliente…</option>{% endif %}</select>{% endif %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/werkzeug/routing/map.py", line 899, in build
+    rv = self._partial_build(endpoint, values, method, append_unknown)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/werkzeug/routing/map.py", line 801, in _partial_build
+    rv = self._partial_build(
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/werkzeug/routing/map.py", line 814, in _partial_build
+    build_rv = rule.build(values, append_unknown)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/werkzeug/routing/rules.py", line 849, in build
+    return self._build_unknown(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<werkzeug routing>", line 1, in <builder:'/cliente/<int:cid>'>
+  File "/opt/app-root/lib64/python3.11/site-packages/werkzeug/routing/converters.py", line 168, in to_url
+    value_str = str(self.num_convert(value))
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'id'
+500 /lab/certificados/d3m0a3 · N1-5: 0 · Well-Architected: 0 · Última lectura: 0 · Reemplazar: 0
+200 /lab/mapa?vista=aplicaciones&segmento=App+de+pagos · N1-5: 0 · Well-Architected: 0 · Última lectura: 0 · Reemplazar: 0
+--- fin: 2026-11-10T14:50:50-03:00 · código: 0
