@@ -32,7 +32,7 @@ async function enviar(ajustar){const t=msg.value.trim();if(!t)return;
  if(!ajustar&&!ENTREGADO&&ba.disabled===false&&/(entrega|repositorio|\brepo\b|sube|crea la rama)/.test(tn)){burbuja(esc(t),true);msg.value='';return publicar(null)}
  burbuja(esc(t),true);msg.value='';bg.disabled=ba.disabled=true;
  const w=burbuja('<p class="ayuda">Enviando el requerimiento al agente…</p>');
- const [ok0,d0]=await post('api/generar',{mensaje:t,ajustar});
+ const [ok0,d0]=await post('api/generar',{mensaje:t,ajustar,motor:(document.getElementById('motor')||{}).value});
  if(!ok0){w.innerHTML='<p class="chip mal">'+esc(d0.error)+'</p>';bg.disabled=false;return}
  let d=null;
  for(;;){await new Promise(r=>setTimeout(r,1500));const r=await fetch('api/avance/'+d0.trabajo);const a=await r.json().catch(()=>({error:'sin respuesta'}));

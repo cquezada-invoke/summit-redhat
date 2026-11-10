@@ -614,6 +614,8 @@ def api_generar():
     if pend and not previo:   # respuesta a la pregunta del agente: el requerimiento se completa con ella
         req_ = f"{pend['req']}\n\nEl agente preguntó:\n{pend['pregunta']}\n\nRespuesta del usuario:\n{req_}"[:8000]
     tid = secrets.token_hex(8)
+    if d.get("motor") in MOTORES:   # el modelo elegido en la pantalla manda (la sesión en memoria se pierde al desplegar)
+        MOTOR_SESION[sid] = d["motor"]
     TRABAJOS[tid] = {"sid": sid, "inicio": time.time(), "pasos": [], "listo": False, "motor": MOTOR_SESION.get(sid, "claude")}
     for k in [k for k, v in TRABAJOS.items() if time.time() - v["inicio"] > 3600]:
         TRABAJOS.pop(k, None)
