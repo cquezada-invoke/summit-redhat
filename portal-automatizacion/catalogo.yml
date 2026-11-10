@@ -112,7 +112,7 @@
   orden: true
   descripcion: "La orden de servicio llega desde Amdocs a Event-Driven Ansible. Ansible la valida, pide aprobación, crea la red del servicio (VLAN y BGP), prepara la CNF en OpenShift y devuelve el estado a Amdocs. Si algo falla, vuelve atrás y marca la orden fallida."
   encuesta:
-    - {question_name: "Orden de Amdocs", variable: orden_id, type: text, default: "", required: true, min: 12, max: 12,
+    - {question_name: "Orden de Amdocs", variable: orden_id, type: text, default: "ORD-00000001", required: true, min: 12, max: 12,
        question_description: "ORD-XXXXXXXX. Normalmente la lanza EDA sola cuando Amdocs crea la orden; también se puede lanzar a mano."}
 - nombre: "Amdocs · Salud de la plataforma BSS"
   oculto: true   # bajo valor frente a OpenShift/ACM: queda como plantilla (la usan otros flujos) pero no en el portal
@@ -179,15 +179,15 @@
   encuesta:
     - {question_name: "Fase", variable: fase, type: multiplechoice, choices: [pre, post], default: pre, required: true,
        question_description: "pre: antes de actualizar · post: después de actualizar."}
-    - {question_name: "Versión destino", variable: version_destino, type: text, default: "", required: false, max: 12}
-    - {question_name: "Rutas críticas a probar", variable: rutas_criticas, type: textarea, default: "", required: false, max: 1000,
+    - {question_name: "Versión destino", variable: version_destino, type: text, default: "4.19.55", required: false, max: 12}
+    - {question_name: "Rutas críticas a probar", variable: rutas_criticas, type: textarea, default: "https://amdocs-ordering.sno.34.176.42.56.sslip.io/health", required: false, max: 1000,
        question_description: "URLs separadas por coma (solo en fase post)."}
 - nombre: "OpenShift · De alerta a incidente"
   seccion: ocp
   playbook: playbooks/ocp-alerta-incidente.yml
   descripcion: "Cuando suena una alerta, Ansible junta la evidencia (estado de los pods, eventos y logs), aplica la remediación segura si la causa es conocida y abre el incidente en ServiceNow con todo adjunto; si se resolvió, lo deja resuelto. La lanza Event-Driven Ansible desde Alertmanager, sin que nadie entre a la consola."
   encuesta:
-    - {question_name: "Namespace", variable: namespace, type: text, default: "", required: true, max: 63}
+    - {question_name: "Namespace", variable: namespace, type: text, default: "amdocs-bss", required: true, max: 63}
     - {question_name: "Alerta", variable: alerta, type: text, default: "KubePodCrashLooping", required: true, max: 100}
     - {question_name: "Remediar si la causa es conocida", variable: remediar, type: multiplechoice, choices: [si, "no"], default: si, required: true}
 - nombre: "OpenShift · Certificado de aplicación de punta a punta"
@@ -195,8 +195,8 @@
   playbook: playbooks/ocp-certificado-app.yml
   descripcion: "Renovar un certificado no termina en OpenShift: revisa el certificado que se ve desde fuera, emite uno nuevo con la CA si vence pronto, lo carga en la Route y en el balanceador externo que publica la aplicación, y verifica que la cadena nueva sea la que ve el cliente."
   encuesta:
-    - {question_name: "Namespace", variable: namespace, type: text, default: "", required: true, max: 63}
-    - {question_name: "Route", variable: ruta, type: text, default: "", required: true, max: 63}
+    - {question_name: "Namespace", variable: namespace, type: text, default: "amdocs-bss", required: true, max: 63}
+    - {question_name: "Route", variable: ruta, type: text, default: "amdocs-ordering", required: true, max: 63}
     - {question_name: "Renovar si vence en menos de (días)", variable: umbral_dias, type: integer, min: 1, max: 365, default: 30, required: true}
     - {question_name: "Forzar renovación", variable: forzar, type: multiplechoice, choices: ["no", si], default: "no", required: true}
 - nombre: "OpenShift · Acceso de equipo"
@@ -204,9 +204,9 @@
   playbook: playbooks/ocp-acceso-equipo.yml
   descripcion: "Un equipo nuevo queda con todo lo que necesita en un solo paso: grupo en OpenShift, rol en sus namespaces, equipo en Git con sus repositorios y política de secretos en Vault. Con baja se le quita todo lo mismo, sin accesos huérfanos."
   encuesta:
-    - {question_name: "Equipo", variable: equipo, type: text, default: "", required: true, min: 3, max: 40}
-    - {question_name: "Miembros", variable: miembros, type: textarea, default: "", required: false, max: 1000, question_description: "Usuarios separados por coma."}
-    - {question_name: "Namespaces", variable: namespaces, type: text, default: "", required: true, max: 500, question_description: "Separados por coma."}
+    - {question_name: "Equipo", variable: equipo, type: text, default: "equipo-demo", required: true, min: 3, max: 40}
+    - {question_name: "Miembros", variable: miembros, type: textarea, default: "demo1,demo2", required: false, max: 1000, question_description: "Usuarios separados por coma."}
+    - {question_name: "Namespaces", variable: namespaces, type: text, default: "amdocs-bss", required: true, max: 500, question_description: "Separados por coma."}
     - {question_name: "Rol", variable: rol, type: multiplechoice, choices: [view, edit, admin], default: edit, required: true}
     - {question_name: "Acción", variable: accion, type: multiplechoice, choices: [alta, baja], default: alta, required: true}
 - nombre: "OpenShift · Informe de seguridad del clúster"
@@ -265,4 +265,4 @@
   encuesta:
     - {question_name: "Ticket de Odoo", variable: ticket, type: integer, min: 1, max: 99999999, default: 1, required: true}
     - {question_name: "Acción", variable: accion, type: multiplechoice, choices: [diagnostico, liberar_disco, reiniciar_servicio], default: diagnostico, required: true}
-    - {question_name: "Servicio (si reinicia)", variable: servicio, type: text, default: "", required: false, max: 80}
+    - {question_name: "Servicio (si reinicia)", variable: servicio, type: text, default: "nginx", required: false, max: 80}

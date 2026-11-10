@@ -257,7 +257,7 @@ def ficha(wid):
     hosts = []
     if w.get("ask_limit_on_launch") and w.get("inventory"):
         hosts = [h["name"] for h in aap("GET", f"inventories/{w['inventory']}/hosts/?page_size=200&order_by=name")["results"]]
-    return render_template("ficha.html", u=u, w=w, preguntas=enc.get("spec", []), pasos=pasos, recientes=recientes, sec=sec, hosts=hosts)
+    return render_template("ficha.html", servidor_prueba=os.environ.get("PORTAL_SERVIDOR_PRUEBA", "nodo-jboss"), u=u, w=w, preguntas=enc.get("spec", []), pasos=pasos, recientes=recientes, sec=sec, hosts=hosts)
 
 
 @app.route("/automatizacion/<int:wid>/lanzar", methods=["POST"])
