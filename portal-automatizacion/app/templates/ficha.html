@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block contenido %}
 <h3>{{ w.name.split('·', 1)[-1] | trim }}</h3>
-<p>{{ w.description }}</p>
+<p style="white-space:pre-line">{{ w.description }}</p>
 <p>Ver en AAP: <a href="{{ en_aap('wf', w.id) }}" target="_blank">workflow «{{ w.name }}»</a></p>
 <p>Pasos:</p><ul>{% for p in pasos %}<li>{% if p.unified_job_type == 'workflow_approval' %}Aprobación (en AAP: <a href="{{ en_aap('aprobs', 0) }}" target="_blank">Workflow Approvals</a>){% else %}{{ p.name | replace('Portal · ', '') | replace(' (plantilla)', '') }}{% if p.aap %} — <a href="{{ p.aap }}" target="_blank">plantilla en AAP</a>{% endif %}{% if p.repo %} — <a href="{{ p.repo }}" target="_blank">{{ p.playbook }} en el repositorio</a>{% endif %}{% endif %}</li>{% endfor %}</ul>
 <form method="post" action="{{ url_for('lanzar', wid=w.id) }}">

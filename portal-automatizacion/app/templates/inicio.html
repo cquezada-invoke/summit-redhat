@@ -6,9 +6,9 @@
   {% set lista = items | selectattr('seccion', 'equalto', k) | list %}
   {% if lista %}
   <h3>{{ n }}</h3>
-  <ul>{% for i in lista %}<li><a href="{{ url_for('ficha', wid=i.id) }}">{{ i.nombre }}</a> (<a href="{{ en_aap('wf', i.id) }}" target="_blank">AAP</a>) <b title="{{ i.prueba_nota }}">[{{ i.prueba }}]</b> <span class="sub">— {{ i.descripcion }}</span></li>{% endfor %}</ul>
+  <ul>{% for i in lista %}<li><a href="{{ url_for('ficha', wid=i.id) }}">{{ i.nombre }}</a> (<a href="{{ en_aap('wf', i.id) }}" target="_blank">AAP</a>) <b title="{{ i.prueba_nota }}">[{{ i.prueba }}]</b>{% if i.tipo %} <span class="tipo tipo-{{ i.tipo[:4] | lower }}">{{ i.tipo }} · PDF al correo</span>{% endif %} <span class="sub">— {{ i.para }}</span></li>{% endfor %}</ul>
   {% if k == 'amdocs' %}
-  <p>Simular orden de Amdocs:
+  <p><b>Probar «Activar orden de servicio»</b> (simula que Amdocs vende un servicio y envía la orden; Ansible la recibe sola y pide tu aprobación):<br>
     cliente <select id="o-cliente"><option value="CLI-00001">Banco del Caribe</option><option value="CLI-00002">Hospital San Juan</option><option value="CLI-00003">Puerto de Ponce</option><option value="CLI-00004">Retail Isla</option></select>
     oferta <select id="o-oferta"><option value="OFR-5G-EMP">5G empresarial (UPF)</option><option value="OFR-IOT">IoT (AMF)</option></select>
     servicio <input id="o-nombre" value="upf-banco" size="12"> VLAN <input id="o-vlan" type="number" value="310" style="width:70px"> prefijo <input id="o-prefijo" value="10.60.10.0/24" size="14">
@@ -20,6 +20,7 @@
 {% if not items %}<p>Su usuario de AAP no tiene automatizaciones del portal asignadas.</p>{% endif %}
 {% endblock %}
 {% block js %}
+<style>.tipo{font-size:.78em;padding:1px 7px;border-radius:9px;white-space:nowrap}.tipo-info{background:#e7f1fa;color:#004080}.tipo-hace{background:#fdf0e5;color:#8a4500}.tipo-solo{background:#e9f5e6;color:#1e4f18}</style>
 <script>
 const AAP = {{ en_aap('aprobs', 0).split('/execution')[0] | tojson }};
 const caja = document.getElementById('o-estado');

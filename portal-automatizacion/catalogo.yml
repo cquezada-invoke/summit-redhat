@@ -34,7 +34,11 @@
 - nombre: "OpenShift · Optimizar recursos y limpiar"
   seccion: ocp
   playbook: playbooks/ocp-optimizar.yml
-  descripcion: "Compara lo reservado con el uso real para encontrar capacidad ociosa, aplicaciones subdimensionadas y Deployments sin uso; sugiere requests y limpia pods y builds terminados."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo (en modo «revisar» no cambia nada)
+    Para qué: recuperar capacidad del clúster que se paga y no se usa.
+    Qué hace: compara lo que cada aplicación reservó (CPU y memoria) con lo que usa de verdad y detecta deployments sin uso; en modo «limpiar» borra pods terminados y builds viejos.
+    Qué obtienes: cuánta CPU y memoria se puede liberar y en qué aplicaciones.
   encuesta:
     - {question_name: "Modo", variable: modo, type: multiplechoice, choices: [revisar, corregir], default: revisar, required: true,
        question_description: "corregir borra pods y builds terminados antiguos. Los ajustes de requests se sugieren, no se aplican."}
@@ -52,13 +56,21 @@
 - nombre: "OpenShift · Respaldo de etcd"
   seccion: ocp
   playbook: playbooks/ocp-etcd-respaldo.yml
-  descripcion: "Respaldo oficial de etcd (cluster-backup.sh) en un nodo de control, con verificación previa de que etcd está sano y rotación de los últimos respaldos."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: poder recuperar el clúster completo si se daña su base de datos (etcd).
+    Qué hace: verifica que etcd esté sano, ejecuta el respaldo oficial de Red Hat en un nodo de control y conserva solo los últimos respaldos.
+    Qué obtienes: la ruta y el tamaño del respaldo nuevo. Se puede programar todas las noches.
   encuesta:
     - {question_name: "Respaldos a conservar", variable: conservar, type: integer, min: 1, max: 15, default: 3, required: true}
 - nombre: "OpenShift · Alta de proyecto"
   seccion: ocp
   playbook: playbooks/ocp-onboarding-proyecto.yml
-  descripcion: "Crea el namespace de un equipo con su línea base completa: cuota, LimitRange, permisos del grupo, NetworkPolicy y etiquetas de ambiente y responsable. También lo retira."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: entregar a un equipo un espacio listo y seguro en OpenShift en un paso.
+    Qué hace: crea el proyecto con su cuota de CPU y memoria, límites por contenedor, permisos para el grupo del equipo y una política de red segura. Con «eliminar» lo borra.
+    Qué obtienes: el proyecto creado, listo para desplegar.
   encuesta:
     - {question_name: "Proyecto", variable: proyecto, type: text, default: demo-pagos, required: true, min: 3, max: 42}
     - {question_name: "Grupo del equipo", variable: equipo, type: text, default: equipo-pagos, required: false, max: 60}
@@ -80,7 +92,11 @@
 - nombre: "Telco · Onboarding de CNF"
   seccion: telco
   playbook: playbooks/telco-onboarding-cnf.yml
-  descripcion: "Prepara el clúster para recibir la CNF del proveedor: namespace, cuota con páginas grandes, red secundaria de la VLAN del servicio, dirección pública con MetalLB, permisos del proveedor y NetworkPolicy. También la retira."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: preparar el clúster para recibir una función de red del proveedor en minutos.
+    Qué hace: crea el namespace de la CNF con su cuota, la red de la VLAN del servicio, la IP pública, los permisos del proveedor y la política de red. Con «retirar» lo deja como estaba.
+    Qué obtienes: la CNF lista para que el proveedor despliegue.
   encuesta:
     - {question_name: "Nombre de la CNF", variable: cnf_nombre, type: text, default: upf-demo, required: true, min: 2, max: 31}
     - {question_name: "Proveedor", variable: proveedor, type: text, default: nabstract, required: true, max: 30}
@@ -93,7 +109,11 @@
   seccion: telco
   red: true
   playbook: playbooks/telco-red-servicio.yml
-  descripcion: "Red como código: crea la VLAN del servicio en el firewall y anuncia su prefijo por BGP desde el router, declarado en Git. Toma una foto antes, prueba después y, si la prueba falla, vuelve atrás solo (router, firewall y Git)."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: activar la red de un servicio en el router sin errores manuales.
+    Qué hace: valida, crea la VLAN y anuncia la ruta por BGP (configuración guardada en Git), prueba y, si falla, deshace el cambio sola.
+    Qué obtienes: la VLAN y la ruta activas, con evidencia de antes y después.
   encuesta:
     - {question_name: "Acción", variable: svc_accion, type: multiplechoice, choices: [activar, retirar], default: activar, required: true}
     - {question_name: "Nombre del servicio", variable: svc_nombre, type: text, default: upf-demo, required: true, max: 31}
@@ -105,12 +125,20 @@
 - nombre: "Telco · Día 2 del clúster de cargas"
   seccion: telco
   pasos: ["OpenShift · Salud del clúster", "OpenShift · Certificados", "OpenShift · Respaldo de etcd"]
-  descripcion: "Rutina diaria del clúster de cargas en un solo flujo: salud y alertas, vencimiento de certificados y respaldo de etcd. Se puede programar en AAP para que corra sola."
+  descripcion: |-
+    Tipo: Solo lectura · te llega un PDF al correo con el resultado
+    Para qué: la revisión diaria del clúster de cargas en un clic (o programada).
+    Qué hace: encadena salud y alertas, vencimiento de certificados y respaldo de etcd.
+    Qué obtienes: el estado del día con lo que hay que atender.
   encuesta: []
 - nombre: "Amdocs · Activar orden de servicio"
   seccion: amdocs
   orden: true
-  descripcion: "La orden de servicio llega desde Amdocs a Event-Driven Ansible. Ansible la valida, pide aprobación, crea la red del servicio (VLAN y BGP), prepara la CNF en OpenShift y devuelve el estado a Amdocs. Si algo falla, vuelve atrás y marca la orden fallida."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: que una venta en Amdocs se convierta en servicio activo sin intervención manual.
+    Qué hace: recibe la orden de Amdocs, la valida, pide aprobación, crea la red del servicio, prepara la CNF en OpenShift y devuelve el estado a Amdocs. Si falla, vuelve atrás.
+    Qué obtienes: la orden completada en Amdocs. Para probarla, usa «Simular orden de Amdocs» más abajo.
   encuesta:
     - {question_name: "Orden de Amdocs", variable: orden_id, type: text, default: "ORD-00000001", required: true, min: 12, max: 12,
        question_description: "ORD-XXXXXXXX. Normalmente la lanza EDA sola cuando Amdocs crea la orden; también se puede lanzar a mano."}
@@ -124,7 +152,11 @@
 - nombre: "Amdocs · Desplegar release"
   seccion: amdocs
   playbook: playbooks/amdocs-release.yml
-  descripcion: "Actualiza un microservicio de Amdocs con pre-chequeos, despliegue gradual sin corte y prueba posterior. Si la versión nueva no queda sana, vuelve sola a la anterior."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: actualizar un microservicio de Amdocs sin cortar el servicio.
+    Qué hace: revisa antes, despliega de forma gradual y prueba después; si la versión nueva falla, vuelve sola a la anterior.
+    Qué obtienes: la versión desplegada o la reversión automática.
   encuesta:
     - {question_name: "Microservicio", variable: servicio, type: multiplechoice, choices: [catalog, customer, ordering], default: catalog, required: true}
     - {question_name: "Versión", variable: version, type: text, default: 2.4.0, required: true, max: 12}
@@ -175,7 +207,12 @@
 - nombre: "OpenShift · Actualización guiada con ACM"
   seccion: ocp
   playbook: playbooks/ocp-actualizacion-guiada.yml
-  descripcion: "Lo que rodea a una actualización y ACM no hace: antes, valida que el clúster esté sano, respalda etcd, guarda una foto de la configuración y saca el clúster del balanceador externo; después, verifica operadores y las rutas críticas de las aplicaciones y lo devuelve al balanceador, o lo deja fuera y avisa si algo falló. Se conecta como hook de ACM (ClusterCurator)."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: actualizar OpenShift sin sorpresas. ACM hace la actualización; esta automatización hace lo de antes y lo de después.
+    Qué hace (fase «pre», antes de actualizar): revisa que el clúster esté sano, respalda etcd, guarda una copia de la configuración y saca el clúster del balanceador para que no reciba tráfico.
+    Qué hace (fase «post», después de actualizar): revisa que todos los operadores quedaron en la versión nueva y que las aplicaciones responden; si todo está bien, lo devuelve al balanceador; si algo falla, lo deja fuera y avisa.
+    Qué obtienes: «listo para actualizar» o «actualización validada», con la evidencia. No actualiza OpenShift por sí misma.
   encuesta:
     - {question_name: "Fase", variable: fase, type: multiplechoice, choices: [pre, post], default: pre, required: true,
        question_description: "pre: antes de actualizar · post: después de actualizar."}
@@ -185,7 +222,11 @@
 - nombre: "OpenShift · De alerta a incidente"
   seccion: ocp
   playbook: playbooks/ocp-alerta-incidente.yml
-  descripcion: "Cuando suena una alerta, Ansible junta la evidencia (estado de los pods, eventos y logs), aplica la remediación segura si la causa es conocida y abre el incidente en ServiceNow con todo adjunto; si se resolvió, lo deja resuelto. La lanza Event-Driven Ansible desde Alertmanager, sin que nadie entre a la consola."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: que una alerta se atienda sola en segundos, sin que nadie entre a la consola.
+    Qué hace: junta el estado de los pods, eventos y logs del namespace afectado; si la causa es conocida reinicia el pod en falla; abre el incidente en ServiceNow con todo adjunto.
+    Qué obtienes: el número de incidente, qué se encontró y qué se hizo. Normalmente la lanza Grafana o Alertmanager automáticamente.
   encuesta:
     - {question_name: "Namespace", variable: namespace, type: text, default: "amdocs-bss", required: true, max: 63}
     - {question_name: "Alerta", variable: alerta, type: text, default: "KubePodCrashLooping", required: true, max: 100}
@@ -193,7 +234,11 @@
 - nombre: "OpenShift · Certificado de aplicación de punta a punta"
   seccion: ocp
   playbook: playbooks/ocp-certificado-app.yml
-  descripcion: "Renovar un certificado no termina en OpenShift: revisa el certificado que se ve desde fuera, emite uno nuevo con la CA si vence pronto, lo carga en la Route y en el balanceador externo que publica la aplicación, y verifica que la cadena nueva sea la que ve el cliente."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: que un certificado vencido nunca corte una aplicación.
+    Qué hace: revisa el certificado que ve el cliente desde fuera; si vence pronto, emite uno nuevo, lo instala en OpenShift y en el balanceador externo, y comprueba desde fuera que se vea el nuevo.
+    Qué obtienes: días que le quedaban y si se renovó.
   encuesta:
     - {question_name: "Namespace", variable: namespace, type: text, default: "amdocs-bss", required: true, max: 63}
     - {question_name: "Route", variable: ruta, type: text, default: "ordering", required: true, max: 63}
@@ -202,7 +247,11 @@
 - nombre: "OpenShift · Acceso de equipo"
   seccion: ocp
   playbook: playbooks/ocp-acceso-equipo.yml
-  descripcion: "Un equipo nuevo queda con todo lo que necesita en un solo paso: grupo en OpenShift, rol en sus namespaces, equipo en Git con sus repositorios y política de secretos en Vault. Con baja se le quita todo lo mismo, sin accesos huérfanos."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: dar o quitar acceso a un equipo en todos los sistemas a la vez, sin olvidar ninguno.
+    Qué hace: crea el grupo del equipo en OpenShift con sus miembros y le da el rol elegido (ver, editar o administrar) en los namespaces indicados; si están conectados, también en Git y Vault. Con «baja» quita todo.
+    Qué obtienes: el detalle de los accesos que quedaron en cada sistema.
   encuesta:
     - {question_name: "Equipo", variable: equipo, type: text, default: "equipo-demo", required: true, min: 3, max: 40}
     - {question_name: "Miembros", variable: miembros, type: textarea, default: "demo1,demo2", required: false, max: 1000, question_description: "Usuarios separados por coma."}
@@ -212,7 +261,11 @@
 - nombre: "OpenShift · Informe de seguridad del clúster"
   seccion: ocp
   playbook: playbooks/ocp-informe-seguridad.yml
-  descripcion: "Informe en PDF por correo con lo que la consola no junta en un solo lugar: quién tiene cluster-admin, kubeadmin activo, SCC privilegiadas, contenedores privilegiados o como root, imágenes sin versión, namespaces sin NetworkPolicy, rutas sin TLS, secretos sin rotar y certificados por vencer. Semáforo por severidad, qué hacer y resumen ejecutivo escrito por Claude."
+  descripcion: |-
+    Tipo: Solo lectura · informe de análisis en PDF a tu correo
+    Para qué: saber en minutos qué tan expuesto está el clúster y qué atender primero.
+    Qué revisa: quién tiene cluster-admin, si kubeadmin sigue activo, contenedores privilegiados o como root, imágenes sin versión, namespaces sin aislamiento de red, rutas sin TLS, secretos sin rotar y certificados por vencer. No cambia nada.
+    Qué obtienes: PDF con semáforo, lo afectado, por qué importa, qué hacer y un resumen ejecutivo escrito por Claude.
   encuesta:
     - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
        question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
@@ -220,7 +273,11 @@
 - nombre: "Amdocs · Informe de operación y conciliación"
   seccion: amdocs
   playbook: playbooks/amdocs-informe-operacion.yml
-  descripcion: "Informe en PDF por correo que cruza lo que Amdocs cree activo con lo que existe en OpenShift: servicios cobrados sin su CNF, CNF huérfanas que se pagan y no se cobran, órdenes atascadas o fallidas y la salud de los microservicios del BSS. Con resumen ejecutivo escrito por Claude."
+  descripcion: |-
+    Tipo: Solo lectura · informe de análisis en PDF a tu correo
+    Para qué: encontrar servicios que se cobran y no existen, o que existen y no se cobran.
+    Qué revisa: cruza las órdenes de Amdocs con lo que realmente está en OpenShift, detecta órdenes atascadas o fallidas y revisa la salud de los microservicios del BSS. No cambia nada.
+    Qué obtienes: PDF con las diferencias, su impacto, qué hacer y un resumen ejecutivo escrito por Claude.
   encuesta:
     - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
        question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
@@ -231,7 +288,11 @@
   base: "Seguridad · Revisar CVEs"
   credencial: "Nodos demo (ansible)"
   limite: true
-  descripcion: "Informe en PDF por correo de los servidores Linux elegidos: parches de seguridad pendientes y críticos, reinicio pendiente, SELinux, SSH (root y contraseñas), cuentas con UID 0 y sudo sin contraseña, firewall, puertos expuestos, intentos de acceso fallidos y servicios inseguros. Semáforo, qué hacer y resumen ejecutivo escrito por Claude."
+  descripcion: |-
+    Tipo: Solo lectura · informe de análisis en PDF a tu correo
+    Para qué: conocer el estado de seguridad de los servidores Linux sin revisarlos uno por uno.
+    Qué revisa: parches de seguridad pendientes, reinicio pendiente, SELinux, acceso SSH de root, cuentas con poder de root, sudo sin contraseña, firewall, puertos abiertos, intentos de acceso fallidos y servicios inseguros. No cambia nada.
+    Qué obtienes: PDF con semáforo por servidor, qué hacer y un resumen ejecutivo escrito por Claude.
   encuesta:
     - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
        question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
@@ -241,7 +302,11 @@
   base: "Seguridad · Revisar CVEs"
   credencial: "Windows · ansible (WinRM)"
   limite: true
-  descripcion: "Informe en PDF por correo de los servidores Windows elegidos: actualizaciones pendientes y críticas, días sin actualizar, versión fuera de soporte, administradores locales, firewall, Defender, BitLocker, SMBv1, RDP sin NLA, cuenta Guest y política de contraseñas. Semáforo, qué hacer y resumen ejecutivo escrito por Claude."
+  descripcion: |-
+    Tipo: Solo lectura · informe de análisis en PDF a tu correo
+    Para qué: lo mismo que el informe Linux, para servidores Windows.
+    Qué revisa: actualizaciones pendientes, versión fuera de soporte, administradores locales, firewall, antivirus Defender, BitLocker, SMBv1, escritorio remoto sin NLA, cuenta Guest y largo de contraseñas. No cambia nada.
+    Qué obtienes: PDF con semáforo, qué hacer y un resumen ejecutivo escrito por Claude.
   encuesta:
     - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
        question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
@@ -251,7 +316,11 @@
   base: "Seguridad · Revisar CVEs"
   credencial: "Nodos demo (ansible)"
   limite: true
-  descripcion: "Remediación de «disco casi lleno»: la lanza Grafana sola (alerta → Event-Driven Ansible → aprobación) o un ticket de Odoo. Solo limpiezas seguras (journal, caché de dnf, logs rotados, temporales antiguos y kernels viejos) y deja constancia de cuánto liberó."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: que un disco lleno no tumbe un servicio de madrugada.
+    Qué hace: si el disco supera el umbral, hace solo limpiezas seguras (logs del sistema, caché de paquetes, logs antiguos, temporales viejos y kernels antiguos).
+    Qué obtienes: el uso del disco antes y después. Normalmente la lanza Grafana sola con la alerta «disco casi lleno».
   encuesta:
     - {question_name: "Limpiar si el uso supera (%)", variable: umbral, type: integer, min: 50, max: 99, default: 85, required: true}
     - {question_name: "Forzar limpieza", variable: forzar, type: multiplechoice, choices: ["no", si], default: "no", required: true}
@@ -261,7 +330,11 @@
   base: "Seguridad · Revisar CVEs"
   credencial: ["Nodos demo (ansible)", "Odoo · Helpdesk Claro PR"]
   limite: true
-  descripcion: "Un ticket de Odoo Helpdesk con la etiqueta «Claro PR» llega a Event-Driven Ansible y se atiende solo, con aprobación en AAP: liberar disco, reiniciar un servicio o diagnosticar el servidor. Al terminar, el ticket recibe la nota con el resultado y pasa a Resuelto."
+  descripcion: |-
+    Tipo: Hace cambios · pide aprobación en AAP · te llega un PDF al correo con lo que se hizo
+    Para qué: que los tickets de infraestructura de la mesa de ayuda se atiendan solos.
+    Qué hace: cuando entra un ticket en Odoo con la etiqueta «Claro PR» (ej. «disco lleno en nodo-jboss»), entiende qué se pide, pide aprobación y lo ejecuta: liberar disco, reiniciar un servicio o diagnosticar el servidor.
+    Qué obtienes: el ticket de Odoo con la nota del resultado y en estado Resuelto.
   encuesta:
     - {question_name: "Ticket de Odoo", variable: ticket, type: integer, min: 1, max: 99999999, default: 1, required: true}
     - {question_name: "Acción", variable: accion, type: multiplechoice, choices: [diagnostico, liberar_disco, reiniciar_servicio], default: diagnostico, required: true}

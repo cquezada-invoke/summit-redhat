@@ -217,6 +217,10 @@ def catalogo():
         pr = ep.get(items[-1]["nombre"]) or {}
         items[-1]["prueba"] = ETQ_PRUEBA.get(pr.get("estado"), "sin probar")
         items[-1]["prueba_nota"] = pr.get("nota", "")
+        lineas = {l.split(":", 1)[0].strip(): l.split(":", 1)[1].strip() for l in (w["description"] or "").split("\n") if ":" in l}
+        tipo = lineas.get("Tipo", "")
+        items[-1]["tipo"] = "Informe de análisis" if "análisis" in tipo else ("Hace cambios" if "cambios" in tipo else ("Solo lectura" if tipo else ""))
+        items[-1]["para"] = lineas.get("Para qué", w["description"])
     return items
 
 

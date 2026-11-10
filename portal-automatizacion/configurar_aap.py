@@ -249,6 +249,14 @@ jts["_orden"] = plantilla("Portal · Amdocs · Orden de servicio (plantilla)", "
 paso(f"{len(jts)} plantillas")
 
 
+# Informe de ejecución: último paso de los workflows que hacen cambios (PDF por correo con lo que se hizo)
+tipo_aap = uno("credential_types", name="Red Hat Ansible Automation Platform")
+asegurar("credentials", "AAP · informe de ejecución", {"organization": org, "credential_type": tipo_aap["id"],
+         "inputs": {"host": "https://192.168.122.1", "username": "admin", "password": CLAVE, "verify_ssl": False}})
+jts["_informe"] = plantilla("Portal · Informe de ejecución (PDF)", "playbooks/informe-ejecucion.yml",
+                            descripcion="Último paso de los workflows del portal: PDF por correo con lo que se hizo.", credencial="AAP · informe de ejecución")
+
+
 def workflow(it):
     nombre = f"Portal · {it['nombre']}"
     wf = aap("GET", "workflow_job_templates/?name=" + q(nombre))["results"]
@@ -277,13 +285,24 @@ def workflow(it):
         n7 = nodo("cerrar_rechazo", {"unified_job_template": jts["_orden"], "extra_data": {"fase": "cerrar", "resultado": "falla"}})
         enlace(n1, n2); enlace(n2, n3); enlace(n3, n4); enlace(n4, n5)
         enlace(n2, n7, "failure"); enlace(n3, n6, "failure"); enlace(n4, n6, "failure")
+        inf = nodo("informe", {"unified_job_template": jts["_informe"]})
+        for x in (n5, n6, n7):
+            enlace(x, inf, "always")
     else:
         pasos = [jts[p] for p in it.get("pasos", [it["nombre"]])]
         n = aprobacion(f"¿Ejecutar «{it['nombre']}»?", "Revisa los parámetros de la ejecución antes de aprobar.")
+        informa = not any(p_.get("variable") == "correo" for p_ in it.get("encuesta") or [])   # los informes de análisis ya envían su PDF
+        inf = nodo("informe", {"unified_job_template": jts["_informe"]}) if informa else None
+        if inf:
+            enlace(n, inf, "failure")   # rechazada o vencida
         for i, jt in enumerate(pasos):
             m = nodo(f"paso{i + 1}", {"unified_job_template": jt})
             enlace(n, m)
             n = m
+            if inf:
+                enlace(m, inf, "failure")
+        if inf:
+            enlace(n, inf, "success")
     if it.get("encuesta"):
         aap("POST", f"workflow_job_templates/{wf}/survey_spec/", {"name": it["nombre"], "description": it["descripcion"], "spec": it["encuesta"]})
     else:
