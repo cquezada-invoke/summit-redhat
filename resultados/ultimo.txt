@@ -1,15 +1,17 @@
-commit: 94248d32caeedac6d71135d13cecaff35c7fbd56
-inicio: 2026-11-10T16:49:22-03:00
+commit: ee23c8147dfed3f80bbf8918c8328c8f10bfa7f8
+inicio: 2026-11-10T16:49:43-03:00
 ---
-dc1-sso01 inv Data center 1 ansible_host: 10.101.20.14
-nodo-jboss inv Nodos demo ansible_host: 192.168.122.15
-nodo-jboss inv Drift · Servidores ansible_host: 192.168.122.15
-nodo-jboss inv Red · laboratorio ansible_host: 192.168.122.15
-nodo-jboss inv Servidores de aplicación ansible_host: 192.168.122.15
-nodo-jboss inv FaceOps · Todos los servidores ansible_host: 192.168.122.15
-job 15130 DC · Keycloak 2026-11-06T17:45:51 failed limit: nodo-jboss inv: Nodos demo
-job 9275 DC · Keycloak 2026-11-02T05:22:50 successful limit: dc1-idm01 inv: Data center 1
-job 6747 DC · Keycloak 2026-11-01T05:48:09 successful limit: dc1-sso01 inv: Data center 1
-job 6724 DC · Keycloak 2026-11-01T05:40:09 failed limit: dc1-sso01 inv: Data center 1
-job 6664 DC · Keycloak 2026-11-01T05:23:12 failed limit: dc1-sso01 inv: Data center 1
---- fin: 2026-11-10T16:49:29-03:00 · código: 0
+080daea
+/home/cquezada/summit-redhat/faceops/datos/red-laboratorio.json: 6 laboratorios · 27 nodos · 21 enlaces
+13787
+faceops actualizado
+/lab/redes 200 nodos 25 aristas 22 grupos 8 menu-arq True
+  tipos arista {'fisico': 17, 'bgp': 3, 'declarado': 2}
+  kpi []
+  grupos: [('g:r:red-lab', 0), ('g:red-corporativa', 14), ('g:summit-suc1', 1), ('g:summit-suc2', 1), ('g:summit-suc3', 1), ('g:summit-red', 5), ('g:srv', 2), ('g:sin', 1)]
+/lab/redes/arquitectura 200 nodos 68 aristas 22 grupos 10 menu-arq True
+  tipos arista {'fisico': 17, 'bgp': 3, 'declarado': 2}
+  kpi [('15', 'equipos de red (11 en el inventario)'), ('0', 'máquinas con dependencia de red real de 45'), ('43', 'máquinas solo en una red declarada en FaceOps'), ('2', 'máquinas sin dependencia de red conocida')]
+  grupos: [('g:r:red-lab', 0), ('g:red-corporativa', 14), ('g:summit-suc1', 1), ('g:summit-suc2', 1), ('g:summit-suc3', 1), ('g:summit-red', 5), ('g:dr:kvm', 38), ('g:dr:dc1-srv', 5), ('g:nodep', 2), ('g:sin', 1)]
+journal-ok
+--- fin: 2026-11-10T16:50:30-03:00 · código: 0
