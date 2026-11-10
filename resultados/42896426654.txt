@@ -1,0 +1,75 @@
+commit: 1bcb3f758ed0eea31565e4e4fbf24aa0fa12b719
+inicio: 2026-11-10T17:34:25-03:00
+---
+namespace/wl-sonda created
+pod/eap8r created
+pod/wf created
+54s   Normal   Scheduled        pod/wf      Successfully assigned wl-sonda/wf to sno
+53s   Normal   AddedInterface   pod/wf      Add eth0 [10.128.0.196/23] from ovn-kubernetes
+53s   Normal   Pulling          pod/wf      Pulling image "quay.io/wildfly/wildfly:latest-jdk17"
+3s    Normal   Pulled           pod/wf      Successfully pulled image "quay.io/wildfly/wildfly:latest-jdk17" in 50.225s (50.225s including waiting). Image size: 806220481 bytes.
+3s    Normal   Created          pod/wf      Created container: c
+3s    Normal   Started          pod/wf      Started container c
+installer-2-sno                0/1   Completed   0     11d
+installer-4-sno                0/1   Completed   0     11d
+installer-5-sno                0/1   Completed   0     8d
+eap8r   1/1   Running   0     54s
+wf      1/1   Running   0     54s
+== eap8r
+ls: cannot access '/opt/server': No such file or directory
+ls: cannot access '/opt/jboss/wildfly': No such file or directory
+ls: cannot access '/opt/server/standalone/configuration': No such file or directory
+ls: cannot access '/opt/jboss/wildfly/standalone/configuration': No such file or directory
+ls: cannot access '/opt/server/bin/jboss-cli.sh': No such file or directory
+cat: /opt/server/version.txt: No such file or directory
+sh: which: command not found
+java
+openjdk
+util
+wildfly
+JBOSS_IMAGE_NAME=jboss-eap-8/eap8-openjdk17-runtime-openshift-rhel8
+JBOSS_CONTAINER_WILDFLY_RUN_MODULE=/opt/jboss/container/wildfly/run
+JBOSS_CONTAINER_OPENJDK_JDK_MODULE=/opt/jboss/container/openjdk/jdk
+JAVA_VERSION=17
+JBOSS_CONTAINER_JAVA_JVM_MODULE=/opt/jboss/container/java/jvm
+JBOSS_IMAGE_VERSION=1.0.1.GA
+WILDFLY_OVERRIDING_ENV_VARS=1
+JBOSS_HOME=/opt/server
+JBOSS_CONTAINER_UTIL_LOGGING_MODULE=/opt/jboss/container/util/logging/
+JBOSS_CONTAINER_JAVA_PROXY_MODULE=/opt/jboss/container/java/proxy
+ls: cannot access '/tmp/artifacts': No such file or directory
+command terminated with exit code 1
+== wf
+ls: cannot access '/opt/server': No such file or directory
+/opt/jboss/wildfly:
+appclient
+bin
+copyright.txt
+docs
+domain
+jboss-modules.jar
+LICENSE.txt
+modules
+ls: cannot access '/opt/server/standalone/configuration': No such file or directory
+/opt/jboss/wildfly/standalone/configuration:
+application-roles.properties
+application-users.properties
+logging.properties
+mgmt-groups.properties
+mgmt-users.properties
+standalone-full-ha.xml
+standalone-full.xml
+standalone-ha.xml
+ls: cannot access '/opt/server/bin/jboss-cli.sh': No such file or directory
+cat: /opt/server/version.txt: No such file or directory
+sh: line 1: which: command not found
+ls: cannot access '/opt/jboss/container': No such file or directory
+WILDFLY_VERSION=40.0.1.Final
+JBOSS_HOME=/opt/jboss/wildfly
+WILDFLY_DIST=wildfly-40.0.1.Final
+JAVA_VERSION=jdk-17.0.19+10
+ls: cannot access '/tmp/artifacts': No such file or directory
+command terminated with exit code 1
+registry.redhat.io/jboss-eap-8/eap8-openjdk17-runtime-openshift-rhel8@sha256:019fd19124edead77c7f8254f58453e9d702f82af3e10bcb278151093749f6e6
+borrado
+--- fin: 2026-11-10T17:35:22-03:00 · código: 0
