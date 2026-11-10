@@ -1,11 +1,39 @@
-commit: 5cde7f515edbab23d46b06f7729d0e1f2ef336a6
-inicio: 2026-11-10T20:20:35-03:00
+commit: a5a8c3f19fad24479231fe9f9b3a7162f238f185
+inicio: 2026-11-10T20:21:26-03:00
 ---
-ad hoc 22174 successful
 Identity added: /runner/artifacts/22174/ssh_key_data (cquezada@demo-ansible-summit)
-{'numero': 'FO-LAB-01403', 'estado': 'fallido', 'parametros': '{"cert_bits": 2048, "cert_nombre": "jboss-https", "cert_formato": "pkcs12", "cert_recargar": "systemctl restart eap8-standalone", "cert_san"', 'motivo': 'Plan de prueba · reemplazar certificado (nuevo + revocar el anterior)', 'creado': '2026-11-10T19:40:41+00:00', 'inicio': '2026-11-10T19:40:44+00:00', 'fin': '2026-11-10T19:42:30+00:00', 'nombre_aap': 'Certificados · Emitir para servicio'}
-{'numero': 'FO-LAB-01404', 'estado': 'exitoso', 'parametros': '{"sp_accion": "apagar", "sp_unidades": ["keycloak"], "sp_plataforma": "Keycloak"}', 'motivo': 'Keycloak instalado por error en nodo-jboss (job 15130) ocupa el puerto 8080 de JBoss: se apaga', 'creado': '2026-11-10T19:50:25+00:00', 'inicio': '2026-11-10T19:50:30+00:00', 'fin': '2026-11-10T19:52:04+00:00', 'nombre_aap': 'Plataforma · Controlar servicio'}
-{'numero': 'FO-LAB-01405', 'estado': 'exitoso', 'parametros': '{"sp_accion": "reiniciar", "sp_unidades": ["eap8-standalone"], "sp_plataforma": "JBoss EAP"}', 'motivo': 'Reiniciar JBoss para que tome el puerto 8080 liberado', 'creado': '2026-11-10T19:53:25+00:00', 'inicio': '2026-11-10T19:53:28+00:00', 'fin': '2026-11-10T19:54:55+00:00', 'nombre_aap': 'Plataforma · Controlar servicio'}
-{'numero': 'FO-LAB-01406', 'estado': 'fallido', 'parametros': '{"cert_bits": 2048, "cert_nombre": "jboss-https", "cert_formato": "pkcs12", "cert_recargar": "systemctl restart eap8-standalone", "cert_san"', 'motivo': 'Plan de prueba · reemplazar certificado (nuevo + revocar el anterior)', 'creado': '2026-11-10T19:57:33+00:00', 'inicio': '2026-11-10T19:57:36+00:00', 'fin': '2026-11-10T19:59:11+00:00', 'nombre_aap': 'Certificados · Emitir para servicio'}
-Tue Nov 10 08:20:54 PM -03 2026
---- fin: 2026-11-10T20:20:54-03:00 · código: 0
+nodo-jboss | CHANGED | rc=0 >>
+Tue Nov 10 18:20:46 EST 2026
+ 18:20:46 up  1:50,  2 users,  load average: 0.22, 0.22, 0.15
+-rw-r--r--. 1 jboss jboss 244155 Nov 10 18:17 /opt/rh/eap8/root/usr/share/wildfly/standalone/log/server.log
+2026-11-10 15:29:00,297 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-3) WFLYUT0006: Undertow HTTP listener default listening on 0.0.0.0:8080
+2026-11-10 15:29:00,380 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-3) WFLYUT0006: Undertow HTTPS listener https listening on 0.0.0.0:8443
+2026-11-10 15:29:01,225 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0010: Deployed "app-jboss.war" (runtime-name : "app-jboss.war")
+2026-11-10 15:29:01,292 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) started in 3656ms - Started 380 of 612 services (324 services are lazy, passive or on-demand) - Server config
+2026-11-10 16:06:50,861 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-1) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 1002ms
+2026-11-10 16:06:50,861 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-4) WFLYUT0008: Undertow HTTPS listener https suspending
+2026-11-10 16:06:50,862 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0008: Undertow HTTP listener default suspending
+2026-11-10 16:06:51,064 INFO  [org.jboss.as] (MSC service thread 1-4) WFLYSRV0050: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) stopped in 1206ms
+2026-11-10 16:31:07,966 INFO  [org.jboss.as] (MSC service thread 1-1) WFLYSRV0049: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) starting
+2026-11-10 16:31:24,215 ERROR [org.jboss.msc.service.fail] (MSC service thread 1-1) MSC000001: Failed to start service org.wildfly.undertow.listener.default: org.jboss.msc.service.StartException in service org.wildfly.undertow.listener.default: Address already
+2026-11-10 16:31:24,662 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0006: Undertow HTTPS listener https listening on 0.0.0.0:8443
+2026-11-10 16:31:27,747 ERROR [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0013: Operation ("add") failed - address: ([
+2026-11-10 16:31:27,950 ERROR [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0013: Operation ("add") failed - address: ([
+]) - failure description: {"WFLYCTL0080: Failed services" => {"org.wildfly.undertow.listener.default" => "Address already in use /0.0.0.0:8080"}}
+2026-11-10 16:31:27,992 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0010: Deployed "app-jboss.war" (runtime-name : "app-jboss.war")
+WFLYCTL0186:   Services which failed to start:      service org.wildfly.undertow.listener.default: Address already in use /0.0.0.0:8080
+2026-11-10 16:31:28,119 ERROR [org.jboss.as] (Controller Boot Thread) WFLYSRV0026: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) started (with errors) in 56679ms - Started 288 of 537 services (4 services failed or missing dependencies, 31
+2026-11-10 18:17:33,594 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 13ms
+2026-11-10 18:17:33,611 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-1) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 1ms
+2026-11-10 18:17:33,612 ERROR [org.jboss.as.server] (management-handler-thread - 1) WFLYSRV0014: Replacement of deployment "app-jboss.war" by deployment "app-jboss.war" was rolled back with the following failure message: undefined
+WFLYCTL0186:   Services which failed to start:      service org.wildfly.undertow.listener.default: Address already in use /0.0.0.0:8080
+2026-11-10 18:17:36,892 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-3) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 1ms
+2026-11-10 18:17:36,909 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 1ms
+2026-11-10 18:17:36,910 ERROR [org.jboss.as.server] (management-handler-thread - 1) WFLYSRV0014: Replacement of deployment "app-jboss.war" by deployment "app-jboss.war" was rolled back with the following failure message: undefined
+WFLYCTL0186:   Services which failed to start:      service org.wildfly.undertow.listener.default: Address already in use /0.0.0.0:8080
+== podman (ansible)
+CONTAINER ID  IMAGE       COMMAND     CREATED     STATUS      PORTS       NAMES
+Linger=no
+Nov 10 16:30:23 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).
+
+--- fin: 2026-11-10T20:21:26-03:00 · código: 0
