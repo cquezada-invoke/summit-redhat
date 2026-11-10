@@ -19,7 +19,10 @@
   tasks:
     - name: Datos válidos
       ansible.builtin.assert:
-        that: [ns is match('^[a-z0-9-]{1,63}$'), rem in ['si', 'no'], (pod | default('')) is match('^[a-z0-9.-]*$')]
+        that:
+          - "ns is match('^[a-z0-9-]{1,63}$')"
+          - "rem in ['si', 'no']"
+          - "(pod | default('')) is match('^[a-z0-9.-]*$')"
         quiet: true
 
     - name: Pods del namespace
