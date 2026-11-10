@@ -368,7 +368,13 @@ for wn, sid, dsc in [
          "Para qué: tener lista la red para un clúster OpenShift nuevo sin coordinar a mano con el equipo de redes.\n"
          "Qué hace: el usuario llena el formulario «Preparar red para clúster OpenShift» en ServiceNow; Ansible prepara el plan (segmento, accesos y nombres DNS), "
          "AAP pide la aprobación y lo aplica; el ticket de ServiceNow queda con el resultado.\n"
-         "Qué obtienes: el segmento, los accesos y los nombres DNS del clúster listos para instalar.")]:
+         "Qué obtienes: el segmento, los accesos y los nombres DNS del clúster listos para instalar."),
+        ("Red · Revocar acceso con aprobación", "4294d4bfc30c9310bfc1be13e40131b0",
+         "Tipo: Hace cambios · pide aprobación en AAP\n"
+         "Para qué: cerrar un acceso de red que ya no se necesita, sin dejar reglas huérfanas en el firewall.\n"
+         "Qué hace: el usuario llena el formulario «Revocar acceso de red» en ServiceNow indicando el ticket con que se abrió; "
+         "Event-Driven Ansible recibe la solicitud, AAP pide la aprobación, quita la regla del firewall, comprueba que el acceso quedó cerrado y cierra el ticket.\n"
+         "Qué obtienes: el acceso cerrado y los dos tickets (el de apertura y el de revocación) con la evidencia.")]:
     w_ = uno("workflow_job_templates", name=wn)
     if not w_:
         continue

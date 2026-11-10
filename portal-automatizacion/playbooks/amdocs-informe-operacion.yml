@@ -108,7 +108,7 @@
           titulo: "Informe de operación y conciliación · Amdocs"
           alcance: "BSS {{ ns }} · {{ (r_ord.json | default([])) | length }} órdenes"
           archivo: amdocs-operacion
-          correo: "{{ correo | default('cquezada@invoke.cl') }}"
+          correo: "{{ correo | default('cquezada@redhat.com') }}"
           job: "{{ tower_job_id | default(awx_job_id | default('-')) }}"
           secciones: "{{ r_h.stdout | from_json }}"
       register: r_inf

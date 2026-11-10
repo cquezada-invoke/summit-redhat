@@ -122,7 +122,7 @@
           titulo: "Informe de seguridad · clúster OpenShift"
           alcance: "{{ lookup('env', 'K8S_AUTH_HOST') | urlsplit('hostname') }}"
           archivo: openshift-seguridad
-          correo: "{{ correo | default('cquezada@invoke.cl') }}"
+          correo: "{{ correo | default('cquezada@redhat.com') }}"
           job: "{{ tower_job_id | default(awx_job_id | default('-')) }}"
           secciones: "{{ r_h.stdout | from_json }}"
       register: r_inf

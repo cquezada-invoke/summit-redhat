@@ -84,7 +84,7 @@
           titulo: "Informe de seguridad · servidores Linux"
           alcance: "{{ ansible_play_hosts | length }} servidores"
           archivo: linux-seguridad
-          correo: "{{ correo | default('cquezada@invoke.cl') }}"
+          correo: "{{ correo | default('cquezada@redhat.com') }}"
           job: "{{ tower_job_id | default(awx_job_id | default('-')) }}"
           secciones: "{{ _sec if _sec is not string else _sec | from_json }}"
       vars:

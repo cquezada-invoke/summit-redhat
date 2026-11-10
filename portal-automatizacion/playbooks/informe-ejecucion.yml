@@ -8,7 +8,7 @@
   gather_facts: false
   vars:
     portal: "{{ portal_informes | default('http://192.168.122.1:8120/api/informe') }}"
-    destino: "{{ correo | default('cquezada@invoke.cl') }}"
+    destino: "{{ correo | default('cquezada@redhat.com') }}"
     wf_id: "{{ awx_workflow_job_id | default(tower_workflow_job_id | default('')) }}"
   tasks:
     - name: Armar y enviar el informe de la ejecución {{ wf_id }}
