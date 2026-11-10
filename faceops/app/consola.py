@@ -105,7 +105,11 @@ def web_de(e):
     if not ip:
         return None
     pistas = [s.lower() for s in e.get("skills", [])] + [(e.get("so") or "").lower().split(" ")[0]]
+    sv_ = e.get("servicios") or []
+    sv_ = " ".join(json.loads(sv_) if isinstance(sv_, str) and sv_.startswith("[") else ([sv_] if isinstance(sv_, str) else sv_)).lower()
     for clave, esq, puerto, ruta, prod in WEB:
+        if clave == "keycloak" and "keycloak" not in sv_ and "rhbk" not in sv_:
+            continue   # Keycloak declarado pero sin correr en la máquina: no tiene esa consola
         if clave in pistas:
             defecto = (esq == "http" and puerto == 80) or (esq == "https" and puerto == 443)
             return {"url": f"{esq}://{ip}{'' if defecto else ':' + str(puerto)}{ruta}", "producto": prod}

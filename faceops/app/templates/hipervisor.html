@@ -63,9 +63,7 @@ document.querySelectorAll('.hv-lista').forEach(c=>{const tb=c.querySelector('tab
 <td><span class="chip {{ 's-ok' if e.energia == 'encendido' else '' }}">{{ e.energia or '—' }}</span></td></tr>
 {% else %}<tr><td colspan="6" class="sub">Sin máquinas virtuales registradas.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
 
-<div class="card" style="margin-top:14px"><h3 style="margin:0;font-size:14px">Acciones que se pueden abordar</h3>
-<p class="sub" style="margin:4px 0 0;font-size:12.5px">Aún no implementadas: es la lista de lo que se puede automatizar sobre este hipervisor.</p>
-{% for ar in areas %}<div class="hv-area">{{ ar }}</div><ul class="hv-auto">{% for a in autos if a.area == ar %}<li><b>{{ a.nombre }}</b><span class="sub">{{ a.texto }}</span></li>{% endfor %}</ul>{% endfor %}</div>
+
 <script>/* buscador + paginador (10 por página) de las listas del hipervisor */
 document.querySelectorAll('.hv-lista').forEach(c=>{const tb=c.querySelector('table'),nav=c.querySelector('.pag-js'),q=c.querySelector('input[type=search]');
  const filas=[...tb.rows].filter(r=>r.querySelector('td')&&!r.querySelector('td[colspan]'));let p=0;const N=10;

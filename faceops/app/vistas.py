@@ -2451,7 +2451,7 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
         txt = cuerpo.decode(r.encoding or "utf-8", "replace").replace(origen, prefijo)
         if w.get("host"):
             txt = txt.replace(f"https://{w['host']}", prefijo).replace(f"http://{w['host']}", prefijo)
-        txt = re.sub(r'((?:href|src|action)=["\'])/(?!/)', lambda m: m.group(1) + prefijo + "/", txt)
+        txt = re.sub(r'((?:href|src|action|data-base)=["\'])/(?!/)', lambda m: m.group(1) + prefijo + "/", txt)
         for ra in w.get("abs") or []:   # rutas absolutas dentro del JavaScript de la aplicación (p. ej. IdM llama a "/ipa/session/json")
             txt = re.sub(r'(["\'])' + re.escape(ra), lambda m: m.group(1) + prefijo + ra, txt)
         if w.get("vault"):
@@ -5150,7 +5150,16 @@ def _accesos_apps(tarjetas, solo="aplicaciones"):
         en = (m.get("entrada") or {}).get("url") or ""
         if en.startswith("http"):
             p_ = urlsplit(en)
-            agregar("Aplicación", f"{p_.scheme}://{p_.netloc}/")
+            import ipaddress
+            try:
+                privada = ipaddress.ip_address(p_.hostname).is_private
+            except ValueError:
+                privada = False
+            ent_eq = next((e for e in eqs if privada and e.get("ip") == p_.hostname and web_de(e)), None)
+            if ent_eq:   # la entrada vive en la red interna: se abre a través de FaceOps (con su login), no por la IP
+                agregar("Aplicación", url_for("consola.web_equipo", eid=ent_eq["id"], sub=(p_.path or "/").lstrip("/")))
+            else:
+                agregar("Aplicación", f"{p_.scheme}://{p_.netloc}/")
         for o in de_segmento(g.cliente["id"], t["nombre"]):
             for k, u in (o["rutas_d"] or {}).items():
                 agregar(k.replace("_", " ").capitalize(), u)
