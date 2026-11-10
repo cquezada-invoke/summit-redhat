@@ -146,15 +146,58 @@
       ansible.builtin.debug:
         msg: "Versión {{ app_version }} en {{ inventory_hostname }}, solicitada por {{ solicitado_por | default('manual') }}: {{ url_publica }}"
 
-# El manifiesto del ambiente (repo ambientes) siempre refleja lo que está en producción
+# Los manifiestos (repo ambientes) siempre reflejan lo desplegado: se actualiza cada ambiente cuyo manifiesto lista un servidor
+# que recibió la versión; los servidores que ningún manifiesto lista se agregan al del ambiente pedido (se crea si no existe).
 - name: Manifiesto · registrar la versión desplegada
   hosts: localhost
   connection: local
   gather_facts: false
+  vars:
+    _desplegados: "{{ groups['jboss_destino'] | default([]) }}"
+    _pedido: "{{ ambiente | default('produccion') }}"
   tasks:
-    - name: Actualizar produccion.yml
-      ansible.builtin.include_tasks: tareas/manifiesto.yml
-      vars:
-        manifiesto_cambio: {aplicacion: {version: "{{ app_version }}", commit: "{{ app_commit | default('') }}"}}
-        manifiesto_mensaje: "Despliegue de app-jboss {{ app_version }} ({{ origen | default('AAP') }}, {{ solicitado_por | default('manual') }})"
+    - name: Manifiestos de los ambientes
       when: gitea_token is defined and not (manifiesto_omitir | default(false) | bool)
+      block:
+        - name: Manifiestos existentes
+          ansible.builtin.uri:
+            url: "{{ gitea_url | regex_replace('/+$', '') }}/api/v1/repos/invoke/ambientes/contents/?ref=main"
+            headers: {Authorization: "token {{ gitea_token }}"}
+          register: _lista
+          no_log: true
+
+        - name: Servidores de cada manifiesto
+          ansible.builtin.uri:
+            url: "{{ gitea_url | regex_replace('/+$', '') }}/api/v1/repos/invoke/ambientes/raw/{{ item }}?ref=main"
+            headers: {Authorization: "token {{ gitea_token }}"}
+            return_content: true
+          loop: "{{ _lista.json | map(attribute='name') | select('match', '.*[.]ya?ml$') | list }}"
+          register: _manifs
+          no_log: true
+
+        - name: Ambientes a actualizar
+          ansible.builtin.set_fact:
+            _por_ambiente: >-
+              {{ dict(_manifs.results | map(attribute='item') | map('regex_replace', '[.]ya?ml$', '')
+                 | zip(_manifs.results | map(attribute='content') | map('from_yaml')
+                       | map('combine', {}) | map(attribute='servidores', default={}) | map('list'))) }}
+
+        - name: Servidores sin manifiesto
+          ansible.builtin.set_fact:
+            _sueltos: "{{ _desplegados | difference(_por_ambiente.values() | flatten) }}"
+            _ambientes: >-
+              {%- set out = [] -%}
+              {%- for a, s in _por_ambiente.items() if s | intersect(_desplegados) | length > 0 -%}{%- set _ = out.append(a) -%}{%- endfor -%}
+              {{ out + ([_pedido] if _pedido not in out else []) }}
+
+        - name: Actualizar el manifiesto de cada ambiente
+          ansible.builtin.include_tasks: tareas/manifiesto.yml
+          loop: "{{ _ambientes | unique }}"
+          loop_control: {loop_var: manifiesto_ambiente}
+          when: >-
+            manifiesto_ambiente != _pedido or _sueltos | length > 0
+            or (_por_ambiente[_pedido] | default([])) | intersect(_desplegados) | length > 0
+          vars:
+            manifiesto_servidores: "{{ _sueltos if manifiesto_ambiente == _pedido else [] }}"
+            manifiesto_cambio: {aplicacion: {version: "{{ app_version }}", commit: "{{ app_commit | default('') }}"}}
+            manifiesto_mensaje: "Despliegue de app-jboss {{ app_version }} ({{ origen | default('AAP') }}, {{ solicitado_por | default('manual') }})"
