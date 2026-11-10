@@ -141,9 +141,88 @@ def enviar(para, asunto, cuerpo, adjunto, nombre):
         return f"no se pudo enviar ({type(x).__name__})"
 
 
+def _explicacion_ia(d):
+    """Por qué el resultado, en lenguaje de negocio (Claude). Solo objetivo, parámetros y resultado: nada del proceso interno."""
+    clave = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not clave:
+        return ""
+    pedido = ("Eres un arquitecto de Red Hat que escribe para el cliente (gerencia de TI). Una automatización terminó. Con su objetivo, "
+              "sus parámetros y su resultado, escribe en español, texto plano sin markdown y sin hablar de pasos internos, logs ni de cómo "
+              "se ejecutó: un párrafo de 3 a 5 líneas que explique qué significa este resultado y por qué salió así (por ejemplo, por qué "
+              "no se limpió nada o por qué se renovó), y una línea final «Qué sigue:» con la acción recomendada o «nada que hacer». "
+              "Sin inventar datos.\n\n" + json.dumps({k: d.get(k) for k in ("titulo", "objetivo", "que_hace", "parametros", "resultados", "estado")},
+                                                   ensure_ascii=False)[:20000])
+    try:
+        req = urllib.request.Request("https://api.anthropic.com/v1/messages", method="POST", data=json.dumps({
+            "model": os.environ.get("PORTAL_MODELO", "claude-sonnet-5-5"), "max_tokens": 600,
+            "messages": [{"role": "user", "content": pedido}]}).encode(),
+            headers={"x-api-key": clave, "anthropic-version": "2023-06-01", "content-type": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return "".join(b.get("text", "") for b in json.load(r).get("content", []))
+    except Exception:  # noqa: BLE001 - el documento sale igual, sin la explicación
+        return ""
+
+
+def pdf_resultado(d):
+    """Documento de resultado de una automatización: objetivo, qué hace, resultado y por qué."""
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    st = getSampleStyleSheet()
+    s_t = ParagraphStyle("t", parent=st["Title"], fontName="Helvetica-Bold", fontSize=18, alignment=TA_LEFT, spaceAfter=2)
+    s_h = ParagraphStyle("h", parent=st["Heading2"], fontName="Helvetica-Bold", fontSize=12.5, spaceBefore=10, spaceAfter=4)
+    s_n = ParagraphStyle("n", parent=st["BodyText"], fontName="Helvetica", fontSize=9.5, leading=13)
+    s_s = ParagraphStyle("s", parent=s_n, fontSize=8, textColor=colors.HexColor("#6a6e73"))
+    esc = lambda x: str(x if x is not None else "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    color = {"ok": "#3e8635", "atencion": "#ec7a08", "critico": "#c9190b", "no_aprobada": "#6a6e73"}
+    rot = {"ok": "Completada", "atencion": "Requiere atención", "critico": "Requiere atención", "no_aprobada": "No aprobada: no se ejecutó"}
+    est = d.get("estado", "ok")
+    out = [Paragraph(f"{esc(d.get('cliente', 'Claro Puerto Rico'))} · Portal de automatización (Ansible Automation Platform)", s_s),
+           Paragraph(esc(d.get("titulo", "Resultado")), s_t),
+           Paragraph(f"<font color='{color.get(est, '#151515')}'>■ <b>{rot.get(est, est)}</b></font> · {datetime.now().strftime('%Y-%m-%d %H:%M')}", s_n),
+           Paragraph("Objetivo de este documento", s_h),
+           Paragraph("Dejar constancia de qué se pidió a esta automatización, qué resultado entregó y por qué, para que cualquier persona del "
+                     "equipo lo entienda sin entrar a Ansible.", s_n)]
+    if d.get("objetivo") or d.get("que_hace"):
+        out.append(Paragraph("Qué hace esta automatización", s_h))
+        if d.get("objetivo"):
+            out.append(Paragraph(f"<b>Para qué:</b> {esc(d['objetivo'])}", s_n))
+        if d.get("que_hace"):
+            out.append(Paragraph(f"<b>Cómo:</b> {esc(d['que_hace'])}", s_n))
+    if d.get("parametros"):
+        out.append(Paragraph("Qué se pidió", s_h))
+        t = Table([[Paragraph(esc(k), s_s), Paragraph(esc(v), s_n)] for k, v in d["parametros"].items()], colWidths=[50 * mm, 130 * mm])
+        t.setStyle(TableStyle([("INNERGRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#e5e5e5")), ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#d2d2d2"))]))
+        out.append(t)
+    out.append(Paragraph("Resultado", s_h))
+    if not d.get("resultados"):
+        out.append(Paragraph("No se ejecutó (la solicitud no fue aprobada)." if est == "no_aprobada" else "Sin datos de resultado.", s_n))
+    for r in d.get("resultados", []):
+        out.append(Paragraph(f"<b>{esc(r.get('titulo'))}</b>", s_n))
+        if r.get("filas"):
+            t = Table([[Paragraph(esc(f[0]), s_s), Paragraph(esc(f[1] if len(f) > 1 else ""), s_n)] for f in r["filas"]], colWidths=[50 * mm, 130 * mm])
+            t.setStyle(TableStyle([("INNERGRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#e5e5e5")), ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#d2d2d2"))]))
+            out += [Spacer(1, 3), t, Spacer(1, 4)]
+    ia = _explicacion_ia(d)
+    if ia:
+        out.append(Paragraph("Por qué este resultado", s_h))
+        for parr in [p for p in ia.split("\n") if p.strip()]:
+            out.append(Paragraph(esc(parr), s_n))
+        out.append(Paragraph("Escrito por Claude (Anthropic) a partir del objetivo, los parámetros y el resultado.", s_s))
+    out += [Spacer(1, 10), Paragraph(f"{esc(d.get('alcance', ''))} · ejecución AAP #{esc(d.get('job', '-'))}. Queda auditada en Ansible Automation Platform.", s_s)]
+    buf = BytesIO()
+    SimpleDocTemplate(buf, pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm, topMargin=14 * mm, bottomMargin=14 * mm,
+                      title=d.get("titulo", "Resultado"), author="Portal de automatización · Invoke").build(out)
+    return buf.getvalue(), {}
+
+
 def procesar(d):
     """Arma el PDF, lo guarda (descargable desde el portal) y lo envía al correo indicado."""
-    contenido, cuenta = pdf(d)
+    contenido, cuenta = pdf_resultado(d) if d.get("tipo") == "ejecucion" else pdf(d)
     os.makedirs(DIR, exist_ok=True)
     nombre = f"{d.get('archivo', 'informe')}-{datetime.now().strftime('%Y%m%d-%H%M')}.pdf"
     with open(os.path.join(DIR, nombre), "wb") as f:
@@ -151,7 +230,7 @@ def procesar(d):
     para = (d.get("correo") or "").strip()
     resumen = " · ".join(f"{ETQ[k]}: {v}" for k, v in cuenta.items() if v)
     if d.get("tipo") == "ejecucion":
-        resumen = d.get("alcance", "")
+        resumen = {"ok": "completada", "atencion": "requiere atención", "no_aprobada": "no aprobada"}.get(d.get("estado"), "")
     envio = enviar(para, f"{d.get('titulo')} · {resumen or 'sin observaciones'}",
                    f"Adjunto el informe «{d.get('titulo')}» ({d.get('alcance', '')}).\n\n{resumen}\n\nGenerado por Ansible Automation Platform.",
                    contenido, nombre) if para else "sin correo indicado"
