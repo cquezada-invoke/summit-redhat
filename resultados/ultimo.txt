@@ -1,39 +1,99 @@
-commit: a5a8c3f19fad24479231fe9f9b3a7162f238f185
-inicio: 2026-11-10T20:21:26-03:00
+commit: 586ed0294e77673756547c4bdd37169a6c91d103
+inicio: 2026-11-10T20:31:04-03:00
 ---
-Identity added: /runner/artifacts/22174/ssh_key_data (cquezada@demo-ansible-summit)
+[0;33mWants=network-online.target[0m
+[0;33mAfter=network-online.target[0m
+[0;33mDescription=Keycloak (SSO) del data center[0m
+[0;33mSourcePath=/etc/containers/systemd/keycloak.container[0m
+[0;33mRequiresMountsFor=%t/containers[0m
+[0;33mRequiresMountsFor=/var/lib/keycloak/datos[0m
+[0;33m[X-Container][0m
+[0;33mImage=quay.io/keycloak/keycloak:26.0.7[0m
+[0;33mContainerName=keycloak[0m
+[0;33mVolume=/var/lib/keycloak/datos:/opt/keycloak/data:Z[0m
+[0;33mEnvironmentFile=/var/lib/keycloak/kc.env[0m
+[0;33mEnvironment=KC_BOOTSTRAP_ADMIN_USERNAME=admin[0m
+[0;33mEnvironment=KC_HTTP_RELATIVE_PATH=/sso[0m
+[0;33mEnvironment=KC_HOSTNAME=http://34.176.42.56:8090/sso[0m
+[0;33mEnvironment=KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true[0m
+[0;33mEnvironment=KC_PROXY_HEADERS=xforwarded[0m
+[0;33mEnvironment=KC_HTTP_ENABLED=true[0m
+[0;33mEnvironment=KC_HEALTH_ENABLED=true[0m
+[0;33mEnvironment=TZ=America/Santiago[0m
+[0;33mPublishPort=8080:8080[0m
+[0;33mPodmanArgs=--memory=1536m[0m
+[0;33mExec=start-dev[0m
+[0;33m[Service][0m
+[0;33mRestart=always[0m
+[0;33mTimeoutStartSec=900[0m
+[0;33mEnvironment=PODMAN_SYSTEMD_UNIT=%n[0m
+[0;33mKillMode=mixed[0m
+[0;33mExecStop=/usr/bin/podman rm -v -f -i keycloak[0m
+[0;33mExecStopPost=-/usr/bin/podman rm -v -f -i keycloak[0m
+[0;33mDelegate=yes[0m
+[0;33mType=notify[0m
+[0;33mNotifyAccess=all[0m
+[0;33mSyslogIdentifier=%N[0m
+[0;33mExecStart=/usr/bin/podman run --name keycloak --replace --rm --cgroups=split --sdnotify=conmon -d -v /var/lib/keycloak/datos:/opt/keycloak/data:Z --publish 8080:8080 --env KC_BOOTSTRAP_ADMIN_USERNAME=[0m
+[0;33m[Install][0m
+[0;33mWantedBy=multi-user.target[0m
+[0;33mkeycloak.container[0m
+[0;33mCONTAINER ID  IMAGE                                COMMAND     CREATED      STATUS      PORTS                                       NAMES[0m
+[0;33md530fc6740dc  quay.io/keycloak/keycloak:26.0.7     start-dev   2 hours ago  Up 2 hours  0.0.0.0:8080->8080/tcp, 8443/tcp, 9000/tcp  keycloak[0m
+[0;33m36b4f6bf51ef  docker.io/redis/redisinsight:latest              2 hours ago  Up 2 hours  0.0.0.0:5540->5540/tcp                      redisinsight[0m
+Identity added: /runner/artifacts/22219/ssh_key_data (cquezada@demo-ansible-summit)
 nodo-jboss | CHANGED | rc=0 >>
-Tue Nov 10 18:20:46 EST 2026
- 18:20:46 up  1:50,  2 users,  load average: 0.22, 0.22, 0.15
--rw-r--r--. 1 jboss jboss 244155 Nov 10 18:17 /opt/rh/eap8/root/usr/share/wildfly/standalone/log/server.log
-2026-11-10 15:29:00,297 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-3) WFLYUT0006: Undertow HTTP listener default listening on 0.0.0.0:8080
-2026-11-10 15:29:00,380 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-3) WFLYUT0006: Undertow HTTPS listener https listening on 0.0.0.0:8443
-2026-11-10 15:29:01,225 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0010: Deployed "app-jboss.war" (runtime-name : "app-jboss.war")
-2026-11-10 15:29:01,292 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) started in 3656ms - Started 380 of 612 services (324 services are lazy, passive or on-demand) - Server config
-2026-11-10 16:06:50,861 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-1) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 1002ms
-2026-11-10 16:06:50,861 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-4) WFLYUT0008: Undertow HTTPS listener https suspending
-2026-11-10 16:06:50,862 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0008: Undertow HTTP listener default suspending
-2026-11-10 16:06:51,064 INFO  [org.jboss.as] (MSC service thread 1-4) WFLYSRV0050: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) stopped in 1206ms
-2026-11-10 16:31:07,966 INFO  [org.jboss.as] (MSC service thread 1-1) WFLYSRV0049: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) starting
-2026-11-10 16:31:24,215 ERROR [org.jboss.msc.service.fail] (MSC service thread 1-1) MSC000001: Failed to start service org.wildfly.undertow.listener.default: org.jboss.msc.service.StartException in service org.wildfly.undertow.listener.default: Address already
-2026-11-10 16:31:24,662 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0006: Undertow HTTPS listener https listening on 0.0.0.0:8443
-2026-11-10 16:31:27,747 ERROR [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0013: Operation ("add") failed - address: ([
-2026-11-10 16:31:27,950 ERROR [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0013: Operation ("add") failed - address: ([
-]) - failure description: {"WFLYCTL0080: Failed services" => {"org.wildfly.undertow.listener.default" => "Address already in use /0.0.0.0:8080"}}
-2026-11-10 16:31:27,992 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0010: Deployed "app-jboss.war" (runtime-name : "app-jboss.war")
-WFLYCTL0186:   Services which failed to start:      service org.wildfly.undertow.listener.default: Address already in use /0.0.0.0:8080
-2026-11-10 16:31:28,119 ERROR [org.jboss.as] (Controller Boot Thread) WFLYSRV0026: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) started (with errors) in 56679ms - Started 288 of 537 services (4 services failed or missing dependencies, 31
-2026-11-10 18:17:33,594 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 13ms
-2026-11-10 18:17:33,611 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-1) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 1ms
-2026-11-10 18:17:33,612 ERROR [org.jboss.as.server] (management-handler-thread - 1) WFLYSRV0014: Replacement of deployment "app-jboss.war" by deployment "app-jboss.war" was rolled back with the following failure message: undefined
-WFLYCTL0186:   Services which failed to start:      service org.wildfly.undertow.listener.default: Address already in use /0.0.0.0:8080
-2026-11-10 18:17:36,892 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-3) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 1ms
-2026-11-10 18:17:36,909 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0028: Stopped deployment app-jboss.war (runtime-name: app-jboss.war) in 1ms
-2026-11-10 18:17:36,910 ERROR [org.jboss.as.server] (management-handler-thread - 1) WFLYSRV0014: Replacement of deployment "app-jboss.war" by deployment "app-jboss.war" was rolled back with the following failure message: undefined
-WFLYCTL0186:   Services which failed to start:      service org.wildfly.undertow.listener.default: Address already in use /0.0.0.0:8080
-== podman (ansible)
-CONTAINER ID  IMAGE       COMMAND     CREATED     STATUS      PORTS       NAMES
-Linger=no
-Nov 10 16:30:23 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).
+generated
+active
+Restart=always
+WantedBy=multi-user.target
+FragmentPath=/run/systemd/generator/keycloak.service
+SourcePath=/etc/containers/systemd/keycloak.container
+UnitFileState=generated
+ActiveEnterTimestamp=Tue 2026-11-10 16:30:39 EST
+# /run/systemd/generator/keycloak.service
+# Automatically generated by /usr/lib/systemd/system-generators/podman-system-generator
+# 
+[Unit]
+Wants=network-online.target
+After=network-online.target
+Description=Keycloak (SSO) del data center
+SourcePath=/etc/containers/systemd/keycloak.container
+RequiresMountsFor=%t/containers
+RequiresMountsFor=/var/lib/keycloak/datos
+[X-Container]
+Image=quay.io/keycloak/keycloak:26.0.7
+ContainerName=keycloak
+Volume=/var/lib/keycloak/datos:/opt/keycloak/data:Z
+EnvironmentFile=/var/lib/keycloak/kc.env
+Environment=KC_BOOTSTRAP_ADMIN_USERNAME=admin
+Environment=KC_HTTP_RELATIVE_PATH=/sso
+Environment=KC_HOSTNAME=http://34.176.42.56:8090/sso
+Environment=KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true
+Environment=KC_PROXY_HEADERS=xforwarded
+Environment=KC_HTTP_ENABLED=true
+Environment=KC_HEALTH_ENABLED=true
+Environment=TZ=America/Santiago
+PublishPort=8080:8080
+PodmanArgs=--memory=1536m
+Exec=start-dev
+[Service]
+Restart=always
+TimeoutStartSec=900
+Environment=PODMAN_SYSTEMD_UNIT=%n
+KillMode=mixed
+ExecStop=/usr/bin/podman rm -v -f -i keycloak
+ExecStopPost=-/usr/bin/podman rm -v -f -i keycloak
+Delegate=yes
+Type=notify
+NotifyAccess=all
+SyslogIdentifier=%N
+ExecStart=/usr/bin/podman run --name keycloak --replace --rm --cgroups=split --sdnotify=conmon -d -v /var/lib/keycloak/datos:/opt/keycloak/data:Z --publish 8080:8080 --env KC_BOOTSTRAP_ADMIN_USERNAME=
+[Install]
+WantedBy=multi-user.target
+keycloak.container
+CONTAINER ID  IMAGE                                COMMAND     CREATED      STATUS      PORTS                                       NAMES
+d530fc6740dc  quay.io/keycloak/keycloak:26.0.7     start-dev   2 hours ago  Up 2 hours  0.0.0.0:8080->8080/tcp, 8443/tcp, 9000/tcp  keycloak
+36b4f6bf51ef  docker.io/redis/redisinsight:latest              2 hours ago  Up 2 hours  0.0.0.0:5540->5540/tcp                      redisinsight
 
---- fin: 2026-11-10T20:21:26-03:00 · código: 0
+--- fin: 2026-11-10T20:31:18-03:00 · código: 0
