@@ -1,52 +1,65 @@
-commit: ba661773db21538049be556c2510194937e2fea8
+commit: f0af785879049d9ff0636d9317a8bd61a4e3855c
 inicio: 2026-11-10T00:56:41-03:00
 ---
-== OpenShift · Optimizar recursos y limpiar {"modo": "revisar", "umbral_ocioso": 20, "dias_antiguedad": 7} → #20328 successful
+== Telco · Onboarding de CNF {"cnf_nombre": "upf-demo", "proveedor": "nabstract", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "hugepages_gi": 4,  → #20333 successful
      · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · Optimizar recursos y limpiar (plan → successful · Capacidad ociosa y limpieza · 25 ajustes sugeridos [atencion]
+     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-demo (nabstract) lista para desplegar [ok]
      · PDF por correo: enviado
-== OpenShift · Respaldo de etcd {"conservar": 3} → #20336 successful
+== Telco · Onboarding de CNF {"cnf_nombre": "upf-demo", "proveedor": "nabstract", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "hugepages_gi": 4,  → #20341 successful
      · Portal · Informe de ejecución (PDF) → successful
+     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-demo (nabstract) retirada del clúster [ok]
+     · PDF por correo: enviado
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "activar", "svc_nombre": "upf-demo", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "simular_falla": "no → #20350 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed · Cambio revertido: la prueba posterior falló [revertido]
+         FALLA en «Fallar el job si se revirtió (el workflow lo toma como falla)»: Cambio revertido: BGP falla · VLAN ok
+     · PDF por correo: enviado
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "retirar", "svc_nombre": "upf-demo", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "simular_falla": "no → #20370 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed · Cambio revertido: la prueba posterior falló [revertido]
+         FALLA en «Fallar el job si se revirtió (el workflow lo toma como falla)»: Cambio revertido: BGP ok · VLAN falla
+     · PDF por correo: enviado
+== Telco · Día 2 del clúster de cargas {} → #20382 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Salud del clúster (plantilla) → successful · Clúster ATENCION · OpenShift 4.19.51 [atencion]
+     · Portal · OpenShift · Certificados (plantilla) → successful · 177 certificados · 0 vencidos · 18 vencen en 30 días [ok]
      · Portal · OpenShift · Respaldo de etcd (plantilla) → successful · Respaldo de etcd listo [ok]
      · PDF por correo: enviado
-== OpenShift · Alta de proyecto {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 2, "memoria_gi": 4, "accion": "cre → #20347 successful
+== Linux · Informe de seguridad {"correo": "cquezada@redhat.com"} → #20398 successful
+     · Portal · Linux · Informe de seguridad (plantilla) → successful · Informe PDF: enviado a cquezada@redhat.com [critico]
+== Windows · Informe de seguridad {"correo": "cquezada@redhat.com"} → #20406 failed
+     · Portal · Windows · Informe de seguridad (plantilla) → failed
+== Linux · Liberar espacio en disco {"umbral": 85, "forzar": "no"} → #20413 successful
      · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · Alta de proyecto (plantilla) → successful · Proyecto demo-pagos creado [ok]
+     · Portal · Linux · Liberar espacio en disco (plantilla) → successful · nodo-jboss /: 23% → 23% (bajo el umbral, no se limpió) [ok]
      · PDF por correo: enviado
-== OpenShift · Alta de proyecto {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 2, "memoria_gi": 4, "accion": "eli → #20354 successful
+== Infra · Atender ticket de Odoo {"ticket": 1, "accion": "diagnostico", "servicio": "nginx"} → #20423 successful
      · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · Alta de proyecto (plantilla) → successful · Proyecto demo-pagos eliminado [ok]
+     · Portal · Infra · Atender ticket de Odoo (plantilla) → successful · Ticket Odoo #1 · diagnostico en nodo-jboss: ticket 1 actualizado [ok]
      · PDF por correo: enviado
-== Amdocs · Desplegar release {"servicio": "catalog", "version": "2.4.0", "simular_falla": "no"} → #20363 successful
+== Orden Amdocs ORD-176C5BA1 creada
+== Amdocs · Activar orden de servicio {"orden_id": "ORD-176C5BA1"} → #20430 successful
+     · Portal · Amdocs · Orden de servicio (plantilla) → successful · Orden ORD-176C5BA1: en aprobación [ok]
+         Historial 04:04:32 | enviada a Ansible (EDA)
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed
+         FALLA en «Datos del servicio»: Acción activar o retirar · nombre en minúsculas · VLAN 2-4094 · prefijo 10.x.x.x/24 a /29 escrito como red (p. ej. 10.60.10.0/24)
+     · Portal · Amdocs · Orden de servicio (plantilla) → successful · Orden ORD-176C5BA1: fallida [critico]
+         Historial 04:04:32 | enviada a Ansible (EDA)
      · Portal · Informe de ejecución (PDF) → successful
-     · Portal · Amdocs · Desplegar release (plantilla) → successful · amdocs-catalog: release 2.4.0 en producción [ok]
      · PDF por correo: enviado
-== OpenShift · Actualización guiada con ACM {"fase": "pre", "version_destino": "4.19.55", "rutas_criticas": "https://amdocs-ordering.sno.34.176.42.56.sslip.io/healt → #20373 successful
+   orden en Amdocs: fallida
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "retirar", "svc_nombre": "upf-banco", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "simular_falla": "n → #20444 successful
      · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · Actualización guiada con ACM (plan → successful · Listo para actualizar: respaldo de etcd y clúster fuera del balanceador [ok]
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → successful · Servicio upf-banco retirado [ok]
      · PDF por correo: enviado
-== OpenShift · Actualización guiada con ACM {"fase": "post", "version_destino": "4.19.55", "rutas_criticas": "https://amdocs-ordering.sno.34.176.42.56.sslip.io/heal → #20386 successful
+== Telco · Onboarding de CNF {"cnf_nombre": "upf-banco", "proveedor": "nabstract", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "hugepages_gi": 4, → #20457 successful
      · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · Actualización guiada con ACM (plan → successful · Validación posterior con problemas: el clúster queda fuera del balanceador [critico]
+     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-banco (nabstract) retirada del clúster [ok]
      · PDF por correo: enviado
-== OpenShift · De alerta a incidente {"namespace": "amdocs-bss", "alerta": "KubePodCrashLooping", "remediar": "si"} → #20392 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · De alerta a incidente (plantilla) → successful · KubePodCrashLooping en amdocs-bss: INC4283323 abierto con la evidencia [atencion]
-     · PDF por correo: enviado
-== OpenShift · Certificado de aplicación de punta a punta {"namespace": "amdocs-bss", "ruta": "ordering", "umbral_dias": 30, "forzar": "no"} → #20402 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · Certificado de aplicación de punta → successful · amdocs-ordering.sno.34.176.42.56.sslip.io: vigente, 712 días (umbral 30) [ok]
-     · PDF por correo: enviado
-== OpenShift · Acceso de equipo {"equipo": "equipo-demo", "miembros": "demo1,demo2", "namespaces": "amdocs-bss", "rol": "edit", "accion": "alta"} → #20410 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · Acceso de equipo (plantilla) → successful · Equipo equipo-demo: acceso dado en 1 namespace(s) [ok]
-     · PDF por correo: enviado
-== OpenShift · Acceso de equipo {"equipo": "equipo-demo", "miembros": "", "namespaces": "amdocs-bss", "rol": "edit", "accion": "baja"} → #20418 successful
-     · Portal · Informe de ejecución (PDF) → successful
-     · Portal · OpenShift · Acceso de equipo (plantilla) → successful · Equipo equipo-demo: acceso retirado en 1 namespace(s) [ok]
-     · PDF por correo: enviado
-== OpenShift · Informe de seguridad del clúster {"correo": "cquezada@redhat.com", "dias_secretos": 180} → #20427 successful
-     · Portal · OpenShift · Informe de seguridad del clúster ( → successful · Informe PDF: enviado a cquezada@redhat.com [critico]
-== Amdocs · Informe de operación y conciliación {"correo": "cquezada@redhat.com", "minutos_atasco": 60} → #20440 successful
-     · Portal · Amdocs · Informe de operación y conciliación ( → successful · Informe PDF: enviado a cquezada@redhat.com [critico]
---- fin: 2026-11-10T01:05:21-03:00 · código: 0
+== ServiceNow «Solicitar acceso de red» pedido REQ0010061; esperando que EDA lance «Red · Solicitar acceso con aprobación»
+   EDA no lanzó el workflow (revisar vigía y activación)
+== ServiceNow «Revocar acceso de red» pedido REQ0010062; esperando que EDA lance «Red · Revocar acceso con aprobación»
+   EDA no lanzó el workflow (revisar vigía y activación)
+== ServiceNow «Preparar red para clúster OpenShift» pedido REQ0010063; esperando que EDA lance «Red · Preparar red OpenShift con aprobación»
+   EDA no lanzó el workflow (revisar vigía y activación)
+--- fin: 2026-11-10T01:22:29-03:00 · código: 0
