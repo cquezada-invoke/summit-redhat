@@ -4,15 +4,16 @@
 <p class="sub">{{ cliente.descripcion }}</p>
 {% if mad %}<div class="card" style="margin-top:16px">
   <div class="fila" style="align-items:baseline;flex-wrap:wrap;gap:6px 16px"><h2 style="margin:0">Madurez operativa</h2>
-    <div style="font-size:26px;font-weight:700">{{ mad.pct }} %<span class="sub" style="font-size:13px;font-weight:400"> hoy · meta {{ mad.meta_pct }} % · brecha {{ [mad.meta_pct - mad.pct, 0]|max }} puntos</span></div></div>
-  <p class="sub" style="margin:4px 0 0">Escala de 0 a 100 % por pilar. Ámbar punteado: la <b>meta</b>, el nivel que se necesita para ser competitivo (no es 100 %). Azul: la <b>foto de hoy</b>, medida con prácticas verificables en cada equipo. Lo que queda entre ambos es la brecha.</p>
+    <div style="font-size:26px;font-weight:700">{{ mad.pct }} %<span class="sub" style="font-size:13px;font-weight:400"> hoy · meta {{ mad.meta_pct }} % · brecha {{ [mad.meta_pct - mad.pct, 0]|max }} puntos</span></div>
+    <a class="btn der" href="{{ url_for('consola.madurez_detalle') }}">Qué falta y cómo abordarlo ›</a></div>
+  <p class="sub" style="margin:4px 0 0">Escala de 0 a 100 % por pilar. Ámbar punteado: la <b>meta</b>, el nivel que se necesita para ser competitivo (no es 100 %). Azul: la <b>foto de hoy</b>, medida con prácticas verificables en cada equipo. Lo que queda entre ambos es la brecha: haz clic en el radar para ver qué falta y cómo abordarlo.</p>
   <div style="display:flex;justify-content:center;margin:4px 0 6px">{{ mad.svg }}</div>
   <div class="mad-grid">{% for f in mad.filas if f.pct is not none %}<div class="mad-fila">
     <span class="mad-n"><a href="{{ url_for('consola.automatizaciones', area=f.clave) }}">{{ f.nombre }}</a><small class="sub"> · {{ f.equipos }} equipo{{ 's' if f.equipos != 1 }}</small></span>
     <span class="sb-barra mad-b" title="{% for p, v in f.pilares.items() %}{{ p }}: {{ v if v is not none else '—' }} %{{ ' · ' if not loop.last }}{% endfor %}"><i style="width:{{ f.pct }}%;background:{{ '#3e8635' if f.pct >= f.meta else ('#f0ab00' if f.pct >= f.meta * 0.6 else '#c9190b') }}"></i><span class="mad-meta" style="left:{{ f.meta }}%" title="meta {{ f.meta }} %"></span></span>
     <span class="mad-v"><b>{{ f.pct }} %</b> <small class="sub">/ {{ f.meta }} %</small></span></div>{% endfor %}</div>
   <details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Cómo se mide cada pilar</summary><div class="mad-grid" style="margin-top:6px">
-    {% for p, ps in mad.detalle.items() %}<div><p style="margin:4px 0 2px"><b>{{ p }}</b> · hoy {{ mad.actual[p] }} % · meta {{ mad.meta[p]|int }} %</p><ul style="margin:0 0 4px 18px;font-size:12.5px">{% for x in ps %}<li>{{ x.practica }}: {{ x.cumple }} de {{ x.de }} equipos</li>{% endfor %}</ul></div>{% endfor %}</div>
+    {% for p, ps in mad.detalle.items() %}<div><p style="margin:4px 0 2px"><b>{{ p }}</b> · hoy {{ mad.actual[p] }} % · meta {{ mad.meta[p]|int }} %</p><ul style="margin:0 0 4px 18px;font-size:12.5px">{% for x in ps.practicas %}<li>{{ x.practica }}: {{ x.cumple }} de {{ x.de }} equipos</li>{% endfor %}</ul></div>{% endfor %}</div>
     <p class="sub" style="font-size:12px">Las metas se acuerdan con el cliente (datos/madurez.yml).</p></details></div>
 <style>.mad-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 28px}@media(max-width:820px){.mad-grid{grid-template-columns:1fr}}
 .mad-fila{display:grid;grid-template-columns:minmax(150px,auto) 1fr 92px;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}

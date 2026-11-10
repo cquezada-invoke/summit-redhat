@@ -15,6 +15,22 @@ PLAT = {"jboss", "keycloak", "redis", "vault", "kafka", "activemq", "jenkins", "
         "red-hat-idm", "389-directory-server", "active-directory", "certificate-system", "iis", "nginx"}
 
 
+REMEDIOS = {   # práctica → (cómo abordarlo, búsqueda en el catálogo de acciones)
+    "encendido": ("Encender la máquina o, si ya no presta servicio, retirarla del inventario para que no cuente como caída.", "encender"),
+    "monitoreado (agente de métricas)": ("Instalar el agente de métricas (Linux o Windows) para ver su estado y recibir alertas.", "agente de monitoreo"),
+    "sin hallazgos altos": ("Atender primero los hallazgos de severidad alta: cada uno trae su acción sugerida.", "con hallazgos"),
+    "sin hallazgos abiertos": ("Cerrar los hallazgos pendientes con la acción sugerida en la ficha de cada equipo.", "con hallazgos"),
+    "inventario al día (7 días)": ("Volver a recolectar el inventario (ideal: programarlo cada día).", "inventariar"),
+    "métricas de uso": ("Con el agente de métricas se mide CPU, memoria y disco reales.", "agente de monitoreo"),
+    "bien dimensionado (sin recursos ociosos)": ("Ajustar CPU y memoria al uso real, o apagar lo que no se usa.", "ajustar recursos"),
+    "CVE revisados": ("Revisar los CVE del servidor contra las erratas del fabricante.", "revisar cve"),
+    "sin CVE críticos pendientes": ("Aplicar los parches de seguridad pendientes (críticos e importantes primero).", "parches de seguridad"),
+    "cumple las políticas": ("Aplicar la política de seguridad que falta; el hallazgo dice cuál.", "política de seguridad"),
+    "configuración respaldada en Git": ("Activar el respaldo continuo de la configuración en Git.", "respaldo"),
+    "punto de restauración": ("Crear un punto de restauración antes de cambios y de forma periódica.", "punto de restauración"),
+}
+
+
 def metas():
     try:
         d = yaml.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "datos", "madurez.yml"), encoding="utf-8")) or {}
@@ -93,13 +109,25 @@ def madurez(cliente_id, eqs, hallazgos):
         vals = [v for v in pp.values() if v is not None]
         filas.append({"clave": k, "nombre": n, "equipos": len(ids), "pilares": pp,
                       "pct": round(sum(vals) / len(vals)) if vals else None, "meta": round(sum(meta.values()) / len(meta))})
-    detalle = {p: [{"practica": nom, "cumple": sum(1 for i in todos if dict(pr[i][p])[nom]), "de": len(todos)}
-                   for nom, _ in (pr[todos[0]][p] if todos else [])] for p in PILARES}
+    nombres = {e["id"]: e["nombre"] for e in eqs}
+    detalle = {}
+    for p in PILARES:
+        ps = []
+        for nom, _ in (pr[todos[0]][p] if todos else []):
+            faltan = [i for i in todos if not dict(pr[i][p])[nom]]
+            como, buscar = REMEDIOS.get(nom, ("", ""))
+            ps.append({"practica": nom, "cumple": len(todos) - len(faltan), "de": len(todos), "como": como, "buscar": buscar,
+                       "faltan": sorted(({"id": i, "nombre": nombres[i]} for i in faltan), key=lambda x: x["nombre"])})
+        total = sum(x["de"] for x in ps)
+        hechas = sum(x["cumple"] for x in ps)
+        objetivo = -(-int(meta[p] * total) // 100)   # correcciones para llegar a la meta (redondeo hacia arriba)
+        detalle[p] = {"practicas": sorted(ps, key=lambda x: -len(x["faltan"])), "total": total, "hechas": hechas,
+                      "por_hacer": max(0, objetivo - hechas), "brecha": max(0, round(meta[p] - actual[p]))}
     return {"actual": actual, "meta": meta, "filas": filas, "detalle": detalle,
             "pct": round(sum(actual.values()) / len(actual)), "meta_pct": round(sum(meta.values()) / len(meta))}
 
 
-def radar_svg(actual, meta, tam=760):
+def radar_svg(actual, meta, tam=760, enlace=None):
     """Radar de madurez: anillos 25/50/75/100 % (100 % = máximo de la escala), contorno ámbar punteado = meta competitiva,
     área azul = nivel de hoy; la diferencia entre ambos es la brecha."""
     import math
@@ -121,8 +149,9 @@ def radar_svg(actual, meta, tam=760):
     for i in range(5):
         x, y = pt(i, 100)
         o.append(f'<line x1="{cx}" y1="{cy}" x2="{x:.1f}" y2="{y:.1f}" stroke="var(--line)" stroke-width="1"/>')
-    o.append(f'<polygon points="{pol(met)}" fill="#fac775" fill-opacity=".45" stroke="#ba7517" stroke-width="2" stroke-dasharray="7 4"/>')
-    o.append(f'<polygon points="{pol(act)}" fill="#cfe3f7" fill-opacity=".9" stroke="#185fa5" stroke-width="2.4"/>')
+    a0, a1 = (f'<a href="{escape(enlace)}"><title>Ver qué falta para llegar a la meta y cómo abordarlo</title>', '</a>') if enlace else ("", "")
+    o.append(f'{a0}<polygon points="{pol(met)}" fill="#fac775" fill-opacity=".45" stroke="#ba7517" stroke-width="2" stroke-dasharray="7 4" style="cursor:pointer"/>{a1}')
+    o.append(f'{a0}<polygon points="{pol(act)}" fill="#cfe3f7" fill-opacity=".9" stroke="#185fa5" stroke-width="2.4" style="cursor:pointer"/>{a1}')
     for i in range(5):
         for vals, col in ((met, "#ba7517"), (act, "#185fa5")):
             x, y = pt(i, vals[i])
@@ -131,7 +160,8 @@ def radar_svg(actual, meta, tam=760):
         x, y = cx + (R + 26) * math.cos(a), cy + (R + 26) * math.sin(a)
         anc = "middle" if abs(math.cos(a)) < .3 else ("start" if math.cos(a) > 0 else "end")
         dy = -18 if i == 0 else (8 if i in (2, 3) else 0)
-        o.append(f'<text x="{x:.1f}" y="{y + dy:.1f}" text-anchor="{anc}" font-size="14" font-weight="700" fill="currentColor">{escape(PILARES[i])}</text>'
-                 f'<text x="{x:.1f}" y="{y + dy + 16:.1f}" text-anchor="{anc}" font-size="12" fill="var(--muted)">hoy {act[i]:.0f} % · meta {met[i]:.0f} %</text>')
+        b0, b1 = (f'<a href="{escape(enlace)}#{escape(PILARES[i])}">', '</a>') if enlace else ("", "")
+        o.append(f'{b0}<text x="{x:.1f}" y="{y + dy:.1f}" text-anchor="{anc}" font-size="14" font-weight="700" fill="currentColor" style="cursor:pointer">{escape(PILARES[i])}</text>'
+                 f'<text x="{x:.1f}" y="{y + dy + 16:.1f}" text-anchor="{anc}" font-size="12" fill="var(--muted)">hoy {act[i]:.0f} % · meta {met[i]:.0f} % · faltan {max(0, met[i] - act[i]):.0f}</text>{b1}')
     o.append("</svg>")
     return Markup("".join(o))

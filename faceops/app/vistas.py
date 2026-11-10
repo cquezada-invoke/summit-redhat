@@ -500,7 +500,7 @@ def inicio():
     try:
         from .madurez import madurez as madurez_parque, radar_svg
         mad = madurez_parque(g.cliente["id"], eqs, hs)
-        mad["svg"] = radar_svg(mad["actual"], mad["meta"])
+        mad["svg"] = radar_svg(mad["actual"], mad["meta"], enlace=url_for("consola.madurez_detalle"))
     except Exception as e_:  # noqa: BLE001
         current_app.logger.warning("madurez del panel: %s", e_)
         mad = None
@@ -509,6 +509,19 @@ def inicio():
                            horas_mes=round(sum(t["valor_min"] or 0 for t in ok_mes) / 60, 1),
                            valor_mes=sum((t["valor_min"] or 0) / 60 * (g.cliente["costo_hora"] or 0) for t in ok_mes),
                            autos=autos, sugerencias=sugerencias[:6], segmentos=segs)
+
+
+@bp.route("/madurez")
+@requiere_login
+def madurez_detalle():
+    """Lo que falta para llegar a la meta de madurez (el área ámbar del radar): por pilar, qué práctica falta, en qué
+    equipos y cómo abordarlo, con la acción del catálogo que lo resuelve."""
+    from .madurez import madurez as madurez_parque, radar_svg
+    eqs = equipos_visibles()
+    m = madurez_parque(g.cliente["id"], eqs, hallazgos_visibles(eqs))
+    m["svg"] = radar_svg(m["actual"], m["meta"], tam=560)
+    orden = sorted(m["detalle"], key=lambda p: -m["detalle"][p]["brecha"])
+    return render_template("madurez.html", m=m, orden=orden)
 
 
 @bp.route("/buscar")

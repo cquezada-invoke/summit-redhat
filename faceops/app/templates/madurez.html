@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% block titulo %}Madurez operativa · qué falta{% endblock %}
+{% block cuerpo %}
+<p style="margin:0"><a class="sub" href="{{ url_for('consola.inicio') }}">‹ Panel</a></p>
+<h1 style="margin:2px 0 4px">Qué falta para llegar a la meta</h1>
+<p class="sub" style="max-width:900px">El área ámbar del radar es el camino por recorrer: la distancia entre la foto de hoy (azul) y la meta competitiva (contorno punteado). Abajo, cada pilar ordenado por su brecha, con las prácticas que faltan, los equipos donde faltan y cómo abordarlo. Cada corrección suma; la cifra «correcciones para la meta» dice cuántas hacen falta para cerrar la brecha de ese pilar.</p>
+<div class="card" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+  <div style="flex:1;min-width:260px">
+    <div style="font-size:28px;font-weight:700">{{ m.pct }} % <span class="sub" style="font-size:14px;font-weight:400">hoy · meta {{ m.meta_pct }} % · brecha {{ [m.meta_pct - m.pct, 0]|max }} puntos</span></div>
+    <table style="margin-top:10px">{% for p in orden %}{% set d = m.detalle[p] %}<tr><td><a href="#{{ p }}"><b>{{ p }}</b></a></td><td>{{ m.actual[p] }} % → {{ m.meta[p]|int }} %</td>
+      <td>{% if d.por_hacer %}<b>{{ d.por_hacer }}</b> correcciones para la meta{% else %}<span style="color:var(--ok)">meta alcanzada</span>{% endif %}</td></tr>{% endfor %}</table>
+  </div>
+  <div style="flex:1;min-width:360px;text-align:center">{{ m.svg }}</div>
+</div>
+{% for p in orden %}{% set d = m.detalle[p] %}
+<div class="card" id="{{ p }}" style="margin-top:14px">
+  <div class="fila" style="align-items:baseline;flex-wrap:wrap;gap:4px 14px"><h2 style="margin:0">{{ p }}</h2>
+    <span>hoy <b>{{ m.actual[p] }} %</b> · meta <b>{{ m.meta[p]|int }} %</b> · brecha <b>{{ d.brecha }}</b> puntos</span>
+    <span class="der">{% if d.por_hacer %}<b>{{ d.por_hacer }}</b> correcciones para llegar a la meta (de {{ d.total - d.hechas }} pendientes){% else %}<span style="color:var(--ok)">meta alcanzada</span>{% endif %}</span></div>
+  <div class="sb-barra" style="margin:8px 0 10px;position:relative"><i style="width:{{ m.actual[p] }}%;background:#185fa5"></i><span style="position:absolute;top:0;bottom:0;left:{{ m.actual[p] }}%;width:{{ [m.meta[p] - m.actual[p], 0]|max }}%;background:#fac775;opacity:.75" title="por recorrer"></span><span style="position:absolute;top:-3px;bottom:-3px;left:{{ m.meta[p] }}%;border-left:2px dashed #ba7517"></span></div>
+  <table style="width:100%"><tr><th style="width:24%">Práctica</th><th style="width:12%">Cumplen</th><th>Cómo abordarlo</th><th style="width:30%">Dónde falta</th></tr>
+  {% for x in d.practicas %}<tr><td><b>{{ x.practica }}</b></td><td>{{ x.cumple }} de {{ x.de }}</td>
+    <td>{% if x.faltan %}{{ x.como }}{% if x.buscar %}<br><a href="{{ url_for('consola.automatizaciones', q=x.buscar) }}">Ver la acción en el catálogo ›</a>{% endif %}{% else %}<span style="color:var(--ok)">Cumplida en todos los equipos</span>{% endif %}</td>
+    <td style="font-size:12.5px">{% for e in x.faltan[:24] %}<a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a>{{ ', ' if not loop.last }}{% endfor %}{% if x.faltan|length > 24 %} <span class="sub">y {{ x.faltan|length - 24 }} más</span>{% endif %}</td></tr>{% endfor %}</table>
+</div>{% endfor %}
+<p class="sub" style="margin-top:12px">Las metas de cada pilar se acuerdan con el cliente (datos/madurez.yml).</p>
+{% endblock %}
