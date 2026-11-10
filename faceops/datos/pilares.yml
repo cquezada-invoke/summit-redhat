@@ -2,6 +2,8 @@
 # Lo usan el panel (radar de madurez) y el detalle «Qué falta para llegar a la meta». Alineado con AWS Well-Architected,
 # ISO/IEC 25010, NIST CSF 2.0 e ISO 22301; la escala de madurez sigue los niveles de COBIT 2019 / CMMI (1 a 5).
 Disponibilidad:
+  well_architected: "Reliability (confiabilidad)"
+  cobit: "BAI04 Gestión de la disponibilidad y la capacidad · DSS01 Gestión de las operaciones"
   definicion: "Que el servicio esté arriba cuando el negocio lo necesita y que una falla no lo detenga."
   considerar: ["Redundancia de lo crítico (sin puntos únicos de falla)", "Monitoreo con alertas atendidas", "Capacidad de reserva ante picos o caídas", "Ventanas de mantenimiento sin corte"]
   por_contexto:
@@ -14,6 +16,8 @@ Disponibilidad:
     nube: ["Despliegue en más de una zona", "Grupos de autoescalado", "Alertas del proveedor conectadas"]
     aplicaciones: ["Todos los componentes del flujo con redundancia", "Pruebas de punta a punta periódicas", "Dependencias externas monitoreadas"]
 Rendimiento:
+  well_architected: "Performance Efficiency (eficiencia del rendimiento)"
+  cobit: "BAI04 Gestión de la disponibilidad y la capacidad"
   definicion: "Que el servicio responda en el tiempo esperado con los recursos justos."
   considerar: ["Métricas de uso reales (CPU, memoria, disco, red)", "Tiempos de respuesta medidos", "Recursos dimensionados al uso", "Pruebas de carga antes de cambios grandes"]
   por_contexto:
@@ -26,6 +30,8 @@ Rendimiento:
     nube: ["Tipo de máquina acorde a la carga", "Autoescalado configurado"]
     aplicaciones: ["Tiempo de respuesta de punta a punta", "Cuello de botella del flujo conocido"]
 Seguridad:
+  well_architected: "Security (seguridad)"
+  cobit: "APO13 Gestión de la seguridad · DSS05 Gestión de los servicios de seguridad"
   definicion: "Que los sistemas estén protegidos, parchados y bajo políticas, y que el acceso sea el justo."
   considerar: ["Vulnerabilidades (CVE) revisadas y parchadas", "Políticas de seguridad aplicadas", "Credenciales en bóveda y acceso mínimo", "Registro y detección de eventos"]
   por_contexto:
@@ -38,6 +44,8 @@ Seguridad:
     nube: ["Identidades con mínimo privilegio", "Sin recursos públicos innecesarios"]
     aplicaciones: ["Dependencias sin vulnerabilidades", "Flujos cifrados (TLS)", "Autenticación centralizada"]
 Recuperación:
+  well_architected: "Reliability: recuperación ante desastres"
+  cobit: "DSS04 Gestión de la continuidad"
   definicion: "Que ante una pérdida o un error se pueda volver a un estado bueno, en el tiempo comprometido."
   considerar: ["Respaldos de datos y de configuración", "Puntos de restauración antes de cambios", "Objetivos RPO/RTO definidos", "Restauraciones probadas"]
   por_contexto:
@@ -50,6 +58,8 @@ Recuperación:
     nube: ["Snapshots y respaldo entre regiones"]
     aplicaciones: ["Plan de recuperación del segmento completo", "Prueba anual de recuperación"]
 Costo:
+  well_architected: "Cost Optimization (optimización de costos) · práctica FinOps"
+  cobit: "APO06 Gestión del presupuesto y los costos"
   definicion: "Que lo que se paga esté bien usado: sin capacidad ociosa, con dueño y sin sorpresas en la factura."
   considerar: ["Recursos dimensionados al uso real", "Costo asignado a cada servicio (dueño claro)", "Licencias y suscripciones en uso", "Huérfanos y lo que no se usa, retirado"]
   por_contexto:
@@ -62,6 +72,8 @@ Costo:
     nube: ["Reservas o compromisos de uso para lo estable", "Recursos huérfanos y sin etiqueta eliminados", "Presupuesto y alertas de gasto"]
     aplicaciones: ["Costo mensual por segmento conocido", "Ambientes no productivos apagados fuera de horario"]
 Excelencia operativa:
+  well_architected: "Operational Excellence (excelencia operativa)"
+  cobit: "DSS01 Gestión de las operaciones · BAI06 Gestión de los cambios · DSS03 Gestión de problemas"
   definicion: "Que la operación sea predecible: automatizada, documentada, con cambios controlados y sin trabajo manual repetitivo."
   considerar: ["Todo el parque gestionado por automatizaciones (no a mano)", "Inventario completo y al día", "Hallazgos con dueño y plazo, atendidos por severidad", "Cambios con aprobación y vuelta atrás", "Configuración como código (Git)"]
   por_contexto:

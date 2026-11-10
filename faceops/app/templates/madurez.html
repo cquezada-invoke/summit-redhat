@@ -4,6 +4,11 @@
 <h1 style="margin:2px 0 4px">Qué falta para llegar a la meta{% if ctx_nombre %} · {{ ctx_nombre }}{% endif %}</h1>
 <p style="margin:4px 0 8px"><a class="chip {{ 'e-en_cola' if not ctx }}" href="{{ url_for('consola.madurez_detalle') }}">Todo el entorno</a>{% for k, n, ids in doms if k != 'infraestructura' %} <a class="chip {{ 'e-en_cola' if ctx == k }}" href="{{ url_for('consola.madurez_detalle', contexto=k) }}">{{ n }} · {{ ids|length }}</a>{% endfor %}</p>
 <p class="sub" style="max-width:900px">El área ámbar del radar es el camino por recorrer: la distancia entre la foto de hoy (azul) y la meta competitiva (contorno punteado). Abajo, cada pilar ordenado por su brecha, con las prácticas que faltan, los equipos donde faltan y cómo abordarlo. Cada corrección suma; la cifra «correcciones para la meta» dice cuántas hacen falta para cerrar la brecha de ese pilar.</p>
+<div class="card" style="margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px 28px">
+  <div><b>Qué se mide · AWS Well-Architected</b><p class="sub" style="margin:4px 0 0;font-size:13px">Define los <b>pilares</b>: las dimensiones en que un entorno tecnológico está sano (disponibilidad, rendimiento, seguridad, recuperación, costo y excelencia operativa). Es el «qué» y son los ejes del radar. Cada pilar se mide con prácticas verificables en cada equipo.</p></div>
+  <div><b>Cómo se califica · COBIT 2019 / CMMI</b><p class="sub" style="margin:4px 0 0;font-size:13px">Da la <b>escala de madurez</b>: N1 Inicial (0-20 %), N2 Gestionado (20-40 %), N3 Definido (40-60 %), N4 Medido (60-80 %) y N5 Optimizado (80-100 %). Es el «cuánto» y son los anillos del radar. Cada pilar se relaciona con objetivos de gestión de COBIT, que sirven para justificar la meta ante auditoría.</p></div>
+  <div><b>Meta competitiva</b><p class="sub" style="margin:4px 0 0;font-size:13px">El nivel que el cliente necesita en cada pilar para competir en su industria; no siempre es N5. Se acuerda con el cliente y lo que queda entre hoy y la meta (el área ámbar) es el plan de regularización.</p></div>
+</div>
 <div class="card" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
   <div style="flex:1;min-width:260px">
     <div style="font-size:28px;font-weight:700">Nivel {{ m.nivel.n }} · {{ m.nivel.nombre }} <span class="sub" style="font-size:14px;font-weight:400">{{ m.pct }} % hoy · meta {{ m.meta_pct }} % · brecha {{ [m.meta_pct - m.pct, 0]|max }} puntos</span></div>
@@ -18,6 +23,7 @@
     <span>hoy <b>nivel {{ m.niveles[p].hoy.n }} · {{ m.niveles[p].hoy.nombre }}</b> ({{ m.actual[p] }} %) · meta <b>nivel {{ m.niveles[p].meta.n }} · {{ m.niveles[p].meta.nombre }}</b> ({{ m.meta[p]|int }} %) · brecha <b>{{ d.brecha }}</b> puntos</span>
     <span class="der">{% if d.por_hacer %}<b>{{ d.por_hacer }}</b> correcciones para llegar a la meta (de {{ d.total - d.hechas }} pendientes){% else %}<span style="color:var(--ok)">meta alcanzada</span>{% endif %}</span></div>
   {% set I = info.get(p) or {} %}{% if I %}<p style="margin:6px 0 4px">{{ I.definicion }}</p>
+  {% if I.well_architected or I.cobit %}<p class="sub" style="margin:0 0 6px;font-size:12.5px">{% if I.well_architected %}<b>Well-Architected:</b> {{ I.well_architected }}{% endif %}{% if I.cobit %} · <b>COBIT 2019:</b> {{ I.cobit }}{% endif %}</p>{% endif %}
   <details{{ ' open' if ctx }} style="margin:0 0 8px"><summary style="cursor:pointer"><b>Qué considera este pilar</b>{% if ctx_nombre %} · en {{ ctx_nombre }}{% endif %}</summary>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:4px 24px;margin-top:6px">
     <div><b style="font-size:12.5px">En general</b><ul style="margin:2px 0 6px 18px;font-size:12.5px">{% for x in I.considerar %}<li>{{ x }}</li>{% endfor %}</ul></div>
