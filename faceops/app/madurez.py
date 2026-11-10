@@ -208,11 +208,18 @@ def con_madurez(m, cliente_id, eqs, hallazgos):
     for capa in m["capas"] + [m["gobierno"]]:
         vals = []
         for c in capa["conceptos"]:
+            cv = []
             for t in c["tecnologias"]:
                 sk = t.get("skill") or t["clave"]
                 t["madurez"] = de([e["id"] for e in eqs if sk in (e.get("skills") or [])])
                 if t["madurez"]["n"]:
                     vals.append(t["madurez"]["pct"])
+                    cv.append(t["madurez"])
+            # salud del concepto: promedio de sus tecnologías con equipos (y por pilar, para el detalle)
+            c["madurez"] = {"pct": round(sum(x["pct"] for x in cv) / len(cv)) if cv else None,
+                            "pilares": {p: (round(sum(x["pilares"][p] for x in cv if x["pilares"].get(p) is not None)
+                                                  / len([x for x in cv if x["pilares"].get(p) is not None]))
+                                            if any(x["pilares"].get(p) is not None for x in cv) else None) for p in PILARES}}
         pct = round(sum(vals) / len(vals)) if vals else None
         pil = {}
         for p in PILARES:   # salud de la capa por pilar: promedio de sus tecnologías con equipos
