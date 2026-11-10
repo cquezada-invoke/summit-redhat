@@ -386,6 +386,12 @@ def amdocs_orden():
         o = _http("POST", f"{AMDOCS}/orders", cuerpo)
     except ErrorAAP as e:
         return jsonify(error=f"Amdocs (emulado) no respondió: {e.texto[:200]}"), 502
+    # La activación arranca de inmediato (no depende de que EDA esté escuchando); AAP pide la aprobación.
+    wf = aap("GET", "workflow_job_templates/?name=" + urllib.parse.quote("Portal · Amdocs · Activar orden de servicio"))["results"]
+    if wf and o.get("id"):
+        r = aap("POST", f"workflow_job_templates/{wf[0]['id']}/launch/", {"extra_vars": {"orden_id": o["id"]}})
+        o["ejecucion"] = r.get("workflow_job")
+        o["ejecucion_url"] = en_aap("wj", r.get("workflow_job"))
     return jsonify(o)
 
 

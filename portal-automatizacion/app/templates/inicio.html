@@ -8,11 +8,11 @@
   <h3>{{ n }}</h3>
   <ul>{% for i in lista %}<li><a href="{{ url_for('ficha', wid=i.id) }}">{{ i.nombre }}</a> (<a href="{{ en_aap('wf', i.id) }}" target="_blank">AAP</a>) <b title="{{ i.prueba_nota }}">[{{ i.prueba }}]</b>{% if i.tipo %} <span class="tipo tipo-{{ i.tipo[:4] | lower }}">{{ i.tipo }} · PDF al correo</span>{% endif %}{% if i.origen %} <span class="tipo tipo-orig">Se lanza desde {{ i.origen }}</span>{% endif %} <span class="sub">— {{ i.para }}</span></li>{% endfor %}</ul>
   {% if k == 'amdocs' %}
-  <p><b>Probar «Activar orden de servicio»</b> (simula que Amdocs vende un servicio y envía la orden; Ansible la recibe sola y pide tu aprobación):<br>
+  <p><b>Demo: nueva venta en Amdocs</b> — en producción la orden llega sola desde Amdocs. Aquí la creas tú: el botón registra la orden en Amdocs y arranca «Activar orden de servicio» (te pedirá aprobación en AAP).<br>
     cliente <select id="o-cliente"><option value="CLI-00001">Banco del Caribe</option><option value="CLI-00002">Hospital San Juan</option><option value="CLI-00003">Puerto de Ponce</option><option value="CLI-00004">Retail Isla</option></select>
     oferta <select id="o-oferta"><option value="OFR-5G-EMP">5G empresarial (UPF)</option><option value="OFR-IOT">IoT (AMF)</option></select>
     servicio <input id="o-nombre" value="upf-banco" size="12"> VLAN <input id="o-vlan" type="number" value="310" style="width:70px"> prefijo <input id="o-prefijo" value="10.60.10.0/24" size="14">
-    <button id="o-crear">Crear orden</button></p>
+    <button id="o-crear">Crear orden y activar</button></p>
   <div id="o-estado"></div>
   {% endif %}
   {% endif %}
@@ -40,12 +40,12 @@ if (caja) {
     caja.innerHTML = '<table><tr><th>Orden</th><th>Servicio</th><th>Estado en Amdocs</th><th>Ejecución</th></tr>' + d.ordenes.map(x => {
       const j = d.ejecuciones.find(e => e.orden === x.id);
       return `<tr><td>${esc(x.id)}</td><td>${esc(x.servicio.nombre)} VLAN ${esc(x.servicio.vlan)} ${esc(x.servicio.prefijo)}</td><td>${esc(x.estado)}</td>
-        <td>${j ? `<a href="${AAP}/execution/jobs/workflow/${j.id}/output" target="_blank">#${j.id} en AAP</a> ${esc(j.estado)}` : 'esperando EDA'}</td></tr>`; }).join('') + '</table>';
+        <td>${j ? `<a href="${AAP}/execution/jobs/workflow/${j.id}/output" target="_blank">#${j.id} en AAP</a> ${esc(j.estado)}` : 'por lanzar'}</td></tr>`; }).join('') + '</table>';
   }
   document.getElementById('o-crear').onclick = async ev => {
     ev.target.disabled = true;
     const d = await post('/amdocs/orden', {cliente: o('cliente'), oferta: o('oferta'), nombre: o('nombre'), vlan: +o('vlan'), prefijo: o('prefijo'), cnf: o('oferta') === 'OFR-IOT' ? 'amf' : 'upf'});
-    ev.target.disabled = false; if (d && d.error) caja.textContent = d.error; else ordenes();
+    ev.target.disabled = false; if (d && d.error) caja.textContent = d.error; else { if (d.ejecucion_url) caja.innerHTML = `Orden ${esc(d.id)} creada · activación <a href="${d.ejecucion_url}" target="_blank">#${d.ejecucion} en AAP</a> (apruébala ahí)`; ordenes(); }
   };
   ordenes(); setInterval(ordenes, 4000);
 }
