@@ -304,8 +304,7 @@
 - nombre: "Windows · Informe de seguridad"
   seccion: windows
   playbook: playbooks/windows-informe-seguridad.yml
-  base: "Seguridad · Revisar CVEs"
-  credencial: "Windows · ansible (WinRM)"
+  base: "Windows · Preparar IIS"   # inventario «Servidores Windows» (nodo-windows) y su credencial WinRM
   limite: true
   descripcion: |-
     Tipo: Solo lectura · informe de análisis en PDF a tu correo

@@ -216,6 +216,9 @@ def plantilla(nombre, playbook, red=False, descripcion="", base=None, credencial
         cx = uno("credentials", name=cn)
         if cx:
             creds.append(cx["id"])
+    creds = list(dict.fromkeys(creds))
+    for c in ya - set(creds):   # credenciales que ya no corresponden (p. ej. al cambiar de inventario base)
+        aap("POST", f"job_templates/{jt}/credentials/", {"id": c, "disassociate": True})
     for c in creds:
         if c not in ya:
             aap("POST", f"job_templates/{jt}/credentials/", {"id": c})

@@ -7,7 +7,7 @@
 # Los tickets que crea FaceOps (consola del Managed Service) los toma FaceOps en el acto: el vigía espera 25 s
 # antes de tomar un ticket nuevo, así no lanza dos veces lo que FaceOps ya orquesta.
 # En producción este papel lo cumple la fuente de eventos servicenow.itsm.records o un mensaje saliente de ServiceNow.
-import json, os, sys, time, urllib.request
+import calendar, json, os, sys, time, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sn import URL, api, tabla, uno
 
@@ -18,6 +18,15 @@ ITEM = "Solicitar acceso de red"
 ITEM_OCP = "Preparar red para clúster OpenShift"
 ITEM_RV = "Revocar acceso de red"
 log = lambda t: print(time.strftime("%H:%M:%S"), t, flush=True)
+
+
+def maduro(t, s=25):
+    """Ticket creado hace más de s segundos (en UTC, como lo entrega la API). El filtro RELATIVELT de ServiceNow no
+    funciona en esta instancia, así que la espera para FaceOps se calcula aquí."""
+    try:
+        return time.time() - calendar.timegm(time.strptime(t["sys_created_on"], "%Y-%m-%d %H:%M:%S")) > s
+    except (KeyError, ValueError):
+        return True
 
 
 def variables(ritm):
@@ -40,9 +49,9 @@ while True:
         if not item:
             item = uno("sc_cat_item", f"name={ITEM}")["sys_id"]
             log(f"vigilando '{ITEM}' en {URL}")
-        nuevos = tabla("sc_req_item", f"cat_item={item}^active=true^stateIN-5,1^sys_created_onRELATIVELT@second@ago@25^ORDERBYsys_created_on",
+        nuevos = tabla("sc_req_item", f"cat_item={item}^active=true^stateIN-5,1^ORDERBYsys_created_on",
                        "sys_id,number,sys_created_on,request,requested_for.user_name,requested_for.name,opened_by.user_name", 10)
-        for t in nuevos:
+        for t in [x for x in nuevos if maduro(x)]:
             v = variables(t["sys_id"])
             quien = t.get("requested_for.user_name") or t.get("opened_by.user_name") or "desconocido"
             # 1) tomarlo: En curso + nota (evita la doble ejecución)
@@ -64,8 +73,8 @@ while True:
         if not item_ocp:
             o = uno("sc_cat_item", f"name={ITEM_OCP}")
             item_ocp = o["sys_id"] if o else None
-        for t in (tabla("sc_req_item", f"cat_item={item_ocp}^active=true^stateIN-5,1^sys_created_onRELATIVELT@second@ago@25^ORDERBYsys_created_on",
-                        "sys_id,number,sys_created_on,requested_for.user_name,opened_by.user_name", 10) if item_ocp else []):
+        for t in (x for x in (tabla("sc_req_item", f"cat_item={item_ocp}^active=true^stateIN-5,1^ORDERBYsys_created_on",
+                        "sys_id,number,sys_created_on,requested_for.user_name,opened_by.user_name", 10) if item_ocp else []) if maduro(x)):
             v = variables(t["sys_id"])
             quien = t.get("requested_for.user_name") or t.get("opened_by.user_name") or "desconocido"
             api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
@@ -84,8 +93,8 @@ while True:
         if not item_rv:
             o = uno("sc_cat_item", f"name={ITEM_RV}")
             item_rv = o["sys_id"] if o else None
-        for t in (tabla("sc_req_item", f"cat_item={item_rv}^active=true^stateIN-5,1^sys_created_onRELATIVELT@second@ago@25^ORDERBYsys_created_on",
-                        "sys_id,number,sys_created_on,requested_for.user_name,opened_by.user_name", 10) if item_rv else []):
+        for t in (x for x in (tabla("sc_req_item", f"cat_item={item_rv}^active=true^stateIN-5,1^ORDERBYsys_created_on",
+                        "sys_id,number,sys_created_on,requested_for.user_name,opened_by.user_name", 10) if item_rv else []) if maduro(x)):
             v = variables(t["sys_id"])
             quien = t.get("requested_for.user_name") or t.get("opened_by.user_name") or "desconocido"
             api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
