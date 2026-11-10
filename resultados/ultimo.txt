@@ -1,92 +1,129 @@
-commit: 2bbf3dc2844ad668be27356d86e5fdea947c20a9
-inicio: 2026-11-10T19:28:22-03:00
+commit: 216f88abd490f1052a9ade8fdcbfd463055f3838
+inicio: 2026-11-10T20:05:22-03:00
 ---
-ce45781
-faceops ya trae la versión
-   · Repositorio Git «repositorio/migraciones-weblogic»
-   · Plantilla «Migración · WebLogic a OpenShift · Evaluar» (id 1130)
-   · Plantilla «Migración · WebLogic a OpenShift» (id 1131)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-===== EVALUAR
-catalogo: 223
-estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
-M-C1 emular-origen
-  pedido FO-LAB-01434
-  aprobado
-   ('FO-LAB-01434', 'exitoso', [('ventas', True), ('legado', False)]) 
-E-C1
-  pedido FO-LAB-01436
-  aprobado
-   ('FO-LAB-01436', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False) git: {'token': True, 'anterior': 404, 'publicar': -1}
-E-C2
-  pedido FO-LAB-01438
-  aprobado
-   ('FO-LAB-01438', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False) git: {'token': True, 'anterior': 404, 'publicar': -1}
-E-C3
-  pedido FO-LAB-01440
-  aprobado
-   ('FO-LAB-01440', 'fallido', None, None, [], None) git: None
-   … config.xml en /u01, /opt/oracle, /opt/weblogic, /home/oracle o /srv); indícalo en wl_dominio"} |  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-PLAN EVALUAR OK: False
-FIN-SCRIPT
-ns previo limpio
-===== MIGRAR C2-C4
-catalogo: 223
-M-C2
-  pedido FO-LAB-01441
-  aprobado
-   ["FO-LAB-01441", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:de8ae58840776084f23ca680de497c47e7edd144c06fa7fd78d0a6f805f5e6ae", "construccion": "Complete: ", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no"}]
-M-C3
-  pedido FO-LAB-01442
-  aprobado
-   ["FO-LAB-01442", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:de8ae58840776084f23ca680de497c47e7edd144c06fa7fd78d0a6f805f5e6ae", "construccion": "sin cambios: se reutiliza la imagen", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no"}]
-M-C4
-  pedido FO-LAB-01443
-  aprobado
-   ["FO-LAB-01443", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null}]
-   … pietaria (ServletAuthentication); Contexto JNDI propietario (WLInitialContextFactory / t3); Propiedades con JNDI remoto de WebLogic (t3 / WLInitialContextFactory). No se creó nada en OpenShift"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=26   changed=9    unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
-FIN-SCRIPT
-imagestream.image.openshift.io/ventas buildconfig.build.openshift.io/ventas deployment.apps/ventas service/ventas route.route.openshift.io/ventas configmap/ventas-config secret/ventas-ds 
-['WL_DS_VENTASDS_URL', 'WL_DS_VENTASDS_USUARIO', 'prop-ventas.properties'] SINCLAVE
-secret: ['WL_DS_VENTASDS_CLAVE']
-{"estado":"ok","datasource":"enlazado","cola":"enlazado","propiedades":"cargadas"} http=200
-===== MIGRAR C5
-catalogo: 223
-M-C5
-  pedido FO-LAB-01444
-  aprobado
-Error: no container with ID 2b05e209d14b777eec3d8e7ca630058bba5e447f984741997dacf5088743284d found in database: no such container
---- reintento 1 (contenedor reiniciado)
-catalogo: 223
-Error: can only create exec sessions on running containers: container state improper
---- reintento 2 (contenedor reiniciado)
-catalogo: 223
-M-C5
-  reanudo FO-LAB-01444 en_ejecucion
-   ["FO-LAB-01444", "fallido", {"construccion": "sin cambios: se reutiliza la imagen", "salud": "/ventas/no-existe → 503", "sano": false, "vuelta_atras": "versión anterior restaurada (HTTP 200)", "retirado": null}]
-   … en; rollout no completó; HTTP 503): se volvió a la versión anterior. El origen sigue intacto"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=51   changed=12   unreachable=0    failed=1    skipped=9    rescued=0    ignored=0   
-A: ['FO-LAB-01434', 'exitoso', [['ventas', True], ['legado', False]]]
-FIN-SCRIPT
-sonda=/ventas/salud salud=200
-===== MIGRAR C6
-catalogo: 223
-M-C6
-  pedido FO-LAB-01445
-  aprobado
---- reintento 1 (contenedor reiniciado)
-catalogo: 223
-M-C6
-  reanudo FO-LAB-01445 exitoso
-   ["FO-LAB-01445", "exitoso", {"construccion": null, "salud": null, "sano": null, "vuelta_atras": null, "retirado": true}]
-   … AAP terminó (successful): ejecución 18 s, espera de aprobación 39 s
-A: ['FO-LAB-01434', 'exitoso', [['ventas', True], ['legado', False]]]
-FIN-SCRIPT
-ns retirado: true
-{"legado_vacio": true, "cm_sin_clave": true, "salud_c2": "200", "salud_c5": "200", "sonda_c5": "/ventas/salud", "ns_retirado": true}
-===== CERTIFICAR
-catalogo: 223
-casos: {'C1': True, 'C2': True, 'C3': True, 'C4': True, 'C5': True, 'C6': True}
-CERTIFICADA Migración · WebLogic a OpenShift
-estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'certificada'}
-FIN-SCRIPT
---- fin: 2026-11-10T20:05:07-03:00 · código: 0
+== tareas
+clonar                Succeeded   2026-11-10T20:01:15Z   2026-11-10T20:01:31Z
+compilar-y-probar     Succeeded   2026-11-10T20:01:36Z   2026-11-10T20:01:56Z
+desplegar-con-aap     Failed      2026-11-10T20:02:27Z   2026-11-10T20:03:19Z
+preparar-plataforma   Succeeded   2026-11-10T20:02:20Z   2026-11-10T20:02:27Z
+publicar              Succeeded   2026-11-10T20:02:06Z   2026-11-10T20:02:20Z
+secretos              Succeeded   2026-11-10T20:01:31Z   2026-11-10T20:01:36Z
+vulnerabilidades      Succeeded   2026-11-10T20:01:56Z   2026-11-10T20:02:06Z
+taskrun taskrun.tekton.dev/app-jboss-rnkw6-desplegar-con-aap
+"step-lanzar-plantilla" exited with code 1: Error
+1h0m0s
+pod app-jboss-rnkw6-desplegar-con-aap-pod
+AAP job 21702 lanzado en ambiente desarrollo sobre todo el grupo jboss: versión 1.0.41, solicitado por invoke
+Resultado en AAP: failed · https://10.194.0.2/execution/jobs/playbook/21702/output
+2026/11/10 20:02:28 Entrypoint initialization
+2026/11/10 20:02:29 Decoded script /tekton/scripts/script-0-5sqln
+{"pipeline":"1h0m0s"}
+Tasks Completed: 7 (Failed: 1, Cancelled 0), Skipped: 0
+job=21702
+job 21702 failed inv 3 Servidores de aplicación limit  elapsed 36.529 jt 14 proj Despliegues de aplicaciones
+extra_vars keys: ['app_version', 'app_commit', 'solicitado_por', 'correo_solicitante', 'ambiente', 'origen']
+host_status_counts: {'dark': 1, 'changed': 2}
+Identity added: /runner/artifacts/21702/ssh_key_data (cquezada@demo-ansible-summit)
+
+PLAY [Desplegar app en JBoss EAP] **********************************************
+
+TASK [Solicitud de despliegue] *************************************************
+ok: [nodo-jboss] => {
+    "msg": "Despliegue de la versión 1.0.41 solicitado por invoke (invoke@noreply.faceops.34.176.42.56.sslip.io) · commit c671dd1 · vía Tekton · pipeline app-jboss"
+}
+
+TASK [Carpeta de versiones] ****************************************************
+ok: [nodo-jboss]
+
+TASK [Versión en producción] ***************************************************
+ok: [nodo-jboss]
+
+TASK [Descargar versión 1.0.41 publicada por el pipeline] **********************
+changed: [nodo-jboss]
+
+TASK [Desplegar en JBoss con jboss-cli] ****************************************
+changed: [nodo-jboss]
+
+TASK [La app responde con la versión 1.0.41] ***********************************
+ok: [nodo-jboss]
+
+TASK [Guardar como versión en producción] **************************************
+changed: [nodo-jboss]
+
+TASK [Huella del artefacto desplegado] *****************************************
+ok: [nodo-jboss]
+
+TASK [Carpeta de registros de FaceOps] *****************************************
+ok: [nodo-jboss]
+
+TASK [Registro de la aplicación desplegada (lo guarda en Git el respaldo continuo de la máquina)] ***
+changed: [nodo-jboss]
+
+TASK [Resultado del despliegue] ************************************************
+ok: [nodo-jboss]
+
+TASK [Mostrar URL] *************************************************************
+ok: [nodo-jboss] => {
+    "msg": "Versión 1.0.41 en nodo-jboss, solicitada por invoke: http://34-176-42-56.sslip.io:8090/app-jboss/"
+}
+
+PLAY [Desplegar app en JBoss EAP] **********************************************
+
+TASK [Solicitud de despliegue] *************************************************
+ok: [nodo-jboss2] => {
+    "msg": "Despliegue de la versión 1.0.41 solicitado por invoke (invoke@noreply.faceops.34.176.42.56.sslip.io) · commit c671dd1 · vía Tekton · pipeline app-jboss"
+}
+
+TASK [Carpeta de versiones] ****************************************************
+ok: [nodo-jboss2]
+
+TASK [Versión en producción] ***************************************************
+ok: [nodo-jboss2]
+
+TASK [Descargar versión 1.0.41 publicada por el pipeline] **********************
+changed: [nodo-jboss2]
+
+TASK [Desplegar en JBoss con jboss-cli] ****************************************
+changed: [nodo-jboss2]
+
+TASK [La app responde con la versión 1.0.41] ***********************************
+ok: [nodo-jboss2]
+
+TASK [Guardar como versión en producción] **************************************
+changed: [nodo-jboss2]
+
+TASK [Huella del artefacto desplegado] *****************************************
+ok: [nodo-jboss2]
+
+TASK [Carpeta de registros de FaceOps] *****************************************
+ok: [nodo-jboss2]
+
+TASK [Registro de la aplicación desplegada (lo guarda en Git el respaldo continuo de la máquina)] ***
+changed: [nodo-jboss2]
+
+TASK [Resultado del despliegue] ************************************************
+ok: [nodo-jboss2]
+
+TASK [Mostrar URL] *************************************************************
+ok: [nodo-jboss2] => {
+    "msg": "Versión 1.0.41 en nodo-jboss2, solicitada por invoke: http://34-176-42-56.sslip.io:8090/app-jboss/"
+}
+
+PLAY [Desplegar app en JBoss EAP] **********************************************
+
+TASK [Solicitud de despliegue] *************************************************
+ok: [nodo-jboss3] => {
+    "msg": "Despliegue de la versión 1.0.41 solicitado por invoke (invoke@noreply.faceops.34.176.42.56.sslip.io) · commit c671dd1 · vía Tekton · pipeline app-jboss"
+}
+
+TASK [Carpeta de versiones] ****************************************************
+fatal: [nodo-jboss3]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.19 port 22: Connection timed out", "unreachable": true}
+
+PLAY RECAP *********************************************************************
+nodo-jboss                 : ok=12   changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss2                : ok=12   changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss3                : ok=1    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+
+hosts inv: ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss-dev', 'nodo-jboss-qa', 'nodo-nginx', 'nodo-postgres', 'nodo-tomcat']
+grupo jboss hosts: ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss-dev', 'nodo-jboss-qa']
+--- fin: 2026-11-10T20:05:24-03:00 · código: 0
