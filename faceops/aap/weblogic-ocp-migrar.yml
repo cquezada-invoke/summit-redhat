@@ -57,7 +57,7 @@
     cache: /tmp/faceops-wl-cache
     builder: "{{ wl_builder | default('registry.redhat.io/jboss-eap-8/eap8-openjdk17-builder-openshift-rhel8:latest', true) }}"
     maven: "{{ wl_maven | default('https://repo1.maven.org/maven2', true) }}"
-    espera: "{{ wl_espera | default(600) | int }}"
+    espera: "{{ wl_espera | default(600, true) }}"
     tipos:   # orden de retiro
       - [route.openshift.io/v1, routes]
       - [v1, services]
@@ -295,7 +295,7 @@
         and r_dep.json.status.updatedReplicas | default(0) == r_dep.json.spec.replicas
         and r_dep.json.status.readyReplicas | default(0) == r_dep.json.spec.replicas
         and r_dep.json.status.replicas | default(0) == r_dep.json.spec.replicas
-      retries: "{{ (espera / 10) | int }}"
+      retries: "{{ (espera | int) // 10 }}"
       delay: 10
       when: imagen | length > 0
       failed_when: false
@@ -363,7 +363,7 @@
         and r_dep2.json.status.updatedReplicas | default(0) == r_dep2.json.spec.replicas
         and r_dep2.json.status.readyReplicas | default(0) == r_dep2.json.spec.replicas
         and r_dep2.json.status.replicas | default(0) == r_dep2.json.spec.replicas
-      retries: "{{ (espera / 10) | int }}"
+      retries: "{{ (espera | int) // 10 }}"
       delay: 10
       when: r_vuelta is changed
       failed_when: false

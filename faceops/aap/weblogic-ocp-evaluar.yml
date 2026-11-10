@@ -178,18 +178,6 @@
       delegate_to: localhost
       register: r_inf
 
-    - name: Repositorio de informes en Git (se crea si falta)
-      ansible.builtin.uri:
-        url: "{{ gitea }}/api/v1/user/repos"   # el token de respaldo es de la cuenta «repositorio»
-        method: POST
-        headers: {Authorization: "token {{ faceops_respaldo_token }}", Content-Type: application/json}
-        body_format: json
-        body: {name: migraciones-weblogic, description: "FaceOps: evaluaciones y artefactos de migración WebLogic → OpenShift", auto_init: true, default_branch: main}
-        status_code: [201, 409, 422]
-      when: faceops_respaldo_token | default('') | length > 0
-      failed_when: false
-      no_log: true
-
     - name: Informe anterior en Git
       ansible.builtin.uri:
         url: "{{ gitea }}/api/v1/repos/repositorio/migraciones-weblogic/contents/{{ inventory_hostname }}/evaluacion.md"
@@ -225,6 +213,7 @@
               {% set l = [] %}{% for a in analisis.aplicaciones %}{% set _ = l.append({'aplicacion': a.aplicacion, 'destino': a.destino.runtime, 'migrable': a.destino.migrable,
               'complejidad': a.complejidad, 'criticos': a.hallazgos | selectattr('severidad', 'equalto', 'crítica') | map(attribute='titulo') | list}) %}{% endfor %}{{ l }}
             informe_git: "{{ (r_git.status | default(0)) in [200, 201] }}"
+            git: "{{ {'token': faceops_respaldo_token | default('') | length > 0, 'anterior': r_prev.status | default('-'), 'publicar': r_git.status | default('-')} }}"
 
     - name: Resumen
       ansible.builtin.debug:
