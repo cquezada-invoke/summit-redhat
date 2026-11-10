@@ -1,18 +1,7 @@
-commit: d93f860fb8b93d6fa53de89182a43bb1c1d0640e
+commit: 13b5a10a7ea0c8334b02d750fc91743a9cd4bafc
 inicio: 2026-11-10T00:25:47-03:00
 ---
-warning: fetch updated the current branch head.
-fast-forwarding your working tree from
-commit 2877a19ff23dc228ef1b1bf5a1ada5ce02abd097.
-error: Your local changes to the following files would be overwritten by merge:
-	portal-automatizacion/app/templates/ficha.html
-Please commit your changes or stash them before you merge.
-Aborting
-fatal: Cannot fast-forward your working tree.
-After making sure that you saved anything precious from
-$ git diff 2877a19ff23dc228ef1b1bf5a1ada5ce02abd097
-output, run
-$ git reset --hard
-to recover.
-Error: the specified Containerfile or Dockerfile does not exist, Containerfile: no such file or directory
---- fin: 2026-11-10T00:25:48-03:00 · código: 0
+== OpenShift · Certificado de aplicación de punta a punta {"namespace": "amdocs-bss", "ruta": "ordering", "umbral_dias": 30, "forzar": "no"} → #20256 successful
+== Linux · Informe de seguridad {"correo": "cquezada@invoke.cl"} → #20261 failed
+         FALLA en «Enviar al portal para el PDF y el correo»: Unexpected templating type error occurred on ({{ lookup('template', 'secciones.j2') | from_json }}): the JSON object must be str, bytes or bytearray, not list. the JSON object must be str, bytes or bytearray, not list
+--- fin: 2026-11-10T00:27:27-03:00 · código: 0
