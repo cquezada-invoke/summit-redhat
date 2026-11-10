@@ -1,0 +1,17 @@
+commit: 2b865cb44105892bf4176c11366c01e988528f1f
+inicio: 2026-11-10T16:56:46-03:00
+---
+faceops actualizado
+lake-uso: {'desde': '2026-11-10T18:12:30Z', 'mb': 0.75, 'requests': 2829, 'rps': 0.4}
+cert: True True
+mapa: 4
+formulario: {'modo': 'emitir', 'cert_cn': 'nodo-jboss.demo.local', 'cert_san': 'nodo-jboss.demo.local', 'cert_nombre': 'jboss-https', 'cert_puerto': '8443', 'cert_propietario': 'root', 'cert_recargar': 'systemctl restart eap8-standalone', 'motivo': 'Reemplazo del certificado nodo-jboss.demo.local pedido desde su detalle', 'cert_formato': 'pkcs12', 'cert_bits': '2048'}
+pedido: {'id': 1406, 'numero': 'FO-LAB-01406'}
+aprobado
+TICKET: FO-LAB-01406 fallido
+  … AAP terminó (failed): ejecución 23 s, espera de aprobación 39 s Falló en la tarea «JBoss EAP entrega el keystore emitido (Elytron)» de nodo-jboss: TASK [Respaldar el anterior y d
+  … o the fact that 'no_log: true' was specified for this result", "changed": true} fatal: [nodo-jboss]: FAILED! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": true} TASK [
+  … og: true' was specified for this result", "changed": true} fatal: [nodo-jboss]: FAILED! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": true} TASK [Volver al certificado 
+anterior: ('vigente', 'VALID')
+nuevo: []
+--- fin: 2026-11-10T16:59:19-03:00 · código: 0
