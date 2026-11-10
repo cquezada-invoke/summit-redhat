@@ -1,5 +1,5 @@
 # Data lake · Derivar segmento: activa o desactiva la copia (espejo) de cada request que entra por el balanceador del segmento
-# hacia el colector del data lake, que la guarda en S3 + Trino para JavIA. El camino del negocio no cambia: nginx «mirror»
+# hacia el colector del data lake, que la guarda en S3 + Trino. El camino del negocio no cambia: nginx «mirror»
 # envía una copia en paralelo y no espera su respuesta. Con dl_flujos=si, además arranca flujos funcionales hacia la aplicación.
 # Variables: dl_accion (activar | desactivar), dl_prefijo (segmento en el lake), dl_colector (URL interna del colector),
 #            dl_app_url (entrada de la aplicación), dl_flujos (si | no), dl_escenario (lista [método, ruta, cuerpo]), dl_minutos

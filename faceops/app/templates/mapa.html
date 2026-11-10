@@ -523,14 +523,14 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+='<p class="sub" style="font-size:12px;padding:0 14px">Cada área parte en 100 %: −15 por situación grave y −6 por advertencia.</p>';
     pintar(h); enlazarEncenderTodas();
   }
-  // data lake del segmento (para JavIA): la bifurcación vive en su punto de entrada; aquí se activa para todo el segmento
+  // data lake del segmento: la bifurcación vive en su punto de entrada; aquí se activa para todo el segmento
   function bifSegmento(){ const cy_=window._cy; if(!cy_) return null; const n=cy_.nodes().filter(x=>!!x.data('bif'))[0]; return n?{b:n.data('bif'),punto:n.data('nombre')||n.data('label')||''}:null; }
   function htmlLakeSegmento(){ const x=bifSegmento(); if(!x) return ''; const b=x.b;
-    return sec('Data lake · JavIA')+fila({izq:'Derivación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
+    return sec('Data lake')+fila({izq:'Derivación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
       det:(b.activa?''+(b.enviado_mb!=null?'<div style="margin-top:4px"><b>Enviado al data lake:</b> '+n2(b.enviado_mb)+' MB</div>':'')
-          :'Al activarla (ticket con aprobación), cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, y arrancan flujos funcionales de prueba; JavIA la usa después.')
+          :'Al activarla (ticket con aprobación), cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, y arrancan flujos funcionales de prueba.')
         +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif-seg">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
-        +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.datos+'" target="_blank"><b>Ver los datos</b></a> · <a href="'+b.explorador+'" target="_blank">Explorador SQL</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
+        +''}); }
   function enlazarLakeSegmento(){ const bb=document.getElementById('b-bif-seg'), x=bifSegmento(); if(!bb||!x) return;
     bb.onclick=()=>{ bb.disabled=true; const res=bb.parentElement.querySelector('.res'); res.textContent='guardando…';
       const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',x.b.segmento); fd.append('punto',x.punto); fd.append('destino',x.b.destino);
@@ -547,9 +547,6 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=htmlEncenderTodas();
     h+=htmlControles();
     h+=htmlLakeSegmento();
-    h+=fila({izq:'Flujos',ic:s.bloqueados?SVG.mal:SVG.ok,txt:s.abiertos+'/'+s.flujos+' abiertos'+(s.bloqueados?' · '+s.bloqueados+' cerrados':'')});
-    h+=fila({izq:'Hallazgos',ic:s.altos?SVG.mal:(s.hallazgos?SVG.warn:SVG.ok),txt:s.hallazgos?(s.hallazgos+(s.altos?' · '+s.altos+' altos':'')):'sin hallazgos'});
-    if(s.entrada&&s.entrada.hacia) h+=fila({izq:'Entrada',ic:letra('E'),txt:(s.entrada.desde||'')+' → '+s.entrada.hacia+' :'+s.entrada.puerto});
     if((s.metricas_app||[]).length){
       const IC2={alta:SVG.mal,media:SVG.warn,ok:SVG.ok,info:SVG.gris};
       h+=sec('Aplicación e IA (informativo)');
@@ -766,7 +763,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
             :'Al activarla, cada request que pasa por aquí se copia al data lake en <b>'+b.destino+'</b>, sin tocar el camino del negocio.')
           +(b.declarada?'<br><span class="sub">La arquitectura del segmento declara su propio lake como componente.</span>':'')
           +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
-          +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.datos+'" target="_blank"><b>Ver los datos</b></a> · <a href="'+b.explorador+'" target="_blank">Explorador SQL</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
+          +''}); }
     if(d.web||d.ssh||d.ha||d.respaldo){  // accesos directos: consola web (vía FaceOps) y SSH / escritorio remoto (vía Guacamole)
       h+=sec('Acceso');
       if(d.web) h+=fila({izq:'Consola web',ic:SVG.web,txt:'<a href="'+d.web.abrir+'" target="_blank" title="'+d.web.producto+' · se abre a través de FaceOps">'+d.web.url+'</a>',

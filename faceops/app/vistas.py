@@ -5491,7 +5491,7 @@ def mapa_bifurcacion():
     accion = "activar" if f.get("accion") == "activar" else "desactivar"
     try:
         t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params_derivacion(g.cliente["id"], seg, e["nombre"], accion),
-                                f"Data lake · {accion} la derivación del segmento {seg} (para JavIA)")
+                                f"Data lake · {accion} la derivación del segmento {seg}")
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     auditar(g.usuario["usuario"], g.cliente["id"], f"{accion} derivación al data lake (ticket)", seg, {"punto": e["nombre"], "ticket": t["numero"]})

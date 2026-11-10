@@ -1,8 +1,8 @@
 segmento: "Banca · CRM y contact center"
 codigo: bcon
-version: 1
+version: 2
 grupo: aplicaciones
-descripcion: "Aplicación típica de banca (demo). Atiende su operación y una bifurcación copia cada operación al data lake central (S3 + Trino, zona banca_contacto); sobre el lake actúa su agente de IA en JavIA. Datos sintéticos."
+descripcion: "Aplicación típica de banca (demo). Atiende su operación y una bifurcación copia cada operación al data lake central (S3 + Trino, zona banca_contacto). Datos sintéticos."
 responsable: Arquitectura Invoke
 centro_de_datos: Centro de datos Santiago
 ambientes: [produccion]
@@ -43,14 +43,7 @@ componentes:
     producto: data-lake
     rol: Data lake · copia de cada operación
     equipos: [ocp-sno]
-  - id: ia
-    nombre: "Agente de IA en JavIA"
-    plataforma: openshift
-    producto: "JavIA (scikit-learn + IBM Granite 3.3 2B)"
-    rol: Agente de la aplicación · evalúa soluciones de IA sobre el lake
-    equipos: [ocp-sno]
 
 flujos:
   - {desde: usuarios, hacia: app, puerto: 443, motivo: "operación del negocio"}
   - {desde: app, hacia: lake, puerto: 9000, estilo: bifurcacion, motivo: "bifurcación: cada operación se copia al data lake (JSON por minuto)"}
-  - {desde: lake, hacia: ia, puerto: 8080, estilo: bifurcacion, motivo: "el agente de JavIA cruza esta aplicación con las demás de la industria"}
