@@ -5,7 +5,7 @@ Fuentes (no se inventa ninguna conexión; lo que no se sabe queda sin enlace o c
 1. Cableado de los laboratorios containerlab (datos/red-laboratorio.json, lo genera en cada despliegue
    demo4-redes/herramientas/exportar-topologia-faceops.py desde todos los *.clab.yml): enlaces interfaz a interfaz,
    direcciones por interfaz, VLAN, rutas por defecto y vecinos BGP de la configuración. Un laboratorio entra si alguno
-   de sus nodos está en el inventario del cliente (se cruza por nombre).
+   de sus nodos está en el inventario del cliente (se cruza por nombre) o si comparte la red de gestión con uno que entra.
 2. Lo que cada equipo trae en su ficha (equipos.datos): interfaces con prefijo, puerta de enlace y vecinos LLDP, con
    claves tolerantes («interfaces», «red.interfaces», «gateway», «lldp», «vecinos»…). Así un equipo de red nuevo con
    interfaces/LLDP aparece solo, sin listas fijas.
@@ -245,6 +245,10 @@ def _construir(cliente, eqs, red_inv, labs, completo):
         if e["nombre"] not in por_nombre or por_nombre[e["nombre"]].get("estado") == "retirado":
             por_nombre[e["nombre"]] = e
     incluidos = [l for l in labs if any(n["nombre"] in por_nombre for n in l["nodos"])]
+    # los demás laboratorios que comparten la red de gestión de uno incluido son del mismo entorno: también se dibujan
+    # (sus equipos quedan como «fuera del inventario» hasta que se incorporen)
+    gestiones = {l.get("gestion") for l in incluidos if l.get("gestion")}
+    incluidos += [l for l in labs if l not in incluidos and l.get("gestion") in gestiones]
     omitidos = [{"lab": l["lab"], "nodos": len(l["nodos"]), "archivo": l.get("archivo", "")} for l in labs if l not in incluidos]
     nodos, aristas, grupos = {}, [], []
     dueno = defaultdict(set)        # IP → nombres de nodo (para BGP y puertas de enlace)
