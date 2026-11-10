@@ -1,29 +1,15 @@
-commit: 06533202dea83cd54ede00c07c5ca471b345dc81
-inicio: 2026-11-09T23:58:53-03:00
+commit: 030e23f50942b251e41917a6165962dde50d02b9
+inicio: 2026-11-10T00:11:03-03:00
 ---
-== wf 20104
- job 20108 Portal · Linux · Liberar espacio en disco (plantilla) failed 14.96 limit= 
-   nodo-jboss2 ok 3 fail 0 dark 0
-   nodo-jboss-dev ok 3 fail 0 dark 0
-   nodo-postgres ok 3 fail 0 dark 0
-   nodo-tomcat ok 0 fail 0 dark 1
-   nodo-jboss-qa ok 0 fail 0 dark 1
-   nodo-jboss ok 3 fail 0 dark 0
-   nodo-so ok 3 fail 0 dark 0
-   nodo-jboss3 ok 0 fail 0 dark 1
-   nodo-nginx ok 3 fail 0 dark 0
-    playbook_on_task_start  Uso antes {}
-    runner_on_unreachable nodo-tomcat Uso antes Failed to connect to the host via ssh: Connection timed out during banner exchange
-Connection to 192.168.122.14 port 22 timed out
-    runner_on_unreachable nodo-jboss3 Uso antes Failed to connect to the host via ssh: ssh: connect to host 192.168.122.19 port 22: Connection timed out
-    runner_on_unreachable nodo-jboss-qa Uso antes Failed to connect to the host via ssh: ssh: connect to host 192.168.122.20 port 22: Connection timed out
-== wf 20110
-== wf 20127
- job 20129 Portal · Telco · Red del servicio (VLAN y BGP) (plantilla) failed 7.132 limit= 
+== error original del job:
+None
 Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "<string>", line 1, in <listcomp>
+  File "<string>", line 36, in <module>
 KeyError: 'host'
-    runner_on_failed localhost Git · guardar config/rtr.conf {'censored': "the output has been hidden due to the fact that 'no_log: true' was specified for this result", 'changed': False}
-    playbook_on_stats   {}
---- fin: 2026-11-09T23:58:55-03:00 · código: 0
+== prueba directa del script con el workflow 20208:
+  File "/home/cquezada/summit-redhat/portal-automatizacion/playbooks/files/informe_ejecucion.py", line 39, in <module>
+    obj = [f"{h['summary_fields']['host']['name']}: {h['changed']} cambio(s), {h['ok']} ok, {h['failures'] + h['dark']} falla(s)" for h in res]
+  File "/home/cquezada/summit-redhat/portal-automatizacion/playbooks/files/informe_ejecucion.py", line 39, in <listcomp>
+    obj = [f"{h['summary_fields']['host']['name']}: {h['changed']} cambio(s), {h['ok']} ok, {h['failures'] + h['dark']} falla(s)" for h in res]
+KeyError: 'host'
+--- fin: 2026-11-10T00:11:06-03:00 · código: 0
