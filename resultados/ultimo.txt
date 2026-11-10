@@ -1,15 +1,26 @@
-commit: 4a0d901e4036cafbf613d1cf646c1c33b4fe5c59
-inicio: 2026-11-10T17:22:04-03:00
+commit: 880ede617abcb4409a1a66d9d44e907b14bbc414
+inicio: 2026-11-10T17:26:39-03:00
 ---
-namespace/wl-sonda created
-pod/eap8r created
-pod/eap8b created
-eap8b   0/1   Pending   0     4m4s
-eap8r   0/1   Pending   0     4m5s
-== eap8r
-Error from server (BadRequest): pod eap8r does not have a host assigned
-== eap8b
-Error from server (BadRequest): pod eap8b does not have a host assigned
-
-borrado
---- fin: 2026-11-10T17:26:11-03:00 · código: 0
+No resources found in wl-sonda namespace.
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests       Limits
+  --------           --------       ------
+  cpu                7002m (93%)    29210m (389%)
+  memory             22850Mi (99%)  42272Mi (184%)
+  ephemeral-storage  0 (0%)         0 (0%)
+  hugepages-1Gi      0 (0%)         0 (0%)
+  hugepages-2Mi      0 (0%)         0 (0%)
+Events:              <none>
+138
+catocp-prod                                        construir-ws-2bxx5-construir-pod                                  0/1   Error                    0                  10d
+catocp-prod                                        construir-ws-9qbw2-construir-pod                                  0/1   Error                    0                  10d
+catocp-prod                                        ws-1-build                                                        0/1   Error                    0                  10d
+catocp-prod                                        ws-2-build                                                        0/1   Error                    0                  10d
+demo-datalake                                      carga-56btr                                                       0/1   Error                    0                  3d19h
+demo-datalake                                      carga-tkb96                                                       0/1   Error                    0                  3d19h
+openshift-kube-apiserver                           installer-1-sno                                                   0/1   Error                    0                  11d
+openshift-kube-apiserver                           installer-5-sno                                                   0/1   Error                    0                  11d
+openshift-pipelines                                tekton-pipelines-webhook-7bd9f48f44-b7hcw                         0/1   ContainerStatusUnknown   13 (7d5h ago)      9d
+openshift-pipelines                                tekton-results-api-d98455bf5-bf8cg                                0/1   CrashLoopBackOff         1794 (4m9s ago)    9d
+--- fin: 2026-11-10T17:26:40-03:00 · código: 0
