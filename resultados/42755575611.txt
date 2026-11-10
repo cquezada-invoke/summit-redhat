@@ -1,0 +1,120 @@
+commit: c9bfd52fc1f2a0c4bad6d920cc2f8de2169b59cf
+inicio: 2026-11-10T01:23:43-03:00
+---
+=== wf 20350 job 20353
+TASK [Datos del servicio] ******************************************************
+ok: [localhost]
+TASK [El prefijo no choca con redes del laboratorio] ***************************
+ok: [localhost] => (item=10.0.0.0/30)
+ok: [localhost] => (item=10.10.10.0/24)
+ok: [localhost] => (item=10.20.20.0/24)
+ok: [localhost] => (item=10.40.40.0/24)
+ok: [localhost] => (item=172.20.20.0/24)
+ok: [localhost] => (item=192.168.122.0/24)
+ok: [localhost] => (item=203.0.113.0/24)
+TASK [Git · config/rtr.conf actual] ********************************************
+ok: [localhost]
+TASK [Estado declarado] ********************************************************
+ok: [localhost]
+TASK [Plan del cambio] *********************************************************
+ok: [localhost] => {
+    "msg": [
+        "Servicio upf-demo · activar · VLAN 320 · prefijo 10.60.20.0/24 (puerta de enlace 10.60.20.1/24)",
+        "Router: ruta 10.60.20.0/24 → firewall y anuncio BGP",
+TASK [Git · guardar config/rtr.conf] *******************************************
+ok: [localhost]
+TASK [Rutas que el ISP recibe hoy] *********************************************
+ok: [rtr]
+TASK [Foto previa] *************************************************************
+ok: [rtr -> localhost]
+TASK [Router · aplicar el estado de Git] ***************************************
+changed: [rtr]
+TASK [Firewall · VLAN 320 del servicio] ****************************************
+changed: [fw]
+TASK [Firewall · retirar la VLAN 320] ******************************************
+skipping: [fw]
+TASK [Firewall · estado de la VLAN] ********************************************
+ok: [fw]
+TASK [Estado de la VLAN] *******************************************************
+ok: [fw -> localhost]
+TASK [El ISP recibe (o deja de recibir) el prefijo por BGP] ********************
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (8 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (7 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (6 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (5 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (4 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (3 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (2 retries left).
+FAILED - RETRYING: [rtr]: El ISP recibe (o deja de recibir) el prefijo por BGP (1 retries left).
+ok: [rtr]
+TASK [Resultado de la prueba] **************************************************
+ok: [rtr -> localhost]
+TASK [Router · volver al estado anterior] **************************************
+changed: [rtr]
+TASK [Firewall · retirar la VLAN creada] ***************************************
+changed: [fw]
+TASK [Git · sha vigente] *******************************************************
+ok: [localhost]
+TASK [Git · restaurar config/rtr.conf] *****************************************
+ok: [localhost]
+TASK [Resultado para el portal] ************************************************
+ok: [localhost]
+TASK [Resultado] ***************************************************************
+ok: [localhost] => {
+    "msg": "La prueba posterior falló: se volvió al estado anterior (router, firewall y Git)"
+=== wf 20370 job 20372
+TASK [Datos del servicio] ******************************************************
+ok: [localhost]
+TASK [El prefijo no choca con redes del laboratorio] ***************************
+skipping: [localhost] => (item=10.0.0.0/30) 
+skipping: [localhost] => (item=10.10.10.0/24) 
+skipping: [localhost] => (item=10.20.20.0/24) 
+skipping: [localhost] => (item=10.40.40.0/24) 
+skipping: [localhost] => (item=172.20.20.0/24) 
+skipping: [localhost] => (item=192.168.122.0/24) 
+skipping: [localhost] => (item=203.0.113.0/24) 
+skipping: [localhost]
+TASK [Git · config/rtr.conf actual] ********************************************
+ok: [localhost]
+TASK [Estado declarado] ********************************************************
+ok: [localhost]
+TASK [Plan del cambio] *********************************************************
+ok: [localhost] => {
+    "msg": [
+        "Servicio upf-demo · retirar · VLAN 320 · prefijo 10.60.20.0/24 (puerta de enlace 10.60.20.1/24)",
+        "Router: quitar ruta y anuncio de 10.60.20.0/24",
+TASK [Git · guardar config/rtr.conf] *******************************************
+skipping: [localhost]
+TASK [Rutas que el ISP recibe hoy] *********************************************
+ok: [rtr]
+TASK [Foto previa] *************************************************************
+ok: [rtr -> localhost]
+TASK [Router · aplicar el estado de Git] ***************************************
+changed: [rtr]
+TASK [Firewall · VLAN 320 del servicio] ****************************************
+skipping: [fw]
+TASK [Firewall · retirar la VLAN 320] ******************************************
+changed: [fw]
+TASK [Firewall · estado de la VLAN] ********************************************
+ok: [fw]
+TASK [Estado de la VLAN] *******************************************************
+ok: [fw -> localhost]
+TASK [El ISP recibe (o deja de recibir) el prefijo por BGP] ********************
+ok: [rtr]
+TASK [Resultado de la prueba] **************************************************
+ok: [rtr -> localhost]
+TASK [Router · volver al estado anterior] **************************************
+changed: [rtr]
+skipping: no hosts matched
+TASK [Git · sha vigente] *******************************************************
+skipping: [localhost]
+TASK [Git · restaurar config/rtr.conf] *****************************************
+skipping: [localhost]
+TASK [Resultado para el portal] ************************************************
+ok: [localhost]
+TASK [Resultado] ***************************************************************
+ok: [localhost] => {
+    "msg": "La prueba posterior falló: se volvió al estado anterior (router, firewall y Git)"
+TASK [Fallar el job si se revirtió (el workflow lo toma como falla)] ***********
+fatal: [localhost]: FAILED! => {"changed": false, "msg": "Cambio revertido: BGP ok · VLAN falla"}
+--- fin: 2026-11-10T01:23:44-03:00 · código: 0
