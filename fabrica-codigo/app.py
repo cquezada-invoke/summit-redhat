@@ -182,12 +182,17 @@ def _local(sistema, msgs, max_tokens, herramienta=None, al_texto=None):
     if js:
         entrada = json.loads(js)
     elif herramienta and "{" in texto:   # algunos modelos abiertos escriben el JSON de la herramienta como texto
+        bloque = re.search(r"```(?:json)?\s*(\{.*\})\s*```", texto, re.S)
+        crudo = bloque.group(1) if bloque else texto[texto.index("{"):texto.rindex("}") + 1]
         try:
-            cand = json.loads(texto[texto.index("{"):texto.rindex("}") + 1])
+            cand = json.loads(crudo)
+            if isinstance(cand, dict) and isinstance(cand.get("arguments"), (dict, str)) and cand.get("name") in (None, herramienta["name"]):
+                cand = cand["arguments"] if isinstance(cand["arguments"], dict) else json.loads(cand["arguments"])   # {"name", "arguments"} de Qwen
             if isinstance(cand, dict) and set(herramienta["input_schema"].get("required", [])) <= set(cand):
                 entrada, texto = cand, ""
         except ValueError:
-            pass
+            if parada != "max_tokens" and '"name"' in crudo and herramienta["name"] in crudo:
+                parada = "max_tokens"   # JSON cortado: que el flujo lo trate como respuesta incompleta y lo pida de nuevo
     return entrada, texto, parada
 
 
