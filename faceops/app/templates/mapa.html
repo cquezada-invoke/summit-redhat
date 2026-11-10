@@ -30,10 +30,6 @@
   <p class="sub" style="font-size:12px;margin:8px 0 0">{% if t.arquitectura %}<b>arquitectura v{{ t.arquitectura.version }}</b>{% if t.costo %} · <b>{{ t.costo.mensual|dinero(t.costo.moneda) }}/mes</b>{% endif %} · {% else %}<span style="color:var(--warn)">sin arquitectura</span> · {% endif %}{{ t.componentes|length }} componentes · {{ t.flujos }} flujos de red{% if t.bloqueados %} · <b style="color:var(--bad)">{{ t.bloqueados }} bloqueados</b>{% endif %}{% if t.ambientes %} · {{ t.ambientes|join(', ') }}{% endif %}</p>
 </a>{% else %}<p class="vacio">No tienes segmentos de negocio con equipos.</p>{% endfor %}</div>{% endif %}
 {% else %}
-{% if acceso_app %}{% set a = acceso_app %}<div class="card" style="margin:0 0 12px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:10px 14px">
-<div><span class="sub" style="font-size:12px">{{ a.codigo }} · Plataforma</span><br><b>{{ a.plataforma }}</b></div>
-<div style="flex:1;min-width:220px"><span class="sub" style="font-size:12px">Acceso</span><br>{% for u in a.urls %}<a href="{{ u.u }}" target="_blank" rel="noopener">{{ u.t }} ↗</a>{{ ' · ' if not loop.last }}{% else %}{% if not a.entrar %}<span class="sub">sin URL registrada</span>{% endif %}{% endfor %}</div>
-{% if a.entrar and perfil_actual.modo == 'escritura' %}<div style="text-align:right"><a class="btn" href="{{ a.entrar }}" target="_blank" rel="noopener">{{ '🔑 Entrar a la aplicación' if a.con_credencial else 'Entrar a la aplicación' }}</a><br><span class="sub" style="font-size:11.5px">{{ 'con su credencial de la bóveda · la clave no se muestra' if a.con_credencial else 'sin credencial en la bóveda (aplicaciones/' ~ a.nombre ~ '): ingreso manual' }}</span></div>{% endif %}</div>{% endif %}
 {% if seg_info %}<div id="salud-bar" class="salud-bar" title="Salud del segmento en este ambiente: clic para ver todo lo que hay que remediar"{{ ' hidden' if seg_info.ambiente == 'homologacion' }}></div>
 <div class="tabs-pf" style="align-items:center">{% for a in seg_info.ambientes %}<a class="{{ 'on' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}<a class="{{ 'on' if seg_info.ambiente == 'homologacion' }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente=homologacion">Homologación</a>
 </div>{% endif %}
@@ -75,7 +71,8 @@ v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('k
 {% for t in tickets_seg %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td style="white-space:nowrap">{{ (t.creado or '')[:16].replace('T', ' ') }}</td>
 <td>{{ t.accion or '—' }}</td><td>{{ t.maquinas|join(', ') or '—' }}</td><td class="sub">{{ (t.motivo or '')[:110] }}</td><td><span class="chip e-{{ t.estado }}">{{ t.estado.replace('_', ' ') }}</span></td></tr>{% endfor %}</table></div>
 {% else %}<p class="sub">Aún no se ha lanzado ninguna acción sobre este segmento.</p>{% endif %}{% endif %}
-<script>const RESALTAR={{ request.args.get("equipo", "")|tojson }};const RES_SET=new Set(RESALTAR.split(',').map(x=>x.trim()).filter(Boolean));
+<script>const APP_URL={{ (((acceso_app.urls|selectattr('t', 'equalto', 'Aplicación')|map(attribute='u')|first) if acceso_app.urls else '') or acceso_app.entrar or '' if acceso_app else '')|tojson }};
+const RESALTAR={{ request.args.get("equipo", "")|tojson }};const RES_SET=new Set(RESALTAR.split(',').map(x=>x.trim()).filter(Boolean));
 const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if cliente else 0) }}-'+{{ (request.args.get('segmento') or request.args.get('vista') or 'global')|tojson }};</script>
 <script>
 (function(){
@@ -132,6 +129,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(!capa){ capa=document.createElement('div'); capa.className='capa-cajas'; capa.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden'; cont.appendChild(capa); }
     capa.innerHTML='';
     const divs=[];
+    const ENTRADA=cy.nodes('[icono="balanceo"]').length?'balanceo':'web';   // la aplicación se ve desde su punto de entrada
     cy.nodes('[tipo="equipo"], [tipo="por_crear"]').filter(n=>n.style('display')!=='none').forEach(n=>{
       const d=n.data(), por=d.tipo==='por_crear';
       const dc=d.nube?'☁ <b>'+(d.ubicacion||'Nube')+'</b>':'🏢 <b>'+(d.ubicacion||'Centro de datos')+'</b>';
@@ -140,6 +138,14 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       el.innerHTML=svgRol(d.icono)+'<div class="tx"><div class="t">'+(d.nombre||'')+'</div><div class="s">'+(por?'por crear · ':'')+(d.ip?d.ip+' · ':'')+(d.rol||'')+'</div>'
         +'<div class="u">'+dc+(d.ambiente?' · '+d.ambiente:'')+(d.energia==='apagado'?' · <span style="color:#c9190b">apagado</span>':'')+'</div></div>'
         +(d.energia==='apagado'?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px">apagada</span></div>':'');
+      {  // accesos en la esquina superior derecha (nueva pestaña): consola de la plataforma y, en el balanceo, la aplicación
+        const acc=document.createElement('div'); acc.className='accesos-caja';
+        const boton=(txt,url,tit)=>{ const x=document.createElement('a'); x.className='btn-acceso'; x.href=url; x.target='_blank'; x.rel='noopener'; x.title=tit; x.textContent=txt+' ↗';
+          x.onclick=ev=>ev.stopPropagation(); x.onpointerdown=ev=>ev.stopPropagation(); acc.appendChild(x); };
+        if(d.icono===ENTRADA && APP_URL) boton('Aplicación', APP_URL, 'Abrir la aplicación (entrada por el balanceo)');
+        if(d.web && d.web.abrir) boton('Consola', d.web.abrir, 'Consola de la plataforma'+(d.web.producto?' · '+d.web.producto:''));
+        if(acc.children.length) el.appendChild(acc);
+      }
       if(d.ha){  // botón en la caja: replicar con alta disponibilidad (ticket con aprobación en AAP)
         const b=document.createElement('button'); b.type='button'; b.className='btn-ha'; b.title='Replicar con alta disponibilidad (balanceo round robin)';
         b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path d="M14 11v6M11 14h6"/></svg>HA';
