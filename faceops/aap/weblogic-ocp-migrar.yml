@@ -394,6 +394,9 @@
       loop_control: {label: "{{ item.1 }}"}
       when: not sano and dep_antes | length == 0
 
+    - name: Carpeta de artefactos para Git
+      ansible.builtin.file: {path: "/tmp/faceops-wl-ocp/{{ k8s }}/git", state: directory, mode: "0755"}
+
     - name: Artefactos y decisión (para Git)
       ansible.builtin.copy:
         dest: "/tmp/faceops-wl-ocp/{{ k8s }}/git/{{ item.0 }}"
