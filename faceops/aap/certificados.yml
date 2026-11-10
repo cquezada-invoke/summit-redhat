@@ -272,43 +272,6 @@
           loop: "{{ pendientes }}"
           loop_control: {label: "{{ item.nombre }}"}
 
-        - name: Inhabilitar el certificado reemplazado (se revoca en la CA; solo cuando el nuevo ya quedó verificado)
-          when: cert_revocar_serie | default('') | length > 0
-          delegate_to: localhost
-          become: false
-          ansible.builtin.shell:
-            cmd: |
-              python3 - <<'P'
-              import http.cookiejar, json, os, ssl, sys, urllib.request
-              B = os.environ["CA_URL"].rstrip("/") + "/ca/rest/"
-              cx = ssl.create_default_context(cafile=os.environ["CA_CA"]); cx.check_hostname = False
-              cx.load_cert_chain(os.environ["CA_CERT"], os.environ["CA_LLAVE"])
-              op = urllib.request.build_opener(urllib.request.HTTPSHandler(context=cx), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-              def r(m, p, d=None):
-                  q = urllib.request.Request(B + p, method=m, data=json.dumps(d).encode() if d is not None else None,
-                                             headers={"Content-Type": "application/json", "Accept": "application/json"})
-                  with op.open(q, timeout=30) as x:
-                      b = x.read(); return json.loads(b) if b else {}
-              s = os.environ["SERIE"].strip().lower()
-              cid = s if s.startswith("0x") else "0x" + s
-              if cid.lower() in [x.lower() for x in os.environ["NUEVAS"].split(",") if x]:
-                  sys.exit("La serie a inhabilitar es la del certificado nuevo")
-              c = {k.lower(): v for k, v in r("GET", f"certs/{cid}").items()}
-              if (c.get("status") or "").upper() == "REVOKED":
-                  print(f"{cid} ya estaba revocado"); sys.exit(0)
-              d = r("GET", f"agent/certs/{cid}/revoke-data")
-              r("POST", f"agent/certs/{cid}/revoke", {"Reason": "Superseded", "Nonce": d.get("Nonce") or d.get("nonce")})
-              print(f"{cid} revocado (reemplazado)")
-              P
-          environment:
-            CA_URL: "{{ faceops_ca_url }}"
-            CA_CA: "{{ faceops_ca_ca }}"
-            CA_CERT: "{{ faceops_ca_cert }}"
-            CA_LLAVE: "{{ faceops_ca_llave }}"
-            SERIE: "{{ cert_revocar_serie }}"
-            NUEVAS: "{{ r_emit.results | selectattr('stdout', 'defined') | map(attribute='stdout') | map('from_json') | map(attribute='serie') | join(',') }}"
-          register: r_revoca
-          changed_when: "'revocado (' in r_revoca.stdout"
 
       rescue:
         - name: Volver al certificado anterior
@@ -332,6 +295,44 @@
         c: "{{ item.stdout | from_json }}"
       loop: "{{ r_emit.results | default([]) | selectattr('stdout', 'defined') | list }}"
       loop_control: {label: "{{ item.item.item.nombre }}"}
+
+    - name: Inhabilitar el certificado reemplazado (se revoca en la CA; solo cuando el nuevo ya quedó verificado)
+      when: cert_revocar_serie | default('') | length > 0 and (r_emit.results | default([]) | selectattr('stdout', 'defined') | list | length > 0)
+      delegate_to: localhost
+      become: false
+      ansible.builtin.shell:
+        cmd: |
+          python3 - <<'P'
+          import http.cookiejar, json, os, ssl, sys, urllib.request
+          B = os.environ["CA_URL"].rstrip("/") + "/ca/rest/"
+          cx = ssl.create_default_context(cafile=os.environ["CA_CA"]); cx.check_hostname = False
+          cx.load_cert_chain(os.environ["CA_CERT"], os.environ["CA_LLAVE"])
+          op = urllib.request.build_opener(urllib.request.HTTPSHandler(context=cx), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+          def r(m, p, d=None):
+              q = urllib.request.Request(B + p, method=m, data=json.dumps(d).encode() if d is not None else None,
+                                         headers={"Content-Type": "application/json", "Accept": "application/json"})
+              with op.open(q, timeout=30) as x:
+                  b = x.read(); return json.loads(b) if b else {}
+          s = os.environ["SERIE"].strip().lower()
+          cid = s if s.startswith("0x") else "0x" + s
+          if cid.lower() in [x.lower() for x in os.environ["NUEVAS"].split(",") if x]:
+              sys.exit("La serie a inhabilitar es la del certificado nuevo")
+          c = {k.lower(): v for k, v in r("GET", f"certs/{cid}").items()}
+          if (c.get("status") or "").upper() == "REVOKED":
+              print(f"{cid} ya estaba revocado"); sys.exit(0)
+          d = r("GET", f"agent/certs/{cid}")   # la vista de agente trae el nonce para revocar
+          r("POST", f"agent/certs/{cid}/revoke", {"Reason": "Superseded", "Nonce": d.get("Nonce") or d.get("nonce")})
+          print(f"{cid} revocado (reemplazado)")
+          P
+      environment:
+        CA_URL: "{{ faceops_ca_url }}"
+        CA_CA: "{{ faceops_ca_ca }}"
+        CA_CERT: "{{ faceops_ca_cert }}"
+        CA_LLAVE: "{{ faceops_ca_llave }}"
+        SERIE: "{{ cert_revocar_serie }}"
+        NUEVAS: "{{ r_emit.results | selectattr('stdout', 'defined') | map(attribute='stdout') | map('from_json') | map(attribute='serie') | join(',') }}"
+      register: r_revoca
+      changed_when: "'revocado (' in r_revoca.stdout"
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:

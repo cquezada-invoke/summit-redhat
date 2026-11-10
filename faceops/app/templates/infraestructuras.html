@@ -7,7 +7,7 @@
 {% elif tipo == 'fabricante' %}<select name="{{ c }}" id="fis-fab"><option value="">— elige el fabricante —</option>{% for fb in fabricantes %}<option>{{ fb }}</option>{% endfor %}</select>
 {% elif tipo == 'modelo' %}<select name="{{ c }}" id="fis-mod" disabled><option value="">— primero el fabricante —</option></select>
 {% elif tipo == 'bmc' %}<select name="{{ c }}">{% for o, t in [('redfish', 'Redfish (iDRAC, iLO, XClarity)'), ('ipmi', 'IPMI'), ('', 'Sin gestión fuera de banda')] %}<option value="{{ o }}" {{ 'selected' if previos.get(c, 'redfish') == o }}>{{ t }}</option>{% endfor %}</select>
-{% else %}<input name="{{ c }}" type="{{ 'password' if sec else 'text' }}" value="{{ '' if sec else previos.get(c, '') }}" autocomplete="off">{% endif %}</label>{% endfor %}
+{% else %}{% set ay = (p.ayudas or {}).get(c) %}<input name="{{ c }}" type="{{ 'password' if sec else 'text' }}" value="{{ '' if sec else previos.get(c, '') }}" autocomplete="off"{% if ay %} placeholder="{{ ay[0] }}"{% endif %}>{% endif %}{% set ay = (p.ayudas or {}).get(c) %}{% if ay %}<span class="sub" style="font-weight:400;font-size:12px">{{ ay[1] }} · <a href="{{ ay[2] }}" target="_blank" rel="noopener">abrir ↗</a></span>{% endif %}</label>{% endfor %}
 {% endmacro %}
 {% block cuerpo %}
 <div class="fila"><div><h1>Infraestructuras</h1><p class="sub">Dónde viven tus equipos y cómo llega FaceOps a cada una: nubes, hipervisores y máquinas físicas. Los secretos de acceso quedan en credenciales cifradas de AAP; FaceOps no los guarda.</p></div>
@@ -62,7 +62,7 @@
 {% set solo_ = request.args.get('solo', '') %}{% set volver_ = request.args.get('volver', '') %}
 <div class="sel-prov">{% for nk, nn in naturalezas.items() if not solo_ or nk == solo_ %}<div><div class="sel-t">{{ nn }}</div>{% for kk, pp in proveedores.items() if pp.naturaleza == nk %}<a href="?nuevo={{ kk }}{{ '&solo=' ~ solo_ if solo_ }}{{ '&volver=' ~ volver_|urlencode if volver_ }}#incorporar" class="sel-op {{ 'on' if k == kk }}">{{ logo(kk, 22) }} {{ pp.nombre }}</a>{% endfor %}</div>{% endfor %}</div>
 <form method="post" class="card form-infra" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tipo" value="{{ k }}"><input type="hidden" name="volver" value="{{ volver_ }}">
-<p class="sub" style="margin:0">{{ p.ayuda }}</p>
+<p class="sub" style="margin:0">{{ p.ayuda }}</p>{% if p.guia %}<p class="sub" style="margin:0;font-size:12.5px;border-left:3px solid var(--info,#2b9af3);padding-left:8px">{{ p.guia[0]|safe }} <a href="{{ p.guia[1] }}" target="_blank" rel="noopener">Guía ↗</a></p>{% endif %}
 <label>Centro de datos<input name="centro_datos" list="centros-dc" {{ '' if p.ambito == 'nube' else 'required' }} value="{{ {'gcp': 'GCP', 'aws': 'AWS', 'azure': 'Azure'}.get(k, '') if p.ambito == 'nube' else '' }}" placeholder="ej. Centro de datos Santiago"><datalist id="centros-dc">{% for cd in centros %}<option value="{{ cd }}">{% endfor %}</datalist>
 <span class="sub" style="font-weight:400">Un centro de datos agrupa varias infraestructuras (VMware, OpenShift, físicos…). Elige uno existente o escribe uno nuevo.</span></label>
 {% if k == 'fisico' %}<p class="sub" id="fis-grupo" style="margin:0">Elige el fabricante: el servidor se agrega a su grupo en este centro de datos (si no existe, se crea).</p>

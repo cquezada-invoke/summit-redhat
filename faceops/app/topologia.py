@@ -115,6 +115,19 @@ def latencia_prom(cliente_id, f, dias=7):
     return (f"{peor:.2f} ms" if peor < 1 else f"{peor:.1f} ms"), n
 
 
+def _candado_entrada(cliente, eqs, arq, f):
+    """La entrada desde los usuarios: candado solo si es HTTPS y la máquina de entrada presenta un certificado de la CA interna."""
+    try:
+        url = ((arq or {}).get("m", {}).get("entrada") or {}).get("url") or ""
+        if not url.startswith("https") and "443" not in str(f.get("puerto", "")):
+            return ""
+        from .certificados_panel import de_equipo, leer
+        r = leer(cliente, eqs)
+        return " 🔒CA interna" if de_equipo(r, f["hacia"]) else " 🔒"
+    except Exception:  # noqa: BLE001 - la CA puede no responder: sin candado
+        return ""
+
+
 def tls_de(estados, f):
     """TLS detectado en los puertos del flujo: {tipo: interna|autofirmado|publica|otra, emisor, sujeto, vence} o {}."""
     for p in re.findall(r"\d{2,5}", str(f.get("puerto", ""))):
@@ -331,7 +344,7 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
             fuente = camino(f, f["desde"])
             if (fuente, "e:" + f["hacia"]) not in pasos_vistos:
                 pasos_vistos.add((fuente, "e:" + f["hacia"]))
-                els.append({"data": {"id": f"f{i}", "source": fuente, "target": "e:" + f["hacia"], "label": "", "puertos": f["puerto"],
+                els.append({"data": {"id": f"f{i}", "source": fuente, "target": "e:" + f["hacia"], "label": "", "puertos": f"{f['puerto']}{_candado_entrada(cliente, eqs, _a, f)}",
                                      "latencia": "", "tipo": "entrada", "texto": f.get("texto", "")}})
             continue
         if f["desde"] in por_nombre and f["hacia"] in por_nombre:

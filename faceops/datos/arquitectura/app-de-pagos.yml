@@ -1,6 +1,6 @@
 segmento: App de pagos
 codigo: pagos
-version: 1
+version: 2
 descripcion: "Aplicación app-jboss: Nginx la publica y balancea hacia los JBoss, que usan PostgreSQL, colas (Artemis) y caché (Valkey). Tiene los tres ambientes completos: producción, QA y desarrollo"
 responsable: Arquitectura Invoke
 centro_de_datos: Centro de datos Santiago
@@ -22,8 +22,8 @@ ficha:                                    # propiedad y contexto de negocio
 entrada:
   desde: usuarios
   hacia: web
-  puerto: 80
-  url: http://192.168.122.11/app-jboss/
+  puerto: 443                     # Nginx publica la app con TLS (certificado de la CA interna)
+  url: https://192.168.122.11/app-jboss/
   espera: "Base de datos: conectada"
 
 flujos_funcionales:                       # tráfico de negocio sintético para probar la derivación al data lake (lo envía el colector)
@@ -70,7 +70,7 @@ componentes:
     equipos: [nodo-tomcat]
 
 flujos:
-  - {desde: usuarios, hacia: web, puerto: 80, motivo: "entrada: los usuarios abren la app"}
+  - {desde: usuarios, hacia: web, puerto: 443, motivo: "entrada: los usuarios abren la app (HTTPS)"}
   - {desde: web, hacia: app, puerto: 8080, motivo: "Nginx balancea hacia los JBoss", latencia_max_ms: 5}
   - {desde: app, hacia: bd, puerto: 5432, motivo: "base de datos de pagos", latencia_max_ms: 5}
   - {desde: app, hacia: mensajeria, puerto: [61616, 6379], motivo: "colas (Artemis) y caché (Valkey)", latencia_max_ms: 5}
