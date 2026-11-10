@@ -181,12 +181,16 @@
         n={{ item }}; f=$(date +%Y%m%d%H%M)
         sudo -n virsh destroy "$n" 2>/dev/null
         if [ "{{ hab_conservar_fallida | default(false) | bool }}" = "True" ]; then
+          # aap-kvm solo tiene sudo para virsh y virt-install: el disco se renombra como dueño de la carpeta. Si no se puede
+          # conservar, se detiene ANTES de retirar la máquina (nunca se crea la nueva sobre el disco caído).
+          set -e
           x=$(mktemp); sudo -n virsh dumpxml --inactive "$n" > "$x"
           d=$(grep -A3 "device='disk'" "$x" | grep -o "source file='[^']*'" | head -1 | cut -d"'" -f2)
-          nd=$(dirname "$d")/$n-fallida-$f.qcow2; sudo -n mv "$d" "$nd"
+          [ -n "$d" ] && [ -f "$d" ] || { echo "no se encontró el disco de $n: no se reemplaza" >&2; exit 1; }
+          nd=$(dirname "$d")/$n-fallida-$f.qcow2; mv "$d" "$nd"
           sed -i -e "s|<name>$n</name>|<name>$n-fallida-$f</name>|" -e '/<uuid>/d' -e '/<mac address/d' -e "s|$d|$nd|" "$x"
           sudo -n virsh undefine "$n" --nvram 2>/dev/null || sudo -n virsh undefine "$n"
-          sudo -n virsh define "$x" >/dev/null && sudo -n virsh autostart --disable "$n-fallida-$f" >/dev/null 2>&1; rm -f "$x"
+          sudo -n virsh define "$x" >/dev/null; sudo -n virsh autostart --disable "$n-fallida-$f" >/dev/null 2>&1 || true; rm -f "$x"
           echo "conservada=$n-fallida-$f"
         else
           sudo -n virsh undefine "$n" --nvram 2>/dev/null || sudo -n virsh undefine "$n"

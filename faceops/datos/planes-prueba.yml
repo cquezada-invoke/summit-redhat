@@ -298,6 +298,13 @@ planes:
     casos:
       - {id: C1, caso: "Romper la aplicación de prueba con una versión mala y pedir rollback", verificar: "aprobación; vuelve a la versión validada y responde 200"}
       - {id: C2, caso: "Rechazar", verificar: "no se toca nada"}
+  "FaceOps · Habilitar servidor":
+    casos:
+      - {id: C1, caso: "Crear 1 RHEL 9 de desarrollo en el segmento App de pagos (como «Crear con ticket» del mapa; 1 vCPU, 2 GB, 20 GB)", tipo: Funcional, verificar: "ticket exitoso; la VM queda encendida en el anfitrión con sus recursos; alta en «Servidores habilitados» y en FaceOps con segmento, ambiente desarrollo y sistema RHEL 9"}
+      - {id: C2, caso: "Repetir la misma solicitud", tipo: Idempotencia, verificar: "no crea otra VM ni otro equipo; misma IP"}
+      - {id: C3, caso: "Solicitud no válida (nombre base inválido y recursos fuera de rango)", tipo: Error controlado, verificar: "falla en la validación con el motivo; no se crea nada en el anfitrión"}
+      - {id: C4, caso: "Reemplazar la máquina conservando la caída (hab_reemplazar + hab_conservar_fallida, como «Recuperar en máquina nueva»)", tipo: Funcional, verificar: "la caída queda definida como <nombre>-fallida-<fecha>, apagada, sin autoinicio y con su propio disco; la nueva nace con disco nuevo, encendida y con el mismo nombre"}
+      - {id: C5, caso: "Limpieza", tipo: Funcional, verificar: "la VM de prueba se retira con «Eliminar servidor» y la caída conservada queda apagada"}
   "FaceOps · Recuperar servidor":
     casos:
       - {id: C1, caso: "Borrar una máquina de prueba con respaldo en Git (agente) y recuperarla", verificar: "misma IP y nombre, paquetes y configuración restaurados (diff contra el respaldo)"}
