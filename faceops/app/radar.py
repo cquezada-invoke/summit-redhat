@@ -32,7 +32,7 @@ CRITERIOS_SEG = [
     ("SH1", "Excelencia operativa", "Sin hallazgos graves", "Ningún hallazgo alto en sus máquinas", None),
     ("SH2", "Excelencia operativa", "Sin advertencias", "Ningún hallazgo medio en sus máquinas", None),
     ("SP1", "Rendimiento", "Flujos abiertos", "Todos los flujos entre componentes pasan", r"flujo\(s\) cerrado"),
-    ("SP2", "Rendimiento", "Latencia bajo 20 ms", "Ningún flujo con latencia alta", r"Latencia alta"),
+    ("SP2", "Rendimiento", "Latencia bajo el umbral", "Ningún flujo con latencia sobre el umbral del cliente", r"Latencia (alta|sobre el umbral)"),
     ("SS1", "Seguridad", "Flujos cifrados", "Todos los flujos con TLS", r"sin TLS"),
     ("SR1", "Recuperación", "Máquinas con respaldo", "Todas con respaldo continuo", r"sin respaldo continuo"),
     ("SR2", "Recuperación", "RTO y RPO definidos", "La ficha del segmento define RTO y RPO", r"RTO/RPO"),

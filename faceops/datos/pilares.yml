@@ -1,11 +1,14 @@
 # Apertura de cada pilar de salud: qué considera en general y qué mirar en cada contexto tecnológico (ítems del menú).
 # Lo usan el panel (radar de madurez) y el detalle «Qué falta para llegar a la meta». Alineado con AWS Well-Architected,
 # ISO/IEC 25010, NIST CSF 2.0 e ISO 22301; la escala de madurez sigue los niveles de COBIT 2019 / CMMI (1 a 5).
+# «considerar» es el criterio general; lo que FaceOps mide de verdad está en app/madurez.py (_practicas, EVIDENCIA, PROPAGACION)
+# y app/radar.py (CRITERIOS_EQ); «no_medido» declara lo que aún no se evalúa.
 Disponibilidad:
   well_architected: "Reliability (confiabilidad)"
   cobit: "BAI04 Gestión de la disponibilidad y la capacidad · DSS01 Gestión de las operaciones"
   definicion: "Que el servicio esté arriba cuando el negocio lo necesita y que una falla no lo detenga."
-  considerar: ["Redundancia de lo crítico (sin puntos únicos de falla)", "Monitoreo con alertas atendidas", "Capacidad de reserva ante picos o caídas", "Ventanas de mantenimiento sin corte"]
+  no_medido: ["Capacidad de reserva ante picos o caídas", "Ventanas de mantenimiento sin corte", "Que las alertas se atiendan (se mide que la alerta esté configurada)"]   # lo que el pilar considera pero FaceOps aún no evalúa
+  considerar: ["Redundancia de lo crítico (sin puntos únicos de falla)", "Monitoreo y alerta de disponibilidad configurados", "Capacidad de reserva ante picos o caídas", "Ventanas de mantenimiento sin corte"]
   por_contexto:
     servidores: ["Agente de métricas y alertas en cada servidor", "Réplicas detrás de un balanceador para lo crítico", "Encendido automático tras reinicio del anfitrión"]
     redes: ["Enlaces y equipos redundantes (HA de firewall y routers)", "Rutas alternativas (BGP, VRRP)", "Monitoreo de interfaces y enlaces"]
@@ -19,6 +22,7 @@ Rendimiento:
   well_architected: "Performance Efficiency (eficiencia del rendimiento)"
   cobit: "BAI04 Gestión de la disponibilidad y la capacidad"
   definicion: "Que el servicio responda en el tiempo esperado con los recursos justos."
+  no_medido: ["Pruebas de carga", "Tiempo de respuesta de la aplicación (se mide la latencia entre componentes)"]   # lo que el pilar considera pero FaceOps aún no evalúa
   considerar: ["Métricas de uso reales (CPU, memoria, disco, red)", "Tiempos de respuesta medidos", "Recursos dimensionados al uso", "Pruebas de carga antes de cambios grandes"]
   por_contexto:
     servidores: ["Agente de métricas", "CPU y memoria ajustadas al uso", "Disco con espacio y sin saturación de E/S"]
@@ -33,6 +37,7 @@ Seguridad:
   well_architected: "Security (seguridad)"
   cobit: "APO13 Gestión de la seguridad · DSS05 Gestión de los servicios de seguridad"
   definicion: "Que los sistemas estén protegidos, parchados y bajo políticas, y que el acceso sea el justo."
+  no_medido: ["Credenciales en bóveda y acceso mínimo", "Registro y detección de eventos"]   # lo que el pilar considera pero FaceOps aún no evalúa
   considerar: ["Vulnerabilidades (CVE) revisadas y parchadas", "Políticas de seguridad aplicadas", "Credenciales en bóveda y acceso mínimo", "Registro y detección de eventos"]
   por_contexto:
     servidores: ["CVE revisados y parches críticos aplicados", "Políticas (CIS) aplicadas", "Acceso SSH/RDP controlado y sin claves fijas"]
@@ -47,6 +52,7 @@ Recuperación:
   well_architected: "Reliability: recuperación ante desastres"
   cobit: "DSS04 Gestión de la continuidad"
   definicion: "Que ante una pérdida o un error se pueda volver a un estado bueno, en el tiempo comprometido."
+  no_medido: ["Restauraciones probadas (de RTO/RPO solo se verifica que estén definidos en la ficha del segmento)"]   # lo que el pilar considera pero FaceOps aún no evalúa
   considerar: ["Respaldos de datos y de configuración", "Puntos de restauración antes de cambios", "Objetivos RPO/RTO definidos", "Restauraciones probadas"]
   por_contexto:
     servidores: ["Configuración respaldada en Git", "Punto de restauración periódico", "Imagen base para reconstruir"]
@@ -61,6 +67,7 @@ Costo:
   well_architected: "Cost Optimization (optimización de costos) · práctica FinOps"
   cobit: "APO06 Gestión del presupuesto y los costos"
   definicion: "Que lo que se paga esté bien usado: sin capacidad ociosa, con dueño y sin sorpresas en la factura."
+  no_medido: ["Licencias y suscripciones en uso", "Costo en el segmento de negocio (no tiene criterios: queda en 100 %)"]   # lo que el pilar considera pero FaceOps aún no evalúa
   considerar: ["Recursos dimensionados al uso real", "Costo asignado a cada servicio (dueño claro)", "Licencias y suscripciones en uso", "Huérfanos y lo que no se usa, retirado"]
   por_contexto:
     servidores: ["CPU y memoria ajustadas al uso", "Máquinas sin uso apagadas o retiradas", "Cada máquina asignada a un servicio"]
@@ -75,6 +82,7 @@ Excelencia operativa:
   well_architected: "Operational Excellence (excelencia operativa)"
   cobit: "DSS01 Gestión de las operaciones · BAI06 Gestión de los cambios · DSS03 Gestión de problemas"
   definicion: "Que la operación sea predecible: automatizada, documentada, con cambios controlados y sin trabajo manual repetitivo."
+  no_medido: ["Cambios con aprobación y vuelta atrás", "Configuración como código (solo cuenta el hallazgo «Sin estructura como código»)"]   # lo que el pilar considera pero FaceOps aún no evalúa
   considerar: ["Todo el parque gestionado por automatizaciones (no a mano)", "Inventario completo y al día", "Hallazgos con dueño y plazo, atendidos por severidad", "Cambios con aprobación y vuelta atrás", "Configuración como código (Git)"]
   por_contexto:
     servidores: ["En el inventario de AAP", "Recolección diaria del inventario", "Configuración igual a la línea base"]

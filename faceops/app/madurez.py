@@ -41,6 +41,54 @@ REMEDIOS = {   # práctica → (cómo abordarlo, búsqueda en el catálogo de ac
 }
 
 
+EVIDENCIA = {   # práctica de madurez → de dónde sale la evidencia (lo que _practicas mira de verdad)
+    "encendido": "estado de energía del equipo (hipervisor o nube)",
+    "monitoreado (agente de métricas)": "skill node-exporter / windows-exporter en el inventario",
+    "métricas de uso": "skill node-exporter / windows-exporter en el inventario",
+    "sin hallazgos de capacidad": "hallazgos de tipo capacidad o rendimiento (hoy ningún recolector los genera: siempre se cumple)",
+    "CVE revisados": "revisión de CVE del equipo contra las erratas del fabricante",
+    "sin CVE críticos pendientes": "CVE pendientes críticos o importantes (solo cuenta si el equipo ya fue revisado)",
+    "cumple las políticas": "hallazgos de tipo política (evaluación de políticas en el inventario)",
+    "configuración respaldada en Git": "skill respaldo-git (respaldo continuo en Git)",
+    "punto de restauración": "al menos un punto de restauración registrado",
+    "bien dimensionado (sin recursos ociosos)": "hallazgo «sin_uso» (equipo sin ninguna skill andando)",
+    "costo imputable a un servicio": "equipo asignado a un segmento de negocio",
+    "gestionado por Ansible (en el inventario de AAP)": "equipo vinculado a un host del inventario de AAP",
+    "inventario al día (7 días)": "última recolección hace 7 días o menos",
+    "sin hallazgos altos": "hallazgos abiertos de severidad alta, de cualquier tipo (políticas, CVE, recolección, código…)",
+    "sin hallazgos abiertos": "cualquier hallazgo abierto del equipo",
+}
+
+# Cómo se calcula cada pilar en cada nivel (resumen fiel de radar.radar_maquina, radar.radar_componente y
+# topologia.salud_segmento / _puntaje_salud). Si cambia el código, cambiar aquí.
+PROPAGACION = {
+    "Disponibilidad": {
+        "maquina": "Apagada = 0. Encendida: 1 instancia 60 %, 2 instancias 85 %, 3 o más 100 %; −10 si no tiene la alerta «sin respuesta».",
+        "componente": "El peor entre la máquina y el servicio de la plataforma.",
+        "segmento": ["todo el segmento apagado → pilar a 0", "máquinas apagadas −6", "componente con una sola máquina en producción −6 (OpenShift no cuenta)"]},
+    "Rendimiento": {
+        "maquina": "Uso de CPU, memoria y disco más lleno frente a lo asignado: 15-70 % = 100; sobre 70 % baja 2 por punto; sobre 85 % cae a 70 − 4,6 por punto; bajo 15 % = 85 (sobredimensionado). Promedio de los tres.",
+        "componente": "El de la máquina que la aloja (comparte sus métricas).",
+        "segmento": ["flujos cerrados entre componentes −15", "latencia de flujos sobre el umbral del cliente −6"]},
+    "Seguridad": {
+        "maquina": "El peor entre los criterios del equipo y lo medido de CVE y políticas en su sistema y plataformas.",
+        "componente": "El peor entre la máquina y los CVE y políticas de la plataforma.",
+        "segmento": ["flujos sin TLS −6 (los CVE y políticas llegan como hallazgos, en Excelencia operativa)"]},
+    "Recuperación": {
+        "maquina": "Cobertura del último punto de restauración × frescura del inventario (≤26 h ×1; ≤7 días ×0,8; más ×0,5). Sin punto = 0.",
+        "componente": "El de la máquina que la aloja (comparte su respaldo).",
+        "segmento": ["máquinas sin respaldo continuo −6", "ficha sin RTO/RPO −6"]},
+    "Costo": {
+        "maquina": "Promedio de sus criterios sí/no (sin recursos ociosos, costo imputable).",
+        "componente": "El de la máquina que la aloja.",
+        "segmento": ["hoy no hay criterios de costo en el segmento: queda en 100 %"]},
+    "Excelencia operativa": {
+        "maquina": "El peor de las remediaciones preventivas de su sistema y plataformas; si no hay, el promedio de sus criterios.",
+        "componente": "Las remediaciones preventivas de la plataforma.",
+        "segmento": ["hallazgos de sus máquinas (hasta 8 grupos): alta −15, media o baja −6"]},
+}
+
+
 def pilares_info():
     try:
         return yaml.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "datos", "pilares.yml"), encoding="utf-8")) or {}
