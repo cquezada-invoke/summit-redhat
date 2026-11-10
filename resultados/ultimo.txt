@@ -1,15 +1,8 @@
-commit: 99e448c816510e3ce8b9bafe00aeff75d6656ee1
-inicio: 2026-11-10T14:20:29-03:00
+commit: 829436999479fc0ed180bc36885c91b0abb49c9e
+inicio: 2026-11-10T14:20:57-03:00
 ---
-consola-6bd998bd58-t4ggg    0/1   Running     15 (17h ago)   3d22h
-consola-77b7c8dc67-wtspx    0/1   Pending     0              4m59s
-["bash","-c","pip install -q --no-cache-dir flask==3.0.3 gunicorn==22.0.0 requests \u0026\u0026 cd /consola \u0026\u0026 exec gunicorn -b 0.0.0.0:8080 -w 1 --threads 4 consola:app"] 
-
-nuevo: pod/consola-77b7c8dc67-wtspx
-LAST SEEN   TYPE      REASON              OBJECT                          MESSAGE
-4m59s       Warning   FailedScheduling    pod/consola-77b7c8dc67-wtspx    0/1 nodes are available: 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incomin
-4m59s       Normal    SuccessfulCreate    replicaset/consola-77b7c8dc67   Created pod: consola-77b7c8dc67-wtspx
-4m59s       Normal    ScalingReplicaSet   deployment/consola              Scaled up replica set consola-77b7c8dc67 from 0 to 1
-4m13s       Warning   Unhealthy           pod/consola-6bd998bd58-t4ggg    Readiness probe failed: Get "http://10.128.0.153:8080/": context deadline exceeded (Client.Timeout exceeded while awaiting hea
-No resources found in demo-datalake namespace.
---- fin: 2026-11-10T14:20:29-03:00 · código: 0
+pod "consola-6bd998bd58-t4ggg" deleted
+consola: 0/1 Pending
+lake: 503 en 0.286409s
+lake: 503 en 0.012170s
+--- fin: 2026-11-10T14:23:01-03:00 · código: 0
