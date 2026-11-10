@@ -99,7 +99,7 @@ def madurez(cliente_id, eqs, hallazgos):
             "pct": round(sum(actual.values()) / len(actual)), "meta_pct": round(sum(meta.values()) / len(meta))}
 
 
-def radar_svg(actual, meta, tam=620):
+def radar_svg(actual, meta, tam=760):
     """Radar de madurez: anillos 25/50/75/100 % (100 % = máximo de la escala), contorno ámbar punteado = meta competitiva,
     área azul = nivel de hoy; la diferencia entre ambos es la brecha."""
     import math

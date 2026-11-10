@@ -417,12 +417,21 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       .selector('edge[perf_cuello = 1]').style({'line-color':'#c9190b','target-arrow-color':'#c9190b','width':5,'color':'#a30000','text-background-color':'#fdeaea'}).update();
     pintarTotal();
   }
-  function quitarPerf(){ PERF_ON=false; clearTimeout(perfFin); const cy_=window._cy; if(!cy_) return; cy_.edges().forEach(e=>{ e.removeData('perf'); e.removeData('perf_cuello'); e.removeData('perf_ruta'); }); cy_.style().update(); pintarTotal(); pintarControles(); }
+  let flujoAnim=null, flujoOff=0;
+  function flujo(on){ const cy_=window._cy; if(!cy_) return;
+    if(on&&!flujoAnim){
+      cy_.style().selector('edge.fluyendo').style({'line-style':'dashed','line-dash-pattern':[7,7],'width':4}).update();
+      cy_.edges('[tipo="flujo"]').addClass('fluyendo');
+      flujoAnim=setInterval(()=>{ flujoOff=(flujoOff+1.5)%1400; cy_.edges('.fluyendo').style('line-dash-offset',-flujoOff); },40);
+    } else if(!on&&flujoAnim){ clearInterval(flujoAnim); flujoAnim=null; cy_.edges('.fluyendo').removeStyle('line-dash-offset').removeClass('fluyendo'); }
+  }
+  function quitarPerf(){ flujo(false); PERF_ON=false; clearTimeout(perfFin); const cy_=window._cy; if(!cy_) return; cy_.edges().forEach(e=>{ e.removeData('perf'); e.removeData('perf_cuello'); e.removeData('perf_ruta'); }); cy_.style().update(); pintarTotal(); pintarControles(); }
   function postPerf(acc,extra){ const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG); fd.append('accion',acc); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
     return fetch(URL_PERF,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){ const m=document.getElementById('perf-msg'); if(m) m.innerHTML='<span style="color:var(--bad)">'+x.error+'</span>'; return null; } PERF=x; return x; }); }
   function tickPerf(){ clearTimeout(perfTimer);
     fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=x; const corre=['corriendo','pausado','preparando'].includes(x.estado);
       if(corre||PERF_ON) ponerPerf();
+      flujo(x.estado==='corriendo');   // solo mientras de verdad pasa la carga por las líneas
       if(!corre&&PERF_ON&&!perfFin) perfFin=setTimeout(quitarPerf, PERF_MIN*60000);
       pintarControles(); if(TABLA_ABIERTA) pintarTabla();
       if(corre) perfTimer=setTimeout(tickPerf, x.estado==='pausado'?3000:2000); }).catch(()=>{ perfTimer=setTimeout(tickPerf,4000); }); }
