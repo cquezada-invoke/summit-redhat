@@ -222,6 +222,19 @@ def de_equipo(r, nombre):
             and (f["equipo_nombre"] == nombre or any(u.get("equipo") == nombre for u in f.get("instalado_en") or []))]
 
 
+def dependencias(f, equipos):
+    """Servidores que presentan el certificado (lo tienen instalado) y clientes que dependen de él (consumen ese servicio:
+    comparten segmento de negocio y confían en la CA emisora). Solo datos del inventario; nada inventado."""
+    servidores, clientes = [], []
+    for m in afectadas(f, equipos):
+        u = next((x for x in f.get("instalado_en") or [] if x.get("equipo") == m["e"]["nombre"]), {})
+        if m["rol"].startswith("lo instala"):
+            servidores.append(dict(m, servicio=u.get("servicio") or f.get("servicio") or "", puerto=u.get("puerto") or ((f.get("uso") or {}).get("puerto") if f.get("equipo_nombre") == m["e"]["nombre"] else "")))
+        else:
+            clientes.append(m)
+    return servidores, clientes
+
+
 def afectadas(f, equipos):
     """Máquinas afectadas por un certificado: donde está instalado y las que consumen ese servicio (comparten segmento)."""
     por_nombre = {e["nombre"]: e for e in equipos}

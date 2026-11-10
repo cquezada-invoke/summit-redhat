@@ -5,8 +5,7 @@
 
 <p class="sub" style="margin:0"><span class="chip {{ f.nivel }}">{{ f.estado }}</span>{% if f.dias is not none %} · {% if f.dias < 0 %}venció hace {{ -f.dias }} días{% else %}vence en <b>{{ f.dias }}</b> días{% endif %}{% endif %}{% if f.auto %} · <span class="chip s-ok">renovación automática · FaceOps</span>{% elif f.tipo == 'servidor' %} · <span class="chip">gestión manual</span>{% endif %}</p></div>
 <span class="der fila" style="gap:8px">{% set urge = f.estado in ('vencido', 'por vencer') %}{% if f.equipo and f.tipo == 'servidor' and f.estado not in ('reemplazado', 'revocado') and perfil_actual.modo == 'escritura' %}
-{% if f.auto and renovar %}<button class="btn {{ '' if urge else 'gris' }}" id="reemplazar" data-modo="renovar" data-url="{{ url_for('consola.ejecutar_en_equipo', eid=f.equipo.id, aid=renovar.id) }}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5"/></svg>Reemplazar certificado</button>
-{% elif emitir %}<button class="btn {{ '' if urge else 'gris' }}" id="reemplazar" data-modo="emitir" data-url="{{ url_for('consola.ejecutar_en_equipo', eid=f.equipo.id, aid=emitir.id) }}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5"/></svg>Reemplazar certificado</button>{% endif %}<span id="res-ren" class="sub"></span>{% endif %}
+{% if (f.auto and renovar) or emitir %}<button class="btn {{ '' if urge else 'gris' }}" id="reemplazar" data-modo="{{ 'renovar' if f.auto and renovar else 'emitir' }}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5"/></svg>Reemplazar certificado</button>{% endif %}<span id="res-ren" class="sub"></span>{% endif %}
 <a class="btn gris" href="{{ r.ca_publica }}/ca/ee/ca/" target="_blank" rel="noopener">Portal de la CA ↗</a></span></div>
 {% if f.estado in ('vencido', 'por vencer') and f.tipo == 'servidor' %}<div class="flash error" style="margin:10px 0 0">{{ 'Este certificado ya venció' if f.estado == 'vencido' else 'Este certificado vence en ' ~ f.dias ~ ' días' }}: reemplázalo para no afectar a las {{ maquinas|length }} máquina(s) que dependen de él.</div>{% endif %}
 
@@ -14,30 +13,40 @@
 <div class="barra" style="height:10px;margin-top:6px" title="{{ f.vida }} % de su vida consumida"><i style="width:{{ f.vida }}%;background:{{ 'var(--bad)' if f.estado == 'vencido' else ('var(--warn)' if f.estado == 'por vencer' else 'var(--ok)') }}"></i></div>
 <p class="sub" style="font-size:12px;margin:6px 0 0">{{ f.vida }} % de su vida consumida · ventana de renovación: {{ r.umbral }} días antes del vencimiento.</p></div>{% endif %}
 
-<div class="grid g2" style="align-items:start">
-<div class="card"><h3 style="margin:0 0 8px">Identidad</h3><dl class="eq-datos" style="grid-template-columns:1fr">
-  <div><dt>Sujeto (DN)</dt><dd class="mono" style="font-size:12.5px;word-break:break-all">{{ f.dn or '—' }}</dd></div>
+<div class="card" style="margin-top:12px"><h3 style="margin:0 0 8px">Identidad</h3><dl class="eq-datos" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
   <div><dt>Nombre común (CN)</dt><dd>{{ f.cn }}</dd></div>
   <div><dt>Número de serie</dt><dd class="mono">{{ f.serie_txt }}</dd></div>
-  <div><dt>Emisor</dt><dd>{{ f.emisor or '—' }}{% if f.issuer_dn %}<div class="sub mono" style="font-size:11.5px;word-break:break-all">{{ f.issuer_dn }}</div>{% endif %}</dd></div>
   <div><dt>Tipo</dt><dd>{{ {'servidor':'Servicio (TLS de servidor)','sistema':'Sistema de la CA','usuario':'Usuario / agente'}.get(f.tipo, f.tipo) }}</dd></div>
   <div><dt>Estado en la CA</dt><dd>{{ f.estado_ca_txt or '—' }}</dd></div>
+  <div style="grid-column:1/-1"><dt>Sujeto (DN)</dt><dd class="mono" style="font-size:12.5px;word-break:break-all">{{ f.dn or '—' }}</dd></div>
+  <div style="grid-column:1/-1"><dt>Emisor</dt><dd>{{ f.emisor or '—' }}{% if f.issuer_dn %}<div class="sub mono" style="font-size:11.5px;word-break:break-all">{{ f.issuer_dn }}</div>{% endif %}</dd></div>
 </dl></div>
-<div class="card"><h3 style="margin:0 0 8px">Uso y gestión</h3><dl class="eq-datos" style="grid-template-columns:1fr">
-  <div><dt>Máquina · servicio</dt><dd>{% if f.equipo %}<a href="{{ url_for('consola.equipo', eid=f.equipo.id) }}">{{ f.equipo.nombre }}</a>{% else %}{{ f.equipo_nombre or '—' }}{% endif %}{% if f.servicio %} · <span class="chip">{{ f.servicio }}</span>{% endif %}</dd></div>
-  <div><dt>En uso</dt><dd>{% if f.uso %}{% if f.uso.entrega is sameas false %}<span class="chip s-alta">⚠ el puerto {{ f.uso.puerto }} entrega otro (serie {{ f.uso.puerto_serie }})</span>{% else %}<span class="chip s-ok">✓ instalado{{ ' · puerto ' ~ f.uso.puerto if f.uso.puerto }}</span>{% endif %}{% elif f.tipo == 'servidor' %}no detectado en ninguna máquina{% else %}—{% endif %}</dd></div>
+
+<div class="card" style="margin-top:12px"><h3 style="margin:0 0 4px">Uso y gestión</h3>
+<p class="sub" style="font-size:12.5px;margin:0 0 8px">Un mismo certificado puede estar instalado en más de una máquina (por ejemplo, detrás de un balanceador). Estas son las que lo tienen instalado y cómo se gestiona.</p>
+{% if servidores %}<table><tr><th>Máquina</th><th>Servicio</th><th>Puerto</th><th>En uso</th></tr>
+{% for m in servidores %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b class="mono">{{ cod_eq(m.e) }}</b></a>{% if m.e.ip %} <span class="sub mono" style="font-size:12px">{{ m.e.ip }}</span>{% endif %}</td>
+<td>{{ m.servicio or '—' }}</td><td>{{ m.puerto or '—' }}</td>
+<td>{% if f.uso and f.equipo and f.equipo.id == m.e.id %}{% if f.uso.entrega is sameas false %}<span class="chip s-alta">⚠ el puerto entrega otro</span>{% else %}<span class="chip s-ok">✓ instalado</span>{% endif %}{% else %}<span class="chip s-ok">✓ instalado</span>{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="sub" style="margin:0 0 8px">{{ 'No detectado instalado en ninguna máquina del inventario.' if f.tipo == 'servidor' else '—' }}</p>{% endif %}
+<dl class="eq-datos" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:10px">
   {% if f.uso and f.uso.ruta %}<div><dt>Ruta</dt><dd class="mono" style="font-size:12.5px">{{ f.uso.ruta }}</dd></div>{% endif %}
   <div><dt>Gestión</dt><dd>{% if f.gestion %}{{ f.gestion.accion }}{% if f.gestion.cuando %} · {{ f.gestion.cuando|fecha }}{% endif %}{% if r.aap and f.gestion.job %} · <a href="{{ r.aap }}/execution/jobs/playbook/{{ f.gestion.job }}/output" target="_blank" rel="noopener">trabajo {{ f.gestion.job }} ↗</a>{% endif %}{% else %}manual{% endif %}</dd></div>
   <div><dt>Renovación</dt><dd>{{ 'Automática: Event-Driven Ansible la lanza dentro de la ventana de ' ~ r.umbral ~ ' días' if f.auto else 'Manual: no la gestiona FaceOps' }}</dd></div>
 </dl></div>
-</div>
 
-<h2 style="margin:16px 0 8px">Máquinas afectadas · {{ maquinas|length }}</h2>
-<p class="sub" style="margin:-4px 0 8px;font-size:12.5px">La máquina que lo instala y las que consumen ese servicio (comparten segmento de negocio): si vence o se revoca, todas quedan afectadas.</p>
-<div class="card" style="padding:0">{% if maquinas %}<table><tr><th>Máquina</th><th>Relación</th><th>Ambiente</th><th>Segmentos</th></tr>
-{% for m in maquinas %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b class="mono">{{ cod_eq(m.e) }}</b></a>{% if m.e.ip %}<br><span class="sub mono" style="font-size:12px">{{ m.e.ip }}</span>{% endif %}</td>
-<td>{{ m.rol }}</td><td>{{ m.e.ambiente or '—' }}</td><td style="font-size:12.5px">{{ (m.e.segmentos or [])|join(', ') or '—' }}</td></tr>{% endfor %}</table>
-{% else %}<p class="nada" style="padding:18px">Ninguna máquina del inventario usa este certificado.</p>{% endif %}</div>
+<div class="grid g2" style="align-items:start;margin-top:12px">
+<div><h2 style="margin:4px 0 4px">Servidores que lo presentan · {{ servidores|length }}</h2>
+<p class="sub" style="margin:0 0 8px;font-size:12.5px">Lo tienen instalado y lo entregan en su puerto TLS. Al reemplazarlo, cambia en estas máquinas.</p>
+<div class="card" style="padding:0">{% if servidores %}<table><tr><th>Máquina</th><th>Servicio</th><th>Ambiente</th></tr>
+{% for m in servidores %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b class="mono">{{ cod_eq(m.e) }}</b></a></td><td>{{ m.servicio or '—' }}{{ ' · ' ~ m.puerto if m.puerto }}</td><td>{{ m.e.ambiente or '—' }}</td></tr>{% endfor %}</table>
+{% else %}<p class="nada" style="padding:14px">Ningún servidor del inventario lo presenta.</p>{% endif %}</div></div>
+<div><h2 style="margin:4px 0 4px">Clientes que confían en él · {{ clientes|length }}</h2>
+<p class="sub" style="margin:0 0 8px;font-size:12.5px">Consumen ese servicio (comparten su segmento de negocio) y lo aceptan porque su truststore confía en la CA emisora: si vence o se revoca, fallan sus conexiones; al renovarlo con la misma CA no hay que tocarlos.</p>
+<div class="card" style="padding:0">{% if clientes %}<table><tr><th>Máquina</th><th>Relación</th><th>Ambiente</th></tr>
+{% for m in clientes %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b class="mono">{{ cod_eq(m.e) }}</b></a></td><td style="font-size:12.5px">{{ m.rol }}</td><td>{{ m.e.ambiente or '—' }}</td></tr>{% endfor %}</table>
+{% else %}<p class="nada" style="padding:14px">Sin clientes registrados.</p>{% endif %}</div></div>
+</div>
 
 {% if f.historial %}<h2 style="margin:16px 0 8px">Certificados anteriores · {{ f.historial|length }}</h2>
 <div class="card" style="padding:0"><table><tr><th>Serie</th><th>Vigencia</th><th>Estado</th></tr>
@@ -45,19 +54,47 @@
 
 {% if f.crudo %}<details class="card" style="margin-top:14px"><summary style="cursor:pointer"><b>Todos los campos que entrega la CA</b></summary>
 <table style="margin-top:8px">{% for k, v in f.crudo|dictsort %}<tr><td class="sub" style="width:220px">{{ k }}</td><td class="mono" style="font-size:12px;word-break:break-all">{{ v }}</td></tr>{% endfor %}</table></details>{% endif %}
-{% if emitir %}<dialog id="dlg-emitir" class="card" style="max-width:520px;width:92%"><form method="dialog" class="f" id="f-emitir">
-<h3 style="margin:0 0 6px">Reemplazar certificado</h3><p class="sub" style="font-size:12.5px;margin:0 0 10px">Hoy se gestiona a mano: FaceOps emite uno nuevo desde la CA para {{ f.equipo_nombre }}, lo instala, recarga el servicio y desde ahí lo renueva solo.</p>
+{% set SV = servidores[:6] %}{% set CL = clientes[:8] %}{% set filas_ = [SV|length, CL|length, 1]|max %}{% set H = 70 + filas_ * 46 %}
+<h2 style="margin:18px 0 6px">Dependencias</h2>
+<div class="card" style="overflow-x:auto"><svg viewBox="0 0 980 {{ H }}" width="100%" style="min-width:720px;max-height:520px" role="img" aria-label="CA emisora, certificado, servidores que lo presentan y clientes que confían en él">
+<defs><marker id="cf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#8a8d90"/></marker></defs>
+{% set cy = H / 2 %}
+<text x="20" y="22" font-size="12" fill="#6a6e73">CA emisora</text><text x="240" y="22" font-size="12" fill="#6a6e73">Certificado</text>
+<text x="470" y="22" font-size="12" fill="#6a6e73">Servidores que lo presentan</text><text x="740" y="22" font-size="12" fill="#6a6e73">Clientes que confían</text>
+<rect x="20" y="{{ cy - 26 }}" width="180" height="52" rx="8" fill="#f5f5f5" stroke="#8a8d90"/><text x="110" y="{{ cy - 4 }}" text-anchor="middle" font-size="12.5" font-weight="700">{{ (f.emisor or 'CA interna')[:24] }}</text><text x="110" y="{{ cy + 13 }}" text-anchor="middle" font-size="11" fill="#6a6e73">firma y respalda</text>
+<path d="M200 {{ cy }} H236" stroke="#8a8d90" stroke-width="1.5" marker-end="url(#cf)"/>
+<rect x="240" y="{{ cy - 30 }}" width="190" height="60" rx="8" fill="#fff" stroke="{{ '#c9190b' if f.estado == 'vencido' else ('#f0ab00' if f.estado == 'por vencer' else '#151515') }}" stroke-width="1.8"/>
+<text x="335" y="{{ cy - 8 }}" text-anchor="middle" font-size="12.5" font-weight="700">{{ f.cn[:26] }}</text><text x="335" y="{{ cy + 9 }}" text-anchor="middle" font-size="11" fill="#6a6e73">{{ f.estado }}{{ ' · ' ~ f.dias ~ ' días' if f.dias is not none }}</text>
+{% for m in SV %}{% set y = 40 + loop.index0 * 46 + ((filas_ - SV|length) * 23) %}<path d="M430 {{ cy }} C455 {{ cy }} 450 {{ y + 18 }} 466 {{ y + 18 }}" fill="none" stroke="#8a8d90" stroke-width="1.3" marker-end="url(#cf)"/>
+<rect x="470" y="{{ y }}" width="200" height="36" rx="6" fill="#fff" stroke="#151515"/><text x="480" y="{{ y + 15 }}" font-size="12" font-weight="700">{{ cod_eq(m.e)[:22] }}</text><text x="480" y="{{ y + 29 }}" font-size="10.5" fill="#6a6e73">{{ (m.servicio or 'TLS')[:18] }}{{ ' · ' ~ m.puerto if m.puerto }}</text>{% else %}<text x="470" y="{{ cy + 4 }}" font-size="12" fill="#6a6e73">sin servidores registrados</text>{% endfor %}
+{% for m in CL %}{% set y = 40 + loop.index0 * 46 + ((filas_ - CL|length) * 23) %}{% if SV %}<path d="M670 {{ 58 + ((filas_ - SV|length) * 23) }} C705 {{ 58 + ((filas_ - SV|length) * 23) }} 700 {{ y + 18 }} 736 {{ y + 18 }}" fill="none" stroke="#b8bbbe" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#cf)"/>{% endif %}
+<rect x="740" y="{{ y }}" width="220" height="36" rx="6" fill="#fafafa" stroke="#8a8d90" stroke-dasharray="4 3"/><text x="750" y="{{ y + 15 }}" font-size="12" font-weight="700">{{ cod_eq(m.e)[:24] }}</text><text x="750" y="{{ y + 29 }}" font-size="10.5" fill="#6a6e73">confía en la CA (truststore)</text>{% else %}<text x="740" y="{{ cy + 4 }}" font-size="12" fill="#6a6e73">sin clientes registrados</text>{% endfor %}
+{% if clientes|length > 8 %}<text x="740" y="{{ H - 6 }}" font-size="11" fill="#6a6e73">y {{ clientes|length - 8 }} clientes más</text>{% endif %}
+</svg>
+<p class="sub" style="font-size:12px;margin:6px 0 0">Línea continua: el certificado está instalado en el servidor. Punteada: el cliente se conecta a ese servicio y valida el certificado con la CA emisora.</p></div>
+
+{% if (f.auto and renovar) or emitir %}<dialog id="dlg-reemplazo" class="card" style="max-width:600px;width:94%"><form method="dialog" class="f" id="f-reemplazo">
+<h3 style="margin:0 0 6px">Reemplazar certificado · {{ f.cn }}</h3>
+<p class="sub" style="font-size:12.5px;margin:0 0 10px">{% if f.auto and renovar %}Se genera una llave nueva en {{ f.equipo_nombre }}, la CA interna firma el certificado nuevo, se instala, se recarga el servicio y se verifica. Se crea un ticket con aprobación.{% else %}Hoy se gestiona a mano: FaceOps emite uno nuevo desde la CA para {{ f.equipo_nombre }}, lo instala, recarga el servicio y desde ahí lo renueva solo. Se crea un ticket con aprobación.{% endif %}</p>
+<input type="hidden" name="modo" value="{{ 'renovar' if f.auto and renovar else 'emitir' }}">
+<div class="grid g2"><label>Tamaño de la llave<select name="cert_bits"><option value="2048">RSA 2048</option><option value="3072">RSA 3072</option><option value="4096">RSA 4096</option></select><small class="sub">Se genera en la máquina; la llave no sale de ella</small></label>
+<label>Vigencia solicitada (días)<input type="number" name="cert_vigencia_dias" min="1" max="825" placeholder="la del perfil de la CA"><small class="sub">Queda registrada en el ticket; la CA aplica la vigencia de su perfil (caServerCert)</small></label></div>
+{% if not (f.auto and renovar) %}
 {% set svc_ = (f.servicio or (f.uso.servicio if f.uso and f.uso.servicio) or f.cn.split('.')[0])|lower|replace('_', '-') %}
 {% set rec_ = {'tomcat':'systemctl restart tomcat','jboss-https':'systemctl restart eap8-standalone','jboss':'systemctl restart eap8-standalone','keycloak':'systemctl restart keycloak','vault':'systemctl restart vault','idm-web':'systemctl restart httpd','httpd':'systemctl reload httpd','nginx':'systemctl reload nginx','kafka':'systemctl restart kafka','postgres':'systemctl reload postgresql','postgresql':'systemctl reload postgresql'} %}
-<label>Servicio<input type="text" name="v_cert_nombre" required value="{{ svc_ }}"><small class="sub">Nombre corto del servicio que usa el certificado; queda en /etc/pki/faceops/{{ svc_ }}/</small></label>
-<div class="grid g2"><label>Formato<select name="v_cert_formato"><option value="pem" {{ 'selected' if svc_ not in ('kafka', 'jboss', 'jboss-https', 'keycloak') }}>PEM (nginx, Apache, Tomcat, PostgreSQL)</option><option value="pkcs12" {{ 'selected' if svc_ in ('kafka', 'jboss', 'jboss-https', 'keycloak') }}>PKCS#12 (Java: JBoss, Kafka, Keycloak)</option></select></label>
-<label>Puerto TLS a verificar<input type="number" name="v_cert_puerto" value="{{ (f.uso.puerto if f.uso and f.uso.puerto) or 443 }}"><small class="sub">FaceOps comprueba que ese puerto ya entrega el certificado nuevo</small></label></div>
-<label>Comando para recargar el servicio<input type="text" name="v_cert_recargar" required value="{{ rec_.get(svc_, 'systemctl restart ' ~ svc_) }}"><small class="sub">Se ejecuta en la máquina después de instalar el certificado; ajústalo si el servicio se llama distinto</small></label>
-<label>Nombres adicionales (opcional)<input type="text" name="v_cert_san" value="{{ f.cn if '.' in f.cn else '' }}"><small class="sub">Además del nombre de la máquina y su IP; separados por coma</small></label>
+<div class="grid g2"><label>Nombre común (CN)<input type="text" name="cert_cn" value="{{ f.cn }}"><small class="sub">Por defecto, el nombre de la máquina</small></label>
+<label>Nombres adicionales (SAN)<input type="text" name="cert_san" value="{{ f.cn if '.' in f.cn else '' }}"><small class="sub">Separados por coma; además del nombre y la IP de la máquina</small></label></div>
+<div class="grid g2"><label>Servicio<input type="text" name="cert_nombre" required value="{{ svc_ }}"><small class="sub">Queda en /etc/pki/faceops/&lt;servicio&gt;/</small></label>
+<label>Formato<select name="cert_formato"><option value="pem" {{ 'selected' if svc_ not in ('kafka', 'jboss', 'jboss-https', 'keycloak') }}>PEM (nginx, Apache, Tomcat, PostgreSQL)</option><option value="pkcs12" {{ 'selected' if svc_ in ('kafka', 'jboss', 'jboss-https', 'keycloak') }}>PKCS#12 (Java: JBoss, Kafka, Keycloak)</option></select></label></div>
+<div class="grid g2"><label>Puerto TLS a verificar<input type="number" name="cert_puerto" value="{{ (f.uso.puerto if f.uso and f.uso.puerto) or 443 }}"><small class="sub">0 = no verificar</small></label>
+<label>Dueño de los archivos<input type="text" name="cert_propietario" value="root"></label></div>
+<label>Comando para recargar el servicio<input type="text" name="cert_recargar" required value="{{ rec_.get(svc_, 'systemctl restart ' ~ svc_) }}"></label>
+{% else %}<p class="sub" style="font-size:12.5px;margin:0 0 6px">Se mantienen el nombre, los SAN, el servicio y el puerto registrados para este certificado.</p>{% endif %}
+<label>Motivo<input type="text" name="motivo" value="Reemplazo del certificado {{ f.cn }} pedido desde su detalle"></label>
 <div class="fila" style="justify-content:flex-end;gap:8px"><button class="btn gris" value="no" formnovalidate>Cancelar</button><button class="btn" value="si">Pedir reemplazo</button></div></form></dialog>{% endif %}
-<script>(()=>{const b=document.getElementById('reemplazar');if(!b)return;const s=document.getElementById('res-ren');
-function lanzar(fd){fd.append('_csrf',{{ csrf|tojson }});fd.append('motivo','Reemplazo pedido desde el detalle del certificado {{ f.cn }}');b.disabled=true;
- fetch(b.dataset.url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{if(t.error){fxAviso(t.error,'error');b.disabled=false;return;}s.innerHTML=' <a href="'+t.url+'">'+t.numero+'</a>';fxAviso(t.numero+' creado: espera la aprobación','ok');});}
-b.addEventListener('click',()=>{if(b.dataset.modo==='renovar'){if(!confirm('¿Reemplazar ahora este certificado? Se genera una llave nueva en el equipo, la CA firma el nuevo y se recarga el servicio.'))return;const fd=new FormData();fd.append('v_cert_forzar','si');lanzar(fd);}
- else{const d=document.getElementById('dlg-emitir');d.showModal();d.onclose=()=>{if(d.returnValue==='si')lanzar(new FormData(document.getElementById('f-emitir')));};}});})();</script>
+<script>(()=>{const b=document.getElementById('reemplazar'),d=document.getElementById('dlg-reemplazo');if(!b||!d)return;const s=document.getElementById('res-ren');
+b.addEventListener('click',()=>d.showModal());
+d.addEventListener('close',()=>{if(d.returnValue!=='si')return;const fd=new FormData(document.getElementById('f-reemplazo'));fd.append('_csrf',{{ csrf|tojson }});b.disabled=true;
+ fetch({{ url_for('consola.certificado_reemplazar', serie=f.serie)|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(t=>{if(t.error){fxAviso(t.error,'error');b.disabled=false;return;}
+  s.innerHTML=' <a href="'+t.url+'">'+t.numero+'</a>';fxAviso(t.numero+' creado: espera la aprobación','ok');}).catch(()=>{b.disabled=false;});});})();</script>
 {% endblock %}

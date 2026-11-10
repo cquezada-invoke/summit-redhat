@@ -8,6 +8,7 @@
 #   · se valida (firma de la CA y que corresponda a la llave), se respalda el anterior y se deja en su lugar
 #   · formato pem (servidor.crt/servidor.key/ca.crt) o pkcs12 (keystore.p12 para Kafka/Java; su clave en keystore.properties)
 #   · se recarga el servicio (cert_recargar) y se verifica en el puerto que ya entrega el certificado nuevo
+#   cert_bits: tamaño de la llave RSA (2048, 3072 o 4096) · cert_vigencia_dias: vigencia solicitada; queda en el ticket, la CA aplica la del perfil caServerCert
 #   · si algo falla después de reemplazar, vuelve al certificado anterior y recarga
 # Los clientes no se tocan: confían en la CA (truststore), no en el certificado del servidor.
 # Registro de cada certificado: /etc/faceops/certificados/<nombre>.json · archivos: /etc/pki/faceops/<nombre>/
@@ -109,7 +110,7 @@
         - name: Llave nueva y CSR (se generan en el equipo; la llave no sale de aquí)
           ansible.builtin.shell: |
             set -e; cd {{ base }}/{{ item.nombre }}; umask 077
-            openssl req -new -newkey rsa:2048 -nodes -keyout nuevo.key -out nuevo.csr -subj "/CN={{ item.cn }}/O=INVOKE" \
+            openssl req -new -newkey rsa:{{ cert_bits | default(2048) | int }} -nodes -keyout nuevo.key -out nuevo.csr -subj "/CN={{ item.cn }}/O=INVOKE" \
               -addext "subjectAltName={{ (item.dns | map('regex_replace', '^', 'DNS:') | list + item.ips | map('regex_replace', '^', 'IP:') | list) | join(',') }}" 2>/dev/null
           loop: "{{ pendientes }}"
           loop_control: {label: "{{ item.nombre }}"}

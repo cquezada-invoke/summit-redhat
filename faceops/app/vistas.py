@@ -6381,7 +6381,7 @@ def certificados():
 @bp.route("/certificados/<serie>")
 @requiere_login
 def certificado(serie):
-    from .certificados_panel import leer, buscar_serie, afectadas
+    from .certificados_panel import leer, buscar_serie, afectadas, dependencias
     eqs = equipos_visibles()
     r = leer(g.cliente, eqs)
     f = buscar_serie(r, serie)
@@ -6389,7 +6389,55 @@ def certificado(serie):
         abort(404)
     renovar = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Renovar por vencer")
     emitir = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Emitir para servicio")
-    return render_template("certificado.html", f=f, r=r, maquinas=afectadas(f, eqs), renovar=renovar, emitir=emitir)
+    servidores, clientes = dependencias(f, eqs)
+    return render_template("certificado.html", f=f, r=r, maquinas=afectadas(f, eqs), servidores=servidores, clientes=clientes,
+                           renovar=renovar, emitir=emitir)
+
+
+@bp.route("/certificados/<serie>/reemplazar", methods=["POST"])
+@requiere_login
+def certificado_reemplazar(serie):
+    """Reemplazar un certificado con los parámetros del flotante (llave, vigencia solicitada, nombres, servicio…).
+    Renovación automática → «Certificados · Renovar por vencer» (forzada); gestión manual → «Emitir para servicio»."""
+    from .certificados_panel import leer, buscar_serie
+    from .operacion import solicitar_en_equipo
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(403)
+    f = buscar_serie(leer(g.cliente, equipos_visibles()), serie)
+    if not f or not f.get("equipo"):
+        abort(404)
+    e = next((x for x in equipos_visibles() if x["id"] == f["equipo"]["id"]), None)
+    modo = "renovar" if (f.get("auto") and request.form.get("modo") != "emitir") else "emitir"
+    nombre = "Certificados · Renovar por vencer" if modo == "renovar" else "Certificados · Emitir para servicio"
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], nombre)
+    if not e or not a:
+        return {"error": f"Falta «{nombre}» en el catálogo"}, 400
+    fo = request.form
+    bits = fo.get("cert_bits", "2048")
+    if bits not in ("2048", "3072", "4096"):
+        return {"error": "Tamaño de llave: 2048, 3072 o 4096"}, 400
+    params = {"cert_bits": int(bits)}
+    vig = (fo.get("cert_vigencia_dias") or "").strip()
+    if vig:
+        if not vig.isdigit() or not (1 <= int(vig) <= 825):
+            return {"error": "Vigencia: entre 1 y 825 días"}, 400
+        params["cert_vigencia_dias"] = int(vig)   # queda registrada en el ticket; la CA aplica la vigencia de su perfil
+    if modo == "renovar":
+        params.update(cert_forzar="si", cert_dias=30)
+    else:
+        for k in ("cert_nombre", "cert_formato", "cert_recargar", "cert_san", "cert_cn", "cert_propietario"):
+            if (fo.get(k) or "").strip():
+                params[k] = fo.get(k).strip()
+        if not params.get("cert_nombre") or not params.get("cert_recargar"):
+            return {"error": "Faltan el servicio y el comando para recargarlo"}, 400
+        params["cert_puerto"] = int(fo.get("cert_puerto") or 0)
+    motivo = (fo.get("motivo") or "").strip() or f"Reemplazo del certificado {f['cn']} pedido desde su detalle"
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, motivo)
+    except (PermissionError, ErrorAAP) as x:
+        return {"error": str(x)}, 400
+    auditar(g.usuario["usuario"], g.cliente["id"], "reemplazar certificado", f["cn"], dict(params, ticket=t["numero"]))
+    return {"id": t["id"], "numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
 @bp.route("/equipos/<int:eid>/certificados")
