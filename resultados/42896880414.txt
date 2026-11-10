@@ -1,0 +1,78 @@
+commit: 96fc2469a75673a87a71f95242ba2b9c4789f06c
+inicio: 2026-11-10T17:36:11-03:00
+---
+namespace/wl-sonda created
+pod/eap8r created
+pod/eap8b created
+43s   Normal   Scheduled        pod/eap8r   Successfully assigned wl-sonda/eap8r to sno
+42s   Normal   AddedInterface   pod/eap8r   Add eth0 [10.128.0.197/23] from ovn-kubernetes
+42s   Normal   Pulling          pod/eap8r   Pulling image "registry.redhat.io/jboss-eap-8/eap8-openjdk17-runtime-openshift-rhel8:latest"
+37s   Normal   Pulled           pod/eap8r   Successfully pulled image "registry.redhat.io/jboss-eap-8/eap8-openjdk17-runtime-openshift-rhel8:latest" in 4.795s (4.795s including waiting). Image size: 391964372 bytes.
+37s   Normal   Created          pod/eap8r   Created container: c
+37s   Normal   Started          pod/eap8r   Started container c
+installer-2-sno                0/1   Completed   0     11d
+installer-4-sno                0/1   Completed   0     11d
+installer-5-sno                0/1   Completed   0     8d
+eap8b   1/1   Running   0     43s
+eap8r   1/1   Running   0     43s
+== runtime
+/opt/jboss/container/wildfly/run/run
+run
+run
+run-utils.sh
+ls: cannot access '/usr/local/s2i': No such file or directory
+command terminated with exit code 2
+== builder
+#!/bin/sh
+ 
+. "${JBOSS_CONTAINER_WILDFLY_S2I_MODULE}/assemble.sh"
+/opt/jboss/container/wildfly:
+run
+s2i
+
+/opt/jboss/container/wildfly/s2i:
+assemble.sh
+disabled-copy-hooks
+galleon
+install-common
+maven-s2i-overrides
+run.sh
+s2i-core-hooks
+save-artifacts.sh
+JBOSS_CONTAINER_MAVEN_DEFAULT_MODULE=/opt/jboss/container/maven/default/
+JBOSS_CONTAINER_WILDFLY_S2I_MODULE=/opt/jboss/container/wildfly/s2i
+JBOSS_CONTAINER_WILDFLY_S2I_LEGACY_GALLEON_MODULE=/opt/jboss/container/wildfly/s2i/galleon
+JBOSS_CONTAINER_MAVEN_38_MODULE=/opt/jboss/container/maven/38/
+PROVISIONING_MAVEN_PLUGIN_GROUP_ID=org.jboss.eap.plugins
+JBOSS_CONTAINER_S2I_CORE_MODULE=/opt/jboss/container/s2i/core/
+PROVISIONING_MAVEN_PLUGIN_VERSION=1.0.1.Final-redhat-00025
+PROVISIONING_MAVEN_PLUGIN_ARTIFACT_ID=eap-maven-plugin
+S2I_SOURCE_DEPLOYMENTS_FILTER=*.war *.ear *.rar *.jar
+MAVEN_VERSION=3.8
+JBOSS_CONTAINER_MAVEN_S2I_MODULE=/opt/jboss/container/maven/s2i
+clean-settings.xml
+provisioning
+s2i-core-hooks
+s2i_galleon
+/opt/jboss/container/wildfly/s2i/assemble.sh:38:   if [ -z "${GALLEON_PROVISION_FEATURE_PACKS}" ]; then
+/opt/jboss/container/wildfly/s2i/assemble.sh:39:     log_error "GALLEON_PROVISION_FEATURE_PACKS env variable must be set when GALLEON_PROVISION_LAYERS is set"
+/opt/jboss/container/wildfly/s2i/assemble.sh:43:  if [ -n "${GALLEON_PROVISION_FEATURE_PACKS}" ]; then
+/opt/jboss/container/wildfly/s2i/assemble.sh:45:     log_error "GALLEON_PROVISION_LAYERS env variable must be set when GALLEON_PROVISION_FEATURE_PACKS is set"
+/opt/jboss/container/wildfly/s2i/assemble.sh:52:  if [ -n "${GALLEON_PROVISION_FEATURE_PACKS}" ] || [ -n "${GALLEON_USE_LOCAL_FILE}" ]; then
+/opt/jboss/container/wildfly/s2i/assemble.sh:53:    log_info "You have activated legacy s2i workflow by setting GALLEON_PROVISION_FEATURE_PACKS or GALLEON_USE_LOCAL_FILE env variable."
+/opt/jboss/container/wildfly/s2i/assemble.sh:73:# We must then copy the /deployments to the server
+/opt/jboss/container/wildfly/s2i/assemble.sh:78:  # Some extra deployments could have been set in the deployments dir (or custom S2I_SOURCE_DEPLOYMENTS_DIR)
+/opt/jboss/container/wildfly/s2i/assemble.sh:79:  # These deployments have been copied during s2i build to the S2I_TARGET_DEPLOYMENTS_DIR
+/opt/jboss/container/wildfly/s2i/assemble.sh:81:    deployments_count="$( find $S2I_TARGET_DEPLOYMENTS_DIR -mindepth 1 -maxdepth 1 | wc -l )"
+/opt/jboss/container/wildfly/s2i/assemble.sh:82:    if [ $deployments_count -gt 0 ] ; then
+/opt/jboss/container/wildfly/s2i/assemble.sh:83:      log_info "Copying extra deployments found in $S2I_TARGET_DEPLOYMENTS_DIR to $JBOSS_HOME/standalone/deployments"
+/opt/jboss/container/wildfly/s2i/assemble.sh:84:      mkdir -p "$JBOSS_HOME/standalone/deployments"
+/opt/jboss/container/wildfly/s2i/assemble.sh:85:      cp "$S2I_TARGET_DEPLOYMENTS_DIR"/* "$JBOSS_HOME/standalone/deployments"
+/home/jboss/.m2:
+settings.xml
+
+/home/jboss/.m2:
+settings.xml
+registry.redhat.io/jboss-eap-8/eap8-openjdk17-runtime-openshift-rhel8@sha256:019fd19124edead77c7f8254f58453e9d702f82af3e10bcb278151093749f6e6
+borrado
+--- fin: 2026-11-10T17:36:55-03:00 · código: 0
