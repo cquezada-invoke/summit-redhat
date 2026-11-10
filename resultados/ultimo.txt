@@ -1,32 +1,55 @@
-commit: 3530917ea3cb75e5f17085f52ada36f813edc748
-inicio: 2026-11-10T17:40:03-03:00
+commit: e98e0ddbdf05a11475114f9c07d3e68444c6dfba
+inicio: 2026-11-10T17:44:26-03:00
 ---
-18ae595
-== lectura de la sede (comprobación del normalizador en el anfitrión)
-sw-core-01 FRRouting 10.2.1_git | ifs: [('eth0', 'up', 'gestión', ['172.20.20.73/24'], None), ('eth1', 'up', 'ruteada', ['10.255.21.2/30'], 'fw-sede-01'), ('eth2', 'up', 'troncal 10,20,99', [], 'sw-acc-01'), ('eth3', 'up', 'acceso VLAN 30', [], 'lb-sede-01'), ('eth4', 'up', 'acceso VLAN 30', [], None), ('eth5', 'up', 'acceso VLAN 30', [], None), ('vlan10', 'up', 'SVI', ['10.20.10.1/24'], None), ('vlan20', 'up', 'SVI', ['10.20.20.1/24'], None), ('vlan30', 'up', 'SVI', ['10.20.30.1/24'], None), ('vlan99', 'up', 'SVI', ['10.20.99.1/24'], None)]
-   vlans: [{'id': 10, 'acceso': [], 'troncal': ['eth2'], 'svi': '10.20.10.1/24', 'nombre': 'Usuarios'}, {'id': 20, 'acceso': [], 'troncal': ['eth2'], 'svi': '10.20.20.1/24', 'nombre': 'Telefonia IP'}, {'id': 30, 'acceso': ['eth3', 'eth4', 'eth5'], 'troncal': [], 'svi': '10.20.30.1/24', 'nombre': 'Servidores'}, {'id': 99, 'acceso': [], 'troncal': ['eth2'], 'svi': '10.20.99.1/24', 'nombre': 'Gestion de switches'}] | vecinos: [('eth3', 'lb-sede-01', 'eth1', '172.20.20.75'), ('eth1', 'fw-sede-01', 'eth2', '172.20.20.72'), ('eth2', 'sw-acc-01', 'eth1', '172.20.20.74')] | rutas: 7 {'static': 1, 'connected': 6} | bgp: [] | lb: None None | subredes: ['10.20.10.0/24', '10.20.20.0/24', '10.20.30.0/24', '10.20.99.0/24', '10.255.21.0/30']
-sw-acc-01 FRRouting 10.2.1_git | ifs: [('eth0', 'up', 'gestión', ['172.20.20.74/24'], None), ('eth1', 'up', 'troncal 10,20,99', [], 'sw-core-01'), ('eth2', 'up', 'acceso VLAN 10', [], None), ('eth3', 'up', 'acceso VLAN 20', [], None), ('vlan99', 'up', 'SVI', ['10.20.99.11/24'], None)]
-   vlans: [{'id': 10, 'acceso': ['eth2'], 'troncal': ['eth1'], 'svi': ''}, {'id': 20, 'acceso': ['eth3'], 'troncal': ['eth1'], 'svi': ''}, {'id': 99, 'acceso': [], 'troncal': ['eth1'], 'svi': '10.20.99.11/24', 'nombre': 'Gestion en banda'}] | vecinos: [('eth1', 'sw-core-01', 'eth2', '172.20.20.73')] | rutas: 3 {'static': 1, 'connected': 2} | bgp: [] | lb: None None | subredes: ['10.20.99.0/24']
-lb-sede-01 HAProxy 2.8.22-a6a7eb6dd | ifs: [('eth0', 'up', 'gestión', ['172.20.20.75/24'], None), ('eth1', 'up', 'ruteada', ['10.20.30.10/24', '10.20.30.100/24'], 'sw-core-01')]
-   vlans: [] | vecinos: [('eth1', 'sw-core-01', 'eth3', '172.20.20.73')] | rutas: 3 {'static': 1, 'connected': 2} | bgp: [] | lb: [('be-web-sede', [('srv-web-01', 'UP', ''), ('srv-web-02', 'UP', '')])] ['10.20.30.100'] | subredes: ['10.20.30.0/24']
-rtr-wan-01 FRRouting 10.2.1_git | ifs: [('eth0', 'up', 'gestión', ['172.20.20.71/24'], None), ('eth1', 'up', 'ruteada', ['100.64.20.2/30'], None), ('eth2', 'up', 'ruteada', ['10.255.20.1/30'], 'fw-sede-01')]
-   vlans: [] | vecinos: [('eth2', 'fw-sede-01', 'eth1', '172.20.20.72')] | rutas: 7 {'bgp': 3, 'static': 1, 'connected': 3} | bgp: [('100.64.20.1', 'Established')] | lb: None None | subredes: ['10.255.20.0/30', '100.64.20.0/30']
-fw-sede-01 VyOS  | ifs: [('eth0', 'up', 'gestión', ['172.20.20.72/24'], None), ('eth1', 'up', 'ruteada', ['10.255.20.2/30'], 'rtr-wan-01'), ('eth2', 'up', 'ruteada', ['10.255.21.1/30'], 'sw-core-01')]
-   vlans: [] | vecinos: [('eth1', 'rtr-wan-01', 'eth2', '172.20.20.71'), ('eth2', 'sw-core-01', 'eth1', '172.20.20.73')] | rutas: 5 {'static': 2, 'connected': 3} | bgp: [] | lb: None None | subredes: ['10.255.20.0/30', '10.255.21.0/30']
-faceops actualizado
-   · Proyecto «FaceOps · automatizaciones»: successful
-   · Plantilla «Red · Inventariar equipo de red» (id 1127)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-C1 fw FO-LAB-01417
-C2 rtr FO-LAB-01418
-C6 fw FO-LAB-01419
-ticket C1 FO-LAB-01417 exitoso job 21835 AAP terminó (successful): ejecución 17 s, espera de aprobación 36 s | Ficha de red actualizada en FaceOps (interfaces, VLAN, vecinos LLDP y rutas)
-ticket C2 FO-LAB-01418 exitoso job 21837 AAP terminó (successful): ejecución 8 s, espera de aprobación 38 s | Ficha de red actualizada en FaceOps (interfaces, VLAN, vecinos LLDP y rutas)
-ticket C6 FO-LAB-01419 exitoso job 21839 AAP terminó (successful): ejecución 18 s, espera de aprobación 35 s
-eq fw | VyOS 2026.10.23-0026-rolling | Red | con datos ifs: [('eth0', 'up', 'gestión', ['172.20.20.12/24']), ('dum1', 'up', 'ruteada', ['10.60.7.1/24']), ('eth1', 'up', 'ruteada', ['10.20.20.2/24']), ('eth2', 'up', 'ruteada', ['10.40.40.1/24']), ('eth2.320', 'up', 'subinterfaz VLAN 320', ['10.60.20.1/24']), ('eth2.330', 'up', 'subinterfaz VLAN 330', ['10.60.30.1/24'])] vec: 0 rutas: 9 {'kernel': 1, 'static': 2, 'connected': 6} def: {'via': '172.20.20.1', 'prefijo': '0.0.0.0/0', 'interfaz': 'eth0', 'protocolo': 'kernel'} bgp: [] ver: 2026.10.23-0026-rolling  75336
-eq rtr | FRRouting 10.2.1_git | Red | con datos ifs: [('eth0', 'up', 'gestión', ['172.20.20.11/24']), ('eth1', 'up', 'ruteada', ['10.0.0.2/30']), ('eth2', 'up', 'ruteada', ['10.10.10.1/24']), ('eth3', 'up', 'ruteada', ['10.20.20.1/24'])] vec: 0 rutas: 11 {'bgp': 4, 'kernel': 1, 'static': 2, 'connected': 4} def: {'via': '172.20.20.1', 'prefijo': '0.0.0.0/0', 'interfaz': 'eth0', 'protocolo': 'kernel'} bgp: [('10.0.0.1', 'Established', 1), ('172.20.20.41', 'Established', 1), ('172.20.20.42', 'Established', 1), ('172.20.20.43', 'Established', 1)] ver: 10.2.1_git  75388
-eq fw | VyOS 2026.10.23-0026-rolling | Red | con datos ifs: [('eth0', 'up', 'gestión', ['172.20.20.12/24']), ('dum1', 'up', 'ruteada', ['10.60.7.1/24']), ('eth1', 'up', 'ruteada', ['10.20.20.2/24']), ('eth2', 'up', 'ruteada', ['10.40.40.1/24']), ('eth2.320', 'up', 'subinterfaz VLAN 320', ['10.60.20.1/24']), ('eth2.330', 'up', 'subinterfaz VLAN 330', ['10.60.30.1/24'])] vec: 0 rutas: 9 {'kernel': 1, 'static': 2, 'connected': 6} def: {'via': '172.20.20.1', 'prefijo': '0.0.0.0/0', 'interfaz': 'eth0', 'protocolo': 'kernel'} bgp: [] ver: 2026.10.23-0026-rolling  75336
-ficha 14 200 eq-uso hidden: 1 puntos: 0 usuarios-card: 0 | class="card red-ficha" style="margin-top:14px" id="red" data-equipo="fw"> Equipo de red leído por AAP por SSH · 2026-11-10 20:45 Plataforma VyOS 2026.10.23-0026-rolling Fabricante · modelo VyOS Funcionando hace 20 h 55 min nombre en el equipo: fw Interfaces de datos 5 / 5 arriba 0 vecinos LLDP Gestión 172.20.20.12 eth0 · fuera de banda Acceso Consola SSH ↗ ssh · credencial en la bóveda Firewall VyOS (eth1 WAN · eth2 LAN usuarios) Interfaces Interfaz Estado Modo · VLAN Dirección IP Descripción Conectada a (LLDP) Recibido / enviado eth0 ee:9d:53:12:b7:c8 arriba gestión 172.20.20.12/24 gestion — 4.5 MB / 2.1 MB dum1 36:b5:d0:0c:c4:c4 arriba ruteada 10.60.7.1/24 OpenShift ocp-prueba — 0 B / 0 B eth1 aa:c1:ab:66:79:ab arriba ruteada 10.20.20.2/24 WAN hacia el router de borde — 2 KB / 2 KB eth2 aa:c1:ab:f9:3f:5a arriba ruteada 10.40.40.1/24 LAN usuarios — 4 KB / 3 KB eth2.320 aa:c1:ab:f9:3f:5a
-ficha 16 200 eq-uso hidden: 1 puntos: 0 usuarios-card: 0 | class="card red-ficha" style="margin-top:14px" id="red" data-equipo="rtr"> Equipo de red leído por AAP por SSH · 2026-11-10 20:46 Plataforma FRRouting 10.2.1_git Fabricante · modelo — Funcionando hace 20 h 56 min nombre en el equipo: rtr Interfaces de datos 3 / 3 arriba 0 vecinos LLDP Gestión 172.20.20.11 eth0 · fuera de banda Acceso Consola SSH ↗ ssh · credencial en la bóveda Router de borde (FRR) Interfaces Interfaz Estado Modo · VLAN Dirección IP Descripción Conectada a (LLDP) Recibido / enviado eth0 f6:2d:93:0e:94:96 arriba gestión 172.20.20.11/24 — — 4.4 MB / 2.0 MB eth1 aa:c1:ab:f4:b3:be arriba ruteada 10.0.0.2/30 — — 317 KB / 251 KB eth2 aa:c1:ab:c7:5c:34 arriba ruteada 10.10.10.1/24 — — 2 KB / 2 KB eth3 aa:c1:ab:b6:49:fe arriba ruteada 10.20.20.1/24 — — 2 KB / 2 KB Vecinos (LLDP) El equipo no informa vecinos por LLDP (o no lo tiene activo). Tabla de rutas · 11 activas BGP 4 conec
-C7 PermissionError borde: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la acción | datos borde: {"kernel": "", "uptime_dias": 0.0, "selinux": "", "ram_libre_mb": null, "carga_1
---- fin: 2026-11-10T17:47:25-03:00 · código: 0
+faceops/drivers:
+total 7032
+drwxr-xr-x. 2 cquezada cquezada      38 Nov 10 17:44 .
+drwxr-xr-x. 4 cquezada cquezada      58 Nov 10 17:44 ..
+-rw-r--r--. 1 cquezada cquezada 7199197 Nov 10 17:44 ojdbc11-23.5.0.24.07.jar
+imagestream.image.openshift.io/ventas created
+buildconfig.build.openshift.io/ventas created
+build.build.openshift.io/ventas-1 started
+error: the build wl-proto/ventas-1 status is "Failed"
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=FM6iN9hz6tDebUomAYw0vuNX6IFX6XqHajxGey5NQKg-1794343850.0770981-1.0.1.1-G8wioWK4U19i2i8qEjnnImLX3RM9L1jKU6NlyORWj7tZvQ.o4ZM42zTQxrCXLjwDd.2Ta8efnVAVSA6Z7XxH4mrphqFUl.9
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=ylvQMvvOyowFCuTnOJCXaWhQ_yV9C_MKbgH2Enswjeo-1794343850.875559-1.0.1.1-9YCgZVwuUm1AGdkijeHJcir6jRVigX.C5H.AuVRgrABkOFc2SlcYsVKbSLTS2lzjFATkfUXC3l2X6uRPguxXN9GM587sEsPs
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=GMbESP5RBqpfKURe8QqixmEbiwHlqKxdsgHjLm.1nrA-1794343851.636358-1.0.1.1-gj576zHywDJgJ_Zb5D9pDwqseqE0xQNmS5TB5DV2HEtfcP38gsUJMGMnYnIzyFaJCoITKD8P__2x.XuJCkIMpNOt81y8Z0Ua
+[INFO] 325 of 337 (96.4%)
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=swtaQUpCiLVQwu8me71nowNwZ4hfaHc7hQRDRJzdGkk-1794343852.3954136-1.0.1.1-rad6Yhu_ssNL0tspgrd6V53FhSBpuvKy2SsV_VJqa2efL.AMT9KvMgaDYM.cGWL8mEHu7gWI2bmV1xSfNN1C5Vy5YffsbQY
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=jngi_CvuHdngDLBFO8MpxGtAVnNDpte9uMVDE3WdE38-1794343853.1596308-1.0.1.1-EjVsU0hs.aVmq3BpX9ZjNNZtF9QJmCz3zl27doA2fJteFXbvEQBj4OGx.oY42QyjjWBuOvIMDFUJUco23QcM6c2cz_C_auo
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=WiVCfsdchcLNT2lKADlZLxwk5u9gKdx8lj3SnFEw6Ic-1794343853.9251866-1.0.1.1-pSF63sF4ZbMg6D8G4lcH82EwiBoZrqd0oma9zvURMBB1SA_zgZekVpAUbCvcAQaw7IsZnZZDgqKGbZSs_f7Gv2_5_Fadb32
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=piCwRppFiGugUTzjSAmhHUpWJrZL5zB2uy64qkhtuDU-1794343854.7247574-1.0.1.1-eFytyNJvWBeJIO9qIObs6IVZ4Q4C4Tid9YkgbCI1u3U6YBwk1jVEioTt6eoOd32slkTfUqJljiOVvU8s6gi_0w_X509SKit
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=VD16NskdIwEOklzKdPKc87lq28mVypw0XTWCtEEShrw-1794343855.4614732-1.0.1.1-kfJIT6XSBGrJb4lSfCzWmyYykLkRKmOBTjkZDxncxQnSwla1HgH6.Wcz9n5EujURiWpGt1gA0DsHLiNQywAaqiTQ5AbO_OI
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=OflNbLsm852JudBzeSs3gH376n_Hh.JmP.5Qm3WGXPU-1794343856.324808-1.0.1.1-3.BpxnSrnr3PG1XMGWtZrD8w_UM54mfDBzADx1R_TDSHUIVNGiE99wsuE2YeDEm7zhT6_8vUoAVsx6JRbbzNc.189qWtCHLG
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=cSB7XY8C_TOh3PO2hlnHfENw3yxQruuELwJMVTy0uWI-1794343857.1265016-1.0.1.1-KxAkSZAr9VPwSItVQ9d5.Je9uy02mB6iYH5uIuoNRJG2yFl6GvsndFxEgEwKJMVi7fFB6vAy.FvRZ811DiJHXV9Nmy_xKn8
+[INFO] 331 of 337 (98.2%)
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=mBBd0jivlZkKo9IaIHUn3y_NZqUk9FENlBrWizIJ0A4-1794343857.8699715-1.0.1.1-Wm5tkATNtAtybDXPpjK2rT89y7fnLFxq8jYGbE6bres14E1sfMBNNsZa8y6uPoBomTxQVVce5x5fjH23scjK44y.s0btSDy
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=8ivLEsQh4AuovtgSNp61nu.Av9565babdgXfUVVWvQo-1794343858.6314397-1.0.1.1-nVuPtMY6akFYAASrMEbo6N.xyfGHTgN8DmAUC1HxzQtpo2CwQmQwlnCnyu8xSw6pj4HbUiJZZLyH7zsvygSP.MNLgun.Hou
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=VDGGFB9JroqrA6p5ITGlAv9DJHMvZSYpbNBiLOUkj.Q-1794343859.0968287-1.0.1.1-Xnzi0WvVUGG_dvjEwlHKZaKTnxlsRAIHVsU75P1MVjlBALzfB28AeE.htrdz5lHRBM3pC0lwlMG8QM3ZThET_x7wO_AH1.q
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=9O1YheN_0Uf.sdy0f5yOKt0PkxQPa3RhjIDgdlMP8V0-1794343859.8429785-1.0.1.1-rXZ0m.1ulRuXv8JnApq9fo.8zwIqakRD6M12M_v8caGbYh8Ndm.yLZp.eHCTadhGGxYS0O_6i9p.A0g.g8WDyRF6vL4mA7.
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=o_VVi3J7LxTSX14QRBxHqbdSjH4h20y79iq0EErRFtA-1794343860.5766401-1.0.1.1-P_1tWsm69ruNPGBGH8U7SPHobjVUTT9PB7y6rOL6Z9tNUuApyx01iwclWGRsK8s9XxRenlz6dKAoRISxEjCF8i.BszFzcdy
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=zosUzf7Oqo8zOmEiv2mjlOR9Rgp2k3yAPvq7BbSL28E-1794343861.3147194-1.0.1.1-VPbMzkrlw3eAUY5SROf4q8Oht1cLqMKcSkh9TavC5u5FZ4DvHNuIDTxsISv7wCCNBkYKDdgDFy7smbaKRuUEWvMqvZFJ9xm
+[WARNING] Invalid cookie header: "set-cookie: __cf_bm=7BbIqcbFcTheEU3kREeUoER2e2mgcrZLTj8rxrdNdB4-1794343861.8724494-1.0.1.1-yvs8TST33h5h2xZ8RJzyZ_X.jCwhe9TJh_agG7J4abB3wLzVcSLEaOtau9qqH6sj.tTH0mcqP.RdAqCbu3IBLGTG2pS68rH
+[INFO] Generating configurations
+[INFO] Delayed generation, waiting...
+Nov 10, 2026 8:51:11 PM org.wildfly.channel.maven.VersionResolverFactory$MavenResolverImpl resolveChannelMetadata
+INFO: Resolving channel metadata from Maven artifact org.jboss.eap.channels:eap-8.0:1.12.0.GA-redhat-00011
+[WARNING] The project doesn't define a deployment artifact to deploy to the server.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  05:50 min
+[INFO] Finished at: 2026-11-10T20:51:11Z
+[INFO] ------------------------------------------------------------------------
+[WARNING] The requested profile "openshift" could not be activated because it does not exist.
+INFO Installing server
+INFO S2I source build with plain binaries detected
+INFO Copying deployments from . to /deployments...
+INFO Copying deployments from deployments to /deployments...
+'/tmp/src/deployments/ventas.ear' -> '/deployments/ventas.ear'
+INFO Cleaning up source directory (/tmp/src)
+INFO Copying /deployments to /opt/server/standalone/
+File /tmp/src/faceops/config.cli doesn't exist.
+error: build error: building at STEP "RUN /tmp/scripts/assemble": while running runtime: exit status 1
+ventas-1   Source   Binary   Failed (GenericBuildFailed)   6 minutes ago   6m45s
+
+--- fin: 2026-11-10T17:51:14-03:00 · código: 0
