@@ -1,25 +1,21 @@
-commit: 0038ba5f03cee3e92d501f569ff7d2aa180e4c1a
-inicio: 2026-11-10T19:04:58-03:00
+commit: d01c07c0f8b4fcc02389b63765f4aaa8e6b4cf70
+inicio: 2026-11-10T19:07:32-03:00
 ---
-/bin/gcloud
-
-No credentialed accounts.
-
-To login, run:
-  $ gcloud auth login `ACCOUNT`
-access_tokens.db
-active_config
-configurations
-credentials.db
-default_configs.db
-gce
-logs
-0
-GOOGLE_APPLICATION_CREDENTIALS=no
-vault gcp: vacío
-vault nube/ssh: ['privada', 'publica']
-{'id': 2, 'cliente_id': 1, 'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'region': 'southamerica-west1 (Santiago)', 'detalle': '{"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"}', 'credencial': 'GCP · invoke-summit-cloud', 'inventario': 'Nube GCP', 'ubicacion': 'Cloud GCP', 'estado': 'sin credencial', 'centro_datos': 'Cloud GCP'}
-{'id': 9, 'cliente_id': 3, 'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'region': 'southamerica-west1 (Santiago)', 'detalle': '{"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"}', 'credencial': 'GCP · invoke-summit-cloud', 'inventario': 'Nube GCP', 'ubicacion': 'Cloud GCP', 'estado': 'conectada', 'centro_datos': 'Cloud GCP'}
-{'id': 13, 'cliente_id': 4, 'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'region': 'southamerica-west1 (Santiago)', 'detalle': '{"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"}', 'credencial': 'GCP · invoke-summit-cloud', 'inventario': 'Nube GCP', 'ubicacion': 'Cloud GCP', 'estado': 'conectada', 'centro_datos': 'Cloud GCP'}
-{'id': 17, 'cliente_id': 2, 'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'region': 'southamerica-west1 (Santiago)', 'detalle': '{"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"}', 'credencial': 'GCP · invoke-summit-cloud', 'inventario': 'Nube GCP', 'ubicacion': 'Cloud GCP', 'estado': 'conectada', 'centro_datos': 'Cloud GCP'}
---- fin: 2026-11-10T19:05:00-03:00 · código: 0
+d51d061
+faceops actualizado
+gcp: {'id': 2, 'cliente_id': 1, 'nombre': 'Cloud GCP · invoke-summit-cloud'}
+gcp: {'id': 9, 'cliente_id': 3, 'nombre': 'Cloud GCP · invoke-summit-cloud'}
+gcp: {'id': 13, 'cliente_id': 4, 'nombre': 'Cloud GCP · invoke-summit-cloud'}
+gcp: {'id': 17, 'cliente_id': 2, 'nombre': 'Cloud GCP · invoke-summit-cloud'}
+detalle 2 200 boton: True dialog: True required: ['nombre', 'proyecto', 'zona', 'cuenta'] aster: 5 prefill proyecto: ['invoke-summit-cloud'] AAP en flotante: 0
+alta gcp ee_host: False AAP: 0 Ansible: 0 required: ['nombre', 'proyecto', 'zona', 'cuenta']
+alta azure ee_host: False AAP: 0 Ansible: 0 required: ['nombre', 'suscripcion', 'tenant', 'cliente', 'secreto', 'region']
+alta vmware ee_host: False AAP: 0 Ansible: 0 required: ['centro_datos', 'nombre', 'host', 'usuario', 'clave', 'datacenter']
+alta kvm ee_host: False AAP: 0 Ansible: 0 required: ['centro_datos', 'nombre', 'anfitrion', 'usuario', 'llave']
+alta fisico ee_host: False AAP: 0 Ansible: 0 required: ['centro_datos', 'srv_nombre', 'srv_ip', 'usuario', 'llave']
+incorporar azure sin ee_host: OK instancias: []
+incorporar vmware sin ee_host: OK instancias: []
+incorporar kvm sin ee_host: OK instancias: []
+incorporar fisico sin ee_host: OK
+restos: 0
+--- fin: 2026-11-10T19:08:14-03:00 · código: 0
