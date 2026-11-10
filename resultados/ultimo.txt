@@ -1,14 +1,92 @@
-commit: 66be8487b29a8b8947ef74007068bf61de5d95c1
-inicio: 2026-11-10T20:04:08-03:00
+commit: 2bbf3dc2844ad668be27356d86e5fdea947c20a9
+inicio: 2026-11-10T19:28:22-03:00
 ---
-DevSecOps · Pipeline Tekton → certificada | última: 2026-11-09T17:04 aprobada
-Despliegue · Cambiar tráfico → certificada | última: 2026-11-07T08:23 aprobada
-último pipeline: pipelinerun.tekton.dev/app-jboss-rnkw6
-  clonar: Succeeded
-  secretos: Succeeded
-  compilar-y-probar: Succeeded
-  vulnerabilidades: Succeeded
-  publicar: Succeeded
-  preparar-plataforma: Succeeded
-  desplegar-con-aap: Failed
---- fin: 2026-11-10T20:04:17-03:00 · código: 0
+ce45781
+faceops ya trae la versión
+   · Repositorio Git «repositorio/migraciones-weblogic»
+   · Plantilla «Migración · WebLogic a OpenShift · Evaluar» (id 1130)
+   · Plantilla «Migración · WebLogic a OpenShift» (id 1131)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+===== EVALUAR
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
+M-C1 emular-origen
+  pedido FO-LAB-01434
+  aprobado
+   ('FO-LAB-01434', 'exitoso', [('ventas', True), ('legado', False)]) 
+E-C1
+  pedido FO-LAB-01436
+  aprobado
+   ('FO-LAB-01436', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False) git: {'token': True, 'anterior': 404, 'publicar': -1}
+E-C2
+  pedido FO-LAB-01438
+  aprobado
+   ('FO-LAB-01438', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False) git: {'token': True, 'anterior': 404, 'publicar': -1}
+E-C3
+  pedido FO-LAB-01440
+  aprobado
+   ('FO-LAB-01440', 'fallido', None, None, [], None) git: None
+   … config.xml en /u01, /opt/oracle, /opt/weblogic, /home/oracle o /srv); indícalo en wl_dominio"} |  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+PLAN EVALUAR OK: False
+FIN-SCRIPT
+ns previo limpio
+===== MIGRAR C2-C4
+catalogo: 223
+M-C2
+  pedido FO-LAB-01441
+  aprobado
+   ["FO-LAB-01441", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:de8ae58840776084f23ca680de497c47e7edd144c06fa7fd78d0a6f805f5e6ae", "construccion": "Complete: ", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no"}]
+M-C3
+  pedido FO-LAB-01442
+  aprobado
+   ["FO-LAB-01442", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:de8ae58840776084f23ca680de497c47e7edd144c06fa7fd78d0a6f805f5e6ae", "construccion": "sin cambios: se reutiliza la imagen", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no"}]
+M-C4
+  pedido FO-LAB-01443
+  aprobado
+   ["FO-LAB-01443", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null}]
+   … pietaria (ServletAuthentication); Contexto JNDI propietario (WLInitialContextFactory / t3); Propiedades con JNDI remoto de WebLogic (t3 / WLInitialContextFactory). No se creó nada en OpenShift"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=26   changed=9    unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
+FIN-SCRIPT
+imagestream.image.openshift.io/ventas buildconfig.build.openshift.io/ventas deployment.apps/ventas service/ventas route.route.openshift.io/ventas configmap/ventas-config secret/ventas-ds 
+['WL_DS_VENTASDS_URL', 'WL_DS_VENTASDS_USUARIO', 'prop-ventas.properties'] SINCLAVE
+secret: ['WL_DS_VENTASDS_CLAVE']
+{"estado":"ok","datasource":"enlazado","cola":"enlazado","propiedades":"cargadas"} http=200
+===== MIGRAR C5
+catalogo: 223
+M-C5
+  pedido FO-LAB-01444
+  aprobado
+Error: no container with ID 2b05e209d14b777eec3d8e7ca630058bba5e447f984741997dacf5088743284d found in database: no such container
+--- reintento 1 (contenedor reiniciado)
+catalogo: 223
+Error: can only create exec sessions on running containers: container state improper
+--- reintento 2 (contenedor reiniciado)
+catalogo: 223
+M-C5
+  reanudo FO-LAB-01444 en_ejecucion
+   ["FO-LAB-01444", "fallido", {"construccion": "sin cambios: se reutiliza la imagen", "salud": "/ventas/no-existe → 503", "sano": false, "vuelta_atras": "versión anterior restaurada (HTTP 200)", "retirado": null}]
+   … en; rollout no completó; HTTP 503): se volvió a la versión anterior. El origen sigue intacto"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=51   changed=12   unreachable=0    failed=1    skipped=9    rescued=0    ignored=0   
+A: ['FO-LAB-01434', 'exitoso', [['ventas', True], ['legado', False]]]
+FIN-SCRIPT
+sonda=/ventas/salud salud=200
+===== MIGRAR C6
+catalogo: 223
+M-C6
+  pedido FO-LAB-01445
+  aprobado
+--- reintento 1 (contenedor reiniciado)
+catalogo: 223
+M-C6
+  reanudo FO-LAB-01445 exitoso
+   ["FO-LAB-01445", "exitoso", {"construccion": null, "salud": null, "sano": null, "vuelta_atras": null, "retirado": true}]
+   … AAP terminó (successful): ejecución 18 s, espera de aprobación 39 s
+A: ['FO-LAB-01434', 'exitoso', [['ventas', True], ['legado', False]]]
+FIN-SCRIPT
+ns retirado: true
+{"legado_vacio": true, "cm_sin_clave": true, "salud_c2": "200", "salud_c5": "200", "sonda_c5": "/ventas/salud", "ns_retirado": true}
+===== CERTIFICAR
+catalogo: 223
+casos: {'C1': True, 'C2': True, 'C3': True, 'C4': True, 'C5': True, 'C6': True}
+CERTIFICADA Migración · WebLogic a OpenShift
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'certificada'}
+FIN-SCRIPT
+--- fin: 2026-11-10T20:05:07-03:00 · código: 0
