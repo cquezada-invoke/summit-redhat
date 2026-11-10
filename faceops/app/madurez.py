@@ -214,6 +214,11 @@ def con_madurez(m, cliente_id, eqs, hallazgos):
                 if t["madurez"]["n"]:
                     vals.append(t["madurez"]["pct"])
         pct = round(sum(vals) / len(vals)) if vals else None
+        pil = {}
+        for p in PILARES:   # salud de la capa por pilar: promedio de sus tecnologías con equipos
+            xs = [t["madurez"]["pilares"][p] for c in capa["conceptos"] for t in c["tecnologias"]
+                  if t["madurez"].get("n") and t["madurez"]["pilares"].get(p) is not None]
+            pil[p] = round(sum(xs) / len(xs)) if xs else None
         capa["madurez"] = {"pct": pct, "nivel": nivel(pct) if pct is not None else None, "tecnologias": len(vals),
-                           "meta_pct": meta_pct, "meta_nivel": nivel(meta_pct)}
+                           "meta_pct": meta_pct, "meta_nivel": nivel(meta_pct), "pilares": pil}
     return m

@@ -527,7 +527,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function bifSegmento(){ const cy_=window._cy; if(!cy_) return null; const n=cy_.nodes().filter(x=>!!x.data('bif'))[0]; return n?{b:n.data('bif'),punto:n.data('nombre')||n.data('label')||''}:null; }
   function htmlLakeSegmento(){ const x=bifSegmento(); if(!x) return ''; const b=x.b;
     return sec('Data lake · JavIA')+fila({izq:'Derivación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
-      det:(b.activa?'Cada request del segmento se copia al data lake'+(b.por?' (activada por '+b.por+', '+(b.en||'').slice(0,16).replace('T',' ')+')':'')+'; JavIA la toma desde ahí.'+(b.enviado_mb!=null?'<div style="margin-top:4px"><b>Enviado al lake:</b> '+n2(b.enviado_mb)+' MB · <b>ocupa hoy en S3:</b> '+n2(b.s3_mb)+' MB <span class="sub">(la rotación borra lo más antiguo sobre el 70 %)</span></div>':'')
+      det:(b.activa?''+(b.enviado_mb!=null?'<div style="margin-top:4px"><b>Enviado al data lake:</b> '+n2(b.enviado_mb)+' MB</div>':'')
           :'Al activarla (ticket con aprobación), cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, y arrancan flujos funcionales de prueba; JavIA la usa después.')
         +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif-seg">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
         +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.datos+'" target="_blank"><b>Ver los datos</b></a> · <a href="'+b.explorador+'" target="_blank">Explorador SQL</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
