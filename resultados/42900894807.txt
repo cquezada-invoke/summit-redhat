@@ -1,0 +1,33 @@
+commit: aec08e29f472b8bf7e74106fa7101849a5d2a949
+inicio: 2026-11-10T18:01:21-03:00
+---
+Using openshift launcher.
+2026-11-10 20:58:45 Launching WildFly Server
+INFO Access log is disabled, ignoring configuration.
+INFO Clustering feature is not enabled, no jgroups subsystem present in server configuration.
+INFO Server started in admin mode, CLI script executed during server boot.
+INFO Running jboss-eap-8/eap8-openjdk17-builder-openshift-rhel8 image, version 1.0.1.GA
+JAVA_OPTS already set in environment; overriding default settings with values:  -XX:MaxRAMPercentage=80.0 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -XX:MetaspaceSize=96m -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/d
+=========================================================================
+  JBoss Bootstrap Environment
+  JBOSS_HOME: /opt/server
+  JAVA: /usr/lib/jvm/java-17/bin/java
+  JAVA_OPTS:  -Djdk.serialFilter="maxbytes=10485760;maxdepth=128;maxarray=100000;maxrefs=300000"  -XX:MaxRAMPercentage=80.0 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -XX:MetaspaceSize=96m -XX:+ExitOnOutOfMemoryError -Djava.se
+=========================================================================
+[0m20:58:46,679 INFO  [org.jboss.modules] (main) JBoss Modules version 2.1.6.Final-redhat-00001
+[0mjava.lang.IllegalStateException: WFLYSRV0289: Unable to create auth dir /opt/server/standalone/tmp/auth.
+	at org.jboss.as.server@21.0.20.Final-redhat-00001//org.jboss.as.server.ServerEnvironment.createAuthDir(ServerEnvironment.java:969)
+	at org.jboss.as.server@21.0.20.Final-redhat-00001//org.jboss.as.server.ServerEnvironment.<init>(ServerEnvironment.java:476)
+	at org.jboss.as.server@21.0.20.Final-redhat-00001//org.jboss.as.server.Main.determineEnvironment(Main.java:417)
+	at org.jboss.as.server@21.0.20.Final-redhat-00001//org.jboss.as.server.Main.main(Main.java:96)
+	at org.jboss.modules.Module.run(Module.java:345)
+	at org.jboss.modules.Module.run(Module.java:313)
+	at org.jboss.modules.Main.main(Main.java:612)
+[31m20:58:47,031 FATAL [org.jboss.as.server] (main) WFLYSRV0239: Aborting with exit code 1
+[0m
+{"terminated":{"containerID":"cri-o://5c29348c4380d0aaffca1ae149c9791740fa40773c2a7c9b781cb4a253edbd40","exitCode":1,"finishedAt":"2026-11-10T20:58:47Z","reason":"Error","startedAt":"2026-11-10T20:58:45Z"}}
+192.168.122.50  api.sno.invoke.lab console-openshift-console.apps.sno.invoke.lab oauth-openshift.apps.sno.invoke.lab
+sin dns en host
+192.168.122.50 api.sno.invoke.lab console-openshift-console.apps.sno.invoke.lab oauth-openshift.apps.sno.invoke.lab
+192.168.122.50 default-route-openshift-image-registry.apps.sno.invoke.lab
+--- fin: 2026-11-10T18:01:22-03:00 · código: 0
