@@ -1,15 +1,12 @@
-commit: 3661749bdf0337afa8f12741b73829e46b44e3df
-inicio: 2026-11-10T14:23:58-03:00
+commit: 07ef9f1f7841f3985db0e3d15964236110ca3cf6
+inicio: 2026-11-10T14:27:57-03:00
 ---
-consola nueva: 0/1
-[notice] A new release of pip is available: 24.2 -> 26.3
-[notice] To update, run: pip install --upgrade pip
-[2026-11-10 17:21:46 +0000] [1] [INFO] Starting gunicorn 22.0.0
-[2026-11-10 17:21:46 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-[2026-11-10 17:21:46 +0000] [1] [INFO] Using worker: gthread
-[2026-11-10 17:21:46 +0000] [5] [INFO] Booting worker with pid: 5
-lake: 503 en 0.281109s
-lake: 503 en 0.014536s
-consola-6bd998bd58-g4q48    0/1   Pending     0     5m36s
-consola-77b7c8dc67-wtspx    0/1   Running     0     11m
---- fin: 2026-11-10T14:26:34-03:00 · código: 0
+trino info 200 False 0.01 s
+SELECT 1: FINISHED  0.5 s
+2026-11-10T17:27:34.571Z	INFO	dispatcher-query-714	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172704_08375_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30043ms :: planning 9ms :: waiti
+2026-11-10T17:27:44.573Z	INFO	dispatcher-query-717	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172714_08376_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30045ms :: planning 7ms :: waiti
+2026-11-10T17:27:51.673Z	INFO	dispatcher-query-718	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172721_08377_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30083ms :: planning 39ms :: wait
+2026-11-10T17:27:52.818Z	INFO	dispatcher-query-716	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172722_08378_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30069ms :: planning 30ms :: wait
+2026-11-10T17:27:54.573Z	INFO	dispatcher-query-714	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172724_08379_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30043ms :: planning 7ms :: waiti
+2026-11-10T17:27:58.590Z	INFO	dispatcher-query-710	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172758_08383_ejzmb :: FINISHED :: elapsed 312ms :: planning 6ms :: waiting 0ms :: scheduling 6ms
+--- fin: 2026-11-10T14:27:58-03:00 · código: 0
