@@ -76,6 +76,12 @@ def registrar(nombre, ok, nota):
     d[nombre] = {"estado": "probada" if ok else "repetir", "nota": nota}
     with open(ESTADO, "w") as f:
         yaml.safe_dump(d, f, allow_unicode=True)
+    try:   # el portal corre en OpenShift: se le entrega el estado por su API interna
+        r = urllib.request.Request(os.environ.get("PORTAL_INTERNO", "http://192.168.122.50:30120") + "/api/estado-pruebas", method="POST",
+                                   data=json.dumps(d).encode(), headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(r, timeout=15).read()
+    except Exception as x:  # noqa: BLE001
+        print(f"     · aviso: no se pudo entregar el estado al portal ({x})", flush=True)
 
 
 def pdf_enviado(wj):

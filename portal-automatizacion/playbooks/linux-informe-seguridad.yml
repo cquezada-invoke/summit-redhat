@@ -10,7 +10,7 @@
   become: true
   vars:
     ansible_timeout: 10   # un servidor apagado no detiene la ejecución
-    portal: "{{ portal_informes | default('http://192.168.122.1:8120/api/informe') }}"
+    portal: "{{ portal_informes | default('http://192.168.122.50:30120/api/informe') }}"
   tasks:
     - name: Recolección (solo lectura)
       ansible.builtin.shell: |

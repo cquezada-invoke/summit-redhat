@@ -15,7 +15,7 @@
     api: "{{ lookup('env', 'K8S_AUTH_HOST') | regex_replace('/+$', '') }}"
     ns: "{{ amdocs_namespace | default('amdocs-bss') }}"
     cab: {Authorization: "Bearer {{ lookup('env', 'K8S_AUTH_API_KEY') }}"}
-    portal: "{{ portal_informes | default('http://192.168.122.1:8120/api/informe') }}"
+    portal: "{{ portal_informes | default('http://192.168.122.50:30120/api/informe') }}"
   tasks:
     - name: Órdenes en Amdocs
       ansible.builtin.uri: {url: "{{ api }}/api/v1/namespaces/{{ ns }}/services/http:ordering:8080/proxy/orders", headers: "{{ cab }}", validate_certs: false}

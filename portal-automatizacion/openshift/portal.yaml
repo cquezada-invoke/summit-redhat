@@ -1,0 +1,103 @@
+# Portal de automatización (Claro PR) en OpenShift: namespace portal-claro, una réplica (las sesiones y el vigía de Odoo
+# viven en el proceso), datos en un volumen local del nodo (informes PDF, estado de las pruebas, tickets de Odoo enviados).
+# Entrada pública: https://ansible.<ip>.sslip.io:8843 (nginx del laboratorio → NodePort 30120); los playbooks entregan sus
+# informes en http://192.168.122.50:30120/api/informe. Variables sensibles en el Secret «portal-claro-env» (no va en Git).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portal-claro
+  labels: {invoke.cl/demo: claro-pr}
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata: {name: portal, namespace: portal-claro}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata: {name: portal, namespace: portal-claro}
+spec:
+  source: {type: Binary}
+  strategy:
+    type: Docker
+    dockerStrategy: {dockerfilePath: Containerfile}
+  output: {to: {kind: ImageStreamTag, name: "portal:latest"}}
+  resources: {requests: {cpu: 100m, memory: 256Mi}}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata: {name: portal-claro-datos, labels: {invoke.cl/volumen: portal-claro}}
+spec:
+  capacity: {storage: 2Gi}
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  hostPath: {path: /var/lib/portal-claro, type: DirectoryOrCreate}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: datos, namespace: portal-claro}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: ""
+  selector: {matchLabels: {invoke.cl/volumen: portal-claro}}
+  resources: {requests: {storage: 2Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal
+  namespace: portal-claro
+  labels: {app.kubernetes.io/name: portal, app.kubernetes.io/part-of: portal-claro}
+  annotations: {image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"portal:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"portal\")].image"}]'}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app.kubernetes.io/name: portal}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: portal, app.kubernetes.io/part-of: portal-claro}}
+    spec:
+      containers:
+        - name: portal
+          image: image-registry.openshift-image-registry.svc:5000/portal-claro/portal:latest
+          command: [gunicorn, --workers, "1", --threads, "16", --bind, "0.0.0.0:8120", --access-logfile, "-", "portal:app"]
+          envFrom: [{secretRef: {name: portal-claro-env}}]
+          env:
+            - {name: TZ, value: America/Santiago}
+            - {name: AAP_URL, value: "https://192.168.122.1"}
+            - {name: AMDOCS_URL, value: "http://ordering.amdocs-bss.svc:8080"}
+            - {name: EDA_ODOO, value: "http://192.168.122.1:5012/endpoint"}
+            - {name: PORTAL_INFORMES, value: /tmp/informes}
+          ports: [{containerPort: 8120, name: http}]
+          readinessProbe: {httpGet: {path: /ingresar, port: 8120}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /ingresar, port: 8120}, periodSeconds: 30, failureThreshold: 4}
+          resources: {requests: {cpu: 50m, memory: 192Mi}, limits: {memory: 768Mi}}
+          volumeMounts: [{name: datos, mountPath: /tmp/informes}]
+      volumes: [{name: datos, persistentVolumeClaim: {claimName: datos}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: portal, namespace: portal-claro}
+spec:
+  type: NodePort
+  externalTrafficPolicy: Local   # conserva la IP de origen: /api/informe solo acepta la red interna
+  selector: {app.kubernetes.io/name: portal}
+  ports: [{name: http, port: 8120, targetPort: 8120, nodePort: 30120}]
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: portal, namespace: portal-claro}
+spec:
+  host: portal-claro.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: portal}
+  port: {targetPort: http}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}
+---
+# Amdocs emulado: deja entrar al portal (lista y crea órdenes por el servicio interno)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: desde-portal-claro, namespace: amdocs-bss}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: amdocs-ordering}}
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: portal-claro}}}]

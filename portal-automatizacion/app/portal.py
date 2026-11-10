@@ -124,6 +124,26 @@ def repo_publico(url, rama="main", archivo=""):
     return f"{u}/src/branch/{rama}/{archivo}" if archivo else u
 
 
+def _interna():
+    ip = request.remote_addr or ""
+    return ip.startswith("127.") or ip.startswith("192.168.122.") or ip.startswith("10.") or ip == "::1"
+
+
+@app.route("/api/estado-pruebas", methods=["POST"])
+def api_estado_pruebas():
+    """Las pruebas (pruebas/probar.py en el laboratorio) dejan aquí el estado de cada automatización. Solo red interna."""
+    if not _interna():
+        return jsonify({"error": "solo desde la red interna"}), 403
+    import yaml
+    d = request.get_json(force=True, silent=True)
+    if not isinstance(d, dict):
+        return jsonify({"error": "se esperaba un objeto"}), 400
+    ruta = os.path.join(os.environ.get("PORTAL_INFORMES", "/tmp/informes"), "estado_pruebas.yml")
+    with open(ruta, "w") as f:
+        yaml.safe_dump(d, f, allow_unicode=True)
+    return jsonify({"ok": True, "automatizaciones": len(d)})
+
+
 @app.route("/api/informe", methods=["POST"])
 def api_informe():
     """Los playbooks de análisis envían aquí sus hallazgos; el portal arma el PDF y lo envía por correo. Solo desde la red interna."""

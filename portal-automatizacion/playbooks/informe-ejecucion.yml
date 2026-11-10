@@ -7,7 +7,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    portal: "{{ portal_informes | default('http://192.168.122.1:8120/api/informe') }}"
+    portal: "{{ portal_informes | default('http://192.168.122.50:30120/api/informe') }}"
     destino: "{{ correo | default('cquezada@redhat.com') }}"
     wf_id: "{{ awx_workflow_job_id | default(tower_workflow_job_id | default('')) }}"
   tasks:
