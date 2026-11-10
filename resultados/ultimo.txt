@@ -1,41 +1,23 @@
-commit: c235e2e9dbad255a1c809622d19a949aa50fc772
-inicio: 2026-11-10T14:12:00-03:00
+commit: c2cf6cd86771c46571aaa8122291a2cf88382449
+inicio: 2026-11-10T14:12:27-03:00
 ---
-lake: 503
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+                  kubectl.kubernetes.io/restartedAt: 2026-11-06T15:51:37-03:00
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    1
+    Restart Count:  15
+    Readiness:    http-get http://:8080/ delay=20s timeout=1s period=10s #success=1 #failure=3
+  Type     Reason     Age                From     Message
+  Warning  Unhealthy  2s (x14 over 17h)  kubelet  Readiness probe failed: Get "http://10.128.0.153:8080/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+WARNING: Retrying (Retry(total=4, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f032b86e810>: Failed to
+WARNING: Retrying (Retry(total=3, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f032a98ee50>: Failed to
+WARNING: Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f032a98fa90>: Failed to
 
-    <style type="text/css">
-      body {
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-        line-height: 1.66666667;
-        font-size: 16px;
-        color: #333;
-        background-color: #fff;
-        margin: 2em 1em;
-      }
-      h1 {
-        font-size: 28px;
-        font-weight: 400;
-      }
-      p {
-        margin: 0 0 10px;
-      }
-      .alert.alert-info {
-        background-color: #F0F0F0;
-        margin-top: 30px;
-        padding: 30px;
-      }
-demo-datalake consola sql-lake.sno.34.176.42.56.sslip.io <all>
-carga-56btr                 0/1   Error       0              3d16h
-carga-tkb96                 0/1   Error       0              3d16h
-colector-1-build            0/1   Completed   0              28h
-colector-787c5968fd-rl2nm   1/1   Running     2              28h
-consola-6bd998bd58-t4ggg    0/1   Running     15 (17h ago)   3d22h
-minio-5558bb5bcb-slhlj      1/1   Running     10             4d1h
-trino-5f9cf758-wjdtx        1/1   Running     7              4d
-== pod/carga-56btr
-== pod/carga-tkb96
-== pod/colector-1-build
---- fin: 2026-11-10T14:12:02-03:00 · código: 0
+[notice] A new release of pip is available: 24.2 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+[2026-11-10 00:07:30 +0000] [1] [INFO] Starting gunicorn 22.0.0
+[2026-11-10 00:07:30 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2026-11-10 00:07:30 +0000] [1] [INFO] Using worker: gthread
+[2026-11-10 00:07:30 +0000] [5] [INFO] Booting worker with pid: 5
+2s          Warning   Unhealthy   pod/consola-6bd998bd58-t4ggg   Readiness probe failed: Get "http://10.128.0.153:8080/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+--- fin: 2026-11-10T14:12:28-03:00 · código: 0

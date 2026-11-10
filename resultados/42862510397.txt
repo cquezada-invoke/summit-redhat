@@ -1,0 +1,23 @@
+commit: c2cf6cd86771c46571aaa8122291a2cf88382449
+inicio: 2026-11-10T14:12:27-03:00
+---
+                  kubectl.kubernetes.io/restartedAt: 2026-11-06T15:51:37-03:00
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    1
+    Restart Count:  15
+    Readiness:    http-get http://:8080/ delay=20s timeout=1s period=10s #success=1 #failure=3
+  Type     Reason     Age                From     Message
+  Warning  Unhealthy  2s (x14 over 17h)  kubelet  Readiness probe failed: Get "http://10.128.0.153:8080/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+WARNING: Retrying (Retry(total=4, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f032b86e810>: Failed to
+WARNING: Retrying (Retry(total=3, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f032a98ee50>: Failed to
+WARNING: Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f032a98fa90>: Failed to
+
+[notice] A new release of pip is available: 24.2 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+[2026-11-10 00:07:30 +0000] [1] [INFO] Starting gunicorn 22.0.0
+[2026-11-10 00:07:30 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2026-11-10 00:07:30 +0000] [1] [INFO] Using worker: gthread
+[2026-11-10 00:07:30 +0000] [5] [INFO] Booting worker with pid: 5
+2s          Warning   Unhealthy   pod/consola-6bd998bd58-t4ggg   Readiness probe failed: Get "http://10.128.0.153:8080/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+--- fin: 2026-11-10T14:12:28-03:00 · código: 0
