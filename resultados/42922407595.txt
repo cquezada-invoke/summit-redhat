@@ -1,0 +1,15 @@
+commit: 974ea23949de6a8b81ef2d6f8a5c46409ced790c
+inicio: 2026-11-10T20:19:39-03:00
+---
+ad hoc 22171 error
+
+Traceback (most recent call last):
+  File "/tmp/m.py", line 5, in <module>
+    for t in q("SELECT t.numero, t.estado, t.creado, t.actualizado, a.nombre_aap, substr(t.motivo,1,120) m FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.numero IN ('FO-LAB-01404','FO-LAB-01405','FO-LAB-01403','FO-LAB-01406')"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 178, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: t.actualizado
+Tue Nov 10 08:20:05 PM -03 2026
+--- fin: 2026-11-10T20:20:05-03:00 · código: 0

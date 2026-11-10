@@ -1,26 +1,15 @@
-commit: 7d9c4b600cb2f15fd6fe1c540ee474be4aba20ef
-inicio: 2026-11-10T20:18:25-03:00
+commit: 974ea23949de6a8b81ef2d6f8a5c46409ced790c
+inicio: 2026-11-10T20:19:39-03:00
 ---
-ad hoc 22169 successful
-Identity added: /runner/artifacts/22169/ssh_key_data (cquezada@demo-ansible-summit)
-[0;33mnodo-jboss | CHANGED | rc=0 >>[0m
-[0;33m== nodo-jboss.demo.local[0m
-[0;33mactive[0m
-[0;33m0.0.0.0:8443 users:(("java",pid=2210,fd=437))[0m
-[0;33m0.0.0.0:9990 users:(("java",pid=2210,fd=435))[0m
-[0;33m0.0.0.0:8080 users:(("conmon",pid=2398,fd=5))[0m
-[0;33mlocal /app-jboss/salud 404[0m
-[0;33mtotal 1188[0m
-[0;33mdrwxr-x---.  2 root root      86 Nov 10 18:17 .[0m
-[0;33mdrwxr-xr-x. 39 root root    4096 Nov  6 12:46 ..[0m
-[0;33m-rw-r-----.  1 root root   53719 Nov 10 15:02 actual.war[0m
-[0;33m-rw-r-----.  1 root root   53770 Nov 10 18:17 nueva.war[0m
-[0;33m-rw-r--r--.  1 root root 1086687 Oct 23 16:39 postgresql.jar[0m
-[0;33m-rw-r-----.  1 root root    6597 Nov  2 02:19 restablecer.war[0m
-[0;33mdeployments: /var/opt/rh/eap8/lib/wildfly/standalone/deployments[0m
-[0;33mREADME.txt[0m
-[0;33mlog: [0m
-[0;33mjboss       2210     901  0 16:30 ?        00:00:22 /usr/lib/jvm/jre/bin/java -D[Standalone] -Xlog:gc*:file=/opt/rh/eap8/root/usr/share/wildfly/standalone/log/gc.log:time,uptimemillis:filecount=5,filesize=3M -Djdk.serial[0m
-[0;33mroot        2398       1  0 16:30 ?        00:00:00 /usr/bin/conmon --api-version 1 -c d530fc6740dc03e5469e0cc927b9a03c1e5ba409dfd9af5cf328fd689db47d4d -u d530fc6740dc03e5469e0cc927b9a03c1e5ba409dfd9af5cf328fd689db47d4d [0m
-[0;33mansible     2403    2398  0 16:30 ?        00:00:34 java -Dkc.config.built=true -Djava.util.concurrent.ForkJoinPool.common.threadFactory=io.quarkus.bootstrap.forkjoin.QuarkusForkJoinWorkerThreadFactory -XX:MetaspaceSize=[0m
---- fin: 2026-11-10T20:18:48-03:00 · código: 0
+ad hoc 22171 error
+
+Traceback (most recent call last):
+  File "/tmp/m.py", line 5, in <module>
+    for t in q("SELECT t.numero, t.estado, t.creado, t.actualizado, a.nombre_aap, substr(t.motivo,1,120) m FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.numero IN ('FO-LAB-01404','FO-LAB-01405','FO-LAB-01403','FO-LAB-01406')"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 178, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: t.actualizado
+Tue Nov 10 08:20:05 PM -03 2026
+--- fin: 2026-11-10T20:20:05-03:00 · código: 0
