@@ -81,7 +81,7 @@ for d in ("playbooks", "rulebooks"):
     shutil.copytree(os.path.join(AQUI, d), os.path.join(tmp, d))
 os.makedirs(os.path.join(tmp, "collections"), exist_ok=True)
 open(os.path.join(tmp, "collections", "requirements.yml"), "w").write(
-    "collections:\n  - name: kubernetes.core\n  - name: ansible.utils\n")
+    "collections:\n  - name: kubernetes.core\n  - name: ansible.utils\n  - name: ansible.windows\n")
 git("add", "-A")
 if git("status", "--porcelain").stdout.strip():
     git("-c", "user.name=Cristian Quezada", "-c", "user.email=cquezada@invoke.cl", "commit", "-qm", "Automatizaciones del portal")
@@ -202,14 +202,17 @@ def etiqueta(nombre, o):
     return etiqueta_ids[(nombre, o)]
 
 
-def plantilla(nombre, playbook, red=False, descripcion=""):
+def plantilla(nombre, playbook, red=False, descripcion="", base=None):
+    b_ = uno("job_templates", name=base) if base else None   # servidores: inventario y credenciales de máquina de esa plantilla
     jt = asegurar("job_templates", nombre, {
-        "organization": org if not red else jt_red["organization"], "inventory": inv if not red else jt_red["inventory"],
+        "organization": org if not red else jt_red["organization"],
+        "inventory": (b_["inventory"] if b_ else inv) if not red else jt_red["inventory"],
         "project": proy if not red else jt_red["project"], "playbook": playbook, "ask_variables_on_launch": True,
         "execution_environment": ee if not red else jt_red.get("execution_environment"), "description": descripcion,
         "allow_simultaneous": False})["id"]
     ya = {c["id"] for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]}
-    for c in (cred_red if red else [cred_ocp]):
+    creds = [c["id"] for c in aap("GET", f"job_templates/{b_['id']}/credentials/")["results"]] if b_ else (cred_red if red else [cred_ocp])
+    for c in creds:
         if c not in ya:
             aap("POST", f"job_templates/{jt}/credentials/", {"id": c})
     if red and jt_red["organization"] != org:   # la organización del portal puede usarla
@@ -221,7 +224,7 @@ cat = yaml.safe_load(open(os.path.join(AQUI, "catalogo.yml")))
 jts = {}
 for it in cat:
     if it.get("playbook"):
-        jts[it["nombre"]] = plantilla(f"Portal · {it['nombre']} (plantilla)", it["playbook"], it.get("red", False), it["descripcion"])
+        jts[it["nombre"]] = plantilla(f"Portal · {it['nombre']} (plantilla)", it["playbook"], it.get("red", False), it["descripcion"], it.get("base"))
     elif it.get("existente"):
         jts[it["nombre"]] = uno("job_templates", name=it["existente"])["id"]
 jts["_orden"] = plantilla("Portal · Amdocs · Orden de servicio (plantilla)", "playbooks/amdocs-orden.yml",
@@ -275,6 +278,11 @@ def workflow(it):
 
 
 for it in cat:
+    if it.get("oculto"):   # solo plantilla: el workflow del portal se retira
+        for w_ in aap("GET", "workflow_job_templates/?name=" + q(f"Portal · {it['nombre']}"))["results"]:
+            aap("DELETE", f"workflow_job_templates/{w_['id']}/", t=True)
+        paso(f"oculta: 'Portal · {it['nombre']}' (queda la plantilla)")
+        continue
     paso(f"workflow 'Portal · {it['nombre']}' (id {workflow(it)})")
 
 # Usuario demo del tenant: administra solo su organización (ve, lanza y aprueba lo de Claro). La clave la fija Cristian en AAP.

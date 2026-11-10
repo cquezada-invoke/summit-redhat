@@ -1,0 +1,1 @@
+[{% for h in ansible_play_hosts %}{"titulo": {{ h | to_json }}, "hallazgos": {{ hostvars[h].hallazgos | default([]) | to_json }}}{{ "," if not loop.last }}{% endfor %}]

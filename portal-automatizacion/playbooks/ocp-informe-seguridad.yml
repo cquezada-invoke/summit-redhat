@@ -1,0 +1,132 @@
+# OpenShift · Informe de seguridad del clúster (PDF por correo): lo que la consola no junta en un solo lugar, con semáforo,
+# qué significa y qué hacer, más un resumen ejecutivo escrito por Claude. Solo lectura: no cambia nada.
+#   Revisa: quién tiene cluster-admin (usuarios, grupos y cuentas de servicio), kubeadmin todavía activo, pods privilegiados o
+#           como root en namespaces de aplicaciones, cuentas de servicio con SCC privilegiada, imágenes sin versión fija,
+#           namespaces sin NetworkPolicy, rutas sin TLS o con HTTP permitido, secretos sin rotar hace más de 180 días y
+#           certificados del clúster (API e ingress) próximos a vencer.
+# Variables: correo (a quién se envía el PDF), dias_secretos (180)
+# Credencial: "OpenShift · clúster (token)".
+- name: OpenShift · Informe de seguridad del clúster
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    portal: "{{ portal_informes | default('http://192.168.122.1:8120/api/informe') }}"
+  tasks:
+    - name: Objetos del clúster (solo lectura)
+      kubernetes.core.k8s_info: {api_version: "{{ item.0 }}", kind: "{{ item.1 }}"}
+      loop:
+        - [rbac.authorization.k8s.io/v1, ClusterRoleBinding]
+        - [v1, Pod]
+        - [v1, Namespace]
+        - [networking.k8s.io/v1, NetworkPolicy]
+        - [route.openshift.io/v1, Route]
+        - [v1, Secret]
+        - [security.openshift.io/v1, SecurityContextConstraints]
+      loop_control: {label: "{{ item.1 }}"}
+      register: r_o
+
+    - name: kubeadmin
+      kubernetes.core.k8s_info: {kind: Secret, namespace: kube-system, name: kubeadmin}
+      register: r_ka
+
+    - name: Hallazgos
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import json, sys, datetime
+            e = json.load(sys.stdin); o = e["o"]; ahora = datetime.datetime.now(datetime.timezone.utc)
+            sistema = lambda n: n.startswith(("openshift", "kube-", "default")) or n in ("stackrox", "rhacs-operator", "open-cluster-management", "multicluster-engine", "hive")
+            edad = lambda t: (ahora - datetime.datetime.fromisoformat(t.replace("Z", "+00:00"))).days
+            s = {k: [] for k in ("Accesos privilegiados", "Cargas de trabajo", "Red y exposición", "Secretos y certificados")}
+            adm = []
+            for b in o["ClusterRoleBinding"]:
+                if b["roleRef"]["name"] == "cluster-admin":
+                    for x in b.get("subjects") or []:
+                        if not x["name"].startswith("system:") and not (x["kind"] == "ServiceAccount" and sistema(x.get("namespace", ""))):
+                            adm.append(f"{x['kind']} {x.get('namespace', '') + '/' if x.get('namespace') else ''}{x['name']}")
+            if adm:
+                s["Accesos privilegiados"].append({"sev": "alto" if len(adm) > 3 else "medio", "titulo": f"{len(adm)} identidades con cluster-admin", "detalle": ", ".join(adm[:15]),
+                                                   "recomendacion": "Dejar cluster-admin solo a un grupo de administradores; el resto con roles por namespace."})
+            if e["kubeadmin"]:
+                s["Accesos privilegiados"].append({"sev": "alto", "titulo": "La cuenta kubeadmin sigue activa", "recomendacion": "Con el IdP corporativo configurado, eliminar el secreto kube-system/kubeadmin."})
+            for scc in o["SecurityContextConstraints"]:
+                if scc.get("allowPrivilegedContainer"):
+                    us = [u for u in scc.get("users") or [] if not u.startswith("system:serviceaccount:openshift") and not u.startswith("system:admin")]
+                    if us:
+                        s["Accesos privilegiados"].append({"sev": "alto", "titulo": f"SCC privilegiada «{scc['metadata']['name']}» asignada a cuentas de aplicaciones", "detalle": ", ".join(us[:10]),
+                                                           "recomendacion": "Usar restricted-v2; si una CNF lo necesita, una SCC propia y acotada."})
+            priv, root, latest = [], [], []
+            for p in o["Pod"]:
+                ns = p["metadata"]["namespace"]
+                if sistema(ns):
+                    continue
+                for c in p["spec"].get("containers", []):
+                    sc = c.get("securityContext") or {}
+                    ref = f"{ns}/{p['metadata']['name']}"
+                    if sc.get("privileged"):
+                        priv.append(ref)
+                    if sc.get("runAsUser") == 0:
+                        root.append(ref)
+                    img = c.get("image", "")
+                    if "@sha256" not in img and (img.endswith(":latest") or ":" not in img.split("/")[-1]):
+                        latest.append(f"{ref} ({img.split('/')[-1]})")
+            if priv:
+                s["Cargas de trabajo"].append({"sev": "critico", "titulo": f"{len(priv)} contenedores privilegiados en aplicaciones", "detalle": ", ".join(sorted(set(priv))[:12]),
+                                               "recomendacion": "Quitar privileged; si es una CNF, documentar la excepción y aislarla en su namespace."})
+            if root:
+                s["Cargas de trabajo"].append({"sev": "alto", "titulo": f"{len(root)} contenedores corren como root", "detalle": ", ".join(sorted(set(root))[:12]), "recomendacion": "Imágenes que no requieran root (UBI)."})
+            if latest:
+                s["Cargas de trabajo"].append({"sev": "medio", "titulo": f"{len(latest)} contenedores con imagen sin versión fija", "detalle": ", ".join(sorted(set(latest))[:12]),
+                                               "recomendacion": "Usar etiquetas de versión o digest: con :latest no se sabe qué corre ni se puede volver atrás."})
+            con_np = {n["metadata"]["namespace"] for n in o["NetworkPolicy"]}
+            sin_np = [n["metadata"]["name"] for n in o["Namespace"] if not sistema(n["metadata"]["name"]) and n["metadata"]["name"] not in con_np]
+            if sin_np:
+                s["Red y exposición"].append({"sev": "alto", "titulo": f"{len(sin_np)} namespaces de aplicaciones sin NetworkPolicy", "detalle": ", ".join(sin_np[:20]),
+                                              "recomendacion": "Política por defecto que niegue y abra solo lo necesario («Regularizar» la crea)."})
+            sin_tls = [f"{r['metadata']['namespace']}/{r['spec']['host']}" for r in o["Route"] if not r["spec"].get("tls")]
+            http_ok = [f"{r['metadata']['namespace']}/{r['spec']['host']}" for r in o["Route"] if (r["spec"].get("tls") or {}).get("insecureEdgeTerminationPolicy") == "Allow"]
+            if sin_tls:
+                s["Red y exposición"].append({"sev": "alto", "titulo": f"{len(sin_tls)} rutas publicadas sin TLS", "detalle": ", ".join(sin_tls[:12]), "recomendacion": "Terminación edge o reencrypt con redirección a HTTPS."})
+            if http_ok:
+                s["Red y exposición"].append({"sev": "medio", "titulo": f"{len(http_ok)} rutas aceptan HTTP sin redirigir", "detalle": ", ".join(http_ok[:12]), "recomendacion": "insecureEdgeTerminationPolicy: Redirect."})
+            viejos = [f"{x['metadata']['namespace']}/{x['metadata']['name']}" for x in o["Secret"]
+                      if not sistema(x["metadata"]["namespace"]) and x.get("type") in ("Opaque", "kubernetes.io/basic-auth")
+                      and edad(x["metadata"]["creationTimestamp"]) > e["dias"]]
+            if viejos:
+                s["Secretos y certificados"].append({"sev": "medio", "titulo": f"{len(viejos)} secretos sin rotar hace más de {e['dias']} días", "detalle": ", ".join(viejos[:15]),
+                                                     "recomendacion": "Rotarlos o moverlos a Vault con rotación automática."})
+            for x in o["Secret"]:
+                if x.get("type") == "kubernetes.io/tls" and x["metadata"]["namespace"] in ("openshift-ingress", "openshift-config", "openshift-kube-apiserver"):
+                    exp = (x["metadata"].get("annotations") or {}).get("auth.openshift.io/certificate-not-after")
+                    if exp and (datetime.datetime.fromisoformat(exp.replace("Z", "+00:00")) - ahora).days < 30:
+                        s["Secretos y certificados"].append({"sev": "alto", "titulo": f"Certificado {x['metadata']['name']} vence en {(datetime.datetime.fromisoformat(exp.replace('Z', '+00:00')) - ahora).days} días",
+                                                             "objeto": x["metadata"]["namespace"], "recomendacion": "Renovarlo antes de que corte el acceso."})
+            print(json.dumps([{"titulo": k, "hallazgos": v} for k, v in s.items()]))
+        stdin: "{{ {'o': dict(r_o.results | map(attribute='item') | map('last') | zip(r_o.results | map(attribute='resources'))), 'kubeadmin': (r_ka.resources | length) > 0, 'dias': dias_secretos | default(180) | int} | to_json }}"
+      register: r_h
+      changed_when: false
+
+    - name: Enviar al portal para el PDF y el correo
+      ansible.builtin.uri:
+        url: "{{ portal }}"
+        method: POST
+        body_format: json
+        body:
+          titulo: "Informe de seguridad · clúster OpenShift"
+          alcance: "{{ lookup('env', 'K8S_AUTH_HOST') | urlsplit('hostname') }}"
+          archivo: openshift-seguridad
+          correo: "{{ correo | default('cquezada@invoke.cl') }}"
+          job: "{{ tower_job_id | default(awx_job_id | default('-')) }}"
+          secciones: "{{ r_h.stdout | from_json }}"
+      register: r_inf
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Informe PDF: {{ r_inf.json.envio | default('no se pudo generar') }}"
+            estado: "{{ 'critico' if r_inf.json.cuenta.critico | default(0) else ('atencion' if r_inf.json.cuenta.alto | default(0) else 'ok') }}"
+            filas: "{{ r_inf.json.cuenta | default({}) | dict2items | map(attribute='key') | zip(r_inf.json.cuenta | default({}) | dict2items | map(attribute='value') | map('string')) | list }}"

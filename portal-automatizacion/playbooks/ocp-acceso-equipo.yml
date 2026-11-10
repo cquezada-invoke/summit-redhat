@@ -1,0 +1,80 @@
+# OpenShift · Acceso de un equipo de punta a punta: un equipo nuevo queda con todo lo que necesita en un solo paso,
+# y al retirarlo se le quita todo lo mismo (sin accesos huérfanos).
+#   - Grupo en OpenShift con sus miembros (en Claro, sincronizado desde el IdP corporativo).
+#   - RoleBinding del rol elegido en cada namespace indicado.
+#   - Equipo en el Git de las aplicaciones con acceso a sus repositorios (en el laboratorio, Gitea; en Claro, su Git).
+#   - Política de lectura de secretos en Vault para la ruta del equipo.
+# Variables: equipo, miembros (usuarios separados por coma), namespaces (separados por coma), rol (view | edit | admin),
+#            accion (alta | baja)
+# Credencial: "OpenShift · clúster (token)". Git y Vault: credenciales del laboratorio (si no están, esos pasos se omiten y se informa).
+- name: OpenShift · Acceso de equipo
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    eq: "{{ equipo | default('') | trim | lower }}"
+    usuarios: "{{ miembros | default('') | split(',') | map('trim') | select | list }}"
+    nss: "{{ namespaces | default('') | split(',') | map('trim') | select | list }}"
+    r: "{{ rol | default('view') }}"
+    a: "{{ accion | default('alta') }}"
+    git_api: "{{ lookup('env', 'GIT_API') | default('', true) }}"
+    vault_api: "{{ lookup('env', 'VAULT_ADDR') | default('', true) }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - eq is match('^[a-z0-9-]{3,40}$')
+          - usuarios | length > 0 or a == 'baja'
+          - nss | length > 0
+          - r in ['view', 'edit', 'admin'] and a in ['alta', 'baja']
+          - usuarios | select('match', '^[a-z0-9._@-]+$') | list | length == usuarios | length
+        quiet: true
+
+    - name: Grupo en OpenShift
+      kubernetes.core.k8s:
+        state: "{{ 'present' if a == 'alta' else 'absent' }}"
+        definition: {apiVersion: user.openshift.io/v1, kind: Group, metadata: {name: "{{ eq }}", labels: {invoke.cl/aap: acceso}}, users: "{{ usuarios }}"}
+
+    - name: Rol en cada namespace
+      kubernetes.core.k8s:
+        state: "{{ 'present' if a == 'alta' else 'absent' }}"
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: RoleBinding
+          metadata: {name: "equipo-{{ eq }}", namespace: "{{ item }}", labels: {invoke.cl/aap: acceso}}
+          roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: "{{ r }}"}
+          subjects: [{apiGroup: rbac.authorization.k8s.io, kind: Group, name: "{{ eq }}"}]
+      loop: "{{ nss }}"
+
+    - name: Equipo en Git
+      ansible.builtin.uri:
+        url: "{{ git_api }}/orgs/aplicaciones/teams"
+        method: POST
+        headers: {Authorization: "token {{ lookup('env', 'GIT_TOKEN') }}"}
+        body_format: json
+        body: {name: "{{ eq }}", permission: "{{ 'write' if r != 'view' else 'read' }}", includes_all_repositories: false, units: [repo.code, repo.pulls]}
+        status_code: [201, 422]
+      when: git_api and a == 'alta'
+      register: r_git
+
+    - name: Política en Vault para secret/data/{{ eq }}/*
+      ansible.builtin.uri:
+        url: "{{ vault_api }}/v1/sys/policies/acl/equipo-{{ eq }}"
+        method: "{{ 'PUT' if a == 'alta' else 'DELETE' }}"
+        headers: {X-Vault-Token: "{{ lookup('env', 'VAULT_TOKEN') }}"}
+        body_format: json
+        body: {policy: "path \"secret/data/{{ eq }}/*\" { capabilities = [\"read\", \"list\"] }"}
+        status_code: [200, 204]
+      when: vault_api | length > 0
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Equipo {{ eq }}: {{ 'acceso dado' if a == 'alta' else 'acceso retirado' }} en {{ nss | length }} namespace(s)"
+            estado: ok
+            filas:
+              - ["Miembros", "{{ usuarios | join(', ') or '-' }}"]
+              - ["OpenShift", "grupo {{ eq }} · rol {{ r }} en {{ nss | join(', ') }}"]
+              - ["Git", "{{ 'equipo creado' if r_git is not skipped else 'sin credencial de Git: se omitió' }}"]
+              - ["Vault", "{{ 'política equipo-' ~ eq if vault_api else 'sin credencial de Vault: se omitió' }}"]

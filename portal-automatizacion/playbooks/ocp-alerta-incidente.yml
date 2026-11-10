@@ -1,0 +1,85 @@
+# OpenShift · De alerta a incidente: lo que pasa cuando suena una alerta, sin que nadie entre a la consola.
+# Normalmente la lanza Event-Driven Ansible desde Alertmanager; también se puede lanzar a mano.
+#   1. Junta la evidencia: estado del pod, últimos eventos del namespace y las últimas líneas del log (del contenedor anterior
+#      si se reinició).
+#   2. Si la causa es conocida y remediar=si, aplica la remediación segura: reinicia el pod en CrashLoopBackOff o escala
+#      el deployment si está sin réplicas disponibles.
+#   3. Abre el incidente en ServiceNow con la evidencia y lo que se hizo (en el laboratorio, ServiceNow está emulado:
+#      el incidente queda en el ConfigMap itsm-emulado/incidentes). Si la remediación resolvió, lo deja resuelto.
+# Variables: alerta (nombre de la alerta), namespace, pod (opcional), remediar (si | no)
+# Credencial: "OpenShift · clúster (token)".
+- name: OpenShift · De alerta a incidente
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ namespace | default(ansible_eda.event.alert.labels.namespace | default('')) }}"
+    al: "{{ alerta | default(ansible_eda.event.alert.labels.alertname | default('manual')) }}"
+    rem: "{{ remediar | default('si') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that: [ns is match('^[a-z0-9-]{1,63}$'), rem in ['si', 'no'], (pod | default('')) is match('^[a-z0-9.-]*$')]
+        quiet: true
+
+    - name: Pods del namespace
+      kubernetes.core.k8s_info: {kind: Pod, namespace: "{{ ns }}"}
+      register: r_pods
+
+    - name: Eventos recientes
+      kubernetes.core.k8s_info: {kind: Event, namespace: "{{ ns }}"}
+      register: r_ev
+
+    - name: Pods con problemas
+      ansible.builtin.set_fact:
+        malos: >-
+          {{ r_pods.resources | selectattr('status.containerStatuses', 'defined')
+             | selectattr('metadata.name', 'match', (pod | default('') or '.*'))
+             | selectattr('status.containerStatuses', 'contains', {'ready': False}) | map(attribute='metadata.name') | list }}
+        eventos: "{{ (r_ev.resources | selectattr('type', 'equalto', 'Warning') | map(attribute='message') | list)[-8:] }}"
+
+    - name: Log del contenedor (el anterior si se reinició)
+      kubernetes.core.k8s_log: {namespace: "{{ ns }}", name: "{{ item }}", previous: true, tail_lines: 30}
+      loop: "{{ malos[:3] }}"
+      register: r_log
+      ignore_errors: true
+
+    - name: Remediación segura · reiniciar pods en CrashLoopBackOff
+      kubernetes.core.k8s: {state: absent, kind: Pod, namespace: "{{ ns }}", name: "{{ item }}"}
+      loop: "{{ malos[:3] }}"
+      when: rem == 'si'
+      register: r_rem
+
+    - name: Esperar a que vuelvan
+      kubernetes.core.k8s_info: {kind: Pod, namespace: "{{ ns }}"}
+      register: r_despues
+      until: (r_despues.resources | selectattr('status.containerStatuses', 'defined') | selectattr('status.containerStatuses', 'contains', {'ready': False}) | list | length) == 0
+      retries: 12
+      delay: 10
+      ignore_errors: true
+      when: rem == 'si' and malos | length > 0
+
+    - name: Incidente
+      ansible.builtin.set_fact:
+        resuelto: "{{ rem == 'si' and malos | length > 0 and not (r_despues.failed | default(true)) }}"
+        numero: "INC{{ '%07d' | format(lookup('pipe', 'date +%s') | int % 10000000) }}"
+
+    - name: ServiceNow (emulado en el laboratorio) · incidente con la evidencia
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata: {name: incidentes, namespace: itsm-emulado}
+          data: "{{ {numero: {'alerta': al, 'namespace': ns, 'pods': malos, 'eventos': eventos, 'remediacion': ('reinicio de pods' if rem == 'si' and malos else 'ninguna'), 'estado': ('resuelto' if resuelto else 'abierto')} | to_json} }}"
+      when: malos | length > 0 or eventos | length > 0
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "{{ al }} en {{ ns }}: {{ (numero ~ (' resuelto automáticamente' if resuelto else ' abierto con la evidencia')) if (malos or eventos) else 'sin problemas activos, no se abre incidente' }}"
+            estado: "{{ 'ok' if resuelto or not (malos or eventos) else 'atencion' }}"
+            filas: >-
+              {% set f = [['Pods con problemas', malos | join(', ') or 'ninguno'],
+                          ['Remediación', ('reinicio de ' ~ malos | length ~ ' pod(s)') if rem == 'si' and malos else 'ninguna']] %}{% for e in eventos %}{% set _ = f.append(['Evento', e[:140]]) %}{% endfor %}{{ f }}

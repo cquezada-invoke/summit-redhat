@@ -1,0 +1,100 @@
+# Linux · Informe de seguridad (PDF por correo): revisa cada servidor y entrega un informe con semáforo por severidad, qué se
+# encontró, qué significa y qué hacer, más un resumen ejecutivo escrito por Claude. Solo lectura: no cambia nada.
+#   Revisa: parches de seguridad pendientes (y críticos), reinicio pendiente por kernel, versión del sistema y fin de soporte,
+#           SELinux, SSH (root y contraseñas), cuentas con UID 0 y sudo sin contraseña, firewall, puertos expuestos,
+#           intentos de acceso fallidos y servicios inseguros (telnet, ftp, rsh).
+# Variables: correo (a quién se envía el PDF), limit en AAP (qué servidores)
+- name: Linux · Informe de seguridad
+  hosts: all
+  gather_facts: true
+  become: true
+  vars:
+    portal: "{{ portal_informes | default('http://192.168.122.1:8120/api/informe') }}"
+  tasks:
+    - name: Recolección (solo lectura)
+      ansible.builtin.shell: |
+        set +e
+        echo "SEC=$(dnf -q updateinfo list --security 2>/dev/null | wc -l)"
+        echo "CRIT=$(dnf -q updateinfo list --security --sec-severity=Critical 2>/dev/null | wc -l)"
+        needs-restarting -r >/dev/null 2>&1; echo "REBOOT=$?"
+        echo "SELINUX=$(getenforce 2>/dev/null || echo n/a)"
+        echo "ROOTSSH=$(sshd -T 2>/dev/null | awk '/^permitrootlogin/{print $2}')"
+        echo "PASSSSH=$(sshd -T 2>/dev/null | awk '/^passwordauthentication/{print $2}')"
+        echo "UID0=$(awk -F: '$3==0{print $1}' /etc/passwd | paste -sd,)"
+        echo "NOPASSWD=$(grep -rhs NOPASSWD /etc/sudoers /etc/sudoers.d | grep -v '^#' | awk '{print $1}' | paste -sd,)"
+        echo "FIREWALL=$(systemctl is-active firewalld 2>/dev/null)"
+        echo "PUERTOS=$(ss -Hltn | awk '{print $4}' | grep -v '127.0.0.1\|::1' | sed 's/.*://' | sort -un | paste -sd,)"
+        echo "FALLIDOS=$(journalctl -u sshd --since '-7d' 2>/dev/null | grep -c 'Failed password')"
+        echo "INSEGUROS=$(rpm -q telnet-server vsftpd rsh-server 2>/dev/null | grep -v 'not installed' | paste -sd,)"
+      register: r_rec
+      changed_when: false
+
+    - name: Hallazgos del servidor
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import json, sys
+            e = json.load(sys.stdin); d = dict(l.split("=", 1) for l in e["lineas"] if "=" in l); h = []
+            n = lambda k: int(d.get(k) or 0)
+            if n("CRIT"):
+                h.append({"sev": "critico", "titulo": f"{n('CRIT')} parches de seguridad CRÍTICOS pendientes", "detalle": f"{n('SEC')} parches de seguridad en total",
+                          "recomendacion": "Aplicarlos en la próxima ventana con «Aplicar parches de seguridad» (con aprobación)."})
+            elif n("SEC"):
+                h.append({"sev": "alto", "titulo": f"{n('SEC')} parches de seguridad pendientes", "recomendacion": "Planificar su aplicación en la próxima ventana."})
+            if d.get("REBOOT") == "1":
+                h.append({"sev": "medio", "titulo": "Reinicio pendiente: cambió el kernel o librerías base", "recomendacion": "Reiniciar en ventana para que los parches queden activos."})
+            if d.get("SELINUX") not in ("Enforcing", "n/a"):
+                h.append({"sev": "alto", "titulo": f"SELinux en {d.get('SELINUX')}", "recomendacion": "Volver a Enforcing; revisar antes con audit2why lo que se bloquearía."})
+            if d.get("ROOTSSH") == "yes":
+                h.append({"sev": "alto", "titulo": "SSH permite entrar directo como root", "recomendacion": "PermitRootLogin no; usar usuarios nominales con sudo (trazabilidad)."})
+            if d.get("PASSSSH") == "yes":
+                h.append({"sev": "medio", "titulo": "SSH acepta contraseñas", "recomendacion": "Solo llaves o MFA (PasswordAuthentication no)."})
+            otros = [u for u in (d.get("UID0") or "").split(",") if u and u != "root"]
+            if otros:
+                h.append({"sev": "critico", "titulo": "Cuentas con UID 0 además de root: " + ", ".join(otros), "recomendacion": "Eliminarlas o cambiarles el UID: tienen poder total."})
+            if d.get("NOPASSWD"):
+                h.append({"sev": "medio", "titulo": "sudo sin contraseña para: " + d["NOPASSWD"], "recomendacion": "Limitarlo a cuentas de servicio y comandos concretos."})
+            if d.get("FIREWALL") != "active":
+                h.append({"sev": "alto", "titulo": "Firewall local apagado", "recomendacion": "Activar firewalld dejando solo los puertos del servicio."})
+            if d.get("INSEGUROS"):
+                h.append({"sev": "alto", "titulo": "Servicios inseguros instalados: " + d["INSEGUROS"], "recomendacion": "Desinstalarlos; usar SSH/SFTP."})
+            if n("FALLIDOS") > 50:
+                h.append({"sev": "medio", "titulo": f"{n('FALLIDOS')} intentos de acceso SSH fallidos en 7 días", "recomendacion": "Revisar el origen; restringir SSH por red o usar fail2ban."})
+            h.append({"sev": "bajo", "titulo": "Puertos expuestos: " + (d.get("PUERTOS") or "ninguno"), "detalle": e["so"]})
+            print(json.dumps(h))
+        stdin: "{{ {'lineas': r_rec.stdout_lines, 'so': ansible_distribution ~ ' ' ~ ansible_distribution_version ~ ' · kernel ' ~ ansible_kernel} | to_json }}"
+      delegate_to: localhost
+      become: false
+      register: r_h
+      changed_when: false
+
+    - name: Lista de hallazgos
+      ansible.builtin.set_fact:
+        hallazgos: "{{ r_h.stdout | from_json }}"
+
+    - name: Enviar al portal para el PDF y el correo
+      ansible.builtin.uri:
+        url: "{{ portal }}"
+        method: POST
+        body_format: json
+        body:
+          titulo: "Informe de seguridad · servidores Linux"
+          alcance: "{{ ansible_play_hosts | length }} servidores"
+          archivo: linux-seguridad
+          correo: "{{ correo | default('cquezada@invoke.cl') }}"
+          job: "{{ tower_job_id | default(awx_job_id | default('-')) }}"
+          secciones: "{{ lookup('template', 'secciones.j2') | from_json }}"
+      delegate_to: localhost
+      run_once: true
+      register: r_inf
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Informe PDF: {{ r_inf.json.envio | default('no se pudo generar') }}"
+            estado: "{{ 'critico' if r_inf.json.cuenta.critico | default(0) else ('atencion' if r_inf.json.cuenta.alto | default(0) else 'ok') }}"
+            filas: "{{ r_inf.json.cuenta | default({}) | dict2items | map(attribute='key') | zip(r_inf.json.cuenta | default({}) | dict2items | map(attribute='value') | map('string')) | list }}"
+      run_once: true

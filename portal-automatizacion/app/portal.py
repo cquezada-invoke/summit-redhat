@@ -6,6 +6,7 @@
 Variables: AAP_URL (https://192.168.122.1), AAP_VERIFICAR (0), PORTAL_SECRETO, AMDOCS_URL (API de órdenes emulada)."""
 import json
 import os
+import re
 import secrets
 import ssl
 import time
@@ -13,7 +14,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, abort, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 AAP = os.environ.get("AAP_URL", "https://192.168.122.1").rstrip("/")
@@ -26,9 +27,11 @@ _ORG = f"&organization__name={urllib.parse.quote(TENANT)}" if TENANT else ""
 AMDOCS = os.environ.get("AMDOCS_URL", "https://amdocs-ordering.sno.34.176.42.56.sslip.io").rstrip("/")
 SECCIONES = [
     ("infra", "Infraestructura", "Servidores, sistemas operativos y servicios base del data center"),
-    ("ocp", "OpenShift", "Monitoreo, certificados, regularización, optimización y gestión del clúster"),
+    ("ocp", "OpenShift", "Lo que OpenShift y ACM no hacen solos: actualizaciones guiadas, incidentes, certificados de punta a punta, accesos e informes"),
     ("telco", "Telco · Claro Puerto Rico", "Clúster de cargas para funciones de red (CNF) de Nabstract y la red del servicio"),
-    ("amdocs", "Telco · Amdocs", "Órdenes de servicio, salud de la plataforma BSS y despliegue de releases"),
+    ("amdocs", "Telco · Amdocs", "Órdenes de servicio, conciliación con la red y OpenShift, y despliegue de releases"),
+    ("linux", "Linux", "Análisis de seguridad de servidores Linux con informe en PDF"),
+    ("windows", "Windows", "Análisis de seguridad de servidores Windows con informe en PDF"),
 ]
 SESIONES = {}   # id → {usuario, token, token_id, nombre, creada}; solo en memoria
 app = Flask(__name__)
@@ -96,7 +99,7 @@ def _error_aap(e):
 
 @app.before_request
 def _csrf():
-    if request.method == "POST" and request.endpoint not in ("ingresar",):
+    if request.method == "POST" and request.endpoint not in ("ingresar", "api_informe"):
         if not secrets.compare_digest(request.headers.get("X-CSRF", request.form.get("csrf", "")), session.get("csrf", "-")):
             abort(400)
 
@@ -118,6 +121,29 @@ def repo_publico(url, rama="main", archivo=""):
     if "github.com" in u:   # AAP con el proyecto en GitHub (instalación fuera del laboratorio)
         return f"{u}/blob/{rama}/{archivo}" if archivo else u
     return f"{u}/src/branch/{rama}/{archivo}" if archivo else u
+
+
+@app.route("/api/informe", methods=["POST"])
+def api_informe():
+    """Los playbooks de análisis envían aquí sus hallazgos; el portal arma el PDF y lo envía por correo. Solo desde la red interna."""
+    ip = request.remote_addr or ""
+    if not (ip.startswith("127.") or ip.startswith("192.168.122.") or ip.startswith("10.") or ip == "::1"):
+        return jsonify({"error": "solo desde la red interna de AAP"}), 403
+    from informe import procesar
+    try:
+        return jsonify(procesar(request.get_json(force=True)))
+    except (ValueError, KeyError, TypeError) as x:
+        return jsonify({"error": f"informe inválido ({type(x).__name__})"}), 400
+
+
+@app.route("/informes/<nombre>")
+def informe_descarga(nombre):
+    if not sesion():
+        return redirect(url_for("ingresar"))
+    from informe import DIR
+    if not re.fullmatch(r"[a-z0-9-]+\.pdf", nombre):
+        abort(404)
+    return send_from_directory(DIR, nombre, as_attachment=True)
 
 
 @app.context_processor

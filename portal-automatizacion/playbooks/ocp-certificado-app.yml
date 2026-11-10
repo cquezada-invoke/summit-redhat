@@ -1,0 +1,72 @@
+# OpenShift · Certificado de aplicación de punta a punta: renovar un certificado no termina en OpenShift.
+#   1. Revisa el certificado actual de la Route de la aplicación y cuántos días le quedan.
+#   2. Si vence dentro del umbral (o forzar=si), emite uno nuevo con la CA interna del laboratorio (en Claro, la CA corporativa
+#      o cert-manager) y lo carga en la Route.
+#   3. Lo carga también en el balanceador externo que publica la aplicación (en el laboratorio, emulado en el ConfigMap
+#      red-balanceador/certificados) y verifica desde fuera que la cadena TLS que se ve sea la nueva.
+# Variables: namespace, ruta (nombre de la Route), umbral_dias (30), forzar (si | no)
+# Credencial: "OpenShift · clúster (token)".
+- name: OpenShift · Certificado de aplicación de punta a punta
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ namespace | default('') }}"
+    dias: "{{ umbral_dias | default(30) | int }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that: [ns is match('^[a-z0-9-]{1,63}$'), (ruta | default('')) is match('^[a-z0-9-]{1,63}$'), (forzar | default('no')) in ['si', 'no']]
+        quiet: true
+
+    - name: Route de la aplicación
+      kubernetes.core.k8s_info: {api_version: route.openshift.io/v1, kind: Route, namespace: "{{ ns }}", name: "{{ ruta }}"}
+      register: r_rt
+      failed_when: not r_rt.resources
+
+    - name: Certificado que se ve desde fuera
+      ansible.builtin.command:
+        argv: [bash, -c, "echo | openssl s_client -connect {{ r_rt.resources[0].spec.host }}:443 -servername {{ r_rt.resources[0].spec.host }} 2>/dev/null | openssl x509 -noout -enddate -issuer"]
+      register: r_antes
+      changed_when: false
+      failed_when: false
+
+    - name: Días restantes
+      ansible.builtin.set_fact:
+        quedan: "{{ (((r_antes.stdout | regex_search('notAfter=(.*)', '\\1') | first | default('Jan  1 00:00:00 2000 GMT')) | to_datetime('%b %d %H:%M:%S %Y GMT')) - now(utc=true).replace(tzinfo=None)).days }}"
+        host: "{{ r_rt.resources[0].spec.host }}"
+
+    - name: Emitir certificado nuevo (CA interna del laboratorio)
+      ansible.builtin.command:
+        argv: [bash, -c, "openssl req -x509 -newkey rsa:2048 -nodes -days 398 -subj /CN={{ host }} -addext subjectAltName=DNS:{{ host }} -keyout /tmp/{{ ruta }}.key -out /tmp/{{ ruta }}.crt 2>/dev/null && echo ok"]
+      when: (quedan | int) < dias or (forzar | default('no')) == 'si'
+      register: r_nuevo
+
+    - name: Cargar en la Route
+      kubernetes.core.k8s:
+        state: patched
+        api_version: route.openshift.io/v1
+        kind: Route
+        namespace: "{{ ns }}"
+        name: "{{ ruta }}"
+        definition:
+          spec: {tls: {termination: edge, certificate: "{{ lookup('file', '/tmp/' ~ ruta ~ '.crt') }}", key: "{{ lookup('file', '/tmp/' ~ ruta ~ '.key') }}"}}
+      when: r_nuevo is changed
+
+    - name: Cargar en el balanceador externo (emulado en el laboratorio)
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata: {name: certificados, namespace: red-balanceador}
+          data: "{{ {host: lookup('file', '/tmp/' ~ ruta ~ '.crt')} }}"
+      when: r_nuevo is changed
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "{{ host }}: {{ ('certificado renovado en la Route y en el balanceador' if r_nuevo is changed else 'vigente, ' ~ quedan ~ ' días (umbral ' ~ dias ~ ')') }}"
+            estado: "{{ 'ok' if r_nuevo is changed or (quedan | int) >= dias else 'atencion' }}"
+            filas: [["Antes", "{{ r_antes.stdout | default('sin respuesta') | replace('\n', ' · ') }}"], ["Días restantes antes", "{{ quedan }}"], ["Acción", "{{ 'renovado (Route + balanceador)' if r_nuevo is changed else 'ninguna' }}"]]

@@ -1,0 +1,122 @@
+# Amdocs · Informe de operación y conciliación (PDF por correo): cruza lo que Amdocs cree que está activo con lo que
+# realmente existe en la red y en OpenShift, que es donde nacen los reclamos de clientes. Solo lectura: no cambia nada.
+#   - Órdenes atascadas (en aprobación o en curso hace más de N minutos) y órdenes fallidas sin cerrar.
+#   - Conciliación: cada orden «completada» debe tener su namespace de CNF en OpenShift; cada namespace de CNF debe tener una
+#     orden viva (si no, es un recurso huérfano que se paga y no se cobra).
+#   - Salud de los microservicios del BSS: pods listos, reinicios y tiempo de respuesta.
+#   Más un resumen ejecutivo escrito por Claude.
+# Variables: correo (a quién se envía el PDF), minutos_atasco (60), amdocs_namespace (amdocs-bss)
+# Credencial: "OpenShift · clúster (token)" (llega a la API de Amdocs por el proxy de servicios de OpenShift).
+- name: Amdocs · Informe de operación y conciliación
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('env', 'K8S_AUTH_HOST') | regex_replace('/+$', '') }}"
+    ns: "{{ amdocs_namespace | default('amdocs-bss') }}"
+    cab: {Authorization: "Bearer {{ lookup('env', 'K8S_AUTH_API_KEY') }}"}
+    portal: "{{ portal_informes | default('http://192.168.122.1:8120/api/informe') }}"
+  tasks:
+    - name: Órdenes en Amdocs
+      ansible.builtin.uri: {url: "{{ api }}/api/v1/namespaces/{{ ns }}/services/http:ordering:8080/proxy/orders", headers: "{{ cab }}", validate_certs: false}
+      register: r_ord
+
+    - name: Namespaces de CNF en OpenShift
+      kubernetes.core.k8s_info: {kind: Namespace, label_selectors: ["invoke.cl/tipo=cnf"]}
+      register: r_ns
+
+    - name: Microservicios del BSS
+      kubernetes.core.k8s_info: {kind: Pod, namespace: "{{ ns }}"}
+      register: r_pods
+
+    - name: Tiempo de respuesta de cada microservicio
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ ns }}/services/http:{{ item }}:8080/proxy/health"
+        headers: "{{ cab }}"
+        validate_certs: false
+        status_code: [200, 503]
+      loop: [ordering, customer, catalog]
+      register: r_salud
+      ignore_errors: true
+
+    - name: Hallazgos
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import json, sys, datetime
+            e = json.load(sys.stdin); ahora = datetime.datetime.now(datetime.timezone.utc)
+            def mins(t):
+                try:
+                    return (ahora - datetime.datetime.fromisoformat(str(t).replace("Z", "+00:00"))).total_seconds() / 60
+                except ValueError:
+                    return 0
+            ords = e["ordenes"] if isinstance(e["ordenes"], list) else []
+            s = {k: [] for k in ("Órdenes de servicio", "Conciliación Amdocs ↔ red y OpenShift", "Plataforma BSS")}
+            atas = [o for o in ords if o.get("estado") in ("nueva", "enviada a Ansible (EDA)", "en aprobación") and mins(((o.get("historial") or [{}])[-1]).get("t") or o.get("creada")) > e["umbral"]]
+            if atas:
+                s["Órdenes de servicio"].append({"sev": "alto", "titulo": f"{len(atas)} órdenes atascadas más de {e['umbral']} minutos",
+                                                 "detalle": ", ".join(f"{o['id']} ({o.get('estado')})" for o in atas[:15]),
+                                                 "recomendacion": "Revisar la aprobación pendiente en AAP o relanzar «Activar orden de servicio»."})
+            fall = [o for o in ords if o.get("estado") == "fallida"]
+            if fall:
+                s["Órdenes de servicio"].append({"sev": "medio", "titulo": f"{len(fall)} órdenes fallidas", "detalle": ", ".join(f"{o['id']}: {o.get('detalle', '')[:60]}" for o in fall[:10]),
+                                                 "recomendacion": "Avisar al área comercial y reintentar o anular en Amdocs."})
+            por_estado = {}
+            for o in ords:
+                por_estado[o.get("estado", "?")] = por_estado.get(o.get("estado", "?"), 0) + 1
+            s["Órdenes de servicio"].append({"sev": "bajo", "titulo": f"{len(ords)} órdenes en Amdocs", "detalle": " · ".join(f"{k}: {v}" for k, v in sorted(por_estado.items()))})
+            ns_cnf = {n["metadata"]["name"]: (n["metadata"].get("labels") or {}) for n in e["namespaces"]}
+            comp = [o for o in ords if o.get("estado") == "completada"]
+            ref = lambda o: str((o.get("servicio") or {}).get("nombre") or "")
+            sin_ns = [o["id"] for o in comp if ref(o) and not any(ref(o) in n for n in ns_cnf)]
+            if sin_ns:
+                s["Conciliación Amdocs ↔ red y OpenShift"].append({"sev": "critico", "titulo": f"{len(sin_ns)} servicios activos en Amdocs sin su CNF en OpenShift",
+                                                                   "detalle": ", ".join(sin_ns[:15]), "recomendacion": "El cliente paga y no tiene servicio: reprovisionar con la orden."})
+            vivos = {ref(o) for o in ords if o.get("estado") not in ("fallida", "cancelada")}
+            huerf = [n for n in ns_cnf if not any(v and v in n for v in vivos)]
+            if huerf:
+                s["Conciliación Amdocs ↔ red y OpenShift"].append({"sev": "alto", "titulo": f"{len(huerf)} CNF en OpenShift sin orden viva en Amdocs", "detalle": ", ".join(huerf[:15]),
+                                                                   "recomendacion": "Recurso huérfano: se paga y no se cobra. Retirar con «Onboarding de CNF» (retirar) tras confirmar."})
+            if not sin_ns and not huerf:
+                s["Conciliación Amdocs ↔ red y OpenShift"].append({"sev": "ok", "titulo": "Amdocs, red y OpenShift coinciden"})
+            for p in e["pods"]:
+                cs = (p.get("status") or {}).get("containerStatuses") or []
+                rein = sum(c.get("restartCount", 0) for c in cs)
+                if not all(c.get("ready") for c in cs):
+                    s["Plataforma BSS"].append({"sev": "critico", "titulo": f"Pod no listo: {p['metadata']['name']}", "recomendacion": "Revisar logs; las órdenes nuevas pueden estar fallando."})
+                elif rein > 3:
+                    s["Plataforma BSS"].append({"sev": "medio", "titulo": f"{p['metadata']['name']}: {rein} reinicios", "recomendacion": "Revisar memoria y dependencias del microservicio."})
+            for x in e["salud"]:
+                if x.get("status") != 200:
+                    s["Plataforma BSS"].append({"sev": "critico", "titulo": f"amdocs-{x['item']} responde {x.get('status')}", "recomendacion": "Servicio caído o degradado."})
+                elif (x.get("elapsed") or 0) > 0.5:
+                    s["Plataforma BSS"].append({"sev": "medio", "titulo": f"amdocs-{x['item']} lento: {int(x['elapsed'] * 1000)} ms"})
+            print(json.dumps([{"titulo": k, "hallazgos": v} for k, v in s.items()]))
+        stdin: "{{ {'ordenes': r_ord.json | default([]), 'namespaces': r_ns.resources, 'pods': r_pods.resources, 'umbral': minutos_atasco | default(60) | int,
+                    'salud': r_salud.results | map('dict2items') | map('selectattr', 'key', 'in', ['item', 'status', 'elapsed']) | map('items2dict') | list} | to_json }}"
+      register: r_h
+      changed_when: false
+
+    - name: Enviar al portal para el PDF y el correo
+      ansible.builtin.uri:
+        url: "{{ portal }}"
+        method: POST
+        body_format: json
+        body:
+          titulo: "Informe de operación y conciliación · Amdocs"
+          alcance: "BSS {{ ns }} · {{ (r_ord.json | default([])) | length }} órdenes"
+          archivo: amdocs-operacion
+          correo: "{{ correo | default('cquezada@invoke.cl') }}"
+          job: "{{ tower_job_id | default(awx_job_id | default('-')) }}"
+          secciones: "{{ r_h.stdout | from_json }}"
+      register: r_inf
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Informe PDF: {{ r_inf.json.envio | default('no se pudo generar') }}"
+            estado: "{{ 'critico' if r_inf.json.cuenta.critico | default(0) else ('atencion' if r_inf.json.cuenta.alto | default(0) else 'ok') }}"
+            filas: "{{ r_inf.json.cuenta | default({}) | dict2items | map(attribute='key') | zip(r_inf.json.cuenta | default({}) | dict2items | map(attribute='value') | map('string')) | list }}"

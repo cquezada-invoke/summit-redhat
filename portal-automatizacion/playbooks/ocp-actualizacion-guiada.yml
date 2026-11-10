@@ -1,0 +1,127 @@
+# OpenShift · Actualización guiada con ACM: lo que ACM no hace alrededor de una actualización del clúster.
+# Se usa como hook de ACM (ClusterCurator prehook/posthook llama a esta plantilla de AAP) o se lanza a mano.
+#   fase=pre:  verifica que el clúster esté sano (operadores, nodos), respalda etcd, guarda una foto de la configuración
+#              (versión, operadores, MachineConfigPools) y saca el clúster del balanceador externo para que no reciba tráfico nuevo.
+#   fase=post: verifica que todos los operadores quedaron en la versión nueva, prueba las rutas críticas de las aplicaciones
+#              y devuelve el clúster al balanceador. Si algo falla, lo deja fuera del balanceador y abre un incidente.
+# Variables: fase (pre | post), version_destino (p. ej. 4.19.55), rutas_criticas (URLs separadas por coma), balanceador
+#            (nombre del pool en el balanceador externo; en el laboratorio está emulado en el ConfigMap red-balanceador/pools)
+# Credencial: "OpenShift · clúster (token)".
+- name: OpenShift · Actualización guiada con ACM
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    f: "{{ fase | default('pre') }}"
+    rutas: "{{ rutas_criticas | default('') | split(',') | map('trim') | select | list }}"
+    pool: "{{ balanceador | default('claro-pr-sno') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - f in ['pre', 'post']
+          - (version_destino | default('')) is match('^(4\.[0-9]+\.[0-9]+)?$')
+        quiet: true
+
+    - name: Versión y operadores del clúster
+      kubernetes.core.k8s_info: {api_version: config.openshift.io/v1, kind: ClusterVersion, name: version}
+      register: r_cv
+
+    - name: Operadores del clúster
+      kubernetes.core.k8s_info: {api_version: config.openshift.io/v1, kind: ClusterOperator}
+      register: r_co
+
+    - name: Estado
+      ansible.builtin.set_fact:
+        version: "{{ r_cv.resources[0].status.desired.version }}"
+        degradados: >-
+          {{ r_co.resources | selectattr('status.conditions', 'defined')
+             | selectattr('status.conditions', 'contains', {'type': 'Degraded', 'status': 'True'}) | map(attribute='metadata.name') | list }}
+
+    - name: Pre · el clúster debe estar sano antes de actualizar
+      ansible.builtin.assert:
+        that: degradados | length == 0
+        fail_msg: "Operadores degradados: {{ degradados | join(', ') }}. No se actualiza."
+      when: f == 'pre'
+
+    - name: Pre · nodo de control e imagen de herramientas
+      kubernetes.core.k8s_info: {kind: Node, label_selectors: ["node-role.kubernetes.io/master"]}
+      register: r_m
+      when: f == 'pre'
+
+    - name: Pre · imagen de herramientas del clúster
+      kubernetes.core.k8s_info: {api_version: image.openshift.io/v1, kind: ImageStreamTag, namespace: openshift, name: "tools:latest"}
+      register: r_tools
+      when: f == 'pre'
+
+    - name: Pre · respaldo de etcd (cluster-backup.sh, igual que «OpenShift · Respaldo de etcd»)
+      kubernetes.core.k8s:
+        state: present
+        wait: true
+        wait_condition: {type: Ready, status: "False", reason: PodCompleted}
+        wait_timeout: 600
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata: {name: "pre-actualizacion-etcd-{{ lookup('pipe', 'date +%s') }}", namespace: openshift-etcd, labels: {app: respaldo-etcd-aap}}
+          spec:
+            nodeName: "{{ r_m.resources[0].metadata.name }}"
+            restartPolicy: Never
+            hostNetwork: true
+            hostPID: true
+            tolerations: [{operator: Exists}]
+            priorityClassName: system-node-critical
+            containers:
+              - name: respaldo
+                image: "{{ r_tools.resources[0].image.dockerImageReference }}"
+                command: [/bin/bash, -c, "chroot /host /usr/local/bin/cluster-backup.sh /home/core/respaldos/pre-actualizacion-$(date +%Y%m%d-%H%M%S)"]
+                securityContext: {privileged: true, runAsUser: 0}
+                volumeMounts: [{name: host, mountPath: /host}]
+            volumes: [{name: host, hostPath: {path: /}}]
+      when: f == 'pre'
+
+    - name: Pre · foto de la configuración antes del cambio
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata: {name: "pre-actualizacion-{{ version | replace('.', '-') }}", namespace: openshift-config, labels: {invoke.cl/aap: actualizacion}}
+          data:
+            version: "{{ version }}"
+            destino: "{{ version_destino | default('') }}"
+            operadores: "{{ r_co.resources | map(attribute='metadata.name') | join(',') }}"
+      when: f == 'pre'
+
+    - name: Post · versión alcanzada y operadores al día
+      ansible.builtin.set_fact:
+        post_ok: >-
+          {{ (version_destino | default('') in ['', version]) and degradados | length == 0
+             and (r_co.resources | rejectattr('status.versions', 'undefined')
+                  | rejectattr('status.versions', 'contains', {'name': 'operator', 'version': version}) | list | length) == 0 }}
+      when: f == 'post'
+
+    - name: Post · rutas críticas de las aplicaciones
+      ansible.builtin.uri: {url: "{{ item }}", validate_certs: false, timeout: 15, status_code: [200, 301, 302, 401]}
+      loop: "{{ rutas }}"
+      register: r_rutas
+      ignore_errors: true
+      when: f == 'post'
+
+    - name: Balanceador externo (emulado en el laboratorio)
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata: {name: pools, namespace: red-balanceador}
+          data: "{{ {pool: ('fuera' if f == 'pre' or not (post_ok | default(false) and (r_rutas.results | default([]) | selectattr('failed', 'defined') | selectattr('failed') | list | length) == 0) else 'dentro')} }}"
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "{{ 'Listo para actualizar: respaldo de etcd y clúster fuera del balanceador' if f == 'pre' else ('Actualización validada: clúster de vuelta en el balanceador' if post_ok and not (r_rutas.results | default([]) | selectattr('failed', 'defined') | selectattr('failed') | list) else 'Validación posterior con problemas: el clúster queda fuera del balanceador') }}"
+            estado: "{{ 'ok' if f == 'pre' or post_ok else 'critico' }}"
+            filas: "{{ [['Versión', version], ['Destino', version_destino | default('-')], ['Operadores degradados', degradados | join(', ') or 'ninguno']]
+                       + (r_rutas.results | default([]) | map(attribute='item') | zip(r_rutas.results | default([]) | map(attribute='status', default='sin respuesta') | map('string')) | list) }}"

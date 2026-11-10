@@ -1,0 +1,111 @@
+# Windows · Informe de seguridad (PDF por correo): revisa cada servidor Windows y entrega un informe con semáforo, qué se
+# encontró y qué hacer, más un resumen ejecutivo escrito por Claude. Solo lectura: no cambia nada.
+#   Revisa: actualizaciones pendientes (y de seguridad críticas) y días desde la última, reinicio pendiente, versión y fin de
+#           soporte, administradores locales, cuenta Guest, firewall por perfil, Defender (activo y firmas al día), BitLocker,
+#           SMBv1, RDP con NLA, política de contraseñas.
+# Variables: correo (a quién se envía el PDF), limit en AAP (qué servidores). Conexión WinRM según el inventario.
+- name: Windows · Informe de seguridad
+  hosts: all
+  gather_facts: false
+  vars:
+    portal: "{{ portal_informes | default('http://192.168.122.1:8120/api/informe') }}"
+  tasks:
+    - name: Recolección (solo lectura)
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'SilentlyContinue'
+        $s = New-Object -ComObject Microsoft.Update.Session; $r = $s.CreateUpdateSearcher().Search("IsInstalled=0 and Type='Software'")
+        $pend = @($r.Updates); $crit = @($pend | Where-Object { $_.MsrcSeverity -eq 'Critical' })
+        $ult = (Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 1).InstalledOn
+        $os = Get-CimInstance Win32_OperatingSystem
+        $adm = @(Get-LocalGroupMember -Group Administrators | ForEach-Object { $_.Name })
+        $fw = @(Get-NetFirewallProfile | Where-Object { -not $_.Enabled } | ForEach-Object { $_.Name })
+        $mp = Get-MpComputerStatus
+        $bl = @(Get-BitLockerVolume | Where-Object { $_.ProtectionStatus -ne 'On' } | ForEach-Object { $_.MountPoint })
+        $smb1 = (Get-SmbServerConfiguration).EnableSMB1Protocol
+        $nla = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp').UserAuthentication
+        $guest = (Get-LocalUser -Name Guest).Enabled
+        $minlen = ((net accounts) -match 'Minimum password length' -split ':')[1].Trim()
+        $reboot = Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
+        [pscustomobject]@{ pendientes = $pend.Count; criticas = $crit.Count; ultima = if ($ult) { ($ult).ToString('yyyy-MM-dd') } else { '' }
+          so = "$($os.Caption) $($os.Version)"; admins = $adm; firewall_off = $fw; defender = [bool]$mp.RealTimeProtectionEnabled
+          firmas_dias = [int]$mp.AntivirusSignatureAge; bitlocker_off = $bl; smb1 = [bool]$smb1; nla = ($nla -eq 1); guest = [bool]$guest
+          clave_min = $minlen; reinicio = $reboot } | ConvertTo-Json -Compress
+      register: r_rec
+      changed_when: false
+
+    - name: Hallazgos del servidor
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import json, sys, datetime
+            d = json.loads(sys.stdin.read() or "{}"); h = []
+            lista = lambda v: v if isinstance(v, list) else ([v] if v else [])
+            if d.get("criticas"):
+                h.append({"sev": "critico", "titulo": f"{d['criticas']} actualizaciones CRÍTICAS pendientes", "detalle": f"{d.get('pendientes')} pendientes en total",
+                          "recomendacion": "Aplicarlas en la próxima ventana (WSUS/AAP con aprobación)."})
+            elif d.get("pendientes"):
+                h.append({"sev": "alto", "titulo": f"{d['pendientes']} actualizaciones pendientes", "recomendacion": "Planificar su aplicación."})
+            if d.get("ultima"):
+                dias = (datetime.date.today() - datetime.date.fromisoformat(d["ultima"])).days
+                if dias > 45:
+                    h.append({"sev": "alto", "titulo": f"{dias} días sin actualizar (última: {d['ultima']})", "recomendacion": "Incluir el servidor en el ciclo mensual de parches."})
+            if d.get("reinicio"):
+                h.append({"sev": "medio", "titulo": "Reinicio pendiente por actualizaciones", "recomendacion": "Reiniciar en ventana."})
+            if any(x in d.get("so", "") for x in ("2008", "2012")):
+                h.append({"sev": "critico", "titulo": f"Sistema fuera de soporte: {d['so']}", "recomendacion": "Migrar a una versión soportada; no recibe parches de seguridad."})
+            adm = [a for a in lista(d.get("admins")) if not a.endswith("\\Administrator") and "Domain Admins" not in a]
+            if len(adm) > 2:
+                h.append({"sev": "medio", "titulo": f"{len(adm)} cuentas con administrador local", "detalle": ", ".join(adm[:10]), "recomendacion": "Dejar solo cuentas nominales necesarias (LAPS para la local)."})
+            if lista(d.get("firewall_off")):
+                h.append({"sev": "alto", "titulo": "Firewall apagado en perfil: " + ", ".join(lista(d["firewall_off"])), "recomendacion": "Activarlo con reglas por servicio."})
+            if not d.get("defender"):
+                h.append({"sev": "alto", "titulo": "Protección en tiempo real de Defender desactivada", "recomendacion": "Activarla o confirmar que hay otro antivirus gestionado."})
+            elif int(d.get("firmas_dias") or 0) > 3:
+                h.append({"sev": "medio", "titulo": f"Firmas de antivirus con {d['firmas_dias']} días", "recomendacion": "Revisar la actualización de firmas."})
+            if lista(d.get("bitlocker_off")):
+                h.append({"sev": "medio", "titulo": "Discos sin cifrar (BitLocker): " + ", ".join(lista(d["bitlocker_off"])), "recomendacion": "Cifrar, sobre todo si tienen datos de clientes."})
+            if d.get("smb1"):
+                h.append({"sev": "critico", "titulo": "SMBv1 habilitado", "recomendacion": "Deshabilitarlo (vector de ransomware tipo WannaCry)."})
+            if not d.get("nla"):
+                h.append({"sev": "alto", "titulo": "Escritorio remoto sin NLA", "recomendacion": "Exigir autenticación a nivel de red en RDP."})
+            if d.get("guest"):
+                h.append({"sev": "alto", "titulo": "Cuenta Guest habilitada", "recomendacion": "Deshabilitarla."})
+            if str(d.get("clave_min", "")).isdigit() and int(d["clave_min"]) < 12:
+                h.append({"sev": "medio", "titulo": f"Contraseñas de {d['clave_min']} caracteres mínimo", "recomendacion": "Subir a 12 o más (o por GPO del dominio)."})
+            h.append({"sev": "bajo", "titulo": d.get("so", "Windows"), "detalle": f"Última actualización: {d.get('ultima') or 'sin datos'}"})
+            print(json.dumps(h))
+        stdin: "{{ r_rec.stdout | default('{}') }}"
+      delegate_to: localhost
+      register: r_h
+      changed_when: false
+
+    - name: Lista de hallazgos
+      ansible.builtin.set_fact:
+        hallazgos: "{{ r_h.stdout | from_json }}"
+
+    - name: Enviar al portal para el PDF y el correo
+      ansible.builtin.uri:
+        url: "{{ portal }}"
+        method: POST
+        body_format: json
+        body:
+          titulo: "Informe de seguridad · servidores Windows"
+          alcance: "{{ ansible_play_hosts | length }} servidores"
+          archivo: windows-seguridad
+          correo: "{{ correo | default('cquezada@invoke.cl') }}"
+          job: "{{ tower_job_id | default(awx_job_id | default('-')) }}"
+          secciones: "{{ lookup('template', 'secciones.j2') | from_json }}"
+      delegate_to: localhost
+      run_once: true
+      register: r_inf
+
+    - name: Resultado para el portal
+      ansible.builtin.set_stats:
+        data:
+          portal_resultado:
+            titulo: "Informe PDF: {{ r_inf.json.envio | default('no se pudo generar') }}"
+            estado: "{{ 'critico' if r_inf.json.cuenta.critico | default(0) else ('atencion' if r_inf.json.cuenta.alto | default(0) else 'ok') }}"
+            filas: "{{ r_inf.json.cuenta | default({}) | dict2items | map(attribute='key') | zip(r_inf.json.cuenta | default({}) | dict2items | map(attribute='value') | map('string')) | list }}"
+      run_once: true

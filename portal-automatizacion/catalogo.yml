@@ -1,8 +1,10 @@
 # Catálogo del portal: cada entrada es un workflow «Portal · <nombre>» en AAP = aprobación → plantilla(s).
 # seccion: infra | ocp | telco | amdocs (etiqueta portal-<seccion>) · playbook: del proyecto del portal · red: true usa el
-# proyecto e inventario de la red del laboratorio · existente: usa una plantilla que ya existe en AAP.
+# proyecto e inventario de la red del laboratorio · existente: usa una plantilla que ya existe en AAP · oculto: solo plantilla,
+# sin workflow en el portal · base: toma el inventario y las credenciales de máquina de esa plantilla (servidores).
 # La encuesta es lo que el portal muestra como parámetros (pregunta, ayuda, tipo, opciones, por defecto).
 - nombre: "OpenShift · Salud del clúster"
+  oculto: true   # bajo valor frente a OpenShift/ACM: queda como plantilla (la usan otros flujos) pero no en el portal
   seccion: ocp
   playbook: playbooks/ocp-salud.yml
   descripcion: "Monitoreo en un clic: nodos, operadores del clúster, versión, alertas activas de Alertmanager y pods con problemas, con un semáforo. Solo lectura."
@@ -11,6 +13,7 @@
        question_description: "warning muestra también las advertencias; critical solo lo urgente."}
     - {question_name: "Incluir pods con problemas", variable: incluir_pods, type: multiplechoice, choices: [si, "no"], default: si, required: true}
 - nombre: "OpenShift · Certificados"
+  oculto: true   # bajo valor frente a OpenShift/ACM: queda como plantilla (la usan otros flujos) pero no en el portal
   seccion: ocp
   playbook: playbooks/ocp-certificados.yml
   descripcion: "Inventario de vencimientos de todos los certificados TLS del clúster, del Ingress y de la API, y solicitudes de firma (CSR) pendientes. Puede aprobar las CSR de nodos."
@@ -19,6 +22,7 @@
     - {question_name: "Aprobar CSR pendientes de nodos", variable: aprobar_csr, type: multiplechoice, choices: ["no", si], default: "no", required: true,
        question_description: "Solo las de nodos (system:node y node-bootstrapper). Las demás se informan."}
 - nombre: "OpenShift · Regularizar línea base"
+  oculto: true   # bajo valor frente a OpenShift/ACM: queda como plantilla (la usan otros flujos) pero no en el portal
   seccion: ocp
   playbook: playbooks/ocp-regularizar.yml
   descripcion: "Revisa los namespaces de aplicaciones contra la línea base (LimitRange, cuotas, NetworkPolicy, requests/limits, sondas, imágenes sin versión, privilegios, réplicas en producción). En modo corregir aplica lo que es seguro sin cortar servicio."
@@ -37,6 +41,7 @@
     - {question_name: "Umbral de uso bajo (%)", variable: umbral_ocioso, type: integer, min: 1, max: 90, default: 20, required: true}
     - {question_name: "Antigüedad para limpiar (días)", variable: dias_antiguedad, type: integer, min: 1, max: 365, default: 7, required: true}
 - nombre: "OpenShift · Actualizaciones y operadores"
+  oculto: true   # bajo valor frente a OpenShift/ACM: queda como plantilla (la usan otros flujos) pero no en el portal
   seccion: ocp
   playbook: playbooks/ocp-actualizaciones.yml
   descripcion: "Versión y canal, actualizaciones disponibles y condicionadas, estado de cada operador y aprobación de InstallPlans pendientes de los operadores que se indiquen."
@@ -62,6 +67,7 @@
     - {question_name: "Cuota de memoria (GiB)", variable: memoria_gi, type: integer, min: 1, max: 256, default: 4, required: true}
     - {question_name: "Acción", variable: accion, type: multiplechoice, choices: [crear, eliminar], default: crear, required: true}
 - nombre: "Telco · Validar clúster para CNF"
+  oculto: true   # bajo valor frente a OpenShift/ACM: queda como plantilla (la usan otros flujos) pero no en el portal
   seccion: telco
   playbook: playbooks/telco-validar-cnf.yml
   descripcion: "Compara lo que pide la función de red de Nabstract (CPU aisladas, páginas grandes, kernel de tiempo real, NUMA, SR-IOV, MetalLB, PTP, SCTP) con lo que tiene el clúster de cargas y entrega el informe de brechas."
@@ -109,6 +115,7 @@
     - {question_name: "Orden de Amdocs", variable: orden_id, type: text, default: "", required: true, min: 12, max: 12,
        question_description: "ORD-XXXXXXXX. Normalmente la lanza EDA sola cuando Amdocs crea la orden; también se puede lanzar a mano."}
 - nombre: "Amdocs · Salud de la plataforma BSS"
+  oculto: true   # bajo valor frente a OpenShift/ACM: queda como plantilla (la usan otros flujos) pero no en el portal
   seccion: amdocs
   playbook: playbooks/amdocs-salud.yml
   descripcion: "Por cada microservicio de Amdocs en OpenShift: pods listos, reinicios, versión desplegada y tiempo de respuesta, más las órdenes pendientes. Semáforo contra el umbral de respuesta."
@@ -163,3 +170,76 @@
   encuesta:
     - {question_name: "Servidor (nombre de la VM)", variable: en_equipo, type: text, default: "", required: true, min: 2, max: 60}
     - {question_name: "Acción", variable: en_accion, type: multiplechoice, choices: [encender, apagar, reiniciar], default: encender, required: true}
+
+# --- Automatizaciones de alto valor (lo que OpenShift y ACM no hacen solos) ---------------------------------------------
+- nombre: "OpenShift · Actualización guiada con ACM"
+  seccion: ocp
+  playbook: playbooks/ocp-actualizacion-guiada.yml
+  descripcion: "Lo que rodea a una actualización y ACM no hace: antes, valida que el clúster esté sano, respalda etcd, guarda una foto de la configuración y saca el clúster del balanceador externo; después, verifica operadores y las rutas críticas de las aplicaciones y lo devuelve al balanceador, o lo deja fuera y avisa si algo falló. Se conecta como hook de ACM (ClusterCurator)."
+  encuesta:
+    - {question_name: "Fase", variable: fase, type: multiplechoice, choices: [pre, post], default: pre, required: true,
+       question_description: "pre: antes de actualizar · post: después de actualizar."}
+    - {question_name: "Versión destino", variable: version_destino, type: text, default: "", required: false, max: 12}
+    - {question_name: "Rutas críticas a probar", variable: rutas_criticas, type: textarea, default: "", required: false, max: 1000,
+       question_description: "URLs separadas por coma (solo en fase post)."}
+- nombre: "OpenShift · De alerta a incidente"
+  seccion: ocp
+  playbook: playbooks/ocp-alerta-incidente.yml
+  descripcion: "Cuando suena una alerta, Ansible junta la evidencia (estado de los pods, eventos y logs), aplica la remediación segura si la causa es conocida y abre el incidente en ServiceNow con todo adjunto; si se resolvió, lo deja resuelto. La lanza Event-Driven Ansible desde Alertmanager, sin que nadie entre a la consola."
+  encuesta:
+    - {question_name: "Namespace", variable: namespace, type: text, default: "", required: true, max: 63}
+    - {question_name: "Alerta", variable: alerta, type: text, default: "KubePodCrashLooping", required: true, max: 100}
+    - {question_name: "Remediar si la causa es conocida", variable: remediar, type: multiplechoice, choices: [si, "no"], default: si, required: true}
+- nombre: "OpenShift · Certificado de aplicación de punta a punta"
+  seccion: ocp
+  playbook: playbooks/ocp-certificado-app.yml
+  descripcion: "Renovar un certificado no termina en OpenShift: revisa el certificado que se ve desde fuera, emite uno nuevo con la CA si vence pronto, lo carga en la Route y en el balanceador externo que publica la aplicación, y verifica que la cadena nueva sea la que ve el cliente."
+  encuesta:
+    - {question_name: "Namespace", variable: namespace, type: text, default: "", required: true, max: 63}
+    - {question_name: "Route", variable: ruta, type: text, default: "", required: true, max: 63}
+    - {question_name: "Renovar si vence en menos de (días)", variable: umbral_dias, type: integer, min: 1, max: 365, default: 30, required: true}
+    - {question_name: "Forzar renovación", variable: forzar, type: multiplechoice, choices: ["no", si], default: "no", required: true}
+- nombre: "OpenShift · Acceso de equipo"
+  seccion: ocp
+  playbook: playbooks/ocp-acceso-equipo.yml
+  descripcion: "Un equipo nuevo queda con todo lo que necesita en un solo paso: grupo en OpenShift, rol en sus namespaces, equipo en Git con sus repositorios y política de secretos en Vault. Con baja se le quita todo lo mismo, sin accesos huérfanos."
+  encuesta:
+    - {question_name: "Equipo", variable: equipo, type: text, default: "", required: true, min: 3, max: 40}
+    - {question_name: "Miembros", variable: miembros, type: textarea, default: "", required: false, max: 1000, question_description: "Usuarios separados por coma."}
+    - {question_name: "Namespaces", variable: namespaces, type: text, default: "", required: true, max: 500, question_description: "Separados por coma."}
+    - {question_name: "Rol", variable: rol, type: multiplechoice, choices: [view, edit, admin], default: edit, required: true}
+    - {question_name: "Acción", variable: accion, type: multiplechoice, choices: [alta, baja], default: alta, required: true}
+- nombre: "OpenShift · Informe de seguridad del clúster"
+  seccion: ocp
+  playbook: playbooks/ocp-informe-seguridad.yml
+  descripcion: "Informe en PDF por correo con lo que la consola no junta en un solo lugar: quién tiene cluster-admin, kubeadmin activo, SCC privilegiadas, contenedores privilegiados o como root, imágenes sin versión, namespaces sin NetworkPolicy, rutas sin TLS, secretos sin rotar y certificados por vencer. Semáforo por severidad, qué hacer y resumen ejecutivo escrito por Claude."
+  encuesta:
+    - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
+       question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
+    - {question_name: "Secretos sin rotar desde (días)", variable: dias_secretos, type: integer, min: 30, max: 720, default: 180, required: true}
+- nombre: "Amdocs · Informe de operación y conciliación"
+  seccion: amdocs
+  playbook: playbooks/amdocs-informe-operacion.yml
+  descripcion: "Informe en PDF por correo que cruza lo que Amdocs cree activo con lo que existe en OpenShift: servicios cobrados sin su CNF, CNF huérfanas que se pagan y no se cobran, órdenes atascadas o fallidas y la salud de los microservicios del BSS. Con resumen ejecutivo escrito por Claude."
+  encuesta:
+    - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
+       question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
+    - {question_name: "Orden atascada después de (minutos)", variable: minutos_atasco, type: integer, min: 5, max: 1440, default: 60, required: true}
+- nombre: "Linux · Informe de seguridad"
+  seccion: linux
+  playbook: playbooks/linux-informe-seguridad.yml
+  base: "Seguridad · Revisar CVEs"
+  limite: true
+  descripcion: "Informe en PDF por correo de los servidores Linux elegidos: parches de seguridad pendientes y críticos, reinicio pendiente, SELinux, SSH (root y contraseñas), cuentas con UID 0 y sudo sin contraseña, firewall, puertos expuestos, intentos de acceso fallidos y servicios inseguros. Semáforo, qué hacer y resumen ejecutivo escrito por Claude."
+  encuesta:
+    - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
+       question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
+- nombre: "Windows · Informe de seguridad"
+  seccion: windows
+  playbook: playbooks/windows-informe-seguridad.yml
+  base: "Seguridad · Revisar CVEs"
+  limite: true
+  descripcion: "Informe en PDF por correo de los servidores Windows elegidos: actualizaciones pendientes y críticas, días sin actualizar, versión fuera de soporte, administradores locales, firewall, Defender, BitLocker, SMBv1, RDP sin NLA, cuenta Guest y política de contraseñas. Semáforo, qué hacer y resumen ejecutivo escrito por Claude."
+  encuesta:
+    - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
+       question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
