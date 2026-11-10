@@ -1,27 +1,24 @@
-commit: 5e440ac24f3bde9f0016f93450879342463a7483
-inicio: 2026-11-10T01:27:17-03:00
+commit: fa989f3d6206fa333f9ff9ce99bcc7e30a94b767
+inicio: 2026-11-10T01:28:39-03:00
 ---
-{"id":20478,"type":"ad_hoc_command","url":"/api/controller/v2/ad_hoc_commands/20478/","related":{"created_by":"/api/controller/v2/users/1/","modified_by":"/api/controller/v2/users/1/","stdout":"/api/controller/v2/ad_hoc_commands/20478/stdout/","inventory":"/api/controller/v2/inventories/4/","credent
-Identity added: /runner/artifacts/20478/ssh_key_data (red-laboratorio)
-[WARNING]: Invalid characters were found in group names but not replaced, use
--vvvv to see details
-[WARNING]: Platform linux on host rtr is using the discovered Python
-interpreter at /usr/bin/python3.12, but future installation of another Python
-interpreter could change the meaning of that path. See
-https://docs.ansible.com/ansible-
-core/2.16/reference_appendices/interpreter_discovery.html for more information.
 rtr | CHANGED | rc=0 >>
-12: neighbor 10.0.0.1 remote-as 65000
-13: neighbor 10.0.0.1 description ISP-SIMULADO
-14: neighbor 172.20.20.41 remote-as 65101
-15: neighbor 172.20.20.41 description SUCURSAL-1
-16: neighbor 172.20.20.42 remote-as 65102
-17: neighbor 172.20.20.42 description SUCURSAL-2
-18: neighbor 172.20.20.43 remote-as 65103
-19: neighbor 172.20.20.43 description SUCURSAL-3
-22:  network 10.10.10.0/24
-23:  network 10.20.20.0/24
-% Network not in table
--rwxr-xr-x    1 root     root         93865 Dec 31  2024 /usr/lib/frr/frr-reload.py
-Python 3.12.8
---- fin: 2026-11-10T01:28:03-03:00 · código: 0
+zebra=yes
+bgpd=yes
+staticd=yes
+    6 root      0:03 /usr/lib/frr/watchfrr zebra mgmtd bgpd staticd
+   16 frr       0:02 /usr/lib/frr/zebra -d -F traditional -A 127.0.0.1 -s 90000000
+   23 frr       0:02 /usr/lib/frr/bgpd -d -F traditional -A 127.0.0.1
+   30 frr       0:01 /usr/lib/frr/staticd -d -F traditional -A 127.0.0.1
+2026-11-10 04:28:42,351  INFO: Called via "Namespace(input=None, reload=False, test=True, debug=False, log_level='info', stdout=False, pathspace=None, filename='/tmp/act.conf', overwrite=False, bindir
+2026-11-10 04:28:42,351  INFO: Loading Config object from file /tmp/act.conf
+2026-11-10 04:28:42,361   ERROR: vtysh failed to process new configuration: vtysh (mark file) exited with status 2:
+b'line 1: % Unknown command: Building configuration...\n\n'
+2026-11-10 04:28:42,361  INFO: Loading Config object from vtysh show running
+2026-11-10 04:28:42,375  INFO: "frr version 10.2.1_git" cannot be removed
+2026-11-10 04:28:42,375  INFO: "frr defaults traditional" cannot be removed
+
+Lines To Delete
+===============
+no hostname rtr
+no router bgp 65010
+--- fin: 2026-11-10T01:29:19-03:00 · código: 0
