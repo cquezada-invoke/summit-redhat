@@ -58,7 +58,7 @@
         body_format: json
         body: {name: "{{ eq }}", permission: "{{ 'write' if r != 'view' else 'read' }}", includes_all_repositories: false, units: [repo.code, repo.pulls]}
         status_code: [201, 422]
-      when: git_api and a == 'alta'
+      when: git_api | length > 0 and a == 'alta'
       register: r_git
 
     - name: Política en Vault para secret/data/{{ eq }}/*
