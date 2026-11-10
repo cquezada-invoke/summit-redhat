@@ -1,0 +1,20 @@
+commit: 4b0f278bf46bf92f78a8fbb44b0c2d62ff2b2a42
+inicio: 2026-11-10T01:29:53-03:00
+---
+rtr | CHANGED | rc=0 >>
+2026-11-10 04:29:56,339  INFO: Loading Config object from file /tmp/d.conf
+2026-11-10 04:29:56,351  INFO: Loading Config object from vtysh show running
+2026-11-10 04:29:56,364  INFO: "frr version 10.2.1_git" cannot be removed
+
+Lines To Add
+============
+router bgp 65010
+ address-family ipv4 unicast
+  network 10.60.99.0/24 
+ exit
+exit
+ip route 10.60.99.0/24 10.20.20.2
+    inet 10.20.20.1/24 scope global eth3
+10.20.20.2 dev eth3 src 10.20.20.1 uid 0 
+    cache 
+--- fin: 2026-11-10T01:30:34-03:00 · código: 0
