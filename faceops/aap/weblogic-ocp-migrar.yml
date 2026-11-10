@@ -415,7 +415,9 @@
                             ~ '\n- JMS: ' ~ (prep.jms | map(attribute='nombre') | zip(prep.jms | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—')
                             ~ '\n- Imagen: ' ~ (imagen or '—') ~ '\n- Resultado: ' ~ ('sano (HTTP 200 por la Route)' if sano else 'falló; vuelta atrás') ~ '\n') | b64encode }}"}
         status_code: [201]
+        timeout: 90
       when: faceops_respaldo_token | default('') | length > 0
+      register: r_art
       failed_when: false
       no_log: true
 
@@ -432,6 +434,7 @@
             route: "{{ r_rt.json.spec.host | default('') }}"
             salud: "{{ prep.salud }} → {{ r_http.status | default('sin respuesta') }}"
             sano: "{{ sano }}"
+            artefactos_git: "{{ r_art.status | default('-') }} {{ (r_art.msg | default('')) | truncate(160) }}"
             vuelta_atras: "{{ 'versión anterior restaurada (HTTP ' ~ (r_http2.status | default('?')) ~ ')' if r_vuelta is changed else ('retirado lo creado' if not sano else 'no') }}"
 
     - name: Resumen

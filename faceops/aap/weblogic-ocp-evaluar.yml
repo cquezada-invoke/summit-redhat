@@ -197,6 +197,7 @@
         body: "{{ {'content': lookup('ansible.builtin.file', r_inf.dest) | b64encode, 'message': inventory_hostname ~ ': evaluación WebLogic → OpenShift (' ~ (faceops_ticket | default('manual')) ~ ')'}
                   | combine({'sha': r_prev.json.sha} if r_prev.status | default(0) == 200 else {}) }}"
         status_code: [200, 201]
+        timeout: 90
       when: faceops_respaldo_token | default('') | length > 0
       register: r_git
       failed_when: false
@@ -213,7 +214,7 @@
               {% set l = [] %}{% for a in analisis.aplicaciones %}{% set _ = l.append({'aplicacion': a.aplicacion, 'destino': a.destino.runtime, 'migrable': a.destino.migrable,
               'complejidad': a.complejidad, 'criticos': a.hallazgos | selectattr('severidad', 'equalto', 'crítica') | map(attribute='titulo') | list}) %}{% endfor %}{{ l }}
             informe_git: "{{ (r_git.status | default(0)) in [200, 201] }}"
-            git: "{{ {'token': faceops_respaldo_token | default('') | length > 0, 'anterior': r_prev.status | default('-'), 'publicar': r_git.status | default('-')} }}"
+            git: "{{ {'token': faceops_respaldo_token | default('') | length > 0, 'anterior': r_prev.status | default('-'), 'publicar': r_git.status | default('-'), 'detalle': (r_git.msg | default('')) | regex_replace('token \\S+', 'token ***') | truncate(220)} }}"
 
     - name: Resumen
       ansible.builtin.debug:
