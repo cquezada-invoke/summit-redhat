@@ -1,0 +1,20 @@
+commit: b7b23e1879e6cb27feaf4a3ca331d72ec4dfb268
+inicio: 2026-11-10T13:02:50-03:00
+---
+portal-776cd8967f-4wdd6   0/1   Pending   0     2m11s
+2m21s       Warning   Failed              pod/portal-776cd8967f-pvg7w    Error: ErrImagePull
+2m21s       Warning   Failed              pod/portal-776cd8967f-pvg7w    Failed to pull image "image-registry.openshift-image-registry.svc:5000/portal-claro/portal@sha256:eda97aec1ac070180827b2099d5a75e44e599c81d6f96bc21
+2m21s       Normal    Pulling             pod/portal-776cd8967f-pvg7w    Pulling image "image-registry.openshift-image-registry.svc:5000/portal-claro/portal@sha256:eda97aec1ac070180827b2099d5a75e44e599c81d6f96bc215589906
+2m11s       Normal    SuccessfulCreate    replicaset/portal-776cd8967f   Created pod: portal-776cd8967f-4wdd6
+2m11s       Normal    Preempted           pod/portal-776cd8967f-pvg7w    Preempted by pod 38f86edd-4fc9-4907-9040-b90ce1ee2486 on node sno
+11s         Warning   FailedScheduling    pod/portal-776cd8967f-4wdd6    0/1 nodes are available: 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests       Limits
+  --------           --------       ------
+  cpu                6982m (93%)    29210m (389%)
+  memory             22848Mi (99%)  41504Mi (181%)
+  ephemeral-storage  0 (0%)         0 (0%)
+  hugepages-1Gi      0 (0%)         0 (0%)
+  hugepages-2Mi      0 (0%)         0 (0%)
+--- fin: 2026-11-10T13:02:51-03:00 · código: 0
