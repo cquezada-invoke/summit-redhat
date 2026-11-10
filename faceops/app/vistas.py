@@ -7273,7 +7273,7 @@ def menu_nav():
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
                  ("consola.mapa", "Segmentos de negocio", "apps", [("Todos", {"vista": "aplicaciones"})]   # un solo punto: se filtra por grupo y
                   + [(gn, {"vista": "aplicaciones", "grupo": gk}) for gk, gn, _, _ in GRUPOS if any(grupo_de(x) == gk for x in segs_v)]),   # cada perfil ve solo sus segmentos
-                 ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Gobierno de Arquitectura", {"_ancla": "n2"}), ("Industria y país", {"_ancla": "n3"}), ("Plano de control", {"_ep": "consola.plano_control"})]),
+                 ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Industria y país", {"_ancla": "n3"}), ("Plano de control", {"_ep": "consola.plano_control"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Mapa de seguridad", {"_ep": "consola.seguridad_mapa"}), ("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Incidentes", {"_ep": "consola.incidentes"}),
