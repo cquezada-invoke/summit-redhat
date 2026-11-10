@@ -6407,7 +6407,7 @@ def certificado_reemplazar(serie):
     if not f or not f.get("equipo"):
         abort(404)
     e = next((x for x in equipos_visibles() if x["id"] == f["equipo"]["id"]), None)
-    modo = "renovar" if (f.get("auto") and request.form.get("modo") != "emitir") else "emitir"
+    modo = "emitir"   # reemplazar = pedir uno nuevo con todos sus datos; el actual se revoca en la CA cuando el nuevo queda verificado
     nombre = "Certificados · Renovar por vencer" if modo == "renovar" else "Certificados · Emitir para servicio"
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], nombre)
     if not e or not a:
@@ -6431,6 +6431,7 @@ def certificado_reemplazar(serie):
         if not params.get("cert_nombre") or not params.get("cert_recargar"):
             return {"error": "Faltan el servicio y el comando para recargarlo"}, 400
         params["cert_puerto"] = int(fo.get("cert_puerto") or 0)
+    params["cert_revocar_serie"] = f["serie"]
     motivo = (fo.get("motivo") or "").strip() or f"Reemplazo del certificado {f['cn']} pedido desde su detalle"
     try:
         t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, motivo)
