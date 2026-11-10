@@ -92,6 +92,15 @@ CASOS = {
     "release": lambda: (lanzar("Amdocs · Desplegar release", {"servicio": "catalog", "version": "2.4.0", "simular_falla": "no"}),
                         lanzar("Amdocs · Desplegar release", {"servicio": "catalog", "version": "2.5.0", "simular_falla": "si", }),
                         lanzar("Amdocs · Desplegar release", {"servicio": "catalog", "version": "2.3.0", "simular_falla": "no"})),
+    # --- automatizaciones nuevas de alto valor -------------------------------------------------------------------------
+    "acceso": lambda: (lanzar("OpenShift · Acceso de equipo", {"equipo": "equipo-demo", "miembros": "demo1,demo2", "namespaces": "amdocs-bss", "rol": "view", "accion": "alta"}),
+                       lanzar("OpenShift · Acceso de equipo", {"equipo": "equipo-demo", "miembros": "", "namespaces": "amdocs-bss", "rol": "view", "accion": "baja"})),
+    "certapp": lambda: lanzar("OpenShift · Certificado de aplicación de punta a punta", {"namespace": "amdocs-bss", "ruta": "amdocs-ordering", "umbral_dias": 30, "forzar": "no"}),
+    "alerta": lambda: lanzar("OpenShift · De alerta a incidente", {"namespace": "amdocs-bss", "alerta": "KubePodCrashLooping", "remediar": "no"}),
+    "infocp": lambda: lanzar("OpenShift · Informe de seguridad del clúster", {"correo": "cquezada@invoke.cl", "dias_secretos": 180}),
+    "infamd": lambda: lanzar("Amdocs · Informe de operación y conciliación", {"correo": "cquezada@invoke.cl", "minutos_atasco": 60}),
+    "inflinux": lambda: lanzar("Linux · Informe de seguridad", {"correo": "cquezada@invoke.cl"}, limite="nodo-jboss"),
+    "guiada": lambda: lanzar("OpenShift · Actualización guiada con ACM", {"fase": "pre", "version_destino": "", "rutas_criticas": ""}),
 }
 
 

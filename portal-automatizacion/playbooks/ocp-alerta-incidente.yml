@@ -64,6 +64,9 @@
         resuelto: "{{ rem == 'si' and malos | length > 0 and not (r_despues.failed | default(true)) }}"
         numero: "INC{{ '%07d' | format(lookup('pipe', 'date +%s') | int % 10000000) }}"
 
+    - name: Namespace itsm-emulado (emulación del laboratorio)
+      kubernetes.core.k8s: {state: present, definition: {apiVersion: v1, kind: Namespace, metadata: {name: itsm-emulado, labels: {invoke.cl/emulado: "si"}}}}
+
     - name: ServiceNow (emulado en el laboratorio) · incidente con la evidencia
       kubernetes.core.k8s:
         state: present

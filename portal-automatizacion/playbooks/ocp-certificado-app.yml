@@ -42,6 +42,9 @@
       when: (quedan | int) < dias or (forzar | default('no')) == 'si'
       register: r_nuevo
 
+    - name: Namespace red-balanceador (emulación del laboratorio)
+      kubernetes.core.k8s: {state: present, definition: {apiVersion: v1, kind: Namespace, metadata: {name: red-balanceador, labels: {invoke.cl/emulado: "si"}}}}
+
     - name: Cargar en la Route
       kubernetes.core.k8s:
         state: patched

@@ -108,6 +108,9 @@
       ignore_errors: true
       when: f == 'post'
 
+    - name: Namespace red-balanceador (emulación del laboratorio)
+      kubernetes.core.k8s: {state: present, definition: {apiVersion: v1, kind: Namespace, metadata: {name: red-balanceador, labels: {invoke.cl/emulado: "si"}}}}
+
     - name: Balanceador externo (emulado en el laboratorio)
       kubernetes.core.k8s:
         state: present
