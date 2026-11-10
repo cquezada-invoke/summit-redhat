@@ -1,9 +1,11 @@
-commit: c7d0c9e691f7d196f0d0e79e919e7e39c51f029d
-inicio: 2026-11-10T00:15:43-03:00
+commit: 0f96990b3dd749e57a353541ce87fa543ebc2417
+inicio: 2026-11-10T00:00:16-03:00
 ---
-portal actualizado
    LISTO
-== PDF nuevo con la ejecución 20208:
-{"archivo":"resultado-20208-20261110-0018.pdf","cuenta":{},"envio":"enviado a cquezada@invoke.cl"}
-
---- fin: 2026-11-10T00:18:13-03:00 · código: 0
+== pruebas
+== OpenShift · Certificado de aplicación de punta a punta {"namespace": "amdocs-bss", "ruta": "ordering", "umbral_dias": 30, "forzar": "no"} → #20198 failed
+         FALLA en «Armar y enviar el informe de la ejecución 20198»: non-zero return code
+== Linux · Liberar espacio en disco {"umbral": 85, "forzar": "no"} → #20203 successful
+== Linux · Informe de seguridad {"correo": "cquezada@invoke.cl"} → #20210 tiempo agotado
+== OpenShift · Respaldo de etcd {"conservar": 2} → #20238 successful
+--- fin: 2026-11-10T00:19:48-03:00 · código: 0
