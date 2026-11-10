@@ -1,0 +1,33 @@
+commit: 1af35f494d292df57f3f6d1f8e42cd98530bf2f8
+inicio: 2026-11-10T17:02:21-03:00
+---
+9969558
+SIN-HTTPD
+== 5. Pruebas
+   BGP rtr-wan-01 ↔ proveedor                         OK  3
+   Usuario piso 1 (VLAN 10) → VIP web 10.20.30.100    FALLA wget: server returned error: HTTP/1.1 503 Service Unavailable
+   Teléfono piso 1 (VLAN 20) → servidores            OK  PING 10.20.30.21 (10.20.30.21): 56 data bytes
+64 bytes from 10.20.30.2
+   Sede → WAN 203.0.113.1 (pasa por el firewall)      OK  PING 203.0.113.1 (203.0.113.1): 56 data bytes
+64 bytes from 203.0.113.
+   WAN → VIP web publicado (permitido)                FALLA wget: server returned error: HTTP/1.1 503 Service Unavailable
+   WAN → servidor directo :8080 (debe estar BLOQUEADO) OK  wget: download timed out
+bloqueado
+   Vecinos LLDP de sw-core-01                           OK  3
+   Backends del balanceador arriba                      FALLA 0
+   SSH netadmin@172.20.20.73 con usuario y clave        OK  FRRouting 10.2.1_git (sw-core-01) on Linux(5.14.0-687.66.1.el9_8.x86_6
+   SSH netadmin@172.20.20.72 con usuario y clave        OK  Version:          VyOS 2026.10.23-0026-rolling
+== 6. AAP: equipos en «Red · laboratorio» (grupo red-sede) y credencial de consola en la bóveda de FaceOps
+   ! rtr-wan-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! fw-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! sw-core-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! sw-acc-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! lb-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+== LISTO
+== configurar.py (publica playbook y plantilla)
+   · Gitea: invoke/faceops-automatizaciones
+   · Proyecto «FaceOps · automatizaciones»: successful
+   · Plantilla «FaceOps · Respaldo continuo en Git» (id 118) con la credencial cifrada de Gitea
+   · Plantilla «Red · Inventariar equipo de red» (id 1127)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+--- fin: 2026-11-10T17:07:29-03:00 · código: 0
