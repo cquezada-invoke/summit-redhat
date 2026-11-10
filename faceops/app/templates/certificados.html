@@ -13,6 +13,7 @@
 <div class="fila" style="justify-content:flex-end;gap:8px"><button class="btn gris" value="no" formnovalidate>Cancelar</button><button class="btn" value="si">Crear certificado</button></div></form></dialog>
 <script>(()=>{const b=document.getElementById('btn-nuevo-cert'),d=document.getElementById('dlg-nuevo'),f=document.getElementById('f-nuevo');const base={{ url_for('consola.ejecutar_en_equipo', eid=0, aid=emitir.id)|tojson }};
 b.addEventListener('click',()=>{f.reset();d.showModal();});
+const pre=new URLSearchParams(location.search).get('nuevo');if(pre&&f.eid){f.reset();f.eid.value=pre;d.showModal();}
 d.addEventListener('close',()=>{if(d.returnValue!=='si')return;const fd=new FormData(f),eid=fd.get('eid');fd.delete('eid');fd.append('_csrf',{{ csrf|tojson }});fd.append('motivo','Certificado nuevo pedido desde Certificados');
  fetch(base.replace('/inventario/0/','/inventario/'+eid+'/'),{method:'POST',body:fd}).then(r=>r.json()).then(t=>{if(t.error){fxAviso(t.error,'error');return;}fxAviso(t.numero+' creado: el certificado se agrega a la lista al terminar','ok');});});})();</script>{% endif %}
 {% for e in r.errores %}<p class="flash error">No se pudo leer · {{ e }}</p>{% endfor %}

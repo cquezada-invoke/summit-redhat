@@ -5512,6 +5512,24 @@ def mapa_bifurcacion():
     return {"ok": True, "ticket": t["numero"], "url": url_for("consola.ticket", tid=t["id"]), "estado": t["estado"]}
 
 
+@bp.route("/mapa/certificado")
+@requiere_login
+def mapa_certificado():
+    """Certificados activos de una máquina (para el flotante del mapa) y, si no tiene, el enlace para incorporarle uno."""
+    from .certificados_panel import de_equipo, leer
+    eqs = equipos_visibles()
+    e = next((x for x in eqs if x["id"] == request.args.get("eid", type=int)), None)
+    if not e:
+        abort(404)
+    try:
+        cs = de_equipo(leer(g.cliente, eqs), e["nombre"])
+    except Exception:  # noqa: BLE001 - la CA puede no responder
+        cs = []
+    emitir = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Emitir para servicio")
+    return {"certs": [{"cn": f["cn"], "estado": f["estado"], "nivel": f["nivel"], "dias": f["dias"], "url": url_for("consola.certificado", serie=f["serie"])} for f in cs],
+            "incorporar": url_for("consola.certificados", nuevo=e["id"]) if emitir and g.perfil["modo"] == "escritura" else None}
+
+
 @bp.route("/mapa/lake-uso")
 @requiere_login
 def mapa_lake_uso():

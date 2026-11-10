@@ -756,6 +756,11 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       const br=document.getElementById('b-rec'); if(br) br.onclick=()=>enviar(br,x.recuperar);
     });
   }
+  function certNodo(eid){  // ¿tiene certificado? si no, se incorpora (ticket con aprobación)
+    fetch({{ url_for('consola.mapa_certificado')|tojson }}+'?eid='+eid).then(r=>r.ok?r.json():null).then(x=>{ const c=document.getElementById('cert-nodo'); if(!c||!x) return;
+      if((x.certs||[]).length){ c.innerHTML=x.certs.map(f=>'<div class="fila" style="gap:6px;margin:2px 0"><a href="'+f.url+'"><b>'+f.cn+'</b></a> <span class="chip '+f.nivel+'">'+f.estado+'</span>'+(f.dias!=null?' <span class="sub">'+(f.dias<0?'venció hace '+(-f.dias)+' días':'vence en '+f.dias+' días')+'</span>':'')+'</div>').join('');
+      } else c.innerHTML='<span class="sub">Sin certificado TLS de la CA interna.</span> '+(x.incorporar?'<a class="btn chico" href="'+x.incorporar+'" target="_blank" title="Abre «Nuevo certificado» con esta máquina elegida: AAP genera la llave en la máquina, la CA firma, se instala y queda con renovación automática (ticket con aprobación)">Incorporar certificado</a>':'');
+    }).catch(()=>{}); }
   const SEMAFORO={3:[SVG.mal,'crítico'],2:[SVG.warn,'por revisar'],1:[SVG.warn,'por revisar'],0:[SVG.ok,'sano']};
   function mostrar(d){
     panel.dataset.fijo='1';
@@ -792,39 +797,12 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       if(d.energia) h+=fila({izq:'Energía',ic:d.energia==='apagado'?SVG.gris:SVG.ok,txt:d.energia==='apagado'?'apagada':'encendida',abierto:d.energia==='apagado'&&!!d.energia_url,
         det:d.energia==='apagado'&&d.energia_url?'<button class="btn chico" id="b-encender">Encender (ticket)</button> <span class="res"></span>':''});
     }
-    if(hs.length){  // por qué está en rojo o amarillo, y la reparación de una vez
-      h+=sec('Hallazgos','<span class="act-n">'+hs.length+'</span>');
-      const primero=hs.findIndex(x=>x.n>=3);
-      hs.forEach((x,i)=>{
-        let det=(x.detalle?'<span class="sub">'+x.detalle+'</span>':'');
-        if(x.remediacion){
-          const r=x.remediacion;
-          det+= r.pide_datos ? '<div><a class="btn chico gris" href="'+r.url+'">'+r.nombre+' (pide datos)</a></div>'
-            : '<div><button class="btn chico" data-rem="'+r.id+'" data-h="'+i+'">'+(r.aprob?'Solicitar':'Reparar')+': '+r.nombre+'</button>'+(r.aprob?' <span class="chip e-pendiente_aprobacion">aprobación en AAP</span>':'')+' <span class="res"></span></div>';
-        } else if(x.apagar){
-          det+='<div><button class="btn chico gris" data-apagar="1">Solicitar apagado</button> <span class="res"></span></div>';
-        }
-        h+=fila({izq:x.n>=3?'crítico':'revisar',ic:x.n>=3?SVG.mal:SVG.warn,txt:x.titulo,det:det,abierto:i===(primero>=0?primero:0)});
-      });
-    } else if(d.tipo==='equipo'){ h+='<p class="act-desc">Sin hallazgos: cumple sus políticas y su arquitectura.</p>'; }
-    if(d.cves){ const c=d.cves;
-      h+=sec('CVEs','<a href="'+c.url+'">ver</a>');
-      h+=fila({izq:'Pendientes',ic:!c.repos?SVG.gris:(c.criticos?SVG.mal:(c.pendientes?SVG.warn:SVG.ok)),
-        txt:!c.repos?'sin repositorios Red Hat: no se puede evaluar':(c.pendientes+' pendientes'+(c.criticos?' · '+c.criticos+' críticas':'')+(c.importantes?' · '+c.importantes+' importantes':'')+' · '+c.cubiertos+' cubiertos'),
-        det:(c.top||[]).length?c.top.map(x=>'<a href="https://access.redhat.com/security/cve/'+x+'" target="_blank">'+x+'</a>').join(', '):''}); }
-    if((d.politicas||[]).length){  // políticas de seguridad que le aplican y su estado
-      const EP={al_dia:[SVG.ok,'al día'],desactualizada:[SVG.warn,'desactualizada'],pendiente:[SVG.gris,'pendiente'],no_cumple:[SVG.mal,'no cumple'],fallida:[SVG.mal,'falló']};
-      const malas=d.politicas.filter(x=>x.estado!=='al_dia').length;
-      h+=sec('Políticas de seguridad','<span class="act-n">'+(malas?malas+' por atender':'al día')+'</span>');
-      d.politicas.forEach(x=>{ const e=EP[x.estado]||EP.pendiente;
-        const acc=PUEDE?'<div><button class="btn chico" data-pol="'+x.solicitar+'" data-modo="aplicar">'+(x.estado==='al_dia'?'Reaplicar':'Aplicar')+' v'+x.vigente+'</button> <button class="btn chico gris" data-pol="'+x.solicitar+'" data-modo="verificar">Verificar</button> <span class="res"></span></div>':'';
-        h+=fila({izq:x.codigo,ic:e[0],txt:'<a href="'+x.url+'">'+x.nombre+'</a> · '+e[1]+(x.version&&x.version<x.vigente?' (v'+x.version+' → v'+x.vigente+')':''),det:acc,abierto:x.estado!=='al_dia'&&PUEDE}); });
-    }
+    if(d.tipo==='equipo'&&d.eid) h+=sec('Certificado')+'<div id="cert-nodo" class="act-acc"><span class="sub">consultando…</span></div>';
     if(d.eliminar) h+=sec('Ciclo de vida')+'<div class="act-acc"><button class="btn chico" style="background:var(--bad);border-color:var(--bad)" id="b-elim">Eliminar servidor</button> <span class="res"></span>'
       +'<p class="sub">Lo saca del balanceo, apaga la VM y la retira (el disco se conserva aparte y su historial sigue en Git, así que se puede recuperar). Ticket con aprobación en AAP.</p></div>';
     const info=Object.entries(d.info||{});
     if(info.length){ h+=sec('Detalles'); info.forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); }); }
-    pintar(h);
+    pintar(h); if(d.tipo==='equipo'&&d.eid) certNodo(d.eid);
     const lha=panel.querySelector('.act-ha'); if(lha) lha.onclick=ev=>{ev.preventDefault(); panelReplicar(d);};
     const benc=document.getElementById('b-encender');
     if(benc) benc.onclick=()=>{ benc.disabled=true; const res=benc.parentElement.querySelector('.res'); res.textContent='creando…';
