@@ -421,7 +421,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function flujo(on){ const cy_=window._cy; if(!cy_) return;
     if(on&&!flujoAnim){
       cy_.style().selector('edge.fluyendo').style({'line-style':'dashed','line-dash-pattern':[7,7],'width':4}).update();
-      cy_.edges().filter(e=>['flujo','bifurcacion','enlace'].includes(e.data('tipo'))&&e.data('estado_flujo')!=='bloqueado').addClass('fluyendo');   // usuario → entrada, tramos internos y bifurcación al data lake; un puerto bloqueado no fluye
+      cy_.edges().filter(e=>['entrada','flujo','bifurcacion','enlace'].includes(e.data('tipo'))&&e.data('estado_flujo')!=='bloqueado').addClass('fluyendo');   // usuario → entrada, tramos internos y bifurcación al data lake; un puerto bloqueado no fluye
       flujoAnim=setInterval(()=>{ flujoOff=(flujoOff+1.5)%1400; cy_.edges('.fluyendo').style('line-dash-offset',-flujoOff); },40);
     } else if(!on&&flujoAnim){ clearInterval(flujoAnim); flujoAnim=null; cy_.edges('.fluyendo').removeStyle('line-dash-offset').removeClass('fluyendo'); }
   }
