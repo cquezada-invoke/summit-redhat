@@ -201,7 +201,8 @@ os.makedirs(f"{tmp}/datos", exist_ok=True)
 os.makedirs(f"{tmp}/collections", exist_ok=True)
 open(f"{tmp}/collections/requirements.yml", "w").write(
     "# Colecciones que AAP descarga al sincronizar el proyecto «FaceOps · automatizaciones»\n"
-    "collections:\n  - name: google.cloud\n  - name: ansible.windows\n  - name: ansible.posix\n")
+    "collections:\n  - name: google.cloud\n  - name: ansible.windows\n  - name: ansible.posix\n"
+    "  - name: ansible.netcommon\n  - name: vyos.vyos\n")   # netcommon y vyos: Red · Inventariar equipo de red
 pub_nube = gitea("GET", "repos/invoke/nube/contents/datos/ssh.pub", t=True)
 if pub_nube:
     open(f"{tmp}/datos/ssh-nube.pub", "w").write(base64.b64decode(pub_nube["content"]).decode())
