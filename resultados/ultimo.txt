@@ -1,17 +1,7 @@
-commit: cd051c4274acd9ab59a62ec678c70f99d149b441
-inicio: 2026-11-10T14:44:28-03:00
+commit: 11b460827ed731d2715d27d10d4e0ca95e6e6d19
+inicio: 2026-11-10T14:45:07-03:00
 ---
-SHOW SCHEMAS FROM lake → FINISHED  [['app_crm'], ['app_ecommerce'], ['app_logistica'], ['app_pagos'], ['app_rrhh'], ['app_soporte'], ['banca_contacto'], ['banca_core']] 0.4 s
-SHOW TABLES FROM lake.default → FAILED line 1:1: Schema 'default' does not exist [] 0.2 s
-configmap/carga
-configmap/colector-1-ca
-configmap/colector-1-global-ca
-configmap/colector-1-sys-config
-configmap/config-service-cabundle
-configmap/config-trusted-cabundle
-configmap/consola
-configmap/kube-root-ca.crt
-configmap/openshift-service-ca.crt
-configmap/trino
-
---- fin: 2026-11-10T14:44:31-03:00 · código: 0
+tablas app_pagos ('FINISHED', '', [['transacciones']], 0.6)
+conteo ('FAILED', "line 1:22: Table 'lake.app_pagos.pagos' does not exist", [], 0.2)
+conteo crm ('FINISHED', '', [[0]], 0.5)
+--- fin: 2026-11-10T14:45:09-03:00 · código: 0
