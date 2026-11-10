@@ -75,8 +75,8 @@ def main():
     ll = js(s.get("LLDP"), {})
     for blk in (ll.get("lldp") or [{}]) if isinstance(ll, dict) else []:
         for it in (blk.get("interface") or []) if isinstance(blk, dict) else []:
-            ch = v0(it.get("chassis")) or {}
-            pt = v0(it.get("port")) or {}
+            ch = (it.get("chassis") or [{}])[0] if isinstance(it.get("chassis"), list) else (it.get("chassis") or {})
+            pt = (it.get("port") or [{}])[0] if isinstance(it.get("port"), list) else (it.get("port") or {})
             vec = {"interfaz": it.get("name"), "equipo": v0(ch.get("name")) or v0(ch.get("id")) or "",
                    "puerto": v0(pt.get("id")) or "", "puerto_desc": v0(pt.get("descr")) or "",
                    "ip_gestion": v0(ch.get("mgmt-ip")) or "", "descripcion": (v0(ch.get("descr")) or "")[:120]}
