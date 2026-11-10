@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BSS emulado · Claro PR</title>
+<style>
+body{font-family:sans-serif;margin:16px;background:#fff;color:#000;max-width:1200px}
+h1{font-size:1.3em;margin:0 0 2px}h2{font-size:1.05em;margin:18px 0 6px}
+.sub{color:#666;font-size:.9em}
+nav a{margin-right:14px;color:#000;cursor:pointer;text-decoration:underline}nav a.act{font-weight:bold;text-decoration:none}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 7px;text-align:left;vertical-align:top;font-size:.92em}
+th{background:#fff;font-weight:bold}tr.sel td{outline:1px solid #000}tbody tr{cursor:pointer}
+.caja{border:1px solid #000;padding:10px 12px;margin:12px 0}
+pre{white-space:pre-wrap;font-size:.8em;border:1px dashed #999;padding:8px;max-height:420px;overflow:auto}
+ol.linea{padding-left:20px}ol.linea li{margin:3px 0}
+code{font-size:.9em}
+</style></head><body>
+<h1>BSS emulado · Claro Puerto Rico</h1>
+<div class="sub">Emulación de Amdocs para la demo (no es software Amdocs). Interfaces con la forma de las TM Forum Open APIs v4: TMF622 (órdenes), TMF620 (catálogo) y TMF629 (clientes).</div>
+<p><nav><a data-v="ordenes" class="act">[Órdenes de servicio]</a><a data-v="catalogo">[Catálogo de ofertas]</a><a data-v="clientes">[Clientes]</a><a data-v="apis">[APIs]</a></nav></p>
+
+<section id="v-ordenes">
+  <h2>Órdenes de servicio <span class="sub">— TMF622 ProductOrder · se actualiza sola cada 3 s</span></h2>
+  <table><thead><tr><th>Orden</th><th>Cliente</th><th>Oferta</th><th>Servicio</th><th>Estado</th><th>Fecha</th></tr></thead><tbody id="t-ord"></tbody></table>
+  <p class="sub" id="sin-ord"></p>
+  <div id="detalle"></div>
+</section>
+<section id="v-catalogo" hidden>
+  <h2>Catálogo de ofertas <span class="sub">— TMF620 ProductOffering</span></h2>
+  <table><thead><tr><th>Oferta</th><th>Nombre</th><th>Descripción</th><th>Especificación</th><th>Características</th><th>Estado</th></tr></thead><tbody id="t-of"></tbody></table>
+</section>
+<section id="v-clientes" hidden>
+  <h2>Clientes <span class="sub">— TMF629 Customer</span></h2>
+  <table><thead><tr><th>Cliente</th><th>Nombre</th><th>Organización</th><th>Estado</th></tr></thead><tbody id="t-cli"></tbody></table>
+</section>
+<section id="v-apis" hidden>
+  <h2>APIs</h2>
+  <div class="caja">
+  <p>[TMF622] <code>GET/POST /tmf-api/productOrderingManagement/v4/productOrder</code> · <code>GET/PATCH …/productOrder/{id}</code></p>
+  <p>[TMF620] <code>GET /tmf-api/productCatalogManagement/v4/productOffering</code> (en el servicio catalog)</p>
+  <p>[TMF629] <code>GET /tmf-api/customerManagement/v4/customer</code> (en el servicio customer)</p>
+  <p>[Evento] Cada orden nueva se publica a Event-Driven Ansible como <code>ProductOrderCreateEvent</code>.</p>
+  <p class="sub">Alcance de la emulación: solo los campos necesarios para la demo; sin validaciones de negocio, precios ni facturación; las órdenes viven en memoria.</p>
+  </div>
+</section>
+
+<script>
+const OFERTAS = __OFERTAS__, CLIENTES = __CLIENTES__;
+const P622 = '/tmf-api/productOrderingManagement/v4/productOrder';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const EST = {acknowledged:'recibida', pending:'en aprobación', inProgress:'en curso', completed:'completada', failed:'fallida', rejected:'rechazada', cancelled:'cancelada'};
+const car = (o, n) => ((o.productOrderItem[0].product || {}).productCharacteristic || []).find(c => c.name === n)?.value ?? '';
+const fecha = t => (t || '').replace('T', ' ').replace('Z', ' UTC');
+let sel = null, ordenes = [];
+
+document.querySelectorAll('nav a').forEach(a => a.onclick = () => {
+  document.querySelectorAll('nav a').forEach(x => x.classList.toggle('act', x === a));
+  document.querySelectorAll('section').forEach(s => s.hidden = s.id !== 'v-' + a.dataset.v);
+});
+
+function detalle() {
+  const o = ordenes.find(x => x.id === sel), d = document.getElementById('detalle');
+  if (!o) { d.innerHTML = ''; return; }
+  const cli = (o.relatedParty || []).find(p => p.role === 'Customer') || {};
+  d.innerHTML = `<div class="caja"><b>[${esc(o.id)}]</b> ${esc(o.description)} · estado: <b>[${esc(EST[o.state] || o.state)}]</b>
+    <p>Cliente: ${esc(cli.name)} (${esc(cli.id)}) · Oferta: ${esc(o.productOrderItem[0].productOffering.name)} ·
+       CNF: ${esc(car(o,'cnf'))} · Servicio: ${esc(car(o,'nombreServicio'))} · VLAN ${esc(car(o,'vlan'))} · Prefijo ${esc(car(o,'prefijo'))}</p>
+    <p><b>Línea de tiempo</b></p><ol class="linea">${(o.note || []).map(n => `<li>${esc(fecha(n.date))} · [${esc(n.author)}] ${esc(n.text)}</li>`).join('')}</ol>
+    <p><b>Orden en formato TMF622</b></p><pre>${esc(JSON.stringify(o, null, 2))}</pre></div>`;
+}
+
+async function cargar() {
+  try { const r = await fetch(P622); ordenes = (await r.json()).sort((a, b) => b.orderDate.localeCompare(a.orderDate)); } catch (e) { return; }
+  document.getElementById('sin-ord').textContent = ordenes.length ? '' : 'Aún no hay órdenes. Se crean desde el portal de automatización («Crear orden y activar») o con POST a la API TMF622.';
+  document.getElementById('t-ord').innerHTML = ordenes.map(o => {
+    const cli = (o.relatedParty || []).find(p => p.role === 'Customer') || {};
+    return `<tr data-id="${esc(o.id)}" class="${o.id === sel ? 'sel' : ''}"><td>${esc(o.id)}</td><td>${esc(cli.name)}</td><td>${esc(o.productOrderItem[0].productOffering.name)}</td>
+      <td>${esc(car(o,'nombreServicio'))} · VLAN ${esc(car(o,'vlan'))} · ${esc(car(o,'prefijo'))}</td><td>[${esc(EST[o.state] || o.state)}]</td><td>${esc(fecha(o.orderDate))}</td></tr>`;
+  }).join('');
+  document.querySelectorAll('#t-ord tr').forEach(tr => tr.onclick = () => { sel = tr.dataset.id; cargar(); });
+  detalle();
+}
+
+document.getElementById('t-of').innerHTML = OFERTAS.map(o => `<tr><td>${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.description)}</td><td>${esc(o.productSpecification.name)}</td>
+  <td>${o.prodSpecCharValueUse.map(c => esc(c.name) + ': ' + esc(c.productSpecCharacteristicValue[0].value)).join('<br>')}</td><td>[${esc(o.lifecycleStatus)}]</td></tr>`).join('');
+document.getElementById('t-cli').innerHTML = CLIENTES.map(c => `<tr><td>${esc(c.id)}</td><td>${esc(c.name)}</td><td>${esc(c.engagedParty.id)}</td><td>[${esc(c.status)}]</td></tr>`).join('');
+cargar(); setInterval(cargar, 3000);
+</script>
+</body></html>
