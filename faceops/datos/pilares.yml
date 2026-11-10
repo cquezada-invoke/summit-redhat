@@ -1,0 +1,63 @@
+# Apertura de cada pilar de salud: qué considera en general y qué mirar en cada contexto tecnológico (ítems del menú).
+# Lo usan el panel (radar de madurez) y el detalle «Qué falta para llegar a la meta». Alineado con AWS Well-Architected,
+# ISO/IEC 25010, NIST CSF 2.0 e ISO 22301; la escala de madurez sigue la idea de niveles de COBIT 2019 / CMMI.
+Disponibilidad:
+  definicion: "Que el servicio esté arriba cuando el negocio lo necesita y que una falla no lo detenga."
+  considerar: ["Redundancia de lo crítico (sin puntos únicos de falla)", "Monitoreo con alertas atendidas", "Capacidad de reserva ante picos o caídas", "Ventanas de mantenimiento sin corte"]
+  por_contexto:
+    servidores: ["Agente de métricas y alertas en cada servidor", "Réplicas detrás de un balanceador para lo crítico", "Encendido automático tras reinicio del anfitrión"]
+    redes: ["Enlaces y equipos redundantes (HA de firewall y routers)", "Rutas alternativas (BGP, VRRP)", "Monitoreo de interfaces y enlaces"]
+    storage: ["Controladoras y caminos redundantes (multipath)", "Alertas de capacidad antes del 85 %", "Réplica entre sitios para lo crítico"]
+    bd: ["Réplica o clúster (primario + réplica)", "Conmutación automática probada", "Monitoreo de conexiones y bloqueos"]
+    plataformas: ["Al menos 2 instancias por servicio de plataforma", "Sesiones compartidas o sin estado", "Chequeos de salud en el balanceo"]
+    contenedores: ["Control plane de 3 nodos y workers suficientes", "Réplicas y PodDisruptionBudget en las apps", "Sondas de vida y de disponibilidad"]
+    nube: ["Despliegue en más de una zona", "Grupos de autoescalado", "Alertas del proveedor conectadas"]
+    aplicaciones: ["Todos los componentes del flujo con redundancia", "Pruebas de punta a punta periódicas", "Dependencias externas monitoreadas"]
+Hallazgos:
+  definicion: "Que lo que se detecta mal (configuración, inventario, uso) se corrija y no se acumule."
+  considerar: ["Inventario completo y al día", "Hallazgos con dueño y plazo", "Atención por severidad (altos primero)", "Causa raíz para que no se repitan"]
+  por_contexto:
+    servidores: ["Recolección diaria del inventario", "Configuración igual a la línea base", "Servicios y paquetes sin uso retirados"]
+    redes: ["Configuración igual a la declarada en Git (sin drift)", "Reglas sin uso depuradas", "Firmware dentro de soporte"]
+    storage: ["Volúmenes huérfanos identificados", "Snapshots viejos depurados"]
+    bd: ["Parámetros según la buena práctica del motor", "Usuarios y permisos revisados"]
+    plataformas: ["Versiones dentro de soporte", "Configuración versionada"]
+    contenedores: ["Recursos (requests/limits) declarados", "Imágenes con versión fija", "Namespaces con cuota"]
+    nube: ["Recursos huérfanos y sin etiqueta", "Reglas de red abiertas a internet"]
+    aplicaciones: ["Hallazgos de código y dependencias atendidos", "Ambientes homologados a producción"]
+Rendimiento:
+  definicion: "Que el servicio responda en el tiempo esperado con los recursos justos."
+  considerar: ["Métricas de uso reales (CPU, memoria, disco, red)", "Tiempos de respuesta medidos", "Recursos dimensionados al uso", "Pruebas de carga antes de cambios grandes"]
+  por_contexto:
+    servidores: ["Agente de métricas", "CPU y memoria ajustadas al uso", "Disco con espacio y sin saturación de E/S"]
+    redes: ["Latencia y pérdida medidas entre segmentos", "Enlaces sin saturación", "Balanceo bien distribuido"]
+    storage: ["IOPS y latencia por volumen", "Nivel de almacenamiento según la carga"]
+    bd: ["Consultas lentas identificadas", "Índices y estadísticas al día", "Pool de conexiones dimensionado"]
+    plataformas: ["Memoria de la JVM y pools ajustados", "Caché con tasa de acierto medida"]
+    contenedores: ["Autoescalado de pods", "Requests acordes al consumo real"]
+    nube: ["Tipo de máquina acorde a la carga", "Autoescalado configurado"]
+    aplicaciones: ["Tiempo de respuesta de punta a punta", "Cuello de botella del flujo conocido"]
+Seguridad:
+  definicion: "Que los sistemas estén protegidos, parchados y bajo políticas, y que el acceso sea el justo."
+  considerar: ["Vulnerabilidades (CVE) revisadas y parchadas", "Políticas de seguridad aplicadas", "Credenciales en bóveda y acceso mínimo", "Registro y detección de eventos"]
+  por_contexto:
+    servidores: ["CVE revisados y parches críticos aplicados", "Políticas (CIS) aplicadas", "Acceso SSH/RDP controlado y sin claves fijas"]
+    redes: ["Reglas mínimas necesarias", "Administración cifrada y con doble factor", "Firmware sin vulnerabilidades conocidas"]
+    storage: ["Cifrado en reposo", "Acceso por red de gestión"]
+    bd: ["Cifrado de datos y conexiones", "Usuarios por aplicación, sin cuentas compartidas", "Auditoría activa"]
+    plataformas: ["TLS con certificados vigentes", "Secretos en bóveda"]
+    contenedores: ["Imágenes escaneadas", "Sin contenedores privilegiados", "Políticas de red entre namespaces"]
+    nube: ["Identidades con mínimo privilegio", "Sin recursos públicos innecesarios"]
+    aplicaciones: ["Dependencias sin vulnerabilidades", "Flujos cifrados (TLS)", "Autenticación centralizada"]
+Recuperación:
+  definicion: "Que ante una pérdida o un error se pueda volver a un estado bueno, en el tiempo comprometido."
+  considerar: ["Respaldos de datos y de configuración", "Puntos de restauración antes de cambios", "Objetivos RPO/RTO definidos", "Restauraciones probadas"]
+  por_contexto:
+    servidores: ["Configuración respaldada en Git", "Punto de restauración periódico", "Imagen base para reconstruir"]
+    redes: ["Configuración de cada equipo en Git", "Procedimiento de reemplazo de un equipo"]
+    storage: ["Snapshots programados", "Copia fuera del sitio"]
+    bd: ["Respaldo completo e incremental", "Restauración probada en otro ambiente"]
+    plataformas: ["Configuración y datos de la plataforma respaldados"]
+    contenedores: ["Respaldo de etcd", "Manifiestos en Git (GitOps)", "Respaldo de volúmenes persistentes"]
+    nube: ["Snapshots y respaldo entre regiones"]
+    aplicaciones: ["Plan de recuperación del segmento completo", "Prueba anual de recuperación"]

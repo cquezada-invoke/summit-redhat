@@ -1,7 +1,8 @@
 {% extends "base.html" %}{% block titulo %}Madurez operativa · qué falta{% endblock %}
 {% block cuerpo %}
 <p style="margin:0"><a class="sub" href="{{ url_for('consola.inicio') }}">‹ Panel</a></p>
-<h1 style="margin:2px 0 4px">Qué falta para llegar a la meta</h1>
+<h1 style="margin:2px 0 4px">Qué falta para llegar a la meta{% if ctx_nombre %} · {{ ctx_nombre }}{% endif %}</h1>
+<p style="margin:4px 0 8px"><a class="chip {{ 'e-en_cola' if not ctx }}" href="{{ url_for('consola.madurez_detalle') }}">Todo el entorno</a>{% for k, n, ids in doms if k != 'infraestructura' %} <a class="chip {{ 'e-en_cola' if ctx == k }}" href="{{ url_for('consola.madurez_detalle', contexto=k) }}">{{ n }} · {{ ids|length }}</a>{% endfor %}</p>
 <p class="sub" style="max-width:900px">El área ámbar del radar es el camino por recorrer: la distancia entre la foto de hoy (azul) y la meta competitiva (contorno punteado). Abajo, cada pilar ordenado por su brecha, con las prácticas que faltan, los equipos donde faltan y cómo abordarlo. Cada corrección suma; la cifra «correcciones para la meta» dice cuántas hacen falta para cerrar la brecha de ese pilar.</p>
 <div class="card" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
   <div style="flex:1;min-width:260px">
@@ -16,6 +17,12 @@
   <div class="fila" style="align-items:baseline;flex-wrap:wrap;gap:4px 14px"><h2 style="margin:0">{{ p }}</h2>
     <span>hoy <b>{{ m.actual[p] }} %</b> · meta <b>{{ m.meta[p]|int }} %</b> · brecha <b>{{ d.brecha }}</b> puntos</span>
     <span class="der">{% if d.por_hacer %}<b>{{ d.por_hacer }}</b> correcciones para llegar a la meta (de {{ d.total - d.hechas }} pendientes){% else %}<span style="color:var(--ok)">meta alcanzada</span>{% endif %}</span></div>
+  {% set I = info.get(p) or {} %}{% if I %}<p style="margin:6px 0 4px">{{ I.definicion }}</p>
+  <details{{ ' open' if ctx }} style="margin:0 0 8px"><summary style="cursor:pointer"><b>Qué considera este pilar</b>{% if ctx_nombre %} · en {{ ctx_nombre }}{% endif %}</summary>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:4px 24px;margin-top:6px">
+    <div><b style="font-size:12.5px">En general</b><ul style="margin:2px 0 6px 18px;font-size:12.5px">{% for x in I.considerar %}<li>{{ x }}</li>{% endfor %}</ul></div>
+    {% for k, n, ids in doms if (k in (I.por_contexto or {})) and (not ctx or k == ctx) %}<div><b style="font-size:12.5px">{{ n }}</b><ul style="margin:2px 0 6px 18px;font-size:12.5px">{% for x in I.por_contexto[k] %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endfor %}
+    </div></details>{% endif %}
   <div class="sb-barra" style="margin:8px 0 10px;position:relative"><i style="width:{{ m.actual[p] }}%;background:#185fa5"></i><span style="position:absolute;top:0;bottom:0;left:{{ m.actual[p] }}%;width:{{ [m.meta[p] - m.actual[p], 0]|max }}%;background:#fac775;opacity:.75" title="por recorrer"></span><span style="position:absolute;top:-3px;bottom:-3px;left:{{ m.meta[p] }}%;border-left:2px dashed #ba7517"></span></div>
   <table style="width:100%"><tr><th style="width:24%">Práctica</th><th style="width:12%">Cumplen</th><th>Cómo abordarlo</th><th style="width:30%">Dónde falta</th></tr>
   {% for x in d.practicas %}<tr><td><b>{{ x.practica }}</b></td><td>{{ x.cumple }} de {{ x.de }}</td>

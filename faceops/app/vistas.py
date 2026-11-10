@@ -516,12 +516,16 @@ def inicio():
 def madurez_detalle():
     """Lo que falta para llegar a la meta de madurez (el área ámbar del radar): por pilar, qué práctica falta, en qué
     equipos y cómo abordarlo, con la acción del catálogo que lo resuelve."""
-    from .madurez import madurez as madurez_parque, radar_svg
+    from .madurez import dominios, madurez as madurez_parque, pilares_info, radar_svg
     eqs = equipos_visibles()
-    m = madurez_parque(g.cliente["id"], eqs, hallazgos_visibles(eqs))
-    m["svg"] = radar_svg(m["actual"], m["meta"], tam=560)
+    doms = [(k, n, ids) for k, n, ids in dominios(eqs) if ids]
+    ctx = request.args.get("contexto", "")
+    sel = next((d for d in doms if d[0] == ctx), None)
+    eqs_ = [e for e in eqs if e["id"] in set(sel[2])] if sel else eqs   # un contexto tecnológico: solo sus equipos
+    m = madurez_parque(g.cliente["id"], eqs_, hallazgos_visibles(eqs_))
+    m["svg"] = radar_svg(m["actual"], m["meta"], tam=560, enlace=url_for("consola.madurez_detalle", contexto=ctx or None))
     orden = sorted(m["detalle"], key=lambda p: -m["detalle"][p]["brecha"])
-    return render_template("madurez.html", m=m, orden=orden)
+    return render_template("madurez.html", m=m, orden=orden, info=pilares_info(), doms=doms, ctx=ctx, ctx_nombre=sel[1] if sel else "")
 
 
 @bp.route("/buscar")

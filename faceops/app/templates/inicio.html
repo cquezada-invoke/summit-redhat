@@ -9,7 +9,7 @@
   <p class="sub" style="margin:4px 0 0">Escala de 0 a 100 % por pilar. Ámbar punteado: la <b>meta</b>, el nivel que se necesita para ser competitivo (no es 100 %). Azul: la <b>foto de hoy</b>, medida con prácticas verificables en cada equipo. Lo que queda entre ambos es la brecha: haz clic en el radar para ver qué falta y cómo abordarlo.</p>
   <div style="display:flex;justify-content:center;margin:4px 0 6px">{{ mad.svg }}</div>
   <div class="mad-grid">{% for f in mad.filas if f.pct is not none %}<div class="mad-fila">
-    <span class="mad-n"><a href="{{ url_for('consola.automatizaciones', area=f.clave) }}">{{ f.nombre }}</a><small class="sub"> · {{ f.equipos }} equipo{{ 's' if f.equipos != 1 }}</small></span>
+    <span class="mad-n"><a href="{{ url_for('consola.madurez_detalle', contexto=f.clave if f.clave != 'infraestructura' else None) }}" title="Qué falta en {{ f.nombre }} y cómo abordarlo">{{ f.nombre }}</a><small class="sub"> · {{ f.equipos }} equipo{{ 's' if f.equipos != 1 }}</small></span>
     <span class="sb-barra mad-b" title="{% for p, v in f.pilares.items() %}{{ p }}: {{ v if v is not none else '—' }} %{{ ' · ' if not loop.last }}{% endfor %}"><i style="width:{{ f.pct }}%;background:{{ '#3e8635' if f.pct >= f.meta else ('#f0ab00' if f.pct >= f.meta * 0.6 else '#c9190b') }}"></i><span class="mad-meta" style="left:{{ f.meta }}%" title="meta {{ f.meta }} %"></span></span>
     <span class="mad-v"><b>{{ f.pct }} %</b> <small class="sub">/ {{ f.meta }} %</small></span></div>{% endfor %}</div>
   <details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Cómo se mide cada pilar</summary><div class="mad-grid" style="margin-top:6px">

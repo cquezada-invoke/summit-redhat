@@ -31,6 +31,13 @@ REMEDIOS = {   # práctica → (cómo abordarlo, búsqueda en el catálogo de ac
 }
 
 
+def pilares_info():
+    try:
+        return yaml.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "datos", "pilares.yml"), encoding="utf-8")) or {}
+    except OSError:
+        return {}
+
+
 def metas():
     try:
         d = yaml.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "datos", "madurez.yml"), encoding="utf-8")) or {}
