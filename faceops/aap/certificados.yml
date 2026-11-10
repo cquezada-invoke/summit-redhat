@@ -237,7 +237,7 @@
             EOF
               echo configurado
             else
-              $cli --connect --commands="/subsystem=elytron/key-store=$n:write-attribute(name=credential-reference,value={clear-text=\"$clave\"}),/subsystem=elytron/key-manager=$n:write-attribute(name=credential-reference,value={clear-text=\"$clave\"}),/subsystem=elytron/key-store=$n:load,/subsystem=elytron/key-manager=$n:init,/subsystem=elytron/server-ssl-context=$n:init"
+              $cli --connect --commands="/subsystem=elytron/key-store=$n:write-attribute(name=credential-reference,value={clear-text=\"$clave\"}),/subsystem=elytron/key-manager=$n:write-attribute(name=credential-reference,value={clear-text=\"$clave\"}),/subsystem=elytron/key-store=$n:load,/subsystem=elytron/key-manager=$n:init"   # EAP 8: el server-ssl-context no tiene «init»; basta reiniciar el key-manager
               echo recargado
             fi
           loop: "{{ pendientes | selectattr('formato', 'equalto', 'pkcs12') | list }}"

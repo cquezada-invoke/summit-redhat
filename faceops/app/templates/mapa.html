@@ -798,7 +798,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         det:d.energia==='apagado'&&d.energia_url?'<button class="btn chico" id="b-encender">Encender (ticket)</button> <span class="res"></span>':''});
     }
     if(d.tipo==='equipo'&&d.eid) h+=sec('Certificado')+'<div id="cert-nodo" class="act-acc"><span class="sub">consultando…</span></div>';
-    if(d.eliminar) h+=sec('Ciclo de vida')+'<div class="act-acc"><button class="btn chico" style="background:var(--bad);border-color:var(--bad)" id="b-elim">Eliminar servidor</button> <span class="res"></span>'
+    if(false && d.eliminar) h+=sec('Ciclo de vida')+'<div class="act-acc"><button class="btn chico" style="background:var(--bad);border-color:var(--bad)" id="b-elim">Eliminar servidor</button> <span class="res"></span>'
       +'<p class="sub">Lo saca del balanceo, apaga la VM y la retira (el disco se conserva aparte y su historial sigue en Git, así que se puede recuperar). Ticket con aprobación en AAP.</p></div>';
     const info=Object.entries(d.info||{});
     if(info.length){ h+=sec('Detalles'); info.forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); }); }
