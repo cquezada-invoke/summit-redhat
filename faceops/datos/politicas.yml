@@ -110,7 +110,7 @@
   descripcion: La consola de administración de JBoss (9990) responde solo desde el propio equipo.
   aplica: {skills: [jboss]}
   reglas:
-    - {tipo: comando, verificar: "! ss -ltn | grep -Eq '(0\\.0\\.0\\.0|\\*|\\[::\\]):9990 '", aplicar: "sed -i 's/jboss.bind.address.management=[^ \"]*/jboss.bind.address.management=127.0.0.1/' /etc/opt/rh/eap8/wildfly/eap8-standalone.conf 2>/dev/null; grep -q 'bind.address.management' /etc/opt/rh/eap8/wildfly/eap8-standalone.conf || echo 'WILDFLY_OPTS=\"$WILDFLY_OPTS -Djboss.bind.address.management=127.0.0.1\"' >> /etc/opt/rh/eap8/wildfly/eap8-standalone.conf; systemctl restart eap8-standalone"}
+    - {tipo: comando, verificar: "! ss -ltn | grep -Eq '(0\\.0\\.0\\.0|\\*|\\[::\\]):9990 '", aplicar: "F=/etc/opt/rh/eap8/wildfly/eap8-standalone.conf; sed -i '/jboss[.]bind[.]address[.]management=/d; s/-bmanagement=[^ \"]*/-bmanagement=127.0.0.1/' $F; grep -q -- '-bmanagement=' $F || { grep -q '^WILDFLY_OPTS=\"' $F && sed -i 's/^WILDFLY_OPTS=\"/WILDFLY_OPTS=\"-bmanagement=127.0.0.1 /' $F || echo 'WILDFLY_OPTS=\"-bmanagement=127.0.0.1\"' >> $F; }; systemctl restart eap8-standalone"}
 - id: IDN-01
   nombre: Sudo con registro de comandos
   categoria: identidad
