@@ -1,11 +1,11 @@
-commit: 165bdc6b96c9de9396496b9e7b3df19f584a6ff0
-inicio: 2026-11-10T14:36:27-03:00
+commit: 5fd09404e42cda100cc4671760320321e3c424d6
+inicio: 2026-11-10T14:36:56-03:00
 ---
-consola-689cc8d9b-2bvgl     1/1   Running     0     6m59s
-minio-5558bb5bcb-slhlj      1/1   Running     10    4d1h
-minio-596dbf794f-5s2z8      0/1   Pending     0     6m59s
-trino-5f9cf758-wjdtx        1/1   Running     7     4d1h
-6m59s       Normal    ScalingReplicaSet   deployment/minio                Scaled up replica set minio-596dbf794f from 0 to 1
-6m59s       Normal    SuccessfulCreate    replicaset/minio-596dbf794f     Created pod: minio-596dbf794f-5s2z8
-67s         Warning   FailedScheduling    pod/minio-596dbf794f-5s2z8      0/1 nodes are available: 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incomin
---- fin: 2026-11-10T14:36:27-03:00 · código: 0
+minio: estrategia Recreate
+deployment "minio" successfully rolled out
+lake: 504 en 30.239981s
+lake: 504 en 30.240908s
+lake: 504 en 30.019839s
+[2026-11-10 17:37:41,955] WARNING in colector: volcar app-de-pagos: HTTPConnectionPool(host='minio', port=9000): Max retries exceeded with url: /lake/app-de-pag
+[2026-11-10 17:37:56,960] WARNING in colector: volcar app-de-pagos: HTTPConnectionPool(host='minio', port=9000): Max retries exceeded with url: /lake/app-de-pag
+--- fin: 2026-11-10T14:40:10-03:00 · código: 0
