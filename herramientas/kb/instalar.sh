@@ -31,6 +31,10 @@ DSN="postgresql://faceops:$(sudo cat $V/clave)@127.0.0.1:5433/kb"
 sudo touch /etc/faceops.env && sudo chmod 600 /etc/faceops.env
 sudo sed -i '/^FACEOPS_KB_DSN=/d' /etc/faceops.env
 echo "FACEOPS_KB_DSN=$DSN" | sudo tee -a /etc/faceops.env >/dev/null
+# también en la fuente que usa faceops/desplegar.sh, para que un redespliegue no la pierda
+if [ -f "$HOME/faceops/faceops.env" ]; then
+  sed -i '/^FACEOPS_KB_DSN=/d' "$HOME/faceops/faceops.env"; echo "FACEOPS_KB_DSN=$DSN" >> "$HOME/faceops/faceops.env"
+fi
 unset DSN
 cd $R && sudo podman build -q -t localhost/faceops:latest -f faceops/Containerfile faceops >/dev/null && sudo systemctl restart faceops && sleep 15
 sudo podman exec -i faceops python3 -c "

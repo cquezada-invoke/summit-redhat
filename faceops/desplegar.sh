@@ -33,6 +33,13 @@ fi
 if [ -s "$HOME/faceops/respaldo-token" ] && ! grep -q '^FACEOPS_RESPALDO_TOKEN=' "$HOME/faceops/faceops.env"; then
   echo "FACEOPS_RESPALDO_TOKEN=$(cat "$HOME/faceops/respaldo-token")" >> "$HOME/faceops/faceops.env"
 fi
+# Las claves que otros instaladores escriben solo en /etc/faceops.env (FACEOPS_KB_DSN de herramientas/kb/instalar.sh,
+# las de fabrica-codigo/desplegar.sh, etc.) se conservan: sin esto, cada despliegue las borraba (Incidentes quedaba sin base)
+sudo test -f /etc/faceops.env && sudo cat /etc/faceops.env | while IFS= read -r l; do
+  k=${l%%=*}; case "$k" in ''|\#*) continue;; esac
+  grep -q "^$k=" "$HOME/faceops/faceops.env" || printf '%s\n' "$l" >> "$HOME/faceops/faceops.env"
+done
+chmod 600 "$HOME/faceops/faceops.env"
 sudo install -m 600 "$HOME/faceops/faceops.env" /etc/faceops.env
 sudo tee /etc/containers/systemd/faceops.container >/dev/null <<U
 [Unit]
