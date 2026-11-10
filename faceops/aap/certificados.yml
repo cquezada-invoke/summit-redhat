@@ -245,7 +245,7 @@
           when: "'eap' in (item.recargar | default('')) or 'jboss' in item.nombre"
           register: r_eap
           changed_when: "'sin EAP' not in r_eap.stdout"
-          no_log: true
+          no_log: false   # la clave del keystore se lee del archivo en la máquina: no viaja en los argumentos; así el error se ve
 
         - name: Recargar el servicio
           ansible.builtin.shell: "{{ item.recargar }}"
