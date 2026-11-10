@@ -1,17 +1,11 @@
-commit: 7442cb411b3347be7131e27aa05ceef3d7e270b5
-inicio: 2026-11-10T14:29:26-03:00
+commit: 165bdc6b96c9de9396496b9e7b3df19f584a6ff0
+inicio: 2026-11-10T14:36:27-03:00
 ---
-código de la consola actualizado
-deployment.apps/minio patched
-S3 con más volúmenes
-deployment.apps/consola patched
-sonda liviana
-error: timed out waiting for the condition
-Waiting for deployment "minio" rollout to finish: 1 old replicas are pending termination...
-deployment "consola" successfully rolled out
-lake: 504 en 30.242508s
-lake: 504 en 30.193205s
-lake: 504 en 30.241837s
-[2026-11-10 17:34:11,807] WARNING in colector: volcar app-de-pagos: HTTPConnectionPool(host='minio', port=9000): Read timed out. (read timeout=30)
-[2026-11-10 17:34:56,841] WARNING in colector: volcar app-de-pagos: HTTPConnectionPool(host='minio', port=9000): Read timed out. (read timeout=30)
---- fin: 2026-11-10T14:35:34-03:00 · código: 0
+consola-689cc8d9b-2bvgl     1/1   Running     0     6m59s
+minio-5558bb5bcb-slhlj      1/1   Running     10    4d1h
+minio-596dbf794f-5s2z8      0/1   Pending     0     6m59s
+trino-5f9cf758-wjdtx        1/1   Running     7     4d1h
+6m59s       Normal    ScalingReplicaSet   deployment/minio                Scaled up replica set minio-596dbf794f from 0 to 1
+6m59s       Normal    SuccessfulCreate    replicaset/minio-596dbf794f     Created pod: minio-596dbf794f-5s2z8
+67s         Warning   FailedScheduling    pod/minio-596dbf794f-5s2z8      0/1 nodes are available: 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incomin
+--- fin: 2026-11-10T14:36:27-03:00 · código: 0
