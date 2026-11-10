@@ -1,5 +1,48 @@
-commit: f8c9b83ff6e3f28a4f30c85ce2524109e24f5fbb
-inicio: 2026-11-10T20:39:41-03:00
+commit: 051ec002aa2dae2c66f1ee64283ac6cf675fc473
+inicio: 2026-11-10T20:40:11-03:00
 ---
-estado certificada 06c22cf55d68
---- fin: 2026-11-10T20:39:48-03:00 · código: 0
+daf4a39
+== 1. Playbook a Gitea (invoke/automatizacion)
+   sin cambios
+   automatizacion: 05bd126 JBoss · Desplegar app: solo los JBoss que responden cuando no se fijan máquinas
+   proyecto Despliegues de aplicaciones: successful 05bd126
+== 2. Push trivial a invoke/app-jboss
+   versión esperada: 1.0.43
+   pipelinerun: pipelinerun.tekton.dev/app-jboss-22z85
+== 3. Resultado: Failed · Tasks Completed: 7 (Failed: 1, Cancelled 0), Skipped: 0
+   clonar                Succeeded
+   compilar-y-probar     Succeeded
+   desplegar-con-aap     Failed
+   preparar-plataforma   Succeeded
+   publicar              Succeeded
+   secretos              Succeeded
+   vulnerabilidades      Succeeded
+   AAP job 22248 lanzado en ambiente desarrollo sobre todo el grupo jboss: versión 1.0.43, solicitado por invoke
+   Resultado en AAP: failed · https://10.194.0.2/execution/jobs/playbook/22248/output
+   PLAY [Destino del despliegue] **************************************************
+   fatal: [nodo-jboss3]: FAILED! => {"changed": false, "elapsed": 22, "msg": "timed out waiting for ping module test: Failed to connect to the host via ssh: ssh: connect to host 192.168.122.19 port 22: Connection timed out"}
+   ...ignoring
+   fatal: [nodo-jboss-qa]: FAILED! => {"changed": false, "elapsed": 22, "msg": "timed out waiting for ping module test: Failed to connect to the host via ssh: ssh: connect to host 192.168.122.20 port 22: Connection timed out"}
+   ...ignoring
+       "msg": "nodo-jboss3 no responde (apagada o sin red): sigue con la versión que tenía y no recibe la 1.0.43."
+       "msg": "nodo-jboss-qa no responde (apagada o sin red): sigue con la versión que tenía y no recibe la 1.0.43."
+   PLAY [Desplegar app en JBoss EAP] **********************************************
+       "msg": "Versión 1.0.43 en nodo-jboss, solicitada por invoke: http://34-176-42-56.sslip.io:8090/app-jboss/"
+   PLAY [Desplegar app en JBoss EAP] **********************************************
+       "msg": "Versión 1.0.43 en nodo-jboss2, solicitada por invoke: http://34-176-42-56.sslip.io:8090/app-jboss/"
+   PLAY [Desplegar app en JBoss EAP] **********************************************
+       "msg": "Versión 1.0.43 en nodo-jboss-dev, solicitada por invoke: http://34-176-42-56.sslip.io:8090/app-jboss/"
+   PLAY [Manifiesto · registrar la versión desplegada] ****************************
+   fatal: [localhost]: FAILED! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}
+   PLAY RECAP *********************************************************************
+   localhost                  : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+   nodo-jboss                 : ok=15   changed=5    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+   nodo-jboss-dev             : ok=14   changed=5    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+   nodo-jboss-qa              : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=1   
+   nodo-jboss2                : ok=14   changed=5    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+   nodo-jboss3                : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=1   
+== 4. Balanceador (versión 1.0.43)
+     12 ok 1.0.43
+   .15: ok 1.0.43
+   .18: ok 1.0.43
+--- fin: 2026-11-10T20:42:53-03:00 · código: 0
