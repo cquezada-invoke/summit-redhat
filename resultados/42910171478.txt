@@ -1,0 +1,66 @@
+commit: 1aa6f8111396aebe1fce7296466df267505f82bc
+inicio: 2026-11-10T18:58:47-03:00
+---
+ad6e2dc
+faceops ya trae la versión
+aap ping 200
+   · Proyecto «FaceOps · automatizaciones»: successful
+   · Plantilla «Migración · WebLogic a OpenShift · Evaluar» (id 1130)
+   · Plantilla «Migración · WebLogic a OpenShift» (id 1131)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+catalogo: 223
+{'id': 228, 'nombre': 'WebLogic → OpenShift 4.x · Evaluar', 'tipo': 'lectura', 'requiere_aprobacion': 0, 'usa_limite': 1, 'por_inventario': 1, 'inventario': 'Nodos demo', 'visible': 1}
+{'id': 227, 'nombre': 'Migración WebLogic → OpenShift 4.x', 'tipo': 'escritura', 'requiere_aprobacion': 1, 'usa_limite': 1, 'por_inventario': 1, 'inventario': 'Nodos demo', 'visible': 1}
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'sin probar'}
+M-C1 emular-origen
+  pedido FO-LAB-01424
+  aprobado
+{"M-C1": ["FO-LAB-01420", "exitoso", [["ventas", true], ["legado", false]]], "E-C1": ["FO-LAB-01421", "exitoso", "ventas_domain", "14.1.1.0.0", [["ventas", "eap8", true, "baja", 0], ["legado", "eap8", false, "alta", 3]], false], "E-C2": ["FO-LAB-01422", "exitoso", "ventas_domain", "14.1.1.0.0", [["ventas", "eap8", true, "baja", 0], ["legado", "eap8", false, "alta", 3]], false], "E-C3": ["FO-LAB-01423", "fallido", null, null, [], null]}
+===== MIGRAR C2-C4
+Error: container "faceops" does not exist
+Error: no container with name or ID "faceops" found: no such container
+python3: can't open file '/tmp/wl-pb1.py': [Errno 2] No such file or directory
+== objetos
+No resources found
+== legado (debe estar vacío)
+Warning: apps.openshift.io/v1 DeploymentConfig is deprecated in v4.14+, unavailable in v4.10000+
+No resources found in wl-ventas namespace.
+== ConfigMap: llaves (sin claves)
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+== Secret: llaves
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+== env del pod (claves por secretKeyRef)
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+ http=000
+No resources found in wl-ventas namespace.
+--- fin: 2026-11-10T19:03:19-03:00 · código: 0
