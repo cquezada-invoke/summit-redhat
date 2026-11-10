@@ -5508,6 +5508,23 @@ def mapa_bifurcacion():
     return {"ok": True, "ticket": t["numero"], "url": url_for("consola.ticket", tid=t["id"]), "estado": t["estado"]}
 
 
+@bp.route("/mapa/lake-uso")
+@requiere_login
+def mapa_lake_uso():
+    """Requests enviados al data lake por el segmento (acumulado) y media de requests por segundo en la entrada (último minuto)."""
+    import requests as rq
+    from .topologia import LAKE, prefijo_lake
+    seg = request.args.get("segmento", "")
+    if not any(x["nombre"] == seg for x in segmentos_visibles(g.usuario, g.cliente["id"])):
+        abort(404)
+    try:
+        x = rq.get(f"{LAKE['colector']}/estado/{prefijo_lake(seg)}", timeout=4).json()
+    except Exception:  # noqa: BLE001
+        return {"error": "colector no disponible"}, 503
+    return {"requests": x.get("enviado_registros"), "rps": x.get("rps_1m"), "mb": round((x.get("enviado_bytes") or 0) / 1048576, 2),
+            "desde": x.get("enviado_desde", "")}
+
+
 @bp.route("/mapa/rendimiento", methods=["GET", "POST"])
 @requiere_login
 def mapa_rendimiento():

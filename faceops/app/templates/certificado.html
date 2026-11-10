@@ -35,7 +35,7 @@
   <div><dt>Renovación</dt><dd>{{ 'Automática: Event-Driven Ansible la lanza dentro de la ventana de ' ~ r.umbral ~ ' días' if f.auto else 'Manual: no la gestiona FaceOps' }}</dd></div>
 </dl></div>
 
-<div class="grid g2" style="align-items:start;margin-top:12px">
+<div style="display:grid;gap:14px;margin-top:12px">
 <div><h2 style="margin:4px 0 4px">Servidores que lo presentan · {{ servidores|length }}</h2>
 <p class="sub" style="margin:0 0 8px;font-size:12.5px">Lo tienen instalado y lo entregan en su puerto TLS. Al reemplazarlo, cambia en estas máquinas.</p>
 <div class="card" style="padding:0">{% if servidores %}<table><tr><th>Máquina</th><th>Servicio</th><th>Ambiente</th></tr>
@@ -58,20 +58,22 @@
 <h2 style="margin:18px 0 6px">Dependencias</h2>
 <div class="card" style="overflow-x:auto"><svg viewBox="0 0 980 {{ H }}" width="100%" style="min-width:720px;max-height:520px" role="img" aria-label="CA emisora, certificado, servidores que lo presentan y clientes que confían en él">
 <defs><marker id="cf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#8a8d90"/></marker></defs>
-{% set cy = H / 2 %}
-<text x="20" y="22" font-size="12" fill="#6a6e73">CA emisora</text><text x="240" y="22" font-size="12" fill="#6a6e73">Certificado</text>
-<text x="470" y="22" font-size="12" fill="#6a6e73">Servidores que lo presentan</text><text x="740" y="22" font-size="12" fill="#6a6e73">Clientes que confían</text>
-<rect x="20" y="{{ cy - 26 }}" width="180" height="52" rx="8" fill="#f5f5f5" stroke="#8a8d90"/><text x="110" y="{{ cy - 4 }}" text-anchor="middle" font-size="12.5" font-weight="700">{{ (f.emisor or 'CA interna')[:24] }}</text><text x="110" y="{{ cy + 13 }}" text-anchor="middle" font-size="11" fill="#6a6e73">firma y respalda</text>
-<path d="M200 {{ cy }} H236" stroke="#8a8d90" stroke-width="1.5" marker-end="url(#cf)"/>
-<rect x="240" y="{{ cy - 30 }}" width="190" height="60" rx="8" fill="#fff" stroke="{{ '#c9190b' if f.estado == 'vencido' else ('#f0ab00' if f.estado == 'por vencer' else '#151515') }}" stroke-width="1.8"/>
-<text x="335" y="{{ cy - 8 }}" text-anchor="middle" font-size="12.5" font-weight="700">{{ f.cn[:26] }}</text><text x="335" y="{{ cy + 9 }}" text-anchor="middle" font-size="11" fill="#6a6e73">{{ f.estado }}{{ ' · ' ~ f.dias ~ ' días' if f.dias is not none }}</text>
-{% for m in SV %}{% set y = 40 + loop.index0 * 46 + ((filas_ - SV|length) * 23) %}<path d="M430 {{ cy }} C455 {{ cy }} 450 {{ y + 18 }} 466 {{ y + 18 }}" fill="none" stroke="#8a8d90" stroke-width="1.3" marker-end="url(#cf)"/>
-<rect x="470" y="{{ y }}" width="200" height="36" rx="6" fill="#fff" stroke="#151515"/><text x="480" y="{{ y + 15 }}" font-size="12" font-weight="700">{{ cod_eq(m.e)[:22] }}</text><text x="480" y="{{ y + 29 }}" font-size="10.5" fill="#6a6e73">{{ (m.servicio or 'TLS')[:18] }}{{ ' · ' ~ m.puerto if m.puerto }}</text>{% else %}<text x="470" y="{{ cy + 4 }}" font-size="12" fill="#6a6e73">sin servidores registrados</text>{% endfor %}
-{% for m in CL %}{% set y = 40 + loop.index0 * 46 + ((filas_ - CL|length) * 23) %}{% if SV %}<path d="M670 {{ 58 + ((filas_ - SV|length) * 23) }} C705 {{ 58 + ((filas_ - SV|length) * 23) }} 700 {{ y + 18 }} 736 {{ y + 18 }}" fill="none" stroke="#b8bbbe" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#cf)"/>{% endif %}
-<rect x="740" y="{{ y }}" width="220" height="36" rx="6" fill="#fafafa" stroke="#8a8d90" stroke-dasharray="4 3"/><text x="750" y="{{ y + 15 }}" font-size="12" font-weight="700">{{ cod_eq(m.e)[:24] }}</text><text x="750" y="{{ y + 29 }}" font-size="10.5" fill="#6a6e73">confía en la CA (truststore)</text>{% else %}<text x="740" y="{{ cy + 4 }}" font-size="12" fill="#6a6e73">sin clientes registrados</text>{% endfor %}
-{% if confian|length > 8 %}<text x="740" y="{{ H - 6 }}" font-size="11" fill="#6a6e73">y {{ confian|length - 8 }} clientes más</text>{% endif %}
+{% set cy = H / 2 %}{% set ys = 58 + ((filas_ - SV|length) * 23) %}
+<text x="20" y="22" font-size="12" fill="#6a6e73">Clientes que confían</text><text x="300" y="22" font-size="12" fill="#6a6e73">Servidores que lo presentan</text>
+<text x="560" y="22" font-size="12" fill="#6a6e73">Certificado</text><text x="790" y="22" font-size="12" fill="#6a6e73">CA emisora</text>
+{% for m in CL %}{% set y = 40 + loop.index0 * 46 + ((filas_ - CL|length) * 23) %}
+<rect x="20" y="{{ y }}" width="220" height="36" rx="6" fill="#fafafa" stroke="#8a8d90" stroke-dasharray="4 3"/><text x="30" y="{{ y + 15 }}" font-size="12" font-weight="700">{{ cod_eq(m.e)[:24] }}</text><text x="30" y="{{ y + 29 }}" font-size="10.5" fill="#6a6e73">confía en la CA (truststore)</text>
+{% if SV %}<path d="M240 {{ y + 18 }} C275 {{ y + 18 }} 270 {{ ys }} 296 {{ ys }}" fill="none" stroke="#b8bbbe" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#cf)"/>{% endif %}{% else %}<text x="20" y="{{ cy + 4 }}" font-size="12" fill="#6a6e73">sin clientes registrados</text>{% endfor %}
+{% for m in SV %}{% set y = 40 + loop.index0 * 46 + ((filas_ - SV|length) * 23) %}
+<rect x="300" y="{{ y }}" width="200" height="36" rx="6" fill="#fff" stroke="#151515"/><text x="310" y="{{ y + 15 }}" font-size="12" font-weight="700">{{ cod_eq(m.e)[:22] }}</text><text x="310" y="{{ y + 29 }}" font-size="10.5" fill="#6a6e73">{{ (m.servicio or 'TLS')[:18] }}{{ ' · ' ~ m.puerto if m.puerto }}</text>
+<path d="M556 {{ cy }} C530 {{ cy }} 530 {{ y + 18 }} 504 {{ y + 18 }}" fill="none" stroke="#8a8d90" stroke-width="1.3" marker-end="url(#cf)"/>{% else %}<text x="300" y="{{ cy + 4 }}" font-size="12" fill="#6a6e73">sin servidores registrados</text>{% endfor %}
+<rect x="560" y="{{ cy - 30 }}" width="190" height="60" rx="8" fill="#fff" stroke="{{ '#c9190b' if f.estado == 'vencido' else ('#f0ab00' if f.estado == 'por vencer' else '#151515') }}" stroke-width="1.8"/>
+<text x="655" y="{{ cy - 8 }}" text-anchor="middle" font-size="12.5" font-weight="700">{{ f.cn[:26] }}</text><text x="655" y="{{ cy + 9 }}" text-anchor="middle" font-size="11" fill="#6a6e73">{{ f.estado }}{{ ' · ' ~ f.dias ~ ' días' if f.dias is not none }}</text>
+<path d="M790 {{ cy }} H754" stroke="#8a8d90" stroke-width="1.5" marker-end="url(#cf)"/>
+<rect x="790" y="{{ cy - 26 }}" width="180" height="52" rx="8" fill="#f5f5f5" stroke="#8a8d90"/><text x="880" y="{{ cy - 4 }}" text-anchor="middle" font-size="12.5" font-weight="700">{{ (f.emisor or 'CA interna')[:24] }}</text><text x="880" y="{{ cy + 13 }}" text-anchor="middle" font-size="11" fill="#6a6e73">firma y respalda</text>
+{% if confian|length > 8 %}<text x="20" y="{{ H - 6 }}" font-size="11" fill="#6a6e73">y {{ confian|length - 8 }} clientes más</text>{% endif %}
 </svg>
-<p class="sub" style="font-size:12px;margin:6px 0 0">Línea continua: el certificado está instalado en el servidor. Punteada: el cliente se conecta a ese servicio y valida el certificado con la CA emisora.</p></div>
+<p class="sub" style="font-size:12px;margin:6px 0 0">Punteada: el cliente se conecta al servidor y valida su certificado con la CA emisora. Continua: el certificado está instalado en el servidor y la CA lo firma.</p></div>
 
 {% if emitir %}<dialog id="dlg-reemplazo" class="card" style="max-width:600px;width:94%"><form method="dialog" class="f" id="f-reemplazo">
 <h3 style="margin:0 0 6px">Reemplazar certificado · {{ f.cn }}</h3>

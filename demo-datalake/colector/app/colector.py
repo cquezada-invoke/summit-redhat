@@ -1,6 +1,7 @@
 """Colector del data lake: recibe la copia (espejo de nginx) de cada request de un segmento de negocio y la guarda en el lake
 (S3 + Trino) como JSON por línea, para que JavIA la tome después. También genera flujos funcionales hacia la aplicación del
 segmento (para probar la derivación) y muestra lo recibido. No guarda cabeceras de autenticación ni cookies."""
+import collections
 import datetime
 import json
 import os
@@ -18,6 +19,7 @@ LAKE_WEB = os.environ.get("LAKE_WEB", "https://lake.sno.34.176.42.56.sslip.io/bu
 LOTE, CADA = 2000, 15          # se escribe al lake cada 100 registros o cada 15 segundos
 app = Flask(__name__)
 _buf, _cont, _ult, _gen, _tablas = {}, {}, {}, {}, set()
+_ventana = {}   # segmento -> marcas de tiempo de los requests del último minuto (media de requests por segundo en la entrada)
 _lock = threading.Lock()
 RE_PREF = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 
@@ -156,6 +158,11 @@ def ingesta(pref, resto):
         _buf.setdefault(pref, []).append(r)
         _cont[pref] = _cont.get(pref, 0) + 1
         _ult[pref] = r["ts"]
+        v = _ventana.setdefault(pref, collections.deque())
+        ahora_ = time.time()
+        v.append(ahora_)
+        while v and v[0] < ahora_ - 60:
+            v.popleft()
         lleno = len(_buf[pref]) >= LOTE
     if lleno:
         threading.Thread(target=volcar, args=(pref,), daemon=True).start()
@@ -170,9 +177,15 @@ def estado(pref):
         try:
             u = leer_uso(pref)
             b, n = ocupado(pref)
-            uso = {"enviado_bytes": u["bytes"], "enviado_desde": u.get("desde", ""), "en_s3_bytes": b, "en_s3_archivos": n}
+            uso = {"enviado_bytes": u["bytes"], "enviado_desde": u.get("desde", ""), "en_s3_bytes": b, "en_s3_archivos": n,
+                   "enviado_registros": u.get("registros", 0) + len(_buf.get(pref, []))}
         except Exception as e:  # noqa: BLE001
             app.logger.warning("uso %s: %s", pref, e)
+    v = _ventana.get(pref) or collections.deque()
+    with _lock:
+        while v and v[0] < time.time() - 60:
+            v.popleft()
+        uso["rps_1m"] = round(len(v) / 60, 2)
     return jsonify({"segmento": pref, **uso, "recibidos": _cont.get(pref, 0), "ultimo": _ult.get(pref, ""), "en_cola": len(_buf.get(pref, [])),
                     "generador": {k: g.get(k) for k in ("activo", "enviados", "errores", "hasta", "base")}})
 

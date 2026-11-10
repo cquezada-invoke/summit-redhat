@@ -528,10 +528,18 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function bifSegmento(){ const cy_=window._cy; if(!cy_) return null; const n=cy_.nodes().filter(x=>!!x.data('bif'))[0]; return n?{b:n.data('bif'),punto:n.data('nombre')||n.data('label')||''}:null; }
   function htmlLakeSegmento(){ const x=bifSegmento(); if(!x) return ''; const b=x.b;
     return sec('Data lake')+fila({izq:'Derivación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
-      det:(b.activa?''+(b.enviado_mb!=null?'<div style="margin-top:4px"><b>Enviado al data lake:</b> '+n2(b.enviado_mb)+' MB</div>':'')
+      det:(b.activa?''+(b.activa?'<div style="margin-top:4px"><b>Enviado al data lake:</b> <span id="lake-req">…</span> requests · <span id="lake-mb">'+(b.enviado_mb!=null?n2(b.enviado_mb):'…')+'</span> MB <span class="sub" id="lake-desde"></span></div>':'')
           :'Al activarla (ticket con aprobación), cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, y arrancan flujos funcionales de prueba.')
         +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif-seg">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
         +''}); }
+  let usoLakeT=null;
+  function usoLake(){ clearTimeout(usoLakeT); if(!document.getElementById('lake-req')&&!document.getElementById('lake-rps')) return;
+    fetch({{ url_for('consola.mapa_lake_uso')|tojson }}+'?segmento='+encodeURIComponent(SEG)).then(r=>r.ok?r.json():null).then(x=>{ if(!x) return;
+      const q=id=>document.getElementById(id), f=v=>v==null?'—':Number(v).toLocaleString('es-CL');
+      if(q('lake-req')) q('lake-req').textContent=f(x.requests); if(q('lake-mb')) q('lake-mb').textContent=n2(x.mb);
+      if(q('lake-desde')&&x.desde) q('lake-desde').textContent='(desde '+x.desde.slice(0,16).replace('T',' ')+' UTC)';
+      if(q('lake-rps')) q('lake-rps').textContent=x.rps==null?'—':Number(x.rps).toLocaleString('es-CL',{maximumFractionDigits:2}); })
+     .catch(()=>{}).finally(()=>{ usoLakeT=setTimeout(usoLake,5000); }); }
   function enlazarLakeSegmento(){ const bb=document.getElementById('b-bif-seg'), x=bifSegmento(); if(!bb||!x) return;
     bb.onclick=()=>{ bb.disabled=true; const res=bb.parentElement.querySelector('.res'); res.textContent='guardando…';
       const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',x.b.segmento); fd.append('punto',x.punto); fd.append('destino',x.b.destino);
@@ -562,6 +570,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=fila({izq:'Ambientes',ic:letra('A','#2b9af3'),txt:s.ambientes.join(', ')||'—'});
     h+=fila({izq:'Productos',ic:letra('P'),txt:s.productos.join(', ')||'—',det:s.productos.length>2?s.productos.join('<br>'):''});
     h+=fila({izq:'Arquitectura',ic:s.arquitectura?SVG.ok:SVG.warn,txt:s.arquitectura?'v'+s.arquitectura:'sin arquitectura'});
+    if(bifSegmento()&&bifSegmento().b.activa) h+=fila({izq:'Carga de entrada',ic:letra('⇢','#0066cc'),txt:'<span id="lake-rps">…</span> req/s',det:'Media de requests por segundo que recibe la aplicación en su entrada durante el último minuto (copia de cada request al data lake).'});
     if((s.ocp_comps||[]).length){
       h+=sec('OpenShift (contenedores)');
       h+=fila({izq:'Componentes',ic:letra('C','#ee0000'),txt:s.ocp_comps.join(', ')});
@@ -572,7 +581,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         if(o.gitops) h+=fila({izq:'GitOps',ic:letra('G','#4cb140'),txt:'<a href="'+o.gitops.replace('http://192.168.122.1:3000','http://34.176.42.56:3000')+'" target="_blank" rel="noopener">repositorio del estado deseado</a>'});
       });
     }
-    pintar(h); enlazarEncenderTodas(); enlazarLakeSegmento();
+    pintar(h); enlazarEncenderTodas(); enlazarLakeSegmento(); usoLake();
     pintarControles();
   }
   const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }}, URL_SALUD={{ url_for('consola.salud_detalle')|tojson }};
