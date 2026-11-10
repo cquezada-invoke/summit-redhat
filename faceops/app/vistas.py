@@ -5520,7 +5520,7 @@ def mapa_rendimiento():
                 actual = REN.estado(g.cliente, seg)
                 if actual and actual["estado"] in ("corriendo", "pausado"):
                     return {"error": "Ya hay una prueba en curso: detenla antes de iniciar otra"}, 409
-                REN.iniciar(g.usuario, g.cliente, seg, equipos_visibles(), int(f.get("segundos") or 30))
+                REN.iniciar(g.usuario, g.cliente, seg, equipos_visibles(), int(f.get("segundos") or 30), int(f.get("carga") or 1))
             elif acc in ("pausar", "reanudar", "detener"):
                 REN.controlar(g.usuario, g.cliente, seg, equipos_visibles(), acc)
             else:

@@ -2,7 +2,7 @@
 # FaceOps · Rendimiento del canal (no invasiva, por tiempo): desde cada equipo de origen mide sus tramos del segmento durante
 # fo_segundos. En cada paso (≈1 s) abre y cierra conexiones TCP al puerto de cada destino (handshake, sin datos de negocio) y
 # publica las muestras en ms como un evento del trabajo: FaceOps las lee en vivo y puede pausar o detener (cancelando el trabajo).
-# Variables: faceops_flujos: [{clave, desde, ip, puerto}] · fo_segundos (1 a 120)
+# Variables: faceops_flujos: [{clave, desde, ip, puerto}] · fo_segundos (1 a 120) · fo_carga (1 a 20: multiplica las conexiones por segundo)
 - name: FaceOps · Rendimiento del canal
   hosts: all
   gather_facts: false
@@ -16,21 +16,25 @@
           - python3
           - -c
           - |
-            import json, socket, sys, time
-            tramos = json.loads(sys.argv[1])
-            m, p, t0 = {t["clave"]: [] for t in tramos}, {t["clave"]: 0 for t in tramos}, time.time()
-            while time.time() - t0 < 0.7:
-                for t in tramos:
-                    a = time.perf_counter()
-                    try:
-                        socket.create_connection((t["ip"], int(t["puerto"])), 2).close()
-                        m[t["clave"]].append(round((time.perf_counter() - a) * 1000, 3))
-                    except OSError:
-                        p[t["clave"]] += 1
-                time.sleep(0.15)
+            import json, socket, sys, threading, time
+            tramos, carga = json.loads(sys.argv[1]), max(1, min(int(sys.argv[3]), 20))
+            m, p, t0, lk = {t["clave"]: [] for t in tramos}, {t["clave"]: 0 for t in tramos}, time.time(), threading.Lock()
+            def hilo():   # cada hilo: ~5 conexiones por segundo a cada tramo; la carga multiplica los hilos
+                while time.time() - t0 < 0.7:
+                    for t in tramos:
+                        a = time.perf_counter()
+                        try:
+                            socket.create_connection((t["ip"], int(t["puerto"])), 2).close()
+                            with lk: m[t["clave"]].append(round((time.perf_counter() - a) * 1000, 3))
+                        except OSError:
+                            with lk: p[t["clave"]] += 1
+                    time.sleep(0.15)
+            hs = [threading.Thread(target=hilo) for _ in range(carga)]
+            [h.start() for h in hs]; [h.join() for h in hs]
             print(json.dumps({"paso": int(sys.argv[2]), "t": round(time.time(), 2), "m": m, "p": p}))
           - "{{ mios | to_json }}"
           - "{{ item }}"
+          - "{{ fo_carga | default(1) | int }}"
       loop: "{{ range(pasos | int) | list }}"
       loop_control: {label: "paso {{ item }}"}
       changed_when: false

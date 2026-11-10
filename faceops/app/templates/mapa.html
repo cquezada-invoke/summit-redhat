@@ -447,6 +447,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     const pct=x.duracion?Math.min(100,Math.round(100*(x.transcurrido||0)/x.duracion)):0;
     const segV=(document.getElementById('perf-seg')||{}).value||30, umV=Math.round(UMB());
     c.innerHTML='<div class="perf-fila"><label for="perf-umb">Umbral (ms)</label><input id="perf-umb" type="number" min="1" max="60000" value="'+umV+'"><div><button type="button" class="btn chico gris" id="perf-umb-g" title="Sobre este tiempo promedio un tramo se marca como cuello de botella (vale para toda la aplicación)">Guardar umbral</button></div></div>'
+      +'<div class="perf-fila"><label for="perf-carga">Carga (×)</label><input id="perf-carga" type="number" min="1" max="20" value="'+((document.getElementById('perf-carga')||{}).value||1)+'"'+(activo?' disabled':'')+' title="Multiplica las conexiones por segundo en el mismo tiempo: ×1 ≈ 5 por tramo y 1 petición HTTP a la entrada; ×10 ≈ 50 por tramo y 10 peticiones (máximo ×20)"><div></div></div>'
       +'<div class="perf-fila"><label for="perf-seg">Segundos a probar</label><input id="perf-seg" type="number" min="1" max="120" value="'+(activo?x.duracion:segV)+'"'+(activo?' disabled':'')+'><div>'
       +'<button type="button" class="btn chico" id="perf-ini"'+(activo?' disabled':'')+' title="No es ping (ICMP): desde la máquina de origen de cada tramo AAP abre y cierra conexiones TCP al puerto del servicio de destino (sin datos de negocio), varias por segundo; la entrada se mide con una petición HTTP GET por segundo. Máximo 120 s.">Iniciar</button>'
       +'<button type="button" class="btn chico gris" id="perf-det"'+(activo?'':' disabled')+' title="Detiene la medición y deja los resultados tomados hasta ahora">Detener</button>'
@@ -460,7 +461,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     const $=id=>document.getElementById(id);
     $('perf-umb-g').onclick=()=>postPerf('umbral',{umbral:$('perf-umb').value}).then(x=>{ if(x){ if(PERF_ON) ponerPerf(); pintarControles(); if(TABLA_ABIERTA) pintarTabla(); } });
     $('perf-ini').onclick=()=>{ const sg=Math.max(1,Math.min(120,parseInt($('perf-seg').value||'30',10))); $('perf-ini').disabled=true;
-      postPerf('iniciar',{segundos:sg}).then(x=>{ if(x){ clearTimeout(perfFin); perfFin=null; PERF_ON=true; tickPerf(); } else $('perf-ini').disabled=false; }); };
+      postPerf('iniciar',{segundos:sg,carga:Math.max(1,Math.min(20,parseInt($('perf-carga').value||'1',10)))}).then(x=>{ if(x){ clearTimeout(perfFin); perfFin=null; PERF_ON=true; tickPerf(); } else $('perf-ini').disabled=false; }); };
     $('perf-det').onclick=()=>postPerf('detener').then(x=>{ if(x){ perfFin=null; tickPerf(); } });
     $('perf-tab').onclick=()=>descargarCSV();
     const nn=$('perf-norm'); if(nn) nn.onclick=ev=>{ ev.preventDefault(); quitarPerf(); };

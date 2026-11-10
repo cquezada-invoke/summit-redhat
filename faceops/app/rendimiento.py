@@ -55,7 +55,7 @@ def transcurrido(r):
     return max(0.0, hasta - r["inicio_ts"] - (r.get("pausado_acum") or 0))
 
 
-def _lanzar_jobs(cliente, flujos, eqs, segundos):
+def _lanzar_jobs(cliente, flujos, eqs, segundos, carga=1):
     from .aap import AAP, ErrorAAP
     from .operacion import acceso_equipo
     aap = AAP.de_cliente(cliente)
@@ -70,13 +70,22 @@ def _lanzar_jobs(cliente, flujos, eqs, segundos):
         except (ErrorAAP, KeyError):
             continue
         grupos[(inv, tuple(creds))].append(f)
-    return [aap.lanzar("job", r[0]["id"], extra_vars={"faceops_flujos": fl, "fo_segundos": int(segundos) + 3},
+    return [aap.lanzar("job", r[0]["id"], extra_vars={"faceops_flujos": fl, "fo_segundos": int(segundos) + 3, "fo_carga": int(carga)},
                        limite=":".join(sorted({f["desde"] for f in fl})), inventario=inv, credenciales=list(creds)) for (inv, creds), fl in grupos.items()]
 
 
-def _entrada(app_, rid, url):
-    """La entrada HTTP, una petición por segundo mientras la prueba corre (respeta pausa y detención)."""
+def _entrada(app_, rid, url, carga=1):
+    """La entrada HTTP: «carga» peticiones por segundo (en paralelo) mientras la prueba corre (respeta pausa y detención)."""
     import requests
+    from concurrent.futures import ThreadPoolExecutor
+
+    def una(_):
+        try:
+            x = requests.get(url, timeout=5, verify=False, headers={"User-Agent": "FaceOps-rendimiento/1.0"})
+            return round(x.elapsed.total_seconds() * 1000, 2)
+        except requests.RequestException:
+            return None
+    pool = ThreadPoolExecutor(max_workers=max(1, carga))
     with app_.app_context():
         while True:
             r = q1("SELECT * FROM rendimiento_canal WHERE id=?", rid)
@@ -87,27 +96,23 @@ def _entrada(app_, rid, url):
                 continue
             if transcurrido(r) >= (r["duracion"] or 30):
                 return
-            ms, err = None, 0
-            try:
-                x = requests.get(url, timeout=5, verify=False, headers={"User-Agent": "FaceOps-rendimiento/1.0"})
-                ms = round(x.elapsed.total_seconds() * 1000, 2)
-            except requests.RequestException:
-                err = 1
+            t0 = time.time()
+            res = list(pool.map(una, range(max(1, carga))))
             e = j(q1("SELECT entrada FROM rendimiento_canal WHERE id=?", rid)["entrada"], {})
-            if ms is not None:
-                e.setdefault("ms", []).append(ms)
-            e["perdidas"] = e.get("perdidas", 0) + err
+            e.setdefault("ms", []).extend(x for x in res if x is not None)
+            e["perdidas"] = e.get("perdidas", 0) + sum(1 for x in res if x is None)
             e["url"] = url
             ej("UPDATE rendimiento_canal SET entrada=? WHERE id=?", json.dumps(e), rid)
-            time.sleep(1)
+            time.sleep(max(0.0, 1 - (time.time() - t0)))
 
 
-def iniciar(usuario, cliente, segmento, eqs, segundos):
+def iniciar(usuario, cliente, segmento, eqs, segundos, carga=1):
     from flask import current_app
     from .arquitectura import asignacion, flujos_expandidos, vigente
     from .topologia import clave_flujo, flujos_verificables
     _tabla()
     segundos = max(1, min(int(segundos or 30), MAX_SEG))
+    carga = max(1, min(int(carga or 1), 20))
     arq = vigente(cliente["id"], segmento)
     if not arq:
         raise ValueError("El segmento no tiene arquitectura aprobada: no hay canal que medir")
@@ -121,11 +126,11 @@ def iniciar(usuario, cliente, segmento, eqs, segundos):
              cliente["id"], segmento, ahora(), usuario["usuario"], "preparando" if flujos else "corriendo", segundos, None if flujos else time.time(),
              json.dumps({f["clave"]: {"desde": f["desde"], "ip": f["ip"], "puerto": f["puerto"]} for f in flujos}), json.dumps(flujos),
              json.dumps({"url": en_} if en_ else {}))
-    jobs = _lanzar_jobs(cliente, flujos, eqs, segundos) if flujos else []
+    jobs = _lanzar_jobs(cliente, flujos, eqs, segundos, carga) if flujos else []
     ej("UPDATE rendimiento_canal SET jobs=? WHERE id=?", json.dumps(jobs), rid)
     if en_:
-        threading.Thread(target=_entrada, args=(current_app._get_current_object(), rid, en_), daemon=True).start()
-    auditar(usuario["usuario"], cliente["id"], "prueba de rendimiento del canal", segmento, {"segundos": segundos, "tramos": len(flujos), "trabajos": jobs})
+        threading.Thread(target=_entrada, args=(current_app._get_current_object(), rid, en_, carga), daemon=True).start()
+    auditar(usuario["usuario"], cliente["id"], "prueba de rendimiento del canal", segmento, {"segundos": segundos, "carga": carga, "tramos": len(flujos), "trabajos": jobs})
     return rid
 
 
