@@ -1,28 +1,44 @@
-commit: a204679afeb8e7b822baa81746cf634c0a87b46e
-inicio: 2026-11-10T16:45:29-03:00
+commit: 638ea7f65838a35352d0c43e3f2c99b52338a83b
+inicio: 2026-11-10T16:46:44-03:00
 ---
-ad hoc 21643 successful
-Identity added: /runner/artifacts/21643/ssh_key_data (cquezada@demo-ansible-summit)
-[0;33mnodo-jboss2 | CHANGED | rc=0 >>[0m
-[0;33m== nodo-jboss2.demo.local[0m
-[0;33mactive[0m
-[0;33m/var/opt/rh/eap8/cache/wildfly/standalone/tmp/app-jboss.war[0m
-[0;33mlocal /app-jboss/ 200[0m
-[0;33mok 1.0.37[0m
-[0;33m[0m
-[0;33mlog: [0m
-[0;33m0.0.0.0:8080[0m
-[0;33m127.0.0.1:9990[0m
-[0;33m0.0.0.0:8443[0m
 [0;33mnodo-jboss | CHANGED | rc=0 >>[0m
-[0;33m== nodo-jboss.demo.local[0m
-[0;33mactive[0m
-[0;33m/var/opt/rh/eap8/cache/wildfly/standalone/tmp/app-jboss.war[0m
-[0;33mlocal /app-jboss/ 404[0m
-[0;33m<html><body><h1>Resource not found</h1></body></html>[0m
-[0;33m[0m
-[0;33mlog: [0m
-[0;33m0.0.0.0:8443[0m
-[0;33m0.0.0.0:9990[0m
-[0;33m0.0.0.0:8080[0m
---- fin: 2026-11-10T16:45:48-03:00 · código: 0
+[0;33m== nodo-jboss.demo.local (usuario root)[0m
+[0;33m{[0m
+[0;33m    "outcome" => "success",[0m
+[0;33m    "result" => "running"[0m
+[0;33m}[0m
+[0;33mNAME          RUNTIME-NAME  PERSISTENT ENABLED STATUS [0m
+[0;33mapp-jboss.war app-jboss.war true       true    FAILED [0m
+[0;33m    "outcome" => "failed",[0m
+[0;33m    "failure-description" => "WFLYCTL0201: Unknown attribute 'security-realm'",[0m
+[0;33m    "rolled-back" => true[0m
+[0;33m}[0m
+[0;33m-rw-r-----.  1 root root    6597 Nov  2 02:19 actual.war[0m
+[0;33m-rw-r-----.  1 root root   53724 Nov 10 14:18 nueva.war[0m
+[0;33m-rw-r--r--.  1 root root 1086687 Oct 23 16:39 postgresql.jar[0m
+[0;33m-rw-r-----.  1 root root    6597 Nov  2 02:19 restablecer.war[0m
+[0;33m28[0m
+[0;33mlog /var/opt/rh/eap8/log/wildfly/standalone/server.log[0m
+[0;33m2026-11-10 14:42:24,604 ERROR [org.jboss.msc.service.fail] (MSC service thread 1-1) MSC000001: Failed to start service org.wildfly.undertow.listener.default: org.jboss.msc.service.StartException in service org.wildfly.undertow.listener.defa[0m
+[0;33m2026-11-10 14:42:25,219 ERROR [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0013: Operation ("add") failed - address: ([[0m
+[0;33m2026-11-10 14:42:25,220 ERROR [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0013: Operation ("add") failed - address: ([[0m
+[0;33m2026-11-10 14:42:25,320 ERROR [org.jboss.as] (Controller Boot Thread) WFLYSRV0026: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) started (with errors) in 4263ms - Started 288 of 537 services (4 services failed or missi[0m
+[0;33mnodo-jboss2 | CHANGED | rc=0 >>[0m
+[0;33m== nodo-jboss2.demo.local (usuario root)[0m
+[0;33m{[0m
+[0;33m    "outcome" => "success",[0m
+[0;33m    "result" => "running"[0m
+[0;33m}[0m
+[0;33mNAME          RUNTIME-NAME  PERSISTENT ENABLED STATUS [0m
+[0;33mapp-jboss.war app-jboss.war true       true    OK     [0m
+[0;33m    "outcome" => "failed",[0m
+[0;33m    "failure-description" => "WFLYCTL0201: Unknown attribute 'security-realm'",[0m
+[0;33m    "rolled-back" => true[0m
+[0;33m}[0m
+[0;33m-rw-r-----.  1 root root    6597 Nov  1 14:37 actual.war[0m
+[0;33m-rw-r-----.  1 root root    6597 Nov  1 14:37 nueva.war[0m
+[0;33m-rw-r--r--.  1 root root 1086687 Oct 23 16:39 postgresql.jar[0m
+[0;33m-rw-r-----.  1 root root    6552 Oct 26 16:37 restablecer.war[0m
+[0;33m28[0m
+[0;33mlog /var/opt/rh/eap8/log/wildfly/standalone/server.log[0m
+--- fin: 2026-11-10T16:47:06-03:00 · código: 0
