@@ -1,0 +1,24 @@
+commit: dab2e0654d02a4c5e3ec96f540554139e2940f85
+inicio: 2026-11-10T20:43:32-03:00
+---
+README.md 531
+produccion.yml 598
+# Manifiesto del ambiente produccion: la combinación exacta que está en producción.
+# Lo actualiza AAP en cada despliegue o cambio de configuración. Para volver a un estado anterior:
+# plantilla "JBoss · Restablecer a versión" con el commit de este archivo.
+ambiente: produccion
+aplicacion:
+  nombre: app-jboss
+  version: 1.0.37
+  commit: 024d0ae
+  artefacto: registro de paquetes de Gitea (invoke/generic/app-jboss)
+jboss_config:
+  repo: invoke/jboss-config
+  ref: 752994353cdd
+servidores:
+  nodo-jboss:
+    estado_servidores: a76acc580d55
+  nodo-jboss2:
+    estado_servidores: a76acc580d55
+Manifiesto · leer el actual runner_on_failed {}
+--- fin: 2026-11-10T20:43:32-03:00 · código: 0
