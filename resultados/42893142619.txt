@@ -1,0 +1,19 @@
+commit: cc7f25ef1903b899506d30351fa9429437c04ecc
+inicio: 2026-11-10T17:13:35-03:00
+---
+faceops actualizado
+   · Proyecto «FaceOps · automatizaciones»: successful
+lake-uso: {'desde': '2026-11-10T18:12:30Z', 'mb': 0.87, 'requests': 3367, 'rps': 0.9}
+cert: True True
+mapa: 4
+formulario: {'modo': 'emitir', 'cert_cn': 'nodo-jboss.demo.local', 'cert_san': 'nodo-jboss.demo.local', 'cert_nombre': 'jboss-https', 'cert_puerto': '8443', 'cert_propietario': 'root', 'cert_recargar': 'systemctl restart eap8-standalone', 'motivo': 'Reemplazo del certificado nodo-jboss.demo.local pedido desde su detalle', 'cert_formato': 'pkcs12', 'cert_bits': '2048'}
+pedido: {'id': 1410, 'numero': 'FO-LAB-01410'}
+aprobado
+TICKET: FO-LAB-01410 fallido
+  … Falló en la tarea «Inhabilitar el certificado reemplazado (se revoca en la CA; solo cuando el nuevo ya quedó verificado)» de nodo-jboss -> localhost: non-zero return code
+  … TASK [Inhabilitar el certificado reemplazado (se revoca en la CA; solo cuando el nuevo ya quedó verificado)] ***
+  … fatal: [nodo-jboss -> localhost]: FAILED! => {"changed": false, "cmd": "python3 - <<'P'\nimport http.cookiejar, json, os, ssl, sys, urllib.request\nB = os.environ[\"CA_URL\"].rstrip(\"/\") + \"/ca/rest/\"\ncx = ssl.create_default_context(cafile=os.environ[\"CA_CA\"]); cx.check_hostname = False\ncx.l
+  … fatal: [nodo-jboss]: FAILED! => {"changed": false, "msg": "No se pudo renovar; quedó el certificado anterior (non-zero return code)"}
+anterior: ('vigente', 'VALID')
+nuevo: [('712b447484972e16f0a76957e9e0cfc6', 'vigente', 719)]
+--- fin: 2026-11-10T17:19:42-03:00 · código: 0
