@@ -1,12 +1,16 @@
-commit: 2167b7cfa1dff5cf18e1e53307f045250bf1931e
-inicio: 2026-11-10T17:17:05-03:00
+commit: 6b0e647a17bc3bb1b00f9fafc9d17fd335445cc7
+inicio: 2026-11-10T17:21:44-03:00
 ---
-No resources found in wl-sonda namespace.
-== eap8r
-Error from server (NotFound): pods "eap8r" not found
-== eap8b
-Error from server (NotFound): pods "eap8b" not found
-Error from server (NotFound): pods "eap8r" not found
-
-borrado
---- fin: 2026-11-10T17:21:12-03:00 · código: 0
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.12/urllib/request.py", line 559, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.12/urllib/request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/usr/lib64/python3.12/urllib/request.py", line 639, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: 
+Falló la renovación → No se pudo renovar; quedó el certificado anterior (non-zero return code)
+--- fin: 2026-11-10T17:21:50-03:00 · código: 0
