@@ -248,7 +248,8 @@ def _construir(cliente, eqs, red_inv, labs, completo):
     omitidos = [{"lab": l["lab"], "nodos": len(l["nodos"]), "archivo": l.get("archivo", "")} for l in labs if l not in incluidos]
     nodos, aristas, grupos = {}, [], []
     dueno = defaultdict(set)        # IP → nombres de nodo (para BGP y puertas de enlace)
-    duenos_id = defaultdict(set)    # IP → ids de nodo
+    duenos_id = defaultdict(set)    # IP → ids de nodo (incluye la IP del inventario: sirve para LLDP)
+    duenos_itf = defaultdict(set)   # IP de una interfaz real (laboratorio o ficha) → ids: la puerta de enlace se resuelve solo con esto
     redes_dev = []                  # (red, id del equipo de red, interfaz, vlan): subredes que sirve cada equipo de red
     alias = {}                      # nombre / hostname (minúsculas, sin dominio) → id de nodo
     pares = {}
@@ -282,6 +283,7 @@ def _construir(cliente, eqs, red_inv, labs, completo):
             duenos_id[e["ip"]].add(i)
         for itf, ip, vl in _itfs_eq(e):
             duenos_id[ip.split("/")[0]].add(i)
+            duenos_itf[ip.split("/")[0]].add(i)
             if "/" in ip and d["tipo"] in TIPOS_RED:
                 redes_dev.append((ipaddress.ip_interface(ip).network, i, itf, vl))
         return d
@@ -318,6 +320,7 @@ def _construir(cliente, eqs, red_inv, labs, completo):
             d["info"] = dict(_info_nodo(n, dueno), **d["info"])
             for itf, ip in _ips(n):
                 duenos_id[ip.split("/")[0]].add(i)
+                duenos_itf[ip.split("/")[0]].add(i)
                 if d["tipo"] in TIPOS_RED and itf != "lo":
                     vl = (n.get("vlans") or {}).get(itf.split(".")[0], {})
                     redes_dev.append((ipaddress.ip_interface(ip).network, i, itf, itf.split(".")[1] if "." in itf else vl.get("acceso")))
@@ -388,7 +391,8 @@ def _construir(cliente, eqs, red_inv, labs, completo):
                    if i in (a["data"]["source"], a["data"]["target"]) and x != i and nodos.get(x, {}).get("tipo") in TIPOS_RED | {"desconocido"}}
         gw = _gw_eq(e)
         if gw:
-            due = [x for x in duenos_id.get(gw, ()) if nodos[x]["tipo"] in TIPOS_RED]
+            # la IP del inventario no cuenta: puede ser una dirección traducida (p. ej. el anfitrión que publica al equipo)
+            due = [x for x in duenos_itf.get(gw, ()) if nodos[x]["tipo"] in TIPOS_RED]
             nodos[i]["info"]["Puerta de enlace"] = gw + (f" ({nodos[due[0]]['nombre']})" if len(due) == 1 else
                                                          (" (varios equipos con esa IP)" if due else " (equipo desconocido)"))
             if len(due) == 1:
