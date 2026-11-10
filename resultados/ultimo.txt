@@ -1,16 +1,51 @@
-commit: 396fb89179e1cc6bf2cabf06aa92ec4742a9e48c
-inicio: 2026-11-10T17:12:45-03:00
+commit: 249edffc53282e22e50dd4f3d5c813263bee8109
+inicio: 2026-11-10T17:13:18-03:00
 ---
-    "outcome" => "success",
-    "result" => undefined
-}
-{"outcome" => "success"}
-{
-    "outcome" => "failed",
-    "failure-description" => "WFLYCTL0031: No operation named 'init' exists at address [
-    (\"subsystem\" => \"elytron\"),
-    (\"server-ssl-context\" => \"faceops-jboss-https\")
-]",
-    "rolled-back" => true
-}
---- fin: 2026-11-10T17:12:58-03:00 · código: 0
+Server Version: 4.19.51
+Kubernetes Version: v1.32.13
+NAME   CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
+sno    1282m        17%      19577Mi         85%         
+{"cpu":"7500m","ephemeral-storage":"95018478229","hugepages-1Gi":"0","hugepages-2Mi":"0","memory":"23453752Ki","pods":"250"}
+fuse7-eap-openshift                                  default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/fuse7-eap-openshift                                  1.0,1.1,1.10,1.11,1.12,1.2,1.3,1.4,1.5 + 3 more...       10 days ago
+fuse7-eap-openshift-java11                           default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/fuse7-eap-openshift-java11                           1.11,1.12                                                10 days ago
+fuse7-java-openshift                                 default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/fuse7-java-openshift                                 1.0,1.1,1.10,1.11,1.12,1.2,1.3,1.4,1.5 + 3 more...       10 days ago
+fuse7-java11-openshift                               default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/fuse7-java11-openshift                               1.11,1.12                                                11 days ago
+java                                                 default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/java                                                 11,8,latest,openjdk-11-el7,openjdk-11-ubi8 + 3 more...   10 days ago
+java-runtime                                         default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/java-runtime                                         latest,openjdk-11-ubi8,openjdk-17-ubi8 + 1 more...       11 days ago
+jboss-datagrid73-openshift                           default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-datagrid73-openshift                           1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8                      10 days ago
+jboss-eap-xp3-openjdk11-openshift                    default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-eap-xp3-openjdk11-openshift                    3.0,latest                                               10 days ago
+jboss-eap-xp3-openjdk11-runtime-openshift            default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-eap-xp3-openjdk11-runtime-openshift            3.0,latest                                               10 days ago
+jboss-eap-xp4-openjdk11-openshift                    default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-eap-xp4-openjdk11-openshift                    4.0,latest                                               10 days ago
+jboss-eap-xp4-openjdk11-runtime-openshift            default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-eap-xp4-openjdk11-runtime-openshift            4.0,latest                                               10 days ago
+jboss-eap74-openjdk11-openshift                      default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-eap74-openjdk11-openshift                      7.4.0,latest                                             10 days ago
+jboss-eap74-openjdk11-runtime-openshift              default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-eap74-openjdk11-runtime-openshift              7.4.0,latest                                             10 days ago
+jboss-eap74-openjdk8-openshift                       default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-eap74-openjdk8-openshift                       7.4.0,latest                                             10 days ago
+jboss-eap74-openjdk8-runtime-openshift               default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-eap74-openjdk8-runtime-openshift               7.4.0,latest                                             11 days ago
+jboss-webserver57-openjdk11-tomcat9-openshift-ubi8   default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-webserver57-openjdk11-tomcat9-openshift-ubi8   5.7.0,5.7.1,5.7.2,5.7.3,latest                           10 days ago
+jboss-webserver57-openjdk8-tomcat9-openshift-ubi8    default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/jboss-webserver57-openjdk8-tomcat9-openshift-ubi8    5.7.0,5.7.1,5.7.2,5.7.3,latest                           10 days ago
+openjdk-11-rhel7                                     default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/openjdk-11-rhel7                                     1.0,1.1,1.10,1.11,1.12,1.14,1.15,1.16 + 1 more...        10 days ago
+redhat-openjdk18-openshift                           default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/redhat-openjdk18-openshift                           1.10,1.11,1.12,1.14,1.15,1.16,1.17,1.3 + 5 more...       11 days ago
+ubi8-openjdk-11                                      default-route-openshift-image-registry.apps.sno.invoke.lab/openshift/ubi8-openjdk-11                                      1.10,1.11,1.12,1.13,1.14,1.15,1.16,1.17 + 2 more...      10 days ago
+Managed {"emptyDir":{},"managementState":"Managed"}
+['cloud.openshift.com', 'quay.io', 'registry.connect.redhat.com', 'registry.redhat.io']
+demo-datalake                                      Active   4d4h
+demo-fiscalia                                      Active   4d3h
+demo-ia-analitica                                  Active   8d
+demo-industrias                                    Active   3d16h
+demo-javia                                         Active   3d19h
+{'id': 29, 'nombre': 'ocp-sno', 'estado': 'con datos', 'inventarios': '["OpenShift \\u00b7 cl\\u00fasteres"]', 'ambiente': 'produccion'}
+{'id': 90, 'nombre': 'Evaluar migración de sistema operativo', 'nombre_aap': 'Migración · Evaluar sistema operativo', 'inventario': 'Nodos demo', 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 0, 'tipo': 'lectura', 'visible': 1}
+{'id': 91, 'nombre': 'RHEL a versión soportada', 'nombre_aap': 'Migración · RHEL a versión soportada', 'inventario': 'Nodos demo', 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 1, 'tipo': 'escritura', 'visible': 1}
+{'id': 89, 'nombre': 'CentOS a RHEL', 'nombre_aap': 'Migración · CentOS a RHEL', 'inventario': 'Nodos demo', 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 1, 'tipo': 'escritura', 'visible': 1}
+{'id': 114, 'nombre': 'JBoss a EAP 8', 'nombre_aap': 'Migración · JBoss a EAP 8', 'inventario': 'Nodos demo', 'usa_limite': 0, 'por_inventario': 1, 'requiere_aprobacion': 0, 'tipo': 'escritura', 'visible': 1}
+{'id': 138, 'nombre': 'Migración K8s → OpenShift · Evaluar origen', 'nombre_aap': 'Migración K8s → OpenShift · Evaluar origen', 'inventario': 'Nodos demo', 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1, 'tipo': 'lectura', 'visible': 1}
+{'id': 140, 'nombre': 'Migración K8s → OpenShift · Preparar destino en GCP', 'nombre_aap': 'Migración K8s → OpenShift · Preparar destino', 'inventario': 'Nodos demo', 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1, 'tipo': 'escritura', 'visible': 1}
+{'id': 137, 'nombre': 'Migración K8s → OpenShift · Convertir manifiestos', 'nombre_aap': 'Migración K8s → OpenShift · Convertir manifiestos', 'inventario': 'Nodos demo', 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1, 'tipo': 'escritura', 'visible': 1}
+{'id': 139, 'nombre': 'Migración K8s → OpenShift · Migrar aplicación', 'nombre_aap': 'Migración K8s → OpenShift · Migrar aplicación', 'inventario': 'Nodos demo', 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1, 'tipo': 'escritura', 'visible': 1}
+{'id': 141, 'nombre': 'Migración K8s → OpenShift · Validar y conmutar', 'nombre_aap': 'Migración K8s → OpenShift · Validar y conmutar', 'inventario': 'Nodos demo', 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1, 'tipo': 'escritura', 'visible': 1}
+{'id': 152, 'nombre': 'IIS a OpenShift', 'nombre_aap': 'Migración · IIS a OpenShift', 'inventario': 'Nodos demo', 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 1, 'tipo': 'escritura', 'visible': 1}
+{'id': 165, 'nombre': 'Migración a GCP · Evaluar servidor', 'nombre_aap': 'Migración a GCP · Evaluar servidor', 'inventario': 'Nodos demo', 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 0, 'tipo': 'lectura', 'visible': 0}
+{'id': 166, 'nombre': 'Migración a GCP · Servidor Linux (réplica y corte)', 'nombre_aap': 'Migración a GCP · Servidor Linux', 'inventario': 'Nodos demo', 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 1, 'tipo': 'escritura', 'visible': 0}
+               total        used        free      shared  buff/cache   available
+Mem:             125         103           0           4          26          21
+--- fin: 2026-11-10T17:13:19-03:00 · código: 0
