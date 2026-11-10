@@ -36,7 +36,7 @@ for n in sorted(nodos, key=lambda x: (x["summary_fields"].get("job") or {}).get(
         continue
     jb = get(f"jobs/{j['id']}/")
     res = get(f"jobs/{j['id']}/job_host_summaries/?page_size=100")["results"]
-    obj = [f"{h['summary_fields']['host']['name']}: {h['changed']} cambio(s), {h['ok']} ok, {h['failures'] + h['dark']} falla(s)" for h in res]
+    obj = [f"{h.get('host_name') or (h['summary_fields'].get('host') or {}).get('name', 'localhost')}: {h['changed']} cambio(s), {h['ok']} ok, {h['failures'] + h['dark']} falla(s)" for h in res]
     cambios = sum(h["changed"] for h in res)
     evs = get(f"jobs/{j['id']}/job_events/?event=runner_on_ok&order_by=-counter&page_size=200")["results"]
     msgs = []
