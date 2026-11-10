@@ -1,13 +1,26 @@
-commit: 2dfaf18a627c653195d7c23a84f2e7d564fb677e
-inicio: 2026-11-10T01:36:43-03:00
+commit: 56ed175185286de384822453bcd1196bde9bba62
+inicio: 2026-11-10T01:40:52-03:00
 ---
-cerrado RITM0010063
-cerrado RITM0010064
-cerrado RITM0010065
-vigía reiniciado
-   · Gitea: red-laboratorio/rulebooks/solicitudes-servicenow.yml al día
-   · AAP: proyecto 'Red · laboratorio' successful
-   · EDA: activación 'ServiceNow · Solicitudes de red' running
-   · Vigía de ServiceNow: vigia-servicenow.service activo
-   LISTO
---- fin: 2026-11-10T01:40:14-03:00 · código: 0
+== ServiceNow «Solicitar acceso de red» pedido REQ0010064; esperando que EDA lance «Red · Solicitar acceso con aprobación»
+     · Red · Solicitar acceso → failed
+         FALLA en «¿La regla ya existe? (revisión sin cambios)»: ssh connection failed: ssh connect failed: Timeout connecting to 172.20.20.53
+         FALLA en «¿La regla ya existe? (revisión sin cambios)»: ssh connection failed: ssh connect failed: Timeout connecting to 172.20.20.57
+== ServiceNow «Revocar acceso de red» pedido REQ0010065; esperando que EDA lance «Red · Revocar acceso con aprobación»
+     · Red · Revocar acceso → failed
+         FALLA en «Sin acceso que retirar»: Rechazado: no hay un acceso vigente que coincida
+         FALLA en «Sin acceso que retirar»: Rechazado: no hay un acceso vigente que coincida
+         FALLA en «Sin acceso que retirar»: Rechazado: no hay un acceso vigente que coincida
+== ServiceNow «Preparar red para clúster OpenShift» pedido REQ0010066; esperando que EDA lance «Red · Preparar red OpenShift con aprobación»
+     · Red · Preparar red OpenShift → successful
+     · Red · Preparar red OpenShift → failed
+         FALLA en «Firewall · verificar la regla»: {'changed': False, 'stdout': ['\x1b[?2004l'], 'stdout_lines': [['\x1b[?2004l']], 'invocation': {'module_args': {'commands': ["show configuration commands | match 'rule 201 '"], 'match': 'all', 'retries': 9, 'i
+         FALLA en «La red no quedó lista»: no se pudo configurar el firewall (sin detalle)
+Nov 10 01:37:59 demo-ansible-summit systemd[1]: Stopping Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible...
+Nov 10 01:37:59 demo-ansible-summit systemd[1]: vigia-servicenow.service: Deactivated successfully.
+Nov 10 01:37:59 demo-ansible-summit systemd[1]: Stopped Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible.
+Nov 10 01:37:59 demo-ansible-summit systemd[1]: Started Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible.
+Nov 10 01:37:59 demo-ansible-summit python3[1187628]: 01:37:59 vigilando 'Solicitar acceso de red' en https://dev459364.service-now.com
+Nov 10 01:41:46 demo-ansible-summit python3[1187628]: 01:41:46 RITM0010066 → EDA (10.40.40.0/24 → 10.10.10.10:8089, ansible.automatizacion)
+Nov 10 01:42:59 demo-ansible-summit python3[1187628]: 01:42:59 RITM0010067 → EDA (revocar 10.10.10.10, ansible.automatizacion)
+Nov 10 01:43:59 demo-ansible-summit python3[1187628]: 01:43:59 RITM0010068 → EDA (OpenShift ocp-prueba, 10.60.7.0/24, ansible.automatizacion)
+--- fin: 2026-11-10T01:44:42-03:00 · código: 0
