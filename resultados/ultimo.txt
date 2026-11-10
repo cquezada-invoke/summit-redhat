@@ -1,39 +1,5 @@
-commit: 2eeacac0ee6299541d79d79d9f928137145f265c
-inicio: 2026-11-10T18:55:17-03:00
+commit: babcb457f3f202448f908adcbbf97695a3f56067
+inicio: 2026-11-10T18:56:43-03:00
 ---
-ad6e2dc
-== 1. Hosts autorizados en AAP
-   srv-servidor-de-ejemplo-01: 2 registro(s) en ['Servidores habilitados', 'FaceOps · Todos los servidores']
-Traceback (most recent call last):
-  File "<stdin>", line 12, in <module>
-  File "<stdin>", line 5, in r
-  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
-    return opener.open(url, data, timeout)
-  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
-    response = meth(req, response)
-  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
-    response = self.parent.error(
-  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
-    return self._call_chain(*args)
-  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
-    result = func(*args)
-  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
-    raise HTTPError(req.full_url, code, msg, hdrs, fp)
-urllib.error.HTTPError: HTTP Error 409: Conflict
-== 2. Alta de la sede en AAP y bóveda
-   ! rtr-wan-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-   ! fw-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-   ! sw-core-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-   ! sw-acc-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-   ! lb-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-== 3. Despliegue de FaceOps (exporta la topología de los laboratorios)
-   faceops actualizado
-sincronizar: 63
-equipos: {'rtr-wan-01': None, 'fw-sede-01': None, 'sw-core-01': None, 'sw-acc-01': None, 'lb-sede-01': None}
-retirados ahora: []
-Traceback (most recent call last):
-  File "/tmp/m.py", line 21, in <module>
-    t = solicitar(u, cl, au, None, {}, f"Prueba {c_}: inventariar {n}", None, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e, prueba=True)
-                                                                                                                ^^^^^
-AttributeError: 'NoneType' object has no attribute 'get'
---- fin: 2026-11-10T18:56:28-03:00 · código: 0
+34.176.114.77
+--- fin: 2026-11-10T18:56:43-03:00 · código: 0
