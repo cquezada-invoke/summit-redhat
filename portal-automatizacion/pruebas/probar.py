@@ -59,6 +59,7 @@ def resumen(wj):
     return "\n".join(out)
 
 
+FALLAS = set()
 ESTADO = "/var/lib/portal-informes/estado_pruebas.yml"   # el portal lo lee en vivo: cada prueba libera (o no) su automatización
 
 
@@ -68,9 +69,10 @@ def registrar(nombre, ok, nota):
         d = yaml.safe_load(open(ESTADO)) or {}
     except OSError:
         d = {}
-    previo = d.get(nombre, {})
-    if previo.get("estado") == "repetir" and ok:   # un caso falló antes en esta misma corrida: no se libera
+    if ok and nombre in FALLAS:   # otro caso de la misma automatización falló en esta corrida: no se libera
         return
+    if not ok:
+        FALLAS.add(nombre)
     d[nombre] = {"estado": "probada" if ok else "repetir", "nota": nota}
     with open(ESTADO, "w") as f:
         yaml.safe_dump(d, f, allow_unicode=True)
