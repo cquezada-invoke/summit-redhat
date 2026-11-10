@@ -6390,7 +6390,7 @@ def certificado(serie):
     renovar = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Renovar por vencer")
     emitir = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Emitir para servicio")
     servidores, clientes = dependencias(f, eqs)
-    return render_template("certificado.html", f=f, r=r, maquinas=afectadas(f, eqs), servidores=servidores, clientes=clientes,
+    return render_template("certificado.html", f=f, r=r, maquinas=afectadas(f, eqs), servidores=servidores, confian=clientes,
                            renovar=renovar, emitir=emitir)
 
 

@@ -41,10 +41,10 @@
 <div class="card" style="padding:0">{% if servidores %}<table><tr><th>Máquina</th><th>Servicio</th><th>Ambiente</th></tr>
 {% for m in servidores %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b class="mono">{{ cod_eq(m.e) }}</b></a></td><td>{{ m.servicio or '—' }}{{ ' · ' ~ m.puerto if m.puerto }}</td><td>{{ m.e.ambiente or '—' }}</td></tr>{% endfor %}</table>
 {% else %}<p class="nada" style="padding:14px">Ningún servidor del inventario lo presenta.</p>{% endif %}</div></div>
-<div><h2 style="margin:4px 0 4px">Clientes que confían en él · {{ clientes|length }}</h2>
+<div><h2 style="margin:4px 0 4px">Clientes que confían en él · {{ confian|length }}</h2>
 <p class="sub" style="margin:0 0 8px;font-size:12.5px">Consumen ese servicio (comparten su segmento de negocio) y lo aceptan porque su truststore confía en la CA emisora: si vence o se revoca, fallan sus conexiones; al renovarlo con la misma CA no hay que tocarlos.</p>
-<div class="card" style="padding:0">{% if clientes %}<table><tr><th>Máquina</th><th>Relación</th><th>Ambiente</th></tr>
-{% for m in clientes %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b class="mono">{{ cod_eq(m.e) }}</b></a></td><td style="font-size:12.5px">{{ m.rol }}</td><td>{{ m.e.ambiente or '—' }}</td></tr>{% endfor %}</table>
+<div class="card" style="padding:0">{% if confian %}<table><tr><th>Máquina</th><th>Relación</th><th>Ambiente</th></tr>
+{% for m in confian %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b class="mono">{{ cod_eq(m.e) }}</b></a></td><td style="font-size:12.5px">{{ m.rol }}</td><td>{{ m.e.ambiente or '—' }}</td></tr>{% endfor %}</table>
 {% else %}<p class="nada" style="padding:14px">Sin clientes registrados.</p>{% endif %}</div></div>
 </div>
 
@@ -54,7 +54,7 @@
 
 {% if f.crudo %}<details class="card" style="margin-top:14px"><summary style="cursor:pointer"><b>Todos los campos que entrega la CA</b></summary>
 <table style="margin-top:8px">{% for k, v in f.crudo|dictsort %}<tr><td class="sub" style="width:220px">{{ k }}</td><td class="mono" style="font-size:12px;word-break:break-all">{{ v }}</td></tr>{% endfor %}</table></details>{% endif %}
-{% set SV = servidores[:6] %}{% set CL = clientes[:8] %}{% set filas_ = [SV|length, CL|length, 1]|max %}{% set H = 70 + filas_ * 46 %}
+{% set SV = servidores[:6] %}{% set CL = confian[:8] %}{% set filas_ = [SV|length, CL|length, 1]|max %}{% set H = 70 + filas_ * 46 %}
 <h2 style="margin:18px 0 6px">Dependencias</h2>
 <div class="card" style="overflow-x:auto"><svg viewBox="0 0 980 {{ H }}" width="100%" style="min-width:720px;max-height:520px" role="img" aria-label="CA emisora, certificado, servidores que lo presentan y clientes que confían en él">
 <defs><marker id="cf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="#8a8d90"/></marker></defs>
@@ -69,7 +69,7 @@
 <rect x="470" y="{{ y }}" width="200" height="36" rx="6" fill="#fff" stroke="#151515"/><text x="480" y="{{ y + 15 }}" font-size="12" font-weight="700">{{ cod_eq(m.e)[:22] }}</text><text x="480" y="{{ y + 29 }}" font-size="10.5" fill="#6a6e73">{{ (m.servicio or 'TLS')[:18] }}{{ ' · ' ~ m.puerto if m.puerto }}</text>{% else %}<text x="470" y="{{ cy + 4 }}" font-size="12" fill="#6a6e73">sin servidores registrados</text>{% endfor %}
 {% for m in CL %}{% set y = 40 + loop.index0 * 46 + ((filas_ - CL|length) * 23) %}{% if SV %}<path d="M670 {{ 58 + ((filas_ - SV|length) * 23) }} C705 {{ 58 + ((filas_ - SV|length) * 23) }} 700 {{ y + 18 }} 736 {{ y + 18 }}" fill="none" stroke="#b8bbbe" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#cf)"/>{% endif %}
 <rect x="740" y="{{ y }}" width="220" height="36" rx="6" fill="#fafafa" stroke="#8a8d90" stroke-dasharray="4 3"/><text x="750" y="{{ y + 15 }}" font-size="12" font-weight="700">{{ cod_eq(m.e)[:24] }}</text><text x="750" y="{{ y + 29 }}" font-size="10.5" fill="#6a6e73">confía en la CA (truststore)</text>{% else %}<text x="740" y="{{ cy + 4 }}" font-size="12" fill="#6a6e73">sin clientes registrados</text>{% endfor %}
-{% if clientes|length > 8 %}<text x="740" y="{{ H - 6 }}" font-size="11" fill="#6a6e73">y {{ clientes|length - 8 }} clientes más</text>{% endif %}
+{% if confian|length > 8 %}<text x="740" y="{{ H - 6 }}" font-size="11" fill="#6a6e73">y {{ confian|length - 8 }} clientes más</text>{% endif %}
 </svg>
 <p class="sub" style="font-size:12px;margin:6px 0 0">Línea continua: el certificado está instalado en el servidor. Punteada: el cliente se conecta a ese servicio y valida el certificado con la CA emisora.</p></div>
 
