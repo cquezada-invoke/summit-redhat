@@ -75,6 +75,16 @@ PROVEEDORES = {
 for _k in ("gcp", "aws", "azure", "vmware"):
     PROVEEDORES[_k]["campos"] = PROVEEDORES[_k]["campos"] + ACCESO
     PROVEEDORES[_k]["acceso"] = True
+# Campos obligatorios por proveedor (asterisco rojo y «required» en los formularios). Los que no figuran aquí siguen la
+# regla anterior: obligatorio todo campo que no esté en OPCIONALES.
+OBLIGATORIOS = {"azure": {"suscripcion", "tenant", "cliente", "secreto", "region"},
+                "gcp": {"proyecto", "zona", "cuenta"},
+                "aws": {"access_key", "secret_key", "region"},
+                "vmware": {"host", "usuario", "clave", "datacenter"}}
+for _k, _p in PROVEEDORES.items():
+    _p["obligatorios"] = OBLIGATORIOS.get(_k) or {c for c, _, _, _ in _p["campos"] if c not in OPCIONALES}
+ACCESO_CAMPOS = {c for c, _, _, _ in ACCESO}
+ENCRIPTADO = "$encrypted$"   # en un PATCH de AAP, conserva el secreto que la credencial ya tiene
 # Servidores físicos: fabricante → (gestión fuera de banda, modelos). Se agregan de a uno; cada fabricante es un grupo.
 FABRICANTES = {
     "Dell": ("iDRAC · Redfish", ["PowerEdge R650", "PowerEdge R650xs", "PowerEdge R660", "PowerEdge R660xs", "PowerEdge R750", "PowerEdge R750xs",
@@ -142,11 +152,12 @@ def sembrar(cliente_id):
               "pool": "/var/lib/libvirt/dc-valpo", "hipervisor": "KVM / libvirt", "emulado": "sí: comparte el anfitrión con Santiago (red y pool propios)"},
              "FaceOps · anfitrión KVM (ssh)", "FaceOps · Infraestructura", "Centro de datos Valparaíso", "Centro de datos Valparaíso", "conectada")):
         ej("UPDATE infraestructuras SET centro_datos='Cloud GCP' WHERE cliente_id=? AND tipo='gcp' AND centro_datos='GCP'", cliente_id)
-        if not q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente_id, n):
+        # renombrada con «Editar configuración»: se reconoce por su tipo y ubicación (que no cambian) y no se vuelve a sembrar
+        if not q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND (nombre=? OR (tipo=? AND ubicacion=?))", cliente_id, n, t, ubi):
             ej("INSERT INTO infraestructuras(cliente_id, nombre, tipo, region, detalle, credencial, inventario, ubicacion, estado, creado, centro_datos) "
                "VALUES (?,?,?,?,?,?,?,?,?,?,?)", cliente_id, n, t, reg, json.dumps(det, ensure_ascii=False), cred, inv, ubi, est, ahora(), cd)
         else:
-            ej("UPDATE infraestructuras SET centro_datos=? WHERE cliente_id=? AND nombre=? AND COALESCE(centro_datos,'')=''", cd, cliente_id, n)
+            ej("UPDATE infraestructuras SET centro_datos=? WHERE cliente_id=? AND (nombre=? OR (tipo=? AND ubicacion=?)) AND COALESCE(centro_datos,'')=''", cd, cliente_id, n, t, ubi)
 
 
 def lista(cliente_id, eqs=None):
@@ -172,7 +183,7 @@ def lista(cliente_id, eqs=None):
 
 def _valores(p, f, exigir=True):
     v = {c: (f.get(c) or "").strip() for c, _, _, _ in p["campos"]}
-    faltan = [et for c, et, sec, _ in p["campos"] if not v[c] and c not in OPCIONALES]
+    faltan = [et for c, et, sec, _ in p["campos"] if not v[c] and c in p["obligatorios"]]
     if exigir and faltan:
         raise ValueError("Faltan: " + ", ".join(faltan))
     return v
@@ -198,18 +209,22 @@ def _vc(host):
     return h, int(pto) if pto.isdigit() else 443
 
 
-def _credencial(aap, org, tipo, nombre, v, existente=""):
-    """Crea (o actualiza) la credencial cifrada de AAP con los secretos del formulario. Devuelve su nombre."""
+def _credencial(aap, org, tipo, nombre, v, existente="", previo=None):
+    """Crea (o actualiza) la credencial cifrada de AAP con los secretos del formulario. Devuelve su nombre.
+    Un secreto con valor ENCRIPTADO conserva el que la credencial ya tiene (previo = sus inputs actuales)."""
     p = PROVEEDORES[tipo]
     ct = (aap.get("credential_types/", name=p["credencial_aap"]).get("results") or [None])[0]
     if not ct:
         raise ValueError(f"AAP no tiene el tipo de credencial «{p['credencial_aap']}»")
+    llave_ = lambda s: s if s == ENCRIPTADO else s.strip() + "\n"
     if tipo in ("kvm", "fisico"):
-        ins = {"username": v["usuario"], "ssh_key_data": v["llave"].strip() + "\n", "become_method": "sudo"}
+        ins = {"username": v["usuario"], "ssh_key_data": llave_(v["llave"]), "become_method": "sudo"}
     elif tipo in ("openshift", "openshift-virt"):
         ins = {"host": v["api"], "bearer_token": v["token"], "verify_ssl": False}
     elif tipo == "vmware":
         ins = {"host": _vc(v["host"])[0], "username": v["usuario"], "password": v["clave"]}
+    elif tipo == "gcp" and v["cuenta"] == ENCRIPTADO:   # misma cuenta de servicio: solo cambia el proyecto
+        ins = {"username": (previo or {}).get("username", ""), "project": v["proyecto"] or (previo or {}).get("project", ""), "ssh_key_data": ENCRIPTADO}
     elif tipo == "gcp":
         try:
             sa = json.loads(v["cuenta"])
@@ -304,19 +319,18 @@ def _conectar_aap(aap, org, cliente, nombre, inv, v, p, f):
     import requests
     from .ejecucion import slug
     out = {}
-    ee = (f.get("ee_host") or "").strip()
-    if not ee:
-        raise ValueError("Indica el nodo de ejecución de AAP para esta infraestructura (al menos uno)")
-    if not re.fullmatch(r"[A-Za-z0-9.-]{3,120}", ee):
+    ee = (f.get("ee_host") or "").strip()   # opcional: se asume que AAP llega directo a la infraestructura
+    if ee and not re.fullmatch(r"[A-Za-z0-9.-]{3,120}", ee):
         raise ValueError("El nodo de ejecución debe ser un nombre de máquina o una IP")
     s_ = slug(nombre)
-    ig = (aap.get("instance_groups/", name=f"Infra · {nombre}").get("results") or [None])[0] or aap.post("instance_groups/", {"name": f"Infra · {nombre}"})
-    try:   # AAP lo registra y entrega el paquete de instalación; hasta instalarlo, el inventario sigue usando el plano de control
-        inst = aap.post("instances/", {"hostname": ee, "node_type": "execution", "listener_port": 27199, "peers_from_control_nodes": True})
-        aap.post(f"instance_groups/{ig['id']}/instances/", {"id": inst["id"]})
-        out["nodo de ejecución"] = f"{ee} · registrado en AAP, por instalar (paquete de instalación en AAP › Instancias)"
-    except Exception:  # noqa: BLE001 - instalaciones que no aceptan registrar nodos por API: se instala con el instalador de AAP
-        out["nodo de ejecución"] = f"{ee} · por instalar con el instalador de AAP (grupo de instancias «Infra · {nombre}»)"
+    if ee:
+        ig = (aap.get("instance_groups/", name=f"Infra · {nombre}").get("results") or [None])[0] or aap.post("instance_groups/", {"name": f"Infra · {nombre}"})
+        try:   # AAP lo registra y entrega el paquete de instalación; hasta instalarlo, el inventario sigue usando el plano de control
+            inst = aap.post("instances/", {"hostname": ee, "node_type": "execution", "listener_port": 27199, "peers_from_control_nodes": True})
+            aap.post(f"instance_groups/{ig['id']}/instances/", {"id": inst["id"]})
+            out["nodo de ejecución"] = f"{ee} · registrado en AAP, por instalar (paquete de instalación en AAP › Instancias)"
+        except Exception:  # noqa: BLE001 - instalaciones que no aceptan registrar nodos por API: se instala con el instalador de AAP
+            out["nodo de ejecución"] = f"{ee} · por instalar con el instalador de AAP (grupo de instancias «Infra · {nombre}»)"
     if f.get("usar_boveda"):
         from .boveda import escribir
         sec = {c: v[c] for c, _, es_sec, _ in p["campos"] if es_sec and v.get(c)}
@@ -460,6 +474,71 @@ def conectar(usuario, cliente, iid, f):
        cred["name"], json.dumps(publicos, ensure_ascii=False), iid)
     auditar(usuario["usuario"], cliente["id"], "conectar infraestructura", x["nombre"], {"credencial": cred["name"]})
     return x["nombre"]
+
+
+def editar(usuario, cliente, iid, f):
+    """«Editar configuración»: cambia cualquier dato de una infraestructura ya registrada. Los no secretos se guardan en
+    FaceOps; la credencial de AAP se actualiza cifrada y un secreto dejado vacío conserva el que AAP ya tiene (no se lee
+    nunca: se manda «$encrypted$»). Después se vuelve a probar el acceso desde la vista."""
+    from .aap import AAP
+    x = q1("SELECT * FROM infraestructuras WHERE id=? AND cliente_id=?", iid, cliente["id"])
+    if not x:
+        raise ValueError("No existe")
+    p = PROVEEDORES[x["tipo"]]
+    det = j(x["detalle"], {})
+    nombre = (f.get("nombre") or "").strip() or x["nombre"]
+    if nombre != x["nombre"] and q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre=? AND id<>?", cliente["id"], nombre, iid):
+        raise ValueError("Ya existe otra infraestructura con ese nombre")
+    aap = AAP.de_cliente(cliente)
+    org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
+    previa = (aap.get("credentials/", name=x["credencial"]).get("results") or [None])[0] if x["credencial"] else None
+    v, faltan = {}, []
+    for c, et, sec, _ in p["campos"]:
+        val = (f.get(c) or "").strip()
+        if sec and not val and c not in ACCESO_CAMPOS:
+            val = ENCRIPTADO if previa else ""   # vacío = conservar el secreto actual
+        v[c] = val
+        if c in p["obligatorios"] and not val and c not in ACCESO_CAMPOS:
+            faltan.append(et)
+    if faltan:
+        raise ValueError("Faltan: " + ", ".join(faltan))
+    if x["tipo"] == "fisico":   # los servidores ya están en su inventario
+        v["equipos"] = det.get("equipos", "")
+    cred = _credencial(aap, org, x["tipo"], x["nombre"], v, existente=x["credencial"], previo=(previa or {}).get("inputs"))
+    if x["tipo"] == "fisico" and v.get("bmc_clave") != ENCRIPTADO:
+        _credencial_bmc(aap, org, x["nombre"], v)
+    inv = (aap.get("inventories/", name=x["inventario"]).get("results") or [None])[0] if x["inventario"] else None
+    if inv:
+        _fuente(aap, inv, x["nombre"], x["tipo"], cred, v)
+    if p.get("acceso"):   # acceso a las máquinas: solo si se escribió una llave o clave nueva, o cambió el usuario
+        acc_nom = f"Infra · {x['nombre']} · máquinas"
+        acc_prev = (aap.get("credentials/", name=acc_nom).get("results") or [None])[0]
+        if v.get("acc_usuario") and (v.get("acc_llave") or v.get("acc_clave")):
+            acc = _credencial_maquinas(aap, org, x["nombre"], v["acc_usuario"], v.get("acc_llave"), v.get("acc_clave"))
+        elif acc_prev and v.get("acc_usuario") and v["acc_usuario"] != det.get("acc_usuario"):
+            ins_ = dict(acc_prev.get("inputs") or {}, username=v["acc_usuario"])
+            acc = aap.patch(f"credentials/{acc_prev['id']}/", {"inputs": ins_})
+        else:
+            acc = acc_prev
+        if acc:
+            plan_acceso(cliente["id"], x["inventario"], acc["name"])
+            det["acceso a máquinas"] = acc["name"]
+    for c, _, sec, _ in p["campos"]:
+        if not sec and c != "equipos":
+            if v[c]:
+                det[c] = v[c]
+            else:
+                det.pop(c, None)
+    region = (f.get("region_nombre") or "").strip() or v.get("region") or v.get("zona") or x["region"]
+    centro = (f.get("centro_datos") or "").strip() or x["centro_datos"]
+    ej("UPDATE infraestructuras SET nombre=?, region=?, centro_datos=?, credencial=?, detalle=?, estado='sin probar', "
+       "mensaje='Configuración actualizada: probando acceso' WHERE id=?",
+       nombre, region, centro, cred["name"], json.dumps(det, ensure_ascii=False), iid)
+    _CACHE_NUBE.pop((cliente["id"], iid), None)
+    auditar(usuario["usuario"], cliente["id"], "editar infraestructura", nombre,
+            {"credencial": cred["name"], "secretos_nuevos": sorted(c for c, _, sec, _ in p["campos"] if sec and v.get(c) and v[c] != ENCRIPTADO),
+             "nombre_anterior": x["nombre"] if nombre != x["nombre"] else None})
+    return nombre
 
 
 

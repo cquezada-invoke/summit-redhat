@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block titulo %}{{ x.nombre }}{% endblock %}
-{% block cuerpo %}{% from "_infra.html" import logo %}
+{% block cuerpo %}{% from "_infra.html" import logo, campos_form, leyenda_obl %}
 <style>.hv-cab{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.hv-cab h1{margin:0}
 .hv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}
 .hv-grid .card h3{margin:0 0 8px;font-size:14px}.hv-dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
@@ -13,7 +13,20 @@
 {% if x.mensaje or err %}<p class="sub" style="margin:6px 0 0">{{ err or x.mensaje }}{% if con.ultima %} · última sincronización {{ con.ultima|fecha }}{% endif %}</p>{% endif %}
 {% if perfil_actual.modo == 'escritura' %}<p style="margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap">
 {% if not con.cred %}<a class="btn chico" href="{{ url_for('consola.infraestructuras', conectar=x.id) }}#conectar">Conectar (cargar credencial)</a>{% else %}<a class="btn chico gris" href="{{ url_for('consola.infraestructuras', conectar=x.id) }}#conectar">Renovar credencial</a>{% endif %}
-<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}" style="display:inline;margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="{{ request.path }}"><button class="btn chico gris" {{ 'disabled title="Primero carga la credencial"'|safe if not con.cred }}>Probar acceso</button></form></p>{% endif %}
+<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}" style="display:inline;margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="{{ request.path }}"><button class="btn chico gris" {{ 'disabled title="Primero carga la credencial"'|safe if not con.cred }}>Probar acceso</button></form>
+<button type="button" class="btn chico" onclick="document.getElementById('dlg-editar').showModal()">Editar configuración</button></p>
+{% set p = x.prov %}{% set ed_ = con.cred and true %}
+<dialog id="dlg-editar" class="dlg"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
+<h2 style="margin-top:0">Editar configuración · {{ x.nombre }}</h2>
+<form method="post" action="{{ url_for('consola.infraestructura_editar', iid=x.id) }}" class="card form-infra" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="{{ request.path }}">
+<p class="sub" style="margin:0">{{ logo(x.tipo, 18) }} {{ p.nombre }} · {{ p.ayuda }}</p>{% if p.guia %}<p class="sub" style="margin:0;font-size:12.5px;border-left:3px solid var(--info,#2b9af3);padding-left:8px">{{ p.guia[0]|safe }} <a href="{{ p.guia[1] }}" target="_blank" rel="noopener">Guía ↗</a></p>{% endif %}
+{{ leyenda_obl() }}{% if ed_ %}<p class="sub" style="margin:0;font-size:12.5px">Los secretos no se muestran: déjalos vacíos para conservar los actuales o escribe uno nuevo para reemplazarlo.</p>{% endif %}
+<label>Nombre <span class="req" aria-hidden="true">*</span><input name="nombre" required value="{{ x.nombre }}"></label>
+{% if not (p.campos|selectattr(0, 'equalto', 'region')|list) %}<label>Región (cómo se muestra)<input name="region_nombre" value="{{ x.region }}" placeholder="ej. southamerica-west1 (Santiago)"></label>{% endif %}
+{{ campos_form(p, x.detalle_d, editar=ed_) }}
+<p class="sub" style="margin:0;font-size:12.5px">Al guardar se actualiza la configuración y se vuelve a probar el acceso.</p>
+<div class="fila" style="gap:8px"><button class="btn">Guardar y probar</button><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button></div></form></dialog>
+{% if request.args.get('editar') %}<script>document.getElementById('dlg-editar').showModal()</script>{% endif %}{% endif %}
 
 <div class="hv-grid">
 <div class="card"><h3>Información general</h3><dl class="hv-dl">

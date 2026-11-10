@@ -10,3 +10,19 @@
 {% elif t == 'kvm' %}<rect width="40" height="40" rx="8" fill="#e7f1fa" stroke="#0066cc"/><rect x="10" y="9" width="20" height="6" rx="1" fill="#fff" stroke="#0066cc" stroke-width="1.6"/><rect x="10" y="17" width="20" height="6" rx="1" fill="#fff" stroke="#0066cc" stroke-width="1.6"/><rect x="10" y="25" width="20" height="6" rx="1" fill="#fff" stroke="#0066cc" stroke-width="1.6"/><circle cx="26" cy="12" r="1.2" fill="#3e8635"/><circle cx="26" cy="20" r="1.2" fill="#3e8635"/><circle cx="26" cy="28" r="1.2" fill="#3e8635"/>
 {% else %}<rect width="40" height="40" rx="8" fill="#f0f0f0" stroke="#6a6e73"/><circle cx="20" cy="20" r="8" fill="none" stroke="#6a6e73" stroke-width="2"/>{% endif %}
 </svg>{% endmacro %}
+
+{# Leyenda de obligatoriedad de los formularios de infraestructura #}
+{% macro leyenda_obl() %}<p class="sub" style="margin:0;font-size:12.5px"><span class="req" aria-hidden="true">*</span> obligatorio</p>{% endmacro %}
+
+{# Campos de un proveedor (PROVEEDORES[...]["campos"]): alta, conectar y «Editar configuración».
+   editar=True: los secretos no se muestran ni son obligatorios; vacíos conservan el actual. #}
+{% macro campos_form(p, previos={}, editar=False, fabricantes=[]) %}{% set obl = p.obligatorios or [] %}
+{% for c, et, sec, tipo in p.campos %}{% set req_ = c in obl and not (editar and sec) %}{% set ay = (p.ayudas or {}).get(c) %}{% if c == 'acc_usuario' %}<h3 style="margin:10px 0 0">Acceso a las máquinas <span class="sub" style="font-weight:400;font-size:13px">· opcional</span></h3>
+<p class="sub" style="margin:0">Una sola credencial para todas sus máquinas (FaceOps no pide credenciales una por una). Si no la tienes, déjalo vacío y usa «Incorporar máquinas a FaceOps»: crea en cada máquina el usuario de servicio con una llave que queda solo en la credencial cifrada.</p>{% endif %}<label>{{ et }}{% if req_ %} <span class="req" aria-hidden="true">*</span>{% endif %}{% if sec %} <span class="chip" title="Se guarda cifrado; FaceOps no lo guarda ni lo vuelve a mostrar">🔒 secreto</span>{% endif %}
+{% if tipo == 'area' %}<textarea name="{{ c }}" rows="6" spellcheck="false"{{ ' required' if req_ }} placeholder="{{ 'Vacío = conserva el actual. Pega uno nuevo para reemplazarlo.' if editar and sec else ('{ \"type\": \"service_account\", \"project_id\": … }' if c == 'cuenta' else '-----BEGIN OPENSSH PRIVATE KEY-----') }}">{{ '' if sec else previos.get(c, '') }}</textarea>
+{% elif tipo == 'lista' %}<textarea name="{{ c }}" rows="5" spellcheck="false"{{ ' required' if req_ }} placeholder="srv-fisico-01, 10.20.0.11, 10.20.100.11&#10;srv-fisico-02, 10.20.0.12, 10.20.100.12">{{ previos.get(c, '') if previos.get(c) is string }}</textarea>
+{% elif tipo == 'fabricante' %}<select name="{{ c }}" id="fis-fab"{{ ' required' if req_ }}><option value="">— elige el fabricante —</option>{% for fb in fabricantes %}<option {{ 'selected' if previos.get(c) == fb }}>{{ fb }}</option>{% endfor %}</select>
+{% elif tipo == 'modelo' %}<select name="{{ c }}" id="fis-mod" disabled{{ ' required' if req_ }}><option value="">— primero el fabricante —</option></select>
+{% elif tipo == 'bmc' %}<select name="{{ c }}">{% for o, t in [('redfish', 'Redfish (iDRAC, iLO, XClarity)'), ('ipmi', 'IPMI'), ('', 'Sin gestión fuera de banda')] %}<option value="{{ o }}" {{ 'selected' if previos.get(c, 'redfish') == o }}>{{ t }}</option>{% endfor %}</select>
+{% else %}<input name="{{ c }}" type="{{ 'password' if sec else 'text' }}" value="{{ '' if sec else previos.get(c, '') }}" autocomplete="{{ 'new-password' if sec else 'off' }}"{{ ' required' if req_ }}{% if editar and sec %} placeholder="•••••• vacío = conserva el actual"{% elif ay %} placeholder="{{ ay[0] }}"{% endif %}>{% endif %}{% if ay %}<span class="sub" style="font-weight:400;font-size:12px">{{ ay[1] }} · <a href="{{ ay[2] }}" target="_blank" rel="noopener">abrir ↗</a></span>{% endif %}</label>{% endfor %}
+{% endmacro %}

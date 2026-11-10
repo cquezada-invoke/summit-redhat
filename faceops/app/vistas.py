@@ -7164,6 +7164,35 @@ def infraestructura_conectar(iid):
     return redirect(url_for("consola.infraestructuras"))
 
 
+@bp.route("/infraestructuras/<int:iid>/editar", methods=["POST"])
+@requiere_login
+def infraestructura_editar(iid):
+    """«Editar configuración» (flotante del detalle): guarda los datos, actualiza la credencial cifrada de AAP y vuelve a probar."""
+    from urllib.parse import urlsplit
+    from .infraestructuras import editar, probar
+    if g.perfil["modo"] != "escritura":
+        abort(403)
+    v_ = request.form.get("volver") or ""
+    pv_ = urlsplit(v_)
+    volver = (pv_.path + ("?" + pv_.query if pv_.query else "")) if pv_.path.startswith("/") and pv_.netloc in ("", request.host) else url_for("consola.infraestructuras")
+    try:
+        n = editar(g.usuario, g.cliente, iid, request.form)
+    except (ValueError, ErrorAAP) as e:
+        flash(str(e), "error")
+        return redirect(volver + ("&" if "?" in volver else "?") + "editar=1")
+    try:
+        st, msg = probar(g.usuario, g.cliente, iid)
+        if st == "conectada":
+            try:
+                msg += f" · máquinas en FaceOps: {sincronizar(g.cliente, g.usuario['usuario'])}"
+            except ErrorAAP as e_:
+                msg += f" · no se pudieron traer las máquinas: {e_}"
+        flash(f"Configuración de «{n}» guardada (secretos cifrados en AAP). Prueba de acceso: {st} · {msg}", "ok" if st == "conectada" else "error")
+    except (ValueError, ErrorAAP) as e:
+        flash(f"Configuración de «{n}» guardada; la prueba de acceso falló: {e}", "error")
+    return redirect(volver)
+
+
 @bp.route("/infraestructuras/<int:iid>/probar", methods=["POST"])
 @requiere_login
 def infraestructura_probar(iid):
