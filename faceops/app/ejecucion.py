@@ -39,13 +39,18 @@ FUENTES = [("monitoreo", "Monitoreo", ("prometheus", "alertmanager", "zabbix", "
            ("mensajeria", "Mensajería", ("kafka", "amq", "mqtt"))]
 
 
+EJEMPLOS = {"monitoreo": "Prometheus · Dynatrace · Zabbix · Datadog", "devsecops": "GitHub · GitLab · Jenkins · Tekton",
+            "itsm": "ServiceNow · Jira SM · BMC Helix · Odoo", "seguridad": "Splunk · QRadar · CrowdStrike · Wazuh",
+            "mensajeria": "Kafka · AMQ · RabbitMQ · MQTT", "otras": "webhooks · APIs · scripts"}
+
+
 def fuentes_eventos(activaciones):
     """Herramientas que mandan eventos a AAP (Event-Driven Ansible), agrupadas desde sus activaciones de rulebook."""
     out = {}
     for a in activaciones:
         txt = f"{a.get('name', '')} {a.get('description', '')} {a.get('rulebook_name', '')}".lower()
         k, n = next(((k, n) for k, n, pal in FUENTES if any(p in txt for p in pal)), ("otras", "Otras fuentes"))
-        x = out.setdefault(k, {"tipo": k, "nombre": n, "activaciones": [], "ok": False})
+        x = out.setdefault(k, {"tipo": k, "nombre": n, "activaciones": [], "ok": False, "ejemplos": EJEMPLOS.get(k, "")})
         x["activaciones"].append(a.get("name", ""))
         x["ok"] = x["ok"] or (a.get("status") or "").lower() == "running"
     return list(out.values())
@@ -139,21 +144,21 @@ def plano(cliente, eqs, infras, instancias, eventos=None):
     for c in cols:   # nodos de ejecución de cada contexto tecnológico (uno por segmento, más el de servicios transversales)
         c["n_ee"] = len(c["cajas"]) + (1 if c["trans"] else 0)
         c["n_ee_ok"] = sum(1 for k in c["cajas"] if k["existe"]) + (1 if c["trans"] and c["trans"]["existe"] else 0)
-    ancho = max(x0 - 8, 2 * (A_W / 2 + 60 + 230 + 10))
+    ancho = max(x0 - 8, 2 * (A_W / 2 + 60 + 300 + 10))
     centro = ancho / 2
     from .boveda import disponible as boveda_ok
     import os
     vx = centro + A_W / 2 + 60
-    if vx + 230 > ancho:
-        ancho = vx + 240
-    ev_w = 196
+    if vx + 300 > ancho:
+        ancho = vx + 310
+    ev_w = 236
     for i, ev in enumerate(eventos):
         ev.update(x=centro - (len(eventos) * (ev_w + 14) - 14) / 2 + i * (ev_w + 14), y=10, w=ev_w, h=58)
         ev["cx"] = ev["x"] + ev_w / 2
     return {"cols": cols, "ancho": ancho, "alto": y_inf + max([c["h"] for c in cols] or [290]) + 20, "eventos": eventos, "dy": dy,
-            "vault": {"x": vx, "y": 10 + dy, "w": 220, "h": 46, "ok": boveda_ok(), "texto": "HashiCorp Vault · credenciales por infraestructura" if boveda_ok() else "por conectar"},
-            "git": {"x": vx, "y": 66 + dy, "w": 220, "h": 46, "ok": bool(os.environ.get("FACEOPS_GITEA_TOKEN")),
-                    "texto": "Gitea · proyectos y respaldos (SCM)" if os.environ.get("FACEOPS_GITEA_TOKEN") else "por conectar"},
+            "vault": {"x": vx, "y": 10 + dy, "w": 290, "h": 46, "ok": boveda_ok(), "texto": "HashiCorp Vault · CyberArk · Delinea · Azure Key Vault"},
+            "git": {"x": vx, "y": 66 + dy, "w": 290, "h": 46, "ok": bool(os.environ.get("FACEOPS_GITEA_TOKEN")),
+                    "texto": "GitHub · GitLab · Bitbucket · Gitea"},
             "aap": _aap_abierto(centro - A_W / 2, 20 + dy, A_W, A_H, instancias),
             "faceops": {"x": 20, "y": 20 + dy + A_H / 2 - 34, "w": 210, "h": 68},
             "instancias": instancias,

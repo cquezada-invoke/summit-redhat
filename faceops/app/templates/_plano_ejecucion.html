@@ -7,7 +7,7 @@
 {# herramientas que mandan eventos a AAP (Event-Driven Ansible) #}
 {% for ev in pl.eventos %}<g><rect x="{{ ev.x }}" y="{{ ev.y }}" width="{{ ev.w }}" height="{{ ev.h }}" rx="10" class="p-evento{{ '' if ev.ok else ' p-plan-caja' }}"/>
 <text x="{{ ev.x + 12 }}" y="{{ ev.y + 20 }}" class="p-t2">{{ ev.nombre }}</text>
-<text x="{{ ev.x + 12 }}" y="{{ ev.y + 36 }}" class="p-t4"><title>{{ ev.activaciones|join(', ') }}</title>{{ (ev.activaciones|join(', '))[:34] }}{{ '…' if (ev.activaciones|join(', '))|length > 34 }}</text>
+<text x="{{ ev.x + 12 }}" y="{{ ev.y + 36 }}" class="p-t4"><title>activaciones: {{ ev.activaciones|join(', ') }}</title>{{ ev.ejemplos }}</text>
 <text x="{{ ev.x + 12 }}" y="{{ ev.y + 50 }}" class="p-t4 {{ 'p-ok' if ev.ok else 'p-warn' }}">{{ ev.activaciones|length }} activación{{ 'es' if ev.activaciones|length != 1 }} · {{ 'escuchando' if ev.ok else 'detenida' }}</text></g>
 <path d="M{{ ev.cx }} {{ ev.y + ev.h }} V{{ pl.aap.y - 6 }}" class="p-linea p-ev{{ '' if ev.ok else ' p-plan' }}" marker-end="url(#pf)"/>{% endfor %}
 {% if pl.eventos %}<text x="{{ pl.aap.cx + 8 }}" y="{{ pl.aap.y - 10 }}" class="p-t4">eventos → Event-Driven Ansible</text>{% endif %}
@@ -33,7 +33,7 @@
 {% endfor %}
 {% set R = A.redis %}<rect x="{{ R.x }}" y="{{ R.y }}" width="{{ R.w }}" height="{{ R.h }}" rx="8" class="p-aap-sub"/>
 <text x="{{ R.x + 10 }}" y="{{ R.y + 20 }}" class="p-t3 p-blanco" font-weight="700">Redis en clúster · 6 nodos</text>
-<text x="{{ R.x + 10 }}" y="{{ R.y + 37 }}" class="p-t4 p-gris">sesiones y colas compartidas · junto a gateways y EDA</text>
+<text x="{{ R.x + 10 }}" y="{{ R.y + 37 }}" class="p-t4 p-gris">caché, sesiones y colas · 3 primarios + 3 réplicas</text>
 {% set P = A.pg %}<rect x="{{ P.x }}" y="{{ P.y }}" width="{{ P.w }}" height="{{ P.h }}" rx="8" class="p-aap-sub"/>
 <text x="{{ P.x + 10 }}" y="{{ P.y + 20 }}" class="p-t3 p-blanco" font-weight="700">PostgreSQL externa en HA</text>
 <text x="{{ P.x + 10 }}" y="{{ P.y + 37 }}" class="p-t4 p-gris">primario + réplica · bases de gateway, controller, hub y EDA</text></g>
@@ -41,10 +41,10 @@
 {% set V = pl.vault %}{% set G = pl.git %}
 <path d="M{{ A.x + A.w }} {{ A.y + 30 }} H{{ V.x - 4 }}" class="p-linea{{ '' if V.ok else ' p-plan' }}" marker-end="url(#pf)"/>
 <g><rect x="{{ V.x }}" y="{{ V.y }}" width="{{ V.w }}" height="{{ V.h }}" rx="10" class="p-faceops"/>
-<text x="{{ V.x + 12 }}" y="{{ V.y + 20 }}" class="p-t2">Bóveda</text><text x="{{ V.x + 12 }}" y="{{ V.y + 36 }}" class="p-t4">{{ V.texto }}</text></g>
+<text x="{{ V.x + 12 }}" y="{{ V.y + 20 }}" class="p-t2">Bóveda de credenciales</text><text x="{{ V.x + 12 }}" y="{{ V.y + 36 }}" class="p-t4">{{ V.texto }}</text></g>
 <path d="M{{ A.x + A.w }} {{ A.y + 70 }} H{{ G.x - 4 }}" class="p-linea{{ '' if G.ok else ' p-plan' }}" marker-end="url(#pf)"/>
 <g><rect x="{{ G.x }}" y="{{ G.y }}" width="{{ G.w }}" height="{{ G.h }}" rx="10" class="p-faceops"/>
-<text x="{{ G.x + 12 }}" y="{{ G.y + 20 }}" class="p-t2">Repositorio Git</text><text x="{{ G.x + 12 }}" y="{{ G.y + 36 }}" class="p-t4">{{ G.texto }}</text></g>
+<text x="{{ G.x + 12 }}" y="{{ G.y + 20 }}" class="p-t2">Repositorio Git (SCM)</text><text x="{{ G.x + 12 }}" y="{{ G.y + 36 }}" class="p-t4">{{ G.texto }}</text></g>
 {# conexiones de la malla (receptor) #}
 {% for c in pl.cols %}
   {% if c.hop %}<path d="M{{ A.cx }} {{ A.y + A.h }} V{{ A.y + A.h + 26 }} H{{ c.hx }} V{{ c.hy - 18 }}" class="p-linea{{ '' if c.hop_existe else ' p-plan' }}" marker-end="url(#pf)"/>
@@ -59,8 +59,8 @@
 <g transform="translate({{ c.x + 14 }} {{ c.y + 12 }})">{{ logo(x.tipo, 28) }}</g>
 <text x="{{ c.x + 50 }}" y="{{ c.y + 26 }}" class="p-t2"><title>{{ x.nombre }}</title>{{ c.titulo }}</text>
 <text x="{{ c.x + 50 }}" y="{{ c.y + 42 }}" class="p-t3">{{ 'Nube' if x.ambito == 'nube' else 'On-premise' }} · {{ x.prov.nombre }} · {{ x.equipos }} equipo{{ 's' if x.equipos != 1 }}</text>
-<g><rect x="{{ c.x + c.w - 196 }}" y="{{ c.y + 12 }}" width="184" height="22" rx="11" class="p-ee-pill"/>
-<text x="{{ c.x + c.w - 104 }}" y="{{ c.y + 27 }}" text-anchor="middle" class="p-t4 p-blanco" font-weight="700">{{ c.n_ee }} nodo{{ 's' if c.n_ee != 1 }} de ejecución · {{ c.n_ee_ok }} activo{{ 's' if c.n_ee_ok != 1 }}</text></g>
+<g><rect x="{{ c.x + c.w - 196 }}" y="{{ c.y - 11 }}" width="184" height="22" rx="11" class="p-ee-pill"/>
+<text x="{{ c.x + c.w - 104 }}" y="{{ c.y + 4 }}" text-anchor="middle" class="p-t4 p-blanco" font-weight="700">{{ c.n_ee }} nodo{{ 's' if c.n_ee != 1 }} de ejecución · {{ c.n_ee_ok }} activo{{ 's' if c.n_ee_ok != 1 }}</text></g>
 {% if c.hop %}<g><rect x="{{ c.hx - 80 }}" y="{{ c.hy - 18 }}" width="160" height="36" rx="18" class="p-hop{{ '' if c.hop_existe else ' p-plan-caja' }}"/>
 <text x="{{ c.hx }}" y="{{ c.hy - 2 }}" text-anchor="middle" class="p-t3"><tspan font-weight="700">nodo hop</tspan></text><text x="{{ c.hx }}" y="{{ c.hy + 12 }}" text-anchor="middle" class="p-t4">{{ c.hop }}{{ '' if c.hop_existe else ' · por habilitar' }}</text></g>{% endif %}
 {% for k in c.cajas %}
@@ -68,7 +68,7 @@
 <text x="{{ k.x + 10 }}" y="{{ k.y + 18 }}" class="p-t3"><tspan font-weight="700">Segmento {{ k.nombre_amb }}</tspan></text>
 {% set cx = k.nx %}{% set cy = k.ny %}
 <path d="M{{ cx - 22 }} {{ cy }} L{{ cx - 11 }} {{ cy - 19 }} H{{ cx + 11 }} L{{ cx + 22 }} {{ cy }} L{{ cx + 11 }} {{ cy + 19 }} H{{ cx - 11 }}Z" class="p-nodo p-ee{{ '' if k.existe else ' p-plan-caja' }}"/>
-<text x="{{ cx }}" y="{{ cy + 4 }}" text-anchor="middle" class="p-t4 p-blanco" font-weight="700">EE</text>
+<text x="{{ cx }}" y="{{ cy + 4 }}" text-anchor="middle" class="p-t4 p-blanco" font-weight="700">EN</text>
 <text x="{{ cx }}" y="{{ cy + 34 }}" text-anchor="middle" class="p-t4" font-weight="700">nodo de ejecución · {{ k.nodo }}</text>
 <text x="{{ cx }}" y="{{ cy + 47 }}" text-anchor="middle" class="p-t4 {{ 'p-ok' if k.existe else 'p-warn' }}">{{ k.estado }}</text>
 <path d="M{{ cx }} {{ cy + 54 }} V{{ cy + 70 }}" class="p-linea" marker-end="url(#pf)"/>
@@ -79,7 +79,7 @@
 {% if c.trans %}{% set t = c.trans %}<g><rect x="{{ t.x }}" y="{{ t.y }}" width="{{ t.w }}" height="{{ t.h }}" rx="8" class="p-trans"/>
 <text x="{{ t.x + 10 }}" y="{{ t.y + 18 }}" class="p-t3"><tspan font-weight="700">Servicios transversales</tspan> · compartidos por todos los ambientes · red de gestión</text>
 <path d="M{{ t.nx - 22 }} {{ t.ny }} L{{ t.nx - 11 }} {{ t.ny - 19 }} H{{ t.nx + 11 }} L{{ t.nx + 22 }} {{ t.ny }} L{{ t.nx + 11 }} {{ t.ny + 19 }} H{{ t.nx - 11 }}Z" class="p-nodo p-ee{{ '' if t.existe else ' p-plan-caja' }}"/>
-<text x="{{ t.nx }}" y="{{ t.ny + 4 }}" text-anchor="middle" class="p-t4 p-blanco" font-weight="700">EE</text>
+<text x="{{ t.nx }}" y="{{ t.ny + 4 }}" text-anchor="middle" class="p-t4 p-blanco" font-weight="700">EN</text>
 <text x="{{ t.nx }}" y="{{ t.ny + 34 }}" text-anchor="middle" class="p-t4">{{ t.nodo }}</text>
 <text x="{{ t.nx }}" y="{{ t.ny + 47 }}" text-anchor="middle" class="p-t4 {{ 'p-ok' if t.existe else 'p-warn' }}">{{ t.estado }}</text>
 <path d="M{{ t.nx + 26 }} {{ t.ny }} H{{ t.nx + 66 }}" class="p-linea" marker-end="url(#pf)"/>
@@ -89,6 +89,6 @@
 </g>{% endfor %}
 </svg></div>
 <div class="plano-pie">
-<div class="leyenda"><span><i class="lg-solida"></i>conexión activa</span><span><i class="lg-plan"></i>por habilitar</span><span><i class="lg-ee"></i>nodo de ejecución (EE) · uno por segmento de cada contexto</span><span><i class="lg-aapn"></i>nodo de la plataforma AAP (HA)</span><span><i class="lg-seg"></i>segmento de red del ambiente</span><span><i class="lg-trans"></i>servicios transversales</span></div>
+<div class="leyenda"><span><i class="lg-solida"></i>conexión activa</span><span><i class="lg-plan"></i>por habilitar</span><span><i class="lg-ee"></i>EN · nodo de ejecución (corre los EE, imágenes con Ansible y colecciones) · uno por segmento de cada contexto</span><span><i class="lg-aapn"></i>nodo de la plataforma AAP (HA)</span><span><i class="lg-seg"></i>segmento de red del ambiente</span><span><i class="lg-trans"></i>servicios transversales</span></div>
 </div></div>
 {% endmacro %}
