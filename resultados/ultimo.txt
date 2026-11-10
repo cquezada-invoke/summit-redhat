@@ -1,11 +1,20 @@
-commit: 4a41d2965acef4db924118ff8452083eda8486d5
-inicio: 2026-11-10T16:35:31-03:00
+commit: 9a2401d2e3545c911c872a23e93256ee426998f1
+inicio: 2026-11-10T16:37:17-03:00
 ---
-f3ecb52
+e6cca6a
 faceops actualizado
-APP_URL: ['"/lab/inventario/8/web/app-jboss/"']
-eq6: 404 Consola web de  nodo-jboss  (Keycloak) a través de FaceOps · http://192.168.122.15:8080/auth/admin/ · HTTP 404  Resource not found
-app: 404 None data-base: [] []
-hiperv: 200 0
-mf3: 200 1
---- fin: 2026-11-10T16:36:11-03:00 · código: 0
+    e = q1("SELECT nombre, ip, skills, servicios FROM equipos WHERE id=?", i); print(i, e["nombre"], e["ip"], "skills:", (e["skills"] or "")[:120], "| servicios con keycloak/nginx/eap:", [x for x in json.loads(e["servicios"] or "[]") if any(k in str(x).lower() for k in ("keycloak", "rhbk", "nginx", "eap", "jboss"))][:5])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 182, in q1
+    r = con().execute(sql, args).fetchone()
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: skills
+192.168.122.11 http 200 → 
+192.168.122.11 https 404
+192.168.122.15 http 000 → 
+192.168.122.15 https 000
+192.168.122.18 http 000 → 
+192.168.122.18 https 000
+15:8080/admin/ 404
+15:8080/app-jboss/ 404
+--- fin: 2026-11-10T16:37:51-03:00 · código: 0
