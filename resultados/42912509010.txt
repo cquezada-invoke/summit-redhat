@@ -1,0 +1,21 @@
+commit: b365c717b0c210b9f3d2d8ca863e85b6b02bed7f
+inicio: 2026-11-10T19:13:24-03:00
+---
+Matching Defaults entries for aap-kvm on demo-ansible-summit:
+    !visiblepw, always_set_home, match_group_by_gid, always_query_group_plugin, env_reset, env_keep="COLORS DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS", env_keep+="MAIL PS1 PS2 QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY", secure_path=/sbin\:/bin\:/usr/sbin\:/usr/bin
+
+User aap-kvm may run the following commands on demo-ansible-summit:
+    (root) NOPASSWD: /usr/bin/virsh, /usr/bin/virt-install
+drwxr-xr-x. 4 aap-kvm aap-kvm 8192 Nov  7 15:44 /var/lib/libvirt/images/faceops
+-rw-r--r--. 1 aap-kvm aap-kvm   902823936 Nov  7 11:10 srv-no-existe-99.reemplazado-202611071115.qcow2
+-rw-r--r--. 1 qemu    qemu     2267742208 Nov 10 19:12 srv-prueba-resp-01.qcow2
+-rw-r--r--. 1 aap-kvm aap-kvm   808321024 Nov  7 11:12 srv-prueba-resp-01.reemplazado-202611071113.qcow2
+-rw-r--r--. 1 qemu    qemu     8869511168 Nov 10 19:13 srv-prueba-rhel8-01.qcow2
+-rw-r--r--. 1 qemu    qemu     2639003648 Nov 10 19:13 srv-prueba-rhel9-01.qcow2
+-rw-r--r--. 1 qemu    qemu     5963251712 Nov 10 19:13 srv-prueba-rocky-01.qcow2
+-rw-r-----. 1 aap-kvm aap-kvm         368 Nov  7 04:24 srv-prueba-rocky-01-user-data.yml
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/var/lib/libvirt/images/faceops/srv-prueba-rhel9-01.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+--- fin: 2026-11-10T19:13:25-03:00 · código: 0
