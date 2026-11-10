@@ -48,7 +48,7 @@ const cy=cytoscape({container:el,elements:ELS,layout:{name:'preset',fit:true,pad
   {selector:'node[tipo="red"]',style:{'width':54,'height':44,'font-weight':600}},
   {selector:'node[?retirado]',style:{'opacity':0.45}},
   {selector:':parent',style:{'background-image':'none','label':'data(label)','text-valign':'top','text-halign':'center','text-margin-y':-6,'font-size':12,'font-weight':600,
-    'color':v('--muted'),'background-color':v('--soft'),'background-opacity':0.55,'border-width':1,'border-style':'dashed','border-color':v('--line'),'padding':18,'shape':'round-rectangle'}},
+    'color':v('--muted'),'background-color':v('--soft'),'background-opacity':0.55,'border-width':1,'border-style':'dashed','border-color':v('--line'),'padding':18,'shape':'round-rectangle','text-max-width':480,'text-wrap':'none'}},
   {selector:':parent[tipo="contenedor"]',style:{'background-opacity':0.15,'border-color':v('--muted'),'font-size':13,'padding':26}},
   {selector:':parent[tipo="declarada"]',style:{'border-color':v('--warn'),'background-color':v('--warnbg'),'background-opacity':0.45}},
   {selector:':parent[tipo="sinred"]',style:{'background-opacity':0.25}},

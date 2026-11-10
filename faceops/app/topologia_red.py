@@ -540,17 +540,19 @@ def _posiciones(nodos, aristas, grupos):
     for gid in orden:
         ids = hijos[gid]
         nivel = {}
-        for r in sorted(ids, key=lambda i: (NIVEL_TIPO.get(nodos[i]["tipo"], 4), nodos[i]["nombre"])):
-            if r in nivel:
-                continue
-            nivel[r] = NIVEL_TIPO.get(nodos[r]["tipo"], 4)
-            cola = [r]
+        restantes = sorted(ids, key=lambda i: (NIVEL_TIPO.get(nodos[i]["tipo"], 4), nodos[i]["nombre"]))
+        while restantes:   # BFS desde todos los nodos del nivel más alto a la vez (p. ej. los dos ISP en la fila de arriba)
+            base = NIVEL_TIPO.get(nodos[restantes[0]]["tipo"], 4)
+            cola = [r for r in restantes if NIVEL_TIPO.get(nodos[r]["tipo"], 4) == base]
+            for r in cola:
+                nivel[r] = base
             while cola:
                 u = cola.pop(0)
                 for w in sorted(misma[u]):
                     if w not in nivel:
                         nivel[w] = nivel[u] + 1
                         cola.append(w)
+            restantes = [r for r in restantes if r not in nivel]
         capas = defaultdict(list)
         for i in ids:
             capas[nivel[i]].append(i)
