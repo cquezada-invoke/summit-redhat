@@ -1,0 +1,47 @@
+# Rotación del lake (demo): no se guarda historia. Cada 15 min suma lo que ocupa el bucket «lake» y, si pasa el 70 % de la
+# capacidad del S3 (400 volúmenes de 64 MB ≈ 25 GB), borra los archivos más antiguos hasta quedar en 60 %.
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: rotacion-lake, namespace: demo-datalake}
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: rotacion
+              image: registry.access.redhat.com/ubi9/python-311:1-77
+              resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {memory: 128Mi}}
+              env: [{name: CAPACIDAD_GB, value: "25"}, {name: UMBRAL, value: "0.70"}, {name: OBJETIVO, value: "0.60"}]
+              command:
+                - python3
+                - -c
+                - |
+                  import os, urllib.request, urllib.parse, xml.etree.ElementTree as ET
+                  S3 = "http://minio:9000/lake"; ns = {"s": "http://s3.amazonaws.com/doc/2006-03-01/"}
+                  cap = float(os.environ["CAPACIDAD_GB"]) * 1024 ** 3
+                  objs, token = [], None
+                  while True:
+                      q = {"list-type": "2", "max-keys": "1000"}
+                      if token: q["continuation-token"] = token
+                      x = ET.fromstring(urllib.request.urlopen(S3 + "?" + urllib.parse.urlencode(q), timeout=60).read())
+                      for c in x.findall("s:Contents", ns):
+                          objs.append((c.find("s:LastModified", ns).text, int(c.find("s:Size", ns).text), c.find("s:Key", ns).text))
+                      t = x.find("s:NextContinuationToken", ns)
+                      if t is None or not t.text: break
+                      token = t.text
+                  total = sum(o[1] for o in objs)
+                  print(f"lake: {len(objs)} archivos · {total / 1024 ** 3:.2f} GB de {cap / 1024 ** 3:.0f} GB ({100 * total / cap:.0f} %)")
+                  if total > cap * float(os.environ["UMBRAL"]):
+                      borrados = 0
+                      for fecha, tam, key in sorted(objs):
+                          if total <= cap * float(os.environ["OBJETIVO"]): break
+                          urllib.request.urlopen(urllib.request.Request(S3 + "/" + urllib.parse.quote(key), method="DELETE"), timeout=60)
+                          total -= tam; borrados += 1
+                      print(f"rotación: {borrados} archivos antiguos borrados; queda {100 * total / cap:.0f} %")
