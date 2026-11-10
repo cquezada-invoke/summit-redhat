@@ -1,71 +1,14 @@
-commit: 6de6b726bc89f1fa491448d1bc518c4e87a269be
-inicio: 2026-11-10T19:57:19-03:00
+commit: ef7bd32844838ccebad58a00f7ff4eceb2dd936b
+inicio: 2026-11-10T19:59:49-03:00
 ---
-a661a77
-== 1. Hosts autorizados en AAP
-   borde: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   core: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   fw-interno: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   fw-perimetral: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   lb-dmz: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   srv-app-01: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   srv-bd-01: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   dns-dmz: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   proxy-dmz: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   nas-01: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   pc-campus-01: 1 registro(s) en [('Red · laboratorio', 'normal')]
-      borrado de Red · laboratorio (intento 1)
-   srv-rocky-demo-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
-      borrado de Servidores habilitados (intento 1)
-   srv-jenkins-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
-      borrado de Servidores habilitados (intento 1)
-   srv-prueba-rhel8-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
-      borrado de Servidores habilitados (intento 1)
-   srv-prueba-rhel9-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
-      borrado de Servidores habilitados (intento 1)
-   actualizando inventario construido FaceOps · Todos los servidores
-   borde: quedan 0 []
-   core: quedan 0 []
-   fw-interno: quedan 0 []
-   fw-perimetral: quedan 0 []
-   lb-dmz: quedan 0 []
-   srv-app-01: quedan 0 []
-   srv-bd-01: quedan 0 []
-   dns-dmz: quedan 0 []
-   proxy-dmz: quedan 0 []
-   nas-01: quedan 0 []
-   pc-campus-01: quedan 0 []
-   srv-rocky-demo-01: quedan 0 []
-   srv-jenkins-01: quedan 0 []
-   srv-prueba-rhel8-01: quedan 0 []
-   srv-prueba-rhel9-01: quedan 0 []
-   licencia: 44 de 50 · libres 0
-CONTEO: 44 de 50 · libres 0
-== 2. Alta de la sede en AAP y bóveda
-   ! rtr-wan-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-   ! fw-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-   ! sw-core-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-   ! sw-acc-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-   ! lb-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
-== 3. Despliegue de FaceOps (exporta la topología de los laboratorios)
-   faceops actualizado
-sincronizar: 43
-equipos: {'rtr-wan-01': None, 'fw-sede-01': None, 'sw-core-01': None, 'sw-acc-01': None, 'lb-sede-01': None}
-retirados ahora: ['pc-oficina-01', 'pc-oficina-02', 'srv-rocky-prueba-01', 'srv-servidor-de-ejemplo-01', 'srv-test-ubuntu-01']
-Traceback (most recent call last):
-  File "/tmp/m.py", line 21, in <module>
-    t = solicitar(u, cl, au, None, {}, f"Prueba {c_}: inventariar {n}", None, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e, prueba=True)
-                                                                                                                ^^^^^
-AttributeError: 'NoneType' object has no attribute 'get'
-CONTEO: 44 de 50 · libres 0
---- fin: 2026-11-10T19:59:17-03:00 · código: 0
+  métrica de uso dada de baja: fw-perimetral
+  métrica de uso dada de baja: fw-interno
+  métrica de uso dada de baja: srv-servidor-de-ejemplo-01
+  métrica de uso dada de baja: srv-jenkins-01
+  métrica de uso dada de baja: srv-prueba-rhel9-01
+  métrica de uso dada de baja: srv-test-ubuntu-01
+  métrica de uso dada de baja: srv-rocky-prueba-01
+  métrica de uso dada de baja: srv-rocky-demo-01
+  métrica de uso dada de baja: srv-prueba-rhel8-01
+LIC {'current_instances': 44, 'instance_count': 50, 'free_instances': 7, 'automated_instances': 43, 'deleted_instances': 31}
+--- fin: 2026-11-10T19:59:53-03:00 · código: 0
