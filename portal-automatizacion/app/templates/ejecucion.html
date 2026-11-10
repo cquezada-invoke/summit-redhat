@@ -24,7 +24,7 @@ async function cargar() {
     if (p.job) h += `<p><a href="${AAP}/execution/jobs/playbook/${p.job}/output" target="_blank">salida completa del job #${p.job} en AAP</a></p>`;
     if (p.aprobacion && p.estado === 'pending') h += `<p><button onclick="decidir(${p.aprobacion}, 'approve', this)">Aprobar</button> <button onclick="decidir(${p.aprobacion}, 'deny', this)">Rechazar</button></p>`;
     else if (p.aprobacion) h += `<p>${p.estado === 'successful' ? 'Aprobado' : 'Rechazado'}${p.aprobado_por ? ' por ' + esc(p.aprobado_por) : ''}</p>`;
-    if (p.tareas) h += '<ul>' + p.tareas.map(t => `<li>${esc(t.estado)} — ${esc(t.tarea)} ${t.host ? '(' + esc(t.host) + ')' : ''}${t.msg ? '<br><span style="color:red">' + esc(t.msg) + '</span>' : ''}</li>`).join('') + '</ul>' + resultado(p.resultado);
+    if (p.tareas) h += '<ul>' + p.tareas.map(t => `<li>${esc(t.estado)} — ${esc(t.tarea)} ${t.host ? '(' + esc(t.host) + ')' : ''}${t.msg ? '<br><span>' + esc(t.msg) + '</span>' : ''}</li>`).join('') + '</ul>' + resultado(p.resultado);
     return h; }).join('');
   if (!['successful', 'failed', 'canceled', 'error'].includes(d.estado)) setTimeout(cargar, 2500);
 }

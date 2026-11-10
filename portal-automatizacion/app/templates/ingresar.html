@@ -2,7 +2,7 @@
 {% block contenido %}
 <h3>Ingresar</h3>
 <p class="sub">Usuario de Ansible Automation Platform.</p>
-{% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+{% if error %}<p>[Error] {{ error }}</p>{% endif %}
 <form method="post">
 <p>Usuario<br><input type="text" name="usuario" autocomplete="username" required autofocus></p>
 <p>Clave<br><input type="password" name="clave" autocomplete="current-password" required></p>
