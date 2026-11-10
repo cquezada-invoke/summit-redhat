@@ -1,25 +1,12 @@
-commit: 5c0d0cf122eb742dd1c0a559a8beb9aa2daea359
-inicio: 2026-11-10T20:08:10-03:00
+commit: 2b750e46d81f028ee3137b338530921098af9a4a
+inicio: 2026-11-10T20:07:14-03:00
 ---
-motivo: fatal: [fw-sede-01]: FAILED! => {"msg": "The field 'remote_user' has an invalid value, which includes an undefined variable. The error was: 'fw_usuario' is undefined. 'fw_usuario' is undefined. 'fw_usuario' is undefined. 'fw_usuario' is undefined"}
-bóveda fw-sede-01 job 22127 running
-sincronizar: 48
-equipos: {'rtr-wan-01': 123, 'fw-sede-01': 121, 'sw-core-01': 125, 'sw-acc-01': 124, 'lb-sede-01': 122}
-retirados ahora: ['pc-oficina-01', 'pc-oficina-02', 'srv-rocky-prueba-01', 'srv-servidor-de-ejemplo-01', 'srv-test-ubuntu-01']
-ticket C3a sw-core-01 FO-LAB-01451 exitoso AAP terminó (successful): ejecución 7 s, espera de aprobación 51 s | Ficha de red actualizada en FaceOps (interfaces, VLAN, vecinos LLDP y rutas)
-ticket C3b sw-acc-01 FO-LAB-01452 exitoso AAP terminó (successful): ejecución 5 s, espera de aprobación 51 s | Ficha de red actualizada en FaceOps (interfaces, VLAN, vecinos LLDP y rutas)
-ticket C4 lb-sede-01 FO-LAB-01453 exitoso AAP terminó (successful): ejecución 5 s, espera de aprobación 48 s | Ficha de red actualizada en FaceOps (interfaces, VLAN, vecinos LLDP y rutas)
-ticket C1b fw-sede-01 FO-LAB-01454 exitoso AAP terminó (successful): ejecución 9 s, espera de aprobación 45 s | Ficha de red actualizada en FaceOps (interfaces, VLAN, vecinos LLDP y rutas)
-ticket C2b rtr-wan-01 FO-LAB-01455 exitoso AAP terminó (successful): ejecución 6 s, espera de aprobación 41 s
-eq 123 rtr-wan-01 router | FRRouting 10.2.1_git | con datos | ifs: [('eth1', 'ruteada', None), ('eth2', 'ruteada', 'fw-sede-01')] | vlans: [] | vec: [('eth2', 'fw-sede-01', 'eth1')] | bgp: ['Established'] | lb: None
-eq 121 fw-sede-01 firewall | VyOS 2026.10.23-0026-rolling | con datos | ifs: [('eth1', 'ruteada', 'rtr-wan-01'), ('eth2', 'ruteada', 'sw-core-01')] | vlans: [] | vec: [('eth1', 'rtr-wan-01', 'eth2'), ('eth2', 'sw-core-01', 'eth1')] | bgp: [] | lb: None
-eq 125 sw-core-01 switch | FRRouting 10.2.1_git | con datos | ifs: [('eth1', 'ruteada', 'fw-sede-01'), ('eth2', 'troncal 10,20,99', 'sw-acc-01'), ('eth3', 'acceso VLAN 30', 'lb-sede-01'), ('eth4', 'acceso VLAN 30', None), ('eth5', 'acceso VLAN 30', None), ('vlan10', 'SVI', None), ('vlan20', 'SVI', None), ('vlan30', 'SVI', None), ('vlan99', 'SVI', None)] | vlans: [10, 20, 30, 99] | vec: [('eth2', 'sw-acc-01', 'eth1'), ('eth1', 'fw-sede-01', 'eth2'), ('eth3', 'lb-sede-01', 'eth1')] | bgp: [] | lb: None
-eq 124 sw-acc-01 switch | FRRouting 10.2.1_git | con datos | ifs: [('eth1', 'troncal 10,20,99', 'sw-core-01'), ('eth2', 'acceso VLAN 10', None), ('eth3', 'acceso VLAN 20', None), ('vlan99', 'SVI', None)] | vlans: [10, 20, 99] | vec: [('eth1', 'sw-core-01', 'eth2')] | bgp: [] | lb: None
-eq 122 lb-sede-01 balanceador | HAProxy 2.8.22-a6a7eb6dd | con datos | ifs: [('eth1', 'ruteada', 'sw-core-01')] | vlans: [] | vec: [('eth1', 'sw-core-01', 'eth3')] | bgp: [] | lb: [('srv-web-01', 'UP'), ('srv-web-02', 'UP')]
-redes lista: {'rtr-wan-01': 2, 'fw-sede-01': 2, 'sw-core-01': 1, 'sw-acc-01': 2, 'lb-sede-01': 2}
-arquitectura: {'rtr-wan-01': 10, 'fw-sede-01': 11, 'sw-core-01': 25, 'sw-acc-01': 13, 'lb-sede-01': 7} | enlaces sede: 11
-ficha sw-core-01 VLAN: 1 Vecinos: 1 Balanceo: 0 consola: 3 eq-uso hidden: 1
-ficha lb-sede-01 VLAN: 0 Vecinos: 1 Balanceo: 1 consola: 3 eq-uso hidden: 1
-arquitectura status: 200 | corporativa visible: 34
-CONTEO: 49 de 50 · libres 2
---- fin: 2026-11-10T20:15:05-03:00 · código: 0
+d306456
+faceops actualizado
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+catalogo: 223
+  pedido FO-LAB-01456
+  aprobado
+FO-LAB-01456 exitoso {'token': True, 'anterior': 404, 'publicar': -1, 'detalle': 'Status code was -1 and not [200, 201]: Connection failure: [Errno 104] Connection reset by peer'}
+FIN-SCRIPT
+--- fin: 2026-11-10T20:15:19-03:00 · código: 0
