@@ -1,27 +1,109 @@
-commit: 0c5f14f84a6effc37498c343eb735e65e5d3acc6
-inicio: 2026-11-10T16:14:21-03:00
+commit: 0d883347bbb34eb0a5d28bab96391aba476aed86
+inicio: 2026-11-10T16:14:56-03:00
 ---
-620985d App de pagos: login, panel, pagar, transferir, historial, reembolsos y administración
---- gitea app-jboss main:
-b432cadcb0 Plataforma Invoke plataforma: ajuste operativo con las automatizaciones del cliente (AUT-nnn)
-9d45528809 Plataforma Invoke plataforma: segmento de negocio App de pagos (destino del despliegue)
-024d0ae457 Cristian Quezada App de ejemplo: nuevo mensaje (pedido desde FaceOps)
---- sincronizadores:
---- pipelineruns:
-sudo: kubectl: command not found
-app-jboss
-configurar_cicd_aap.py
-configurar_plataforma.py
-configurar_vault.py
-espacio_despliegues.py
-identidades.py
-instalar-cicd.sh
-instalar.log
-instalar-plataforma.sh
-instalar-vault.sh
-Only in /home/cquezada/demo-cicd/app-jboss: .git
-Files /home/cquezada/summit-redhat/demo-cicd/app-jboss/plataforma.yml and /home/cquezada/demo-cicd/app-jboss/plataforma.yml differ
-Files /home/cquezada/summit-redhat/demo-cicd/app-jboss/README.md and /home/cquezada/demo-cicd/app-jboss/README.md differ
-Only in /home/cquezada/summit-redhat/demo-cicd/app-jboss/src/main/java/cl/invoke/demo: Api.java
-Only in /home/cquezada/summit-redhat/demo-cicd/app-jboss/src/main/java/cl/invoke/demo: Bd.java
---- fin: 2026-11-10T16:14:23-03:00 · código: 0
+b432cad plataforma: ajuste operativo con las automatizaciones del cliente (AUT-nnn)
+9d45528 plataforma: segmento de negocio App de pagos (destino del despliegue)
+024d0ae App de ejemplo: nuevo mensaje (pedido desde FaceOps)
+.gitignore
+README.md
+db/V1__pedidos.sql
+db/V2__pedidos.sql
+db/V3__prueba_omision.sql
+db/V4__notificaciones.sql
+db/V92252__demo_2252.sql
+plataforma.yml
+pom.xml
+src/main/java/cl/invoke/demo/Datos.java
+src/main/java/cl/invoke/demo/Inicio.java
+src/main/java/cl/invoke/demo/Salud.java
+src/main/resources/app.properties
+src/test/java/cl/invoke/demo/DatosTest.java
+=== diff README.md
+1c1
+< # App de pagos · JBoss EAP 8
+---
+> # App de demo · JBoss EAP 8
+6,47c6
+< Para la demo: cambia el `mensaje` en `src/main/resources/app.properties` y haz push (aparece bajo el título de la app).
+< 
+< ## Qué hace
+< 
+< Login con usuarios de demo y, dentro: resumen de la cuenta (saldo y últimos movimientos), pagar a un comercio
+< (tarjeta, QR o transferencia), transferir a otra cuenta, historial con filtros, reembolsos (pedir y ver el estado)
+< y una vista de administración para el rol `supervisor` (pagos del día por rubro, medio y canal; aprobar o rechazar reembolsos).
+< 
+< La interfaz es HTML + JS (`src/main/webapp/static`) y toda operación va por HTTP/JSON al backend, así el espejo del
+< balanceador al data lake recibe requests de negocio con rubro, región, medio, monto y canal (`web` o `app` en móvil).
+< 
+< ## Usuarios de demo
+< 
+< Están en `src/main/resources/bd/usuarios-demo.properties` (usuario, clave de demo, rol, región, saldo y cuenta).
+< Son ficticios. La app los crea al primer uso de la base y guarda solo el hash PBKDF2 de la clave.
+=== diff src/main/resources/app.properties
+2c2,5
+< mensaje=Hola desde JBoss EAP 8
+---
+> mensaje=Aplicación de ejemplo desplegada por el pipeline desde FaceOps · 2026-11-01 16:32
+> 
+> # prueba: commit sin cambios de plataforma
+> # prueba ServiceNow: commit solo de código, sin cambios de plataforma
+=== diff src/main/java/cl/invoke/demo/Inicio.java
+11c11,12
+< import java.sql.Statement;
+---
+> import javax.naming.InitialContext;
+> import javax.sql.DataSource;
+13,16c14
+< /**
+<  * Portada de la App de pagos: entrega la interfaz (HTML + JS) y muestra la versión que dejó el pipeline, el servidor
+<  * y el estado de la base. El texto «Base de datos: conectada» lo usan las validaciones de FaceOps y de las demos.
+<  */
+---
+> /** Página de la app: muestra el mensaje y la versión que dejó el pipeline.... */
+22d19
+<         resp.setHeader("Cache-Control", "no-store");
+25,33c22,28
+<         try (Connection c = Bd.cruda(); Statement s = c.createStatement(); ResultSet r = s.executeQuery("SELECT 1")) {
+<             r.next();
+<             baseDatos = "conectada";
+<             try (Statement s2 = c.createStatement(); ResultSet r2 = s2.executeQuery("SELECT count(*) FROM app_movimientos WHERE tipo = 'pago'"
+<                     + " AND (creado AT TIME ZONE 'America/Santiago')::date = (now() AT TIME ZONE 'America/Santiago')::date")) {
+=== diff pom.xml
+9c9
+<   <name>App de demo para JBoss EAP 8</name>
+---
+>   <name>App de demo para JBoss EAP 8...</name>
+=== plataforma diff
+0a1,3
+> # Segmento de negocio: define en qué servidores se despliega (los del segmento, en el ambiente de la rama)
+> segmento: App de pagos
+> 
+6,11c9
+<   datasource:            # conexión de la app en JBoss (todo opcional; lo que no se declare no se toca)
+<     jndi: java:jboss/datasources/app-jboss   # nombre que usa la app para pedir su conexión
+<     pool_min: 5                              # conexiones abiertas siempre
+<     pool_max: 20                             # máximo de conexiones simultáneas
+<     validar_conexion: true                   # comprueba la conexión antes de entregarla a la app
+<     timeout_conexion_s: 30                   # segundos que la app espera por una conexión libre
+---
+>   # La conexión en JBoss (pools, validación, tiempos) se declara en el repo jboss-config.
+18a17,19
+>   - pagos.reintentos-v2
+>   - pagos.test
+>   - pagos.notificaciones
+20a22,25
+>   # Protección contra fuerza bruta del realm: bloquea la cuenta tras N intentos fallidos
+>   fuerza_bruta:
+>     intentos: 5
+>     bloqueo_min: 15
+25a31,35
+>     - auditor
+>     - demo2252
+>     - test01
+>     - operaciones
+> # prueba: el paso de plataforma corre solo si cambia este archivo o db/
+27,37c37,53
+< # Cómo llega la versión nueva a producción (FaceOps la lee al ejecutar el pipeline). directo | rolling | blue-green | canary | ab | shadow
+cache
+sudo_ok
+--- fin: 2026-11-10T16:14:57-03:00 · código: 0
