@@ -51,6 +51,38 @@ def fuentes_eventos(activaciones):
     return list(out.values())
 
 
+def _aap_abierto(x, y, w, h, instancias):
+    """Caja de AAP abierta: balanceador, los cuatro componentes con 2 nodos cada uno (alta disponibilidad), Redis y PostgreSQL.
+    El controller muestra los nodos de control reales (instancias de AAP); el resto, el primer nodo donde hoy corre la plataforma
+    (instalación en contenedores) y el segundo como «por habilitar»."""
+    ctrl = [i for i in instancias if i.get("node_type") in ("control", "hybrid")]
+    base = (ctrl[0]["hostname"] if ctrl else "")
+    gw_, gap, pad = 4, 12, 16
+    cw = (w - 2 * pad - 3 * gap) / 4
+    def nodos(reales, prefijo):
+        n = [{"nombre": r["hostname"], "existe": True, "estado": r.get("node_state", "")} for r in reales][:2]
+        if not n and base:
+            n = [{"nombre": base, "existe": True, "estado": "en el nodo actual"}]
+        while len(n) < 2:
+            n.append({"nombre": f"{prefijo}-{len(n) + 1}", "existe": False, "estado": "por habilitar (HA)"})
+        return n
+    comps = [("Platform gateway", "UI · API · inicio de sesión", nodos([], "gateway")),
+             ("Automation controller", "plano de control · malla", nodos(ctrl, "controller")),
+             ("Automation hub", "colecciones y EE", nodos([], "hub")),
+             ("Event-Driven Ansible", "reacciona a eventos", nodos([], "eda"))]
+    grupos = []
+    for i, (t, d, ns) in enumerate(comps):
+        gx = x + pad + i * (cw + gap)
+        nw = (cw - 24) / 2
+        grupos.append({"x": gx, "y": y + 100, "w": cw, "h": 118, "titulo": t, "desc": d,
+                       "nodos": [dict(nd, x=gx + 8 + j * (nw + 8), y=y + 100 + 50, w=nw, h=52) for j, nd in enumerate(ns)]})
+    hw = (w - 2 * pad - gap) / 2
+    return {"x": x, "y": y, "w": w, "h": h, "cx": x + w / 2, "grupos": grupos,
+            "lb": {"x": x + w / 2 - 170, "y": y + 54, "w": 340, "h": 30},
+            "redis": {"x": x + pad, "y": y + 232, "w": hw, "h": 52},
+            "pg": {"x": x + pad + hw + gap, "y": y + 232, "w": hw, "h": 52}}
+
+
 def plano(cliente, eqs, infras, instancias, eventos=None):
     from .vistas import clase_eq, grupo_periferico
     redes = (j(cliente["clasificacion"], {}).get("_topologia") or {}).get("redes", [])
@@ -84,7 +116,8 @@ def plano(cliente, eqs, infras, instancias, eventos=None):
     W_CAJA, GAP, PAD = 196, 14, 16
     eventos = eventos or []
     dy = 92 if eventos else 0   # fila de herramientas que mandan eventos a AAP, arriba
-    x0, y_inf = 20, 190 + dy
+    A_W, A_H = 760, 300          # caja de AAP abierta: cada componente separado y en alta disponibilidad
+    x0, y_inf = 20, 20 + dy + A_H + 74
     for c in cols:
         n = len(c["cajas"])
         c["x"], c["w"] = x0, max(PAD * 2 + n * W_CAJA + (n - 1) * GAP, 300)
@@ -103,11 +136,14 @@ def plano(cliente, eqs, infras, instancias, eventos=None):
             t["nx"], t["ny"] = t["x"] + 60, t["y"] + 50
             t["cw"] = min(104, (t["w"] - 150) / max(len(t["tipos"]), 1) - 8)
         x0 += c["w"] + 28
-    ancho = max(x0 - 8, 760)
+    for c in cols:   # nodos de ejecución de cada contexto tecnológico (uno por segmento, más el de servicios transversales)
+        c["n_ee"] = len(c["cajas"]) + (1 if c["trans"] else 0)
+        c["n_ee_ok"] = sum(1 for k in c["cajas"] if k["existe"]) + (1 if c["trans"] and c["trans"]["existe"] else 0)
+    ancho = max(x0 - 8, 2 * (A_W / 2 + 60 + 230 + 10))
     centro = ancho / 2
     from .boveda import disponible as boveda_ok
     import os
-    vx = centro + 150 + 60
+    vx = centro + A_W / 2 + 60
     if vx + 230 > ancho:
         ancho = vx + 240
     ev_w = 196
@@ -118,8 +154,8 @@ def plano(cliente, eqs, infras, instancias, eventos=None):
             "vault": {"x": vx, "y": 10 + dy, "w": 220, "h": 46, "ok": boveda_ok(), "texto": "HashiCorp Vault · credenciales por infraestructura" if boveda_ok() else "por conectar"},
             "git": {"x": vx, "y": 66 + dy, "w": 220, "h": 46, "ok": bool(os.environ.get("FACEOPS_GITEA_TOKEN")),
                     "texto": "Gitea · proyectos y respaldos (SCM)" if os.environ.get("FACEOPS_GITEA_TOKEN") else "por conectar"},
-            "aap": {"x": centro - 150, "y": 20 + dy, "w": 300, "h": 96, "cx": centro},
-            "faceops": {"x": 20, "y": 34 + dy, "w": 210, "h": 68},
+            "aap": _aap_abierto(centro - A_W / 2, 20 + dy, A_W, A_H, instancias),
+            "faceops": {"x": 20, "y": 20 + dy + A_H / 2 - 34, "w": 210, "h": 68},
             "instancias": instancias,
             "faltan": sum(1 for c in cols for k in c["cajas"] if not k["existe"]) + sum(1 for c in cols if c["hop"] and not c["hop_existe"])
             + sum(1 for c in cols if c["trans"] and not c["trans"]["existe"])}
