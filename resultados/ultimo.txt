@@ -1,22 +1,52 @@
-commit: b60dc68717b9c6dd39de21c6356a8a4e9e65833d
-inicio: 2026-11-10T20:32:32-03:00
+commit: 39aa37bf21a05c865239e5d80e7f24120287ba0e
+inicio: 2026-11-10T20:35:17-03:00
 ---
-ad hoc 22225 failed
-Identity added: /runner/artifacts/22225/ssh_key_data (cquezada@demo-ansible-summit)
-[0;31mnodo-jboss | FAILED | rc=3 >>[0m
-[0;31mquadlet keycloak movido a /var/lib/keycloak/deshabilitado (no arranca con la máquina)[0m
-[0;31munidad keycloak fuera del arranque[0m
-[0;31mCONTAINER ID  IMAGE                                COMMAND     CREATED      STATUS      PORTS                   NAMES[0m
-[0;31m36b4f6bf51ef  docker.io/redis/redisinsight:latest              2 hours ago  Up 2 hours  0.0.0.0:5540->5540/tcp  redisinsight[0m
-[0;31m[0m
-[0;31mfailednon-zero return code[0m
-Identity added: /runner/artifacts/22225/ssh_key_data (cquezada@demo-ansible-summit)
-nodo-jboss | FAILED | rc=3 >>
-quadlet keycloak movido a /var/lib/keycloak/deshabilitado (no arranca con la máquina)
-unidad keycloak fuera del arranque
-CONTAINER ID  IMAGE                                COMMAND     CREATED      STATUS      PORTS                   NAMES
-36b4f6bf51ef  docker.io/redis/redisinsight:latest              2 hours ago  Up 2 hours  0.0.0.0:5540->5540/tcp  redisinsight
+ad hoc 22234 successful
+Identity added: /runner/artifacts/22234/ssh_key_data (cquezada@demo-ansible-summit)
+[0;33mnodo-jboss | CHANGED | rc=0 >>[0m
+[0;33m× eap8-standalone.service - JBoss EAP (standalone mode)[0m
+[0;33m     Loaded: loaded (/usr/lib/systemd/system/eap8-standalone.service; enabled; preset: disabled)[0m
+[0;33m     Active: failed (Result: exit-code) since Tue 2026-11-10 18:32:46 EST; 2min 41s ago[0m
+[0;33m   Duration: 1.084s[0m
+[0;33m    Process: 162504 ExecStart=/usr/bin/scl enable $EAP8_SCLS_ENABLED -- /opt/rh/eap8/root/usr/share/wildfly/bin/launch.sh $JAVA_HOME $JAVAPTH $WILDFLY_MODULEPATH $WILDFLY_SH $WILDFLY_SERVER_CONFIG $WILDFLY_BIND $WILDFLY_[0m
+[0;33m   Main PID: 162504 (code=exited, status=1/FAILURE)[0m
+[0;33m        CPU: 1.629s[0m
+[0;33m[0m
+[0;33mNov 10 18:32:45 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).[0m
+[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=1/FAILURE[0m
+[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.[0m
+[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Consumed 1.629s CPU time.[0m
+[0;33mNov 10 18:32:45 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).[0m
+[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=1/FAILURE[0m
+[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.[0m
+[0;33mNov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Consumed 1.629s CPU time.[0m
+[0;33m2026-11-10 18:17:36,910 ERROR [org.jboss.as.server] (management-handler-thread - 1) WFLYSRV0014: Replacement of deployment "app-jboss.war" by deployment "app-jboss.war" was rolled back with the following failure message: undefined[0m
+[0;33m2026-11-10 18:22:11,244 INFO  [org.jboss.as] (MSC service thread 1-1) WFLYSRV0050: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) stopped in 137ms[0m
+[0;33m               total        used        free      shared  buff/cache   available[0m
+[0;33mMem:            1707         561         835           7         470        1145[0m
+[0;33mSwap:              0           0           0[0m
+Identity added: /runner/artifacts/22234/ssh_key_data (cquezada@demo-ansible-summit)
+nodo-jboss | CHANGED | rc=0 >>
+× eap8-standalone.service - JBoss EAP (standalone mode)
+     Loaded: loaded (/usr/lib/systemd/system/eap8-standalone.service; enabled; preset: disabled)
+     Active: failed (Result: exit-code) since Tue 2026-11-10 18:32:46 EST; 2min 41s ago
+   Duration: 1.084s
+    Process: 162504 ExecStart=/usr/bin/scl enable $EAP8_SCLS_ENABLED -- /opt/rh/eap8/root/usr/share/wildfly/bin/launch.sh $JAVA_HOME $JAVAPTH $WILDFLY_MODULEPATH $WILDFLY_SH $WILDFLY_SERVER_CONFIG $WILDFLY_BIND $WILDFLY_
+   Main PID: 162504 (code=exited, status=1/FAILURE)
+        CPU: 1.629s
 
-failednon-zero return code
+Nov 10 18:32:45 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).
+Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=1/FAILURE
+Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.
+Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Consumed 1.629s CPU time.
+Nov 10 18:32:45 nodo-jboss.demo.local systemd[1]: Started JBoss EAP (standalone mode).
+Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=1/FAILURE
+Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.
+Nov 10 18:32:46 nodo-jboss.demo.local systemd[1]: eap8-standalone.service: Consumed 1.629s CPU time.
+2026-11-10 18:17:36,910 ERROR [org.jboss.as.server] (management-handler-thread - 1) WFLYSRV0014: Replacement of deployment "app-jboss.war" by deployment "app-jboss.war" was rolled back with the following failure message: undefined
+2026-11-10 18:22:11,244 INFO  [org.jboss.as] (MSC service thread 1-1) WFLYSRV0050: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) stopped in 137ms
+               total        used        free      shared  buff/cache   available
+Mem:            1707         561         835           7         470        1145
+Swap:              0           0           0
 
---- fin: 2026-11-10T20:34:48-03:00 · código: 0
+--- fin: 2026-11-10T20:35:31-03:00 · código: 0
