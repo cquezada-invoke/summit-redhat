@@ -1,0 +1,26 @@
+commit: 50c624904a8b402d989d5bacf7b4fa6eca20e641
+inicio: 2026-11-10T14:28:31-03:00
+---
+      1 W1110 00:01:11.441390 auth_credentials.go:128 fail to load config: read S3 config: filer: no entry is found in filer store
+      1 I1110 10:10:36.700285 common.go:77 response method:POST URL:/ with httpStatus:500 and JSON:{"error":"request Content-Type isn't multipart/form-data"}
+      1 I1110 00:01:10.388133 meta_aggregator.go:92 subscribing remote 127.0.0.1:8888 meta change: connecting to peer filer 127.0.0.1:8888: rpc error: code = Unavailable desc = connection error: desc = "trans
+      1 I1110 00:00:18.141361 volume_grpc_client_to_master.go:43 checkWithMaster 127.0.0.1:9333: get master 127.0.0.1:9333 configuration: rpc error: code = Unavailable desc = connection error: desc = "transpo
+      1 I1110 00:00:16.350434 volume_grpc_client_to_master.go:43 checkWithMaster 127.0.0.1:9333: get master 127.0.0.1:9333 configuration: rpc error: code = Unavailable desc = connection error: desc = "transpo
+      1 I1110 00:00:14.558470 volume_grpc_client_to_master.go:43 checkWithMaster 127.0.0.1:9333: get master 127.0.0.1:9333 configuration: rpc error: code = Unavailable desc = connection error: desc = "transpo
+      1 I1110 00:00:12.767443 volume_grpc_client_to_master.go:43 checkWithMaster 127.0.0.1:9333: get master 127.0.0.1:9333 configuration: rpc error: code = Unavailable desc = connection error: desc = "transpo
+      1 I1110 00:00:10.975714 volume_grpc_client_to_master.go:43 checkWithMaster 127.0.0.1:9333: get master 127.0.0.1:9333 configuration: rpc error: code = Unavailable desc = connection error: desc = "transpo
+/dev/vda4                99.4G     69.3G     30.1G  70% /data
+66
+      1 2026-11-10T17:28:29.590Z	INFO	dispatcher-query-716	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172759_08384_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30051ms :: planning 14ms :: waiting 1ms :: schedulin
+      1 2026-11-10T17:28:24.569Z	INFO	dispatcher-query-710	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172754_08382_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30040ms :: planning 7ms :: waiting 2ms :: scheduling
+      1 2026-11-10T17:28:14.575Z	INFO	dispatcher-query-709	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172744_08381_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30044ms :: planning 10ms :: waiting 1ms :: schedulin
+      1 2026-11-10T17:28:04.573Z	INFO	dispatcher-query-720	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172734_08380_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30042ms :: planning 8ms :: waiting 1ms :: scheduling
+      1 2026-11-10T17:27:54.573Z	INFO	dispatcher-query-714	io.trino.event.QueryMonitor	TIMELINE: Query 20261110_172724_08379_ejzmb :: FAILED (HIVE_FILESYSTEM_ERROR) :: elapsed 30043ms :: planning 7ms :: waiting 1ms :: scheduling
+sort: write failed: 'standard output': Broken pipe
+sort: write error
+[2026-11-10 17:25:11,392] WARNING in colector: volcar app-de-pagos: HTTPConnectionPool(host='minio', port=9000): Read timed out. (read timeout=30)
+[2026-11-10 17:25:56,426] WARNING in colector: volcar app-de-pagos: HTTPConnectionPool(host='minio', port=9000): Read timed out. (read timeout=30)
+[2026-11-10 17:26:41,462] WARNING in colector: volcar app-de-pagos: HTTPConnectionPool(host='minio', port=9000): Read timed out. (read timeout=30)
+[2026-11-10 17:27:26,497] WARNING in colector: volcar app-de-pagos: HTTPConnectionPool(host='minio', port=9000): Read timed out. (read timeout=30)
+[2026-11-10 17:28:11,533] WARNING in colector: volcar app-de-pagos: HTTPConnectionPool(host='minio', port=9000): Read timed out. (read timeout=30)
+--- fin: 2026-11-10T14:28:34-03:00 · código: 0
