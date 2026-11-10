@@ -1,0 +1,37 @@
+commit: 24295a81ceace765c001ff257b6a6275b39daf92
+inicio: 2026-11-10T18:02:03-03:00
+---
+libs
+META-INF
+org.eclipse.transformer.cli-0.5.0.jar
+ventas-1   Source   Binary   Failed (GenericBuildFailed)   19 minutes ago       6m45s
+ventas-2   Source   Binary   Complete                      11 minutes ago       3m11s
+ventas-3   Source   Binary   Complete                      About a minute ago   1m43s
+Copyright (c) Contributors to the Eclipse Foundation
+org.eclipse.transformer.cli.JakartaTransformerCLI Version [ 0.5.0 ]
+FaceOps: ventas.ear transformado a Jakarta EE
+[INFO] Installing packages
+INFO Installing server
+{"outcome" => "success"}
+{"outcome" => "success"}
+Pushing image image-registry.openshift-image-registry.svc:5000/wl-proto/ventas:latest ...
+Push successful
+IMG=image-registry.openshift-image-registry.svc:5000/wl-proto/ventas@sha256:0f7783fc7fec43336998a4575f1cb9deca9c33462744c6f5ec63a2e797a086c7
+ventas-1-build            0/1   Error       0     19m
+ventas-2-build            0/1   Completed   0     12m
+ventas-3-build            0/1   Completed   0     2m16s
+ventas-6449bf676d-b8wrk   1/1   Running     0     32s
+[0m[0m21:04:02,203 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) started in 2984ms - Started 73 of 85 services (26 services are lazy, passive or on-demand) - Server configuratio
+[0m[0m21:04:02,204 INFO  [org.jboss.as.controller] (Controller Boot Thread) WFLYCTL0472: Checking for presence of marker file indicating that the server has been restarted following execution of the additional commands from the CLI script
+[0m[0m21:04:02,204 INFO  [org.jboss.as.controller] (Controller Boot Thread) WFLYCTL0474: No marker file found indicating that the server has been restarted following execution of the additional commands from the CLI script
+[0m[0m21:04:02,631 INFO  [org.jboss.as.controller] (Controller Boot Thread) WFLYCTL0470: Reloading the server to normal mode after execution of the additional commands from the CLI script. This will clear the properties triggering the additional boot cli scr
+[0m[0m21:04:02,811 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-1) WFLYSRV0027: Starting deployment of "ventas.ear" (runtime-name: "ventas.ear")
+[0m[0m21:04:03,111 INFO  [org.jboss.as.server.deployment.scanner] (MSC service thread 1-7) WFLYDS0013: Started FileSystemDeploymentService for directory /opt/server/standalone/deployments
+[0m[0m21:04:03,204 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-3) WFLYSRV0207: Starting subdeployment (runtime-name: "ventas-web.war")
+[0m[0m21:04:03,989 INFO  [org.jboss.as.server] (ServerService Thread Pool -- 31) WFLYSRV0010: Deployed "ventas.ear" (runtime-name : "ventas.ear")
+[0m[0m21:04:04,020 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) started in 1356ms - Started 319 of 418 services (168 services are lazy, passive or on-demand) - Server configura
+host=ventas-wl-proto.apps.sno.invoke.lab
+{"estado":"ok","datasource":"enlazado","cola":"enlazado","propiedades":"cargadas"} http=200
+index-ip-host=200
+ventas.properties
+--- fin: 2026-11-10T18:04:23-03:00 · código: 0
