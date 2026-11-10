@@ -1,0 +1,449 @@
+---
+# Migración · WebLogic a OpenShift (sin IA en ejecución): evalúa el origen (importa weblogic-ocp-evaluar.yml) y lleva UNA
+# aplicación migrable a JBoss EAP 8 en un namespace de OpenShift 4.x por la API del clúster (credencial «OpenShift · … (despliegue)»):
+# BuildConfig S2I binario de EAP 8 (javax → jakarta, jboss-web.xml traducido, drivers, datasources y JMS por jboss-cli),
+# ConfigMap (URL, usuario, propiedades) y Secret (claves) sin exponer claves, Deployment, Service y Route; verifica rollout y
+# HTTP 200 por la Route y, si falla, vuelve a la versión anterior (o retira lo creado). El origen no se toca.
+# Modos (wl_modo): migrar · revertir (retira lo creado en el namespace) · emular-origen (SOLO laboratorio: deja en el equipo un
+# dominio WebLogic emulado con dos aplicaciones de ejemplo; no instala WebLogic). Variables: wl_app, wl_namespace,
+# wl_ds_clave (clave de los datasources), wl_salud_ruta, wl_cpu, wl_mem_request, wl_mem_limite, wl_build_limite, wl_ingreso, wl_espera
+- name: Origen emulado (laboratorio)
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    ej: "{{ playbook_dir }}/files/weblogic-ejemplo"
+    dom: /u01/oracle/user_projects/domains/ventas_domain
+  tasks:
+    - name: Solo en modo emular-origen
+      ansible.builtin.meta: end_play
+      when: (wl_modo | default('migrar')) != 'emular-origen'
+
+    - name: Carpetas del dominio y de las aplicaciones
+      ansible.builtin.file: {path: "{{ item }}", state: directory, mode: "0755"}
+      loop: ["{{ dom }}/config/jdbc", "{{ dom }}/config/jms", "{{ dom }}/bin", /u01/apps/ventas, /u01/apps/legado]
+
+    - name: Dominio emulado (config.xml, JDBC, JMS, setDomainEnv)
+      ansible.builtin.copy: {src: "{{ ej }}/dominio/{{ item }}", dest: "{{ dom }}/{{ item }}", mode: "0644"}
+      loop: [config/config.xml, config/jdbc/ventasDS-jdbc.xml, config/jms/pedidosmodule-jms.xml, bin/setDomainEnv.sh]
+
+    - name: Aplicaciones de ejemplo desplegadas en el dominio
+      ansible.builtin.copy: {src: "{{ ej }}/apps/{{ item.0 }}", dest: "/u01/apps/{{ item.1 }}/{{ item.0 }}", mode: "0644"}
+      loop: [[ventas.ear, ventas], [ventas.properties, ventas], [legado.war, legado], [legado.properties, legado]]
+
+    - name: Marca de origen emulado
+      ansible.builtin.copy:
+        dest: "{{ dom }}/FACEOPS-EMULADO.txt"
+        mode: "0644"
+        content: "Dominio WebLogic EMULADO por FaceOps para pruebas: no hay producto Oracle instalado; solo los artefactos que analiza la migración.\n"
+
+- name: Evaluación del origen
+  ansible.builtin.import_playbook: weblogic-ocp-evaluar.yml
+
+- name: OpenShift · construir, desplegar y verificar
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    modo: "{{ wl_modo | default('migrar') }}"
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    ha: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
+    hj: "{{ h | combine({'Content-Type': 'application/json'}) }}"
+    ns: "{{ wl_namespace | default('') }}"
+    app_n: "{{ wl_app | default((wl_apps | default('')) | split(',') | map('trim') | select | first | default('')) }}"
+    k8s: "{{ app_n | lower | regex_replace('[^a-z0-9-]', '-') | truncate(40, true, '') | regex_replace('^-+|-+$', '') }}"
+    sel: "app.kubernetes.io/part-of=migracion-weblogic,app.kubernetes.io/name={{ k8s }}"
+    cache: /tmp/faceops-wl-cache
+    builder: "{{ wl_builder | default('registry.redhat.io/jboss-eap-8/eap8-openjdk17-builder-openshift-rhel8:latest', true) }}"
+    maven: "{{ wl_maven | default('https://repo1.maven.org/maven2', true) }}"
+    espera: "{{ wl_espera | default(600) | int }}"
+    tipos:   # orden de retiro
+      - [route.openshift.io/v1, routes]
+      - [v1, services]
+      - [apps/v1, deployments]
+      - [v1, configmaps]
+      - [v1, secrets]
+      - [build.openshift.io/v1, buildconfigs]
+      - [build.openshift.io/v1, builds]
+      - [image.openshift.io/v1, imagestreams]
+  tasks:
+    - name: Solo para migrar o revertir
+      ansible.builtin.meta: end_play
+      when: modo not in ['migrar', 'revertir']
+
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - api | length > 0
+          - ns is match('^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$') and not ns.startswith('openshift') and not ns.startswith('kube') and ns != 'default'
+          - k8s | length > 0
+          - (wl_salud_ruta | default('/')) is match('^/[A-Za-z0-9._~/?=&-]*$')
+        fail_msg: "Indica la aplicación (wl_app) y un namespace propio (wl_namespace; no openshift-*, kube-* ni default); la ruta de salud empieza con /"
+        quiet: true
+
+    # ---------- revertir ----------
+    - name: Retirar lo creado por la migración (por etiquetas)
+      ansible.builtin.uri:
+        url: "{{ api }}/{{ 'api' if item.0 == 'v1' else 'apis' }}/{{ item.0 }}/namespaces/{{ ns }}/{{ item.1 }}?labelSelector={{ sel | urlencode }}"
+        method: DELETE
+        headers: "{{ h }}"
+        validate_certs: false
+        status_code: [200, 404]
+      loop: "{{ tipos }}"
+      loop_control: {label: "{{ item.1 }}"}
+      when: modo == 'revertir'
+
+    - name: Namespace (retiro)
+      ansible.builtin.uri: {url: "{{ api }}/api/v1/namespaces/{{ ns }}", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+      register: r_ns
+      when: modo == 'revertir'
+
+    - name: Quedan objetos en el namespace
+      ansible.builtin.uri: {url: "{{ api }}/apis/apps/v1/namespaces/{{ ns }}/deployments", headers: "{{ h }}", validate_certs: false}
+      register: r_resto
+      when: modo == 'revertir' and r_ns.status == 200
+
+    - name: Retirar el namespace si lo creó la migración y quedó vacío
+      ansible.builtin.uri: {url: "{{ api }}/api/v1/namespaces/{{ ns }}", method: DELETE, headers: "{{ h }}", validate_certs: false, status_code: [200, 202, 404]}
+      when:
+        - modo == 'revertir' and r_ns.status == 200
+        - (r_ns.json.metadata.labels | default({})).get('faceops/creado-por') == 'migracion-weblogic'
+        - r_resto.json['items'] | map(attribute='metadata.labels') | map('default', {}) | map('to_json') | reject('search', 'migracion-weblogic') | list | length == 0
+
+    - name: Resultado del retiro
+      ansible.builtin.set_stats:
+        data:
+          faceops_migracion_weblogic_ocp: {modo: revertir, namespace: "{{ ns }}", aplicacion: "{{ app_n }}", retirado: true}
+      when: modo == 'revertir'
+
+    - name: Fin del retiro
+      ansible.builtin.meta: end_play
+      when: modo == 'revertir'
+
+    # ---------- migrar ----------
+    - name: Aplicación evaluada
+      ansible.builtin.set_fact:
+        ap: "{{ analisis.aplicaciones | selectattr('aplicacion', 'equalto', app_n) | first | default({}) }}"
+
+    - name: La aplicación existe en el origen y es migrable (si no, no se crea nada)
+      ansible.builtin.assert:
+        that:
+          - ap | length > 0
+          - ap.destino.migrable
+        fail_msg: >-
+          {{ ('«' ~ app_n ~ '» no está desplegada en el dominio de ' ~ inventory_hostname) if not ap else
+             ('«' ~ app_n ~ '» no se migra: ' ~ ap.destino.motivo ~ '. Bloqueantes: '
+              ~ ap.hallazgos | selectattr('severidad', 'equalto', 'crítica') | map(attribute='titulo') | join('; ') ~ '. No se creó nada en OpenShift') }}
+        quiet: true
+
+    - name: Datasources que usa la aplicación
+      ansible.builtin.set_fact:
+        ds_app: >-
+          {% set refs = [] %}{% for w in ap.web | default([]) %}{% for r in w.recursos + w.recursos_env %}{% set _ = refs.append(r.jndi) %}{% endfor %}{% endfor %}
+          {%- set l = [] %}{% for d in analisis.dominio.datasources if d.driver in analisis.drivers and (not refs or d.jndi | intersect(refs)) %}{% set _ = l.append(d) %}{% endfor %}{{ l }}
+
+    - name: Hay clave para los datasources (las de WebLogic están cifradas con la llave del dominio y no se leen)
+      ansible.builtin.assert:
+        that: [ds_app | length == 0 or (wl_ds_clave | default('') | length > 0)]
+        fail_msg: "La aplicación usa {{ ds_app | map(attribute='nombre') | join(', ') }}: indica su clave (wl_ds_clave); queda solo en un Secret de OpenShift"
+        quiet: true
+
+    - name: Carpeta de descargas
+      ansible.builtin.file: {path: "{{ cache }}", state: directory, mode: "0755"}
+
+    - name: Drivers JDBC y Eclipse Transformer (Maven Central)
+      ansible.builtin.get_url:
+        url: "{{ maven }}/{{ item }}"
+        dest: "{{ cache }}/{{ item | basename }}"
+        mode: "0644"
+        timeout: 120
+      loop: >-
+        {{ (ds_app | map(attribute='driver') | unique | map('extract', analisis.drivers) | map(attribute='maven') | list)
+           + (['org/eclipse/transformer/org.eclipse.transformer.cli/0.5.0/org.eclipse.transformer.cli-0.5.0-distribution.jar'] if ap.destino.transformar_javax else []) }}
+
+    - name: Artefactos (contexto S2I de EAP 8 y manifiestos de OpenShift)
+      ansible.builtin.command: python3 {{ playbook_dir }}/files/weblogic_ocp_preparar.py
+      args:
+        stdin: "{{ {'analisis': analisis, 'app': app_n, 'origen': '/tmp/faceops-wl/' ~ inventory_hostname, 'salida': '/tmp/faceops-wl-ocp/' ~ k8s,
+                    'cache': cache, 'ns': ns, 'imagen': 'pendiente', 'builder': builder, 'salud': wl_salud_ruta | default(''), 'equipo': inventory_hostname,
+                    'recursos': {'cpu': wl_cpu | default('100m', true), 'mem_req': wl_mem_request | default('512Mi', true),
+                                 'mem_lim': wl_mem_limite | default('1Gi', true), 'build_lim': wl_build_limite | default('2Gi', true)}} | to_json }}"
+      register: r_prep
+      changed_when: false
+
+    - name: Artefactos generados
+      ansible.builtin.set_fact:
+        prep: "{{ r_prep.stdout | from_json }}"
+
+    - name: Manifiestos por tipo y datos del Secret (la clave no se muestra)
+      ansible.builtin.set_fact:
+        m: "{{ dict(prep.manifiestos | map(attribute='kind') | zip(prep.manifiestos)) }}"
+        sec_datos: "{{ dict(prep.secretos | map(attribute='variable') | zip([wl_ds_clave | default('') | b64encode] * (prep.secretos | length))) }}"
+      no_log: true
+
+    - name: Namespace de destino
+      ansible.builtin.uri: {url: "{{ api }}/api/v1/namespaces/{{ ns }}", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+      register: r_ns
+
+    - name: Crear el namespace si falta (queda marcado como creado por la migración)
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces"
+        method: POST
+        headers: "{{ hj }}"
+        validate_certs: false
+        body_format: json
+        body: {apiVersion: v1, kind: Namespace, metadata: {name: "{{ ns }}", labels: {faceops/creado-por: migracion-weblogic}}}
+        status_code: [201, 409]
+      when: r_ns.status == 404
+      changed_when: true
+
+    - name: Estado anterior (para volver atrás)
+      ansible.builtin.uri:
+        url: "{{ api }}/{{ item }}"
+        headers: "{{ h }}"
+        validate_certs: false
+        status_code: [200, 404]
+      loop:
+        - "apis/apps/v1/namespaces/{{ ns }}/deployments/{{ k8s }}"
+        - "api/v1/namespaces/{{ ns }}/configmaps/{{ k8s }}-config"
+        - "api/v1/namespaces/{{ ns }}/secrets/{{ k8s }}-ds"
+        - "apis/build.openshift.io/v1/namespaces/{{ ns }}/buildconfigs/{{ k8s }}"
+        - "apis/image.openshift.io/v1/namespaces/{{ ns }}/imagestreams/{{ k8s }}"
+      register: r_antes
+      no_log: true
+
+    - name: Anterior
+      ansible.builtin.set_fact:
+        dep_antes: "{{ r_antes.results[0].json if r_antes.results[0].status == 200 else {} }}"
+        cm_antes: "{{ r_antes.results[1].json.data | default({}) if r_antes.results[1].status == 200 else none }}"
+        sec_antes: "{{ r_antes.results[2].json.data | default({}) if r_antes.results[2].status == 200 else none }}"
+        huella_antes: "{{ ((r_antes.results[3].json | default({})).metadata | default({})).annotations | default({}) | dict2items
+                          | selectattr('key', 'equalto', 'faceops/huella') | map(attribute='value') | first | default('') }}"
+        imagen_antes: "{{ ((r_antes.results[4].json | default({})).status | default({})).tags | default([]) | selectattr('tag', 'equalto', 'latest')
+                          | map(attribute='items') | first | default([]) | map(attribute='dockerImageReference') | first | default('') }}"
+      no_log: true
+
+    - name: ImageStream y BuildConfig (S2I binario de EAP 8)
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/{{ item.apiVersion }}/namespaces/{{ ns }}/{{ item.kind | lower }}s/{{ k8s }}?fieldManager=faceops&force=true"
+        method: PATCH
+        headers: "{{ ha }}"
+        validate_certs: false
+        body: "{{ item | to_json }}"
+        status_code: [200, 201]
+      loop: ["{{ m.ImageStream }}", "{{ m.BuildConfig }}"]
+      loop_control: {label: "{{ item.kind }}"}
+
+    - name: Construir la imagen (solo si cambió la aplicación o su configuración)
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/build.openshift.io/v1/namespaces/{{ ns }}/buildconfigs/{{ k8s }}/instantiatebinary"
+        method: POST
+        headers: "{{ h | combine({'Content-Type': 'application/octet-stream'}) }}"
+        validate_certs: false
+        src: "{{ prep.contexto }}"
+        status_code: [200, 201]
+        timeout: 120
+      register: r_build
+      when: huella_antes != prep.huella or not imagen_antes
+      changed_when: true
+
+    - name: Esperar la construcción (S2I de EAP 8, javax → jakarta y jboss-cli)
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/build.openshift.io/v1/namespaces/{{ ns }}/builds/{{ r_build.json.metadata.name }}"
+        headers: "{{ h }}"
+        validate_certs: false
+      register: r_b
+      until: r_b.json.status.phase in ['Complete', 'Failed', 'Error', 'Cancelled']
+      retries: 150
+      delay: 10
+      when: r_build is changed
+      failed_when: false
+
+    - name: Imagen a desplegar
+      ansible.builtin.set_fact:
+        imagen: "{{ (r_b.json.status.outputDockerImageReference | regex_replace(':[^:/]+$', '') ~ '@' ~ r_b.json.status.output.to.imageDigest)
+                    if r_build is changed and r_b.json.status.phase | default('') == 'Complete'
+                    else (imagen_antes if r_build is not changed else '') }}"
+        build_msj: "{{ (r_b.json.status.phase ~ ': ' ~ (r_b.json.status.message | default(r_b.json.status.reason | default('')))) if r_build is changed else 'sin cambios: se reutiliza la imagen' }}"
+
+    - name: ConfigMap, Secret, Deployment, Service y Route
+      ansible.builtin.uri:
+        url: "{{ api }}/{{ 'api' if item.apiVersion == 'v1' else 'apis' }}/{{ item.apiVersion }}/namespaces/{{ ns }}/{{ item.kind | lower }}s/{{ item.metadata.name }}?fieldManager=faceops&force=true"
+        method: PATCH
+        headers: "{{ ha }}"
+        validate_certs: false
+        body: "{{ item | to_json }}"
+        status_code: [200, 201]
+      loop:
+        - "{{ m.ConfigMap }}"
+        - {apiVersion: v1, kind: Secret, type: Opaque, metadata: {name: "{{ k8s }}-ds", namespace: "{{ ns }}", labels: "{{ prep.labels }}"},
+           data: "{{ sec_datos }}"}
+        - "{{ m.Deployment | combine({'spec': {'template': {'spec': {'containers': [m.Deployment.spec.template.spec.containers[0] | combine({'image': imagen})]}}}}, recursive=true) }}"
+        - "{{ m.Service }}"
+        - "{{ m.Route }}"
+      loop_control: {label: "{{ item.kind }}"}
+      when: imagen | length > 0
+      register: r_apl
+      no_log: true
+
+    - name: Esperar el despliegue (pods listos con la sonda de salud)
+      ansible.builtin.uri: {url: "{{ api }}/apis/apps/v1/namespaces/{{ ns }}/deployments/{{ k8s }}", headers: "{{ h }}", validate_certs: false}
+      register: r_dep
+      until: >-
+        r_dep.json.status.observedGeneration | default(0) >= r_dep.json.metadata.generation
+        and r_dep.json.status.updatedReplicas | default(0) == r_dep.json.spec.replicas
+        and r_dep.json.status.readyReplicas | default(0) == r_dep.json.spec.replicas
+        and r_dep.json.status.replicas | default(0) == r_dep.json.spec.replicas
+      retries: "{{ (espera / 10) | int }}"
+      delay: 10
+      when: imagen | length > 0
+      failed_when: false
+
+    - name: Route publicada
+      ansible.builtin.uri: {url: "{{ api }}/apis/route.openshift.io/v1/namespaces/{{ ns }}/routes/{{ k8s }}", headers: "{{ h }}", validate_certs: false}
+      register: r_rt
+      when: imagen | length > 0
+      failed_when: false
+
+    - name: Salud por la Route (solo 200 cuenta como sano)
+      ansible.builtin.uri:
+        url: "https://{{ wl_ingreso | default(r_rt.json.spec.host, true) }}{{ prep.salud }}"
+        headers: "{{ {'Host': r_rt.json.spec.host} if wl_ingreso | default('') else {} }}"
+        validate_certs: false
+        follow_redirects: all
+        status_code: [200]
+        timeout: 15
+      register: r_http
+      until: r_http.status == 200
+      retries: 6
+      delay: 5
+      when: imagen | length > 0 and (r_rt.json.spec.host | default('')) | length > 0
+      failed_when: false
+
+    - name: Resultado del despliegue
+      ansible.builtin.set_fact:
+        rollout_ok: "{{ imagen | length > 0 and (r_dep.json.status.observedGeneration | default(0)) >= (r_dep.json.metadata.generation | default(1))
+                        and (r_dep.json.status.readyReplicas | default(0)) == (r_dep.json.spec.replicas | default(1))
+                        and (r_dep.json.status.updatedReplicas | default(0)) == (r_dep.json.spec.replicas | default(1)) }}"
+        http_ok: "{{ (r_http.status | default(0)) == 200 }}"
+
+    - name: Sano
+      ansible.builtin.set_fact:
+        sano: "{{ rollout_ok and http_ok }}"
+
+    - name: Volver a la versión anterior (Deployment, ConfigMap y Secret como estaban)
+      ansible.builtin.uri:
+        url: "{{ api }}/{{ item.ruta }}"
+        method: PUT
+        headers: "{{ hj }}"
+        validate_certs: false
+        body_format: json
+        body: "{{ item.cuerpo }}"
+        status_code: [200]
+      loop:
+        - {ruta: "apis/apps/v1/namespaces/{{ ns }}/deployments/{{ k8s }}",
+           cuerpo: "{{ {'apiVersion': 'apps/v1', 'kind': 'Deployment', 'metadata': {'name': k8s, 'namespace': ns, 'labels': dep_antes.metadata.labels | default({})},
+                       'spec': dep_antes.spec | default({})} }}"}
+        - {ruta: "api/v1/namespaces/{{ ns }}/configmaps/{{ k8s }}-config",
+           cuerpo: "{{ {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': k8s ~ '-config', 'namespace': ns, 'labels': prep.labels}, 'data': cm_antes} }}"}
+        - {ruta: "api/v1/namespaces/{{ ns }}/secrets/{{ k8s }}-ds",
+           cuerpo: "{{ {'apiVersion': 'v1', 'kind': 'Secret', 'type': 'Opaque', 'metadata': {'name': k8s ~ '-ds', 'namespace': ns, 'labels': prep.labels}, 'data': sec_antes} }}"}
+      loop_control: {index_var: i_}
+      when: not sano and imagen | length > 0 and dep_antes | length > 0 and (i_ == 0 or (cm_antes if i_ == 1 else sec_antes) is not none)
+      register: r_vuelta
+      changed_when: true
+      no_log: true
+
+    - name: Esperar la versión anterior
+      ansible.builtin.uri: {url: "{{ api }}/apis/apps/v1/namespaces/{{ ns }}/deployments/{{ k8s }}", headers: "{{ h }}", validate_certs: false}
+      register: r_dep2
+      until: >-
+        r_dep2.json.status.observedGeneration | default(0) >= r_dep2.json.metadata.generation
+        and r_dep2.json.status.updatedReplicas | default(0) == r_dep2.json.spec.replicas
+        and r_dep2.json.status.readyReplicas | default(0) == r_dep2.json.spec.replicas
+        and r_dep2.json.status.replicas | default(0) == r_dep2.json.spec.replicas
+      retries: "{{ (espera / 10) | int }}"
+      delay: 10
+      when: r_vuelta is changed
+      failed_when: false
+
+    - name: La versión anterior responde por la Route
+      ansible.builtin.uri:
+        url: "https://{{ wl_ingreso | default(r_rt.json.spec.host, true) }}{{ (dep_antes.spec.template.spec.containers[0].readinessProbe.httpGet.path) | default(prep.context_root ~ '/') }}"
+        headers: "{{ {'Host': r_rt.json.spec.host} if wl_ingreso | default('') else {} }}"
+        validate_certs: false
+        follow_redirects: all
+        status_code: [200]
+        timeout: 15
+      register: r_http2
+      until: r_http2.status == 200
+      retries: 6
+      delay: 5
+      when: r_vuelta is changed
+      failed_when: false
+
+    - name: Sin versión anterior que restaurar · retirar lo creado (el origen sigue atendiendo)
+      ansible.builtin.uri:
+        url: "{{ api }}/{{ 'api' if item.0 == 'v1' else 'apis' }}/{{ item.0 }}/namespaces/{{ ns }}/{{ item.1 }}?labelSelector={{ sel | urlencode }}"
+        method: DELETE
+        headers: "{{ h }}"
+        validate_certs: false
+        status_code: [200, 404]
+      loop: "{{ tipos }}"
+      loop_control: {label: "{{ item.1 }}"}
+      when: not sano and dep_antes | length == 0
+
+    - name: Artefactos y decisión en Git (repositorio/migraciones-weblogic/<origen>/<app>/)
+      ansible.builtin.uri:
+        url: "{{ (faceops_gitea | default('http://192.168.122.1:3000')) }}/api/v1/repos/repositorio/migraciones-weblogic/contents"
+        method: POST
+        headers: {Authorization: "token {{ faceops_respaldo_token }}", Content-Type: application/json}
+        body_format: json
+        body:
+          message: "{{ inventory_hostname }}/{{ app_n }}: artefactos de OpenShift ({{ faceops_ticket | default('manual') }}, {{ 'sano' if sano else 'vuelta atrás' }})"
+          files:
+            - {operation: upload, path: "{{ inventory_hostname }}/{{ app_n }}/{{ now(utc=true).strftime('%Y%m%dT%H%M%SZ') }}/manifiestos.json",
+               content: "{{ prep.manifiestos | to_nice_json | b64encode }}"}
+            - {operation: upload, path: "{{ inventory_hostname }}/{{ app_n }}/{{ now(utc=true).strftime('%Y%m%dT%H%M%SZ') }}/config.cli",
+               content: "{{ prep.cli | join('\n') | b64encode }}"}
+            - {operation: upload, path: "{{ inventory_hostname }}/{{ app_n }}/{{ now(utc=true).strftime('%Y%m%dT%H%M%SZ') }}/decision.md",
+               content: "{{ ('# ' ~ app_n ~ ' → ' ~ ns ~ '\n\n- Destino: JBoss EAP 8 en OpenShift · ' ~ ap.destino.motivo ~ '\n- Capas: ' ~ prep.capas | join(', ')
+                            ~ '\n- javax → jakarta: ' ~ ('sí (Eclipse Transformer en la construcción)' if ap.destino.transformar_javax else 'no')
+                            ~ '\n- jboss-web.xml generado: ' ~ prep.jboss_web | join(', ')
+                            ~ '\n- Datasources: ' ~ (prep.datasources | map(attribute='nombre') | zip(prep.datasources | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—')
+                            ~ '\n- JMS: ' ~ (prep.jms | map(attribute='nombre') | zip(prep.jms | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—')
+                            ~ '\n- Imagen: ' ~ (imagen or '—') ~ '\n- Resultado: ' ~ ('sano (HTTP 200 por la Route)' if sano else 'falló; vuelta atrás') ~ '\n') | b64encode }}"}
+        status_code: [201]
+      when: faceops_respaldo_token | default('') | length > 0
+      failed_when: false
+      no_log: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_migracion_weblogic_ocp:
+            modo: migrar
+            aplicacion: "{{ app_n }}"
+            namespace: "{{ ns }}"
+            destino: "JBoss EAP 8 · {{ prep.capas | join(', ') }}"
+            imagen: "{{ imagen }}"
+            construccion: "{{ build_msj }}"
+            route: "{{ r_rt.json.spec.host | default('') }}"
+            salud: "{{ prep.salud }} → {{ r_http.status | default('sin respuesta') }}"
+            sano: "{{ sano }}"
+            vuelta_atras: "{{ 'versión anterior restaurada (HTTP ' ~ (r_http2.status | default('?')) ~ ')' if r_vuelta is changed else ('retirado lo creado' if not sano else 'no') }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "{{ app_n }} → {{ ns }} · JBoss EAP 8 ({{ prep.capas | join(', ') }}) · {{ build_msj }}"
+          - "Route https://{{ r_rt.json.spec.host | default('—') }}{{ prep.salud }} → HTTP {{ r_http.status | default('sin respuesta') }} · rollout {{ 'listo' if rollout_ok else 'no completó' }}"
+          - "Datasources: {{ prep.datasources | map(attribute='nombre') | zip(prep.datasources | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—' }} · JMS: {{ prep.jms | map(attribute='jndi_eap') | join(', ') or '—' }}"
+          - "{{ 'Vuelta atrás: versión anterior restaurada, responde HTTP ' ~ (r_http2.status | default('?')) if r_vuelta is changed else ('Vuelta atrás: retirado lo creado' if not sano else 'Sin vuelta atrás') }}"
+
+    - name: La aplicación quedó sana en OpenShift
+      ansible.builtin.assert:
+        that: [sano]
+        fail_msg: "{{ app_n }} no quedó sana en {{ ns }} ({{ build_msj }}; rollout {{ 'listo' if rollout_ok else 'no completó' }}; HTTP {{ r_http.status | default('sin respuesta') }}): {{ 'se volvió a la versión anterior' if r_vuelta is changed else 'se retiró lo creado' }}. El origen sigue intacto"
+        quiet: true

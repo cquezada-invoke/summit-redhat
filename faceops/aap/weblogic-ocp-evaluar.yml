@@ -1,0 +1,238 @@
+---
+# Migración · WebLogic a OpenShift · Evaluar (solo lectura, sin IA): en el ORIGEN ubica el dominio de Oracle WebLogic y trae
+# copias sin claves de config.xml, módulos JDBC y JMS, setDomainEnv, las aplicaciones desplegadas (EAR/WAR) y sus .properties;
+# las analiza con reglas fijas (descriptores weblogic*.xml, APIs weblogic.*, javax, JNDI) y decide el destino. Informe en
+# informes/<origen>/weblogic-evaluacion.md y, en FaceOps, en Git (repositorio/migraciones-weblogic). También lo importa
+# «Migración · WebLogic a OpenShift» antes de construir. Variables: wl_dominio (opcional: carpeta del dominio), wl_apps (coma)
+- name: Origen · dominio WebLogic
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Solo cuando hay que leer el origen
+      ansible.builtin.meta: end_play
+      when: (wl_modo | default('evaluar')) not in ['evaluar', 'migrar', 'emular-origen']
+
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - (wl_apps | default('')) is string
+          - (wl_dominio | default('')) is match('^(/[A-Za-z0-9._/-]+)?$')
+        fail_msg: "wl_apps: nombres separados por coma · wl_dominio: ruta absoluta del dominio (opcional)"
+        quiet: true
+
+    - name: Buscar dominios (config/config.xml)
+      ansible.builtin.find:
+        paths: "{{ [wl_dominio ~ '/config'] if wl_dominio | default('') else ['/u01', '/opt/oracle', '/opt/weblogic', '/home/oracle', '/srv'] }}"
+        patterns: config.xml
+        recurse: true
+        depth: "{{ 1 if wl_dominio | default('') else 8 }}"
+      register: r_cfg
+
+    - name: Dominio de WebLogic
+      ansible.builtin.set_fact:
+        wl_home: "{{ (r_cfg.files | map(attribute='path') | select('search', '/config/config\\.xml$') | sort | first | default('')) | dirname | dirname }}"
+
+    - name: Hay dominio
+      ansible.builtin.assert:
+        that: [wl_home | length > 1]
+        fail_msg: "{{ inventory_hostname }}: no se encontró un dominio de WebLogic (config/config.xml en /u01, /opt/oracle, /opt/weblogic, /home/oracle o /srv); indícalo en wl_dominio"
+        quiet: true
+
+    - name: Módulos JDBC y JMS del dominio
+      ansible.builtin.find:
+        paths: ["{{ wl_home }}/config/jdbc", "{{ wl_home }}/config/jms"]
+        patterns: "*.xml"
+      register: r_mod
+
+    - name: Carpeta temporal para las copias sin claves
+      ansible.builtin.file: {path: "/tmp/faceops-wl-origen/{{ item }}", state: directory, mode: "0700"}
+      loop: [config/jdbc, config/jms, bin]
+
+    - name: Copias del dominio
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/tmp/faceops-wl-origen/{{ item | relpath(wl_home) }}"
+        remote_src: true
+        mode: "0600"
+      loop: "{{ [wl_home ~ '/config/config.xml'] + (r_mod.files | map(attribute='path') | list) }}"
+
+    - name: setDomainEnv (memoria y opciones de la JVM)
+      ansible.builtin.copy: {src: "{{ wl_home }}/bin/setDomainEnv.sh", dest: /tmp/faceops-wl-origen/bin/setDomainEnv.sh, remote_src: true, mode: "0600"}
+      failed_when: false
+
+    - name: Quitar las claves cifradas de las copias (nunca salen del servidor)
+      ansible.builtin.replace:
+        path: "/tmp/faceops-wl-origen/{{ item | relpath(wl_home) }}"
+        regexp: '<(password-encrypted|credential-encrypted|node-manager-password-encrypted)>[^<]*</\1>|\{AES(256)?\}[A-Za-z0-9+/=]+'
+        replace: ''
+      loop: "{{ [wl_home ~ '/config/config.xml'] + (r_mod.files | map(attribute='path') | list) }}"
+
+    - name: Traer el dominio para analizarlo
+      ansible.builtin.fetch:
+        src: "/tmp/faceops-wl-origen/{{ item }}"
+        dest: "/tmp/faceops-wl/{{ inventory_hostname }}/dominio/{{ item }}"
+        flat: true
+      loop: "{{ ['config/config.xml', 'bin/setDomainEnv.sh'] + (r_mod.files | map(attribute='path') | map('relpath', wl_home) | list) }}"
+      failed_when: false
+
+    - name: Aplicaciones desplegadas (config.xml)
+      ansible.builtin.command: "python3 {{ playbook_dir }}/files/weblogic_analizar.py /tmp/faceops-wl/{{ inventory_hostname }} --despliegues"
+      delegate_to: localhost
+      become: false
+      register: r_dep
+      changed_when: false
+
+    - name: Aplicaciones a evaluar
+      ansible.builtin.set_fact:
+        wl_despliegues: "{{ r_dep.stdout | from_json | selectattr('nombre', 'in', lista) | list if lista else r_dep.stdout | from_json }}"
+      vars:
+        lista: "{{ (wl_apps | default('')) | split(',') | map('trim') | select | list }}"
+
+    - name: Hay aplicaciones
+      ansible.builtin.assert:
+        that: [wl_despliegues | length > 0]
+        fail_msg: "{{ inventory_hostname }}: el dominio {{ wl_home }} no tiene aplicaciones desplegadas{{ ' que calcen con ' ~ wl_apps if wl_apps | default('') else '' }}"
+        quiet: true
+
+    - name: Propiedades junto a cada aplicación
+      ansible.builtin.find:
+        paths: "{{ item.ruta | dirname }}"
+        patterns: "*.properties"
+      loop: "{{ wl_despliegues }}"
+      loop_control: {label: "{{ item.nombre }}"}
+      register: r_props
+
+    - name: Traer aplicaciones y propiedades
+      ansible.builtin.fetch:
+        src: "{{ item.1 }}"
+        dest: "/tmp/faceops-wl/{{ inventory_hostname }}/apps/{{ item.0 }}/"
+        flat: true
+      loop: >-
+        {% set l = [] %}{% for d in wl_despliegues %}{% set _ = l.append([d.nombre, d.ruta]) %}{% endfor %}{% for r in r_props.results %}{% for f in r.files %}{% set _ = l.append([r.item.nombre, f.path]) %}{% endfor %}{% endfor %}{{ l }}
+      loop_control: {label: "{{ item.1 }}"}
+      failed_when: false
+
+    - name: Borrar las copias del servidor
+      ansible.builtin.file: {path: /tmp/faceops-wl-origen, state: absent}
+
+- name: Análisis frente a OpenShift e informe (archivo local y, en FaceOps, Git)
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+  tasks:
+    - name: Solo cuando se leyó el origen
+      ansible.builtin.meta: end_play
+      when: wl_despliegues is not defined
+
+    - name: Analizar dominio y aplicaciones
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/weblogic_analizar.py", "/tmp/faceops-wl/{{ inventory_hostname }}", "{{ wl_despliegues | map(attribute='nombre') | join(',') }}"]
+      register: r_an
+      changed_when: false
+
+    - name: Resultado del análisis
+      ansible.builtin.set_fact:
+        analisis: "{{ r_an.stdout | from_json }}"
+
+    - name: Carpeta de informes
+      ansible.builtin.file: {path: "{{ (wl_informes | default(playbook_dir ~ '/informes')) }}/{{ inventory_hostname }}", state: directory, mode: "0755"}
+
+    - name: Informe de evaluación con la decisión de destino
+      ansible.builtin.copy:
+        dest: "{{ (wl_informes | default(playbook_dir ~ '/informes')) }}/{{ inventory_hostname }}/weblogic-evaluacion.md"
+        mode: "0644"
+        content: |
+          # Evaluación de migración WebLogic → OpenShift 4.x · {{ inventory_hostname }}
+
+          - Dominio: {{ analisis.dominio.nombre }} (WebLogic {{ analisis.dominio.version }}) · servidores: {{ analisis.dominio.servidores | join(', ') }}{{ ' · clústeres: ' ~ analisis.dominio.clusters | join(', ') if analisis.dominio.clusters else '' }}
+          - JVM en origen: {{ analisis.dominio.jvm or '—' }}
+          - Datasources: {% for d in analisis.dominio.datasources %}{{ d.nombre }} ({{ d.driver or d.clase }}, {{ d.jndi | join(' ') }}){{ ', ' if not loop.last else '' }}{% else %}ninguno{% endfor %}
+
+          - JMS: {% for m in analisis.dominio.jms %}{{ m.modulo }}: {{ (m.colas + m.topicos) | map(attribute='jndi') | join(', ') }}{% else %}ninguno{% endfor %}
+
+          - Las claves de los datasources NO se leen (en WebLogic están cifradas con la llave del dominio): se entregan al migrar y quedan en un Secret.
+
+          {% for h in analisis.dominio.hallazgos %}- Dominio · {{ h.severidad }}: {{ h.titulo }} → {{ h.accion }}
+          {% endfor %}
+          {% for a in analisis.aplicaciones %}
+          ## {{ a.aplicacion }} ({{ a.archivo }}) · complejidad {{ a.complejidad }} · {{ a.puntos }} puntos
+
+          **Destino: {{ {'eap8': 'JBoss EAP 8 en OpenShift', 'openliberty': 'Open Liberty', 'wildfly': 'WildFly'}[a.destino.runtime] | default('—') }} · {{ 'migrable de forma automática' if a.destino.migrable else 'requiere cambios de código antes de migrar' }}.** {{ a.destino.motivo }}.
+          {% if a.destino.capas is defined %}Capas de EAP 8: {{ a.destino.capas | join(', ') }}{{ ' · javax → jakarta con Eclipse Transformer' if a.destino.transformar_javax else '' }}.
+          Alternativas: {% for x in a.destino.alternativas %}{{ x.runtime }} ({{ x.cuando }}){{ '; ' if not loop.last else '' }}{% endfor %}.{% endif %}
+
+
+          | Severidad | Hallazgo | Ocurrencias | Acción |
+          |---|---|---|---|
+          {% for h in a.hallazgos %}| {{ h.severidad }} | {{ h.titulo }} | {{ h.ocurrencias }} | {{ h.accion }} |
+          {% else %}| — | sin hallazgos | — | — |
+          {% endfor %}
+
+          {% for w in a.web | default([]) %}
+          Traducción de weblogic.xml{{ ' (' ~ w.modulo ~ ')' if w.modulo else '' }} → jboss-web.xml: context-root {{ w.context_root or '—' }}{% for r in w.recursos + w.recursos_env %}, {{ r.ref }} → {{ r.jndi }}{% endfor %}.
+          {% endfor %}
+          {% endfor %}
+      delegate_to: localhost
+      register: r_inf
+
+    - name: Repositorio de informes en Git (se crea si falta)
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/orgs/repositorio/repos"
+        method: POST
+        headers: {Authorization: "token {{ faceops_respaldo_token }}", Content-Type: application/json}
+        body_format: json
+        body: {name: migraciones-weblogic, description: "FaceOps: evaluaciones y artefactos de migración WebLogic → OpenShift", auto_init: true, default_branch: main}
+        status_code: [201, 409, 422]
+      when: faceops_respaldo_token | default('') | length > 0
+      failed_when: false
+      no_log: true
+
+    - name: Informe anterior en Git
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/repos/repositorio/migraciones-weblogic/contents/{{ inventory_hostname }}/evaluacion.md"
+        headers: {Authorization: "token {{ faceops_respaldo_token }}"}
+        status_code: [200, 404]
+      when: faceops_respaldo_token | default('') | length > 0
+      register: r_prev
+      failed_when: false
+      no_log: true
+
+    - name: Publicar el informe en Git (repositorio/migraciones-weblogic)
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/repos/repositorio/migraciones-weblogic/contents/{{ inventory_hostname }}/evaluacion.md"
+        method: "{{ 'PUT' if r_prev.status | default(0) == 200 else 'POST' }}"
+        headers: {Authorization: "token {{ faceops_respaldo_token }}", Content-Type: application/json}
+        body_format: json
+        body: "{{ {'content': lookup('ansible.builtin.file', r_inf.dest) | b64encode, 'message': inventory_hostname ~ ': evaluación WebLogic → OpenShift (' ~ (faceops_ticket | default('manual')) ~ ')'}
+                  | combine({'sha': r_prev.json.sha} if r_prev.status | default(0) == 200 else {}) }}"
+        status_code: [200, 201]
+      when: faceops_respaldo_token | default('') | length > 0
+      register: r_git
+      failed_when: false
+      no_log: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_migracion_weblogic:
+            origen: "{{ inventory_hostname }}"
+            dominio: "{{ analisis.dominio.nombre }}"
+            weblogic: "{{ analisis.dominio.version }}"
+            aplicaciones: >-
+              {% set l = [] %}{% for a in analisis.aplicaciones %}{% set _ = l.append({'aplicacion': a.aplicacion, 'destino': a.destino.runtime, 'migrable': a.destino.migrable,
+              'complejidad': a.complejidad, 'criticos': a.hallazgos | selectattr('severidad', 'equalto', 'crítica') | map(attribute='titulo') | list}) %}{% endfor %}{{ l }}
+            informe_git: "{{ (r_git.status | default(0)) in [200, 201] }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ ['Origen ' ~ inventory_hostname ~ ' · dominio ' ~ analisis.dominio.nombre ~ ' (WebLogic ' ~ analisis.dominio.version ~ ') · '
+               ~ analisis.aplicaciones | length ~ ' aplicación(es) · informe ' ~ (('en Git: ' ~ gitea ~ '/repositorio/migraciones-weblogic/src/branch/main/'
+               ~ inventory_hostname ~ '/evaluacion.md') if (r_git.status | default(0)) in [200, 201] else 'local: ' ~ r_inf.dest)]
+             + (analisis.aplicaciones | map(attribute='aplicacion') | zip(analisis.aplicaciones | map(attribute='complejidad'),
+                 analisis.aplicaciones | map(attribute='destino.migrable') | map('ternary', 'migrable a EAP 8 en OpenShift', 'requiere cambios de código'),
+                 analisis.aplicaciones | map(attribute='hallazgos') | map('selectattr', 'severidad', 'equalto', 'crítica') | map('map', attribute='titulo') | map('join', '; '))
+                 | map('join', ' · ') | list) }}

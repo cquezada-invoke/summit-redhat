@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jdbc-data-source xmlns="http://xmlns.oracle.com/weblogic/jdbc-data-source">
+  <name>ventasDS</name>
+  <datasource-type>GENERIC</datasource-type>
+  <jdbc-driver-params>
+    <url>jdbc:oracle:thin:@//db-ventas.invoke.lab:1521/VENTAS</url>
+    <driver-name>oracle.jdbc.OracleDriver</driver-name>
+    <properties>
+      <property>
+        <name>user</name>
+        <value>VENTAS_APP</value>
+      </property>
+    </properties>
+    <password-encrypted>{AES256}ZW11bGFkby1zaW4tY2xhdmUtcmVhbA==</password-encrypted>
+  </jdbc-driver-params>
+  <jdbc-connection-pool-params>
+    <initial-capacity>0</initial-capacity>
+    <max-capacity>20</max-capacity>
+    <min-capacity>0</min-capacity>
+    <test-connections-on-reserve>true</test-connections-on-reserve>
+    <test-table-name>SQL ISVALID</test-table-name>
+  </jdbc-connection-pool-params>
+  <jdbc-data-source-params>
+    <jndi-name>jdbc/ventasDS</jndi-name>
+    <global-transactions-protocol>OnePhaseCommit</global-transactions-protocol>
+  </jdbc-data-source-params>
+</jdbc-data-source>

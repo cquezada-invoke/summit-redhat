@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<weblogic-web-app xmlns="http://xmlns.oracle.com/weblogic/weblogic-web-app">
+  <context-root>/legado</context-root>
+  <security-role-assignment>
+    <role-name>operador</role-name>
+    <externally-defined/>
+  </security-role-assignment>
+  <virtual-directory-mapping>
+    <local-path>/u01/compartido/imagenes</local-path>
+    <url-pattern>/imagenes/*</url-pattern>
+  </virtual-directory-mapping>
+</weblogic-web-app>

@@ -192,6 +192,11 @@ for f_ in ("ipi_vmware_vcenter.py",):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 for f_ in ("jboss_eap8_analizar.py", "jboss_eap8_ajustar.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
+for f_ in ("weblogic-ocp-evaluar.yml", "weblogic-ocp-migrar.yml"):   # Migración · WebLogic a OpenShift (análisis, artefactos y dominio emulado de laboratorio)
+    shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
+for f_ in ("weblogic_analizar.py", "weblogic_ocp_preparar.py"):
+    shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
+shutil.copytree(f"{AQUI}/files/weblogic-ejemplo", f"{tmp}/playbooks/files/weblogic-ejemplo", dirs_exist_ok=True, ignore=shutil.ignore_patterns("fuentes"))
 for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py", "ocp_diagnostico.py", "ocp_alertamiento.py", "ocp_imagenes.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
@@ -1187,6 +1192,21 @@ for c_ in (uno("credentials", name="FaceOps · Gitea respaldo"),):
     if c_ and c_["id"] not in ya:
         aap("POST", f"job_templates/{jmj['id']}/credentials/", {"id": c_["id"]})
 paso(f"Plantilla «Migración · JBoss a EAP 8» (id {jmj['id']})")
+# Migración de aplicaciones Oracle WebLogic a JBoss EAP 8 en OpenShift: evaluar (solo lectura) y migrar/revertir (con aprobación)
+for nombre_w, pb_w, desc_w, to_w in (
+        ("Migración · WebLogic a OpenShift · Evaluar", "weblogic-ocp-evaluar.yml",
+         "Lee el dominio WebLogic y sus aplicaciones (descriptores, APIs weblogic.*, JDBC, JMS) y decide el destino en OpenShift; informe en Git (solo lectura)", 1800),
+        ("Migración · WebLogic a OpenShift", "weblogic-ocp-migrar.yml",
+         "Lleva una aplicación de WebLogic a JBoss EAP 8 en un namespace de OpenShift 4.x (S2I, ConfigMap/Secret, Deployment, Service, Route) con verificación de salud y vuelta atrás", 3600)):
+    jw_ = asegurar("job_templates", nombre_w, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_w}", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": to_w, "description": desc_w})
+    ya = {c["id"] for c in aap("GET", f"job_templates/{jw_['id']}/credentials/")["results"]}
+    for c_ in (uno("credentials", name="FaceOps · Gitea respaldo"), uno("credentials", name="OpenShift · SNO (despliegue)") if pb_w.endswith("migrar.yml") else None):
+        if c_ and c_["id"] not in ya:
+            aap("POST", f"job_templates/{jw_['id']}/credentials/", {"id": c_["id"]})
+    paso(f"Plantilla «{nombre_w}» (id {jw_['id']})")
 
 # Ciclo de vida: antes de saltar de versión, ¿la máquina puede ir al destino? (solo lectura)
 jcv = asegurar("job_templates", "Ciclo de vida · Evaluar destino", {

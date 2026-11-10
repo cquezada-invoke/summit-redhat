@@ -231,6 +231,19 @@ planes:
       - {id: C1, caso: "evaluar nodo-jboss-dev (EAP 7.4) con sus aplicaciones", verificar: "informe de compatibilidad (MTA) por aplicación; no cambia nada"}
       - {id: C2, caso: "migrar a un destino de prueba", verificar: "EAP 8 con las aplicaciones desplegadas respondiendo; origen intacto"}
       - {id: C3, caso: "Origen sin JBoss", verificar: "falla controlada"}
+  "Migración · WebLogic a OpenShift · Evaluar":
+    casos:
+      - {id: C1, caso: "Evaluar el dominio WebLogic emulado de nodo-jboss-dev (ventas_domain)", verificar: "informe en Git con dominio, datasource Oracle, cola JMS y JVM; ventas migrable a EAP 8 (EAR + JMS, javax → jakarta) y legado bloqueada por APIs weblogic.* y t3; las copias no llevan claves; no cambia nada"}
+      - {id: C2, caso: "Repetir la evaluación", verificar: "solo lectura e idempotente: mismo resultado"}
+      - {id: C3, caso: "Equipo sin dominio WebLogic (nodo-so)", verificar: "falla controlada: no se encontró un dominio"}
+  "Migración · WebLogic a OpenShift":
+    casos:
+      - {id: C1, caso: "emular-origen en nodo-jboss-dev", verificar: "dominio ventas_domain y las dos aplicaciones de ejemplo en /u01, con su marca de emulado; la evaluación que sigue las encuentra"}
+      - {id: C2, caso: "migrar ventas al namespace wl-ventas del SNO", verificar: "build S2I de EAP 8 completo; ConfigMap sin claves y Secret con la clave; Deployment listo; /ventas/salud por la Route responde 200 con datasource, cola y propiedades enlazados"}
+      - {id: C3, caso: "migrar ventas de nuevo", verificar: "idempotente: sin construir de nuevo (misma huella) y sin cambios en el despliegue; sigue respondiendo 200"}
+      - {id: C4, caso: "migrar legado", verificar: "rechazo controlado por APIs propietarias de WebLogic; no se crea nada en OpenShift"}
+      - {id: C5, caso: "migrar ventas con una ruta de salud que no existe", verificar: "el rollout no queda sano, se vuelve a la versión anterior y esta responde 200; el ticket falla en forma controlada"}
+      - {id: C6, caso: "revertir ventas", verificar: "se retiran Route, Service, Deployment, ConfigMap, Secret, BuildConfig e ImageStream y el namespace creado por la migración; el origen queda intacto"}
   "JBoss · Preparar servidor":
     casos:
       - {id: C1, caso: "Instalar JBoss EAP en una RHEL de prueba", verificar: "servicio activo, consola de administración responde, credenciales en la bóveda"}

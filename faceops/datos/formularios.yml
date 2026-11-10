@@ -412,6 +412,25 @@
     - {var: mj_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: evaluar, opciones: [evaluar, migrar],
        ayuda: "evaluar: solo lectura, informe en Git · migrar: transforma a Jakarta EE 10, crea los datasources y despliega en el destino (el origen no se toca)"}
     - {var: mj_destino, etiqueta: "Servidor de destino (JBoss EAP 8)", tipo: jboss_destino, ayuda: "Donde quedará la aplicación migrada"}
+"Migración · WebLogic a OpenShift · Evaluar":
+  usa_limite: true
+  por_inventario: true   # se lanza desde la ficha del servidor WebLogic, con su inventario y credencial
+  campos:
+    - {var: wl_apps, etiqueta: "Aplicaciones", tipo: text, ayuda: "Nombres de despliegue separados por coma (vacío = todas las del dominio)"}
+    - {var: wl_dominio, etiqueta: "Carpeta del dominio", tipo: text, ayuda: "Opcional: si no está bajo /u01, /opt/oracle, /opt/weblogic, /home/oracle o /srv"}
+"Migración · WebLogic a OpenShift":
+  usa_limite: true
+  por_inventario: true
+  campos:
+    - {var: wl_modo, etiqueta: "Qué hacer", tipo: multiplechoice, requerido: true, defecto: migrar, opciones: [migrar, revertir, emular-origen],
+       ayuda: "migrar: construye y despliega en OpenShift, verifica y vuelve atrás si falla · revertir: retira lo creado · emular-origen: SOLO laboratorio, deja un dominio WebLogic de ejemplo (sin instalar WebLogic)"}
+    - {var: wl_app, etiqueta: "Aplicación", tipo: text, requerido: true, ayuda: "Nombre del despliegue en WebLogic (una por ejecución)"}
+    - {var: wl_namespace, etiqueta: "Namespace de destino", tipo: text, requerido: true, ayuda: "Se crea si no existe (no openshift-*, kube-* ni default)"}
+    - {var: wl_ds_clave, etiqueta: "Clave de los datasources", tipo: password, ayuda: "Las de WebLogic están cifradas con la llave del dominio y no se leen: queda solo en un Secret de OpenShift"}
+    - {var: wl_salud_ruta, etiqueta: "Ruta de salud", tipo: text, ayuda: "Vacío = el context-root de la aplicación; solo HTTP 200 cuenta como sano"}
+    - {var: wl_mem_request, etiqueta: "Memoria reservada", tipo: text, defecto: "512Mi"}
+    - {var: wl_mem_limite, etiqueta: "Memoria máxima", tipo: text, defecto: "1Gi"}
+    - {var: wl_ingreso, etiqueta: "IP del router de OpenShift", tipo: text, ayuda: "Opcional: si el DNS no resuelve *.apps del clúster, la verificación entra por esta IP con el nombre de la Route"}
 "Autoservicio · Retirar app":
   usa_limite: false   # quita la ruta en nodo-nginx y el servicio en nodo-tomcat
 # Pasos sueltos del flujo «Autoservicio · Nuevo ambiente» (1 corre en nodo-tomcat; 2 y 3 en nodo-nginx): piden la app y el ambiente

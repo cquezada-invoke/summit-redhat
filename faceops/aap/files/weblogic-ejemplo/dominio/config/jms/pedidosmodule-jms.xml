@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<weblogic-jms xmlns="http://xmlns.oracle.com/weblogic/weblogic-jms">
+  <connection-factory name="VentasCF">
+    <sub-deployment-name>PedidosSub</sub-deployment-name>
+    <jndi-name>jms/VentasCF</jndi-name>
+  </connection-factory>
+  <queue name="PedidosQueue">
+    <sub-deployment-name>PedidosSub</sub-deployment-name>
+    <jndi-name>jms/PedidosQueue</jndi-name>
+  </queue>
+</weblogic-jms>

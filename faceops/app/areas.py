@@ -91,6 +91,7 @@ SECCION_EXPLICITA = {
     "Plataforma · Controlar servicio": "plataformas", "Plataforma · Desinstalar": "plataformas", "Vault · Preparar servidor": "plataformas",
     "DC · Base de los equipos": "seguridad", "DC · Registrar en Red Hat": "so", "Sistema · Registrar en Red Hat": "so", "DC · Satellite": "so",
     "Ciclo de vida · Evaluar destino": "so", "Migración · JBoss a EAP 8": "plataformas", "Migración · IIS a OpenShift": "contenedores",
+    "Migración · WebLogic a OpenShift · Evaluar": "contenedores", "Migración · WebLogic a OpenShift": "contenedores",
     "Windows · Preparar IIS": "plataformas", "Remediación · IIS en Windows": "monitoreo", "Windows · Provocar caída de IIS (demo)": "monitoreo",
     "Remediación · Volver a la versión validada": "devsecops", "Remediación · Rollback con aprobación": "devsecops", "Remediación · Renovar certificado": "seguridad",
     "Despliegue · Cambiar tráfico": "aplicaciones", "OpenShift · Desplegar segmento": "aplicaciones", "Fiscalía · Aviso de complemento": "aplicaciones",

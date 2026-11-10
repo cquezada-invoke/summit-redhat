@@ -19,7 +19,7 @@ reglas:   # (patrón sobre el nombre en AAP, compatibilidad) — gana la primera
   - ["^Integración · PostgreSQL|^Incidentes · Diagnosticar PostgreSQL", {sistemas: [linux], tipos: [servidor], skills: [postgres]}]
   - ["^Incidentes · Verificar error conocido", {sistemas: [linux, windows], tipos: [servidor]}]
   - ["^Ciclo de vida · Evaluar destino", {tipos: [servidor]}]
-  - ["^Migración · (Evaluar sistema operativo|RHEL a versión soportada|CentOS a RHEL|JBoss a EAP 8)", {sistemas: [linux], tipos: [servidor]}]
+  - ["^Migración · (Evaluar sistema operativo|RHEL a versión soportada|CentOS a RHEL|JBoss a EAP 8|WebLogic a OpenShift)", {sistemas: [linux], tipos: [servidor]}]
   - ["^FaceOps · Replicar con alta disponibilidad", {sistemas: [rhel], tipos: [servidor], skills: [jboss, nginx], proveedor: [kvm]}]
   - ["^FaceOps · Habilitar servidor", {crea: [rhel, ubuntu, windows]}]
   - ["^OpenShift · (Modelo de alertamiento|Remediar alerta|Relevamiento de imágenes|Habilitar OpenShift Virtualization)", {tipos: [clúster openshift]}]

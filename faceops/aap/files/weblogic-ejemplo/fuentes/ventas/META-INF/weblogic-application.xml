@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<weblogic-application xmlns="http://xmlns.oracle.com/weblogic/weblogic-application">
+  <application-param>
+    <param-name>webapp.encoding.default</param-name>
+    <param-value>UTF-8</param-value>
+  </application-param>
+  <prefer-application-packages>
+    <package-name>org.apache.commons.lang.*</package-name>
+  </prefer-application-packages>
+  <work-manager>
+    <name>ventas-wm</name>
+    <max-threads-constraint>
+      <name>ventas-max</name>
+      <count>20</count>
+    </max-threads-constraint>
+  </work-manager>
+</weblogic-application>
