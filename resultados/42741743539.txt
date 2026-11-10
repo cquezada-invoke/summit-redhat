@@ -1,0 +1,75 @@
+commit: 557a0b74519678e8d6fd2fe117a23272b5abc85a
+inicio: 2026-11-09T23:17:44-03:00
+---
+== OpenShift · Certificado de aplicación de punta a punta {"namespace": "amdocs-bss", "ruta": "ordering", "umbral_dias": 30, "forzar": "no"} → #20100 failed
+     · Portal · OpenShift · Certificado de aplicación de punta → failed
+         FALLA en «Emitir certificado nuevo (CA interna del laboratorio)»: The conditional check '(quedan | int) < dias or (forzar | default('no')) == 'si'' failed. The error was: Unexpected templating type error occurred on ({% set __cres = (quedan | int) < dias or (forzar | default('no')) == 'si' %}{{ [true if __cres else false, __cres.__class__.__name__] }}): '<' not su
+== Linux · Liberar espacio en disco {"umbral": 85, "forzar": "no"} → #20104 failed
+     · Portal · Linux · Liberar espacio en disco (plantilla) → failed · nodo-jboss-dev /: 17% → 17% (bajo el umbral, no se limpió) [ok]
+         Antes | 17%
+         Después | 17%
+         Origen | manual
+== Linux · Informe de seguridad {"correo": "cquezada@invoke.cl"} → #20110 tiempo agotado
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "activar", "svc_nombre": "upf-demo", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "simular_falla": "no → #20127 failed
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed
+         FALLA en «Git · guardar config/rtr.conf»: {'censored': "the output has been hidden due to the fact that 'no_log: true' was specified for this result", 'changed': False}
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "retirar", "svc_nombre": "upf-demo", "vlan_id": 320, "svc_prefijo": "10.60.20.0/24", "simular_falla": "no → #20130 failed
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed
+         FALLA en «Firewall · retirar la VLAN 320»: The field 'remote_user' has an invalid value, which includes an undefined variable. The error was: 'fw_usuario' is undefined. 'fw_usuario' is undefined. 'fw_usuario' is undefined. 'fw_usuario' is undefined
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "activar", "svc_nombre": "upf-falla", "vlan_id": 321, "svc_prefijo": "10.60.21.0/24", "simular_falla": "s → #20133 failed
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed
+         FALLA en «Git · guardar config/rtr.conf»: {'censored': "the output has been hidden due to the fact that 'no_log: true' was specified for this result", 'changed': False}
+== Telco · Día 2 del clúster de cargas {} → #20139 failed
+     · Portal · OpenShift · Salud del clúster (plantilla) → successful · Clúster ATENCION · OpenShift 4.19.51 [atencion]
+         Nodos | 1 (0 no listos)
+         Operadores degradados | ninguno
+         Operadores no disponibles | ninguno
+         Alertas activas | 0 (0 críticas)
+         Actualizaciones disponibles | 4 en el canal stable-4.19
+         Pods con problemas en catocp-prod | 4
+         Pods con problemas en demo-datalake | 2
+         Pods con problemas en fabrica-pruebas | 3
+     · Portal · OpenShift · Certificados (plantilla) → successful · 177 certificados · 0 vencidos · 18 vencen en 30 días [ok]
+         Ingress con certificado propio | faceops-ingress-202611021633
+         API con certificado propio | no (certificado interno)
+         CSR pendientes | 0 (0 de nodos)
+         openshift-compliance/result-client-cert-ocp4-moderate | vence 2026-11-11 · rotación automática de OpenShift
+         openshift-compliance/result-server-cert-ocp4-moderate | vence 2026-11-11 · rotación automática de OpenShift
+         openshift-compliance/root-ca-ocp4-moderate | vence 2026-11-11 · rotación automática de OpenShift
+         openshift-config-managed/kube-controller-manager-client-cert-key | vence 2026-11-29 · rotación automática de OpenShift
+         openshift-config-managed/kube-scheduler-client-cert-key | vence 2026-11-29 · rotación automática de OpenShift
+     · Portal · OpenShift · Respaldo de etcd (plantilla) → failed
+         FALLA en «Esperar el respaldo»: {'changed': False, 'resources': [], 'api_found': True, 'invocation': {'module_args': {'kind': 'Pod', 'namespace': 'openshift-etcd', 'name': 'respaldo-etcd-20261110023521', 'wait': False, 'wait_sleep': 5, 'wait_timeout': 120, 'api_version': 'v1', 'label_selectors': [], 'field_selectors': [], 'kubecon
+== OpenShift · Respaldo de etcd {"conservar": 2} → #20153 failed
+     · Portal · OpenShift · Respaldo de etcd (plantilla) → failed
+         FALLA en «Esperar el respaldo»: {'changed': False, 'resources': [], 'api_found': True, 'invocation': {'module_args': {'kind': 'Pod', 'namespace': 'openshift-etcd', 'name': 'respaldo-etcd-20261110024121', 'wait': False, 'wait_sleep': 5, 'wait_timeout': 120, 'api_version': 'v1', 'label_selectors': [], 'field_selectors': [], 'kubecon
+== OpenShift · Actualización guiada con ACM {"fase": "pre", "version_destino": "", "rutas_criticas": ""} → #20165 successful
+     · Portal · OpenShift · Actualización guiada con ACM (plan → successful · Listo para actualizar: respaldo de etcd y clúster fuera del balanceador [ok]
+         Versión | 4.19.51
+         Destino | 
+         Operadores degradados | ninguno
+== Amdocs · Desplegar release {"servicio": "catalog", "version": "2.4.0", "simular_falla": "no"} → #20169 successful
+     · Portal · Amdocs · Desplegar release (plantilla) → successful · amdocs-catalog: release 2.4.0 en producción [ok]
+         Versión anterior | 2.3.0
+         Versión pedida | 2.4.0
+         Despliegue gradual | la versión nueva pasó la sonda de salud
+         Prueba posterior | /version 2.4.0 · /health 200
+         Vuelta atrás | no fue necesaria
+== Amdocs · Desplegar release {"servicio": "catalog", "version": "2.5.0", "simular_falla": "si"} → #20173 failed
+     · Portal · Amdocs · Desplegar release (plantilla) → failed · amdocs-catalog: release 2.5.0 revertido; sigue en 2.4.0 [revertido]
+         Versión anterior | 2.4.0
+         Versión pedida | 2.5.0 (con falla simulada)
+         Despliegue gradual | la versión nueva no pasó la sonda en 90 s: nunca recibió tráfico
+         Prueba posterior | /version 2.5.0 · /health 503
+         Vuelta atrás | automática a 2.4.0 (servicio sin corte)
+         FALLA en «Fallar el job si se revirtió»: 2.5.0 no quedó sana; amdocs-catalog volvió a 2.4.0 sin corte de servicio
+== Amdocs · Desplegar release {"servicio": "catalog", "version": "2.3.0", "simular_falla": "no"} → #20176 successful
+     · Portal · Amdocs · Desplegar release (plantilla) → successful · amdocs-catalog: release 2.3.0 en producción [ok]
+         Versión anterior | 2.4.0
+         Versión pedida | 2.3.0
+         Despliegue gradual | la versión nueva pasó la sonda de salud
+         Prueba posterior | /version 2.3.0 · /health 200
+         Vuelta atrás | no fue necesaria
+== Orden Amdocs ORD-7FD55573 creada; esperando a EDA
+   EDA no lanzó el workflow
+--- fin: 2026-11-09T23:51:25-03:00 · código: 0
