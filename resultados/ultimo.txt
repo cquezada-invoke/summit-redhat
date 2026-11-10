@@ -1,10 +1,40 @@
-commit: 05bed7eae8e37e39c6e3b6c25bf06d8a4a3e567d
-inicio: 2026-11-10T19:30:18-03:00
+commit: 5020214e71d0aa4bd3d717985f627ae46f39d117
+inicio: 2026-11-10T19:30:05-03:00
 ---
-ce45781
-faceops actualizado
-/lab/madurez 200 ctl: 6 cad: 6 no_medido: 6
-/lab/madurez?contexto=servidores 200 ctl: 6 cad: 6 no_medido: 6
-id="Seguridad" style="margin-top:14px"> Seguridad hoy nivel 2 · Gestionado (26 %) · meta nivel 4 · Medido (80 %) · brecha 54 puntos 103 correcciones para llegar a la meta (de 140 pendientes) Que los sistemas estén protegidos, parchados y bajo políticas, y que el acceso sea el justo. Well-Architected: Security (seguridad) · COBIT 2019: APO13 Gestión de la seguridad · DSS05 Gestión de los servicios de seguridad Qué controla FaceOps en este pilar Control Dónde se mide Evidencia sin CVE críticos pendientes Madurez · cada equipo CVE pendientes críticos o importantes (solo cuenta si el equipo ya fue revisado) CVE revisados Madurez · cada equipo revisión de CVE del equipo contra las erratas del fabricante cumple las políticas Madurez · cada equipo hallazgos de tipo política (evaluación de políticas en el inventario) Sin hallazgos de seguridad Salud · cada equipo Sin hallazgos de seguridad, CVE,
-panel: 200
---- fin: 2026-11-10T19:30:58-03:00 · código: 0
+estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
+ticket C3 FO-LAB-01433
+reanudando C3 (FO-LAB-01433)
+ticket C3 FO-LAB-01433
+fin C3 FO-LAB-01433 fallido job 22016 ] ****************************************************************** | ok: [localhost] |  | TASK [Solicitud no válida (no se creó nada)] *********************************** | fatal: [localhost]: FAILED! => {"changed": false, "msg": "el nombre base debe tener 3 a 20 letras minúsculas, números o guiones; recursos fuera de rango (1-8 vCPU, 2-32 GB, 20-200 GB); memoria total sobre 48 GB: divide la solicitud"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+0
+--- antes C4
+ vda      /var/lib/libvirt/images/faceops/srv-prueba-hab-01.qcow2
+52:54:00:d7:ad:6e
+estado FaceOps · Habilitar servidor cambiada 06c22cf55d68
+ticket C4 FO-LAB-01435
+fin C4 FO-LAB-01435 exitoso job 22029 AAP terminó (successful): ejecución 40 s, espera de aprobación 29 s
+--- después C4
+== srv-prueba-hab-01
+State:          running
+Autostart:      enable
+ vda      /var/lib/libvirt/images/faceops/srv-prueba-hab-01.qcow2
+52:54:00:01:28:0f
+== srv-prueba-hab-01-fallida-202611101934
+State:          shut off
+Autostart:      disable
+ vda      /var/lib/libvirt/images/faceops/srv-prueba-hab-01-fallida-202611101934.qcow2
+52:54:00:4f:ef:1f
+aap-kvm 606732288 19:32 srv-prueba-hab-01-fallida-202611101934.qcow2
+qemu 312803328 19:35 srv-prueba-hab-01.qcow2
+--- limpieza
+estado FaceOps · Eliminar servidor certificada 287ee5a99bfb
+ticket L-srv-prueba-hab-01 FO-LAB-01437
+fin L-srv-prueba-hab-01 FO-LAB-01437 exitoso job 22036 AAP terminó (successful): ejecución 11 s, espera de aprobación 23 s | srv-prueba-hab-01 eliminado: fuera del balanceo, VM retirada de KVM (disco conservado aparte), fuera de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git.
+estado FaceOps · Eliminar servidor certificada 287ee5a99bfb
+ticket L-srv-prueba-hab-01-fallida-202611101934 FO-LAB-01439
+fin L-srv-prueba-hab-01-fallida-202611101934 FO-LAB-01439 exitoso job 22047 AAP terminó (successful): ejecución 12 s, espera de aprobación 23 s | srv-prueba-hab-01-fallida-202611101934 eliminado: fuera del balanceo, VM retirada de KVM (disco conservado aparte), fuera de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git.
+--- final
+srv-prueba-hab-01.eliminado-202611101937.qcow2
+srv-prueba-hab-01-fallida-202611101934.eliminado-202611101939.qcow2
+Mem:             125          89           6           2          31          35
+--- fin: 2026-11-10T19:40:15-03:00 · código: 0
