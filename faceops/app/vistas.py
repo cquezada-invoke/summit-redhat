@@ -497,7 +497,14 @@ def inicio():
     except Exception as e_:  # noqa: BLE001
         current_app.logger.warning("radar de salud del panel: %s", e_)
         estrella = None
-    return render_template("inicio.html", estrella=estrella, apr=apr, pa=pa, cr=cr, seg=seg_, estados_pol=ESTADOS_POL, sevs=SEVS, costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
+    try:
+        from .madurez import madurez as madurez_parque, radar_svg
+        mad = madurez_parque(g.cliente["id"], eqs, hs)
+        mad["svg"] = radar_svg(mad["actual"], mad["meta"])
+    except Exception as e_:  # noqa: BLE001
+        current_app.logger.warning("madurez del panel: %s", e_)
+        mad = None
+    return render_template("inicio.html", mad=mad, estrella=estrella, apr=apr, pa=pa, cr=cr, seg=seg_, estados_pol=ESTADOS_POL, sevs=SEVS, costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
                            conteo=dict(Counter(h["severidad"] for h in hs)), ejecuciones_mes=len(del_mes),
                            horas_mes=round(sum(t["valor_min"] or 0 for t in ok_mes) / 60, 1),
                            valor_mes=sum((t["valor_min"] or 0) / 60 * (g.cliente["costo_hora"] or 0) for t in ok_mes),
