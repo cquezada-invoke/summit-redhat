@@ -261,7 +261,7 @@ def workflow(it):
     nombre = f"Portal · {it['nombre']}"
     wf = aap("GET", "workflow_job_templates/?name=" + q(nombre))["results"]
     o_ = org_infra if it["seccion"] == "infra" else org
-    datos = {"organization": o_, "description": it["descripcion"], "survey_enabled": bool(it.get("encuesta")), "ask_variables_on_launch": False,
+    datos = {"organization": o_, "description": it["descripcion"] + (f"\nSe lanza desde: {it['origen']}" if it.get("origen") else ""), "survey_enabled": bool(it.get("encuesta")), "ask_variables_on_launch": False,
              "allow_simultaneous": False, "ask_limit_on_launch": bool(it.get("limite")),
              "inventory": (aap("GET", f"job_templates/{jts[it['nombre']]}/")["inventory"] if it.get("limite") else None)}
     wf = aap("PATCH", f"workflow_job_templates/{wf[0]['id']}/", datos)["id"] if wf else aap("POST", "workflow_job_templates/", dict(datos, name=nombre))["id"]

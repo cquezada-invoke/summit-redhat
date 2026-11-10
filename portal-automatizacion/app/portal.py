@@ -221,6 +221,7 @@ def catalogo():
         tipo = lineas.get("Tipo", "")
         items[-1]["tipo"] = "Informe de análisis" if "análisis" in tipo else ("Hace cambios" if "cambios" in tipo else ("Solo lectura" if tipo else ""))
         items[-1]["para"] = lineas.get("Para qué", w["description"])
+        items[-1]["origen"] = lineas.get("Se lanza desde", "")
     return items
 
 

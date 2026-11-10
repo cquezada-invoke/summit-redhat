@@ -133,6 +133,7 @@
     Qué obtienes: el estado del día con lo que hay que atender.
   encuesta: []
 - nombre: "Amdocs · Activar orden de servicio"
+  origen: "Amdocs (vía EDA)"   # además del portal, se lanza sola desde aquí
   seccion: amdocs
   orden: true
   descripcion: |-
@@ -206,6 +207,7 @@
 
 # --- Automatizaciones de alto valor (lo que OpenShift y ACM no hacen solos) ---------------------------------------------
 - nombre: "OpenShift · Actualización guiada con ACM"
+  origen: "ACM (hook de actualización)"   # además del portal, se lanza sola desde aquí
   seccion: ocp
   playbook: playbooks/ocp-actualizacion-guiada.yml
   descripcion: |-
@@ -221,6 +223,7 @@
     - {question_name: "Rutas críticas a probar", variable: rutas_criticas, type: textarea, default: "https://amdocs-ordering.sno.34.176.42.56.sslip.io/health", required: false, max: 1000,
        question_description: "URLs separadas por coma (solo en fase post)."}
 - nombre: "OpenShift · De alerta a incidente"
+  origen: "Grafana / Alertmanager (vía EDA)"   # además del portal, se lanza sola desde aquí
   seccion: ocp
   playbook: playbooks/ocp-alerta-incidente.yml
   descripcion: |-
@@ -312,6 +315,7 @@
     - {question_name: "Enviar el informe a", variable: correo, type: text, default: "cquezada@invoke.cl", required: true, min: 6, max: 120,
        question_description: "Correo que recibe el PDF con los hallazgos, el semáforo y el resumen ejecutivo."}
 - nombre: "Linux · Liberar espacio en disco"
+  origen: "Grafana (alerta de disco, vía EDA)"   # además del portal, se lanza sola desde aquí
   seccion: linux
   playbook: playbooks/linux-liberar-disco.yml
   base: "Seguridad · Revisar CVEs"
@@ -326,6 +330,7 @@
     - {question_name: "Limpiar si el uso supera (%)", variable: umbral, type: integer, min: 50, max: 99, default: 85, required: true}
     - {question_name: "Forzar limpieza", variable: forzar, type: multiplechoice, choices: ["no", si], default: "no", required: true}
 - nombre: "Infra · Atender ticket de Odoo"
+  origen: "Odoo Helpdesk (vía EDA)"   # además del portal, se lanza sola desde aquí
   seccion: linux
   playbook: playbooks/infra-ticket-odoo.yml
   base: "Seguridad · Revisar CVEs"
