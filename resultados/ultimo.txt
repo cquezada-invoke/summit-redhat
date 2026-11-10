@@ -1,23 +1,12 @@
-commit: d1476c426869622ac4cc485c46f5b6c5124fd9f8
-inicio: 2026-11-10T17:08:25-03:00
+commit: 64d1f27651dd3573bdd3e552d758cd840d6e457d
+inicio: 2026-11-10T17:11:29-03:00
 ---
-42bc6d3
-   BGP rtr-wan-01 ↔ proveedor                         OK  3
-   Usuario piso 1 (VLAN 10) → VIP web 10.20.30.100    OK  srv-web-01 responde OK
-   Teléfono piso 1 (VLAN 20) → servidores            OK  PING 10.20.30.21 (10.20.30.21): 56 data bytes
-   Sede → WAN 203.0.113.1 (pasa por el firewall)      OK  PING 203.0.113.1 (203.0.113.1): 56 data bytes
-   WAN → VIP web publicado (permitido)                OK  srv-web-02 responde OK
-   WAN → servidor directo :8080 (debe estar BLOQUEADO) OK  wget: download timed out
-   Vecinos LLDP de sw-core-01                           OK  3
-   Backends del balanceador arriba                      FALLA 0
-   SSH netadmin@172.20.20.73 con usuario y clave        OK  FRRouting 10.2.1_git (sw-core-01) on Linux(5.14.0-
-   SSH netadmin@172.20.20.72 con usuario y clave        OK  Version:          VyOS 2026.10.23-0026-rolling
+889a8fb
 faceops actualizado
-catalogo: 221
-auto: {'id': 226, 'nombre': 'Inventariar equipo de red', 'tipo': 'escritura', 'requiere_aprobacion': 0, 'inventario': 'Red · laboratorio'}
-post 14 400 {"error":"\u00abInventariar equipo de red\u00bb est\u00e1 bloqueada: a\u00fan no tiene su plan de prueba ejecutado y aprobado"}
-
-post 16 400 {"error":"\u00abInventariar equipo de red\u00bb est\u00e1 bloqueada: a\u00fan no tiene su plan de prueba ejecutado y aprobado"}
-
-Error: no container with name or ID "faceops" found: no such container
---- fin: 2026-11-10T17:11:46-03:00 · código: 0
+6 {'certs': [{'cn': 'nodo-jboss.demo.local', 'dias': 711, 'estado': 'vigente', 'nivel': 's-ok', 'url': '/lab/certificados/6fda6dc34142129ea390ba73c13a6163'}, {'cn': 'nodo-jboss.demo.local', 'dias': 719, 'estado': 'vigente', 'nivel': 's-ok', 'url': '/lab/certificados/712b447484972e16f0a76957e9e0cfc6'}], 'incorporar': '/lab/certificados?nuevo=6'}
+8 {'certs': [{'cn': 'nodo-nginx.demo.local', 'dias': 709, 'estado': 'vigente', 'nivel': 's-ok', 'url': '/lab/certificados/b5e522d3de36c460c045971da9b44a4c'}], 'incorporar': '/lab/certificados?nuevo=8'}
+mapa: Políticas 0 cert 2
+FO-LAB-01407 fallido
+  … AAP terminó (failed): ejecución 24 s, espera de aprobación 49 s
+  … fatal: [nodo-jboss]: FAILED! => {"changed": false, "msg": "No se pudo renovar; quedó el certificado anterior (One or more items failed)"}
+--- fin: 2026-11-10T17:12:11-03:00 · código: 0
