@@ -42,7 +42,7 @@
     - name: Emitir certificado nuevo (CA interna del laboratorio)
       ansible.builtin.command:
         argv: [bash, -c, "openssl req -x509 -newkey rsa:2048 -nodes -days 398 -subj /CN={{ host }} -addext subjectAltName=DNS:{{ host }} -keyout /tmp/{{ ruta }}.key -out /tmp/{{ ruta }}.crt 2>/dev/null && echo ok"]
-      when: (quedan | int) < dias or (forzar | default('no')) == 'si'
+      when: (quedan | int) < (dias | int) or (forzar | default('no')) == 'si'
       register: r_nuevo
 
     - name: Namespace red-balanceador (emulación del laboratorio)
@@ -74,5 +74,5 @@
         data:
           portal_resultado:
             titulo: "{{ host }}: {{ ('certificado renovado en la Route y en el balanceador' if r_nuevo is changed else 'vigente, ' ~ quedan ~ ' días (umbral ' ~ dias ~ ')') }}"
-            estado: "{{ 'ok' if r_nuevo is changed or (quedan | int) >= dias else 'atencion' }}"
+            estado: "{{ 'ok' if r_nuevo is changed or (quedan | int) >= (dias | int) else 'atencion' }}"
             filas: [["Antes", "{{ r_antes.stdout | default('sin respuesta') | replace('\n', ' · ') }}"], ["Días restantes antes", "{{ quedan }}"], ["Acción", "{{ 'renovado (Route + balanceador)' if r_nuevo is changed else 'ninguna' }}"]]

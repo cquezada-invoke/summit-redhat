@@ -300,9 +300,7 @@ def workflow(it):
             enlace(n, m)
             n = m
             if inf:
-                enlace(m, inf, "failure")
-        if inf:
-            enlace(n, inf, "success")
+                enlace(m, inf, "always" if i == len(pasos) - 1 else "failure")   # AAP admite un solo enlace por par de nodos
     if it.get("encuesta"):
         aap("POST", f"workflow_job_templates/{wf}/survey_spec/", {"name": it["nombre"], "description": it["descripcion"], "spec": it["encuesta"]})
     else:

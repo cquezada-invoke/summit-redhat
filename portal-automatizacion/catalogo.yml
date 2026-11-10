@@ -106,6 +106,7 @@
     - {question_name: "Páginas grandes 1Gi (cuota)", variable: hugepages_gi, type: integer, min: 0, max: 64, default: 4, required: true}
     - {question_name: "Acción", variable: accion, type: multiplechoice, choices: [crear, retirar], default: crear, required: true}
 - nombre: "Telco · Red del servicio (VLAN y BGP)"
+  credencial: ["Red · firewall VyOS", "Gitea · escritura red-laboratorio", "AAP · responder aprobaciones"]   # además de la ssh del laboratorio
   seccion: telco
   red: true
   playbook: playbooks/telco-red-servicio.yml

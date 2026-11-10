@@ -8,6 +8,7 @@
   become: true
   gather_facts: false
   vars:
+    ansible_timeout: 10   # un servidor apagado no detiene la ejecución
     mp: "{{ punto | default('/') }}"
     uso_cmd: "df --output=pcent {{ mp }} | tail -1 | tr -dc 0-9"
   tasks:

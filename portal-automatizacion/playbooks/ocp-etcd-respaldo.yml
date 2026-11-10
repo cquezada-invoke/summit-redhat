@@ -10,8 +10,11 @@
   vars:
     ns: openshift-etcd
     n: "{{ conservar | default(3) | int }}"
-    nombre: "respaldo-etcd-{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
   tasks:
+    - name: Nombre único del respaldo (se fija una sola vez)
+      ansible.builtin.set_fact:
+        nombre: "respaldo-etcd-{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
+
     - name: Datos válidos
       ansible.builtin.assert:
         that: [n | int >= 1 and n | int <= 15]
