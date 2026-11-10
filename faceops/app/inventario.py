@@ -159,7 +159,7 @@ def resumir(facts, host_vars):
                           **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {})}}
     hv = host_vars or {}
     red = f.get("faceops_red")
-    if isinstance(red, dict) and red.get("plataforma") and (not f.get("ansible_os_family")
+    if isinstance(red, dict) and red.get("plataforma") and (not f.get("ansible_os_family") or str(red.get("recolectado") or "") >= str(f.get("faceops_recolectado") or "")
                                                             or hv.get("faceops_categoria") in ("router", "switch", "firewall", "balanceador")):
         # equipo de red (lo trae «Red · Inventariar equipo de red»): su sistema es la plataforma de red, no un SO de servidor
         ver = str(red.get("version") or "")

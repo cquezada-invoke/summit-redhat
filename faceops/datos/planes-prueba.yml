@@ -11,7 +11,7 @@ planes:
       - {id: C4, caso: "Balanceador HAProxy (lb-sede-01)", verificar: "versión de HAProxy, frontend abierto, backend con sus servidores y estado de chequeo, VIP"}
       - {id: C5, caso: "Ficha del equipo en FaceOps", verificar: "la ficha muestra plataforma, modelo, uptime, interfaces, VLAN, vecinos, rutas, BGP o balanceo; no muestra CPU, discos, usuarios ni puntos de restauración"}
       - {id: C6, caso: "Repetir la lectura", verificar: "solo lectura e idempotente: el equipo no cambia (sin changed), mismos conteos de interfaces y rutas"}
-      - {id: C7, caso: "Equipo que no responde (borde, laboratorio detenido)", verificar: "ticket fallido controlado (inalcanzable); no se toca nada y la ficha anterior del equipo se conserva"}
+      - {id: C7, caso: "Equipo que no responde (borde, laboratorio detenido)", verificar: "FaceOps no lanza nada y avisa que el equipo está apagado; no se toca el equipo y su ficha anterior se conserva"}
   "Políticas de desarrollo · Evaluar aplicaciones":
     casos:
       - {id: C1, caso: "Evaluar todo el parque (con máquinas apagadas)", verificar: "ticket exitoso; las apagadas quedan fuera; aparecen las aplicaciones de JBoss (srv-legado-jboss7-01, nodo-jboss-dev) y de IIS (srv-pn-win-01) con su plataforma y producto"}

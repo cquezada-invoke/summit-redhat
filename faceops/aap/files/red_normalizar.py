@@ -54,7 +54,7 @@ def main():
     ha = re.search(r"HAProxy version\s+(\S+)", s.get("HAPROXY", ""))
     plat_hv = (hv.get("faceops_plataforma") or "").lower()
     if vy.get("version") or plat_hv == "vyos" or facts.get("ansible_net_version"):
-        so, version = "VyOS", vy.get("version") or facts.get("ansible_net_version") or ""
+        so, version = "VyOS", re.sub(r"^VyOS\s+", "", vy.get("version") or facts.get("ansible_net_version") or "")
         detalle = f"compilado {vy.get('built_on', '')}".strip() if vy.get("built_on") else ""
     elif plat_hv == "haproxy" and ha:
         so, version, detalle = "HAProxy", ha.group(1), (f"enrutamiento FRRouting {m_frr.group(1)}" if m_frr else "")
@@ -109,10 +109,14 @@ def main():
         elif kind == "bridge":
             modo = "puente"
         elif kind == "vlan":
-            modo = "SVI"
             vid = (li.get("info_data") or {}).get("id")
-            if vid is not None:
-                svis[vid] = {"interfaz": n_base, "ips": ips}
+            padre = next((x for x in links if (l.get("link") and x.get("ifname") == l.get("link")) or (l.get("link_index") and x.get("ifindex") == l.get("link_index"))), {})
+            if ((padre.get("linkinfo") or {}).get("info_kind")) == "bridge":
+                modo = "SVI"   # interfaz de capa 3 de una VLAN del switch
+                if vid is not None:
+                    svis[vid] = {"interfaz": n_base, "ips": ips}
+            else:
+                modo = f"subinterfaz VLAN {vid}" if vid is not None else "subinterfaz"
         elif maestro and vl:
             modo = (f"acceso VLAN {pvid}" if len(ids) == 1 and pvid else f"troncal {','.join(str(x) for x in ids)}")
         elif ips:
@@ -170,6 +174,8 @@ def main():
                 nh = (r.get("nexthops") or [{}])[0]
                 via = nh.get("ip") or ("conectada" if nh.get("directlyConnected") else "")
                 proto = r.get("protocol", "")
+                if proto == "local":
+                    continue   # /32 de las propias direcciones (FRR 10): no aportan a la tabla
                 por_proto[proto] = por_proto.get(proto, 0) + 1
                 fila = {"prefijo": pref, "protocolo": proto, "via": via, "interfaz": nh.get("interfaceName", "")}
                 rutas.append(fila)
