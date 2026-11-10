@@ -1,12 +1,16 @@
-commit: 64d1f27651dd3573bdd3e552d758cd840d6e457d
-inicio: 2026-11-10T17:11:29-03:00
+commit: 396fb89179e1cc6bf2cabf06aa92ec4742a9e48c
+inicio: 2026-11-10T17:12:45-03:00
 ---
-889a8fb
-faceops actualizado
-6 {'certs': [{'cn': 'nodo-jboss.demo.local', 'dias': 711, 'estado': 'vigente', 'nivel': 's-ok', 'url': '/lab/certificados/6fda6dc34142129ea390ba73c13a6163'}, {'cn': 'nodo-jboss.demo.local', 'dias': 719, 'estado': 'vigente', 'nivel': 's-ok', 'url': '/lab/certificados/712b447484972e16f0a76957e9e0cfc6'}], 'incorporar': '/lab/certificados?nuevo=6'}
-8 {'certs': [{'cn': 'nodo-nginx.demo.local', 'dias': 709, 'estado': 'vigente', 'nivel': 's-ok', 'url': '/lab/certificados/b5e522d3de36c460c045971da9b44a4c'}], 'incorporar': '/lab/certificados?nuevo=8'}
-mapa: Políticas 0 cert 2
-FO-LAB-01407 fallido
-  … AAP terminó (failed): ejecución 24 s, espera de aprobación 49 s
-  … fatal: [nodo-jboss]: FAILED! => {"changed": false, "msg": "No se pudo renovar; quedó el certificado anterior (One or more items failed)"}
---- fin: 2026-11-10T17:12:11-03:00 · código: 0
+    "outcome" => "success",
+    "result" => undefined
+}
+{"outcome" => "success"}
+{
+    "outcome" => "failed",
+    "failure-description" => "WFLYCTL0031: No operation named 'init' exists at address [
+    (\"subsystem\" => \"elytron\"),
+    (\"server-ssl-context\" => \"faceops-jboss-https\")
+]",
+    "rolled-back" => true
+}
+--- fin: 2026-11-10T17:12:58-03:00 · código: 0
