@@ -229,3 +229,18 @@ def con_madurez(m, cliente_id, eqs, hallazgos):
         capa["madurez"] = {"pct": pct, "nivel": nivel(pct) if pct is not None else None, "tecnologias": len(vals),
                            "meta_pct": meta_pct, "meta_nivel": nivel(meta_pct), "pilares": pil}
     return m
+
+
+def salud_apps(apps, cliente_id, eqs, hallazgos):
+    """Salud de cada aplicación (segmento de negocio): los 6 pilares sobre sus equipos; None si no tiene equipos que medir."""
+    pr = _practicas(cliente_id, eqs, hallazgos)
+    out = {}
+    for a in apps:
+        ids = [e["id"] for e in eqs if a in (e.get("segmentos") or [])]
+        if not ids:
+            out[a] = None
+            continue
+        pp = _pct(ids, pr)
+        vals = [v for v in pp.values() if v is not None]
+        out[a] = {"pct": round(sum(vals) / len(vals)) if vals else None, "pilares": pp, "n": len(ids)}
+    return out

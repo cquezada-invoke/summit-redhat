@@ -6651,9 +6651,16 @@ def manifiesto_arquitectura():
     except Exception as e_:  # noqa: BLE001
         current_app.logger.warning("madurez del manifiesto: %s", e_)
     apps = [x["nombre"] for x in segmentos_visibles(g.usuario, g.cliente["id"]) if __import__("app.grupos_segmento", fromlist=["x"]).grupo_de(x) == "aplicaciones"]
+    sal_apps = {}
+    if nivel == "3":
+        try:
+            from .madurez import salud_apps
+            sal_apps = salud_apps(apps, g.cliente["id"], eqs, hallazgos_visibles(eqs))
+        except Exception as e_:  # noqa: BLE001
+            current_app.logger.warning("salud de aplicaciones: %s", e_)
     cuenta = Counter(t["estado"] for t in M.tecnologias(m))
     aceptadas = sorted({t["nombre"] for t in M.tecnologias(m) if t.get("estado") in ("aceptada", "evaluacion")})
-    return render_template("manifiesto.html", m=m, nivel=nivel, estados=M.ESTADOS, fuera=fuera, apps=apps, cuenta=cuenta, rm=rm,
+    return render_template("manifiesto.html", m=m, nivel=nivel, estados=M.ESTADOS, fuera=fuera, apps=apps, sal_apps=sal_apps, cuenta=cuenta, rm=rm,
                            salida=M.SALIDA, avance=M.AVANCE, aceptadas=aceptadas)
 
 
