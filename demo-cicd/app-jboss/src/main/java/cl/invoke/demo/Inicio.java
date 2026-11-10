@@ -8,39 +8,52 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import javax.naming.InitialContext;
-import javax.sql.DataSource;
+import java.sql.Statement;
 
-/** Página de la app: muestra el mensaje y la versión que dejó el pipeline. */
+/**
+ * Portada de la App de pagos: entrega la interfaz (HTML + JS) y muestra la versión que dejó el pipeline, el servidor
+ * y el estado de la base. El texto «Base de datos: conectada» lo usan las validaciones de FaceOps y de las demos.
+ */
 @WebServlet("")
 public class Inicio extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("text/html; charset=UTF-8");
+        resp.setHeader("Cache-Control", "no-store");
         String servidor = InetAddress.getLocalHost().getHostName();
         String baseDatos;
-        try {
-            DataSource ds = (DataSource) new InitialContext().lookup("java:jboss/datasources/app-jboss");
-            try (Connection c = ds.getConnection();
-                 ResultSet r = c.createStatement().executeQuery(
-                     "SELECT count(*), coalesce(sum(monto), 0) FROM pedidos")) {
-                r.next();
-                baseDatos = "conectada · " + r.getInt(1) + " pedidos por $" + String.format("%,.0f", r.getDouble(2));
+        try (Connection c = Bd.cruda(); Statement s = c.createStatement(); ResultSet r = s.executeQuery("SELECT 1")) {
+            r.next();
+            baseDatos = "conectada";
+            try (Statement s2 = c.createStatement(); ResultSet r2 = s2.executeQuery("SELECT count(*) FROM app_movimientos WHERE tipo = 'pago'"
+                    + " AND (creado AT TIME ZONE 'America/Santiago')::date = (now() AT TIME ZONE 'America/Santiago')::date")) {
+                r2.next();
+                baseDatos += " · " + r2.getLong(1) + " pagos hoy";
+            } catch (Exception e) {
+                baseDatos += " · estructura de pagos pendiente";
             }
         } catch (Exception e) {
             baseDatos = "sin conexión";
         }
+        String base = req.getContextPath() + "/";
         resp.getWriter().write("""
             <!doctype html><html lang="es"><head><meta charset="utf-8">
-            <meta name="viewport" content="width=device-width,initial-scale=1"><title>App JBoss · Invoke</title>
-            <style>body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#101828}
-            header{background:#0b1f3a;color:#fff;padding:16px 24px;font-size:18px}
-            main{max-width:720px;margin:40px auto;padding:0 16px}
-            .card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:28px;border-top:8px solid #cc0000}
-            h1{margin:0 0 14px;font-size:32px}.v{display:inline-block;background:#101828;color:#fff;border-radius:999px;padding:4px 14px;font-weight:bold}
-            p{color:#667085}</style></head><body><header><b>Invoke</b> · CI con Tekton + CD con Ansible</header>
-            <main><div class="card"><h1>%s</h1><span class="v">versión %s</span>
-            <p>Servidor: %s · Red Hat JBoss EAP 8</p><p>Base de datos: %s</p></div></main></body></html>
-            """.formatted(Datos.mensaje(), Datos.version(), servidor, baseDatos));
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>Pagos · Invoke</title>
+            <link rel="stylesheet" href="%1$sstatic/app.css?v=%2$s">
+            </head><body data-base="%1$s">
+            <header class="barra"><div class="marca"><span class="logo">P</span><div><b>Pagos</b><small>%3$s</small></div></div>
+            <div id="quien" class="quien"></div></header>
+            <nav id="menu" class="menu" hidden></nav>
+            <main id="vista" class="vista"><p class="cargando">Cargando…</p></main>
+            <footer class="pie">versión %2$s · Servidor: %4$s · Red Hat JBoss EAP 8 · Base de datos: %5$s</footer>
+            <div id="aviso" class="aviso" role="status" hidden></div>
+            <script src="%1$sstatic/app.js?v=%2$s"></script>
+            </body></html>
+            """.formatted(esc(base), esc(Datos.version()), esc(Datos.mensaje()), esc(servidor), esc(baseDatos)));
+    }
+
+    static String esc(String s) {
+        return s == null ? "" : s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 }
