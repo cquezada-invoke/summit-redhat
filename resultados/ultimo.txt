@@ -1,21 +1,16 @@
-commit: f3fefad9786f88c27661b1dfcc8bc81cd77ea91a
-inicio: 2026-11-10T16:17:28-03:00
+commit: 6e7af37e335c3805ac75e9bf17ec6c3abd2fa62f
+inicio: 2026-11-10T16:19:33-03:00
 ---
-16:17:28 app-jboss-xc5jc ESTADO=Running Tasks Completed: 3 (Failed: 0, Cancelled 0), Incomplete: 4, Skipped: 0
-16:17:43 app-jboss-xc5jc ESTADO=Running Tasks Completed: 3 (Failed: 0, Cancelled 0), Incomplete: 4, Skipped: 0
-16:17:59 app-jboss-xc5jc ESTADO=Running Tasks Completed: 3 (Failed: 0, Cancelled 0), Incomplete: 4, Skipped: 0
-16:18:14 app-jboss-xc5jc ESTADO=Running Tasks Completed: 3 (Failed: 0, Cancelled 0), Incomplete: 4, Skipped: 0
-16:18:29 app-jboss-xc5jc ESTADO=Running Tasks Completed: 4 (Failed: 0, Cancelled 0), Incomplete: 3, Skipped: 0
-16:18:44 app-jboss-xc5jc ESTADO=Running Tasks Completed: 6 (Failed: 0, Cancelled 0), Incomplete: 1, Skipped: 0
-16:18:59 app-jboss-xc5jc ESTADO=Running Tasks Completed: 6 (Failed: 0, Cancelled 0), Incomplete: 1, Skipped: 0
-16:19:14 app-jboss-xc5jc ESTADO=Failed Tasks Completed: 7 (Failed: 1, Cancelled 0), Skipped: 0
-nodo .15: <html><body><h1>Resource not found</h1></body></html>
-nodo .18: ok 1.0.37
-HTTP/1.1 200 OK
-X-Servidor-JBoss: 192.168.122.18:8080
-192.168.122.15 nodo-jboss.demo.local nodo-jboss
-192.168.122.18 nodo-jboss2.demo.local nodo-jboss2
-192.168.122.19 nodo-jboss3.demo.local nodo-jboss3
-192.168.122.20 nodo-jboss-qa.demo.local nodo-jboss-qa
-192.168.122.21 nodo-jboss-dev.demo.local nodo-jboss-dev
---- fin: 2026-11-10T16:19:14-03:00 · código: 0
+formulario: {'modo': 'emitir', 'cert_cn': 'nodo-jboss.demo.local', 'cert_san': 'nodo-jboss.demo.local', 'cert_nombre': 'jboss-https', 'cert_puerto': '8443', 'cert_propietario': 'root', 'cert_recargar': 'systemctl restart eap8-standalone', 'motivo': 'Reemplazo del certificado nodo-jboss.demo.local pedido desde su detalle', 'cert_formato': 'pkcs12', 'cert_bits': '2048'}
+Traceback (most recent call last):
+  File "/tmp/rc.py", line 21, in <module>
+    f0 = bs(leer_c(g.cliente, equipos_visibles()), S)
+                              ^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 68, in equipos_visibles
+    if equipo_visible(g.perfil, e, e["segmentos"]):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/permisos.py", line 47, in equipo_visible
+    return "*" in p["segmentos"] or bool(set(segmentos_del_equipo) & set(p["segmentos"]))
+                  ~^^^^^^^^^^^^^
+KeyError: 'segmentos'
+--- fin: 2026-11-10T16:19:44-03:00 · código: 0
