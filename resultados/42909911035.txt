@@ -1,0 +1,39 @@
+commit: 1f8022867281b7cc94aab0eb3a577390fb661d11
+inicio: 2026-11-10T18:57:04-03:00
+---
+ad6e2dc
+== 1. Hosts autorizados en AAP
+   srv-servidor-de-ejemplo-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   srv-test-ubuntu-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   pc-oficina-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   pc-oficina-02: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   srv-rocky-prueba-01: 2 registro(s) en [('FaceOps · Todos los servidores', 'constructed'), ('Servidores habilitados', 'normal')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   actualizando inventario construido FaceOps · Todos los servidores
+   srv-servidor-de-ejemplo-01: quedan 2 ['Servidores habilitados', 'FaceOps · Todos los servidores']
+   srv-test-ubuntu-01: quedan 2 ['Servidores habilitados', 'FaceOps · Todos los servidores']
+   pc-oficina-01: quedan 2 ['Servidores habilitados', 'FaceOps · Todos los servidores']
+   pc-oficina-02: quedan 2 ['Servidores habilitados', 'FaceOps · Todos los servidores']
+   srv-rocky-prueba-01: quedan 2 ['FaceOps · Todos los servidores', 'Servidores habilitados']
+   licencia: 64 de 50 · libres 0
+== 2. Alta de la sede en AAP y bóveda
+   ! rtr-wan-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! fw-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! sw-core-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! sw-acc-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! lb-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+== 3. Despliegue de FaceOps (exporta la topología de los laboratorios)
+   faceops actualizado
+sincronizar: 63
+equipos: {'rtr-wan-01': None, 'fw-sede-01': None, 'sw-core-01': None, 'sw-acc-01': None, 'lb-sede-01': None}
+retirados ahora: []
+Traceback (most recent call last):
+  File "/tmp/m.py", line 21, in <module>
+    t = solicitar(u, cl, au, None, {}, f"Prueba {c_}: inventariar {n}", None, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e, prueba=True)
+                                                                                                                ^^^^^
+AttributeError: 'NoneType' object has no attribute 'get'
+--- fin: 2026-11-10T18:58:52-03:00 · código: 0
