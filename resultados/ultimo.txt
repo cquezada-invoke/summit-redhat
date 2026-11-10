@@ -1,75 +1,54 @@
-commit: 1bcb3f758ed0eea31565e4e4fbf24aa0fa12b719
-inicio: 2026-11-10T17:34:25-03:00
+commit: bd57ce41b950b80a3601c15415e3992b300d7b9e
+inicio: 2026-11-10T17:35:37-03:00
 ---
-namespace/wl-sonda created
-pod/eap8r created
-pod/wf created
-54s   Normal   Scheduled        pod/wf      Successfully assigned wl-sonda/wf to sno
-53s   Normal   AddedInterface   pod/wf      Add eth0 [10.128.0.196/23] from ovn-kubernetes
-53s   Normal   Pulling          pod/wf      Pulling image "quay.io/wildfly/wildfly:latest-jdk17"
-3s    Normal   Pulled           pod/wf      Successfully pulled image "quay.io/wildfly/wildfly:latest-jdk17" in 50.225s (50.225s including waiting). Image size: 806220481 bytes.
-3s    Normal   Created          pod/wf      Created container: c
-3s    Normal   Started          pod/wf      Started container c
-installer-2-sno                0/1   Completed   0     11d
-installer-4-sno                0/1   Completed   0     11d
-installer-5-sno                0/1   Completed   0     8d
-eap8r   1/1   Running   0     54s
-wf      1/1   Running   0     54s
-== eap8r
-ls: cannot access '/opt/server': No such file or directory
-ls: cannot access '/opt/jboss/wildfly': No such file or directory
-ls: cannot access '/opt/server/standalone/configuration': No such file or directory
-ls: cannot access '/opt/jboss/wildfly/standalone/configuration': No such file or directory
-ls: cannot access '/opt/server/bin/jboss-cli.sh': No such file or directory
-cat: /opt/server/version.txt: No such file or directory
-sh: which: command not found
-java
-openjdk
-util
-wildfly
-JBOSS_IMAGE_NAME=jboss-eap-8/eap8-openjdk17-runtime-openshift-rhel8
-JBOSS_CONTAINER_WILDFLY_RUN_MODULE=/opt/jboss/container/wildfly/run
-JBOSS_CONTAINER_OPENJDK_JDK_MODULE=/opt/jboss/container/openjdk/jdk
-JAVA_VERSION=17
-JBOSS_CONTAINER_JAVA_JVM_MODULE=/opt/jboss/container/java/jvm
-JBOSS_IMAGE_VERSION=1.0.1.GA
-WILDFLY_OVERRIDING_ENV_VARS=1
-JBOSS_HOME=/opt/server
-JBOSS_CONTAINER_UTIL_LOGGING_MODULE=/opt/jboss/container/util/logging/
-JBOSS_CONTAINER_JAVA_PROXY_MODULE=/opt/jboss/container/java/proxy
-ls: cannot access '/tmp/artifacts': No such file or directory
-command terminated with exit code 1
-== wf
-ls: cannot access '/opt/server': No such file or directory
-/opt/jboss/wildfly:
-appclient
-bin
-copyright.txt
-docs
-domain
-jboss-modules.jar
-LICENSE.txt
-modules
-ls: cannot access '/opt/server/standalone/configuration': No such file or directory
-/opt/jboss/wildfly/standalone/configuration:
-application-roles.properties
-application-users.properties
-logging.properties
-mgmt-groups.properties
-mgmt-users.properties
-standalone-full-ha.xml
-standalone-full.xml
-standalone-ha.xml
-ls: cannot access '/opt/server/bin/jboss-cli.sh': No such file or directory
-cat: /opt/server/version.txt: No such file or directory
-sh: line 1: which: command not found
-ls: cannot access '/opt/jboss/container': No such file or directory
-WILDFLY_VERSION=40.0.1.Final
-JBOSS_HOME=/opt/jboss/wildfly
-WILDFLY_DIST=wildfly-40.0.1.Final
-JAVA_VERSION=jdk-17.0.19+10
-ls: cannot access '/tmp/artifacts': No such file or directory
-command terminated with exit code 1
-registry.redhat.io/jboss-eap-8/eap8-openjdk17-runtime-openshift-rhel8@sha256:019fd19124edead77c7f8254f58453e9d702f82af3e10bcb278151093749f6e6
-borrado
---- fin: 2026-11-10T17:35:22-03:00 · código: 0
+== metadata de la VM anfitriona (solo proyecto/zona/SA, sin tokens)
+master-ia-320218
+projects/867442985439/zones/southamerica-west1-a
+<!DOCTYPE html>
+<html lang=en>
+  <meta charset=utf-8>
+  <meta name=viewport content="initial-scale=1, minimum-scale=1, width=device-width">
+  <title>Error 404 (Not Found)!!1</title>
+  <style>
+    *{margin:0;padding:0}html,code{font:15px/22px arial,sans-serif}html{background:#fff;color:#222;padding:15px}body{margin:7% auto 0;max-width:390px;min-height:180px;padding:30px 0 15px}* > body{background:url(//www.google.com/images/errors/robot.png) 100% 5px no-repeat;padding-right:205px}p{margin:11px 0 22px;overflow:hidden}ins{color:#777;text-decoration:none}a img{border:0}@media screen and (max-width:772px){body{background:none;margin-top:0;max-width:none;padding-right:0}}#logo{background:url(//www.google.com/images/branding/googlelogo/1x/googlelogo_color_150x54dp.png) no-repeat;margin-left:-5px}@media only screen and (min-resolution:192dpi){#logo{background:url(//www.google.com/images/branding/googlelogo/2x/googlelogo_color_150x54dp.png) no-repeat 0% 0%/100% 100%;-moz-border-image:url(//www.google.com/images/branding/googlelogo/2x/googlelogo_color_150x54dp.png) 0}}@media only screen and (-webkit-min-device-pixel-ratio:2){#logo{background:url(//www.google.com/images/branding/googlelogo/2x/googlelogo_color_150x54dp.png) no-repeat;-webkit-background-size:100% 100%}}#logo{display:inline-block;height:54px;width:150px}
+  </style>
+  <a href=//www.google.com/><span id=logo aria-label=Google></span></a>
+  <p><b>404.</b> <ins>That’s an error.</ins>
+  <p>The requested URL <code>/computeMetadata/v1/instance/service-accounts/default/email</code> was not found on this server.  <ins>That’s all we know.</ins>
+
+<!DOCTYPE html>
+<html lang=en>
+  <meta charset=utf-8>
+  <meta name=viewport content="initial-scale=1, minimum-scale=1, width=device-width">
+  <title>Error 404 (Not Found)!!1</title>
+  <style>
+    *{margin:0;padding:0}html,code{font:15px/22px arial,sans-serif}html{background:#fff;color:#222;padding:15px}body{margin:7% auto 0;max-width:390px;min-height:180px;padding:30px 0 15px}* > body{background:url(//www.google.com/images/errors/robot.png) 100% 5px no-repeat;padding-right:205px}p{margin:11px 0 22px;overflow:hidden}ins{color:#777;text-decoration:none}a img{border:0}@media screen and (max-width:772px){body{background:none;margin-top:0;max-width:none;padding-right:0}}#logo{background:url(//www.google.com/images/branding/googlelogo/1x/googlelogo_color_150x54dp.png) no-repeat;margin-left:-5px}@media only screen and (min-resolution:192dpi){#logo{background:url(//www.google.com/images/branding/googlelogo/2x/googlelogo_color_150x54dp.png) no-repeat 0% 0%/100% 100%;-moz-border-image:url(//www.google.com/images/branding/googlelogo/2x/googlelogo_color_150x54dp.png) 0}}@media only screen and (-webkit-min-device-pixel-ratio:2){#logo{background:url(//www.google.com/images/branding/googlelogo/2x/googlelogo_color_150x54dp.png) no-repeat;-webkit-background-size:100% 100%}}#logo{display:inline-block;height:54px;width:150px}
+  </style>
+  <a href=//www.google.com/><span id=logo aria-label=Google></span></a>
+  <p><b>404.</b> <ins>That’s an error.</ins>
+  <p>The requested URL <code>/computeMetadata/v1/instance/service-accounts/default/scopes</code> was not found on this server.  <ins>That’s all we know.</ins>
+
+== Vault secret/gcp (solo si existe y qué campos)
+secret/data/gcp no: HTTP Error 404: Not Found
+secret/metadata/gcp no: HTTP Error 404: Not Found
+== credenciales AAP (nombres y tipos con nube)
+total credenciales: 43
+CRED 20 | AAP · Nube | Red Hat Ansible Automation Platform | proyecto: None
+CRED 33 | Infra · KVM Santiago (snapshots) | Infra · Anfitrión KVM (snapshots) | proyecto: None
+CRED 32 | Infra · VMware · Santiago | VMware vCenter | proyecto: None
+CRED 19 | Nube · ssh (ansible) | Machine | proyecto: None
+tipo GCE id 12
+PROY 62 Nube · GCP successful
+JT 138 FaceOps · Nube GCP simulada
+JT 584 Migración a GCP · Evaluar servidor
+JT 585 Migración a GCP · Servidor Linux
+JT 68 Nube · Avisar por correo
+JT 84 Nube · Cerrar ticket tras falla
+JT 64 Nube · Dar de baja VM
+JT 66 Nube · Limpiar huérfanos
+JT 69 Nube · Prueba: crear huérfanos
+JT 70 Nube · Prueba: regla peligrosa
+JT 65 Nube · Reporte de huérfanos
+JT 63 Nube · Solicitar VM
+JT 67 Nube · Vigilar firewall
+--- fin: 2026-11-10T17:35:56-03:00 · código: 0
