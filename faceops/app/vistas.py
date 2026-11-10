@@ -2359,7 +2359,8 @@ def inventario(seccion="inventario"):
     vault_auto = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Vault · Preparar servidor'", g.cliente["id"])
     auto_crear = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
-    return render_template("inventario.html", cajas_marca=cajas_marca, marca_sel=marca_sel, radar_sec=radar_sec, cajas_so=cajas_so, so_sel=request.args.get("so", ""), auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
+    topo_red = __import__("app.mod_redes", fromlist=["_topologia"])._topologia(False) if seccion == "redes" else None   # diagrama compacto bajo la lista
+    return render_template("inventario.html", topo_red=topo_red, cajas_marca=cajas_marca, marca_sel=marca_sel, radar_sec=radar_sec, cajas_so=cajas_so, so_sel=request.args.get("so", ""), auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
                            clases=CLASES, seccion=seccion, ep_inv=ep_inv, alta=(__import__("app.alta_manual", fromlist=["catalogo"]).catalogo(seccion) if seccion in ("redes", "storage", "inventario", "estaciones") else None),
                            ubicaciones_alta=sorted({x["centro"] for x in infras if x.get("centro")}), portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(_infras_con_salud(lista_infra(g.cliente["id"], equipos_visibles())) if seccion in ("nubes", "hipervisores") else []),
                            cajas_eq=(todos if seccion == "storage" else []),
@@ -7190,7 +7191,7 @@ def menu_nav():
                  ("consola.automatizaciones", "Acciones", "autos", g_autos),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Centros de datos", {"_ep": "consola.centros_datos"}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
-                 ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {})]),
+                 ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Arquitectura", {"_ep": "consola.redes_arquitectura"})]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
                  ("consola.bases_datos", "Bases de datos", "bd", [("Todas las bases de datos", {})]),

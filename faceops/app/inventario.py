@@ -199,8 +199,21 @@ def resumir(facts, host_vars):
             "servicios_det": _servicios_det(f.get("faceops_servicios_det") or []), "logs": _logs(f.get("faceops_logs") or []), "jboss": [dict(zip(("home", "familia", "version", "apps"), (l.split("|") + ["", "", "", ""])[:4]), apps=[x for x in (l.split("|") + ["", "", "", ""])[3].split(",") if x])
                       for l in (f.get("faceops_jboss") or []) if l.count("|") >= 3],
             **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {}),
+            **_red_facts(f),
         },
     }
+
+
+def _red_facts(f):
+    """Puerta de enlace e interfaces IPv4 (con su prefijo) de los facts: base del diagrama Redes › Arquitectura."""
+    gw = (f.get("ansible_default_ipv4") or {}).get("gateway") if isinstance(f.get("ansible_default_ipv4"), dict) else None
+    itfs = []
+    for n in (f.get("ansible_interfaces") or [])[:16]:
+        d = f.get("ansible_" + str(n).replace("-", "_").replace(".", "_")) or {}
+        v4 = d.get("ipv4") if isinstance(d, dict) else None
+        if n != "lo" and isinstance(v4, dict) and v4.get("address") and not str(v4["address"]).startswith("127."):
+            itfs.append({"nombre": n, "ip": v4["address"] + (f"/{v4['prefix']}" if v4.get("prefix") else "")})
+    return {"red": {"gateway": gw or "", "interfaces": itfs}} if gw or itfs else {}
 
 
 def _usuarios(lineas):

@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% from "_topologia_red.html" import diagrama_red %}{% block titulo %}Arquitectura de red{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Arquitectura de red</h1><p class="sub">Todos los equipos de red y todas las máquinas, con la dependencia real de cada una: cableado e interfaces de los laboratorios, vecinos BGP y LLDP, puerta de enlace y subred de cada interfaz. Lo que no tiene una dependencia conocida queda sin enlace.</p></div>
+<a class="btn gris der" href="{{ url_for('consola.redes') }}">← Equipos de red</a></div>
+{% if topo and topo.nodos %}{% set r = topo.resumen %}
+<div class="grid g4" style="margin:0 0 12px">
+<div class="card kpi"><div class="n">{{ r.equipos_red }}</div><div class="l">equipos de red ({{ r.equipos_red_inv }} en el inventario)</div></div>
+<div class="card kpi"><div class="n">{{ r.con_dependencia }}</div><div class="l">máquinas con dependencia de red real de {{ r.maquinas }}</div></div>
+<div class="card kpi"><div class="n">{{ r.declaradas }}</div><div class="l">máquinas solo en una red declarada en FaceOps</div></div>
+<div class="card kpi"><div class="n">{{ r.sin_dependencia }}</div><div class="l">máquinas sin dependencia de red conocida</div></div></div>
+{{ diagrama_red(topo, '78vh', completo=True) }}
+<p class="sub" style="margin:8px 0 0;font-size:12.5px">{{ topo.nodos }} nodos · {{ topo.aristas }} uniones{% for k, n in r.aristas|dictsort %} · {{ n }} {{ {'fisico': 'físicas', 'bgp': 'BGP', 'lldp': 'LLDP', 'gateway': 'por puerta de enlace', 'subred': 'por subred', 'declarado': 'declaradas'}.get(k, k) }}{% endfor %}.
+Fuentes: {% if topo.labs %}laboratorios containerlab {{ topo.labs|join(', ') }}{% else %}sin laboratorios de red{% endif %}, fichas del inventario (interfaces, puerta de enlace, LLDP) y la topología declarada del cliente.
+{% if topo.omitidos %} Topologías sin equipos en el inventario (no se dibujan): {% for o in topo.omitidos %}{{ o.lab }} ({{ o.nodos }} nodos){{ ', ' if not loop.last }}{% endfor %}.{% endif %}
+{% if topo.recortado %} <b>Se muestran los primeros nodos: el diagrama tiene un tope de seguridad.</b>{% endif %}
+Pasa el mouse sobre un nodo para ver sus datos y sus uniones; arrastra para moverte y usa +/− (o Ctrl + rueda) para el zoom.</p>
+{% else %}<div class="card"><p class="vacio">No hay equipos de red ni máquinas para dibujar.</p></div>{% endif %}
+{% endblock %}
