@@ -1,62 +1,39 @@
-commit: 5dd120d30da5a5be234415e4b1f87d47c72d8078
-inicio: 2026-11-10T18:54:05-03:00
+commit: 1f8022867281b7cc94aab0eb3a577390fb661d11
+inicio: 2026-11-10T18:57:04-03:00
 ---
 ad6e2dc
-faceops actualizado
-aap ping 200
-   · Proyecto «FaceOps · automatizaciones»: successful
-   · Plantilla «Migración · WebLogic a OpenShift · Evaluar» (id 1130)
-   · Plantilla «Migración · WebLogic a OpenShift» (id 1131)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-Error: no container with name or ID "faceops" found: no such container
-{"M-C1": ["FO-LAB-01420", "exitoso", [["ventas", true], ["legado", false]]], "E-C1": ["FO-LAB-01421", "exitoso", "ventas_domain", "14.1.1.0.0", [["ventas", "eap8", true, "baja", 0], ["legado", "eap8", false, "alta", 3]], false], "E-C2": ["FO-LAB-01422", "exitoso", "ventas_domain", "14.1.1.0.0", [["ventas", "eap8", true, "baja", 0], ["legado", "eap8", false, "alta", 3]], false], "E-C3": ["FO-LAB-01423", "fallido", null, null, [], null]}
-===== MIGRAR C2-C4
+== 1. Hosts autorizados en AAP
+   srv-servidor-de-ejemplo-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   srv-test-ubuntu-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   pc-oficina-01: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   pc-oficina-02: 2 registro(s) en [('Servidores habilitados', 'normal'), ('FaceOps · Todos los servidores', 'constructed')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   srv-rocky-prueba-01: 2 registro(s) en [('FaceOps · Todos los servidores', 'constructed'), ('Servidores habilitados', 'normal')]
+      no se pudo borrar de Servidores habilitados: 409 {"error":"Resource is being used by running jobs.","active_jobs":[{"id":21898,"type":"job"},{"id":21899,"type":"job"}]}
+   actualizando inventario construido FaceOps · Todos los servidores
+   srv-servidor-de-ejemplo-01: quedan 2 ['Servidores habilitados', 'FaceOps · Todos los servidores']
+   srv-test-ubuntu-01: quedan 2 ['Servidores habilitados', 'FaceOps · Todos los servidores']
+   pc-oficina-01: quedan 2 ['Servidores habilitados', 'FaceOps · Todos los servidores']
+   pc-oficina-02: quedan 2 ['Servidores habilitados', 'FaceOps · Todos los servidores']
+   srv-rocky-prueba-01: quedan 2 ['FaceOps · Todos los servidores', 'Servidores habilitados']
+   licencia: 64 de 50 · libres 0
+== 2. Alta de la sede en AAP y bóveda
+   ! rtr-wan-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! fw-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! sw-core-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! sw-acc-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+   ! lb-sede-01: AAP no lo acepta (licencia en su máximo de equipos administrados)
+== 3. Despliegue de FaceOps (exporta la topología de los laboratorios)
+   faceops actualizado
+sincronizar: 63
+equipos: {'rtr-wan-01': None, 'fw-sede-01': None, 'sw-core-01': None, 'sw-acc-01': None, 'lb-sede-01': None}
+retirados ahora: []
 Traceback (most recent call last):
-  File "/tmp/wl-pb1.py", line 1, in <module>
-    exec(open("/tmp/wl-comun.py").read())
-         ^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/tmp/wl-comun.py'
-== objetos
-No resources found
-== legado (debe estar vacío)
-Warning: apps.openshift.io/v1 DeploymentConfig is deprecated in v4.14+, unavailable in v4.10000+
-No resources found in wl-ventas namespace.
-== ConfigMap: llaves (sin claves)
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-== Secret: llaves
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-== env del pod (claves por secretKeyRef)
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
- http=000
-No resources found in wl-ventas namespace.
---- fin: 2026-11-10T18:58:05-03:00 · código: 0
+  File "/tmp/m.py", line 21, in <module>
+    t = solicitar(u, cl, au, None, {}, f"Prueba {c_}: inventariar {n}", None, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e, prueba=True)
+                                                                                                                ^^^^^
+AttributeError: 'NoneType' object has no attribute 'get'
+--- fin: 2026-11-10T18:58:52-03:00 · código: 0
