@@ -1,13 +1,13 @@
-commit: c81570e9c08ecf70e7300673efb27f33ce183245
-inicio: 2026-11-10T14:12:58-03:00
+commit: c022f6c58aee4eda0d6d06feb7504b5b12a41e73
+inicio: 2026-11-10T14:15:29-03:00
 ---
-http://127.0.0.1:8080/ ERROR timed out 60.1 s
-http://127.0.0.1:8080/lake ERROR timed out 60.1 s
-minio-5558bb5bcb-slhlj Running 10
-trino-5f9cf758-wjdtx Running 7
-NAME                        CPU(cores)   MEMORY(bytes)   
-colector-787c5968fd-rl2nm   1m           43Mi            
-consola-6bd998bd58-t4ggg    9m           65Mi            
-minio-5558bb5bcb-slhlj      998m         511Mi           
-trino-5f9cf758-wjdtx        76m          1610Mi          
---- fin: 2026-11-10T14:15:01-03:00 · código: 0
+error: timed out waiting for the condition
+Waiting for deployment "consola" rollout to finish: 1 old replicas are pending termination...
+lake: 503 en 0.282091s
+lake: 503 en 0.012216s
+
+[2026-11-10 00:07:30 +0000] [1] [INFO] Starting gunicorn 22.0.0
+[2026-11-10 00:07:30 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2026-11-10 00:07:30 +0000] [1] [INFO] Using worker: gthread
+[2026-11-10 00:07:30 +0000] [5] [INFO] Booting worker with pid: 5
+--- fin: 2026-11-10T14:19:35-03:00 · código: 0
