@@ -86,7 +86,9 @@
           archivo: linux-seguridad
           correo: "{{ correo | default('cquezada@invoke.cl') }}"
           job: "{{ tower_job_id | default(awx_job_id | default('-')) }}"
-          secciones: "{{ lookup('template', 'secciones.j2') | from_json }}"
+          secciones: "{{ _sec if _sec is not string else _sec | from_json }}"
+      vars:
+        _sec: "{{ lookup('template', 'secciones.j2') }}"   # según la versión de Ansible llega como texto o ya como lista
       delegate_to: localhost
       run_once: true
       register: r_inf
