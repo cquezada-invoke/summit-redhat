@@ -1,0 +1,20 @@
+commit: 5bc09585a7ef669da338d2a9e4147b10b3442b2d
+inicio: 2026-11-10T14:41:44-03:00
+---
+colector-1-build            0/1   Completed   0     28h
+colector-787c5968fd-rl2nm   1/1   Running     2     28h
+consola-689cc8d9b-2bvgl     1/1   Running     0     12m
+minio-596dbf794f-5s2z8      1/1   Running     0     12m
+I1110 17:38:30.074499 store.go:169 In dir /data adds volume:14 collection: replicaPlacement:000 ttl:
+I1110 17:38:30.075490 volume_loading.go:137 checking volume data integrity for volume 14
+I1110 17:38:30.075557 volume_loading.go:155 loading memory index /data/14.idx to memory
+I1110 17:38:30.077459 store.go:173 add volume 14
+I1110 17:38:30.077545 volume_grpc_client_to_master.go:189 volume server 127.0.0.1:8080 adds volume 14
+I1110 17:38:30.077714 volume_layout.go:424 Volume 14 becomes writable
+I1110 17:38:30.077714 volume_growth.go:264 Created Volume 14 on topo:DefaultDataCenter:DefaultRack:127.0.0.1:8080
+I1110 17:38:30.077759 volume_growth.go:277 Registered Volume 14 on topo:DefaultDataCenter:DefaultRack:127.0.0.1:8080
+9000 9001
+http://minio:8888/lake/?limit=5 ERR HTTPConnectionPool(host='minio', port=8888): Max retries exceeded with url: /lake/?limit=5 (Caused by ConnectTimeoutErro
+http://minio:9000/ 200 0.0 <?xml version="1.0" encoding="UTF-8"?> <ListAllMyBucketsResult><Owner><ID></ID></Owner><Buckets><Bucket><Name>lake</Name><CreationDate>2026-11-10T17:38:12Z</CreationDate></Bucket></Buckets></ListAllMy
+lake: 504 en 30.239164s
+--- fin: 2026-11-10T14:42:34-03:00 · código: 0
