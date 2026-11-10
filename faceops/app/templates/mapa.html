@@ -71,7 +71,8 @@ v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('k
 {% for t in tickets_seg %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td style="white-space:nowrap">{{ (t.creado or '')[:16].replace('T', ' ') }}</td>
 <td>{{ t.accion or '—' }}</td><td>{{ t.maquinas|join(', ') or '—' }}</td><td class="sub">{{ (t.motivo or '')[:110] }}</td><td><span class="chip e-{{ t.estado }}">{{ t.estado.replace('_', ' ') }}</span></td></tr>{% endfor %}</table></div>
 {% else %}<p class="sub">Aún no se ha lanzado ninguna acción sobre este segmento.</p>{% endif %}{% endif %}
-<script>const APP_URL={{ (((acceso_app.urls|selectattr('t', 'equalto', 'Aplicación')|map(attribute='u')|first) if acceso_app.urls else '') or acceso_app.entrar or '' if acceso_app else '')|tojson }};
+<script>const AMB_SEG={{ (seg_info.ambiente if seg_info else '')|tojson }};
+const APP_URL={{ (((acceso_app.urls|selectattr('t', 'equalto', 'Aplicación')|map(attribute='u')|first) if acceso_app.urls else '') or acceso_app.entrar or '' if acceso_app else '')|tojson }};
 const RESALTAR={{ request.args.get("equipo", "")|tojson }};const RES_SET=new Set(RESALTAR.split(',').map(x=>x.trim()).filter(Boolean));
 const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if cliente else 0) }}-'+{{ (request.args.get('segmento') or request.args.get('vista') or 'global')|tojson }};</script>
 <script>
@@ -142,7 +143,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         const acc=document.createElement('div'); acc.className='accesos-caja';
         const boton=(txt,url,tit)=>{ const x=document.createElement('a'); x.className='btn-acceso'; x.href=url; x.target='_blank'; x.rel='noopener'; x.title=tit; x.textContent=txt+' ↗';
           x.onclick=ev=>ev.stopPropagation(); x.onpointerdown=ev=>ev.stopPropagation(); acc.appendChild(x); };
-        if(d.icono===ENTRADA && APP_URL) boton('Aplicación', APP_URL, 'Abrir la aplicación (entrada por el balanceo)');
+        if(d.icono===ENTRADA && APP_URL && d.tipo!=='por_crear' && (!AMB_SEG||AMB_SEG==='produccion')) boton('Aplicación', APP_URL, 'Abrir la aplicación (entrada por el balanceo)');   // la URL de la arquitectura es la de producción
         if(d.web && d.web.abrir) boton('Consola', d.web.abrir, 'Consola de la plataforma'+(d.web.producto?' · '+d.web.producto:''));
         if(acc.children.length) el.appendChild(acc);
       }
@@ -249,7 +250,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
           'text-background-color':v('--panel'),'text-background-opacity':1,'text-background-padding':3,'text-rotation':'none','arrow-scale':1.3}}]),
       maxZoom: global ? 1.4 : 2.2, minZoom:0.3,
       layout: global ? {name:'cose',animate:false,randomize:false,padding:20,nodeRepulsion:60000,idealEdgeLength:80,componentSpacing:50,nestingFactor:1.1,gravity:0.9}
-                     : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:16,spacingFactor:0.78,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
+                     : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:16,spacingFactor:(AMB_SEG&&AMB_SEG!=='produccion')?1.15:0.78,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
     });
     if(!global){  // flujo compacto y a todo el ancho: si el gráfico sale alto y angosto se gira (izquierda → derecha) y se ajusta a una vista
       const caja=document.getElementById('cy'); let bb=cy.elements().boundingBox();
