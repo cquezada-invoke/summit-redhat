@@ -6629,6 +6629,15 @@ def manifiesto_plantilla(nombre):
 def _infras_con_salud(infras):
     """Cada infraestructura con la salud consolidada de sus máquinas (x["res"])."""
     eqs_ = equipos_visibles()
+    nubes_ = [x for x in infras if x.get("ambito") == "nube"]
+    if nubes_:   # nubes: la columna Conexión muestra lo que AAP dice ahora (credencial, fuente y última sincronización)
+        from .infraestructuras import estado_nube
+        try:
+            aap_ = AAP.de_cliente(g.cliente)
+            for x in nubes_:
+                estado_nube(aap_, x, g.cliente["id"])
+        except ErrorAAP:
+            pass
     for x in infras:
         es_ = [e for e in eqs_ if (e.get("ubicacion") or "") == x["ubicacion"]]
         x["res"] = _resumen_grupo(es_) if es_ else None

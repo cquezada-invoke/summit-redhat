@@ -1,0 +1,82 @@
+{% extends "base.html" %}{% block titulo %}{{ x.nombre }}{% endblock %}
+{% block cuerpo %}{% from "_infra.html" import logo %}
+<style>.hv-cab{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.hv-cab h1{margin:0}
+.hv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}
+.hv-grid .card h3{margin:0 0 8px;font-size:14px}.hv-dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
+.hv-dl dt{color:var(--muted)}.hv-dl dd{margin:0;word-break:break-word}
+.hv-lcab{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px 6px}.hv-lcab h3{margin:0;font-size:14px}.hv-lcab input{margin-left:auto;max-width:300px;width:100%}
+.nb-vacio{padding:4px 16px 14px;font-size:12.5px}</style>
+{% set ok_ = x.estado == 'conectada' %}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.nubes') }}">Nubes</a> ›</p>
+<div class="hv-cab">{{ logo(x.tipo, 44) }}<div><h1>{{ x.nombre }}</h1><span class="sub">{{ x.prov.nombre }} · {{ x.centro }} <span class="chip nat-nube">cloud</span></span></div>
+<span class="chip der {{ 's-ok' if ok_ else ('s-alta' if x.estado in ('error', 'sin credencial') else 's-media') }}" title="Leído en AAP ahora (credencial, inventario y fuente dinámica)">{{ '● ' if ok_ }}{{ x.estado }}</span></div>
+{% if x.mensaje or err %}<p class="sub" style="margin:6px 0 0">{{ err or x.mensaje }}{% if con.ultima %} · última sincronización {{ con.ultima|fecha }}{% endif %}</p>{% endif %}
+{% if perfil_actual.modo == 'escritura' %}<p style="margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap">
+{% if not con.cred %}<a class="btn chico" href="{{ url_for('consola.infraestructuras', conectar=x.id) }}#conectar">Conectar (cargar credencial)</a>{% else %}<a class="btn chico gris" href="{{ url_for('consola.infraestructuras', conectar=x.id) }}#conectar">Renovar credencial</a>{% endif %}
+<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}" style="display:inline;margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="{{ request.path }}"><button class="btn chico gris" {{ 'disabled title="Primero carga la credencial"'|safe if not con.cred }}>Probar acceso</button></form></p>{% endif %}
+
+<div class="hv-grid">
+<div class="card"><h3>Información general</h3><dl class="hv-dl">
+<dt>Proveedor</dt><dd>{{ x.prov.nombre }}</dd>
+<dt>{{ cuenta_t }}</dt><dd>{{ cuenta or '—' }}{% if con.cred and con.cred.proyecto and cuenta and con.cred.proyecto != cuenta %} <span class="chip s-alta" title="La credencial de AAP apunta a otro proyecto">credencial: {{ con.cred.proyecto }}</span>{% endif %}</dd>
+<dt>Región declarada</dt><dd>{{ x.region or x.detalle_d.region or '—' }}</dd>
+<dt>Zona declarada</dt><dd>{{ x.detalle_d.zona or '—' }}</dd>
+<dt>Red VPC declarada</dt><dd>{{ x.detalle_d.red or x.detalle_d.vpc or '—' }}</dd>
+{% if x.detalle_d.etiqueta %}<dt>Etiqueta</dt><dd><span class="chip">{{ x.detalle_d.etiqueta }}</span></dd>{% endif %}
+<dt>Centro de datos</dt><dd>{{ x.centro }} (cloud)</dd>
+<dt>Acceso a máquinas</dt><dd>{{ x.detalle_d['acceso a máquinas'] or '—' }}</dd>
+</dl></div>
+
+<div class="card"><h3>Conexión en AAP</h3><dl class="hv-dl">
+<dt>Credencial</dt><dd>{% if con.cred %}{{ con.cred.nombre }} <span class="sub">({{ con.cred.tipo }})</span>{% elif x.credencial %}{{ x.credencial }} <span class="chip s-alta">no existe en AAP</span>{% else %}—{% endif %}</dd>
+<dt>Inventario</dt><dd>{% if con.inv %}{{ con.inv.nombre }} · {{ con.inv.hosts }} máquina{{ 's' if con.inv.hosts != 1 }}{% elif x.inventario %}{{ x.inventario }} <span class="chip s-alta">no existe en AAP</span>{% else %}—{% endif %}</dd>
+<dt>Fuente dinámica</dt><dd>{% if con.fuente %}{{ con.fuente.nombre }} <span class="sub">({{ con.fuente.tipo }})</span>{% else %}— <span class="sub">(falta la fuente {{ fuente_tipo }}; se crea con «Conectar»)</span>{% endif %}</dd>
+<dt>Última sincronización</dt><dd>{% if con.fuente and con.fuente.ultima %}{{ con.fuente.ultima|fecha }} · <span class="chip {{ 's-ok' if con.fuente.estado == 'successful' else ('s-alta' if con.fuente.estado in ('failed', 'error') else '') }}">{{ con.fuente.estado }}</span>{% else %}nunca{% endif %}</dd>
+<dt>Verificado</dt><dd>{{ x.verificado|fecha if x.verificado else '—' }}</dd>
+</dl></div>
+
+<div class="card"><h3>Uso y salud</h3><dl class="hv-dl">
+<dt>Regiones · zonas</dt><dd>{% for r_, zs in zonas.items() %}<span class="chip">{{ r_ }}</span>{% for z_ in zs %} <span class="sub">{{ z_ }}</span>{% endfor %}<br>{% else %}—{% endfor %}</dd>
+<dt>Máquinas</dt><dd>{{ maqs|length }}{% if maqs %} · {{ maqs|selectattr('on')|list|length }} encendidas{% endif %}</dd>
+<dt>Discos</dt><dd>{{ discos|length }}{% if discos %} · {{ disco_gb }} GB{% endif %}</dd>
+<dt>IPs públicas</dt><dd>{{ publicas|length }}</dd>
+<dt>Clúster OpenShift</dt><dd>{% for c_ in clusters %}<span class="chip">{{ c_ }} · {{ clusters[c_]|length }} nodos</span> {% endfor %}{% for e in ocp %}<a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a> {% endfor %}{% if not clusters and not ocp %}—{% endif %}</dd>
+<dt>Costo este mes</dt><dd>{% if con_costo %}≈ CLP {{ '{:,.0f}'.format(costo_total).replace(',', '.') }} <span class="sub">(estimado con las horas encendidas)</span>{% else %}—{% endif %}</dd>
+<dt>Salud consolidada</dt><dd>{% if res and res.salud is not none %}{% set sv_ = res.salud|int %}<span class="salud-barra s-{{ 'verde' if sv_ >= 80 else ('amarillo' if sv_ >= 50 else 'rojo') }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span>{% else %}—{% endif %}</dd>
+</dl></div>
+</div>
+{% set sin_ = 'Sin datos: ' ~ ('AAP no tiene credencial para leer esta nube; cárgala con «Conectar» y luego «Probar acceso» sincroniza su inventario dinámico.' if not con.cred else ('la fuente dinámica aún no trae máquinas; usa «Probar acceso».' if not ok_ else 'la nube no informa elementos de este tipo.')) %}
+
+<div class="card hv-lista" style="margin-top:14px;padding:0"><div class="hv-lcab"><h3>Máquinas por región y zona · {{ maqs|length }}</h3><input type="search" placeholder="Buscar máquina: nombre, zona, tipo, IP, estado…" aria-label="Buscar máquina"></div>
+<table class="sin-pag"><tr><th>Máquina</th><th>Región · zona</th><th>Estado</th><th>Tipo de máquina</th><th>IP interna</th><th>IP pública</th><th>Costo este mes</th></tr>
+{% for m in maqs %}<tr><td>{% if m.equipo %}<a href="{{ url_for('consola.equipo', eid=m.equipo.id) }}">{{ m.nombre }}</a>{% else %}{{ m.nombre }}{% endif %}{% if m.solo_faceops %} <span class="chip" title="Está en el inventario de FaceOps pero AAP no la trae de la nube">solo FaceOps</span>{% endif %}</td>
+<td>{{ m.region or '—' }} · {{ m.zona or '—' }}</td><td><span class="chip {{ 's-ok' if m.on }}">{{ m.estado or '—' }}</span></td><td>{{ m.tipo or '—' }}</td><td class="mono">{{ m.ip or '—' }}</td>
+<td class="mono">{{ m.publicas|join(', ') or '—' }}</td><td title="{{ m.tarifa }}">{{ ('CLP ' ~ '{:,.0f}'.format(m.costo_mes).replace(',', '.')) if m.costo_mes is not none else '—' }}</td></tr>
+{% else %}<tr><td colspan="7" class="sub">{{ sin_ }}</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
+
+<div class="card hv-lista" style="margin-top:14px;padding:0"><div class="hv-lcab"><h3>Redes (VPC) y subredes · {{ redes|length }}</h3><input type="search" placeholder="Buscar red, subred o máquina…" aria-label="Buscar red"></div>
+<table class="sin-pag"><tr><th>VPC</th><th>Subred</th><th>Región</th><th>Máquinas conectadas</th></tr>
+{% for k_, ms in redes.items() %}<tr><td>{{ k_[0] }}</td><td>{{ k_[1] }}</td><td>{{ k_[2] }}</td><td style="font-size:12.5px">{{ ms|length }} · {{ ms|join(', ') }}</td></tr>
+{% else %}<tr><td colspan="4" class="sub">{{ sin_ }}{% if x.detalle_d.red %} Red declarada al incorporarla: {{ x.detalle_d.red }}.{% endif %}</td></tr>{% endfor %}</table><div class="pag-js"></div>
+{% if redes %}<p class="sub nb-vacio">Redes vistas en las interfaces de las máquinas; una VPC o subred sin máquinas no aparece en el inventario dinámico.</p>{% endif %}</div>
+
+<div class="card hv-lista" style="margin-top:14px;padding:0"><div class="hv-lcab"><h3>Discos · {{ discos|length }}</h3><input type="search" placeholder="Buscar disco o máquina…" aria-label="Buscar disco"></div>
+<table class="sin-pag"><tr><th>Disco</th><th>Máquina</th><th>Zona</th><th>Tamaño</th><th>Tipo</th><th>Arranque</th></tr>
+{% for d in discos %}<tr><td>{{ d.nombre or '—' }}</td><td>{{ d.maquina }}</td><td>{{ d.zona or '—' }}</td><td>{{ (d.gb ~ ' GB') if d.gb else '—' }}</td><td>{{ d.tipo or '—' }}</td><td>{{ 'sí' if d.arranque else 'no' }}</td></tr>
+{% else %}<tr><td colspan="6" class="sub">{{ sin_ }}</td></tr>{% endfor %}</table><div class="pag-js"></div>
+{% if discos %}<p class="sub nb-vacio">Discos conectados a máquinas; los discos sueltos no vienen en el inventario dinámico.</p>{% endif %}</div>
+
+<div class="card hv-lista" style="margin-top:14px;padding:0"><div class="hv-lcab"><h3>IPs públicas · {{ publicas|length }}</h3>{% if publicas|length > 10 %}<input type="search" placeholder="Buscar IP o máquina…" aria-label="Buscar IP pública">{% endif %}</div>
+<table class="sin-pag"><tr><th>IP</th><th>Máquina</th><th>Zona</th><th>Máquina encendida</th></tr>
+{% for p_ in publicas %}<tr><td class="mono">{{ p_.ip }}</td><td>{{ p_.maquina }}</td><td>{{ p_.zona or '—' }}</td><td>{{ 'sí' if p_.on else 'no' }}</td></tr>
+{% else %}<tr><td colspan="4" class="sub">{{ sin_ }}</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
+
+<script>/* buscador + paginador (10 por página) de las listas de la nube */
+document.querySelectorAll('.hv-lista').forEach(c=>{const tb=c.querySelector('table'),nav=c.querySelector('.pag-js'),q=c.querySelector('input[type=search]');
+ const filas=[...tb.rows].filter(r=>r.querySelector('td')&&!r.querySelector('td[colspan]'));let p=0;const N=10;
+ function pintar(){const v=(q&&q.value||'').toLowerCase().trim(),vis=filas.filter(r=>!v||r.textContent.toLowerCase().includes(v)),tot=Math.max(1,Math.ceil(vis.length/N));p=Math.min(p,tot-1);
+  filas.forEach(r=>r.style.display='none');vis.forEach((r,i)=>r.style.display=(i>=p*N&&i<(p+1)*N)?'':'none');
+  if(filas.length<=N&&!v){nav.innerHTML='';return;}
+  nav.innerHTML='<span class="sub">'+(vis.length?p*N+1:0)+'–'+Math.min((p+1)*N,vis.length)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(p?'':'disabled')+'>‹ anterior</button><span class="sub">página '+(p+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(p<tot-1?'':'disabled')+'>siguiente ›</button>';}
+ nav.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){p+=+b.dataset.p;pintar();}});if(q)q.addEventListener('input',()=>{p=0;pintar();});pintar();});</script>
+{% endblock %}

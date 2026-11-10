@@ -1,12 +1,4 @@
-{% extends "base.html" %}{% block titulo %}{{ x.nombre }}<script>/* buscador + paginador (10 por página) de las listas del hipervisor */
-document.querySelectorAll('.hv-lista').forEach(c=>{const tb=c.querySelector('table'),nav=c.querySelector('.pag-js'),q=c.querySelector('input[type=search]');
- const filas=[...tb.rows].filter(r=>r.querySelector('td')&&!r.querySelector('td[colspan]'));let p=0;const N=10;
- function pintar(){const v=(q&&q.value||'').toLowerCase().trim(),vis=filas.filter(r=>!v||r.textContent.toLowerCase().includes(v)),tot=Math.max(1,Math.ceil(vis.length/N));p=Math.min(p,tot-1);
-  filas.forEach(r=>r.style.display='none');vis.forEach((r,i)=>r.style.display=(i>=p*N&&i<(p+1)*N)?'':'none');
-  if(filas.length<=N&&!v){nav.innerHTML='';return;}
-  nav.innerHTML='<span class="sub">'+(vis.length?p*N+1:0)+'–'+Math.min((p+1)*N,vis.length)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(p?'':'disabled')+'>‹ anterior</button><span class="sub">página '+(p+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(p<tot-1?'':'disabled')+'>siguiente ›</button>';}
- nav.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){p+=+b.dataset.p;pintar();}});if(q)q.addEventListener('input',()=>{p=0;pintar();});pintar();});</script>
-{% endblock %}
+{% extends "base.html" %}{% block titulo %}{{ x.nombre }}{% endblock %}
 {% block cuerpo %}{% from "_infra.html" import logo %}
 <style>.hv-cab{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.hv-cab h1{margin:0}
 .hv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}

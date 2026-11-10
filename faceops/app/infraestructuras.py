@@ -499,6 +499,13 @@ def probar(usuario, cliente, iid):
         if not inv:
             raise ErrorAAP(f"No existe el inventario «{x['inventario']}» en AAP")
         fuentes = aap.get("inventory_sources/", inventory=inv["id"]).get("results") or []
+        if x["tipo"] in FUENTE_NUBE:   # nube: sin credencial o sin fuente dinámica no hay nada que probar (un ping a un inventario vacío no prueba la nube)
+            _CACHE_NUBE.pop((cliente["id"], iid), None)
+            r_ = estado_nube(aap, dict(x), cliente["id"], guardar=False, ttl=0)
+            fuentes = [s_ for s_ in fuentes if s_.get("source") == FUENTE_NUBE[x["tipo"]] or (r_["cred"] and s_.get("credential") == r_["cred"]["id"])]
+            if not r_["cred"] or not fuentes:
+                estado = "sin credencial" if not r_["cred"] else "error"
+                raise ErrorAAP(r_["mensaje"])
         from .confianza import autorizar
         autorizar(cliente, f"Probar acceso · {x['nombre']}", f"infra:{x['id']}", {"inventario": x["inventario"]}, usuario=usuario["usuario"], origen="faceops")
         if fuentes:
@@ -543,6 +550,118 @@ def probar(usuario, cliente, iid):
         msg = f"{hosts} equipo(s) en su inventario de AAP" if st == "successful" else f"AAP: {st}"
     except ErrorAAP as e:
         msg = str(e)[:300]
+    _CACHE_NUBE.pop((cliente["id"], iid), None)
     ej("UPDATE infraestructuras SET estado=?, verificado=?, mensaje=? WHERE id=?", estado, ahora(), msg, iid)
     auditar(usuario["usuario"], cliente["id"], "probar infraestructura", x["nombre"], {"estado": estado, "mensaje": msg})
     return estado, msg
+
+
+# ------------------------------------------------------------------ nubes: estado real de la conexión y lo que AAP ve en ellas
+FUENTE_NUBE = {"gcp": "gce", "aws": "ec2", "azure": "azure_rm"}
+_CACHE_NUBE = {}   # (cliente, infraestructura) → (instante, resultado): la lista y el detalle no consultan AAP en cada clic
+DATO_CUENTA = {"gcp": ("proyecto", "Proyecto"), "aws": ("cuenta", "Cuenta"), "azure": ("suscripcion", "Suscripción")}
+
+
+def _fin(u):
+    return str(u or "").rstrip("/").rsplit("/", 1)[-1]
+
+
+def _motivo_falla(aap, upd_id):
+    """Última línea útil del error de una sincronización de inventario (sin secretos: solo el texto del error)."""
+    try:
+        u = aap.get(f"inventory_updates/{upd_id}/")
+    except Exception:  # noqa: BLE001
+        return ""
+    lineas = [l_.strip() for l_ in ((u.get("result_traceback") or "") + "\n" + (u.get("job_explanation") or "")).splitlines() if l_.strip()]
+    lineas = [l_ for l_ in lineas if "private_key" not in l_.lower() and "BEGIN" not in l_]
+    return (lineas[-1] if lineas else "")[:220]
+
+
+def estado_nube(aap, x, cliente_id, guardar=True, ttl=60):
+    """Estado de la conexión de una nube leído en AAP en este momento (no el valor guardado): credencial, inventario,
+    fuente dinámica y su última sincronización. Deja el resultado en la infraestructura para que el resto de FaceOps lo vea."""
+    import time
+    from .aap import ErrorAAP
+    k_ = (cliente_id, x["id"])
+    if k_ in _CACHE_NUBE and time.time() - _CACHE_NUBE[k_][0] < ttl:
+        return _CACHE_NUBE[k_][1]
+    r = {"estado": "sin verificar", "mensaje": "", "cred": None, "inv": None, "fuente": None, "ultima": None, "hosts": None}
+    try:
+        cred = (aap.get("credentials/", name=x["credencial"]).get("results") or [None])[0] if x.get("credencial") else None
+        inv = (aap.get("inventories/", name=x["inventario"]).get("results") or [None])[0] if x.get("inventario") else None
+        fuentes = aap.get("inventory_sources/", inventory=inv["id"]).get("results") or [] if inv else []
+        fte = next((s for s in fuentes if s.get("source") == FUENTE_NUBE.get(x["tipo"])), None) or \
+            next((s for s in fuentes if cred and s.get("credential") == cred["id"]), None)
+        if cred:
+            r["cred"] = {"nombre": cred["name"], "id": cred["id"], "tipo": (cred.get("summary_fields") or {}).get("credential_type", {}).get("name", ""),
+                         "proyecto": (cred.get("inputs") or {}).get("project") or (cred.get("inputs") or {}).get("subscription") or "",
+                         "modificada": cred.get("modified")}
+        if inv:
+            r["inv"] = {"nombre": inv["name"], "id": inv["id"], "hosts": inv.get("total_hosts", 0)}
+            r["hosts"] = inv.get("total_hosts", 0)
+        if fte:
+            lj = (fte.get("summary_fields") or {}).get("last_job") or {}
+            sv = fte.get("source_vars") or ""
+            r["fuente"] = {"nombre": fte["name"], "id": fte["id"], "tipo": fte.get("source"), "estado": fte.get("status"),
+                           "ultima": fte.get("last_updated") or lj.get("finished"), "vars": sv[:300], "job": lj.get("id")}
+            r["ultima"] = r["fuente"]["ultima"]
+        cuenta = (x.get("detalle_d") or j(x.get("detalle"), {})).get(DATO_CUENTA.get(x["tipo"], ("", ""))[0], "")
+        if not x.get("credencial") or not cred:
+            r["estado"] = "sin credencial"
+            r["mensaje"] = (f"No hay conexión: falta en AAP la credencial «{x['credencial']}»" if x.get("credencial") else "No hay conexión: no tiene credencial") + \
+                (f" (cuenta de servicio del proyecto {cuenta})" if x["tipo"] == "gcp" and cuenta else "") + \
+                ". Sin ella AAP no puede leer la nube; cárgala con «Conectar»"
+        elif not inv:
+            r["estado"], r["mensaje"] = "error", f"No existe en AAP el inventario «{x['inventario']}»"
+        elif not fte:
+            r["estado"] = "error"
+            r["mensaje"] = f"El inventario «{inv['name']}» no tiene fuente dinámica ({FUENTE_NUBE.get(x['tipo'])}); se crea al volver a «Conectar»"
+        elif fte.get("status") in ("successful",):
+            r["estado"] = "conectada"
+            r["mensaje"] = f"AAP lee la nube: {r['hosts']} máquina(s) en su inventario"
+        elif fte.get("status") in ("failed", "error"):
+            r["estado"] = "error"
+            mot = _motivo_falla(aap, r["fuente"]["job"]) if r["fuente"]["job"] else ""
+            r["mensaje"] = "La última sincronización con la nube falló" + (f": {mot}" if mot else "")
+        elif fte.get("status") in ("running", "pending", "waiting"):
+            r["estado"], r["mensaje"] = "sin probar", "Sincronizando con la nube en AAP…"
+        else:
+            r["estado"], r["mensaje"] = "sin probar", "Credencial y fuente listas en AAP; nunca se ha sincronizado: falta «Probar acceso»"
+    except ErrorAAP as e:
+        r["estado"], r["mensaje"] = "sin verificar", f"No se pudo consultar AAP: {str(e)[:160]}"
+    if guardar and r["estado"] != "sin verificar" and (x.get("estado") != r["estado"] or x.get("mensaje") != r["mensaje"]):
+        ej("UPDATE infraestructuras SET estado=?, mensaje=?, verificado=? WHERE id=?", r["estado"], r["mensaje"], ahora(), x["id"])
+    x["estado"], x["mensaje"] = r["estado"], r["mensaje"]
+    _CACHE_NUBE[k_] = (time.time(), r)
+    return r
+
+
+def maquinas_nube(aap, inv_id):
+    """Máquinas que la fuente dinámica de AAP trae de la nube, con lo que informa el proveedor (gcp_compute, aws_ec2,
+    azure_rm): estado, tipo, zona, interfaces, IPs, discos y etiquetas. Solo lectura de AAP."""
+    out = []
+    for h in aap.todos(f"inventories/{inv_id}/hosts/"):
+        try:
+            v = json.loads(h.get("variables") or "{}")
+        except ValueError:
+            import yaml
+            v = yaml.safe_load(h.get("variables") or "") or {}
+        nics = v.get("networkInterfaces") or []
+        zona = _fin(v.get("zone")) or ((v.get("placement") or {}).get("availability_zone", "") if isinstance(v.get("placement"), dict) else "")
+        est = v.get("status") or ((v.get("state") or {}).get("name") if isinstance(v.get("state"), dict) else "") or v.get("powerstate") or ""
+        reg = zona.rsplit("-", 1)[0] if zona.count("-") >= 2 else (v.get("location") or "")
+        pub = [ac.get("natIP") for n in nics for ac in (n.get("accessConfigs") or []) if ac.get("natIP")] or \
+            [x_ for x_ in [v.get("public_ip_address")] if x_]
+        lbl = v.get("labels") or {}
+        out.append({"nombre": h["name"], "host_id": h["id"], "estado": est,
+                    "tipo": _fin(v.get("machineType")) or v.get("instance_type") or v.get("virtual_machine_size") or "",
+                    "zona": zona or "", "region": reg, "ip": (nics[0].get("networkIP") if nics else "") or v.get("private_ip_address") or v.get("ansible_host") or "",
+                    "publicas": pub, "creada": v.get("creationTimestamp") or v.get("launch_time") or "",
+                    "redes": [{"vpc": _fin(n.get("network")), "subred": _fin(n.get("subnetwork")),
+                               "region": (n.get("subnetwork") or "").split("/regions/")[-1].split("/")[0] if "/regions/" in (n.get("subnetwork") or "") else reg,
+                               "ip": n.get("networkIP")} for n in nics],
+                    "discos": [{"nombre": d.get("deviceName") or _fin(d.get("source")), "gb": d.get("diskSizeGb"), "tipo": d.get("type") or "",
+                                "arranque": bool(d.get("boot")), "interfaz": d.get("interface") or ""} for d in (v.get("disks") or [])],
+                    "etiquetas": lbl if isinstance(lbl, dict) else {},
+                    "cluster": next((k[len("kubernetes-io-cluster-"):] for k in (lbl if isinstance(lbl, dict) else {}) if k.startswith("kubernetes-io-cluster-")), "")})
+    return out
