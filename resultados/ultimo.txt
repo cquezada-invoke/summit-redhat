@@ -1,9 +1,23 @@
-commit: 42a676446110174d2ccbe501251c344d7a7b520e
-inicio: 2026-11-09T22:53:00-03:00
+commit: a340c8fd501deb5e6ea64ee069ea63a38af19238
+inicio: 2026-11-09T22:53:29-03:00
 ---
-20012 Portal · Linux · Informe de seguridad (plantilla) failed 2026-11-10T01:51:56 {}
-20008 Red · Verificar drift successful 2026-11-10T01:51:03 {"red_drift": false, "red_equipo": "rtr"}
-20005 Remediación · Diagnosticar app successful 2026-11-10T01:49:10 {"http_app": "404", "version_en_ejecucion": "desconocida", "version_validada": "1.0.37"}
-20002 OpenShift · Recolectar clúster successful 2026-11-10T01:47:57 {}
-== log del portal
---- fin: 2026-11-09T22:53:04-03:00 · código: 0
+runner_on_unreachable nodo-postgres Gathering Facts Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.13' (ED25519) to the list of known hosts.
+root@192.168.122.13: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+runner_on_unreachable nodo-so Gathering Facts Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.12' (ED25519) to the list of known hosts.
+root@192.168.122.12: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+runner_on_unreachable nodo-jboss Gathering Facts Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.15' (ED25519) to the list of known hosts.
+root@192.168.122.15: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+runner_on_unreachable nodo-nginx Gathering Facts Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.11' (ED25519) to the list of known hosts.
+root@192.168.122.11: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+runner_on_unreachable nodo-jboss2 Gathering Facts Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.18' (ED25519) to the list of known hosts.
+root@192.168.122.18: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+runner_on_unreachable nodo-tomcat Gathering Facts Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.14' (ED25519) to the list of known hosts.
+root@192.168.122.14: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+runner_on_unreachable nodo-jboss-dev Gathering Facts Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.21' (ED25519) to the list of known hosts.
+root@192.168.122.21: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+runner_on_unreachable nodo-jboss-qa Gathering Facts Failed to connect to the host via ssh: ssh: connect to host 192.168.122.20 port 22: Connection timed out
+runner_on_unreachable nodo-jboss3 Gathering Facts Failed to connect to the host via ssh: ssh: connect to host 192.168.122.19 port 22: Connection timed out
+playbook_on_stats   {}
+
+
+--- fin: 2026-11-09T22:53:30-03:00 · código: 0
