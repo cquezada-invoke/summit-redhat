@@ -1146,8 +1146,11 @@ def actualizar_tickets():
                     if a["nombre_aap"] == "VPN · Preparar servidor":
                         registrar_skill(dict(t, limite=j(t["parametros"], {}).get("hab_nombre_exacto") or "dc1-vpn01"),
                                         dict(a, habilita_skill="vpn", campos="[]"), {})
-                except ErrorAAP as x:
+                except Exception as x:  # noqa: BLE001 - sin alta en AAP el servidor no queda gestionado: el ticket no puede quedar exitoso
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+                    est = "fallido"
+                    res += f"\nLa máquina se creó, pero no se pudo dar de alta en AAP ni en FaceOps: {str(x)[:300]}"
+                    ej("UPDATE tickets SET estado=?, resultado=? WHERE id=?", est, res, t["id"])
             if est == "exitoso" and a and a["nombre_aap"] == VINCULAR and (t["motivo"] or "").startswith(MOTIVO_VINCULAR):
                 inventariar_vinculado(c, t)
             if est in ("exitoso", "fallido") and a and a["nombre_aap"] in ("VPN · Preparar servidor", "VPN · Gestionar acceso"):
