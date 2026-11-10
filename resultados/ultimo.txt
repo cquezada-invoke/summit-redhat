@@ -1,47 +1,28 @@
-commit: 042b697436617f785f7141a3660f8d23aad81261
-inicio: 2026-11-10T16:44:57-03:00
+commit: a204679afeb8e7b822baa81746cf634c0a87b46e
+inicio: 2026-11-10T16:45:29-03:00
 ---
-LIC {'instance_count': 50, 'current_instances': 64, 'free_instances': 0, 'automated_instances': 52, 'subscription_name': '60 Day Product Trial of Red Hat Ansible Automation Platform, Self-Supported (50 Managed Nodes)'}
-EE 5 Control Plane Execution Environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
-EE 4 Default execution environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
-EE 3 Minimal execution environment registry.redhat.io/ansible-automation-platform-27/ee-minimal-rhel9:2.16
-EE 2 Hub Default execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-supported-rhel9:latest
-EE 1 Hub Minimal execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-minimal-rhel9:2.16
-H borde True ansible_host: 172.20.20.52 | faceops_categoria: router | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: borde | descripcion: Router d
-H core True ansible_host: 172.20.20.58 | faceops_categoria: switch | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: core | descripcion: Core L3 ·
-H dns-dmz True ansible_host: 172.20.20.56 | faceops_categoria: servidor | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: dmz | descripcion: DNS de l
-H fw True ansible_host: 172.20.20.12 | ansible_connection: ansible.netcommon.network_cli | ansible_network_os: vyos.vyos.vyos | ansible_user: '{{ fw_usuario }}' | descripcion: Firewall VyOS (eth1 WAN · eth2 LAN usuarios)
-H fw-interno True ansible_host: 172.20.20.57 | faceops_categoria: firewall | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: interno | descripcion: Fire
-H fw-perimetral True ansible_host: 172.20.20.53 | faceops_categoria: firewall | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: perimetro | descripcion: Fi
-H lb-dmz True ansible_host: 172.20.20.54 | faceops_categoria: balanceador | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: dmz | descripcion: Balan
-H nas-01 True ansible_host: 172.20.20.62 | faceops_categoria: almacenamiento | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: storage | descripcion
-H nodo-jboss True ansible_host: 192.168.122.15 | ansible_user: ansible | ansible_connection: ssh
-H nodo-nginx True {"ansible_host": "192.168.122.11", "ansible_user": "ansible"}
-H nodo-postgres True ansible_host: 192.168.122.13 | ansible_user: ansible | ansible_connection: ssh
-H nodo-so True {"ansible_host": "192.168.122.12", "ansible_user": "ansible"}
-H pc-campus-01 True ansible_host: 172.20.20.61 | faceops_categoria: estación de trabajo | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: campus | descrip
-H pc-usuario True ansible_host: 172.20.20.22 | ansible_python_interpreter: /usr/bin/python3 | descripcion: Equipo de usuario detrás del FortiGate
-H proxy-dmz True ansible_host: 172.20.20.55 | faceops_categoria: servidor | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: dmz | descripcion: Proxy in
-H rtr True ansible_host: 172.20.20.11 | bgp_vecino: 10.0.0.1 | descripcion: Router de borde (FRR)
-H srv-app-01 True ansible_host: 172.20.20.59 | faceops_categoria: servidor | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: aplicaciones | descripcion:
-H srv-bd-01 True ansible_host: 172.20.20.60 | faceops_categoria: servidor | faceops_forma: virtual | faceops_ubicacion: Red corporativa · Centro de datos Santiago | faceops_ambiente: produccion | faceops_zona: datos | descripcion: Base d
-H suc1 True {"ansible_host": "192.168.122.1", "ansible_user": "aap-lab", "lab_nodo": "suc1", "lab_ip": "172.20.20.41", "lab_red": "10.30.1.0/24"}
-H suc2 True {"ansible_host": "192.168.122.1", "ansible_user": "aap-lab", "lab_nodo": "suc2", "lab_ip": "172.20.20.42", "lab_red": "10.30.2.0/24"}
-H suc3 True {"ansible_host": "192.168.122.1", "ansible_user": "aap-lab", "lab_nodo": "suc3", "lab_ip": "172.20.20.43", "lab_red": "10.30.3.0/24"}
-JT 18 4 None 17 ['Red · laboratorio (ssh)']
-JT 19 4 None 17 ['Red · laboratorio (ssh)']
-JT 425 4 None 17 ['AAP · responder aprobaciones', 'Gitea · escritura red-laboratorio', 'Red · firewall VyOS', 'Red · laboratorio (ssh)', 'ServiceNow · ansible.automatizacion']
-EEIMGS 
-== apk
-apk-ok
-3.20.3
-% Can't open configuration file /etc/frr/vtysh.conf due to 'No such file or directory'.
-Configuration file[/etc/frr/frr.conf] processing failure: 11
-Exiting: failed to connect to any daemons.
-== llave lab
-total 12
-drwx------. .
-drwx------. ..
--rw-------. llave-lab
--rw-r--r--. llave-lab.pub
---- fin: 2026-11-10T16:45:04-03:00 · código: 0
+ad hoc 21643 successful
+Identity added: /runner/artifacts/21643/ssh_key_data (cquezada@demo-ansible-summit)
+[0;33mnodo-jboss2 | CHANGED | rc=0 >>[0m
+[0;33m== nodo-jboss2.demo.local[0m
+[0;33mactive[0m
+[0;33m/var/opt/rh/eap8/cache/wildfly/standalone/tmp/app-jboss.war[0m
+[0;33mlocal /app-jboss/ 200[0m
+[0;33mok 1.0.37[0m
+[0;33m[0m
+[0;33mlog: [0m
+[0;33m0.0.0.0:8080[0m
+[0;33m127.0.0.1:9990[0m
+[0;33m0.0.0.0:8443[0m
+[0;33mnodo-jboss | CHANGED | rc=0 >>[0m
+[0;33m== nodo-jboss.demo.local[0m
+[0;33mactive[0m
+[0;33m/var/opt/rh/eap8/cache/wildfly/standalone/tmp/app-jboss.war[0m
+[0;33mlocal /app-jboss/ 404[0m
+[0;33m<html><body><h1>Resource not found</h1></body></html>[0m
+[0;33m[0m
+[0;33mlog: [0m
+[0;33m0.0.0.0:8443[0m
+[0;33m0.0.0.0:9990[0m
+[0;33m0.0.0.0:8080[0m
+--- fin: 2026-11-10T16:45:48-03:00 · código: 0
