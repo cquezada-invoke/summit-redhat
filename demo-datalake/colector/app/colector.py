@@ -14,6 +14,7 @@ from flask import Flask, jsonify, render_template_string, request
 S3 = os.environ.get("S3_URL", "http://minio:9000").rstrip("/")
 TRINO = os.environ.get("TRINO_URL", "http://trino:8080").rstrip("/")
 BUCKET = "lake"
+LAKE_WEB = os.environ.get("LAKE_WEB", "https://lake.sno.34.176.42.56.sslip.io/buckets/lake/")
 LOTE, CADA = 2000, 15          # se escribe al lake cada 100 registros o cada 15 segundos
 app = Flask(__name__)
 _buf, _cont, _ult, _gen, _tablas = {}, {}, {}, {}, set()
@@ -51,23 +52,27 @@ def asegurar_tabla(pref):
     _tablas.add(pref)
 
 
-def ocupado(pref):
-    """Bytes y archivos que hay hoy en s3://lake/<pref>/requests/ (la rotación borra los más antiguos)."""
+def archivos(pref):
+    """Archivos que hay hoy en s3://lake/<pref>/requests/: (fecha, bytes, clave), más nuevos primero."""
     import urllib.parse
     import xml.etree.ElementTree as ET
-    ns, tot, n, token = {"s": "http://s3.amazonaws.com/doc/2006-03-01/"}, 0, 0, None
+    ns, out, token = {"s": "http://s3.amazonaws.com/doc/2006-03-01/"}, [], None
     while True:
         q = {"list-type": "2", "max-keys": "1000", "prefix": f"{pref}/requests/"}
         if token:
             q["continuation-token"] = token
         x = ET.fromstring(requests.get(f"{S3}/{BUCKET}?" + urllib.parse.urlencode(q), timeout=20).content)
-        for c in x.findall("s:Contents", ns):
-            tot += int(c.find("s:Size", ns).text)
-            n += 1
+        out += [(c.find("s:LastModified", ns).text, int(c.find("s:Size", ns).text), c.find("s:Key", ns).text) for c in x.findall("s:Contents", ns)]
         t = x.find("s:NextContinuationToken", ns)
         if t is None or not t.text:
-            return tot, n
+            return sorted(out, reverse=True)
         token = t.text
+
+
+def ocupado(pref):
+    """Bytes y archivos que hay hoy en s3://lake/<pref>/requests/ (la rotación borra los más antiguos)."""
+    a = archivos(pref)
+    return sum(x[1] for x in a), len(a)
 
 
 _uso_lock = threading.Lock()
@@ -222,6 +227,9 @@ th{background:#f3f3f3}.s{color:#6a6e73;font-size:12.5px}code{font-size:12px;word
 {% if por_ruta %}<h3 style="font-size:15px">Por ruta</h3><table><tr><th>Método</th><th>Ruta</th><th>Requests</th></tr>{% for f in por_ruta %}<tr><td>{{ f[0] }}</td><td>{{ f[1] }}</td><td>{{ f[2] }}</td></tr>{% endfor %}</table>{% endif %}
 <h3 style="font-size:15px">Últimos requests</h3><table><tr><th>Fecha (UTC)</th><th>Método</th><th>Ruta</th><th>Consulta</th><th>Cuerpo</th></tr>
 {% for f in ultimos %}<tr><td>{{ f[0] }}</td><td>{{ f[1] }}</td><td>{{ f[2] }}</td><td><code>{{ f[3] }}</code></td><td><code>{{ (f[4] or '')[:200] }}</code></td></tr>{% else %}<tr><td colspan="5" class="s">Aún no llegan datos al lake (se escriben cada {{ cada }} s).</td></tr>{% endfor %}</table>
+<h3 style="font-size:15px">Archivos en S3 · más nuevos arriba <span class="s">({{ narch }} archivos · {{ '%.2f' % (mb) }} MB)</span></h3>
+<table><tr><th>Fecha (UTC)</th><th>Archivo</th><th>Tamaño</th></tr>{% for f in arch %}<tr><td>{{ f[0][:19].replace('T', ' ') }}</td>
+<td><a href="{{ web }}{{ f[2] }}" target="_blank"><code>{{ f[2].split('/')[-1] }}</code></a></td><td>{{ '%.1f' % (f[1] / 1024) }} KB</td></tr>{% else %}<tr><td colspan="3" class="s">Sin archivos.</td></tr>{% endfor %}</table>
 <p class="s">{{ error }}</p><script>setTimeout(()=>location.reload(),20000)</script></body></html>"""
 
 
@@ -237,7 +245,12 @@ def datos(pref):
         ultimos = trino(f"SELECT ts, metodo, ruta, consulta, cuerpo FROM lake.{es}.requests ORDER BY ts DESC LIMIT 30")[1]
     except Exception as e:  # noqa: BLE001
         error = f"Trino: {str(e)[:200]}"
+    try:
+        arch = archivos(pref)
+    except Exception:  # noqa: BLE001
+        arch = []
     if request.args.get("formato") == "json":
         return jsonify({"segmento": pref, "en_lake": total, "recibidos": _cont.get(pref, 0), "por_ruta": por_ruta, "error": error})
     return render_template_string(VISTA, pref=pref, esquema=es, rec=_cont.get(pref, 0), total=total, ult=_ult.get(pref, ""), por_ruta=por_ruta,
-                                  ultimos=ultimos, gen=_gen.get(pref) or {}, cada=CADA, error=error)
+                                  ultimos=ultimos, gen=_gen.get(pref) or {}, cada=CADA, error=error,
+                                  arch=arch[:50], narch=len(arch), mb=sum(x[1] for x in arch) / 1048576, web=LAKE_WEB)
