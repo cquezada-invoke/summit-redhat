@@ -1,11 +1,23 @@
-commit: 1e93042bec1da255cec23c9b3df3089e4ce4628c
-inicio: 2026-11-10T11:09:14-03:00
+commit: 33d273737601314533c48b23a77b718518fd39f3
+inicio: 2026-11-10T11:11:23-03:00
 ---
-build.build.openshift.io/amdocs-emulado-3 started
-deployment "amdocs-ordering" successfully rolled out
-deployment "amdocs-customer" successfully rolled out
-deployment "amdocs-catalog" successfully rolled out
-portal actualizado
-2
-[]
---- fin: 2026-11-10T11:10:49-03:00 · código: 0
+== Orden Amdocs ORD-0E3DBF14 creada
+== Amdocs · Activar orden de servicio {"orden_id": "ORD-0E3DBF14"} → #21112 successful
+     · Portal · Amdocs · Orden de servicio (plantilla) → successful · Orden ORD-0E3DBF14: en aprobación [ok]
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → successful · Servicio upf-banco activado [ok]
+     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-banco (nabstract) lista para desplegar [ok]
+     · Portal · Amdocs · Orden de servicio (plantilla) → successful · Orden ORD-0E3DBF14: completada [ok]
+     · Portal · Informe de ejecución (PDF) → successful
+     · PDF por correo: enviado
+   orden en Amdocs: completada
+== Telco · Red del servicio (VLAN y BGP) {"svc_accion": "retirar", "svc_nombre": "upf-banco", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "simular_falla": "n → #21121 failed
+     · Portal · Informe de ejecución (PDF) → failed
+         FALLA en «Armar y enviar el informe de la ejecución 21121»: non-zero return code
+     · Portal · Telco · Red del servicio (VLAN y BGP) (plantil → failed · Cambio revertido: la prueba posterior falló [revertido]
+         FALLA en «Fallar el job si se revirtió (el workflow lo toma como falla)»: Cambio revertido: BGP falla · VLAN falla
+     · PDF por correo: enviado
+== Telco · Onboarding de CNF {"cnf_nombre": "upf-banco", "proveedor": "nabstract", "vlan_id": 330, "svc_prefijo": "10.60.30.0/24", "hugepages_gi": 4, → #21127 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · Telco · Onboarding de CNF (plantilla) → successful · CNF upf-banco (nabstract) retirada del clúster [ok]
+     · PDF por correo: enviado
+--- fin: 2026-11-10T11:14:52-03:00 · código: 0
