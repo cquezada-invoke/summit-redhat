@@ -1,10 +1,52 @@
-commit: e7811859df09a15eecc69c6ae4fa50fadaf29017
-inicio: 2026-11-10T00:53:11-03:00
+commit: ba661773db21538049be556c2510194937e2fea8
+inicio: 2026-11-10T00:56:41-03:00
 ---
-   LISTO
-== reenviar PDF de 20307:
-{"archivo":"resultado-20307-20261110-0055.pdf","cuenta":{},"envio":"enviado a cquezada@redhat.com"}
-
-== prueba completa (Liberar disco con servidor elegido):
-== Linux · Liberar espacio en disco {"umbral": 85, "forzar": "no"} → #20323 successful
---- fin: 2026-11-10T00:55:55-03:00 · código: 0
+== OpenShift · Optimizar recursos y limpiar {"modo": "revisar", "umbral_ocioso": 20, "dias_antiguedad": 7} → #20328 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Optimizar recursos y limpiar (plan → successful · Capacidad ociosa y limpieza · 25 ajustes sugeridos [atencion]
+     · PDF por correo: enviado
+== OpenShift · Respaldo de etcd {"conservar": 3} → #20336 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Respaldo de etcd (plantilla) → successful · Respaldo de etcd listo [ok]
+     · PDF por correo: enviado
+== OpenShift · Alta de proyecto {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 2, "memoria_gi": 4, "accion": "cre → #20347 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Alta de proyecto (plantilla) → successful · Proyecto demo-pagos creado [ok]
+     · PDF por correo: enviado
+== OpenShift · Alta de proyecto {"proyecto": "demo-pagos", "equipo": "equipo-pagos", "ambiente": "desarrollo", "cpu": 2, "memoria_gi": 4, "accion": "eli → #20354 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Alta de proyecto (plantilla) → successful · Proyecto demo-pagos eliminado [ok]
+     · PDF por correo: enviado
+== Amdocs · Desplegar release {"servicio": "catalog", "version": "2.4.0", "simular_falla": "no"} → #20363 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · Amdocs · Desplegar release (plantilla) → successful · amdocs-catalog: release 2.4.0 en producción [ok]
+     · PDF por correo: enviado
+== OpenShift · Actualización guiada con ACM {"fase": "pre", "version_destino": "4.19.55", "rutas_criticas": "https://amdocs-ordering.sno.34.176.42.56.sslip.io/healt → #20373 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Actualización guiada con ACM (plan → successful · Listo para actualizar: respaldo de etcd y clúster fuera del balanceador [ok]
+     · PDF por correo: enviado
+== OpenShift · Actualización guiada con ACM {"fase": "post", "version_destino": "4.19.55", "rutas_criticas": "https://amdocs-ordering.sno.34.176.42.56.sslip.io/heal → #20386 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Actualización guiada con ACM (plan → successful · Validación posterior con problemas: el clúster queda fuera del balanceador [critico]
+     · PDF por correo: enviado
+== OpenShift · De alerta a incidente {"namespace": "amdocs-bss", "alerta": "KubePodCrashLooping", "remediar": "si"} → #20392 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · De alerta a incidente (plantilla) → successful · KubePodCrashLooping en amdocs-bss: INC4283323 abierto con la evidencia [atencion]
+     · PDF por correo: enviado
+== OpenShift · Certificado de aplicación de punta a punta {"namespace": "amdocs-bss", "ruta": "ordering", "umbral_dias": 30, "forzar": "no"} → #20402 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Certificado de aplicación de punta → successful · amdocs-ordering.sno.34.176.42.56.sslip.io: vigente, 712 días (umbral 30) [ok]
+     · PDF por correo: enviado
+== OpenShift · Acceso de equipo {"equipo": "equipo-demo", "miembros": "demo1,demo2", "namespaces": "amdocs-bss", "rol": "edit", "accion": "alta"} → #20410 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Acceso de equipo (plantilla) → successful · Equipo equipo-demo: acceso dado en 1 namespace(s) [ok]
+     · PDF por correo: enviado
+== OpenShift · Acceso de equipo {"equipo": "equipo-demo", "miembros": "", "namespaces": "amdocs-bss", "rol": "edit", "accion": "baja"} → #20418 successful
+     · Portal · Informe de ejecución (PDF) → successful
+     · Portal · OpenShift · Acceso de equipo (plantilla) → successful · Equipo equipo-demo: acceso retirado en 1 namespace(s) [ok]
+     · PDF por correo: enviado
+== OpenShift · Informe de seguridad del clúster {"correo": "cquezada@redhat.com", "dias_secretos": 180} → #20427 successful
+     · Portal · OpenShift · Informe de seguridad del clúster ( → successful · Informe PDF: enviado a cquezada@redhat.com [critico]
+== Amdocs · Informe de operación y conciliación {"correo": "cquezada@redhat.com", "minutos_atasco": 60} → #20440 successful
+     · Portal · Amdocs · Informe de operación y conciliación ( → successful · Informe PDF: enviado a cquezada@redhat.com [critico]
+--- fin: 2026-11-10T01:05:21-03:00 · código: 0
