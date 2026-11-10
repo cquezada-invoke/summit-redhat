@@ -125,6 +125,7 @@ CASOS = {
     "infocp": lambda: lanzar("OpenShift · Informe de seguridad del clúster", {"correo": "cquezada@invoke.cl", "dias_secretos": 180}),
     "infamd": lambda: lanzar("Amdocs · Informe de operación y conciliación", {"correo": "cquezada@invoke.cl", "minutos_atasco": 60}),
     "inflinux": lambda: lanzar("Linux · Informe de seguridad", {"correo": "cquezada@invoke.cl"}, limite="nodo-jboss"),
+    "disco": lambda: lanzar("Linux · Liberar espacio en disco", {"umbral": 85, "forzar": "no"}, limite="nodo-jboss"),
     "guiada": lambda: lanzar("OpenShift · Actualización guiada con ACM", {"fase": "pre", "version_destino": "", "rutas_criticas": ""}),
 }
 
