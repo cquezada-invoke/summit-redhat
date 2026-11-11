@@ -33,14 +33,25 @@ PROVEEDORES = {
                 "zona": ("southamerica-west1-a", "Zona donde están las máquinas · CLI: gcloud compute zones list",
                          "https://cloud.google.com/compute/docs/regions-zones"),
                 "cuenta": ("{ \"type\": \"service_account\", … }", "IAM › Cuentas de servicio › Crear (faceops-lectura, rol Compute Viewer) › Claves › Agregar clave › JSON; pega el archivo completo",
-                           "https://console.cloud.google.com/iam-admin/serviceaccounts"),
+                           "https://console.cloud.google.com/iam-admin/serviceaccounts/create"),
                 "red": ("default", "Nombre de la red VPC (opcional) · Red de VPC › Redes de VPC",
                         "https://console.cloud.google.com/networking/networks/list")},
             "campos": [("proyecto", "ID del proyecto", False, "text"), ("zona", "Zona (ej. southamerica-west1-a)", False, "text"),
                        ("cuenta", "Cuenta de servicio (JSON completo)", True, "area"), ("red", "Red VPC", False, "text")]},
     "aws": {"nombre": "Amazon Web Services", "ambito": "nube", "fuente": "ec2", "credencial_aap": "Amazon Web Services",
             "ayuda": "Usuario IAM con acceso programático (EC2, VPC, Route 53 si se instala OpenShift)",
-            "campos": [("access_key", "Access key ID", False, "text"), ("secret_key", "Secret access key", True, "password"),
+            "ayudas": {
+                "usuario_iam": ("faceops-lectura", "Nombre del usuario IAM dueño de la clave (opcional): con él, el enlace de la clave abre directo sus credenciales",
+                                "https://console.aws.amazon.com/iam/home#/users"),
+                "access_key": ("AKIA…", "IAM › Usuarios › tu usuario › Credenciales de seguridad › Crear clave de acceso",
+                               "https://console.aws.amazon.com/iam/home#/users/create"),
+                "secret_key": ("~40 caracteres", "Se muestra una sola vez al crear la clave de acceso (mismo paso que el Access key ID)",
+                               "https://console.aws.amazon.com/iam/home#/users/create"),
+                "region": ("sa-east-1", "Código de la región · CLI: aws configure get region",
+                           "https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions.html"),
+                "vpc": ("vpc-0123456789abcdef0", "ID de la VPC (opcional) · VPC › Sus VPC",
+                        "https://console.aws.amazon.com/vpcconsole/home#vpcs:")},
+            "campos": [("usuario_iam", "Usuario IAM (opcional)", False, "text"), ("access_key", "Access key ID", False, "text"), ("secret_key", "Secret access key", True, "password"),
                        ("region", "Región (ej. sa-east-1)", False, "text"), ("vpc", "VPC", False, "text")]},
     "azure": {"nombre": "Microsoft Azure", "ambito": "nube", "fuente": "azure_rm", "credencial_aap": "Microsoft Azure Resource Manager",
               "ayuda": "Service principal (App registration) con rol Contributor en la suscripción",
@@ -86,7 +97,9 @@ PROVEEDORES = {
                           ("bmc_tipo", "Gestión fuera de banda", False, "bmc"), ("bmc_usuario", "Usuario BMC", False, "text"),
                           ("bmc_clave", "Clave BMC", True, "password")]},
 }
-for _k in ("gcp", "aws", "azure", "vmware"):
+# Las nubes (GCP, AWS, Azure) se conectan solo contra la API del proveedor: no piden acceso a las máquinas. Si una nube
+# antigua guardó ese acceso, sus datos se conservan tal cual (no se muestran ni se tocan al editar).
+for _k in ("vmware",):
     PROVEEDORES[_k]["campos"] = PROVEEDORES[_k]["campos"] + ACCESO
     PROVEEDORES[_k]["acceso"] = True
 # Campos obligatorios por proveedor (asterisco rojo y «required» en los formularios). Los que no figuran aquí siguen la
@@ -654,6 +667,57 @@ def probar(usuario, cliente, iid):
 # ------------------------------------------------------------------ nubes: estado real de la conexión y lo que AAP ve en ellas
 FUENTE_NUBE = {"gcp": "gce", "aws": "ec2", "azure": "azure_rm"}
 _CACHE_NUBE = {}   # (cliente, infraestructura) → (instante, resultado): la lista y el detalle no consultan AAP en cada clic
+def ayudas_contexto(x, con=None):
+    """Ayudas del formulario de conexión con cada enlace apuntando a la página exacta donde se crea u obtiene ese dato,
+    usando lo que ya se sabe de la conexión (proyecto, cuenta de servicio, usuario IAM, aplicación de Azure). Nunca usa secretos."""
+    from urllib.parse import quote
+    p = PROVEEDORES.get(x.get("tipo")) or {}
+    ay = {k: list(v) for k, v in (p.get("ayudas") or {}).items()}
+    d = x.get("detalle_d") or j(x.get("detalle"), {}) or {}
+    cred = (con or {}).get("cred") or {}
+    q_ = lambda v: quote(str(v), safe="@.-_")
+    if x.get("tipo") == "gcp":
+        pr = d.get("proyecto") or cred.get("proyecto") or ""
+        qp = f"?project={q_(pr)}" if pr else ""
+        sa = cred.get("cuenta_servicio") or d.get("cuenta_servicio") or ""
+        if "cuenta" in ay:
+            if sa:
+                ay["cuenta"][1] = f"Cuenta de servicio {sa} › Claves › Agregar clave › Crear clave nueva › JSON; pega el archivo completo"
+                ay["cuenta"][2] = f"https://console.cloud.google.com/iam-admin/serviceaccounts/details/{q_(sa)}/keys{qp}"
+            else:
+                ay["cuenta"][2] = f"https://console.cloud.google.com/iam-admin/serviceaccounts/create{qp}"
+        if "proyecto" in ay and pr:
+            ay["proyecto"][2] = f"https://console.cloud.google.com/home/dashboard{qp}"
+        if "red" in ay and pr:
+            ay["red"][2] = f"https://console.cloud.google.com/networking/networks/list{qp}"
+    elif x.get("tipo") == "aws":
+        us, rg = d.get("usuario_iam") or "", d.get("region") or ""
+        if us:
+            for k in ("access_key", "secret_key"):
+                if k in ay:
+                    ay[k][1] = f"Usuario IAM {us} › Credenciales de seguridad › Crear clave de acceso" + (" (la secreta se muestra una sola vez)" if k == "secret_key" else "")
+                    ay[k][2] = f"https://console.aws.amazon.com/iam/home#/users/details/{q_(us)}?section=security_credentials"
+            if "usuario_iam" in ay:
+                ay["usuario_iam"][2] = f"https://console.aws.amazon.com/iam/home#/users/details/{q_(us)}"
+        if "vpc" in ay and rg:
+            ay["vpc"][2] = f"https://{q_(rg)}.console.aws.amazon.com/vpcconsole/home?region={q_(rg)}#vpcs:"
+    elif x.get("tipo") == "azure":
+        app_, sub_ = d.get("cliente") or "", d.get("suscripcion") or ""
+        base = "https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps"
+        if app_:
+            if "secreto" in ay:
+                ay["secreto"][2] = f"{base}/ApplicationMenuBlade/~/Credentials/appId/{q_(app_)}"
+            if "cliente" in ay:
+                ay["cliente"][2] = f"{base}/ApplicationMenuBlade/~/Overview/appId/{q_(app_)}"
+        else:
+            for k in ("cliente", "secreto"):
+                if k in ay:
+                    ay[k][2] = f"{base}/CreateApplicationBlade"
+        if "suscripcion" in ay and sub_:
+            ay["suscripcion"][2] = f"https://portal.azure.com/#@/resource/subscriptions/{q_(sub_)}/overview"
+    return dict(p, ayudas={k: tuple(v) for k, v in ay.items()})
+
+
 DATO_CUENTA = {"gcp": ("proyecto", "Proyecto"), "aws": ("cuenta", "Cuenta"), "azure": ("suscripcion", "Suscripción")}
 
 
@@ -690,6 +754,8 @@ def estado_nube(aap, x, cliente_id, guardar=True, ttl=60):
         if cred:
             r["cred"] = {"nombre": cred["name"], "id": cred["id"], "tipo": (cred.get("summary_fields") or {}).get("credential_type", {}).get("name", ""),
                          "proyecto": (cred.get("inputs") or {}).get("project") or (cred.get("inputs") or {}).get("subscription") or "",
+                         # cuenta de servicio de GCP (client_email, no es secreto): para enlazar directo a sus claves
+                         "cuenta_servicio": (cred.get("inputs") or {}).get("username", "") if x["tipo"] == "gcp" else "",
                          "modificada": cred.get("modified")}
         if inv:
             r["inv"] = {"nombre": inv["name"], "id": inv["id"], "hosts": inv.get("total_hosts", 0)}
