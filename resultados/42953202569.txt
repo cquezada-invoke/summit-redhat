@@ -1,0 +1,23 @@
+commit: 8f27dda783086e1ca3b9a0c5ff6a4f4d285eb0a2
+inicio: 2026-11-11T00:30:33-03:00
+---
+9402ae1
+faceops actualizado
+configurar AAP: código 0
+   · Plantilla «Redis · Instalar Redis Insight» (id 159)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+estado antes: cambiada 828045e86254
+C1 nodo-nginx
+  FO-LAB-01604 exitoso | AAP terminó (successful): ejecución 19 s, espera de aprobación 29 s
+   acuerdos: {'eula': True, 'analytics': False, 'notifications': False, 'encryption': False}
+   alta conexión: 201 
+   conexión d4cdb2b4 connect 200 overview 200 6.2.24
+C2 nodo-jboss
+  FO-LAB-01606 exitoso | AAP terminó (successful): ejecución 19 s, espera de aprobación 35 s
+   conexiones antes/después: 1 1 acuerdos iguales: True
+   conexión 470d9e5b connect 200 overview 200 6.2.24
+C3 ruta vacía en nodo-nginx
+  FO-LAB-01608 fallido |  | PLAY RECAP ********************************************************************* | nodo-nginx                 : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+   instancia sigue respondiendo: 200 motivo: True
+RESULTADOS {'C1': True, 'C2': True, 'C3': True} TICKETS ['FO-LAB-01604', 'FO-LAB-01606', 'FO-LAB-01608']
+--- fin: 2026-11-11T00:41:21-03:00 · código: 0
