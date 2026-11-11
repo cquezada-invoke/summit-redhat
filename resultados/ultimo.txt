@@ -1,18 +1,28 @@
-commit: 49d4d3416263f5f1ceac60b960a684753c8fabce
-inicio: 2026-11-10T22:09:09-03:00
+commit: 3676ea808b3cee8df852747f372513c103a37457
+inicio: 2026-11-10T22:17:17-03:00
 ---
-estado inicial: cambiada 82ec48160bce
-paquete 1.0.43 405
-paquete 1.0.44 405
-paquete 1.0.45 405
-segmento: App de pagos | límite producción: nodo-jboss:nodo-jboss2 | desarrollo: nodo-jboss-dev
-antes: LB (['1.0.44'], 0) {'nodo-jboss': '1.0.44', 'nodo-jboss2': '1.0.44', 'nodo-jboss-dev': '1.0.44'}
-C1 FO-LAB-01500 exitoso tipo=workflow aprobado=True límite=nodo-jboss:nodo-jboss2 job=22506 stats={'version_desplegada': '1.0.431.0.43'} LB=['1.0.43'] err=0 nodos={'nodo-jboss': '1.0.43', 'nodo-jboss2': '1.0.43', 'nodo-jboss-dev': '1.0.44'} | AAP terminó (successful): ejecución 28 s, espera de aprobación 59 s
-C2 FO-LAB-01504 exitoso tipo=workflow aprobado=True límite=nodo-jboss:nodo-jboss2 job=22526 stats={'version_desplegada': '1.0.441.0.44'} LB=['1.0.44'] err=0 nodos={'nodo-jboss': '1.0.44', 'nodo-jboss2': '1.0.44', 'nodo-jboss-dev': '1.0.44'} | AAP terminó (successful): ejecución 24 s, espera de aprobación 35 s
-C3 FO-LAB-01505 exitoso tipo=workflow aprobado=True límite=nodo-jboss:nodo-jboss2 job=22531 stats={'version_desplegada': '1.0.441.0.44'} LB=['1.0.44'] err=0 nodos={'nodo-jboss': '1.0.44', 'nodo-jboss2': '1.0.44', 'nodo-jboss-dev': '1.0.44'} | AAP terminó (successful): ejecución 26 s, espera de aprobación 35 s
-C4 FO-LAB-01506 fallido tipo=workflow aprobado=True límite=nodo-jboss:nodo-jboss2 job=22535 stats={'version_desplegada': None} LB=['1.0.44'] err=0 nodos={'nodo-jboss': '1.0.44', 'nodo-jboss2': '1.0.44', 'nodo-jboss-dev': '1.0.44'} | ******************************************************** nodo-jboss : ok=6 changed=1 unreachable=0 failed=1 skipped=1 rescued=0 ignored=0 nodo-jboss2 : ok=2 changed=1 unreachable=0 failed=0 skipped=1 rescued=0 ignored=0 
-C5 FO-LAB-01507 exitoso tipo=workflow aprobado=True límite=nodo-jboss-dev job=22541 stats={'version_desplegada': '1.0.44'} LB=['1.0.44'] err=0 nodos={'nodo-jboss': '1.0.44', 'nodo-jboss2': '1.0.44', 'nodo-jboss-dev': '1.0.44'} | AAP terminó (successful): ejecución 15 s, espera de aprobación 35 s
-RESULTADO [('C1', 'ok'), ('C2', 'falla'), ('C3', 'ok'), ('C4', 'ok'), ('C5', 'falla')]
-[{"id": "C1", "resultado": "ok", "ticket": "FO-LAB-01500", "evidencia": "exitoso; límite nodo-jboss:nodo-jboss2; balanceador 1.0.43; nodos nodo-jboss 1.0.43, nodo-jboss2 1.0.43, nodo-jboss-dev 1.0.44"}, {"id": "C2", "resultado": "falla", "ticket": "FO-LAB-01504", "evidencia": "exitoso; límite nodo-jboss:nodo-jboss2; balanceador 1.0.44; nodos nodo-jboss 1.0.44, nodo-jboss2 1.0.44, nodo-jboss-dev 1.0.44"}, {"id": "C3", "resultado": "ok", "ticket": "FO-LAB-01505", "evidencia": "exitoso; límite nodo-jboss:nodo-jboss2; balanceador 1.0.44; nodos nodo-jboss 1.0.44, nodo-jboss2 1.0.44, nodo-jboss-dev 1.0.44"}, {"id": "C4", "resultado": "ok", "ticket": "FO-LAB-01506", "evidencia": "fallido; límite nodo-jboss:nodo-jboss2; balanceador 1.0.44; nodos nodo-jboss 1.0.44, nodo-jboss2 1.0.44, nodo-jboss-dev 1.0.44"}, {"id": "C5", "resultado": "falla", "ticket": "FO-LAB-01507", "evidencia": "exitoso; límite nodo-jboss-dev; balanceador 1.0.44; nodos nodo-jboss 1.0.44, nodo-jboss2 1.0.44, nodo-jboss-dev 1.0.44"}]
-estado final: cambiada
---- fin: 2026-11-10T22:17:03-03:00 · código: 0
+a28a4ed
+faceops actualizado
+marcar sno 302 1
+marcar nodo-vault 302 1
+marcar dc1-idm01 302 1
+marcar dc1-sat01 302 1
+marcar dc1-ad01 302 1
+marcar dc1-ds01 302 1
+marcar dc1-iga01 302 1
+marcar dc1-sso01 302 1
+marcar nodo-jboss-qa 302 1
+marcar nodo-windows 302 1
+csrf malo: 400
+auditoria: 10
+/lab/inventario?forma=virtual&n=100 200 14 ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss2', 'nodo-postgres', 'nodo-so', 'nodo-tomcat', 'srv-mover-01', 'dc1-sql01', 'dc1-vpn01', 'dc2-sql01', 'nodo-jboss3', 'srv-legado-jboss6-01', 'srv-legado-jboss7-01', 'srv-prueba-rocky-01'] | boton: ['Mostrar infraestructura (10)'] | chips: 0
+/lab/inventario?forma=virtual&n=100&mostrar=infra 200 24 ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss2', 'nodo-postgres', 'nodo-so', 'nodo-tomcat', 'nodo-vault', 'nodo-windows', 'sno', 'srv-mover-01', 'dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sat01', 'dc1-sql01', 'dc1-sso01', 'dc1-vpn01', 'dc2-sql01', 'nodo-jboss-qa', 'nodo-jboss3', 'srv-legado-jboss6-01', 'srv-legado-jboss7-01', 'srv-prueba-rocky-01'] | boton: ['Ocultar infraestructura'] | chips: 10
+/lab/inventario?n=100 200 24 ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss2', 'nodo-postgres', 'nodo-so', 'nodo-tomcat', 'srv-cisco-c240-01', 'srv-dell-r660xs-01', 'srv-dell-r760-01', 'srv-fujitsu-rx2540-01', 'srv-hpe-dl360-01', 'srv-hpe-dl380-01', 'srv-lenovo-sr630-01', 'srv-lenovo-sr650-01', 'srv-mover-01', 'srv-supermicro-01', 'srv-xfusion-2288h-01', 'dc1-sql01', 'dc1-vpn01', 'dc2-sql01', 'nodo-jboss3', 'srv-legado-jboss6-01', 'srv-legado-jboss7-01', 'srv-prueba-rocky-01'] | boton: ['Mostrar infraestructura (10)'] | chips: 0
+/lab/inventario?forma=virtual&q=nodo-vault 200 1 ['nodo-vault'] | boton: [] | chips: 1
+ficha vault: 1 1
+ficha jboss: 1
+/lab/mapa?vista=aplicaciones&segmento=App+de+pagos 200
+/lab/monitoreo/radar 200
+/lab/inventario?forma=fisico 200
+mapa identidades con dc1-idm01: True
+--- fin: 2026-11-10T22:18:13-03:00 · código: 0
