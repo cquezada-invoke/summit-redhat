@@ -64,6 +64,22 @@
       retries: 24
       delay: 5
 
+    - name: Ajustes actuales
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5540{{ ruta }}/api/settings"
+        return_content: true
+      register: r_aj
+
+    - name: Acuerdos iniciales (EULA, sin analítica ni notificaciones; sin cifrado de llavero, que el contenedor no tiene)
+      # Sin esto la consola abre en la pantalla de EULA y no deja guardar conexiones («Unsupported encryption strategy»)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5540{{ ruta }}/api/settings"
+        method: PATCH
+        body_format: json
+        body: {agreements: {eula: true, analytics: false, notifications: false, encryption: false}}
+        status_code: [200]
+      when: not ((r_aj.json.agreements | default({}, true)).eula | default(false))
+
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
