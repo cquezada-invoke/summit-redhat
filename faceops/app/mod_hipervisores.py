@@ -148,7 +148,7 @@ def destinos_traslado(cliente_id, e, eqs):
             if cap.get("disco_disp_gb") is not None and disco + 5 > cap["disco_disp_gb"]:
                 motivos.append(f"disco libre {cap['disco_disp_gb']} GB < {disco + 5} GB (discos de la máquina + 5 GB de margen)")
         out.append({"id": x["id"], "nombre": x["nombre"], "tipo": x["prov"].get("nombre", x["tipo"]), "centro": x["centro"],
-                    "region": x.get("region") or "", "red": d_.get("red") or d_.get("datacenter") or "—",
+                    "region": x.get("region") or "", "red": d_.get("red") or (f"datacenter vSphere {d_['datacenter']}" if d_.get("datacenter") else "—"),
                     "red_libvirt": d_.get("red_libvirt") or "default", "estado": x["estado"], "vms": len(vms),
                     "cores": cap.get("cores"), "ram_libre": cap.get("ram_disp_gb"), "disco_libre": cap.get("disco_disp_gb"),
                     "medido": (cap.get("medido") or "")[:10], "mismo_anfitrion": mismo, "emulado": _emulado(x),
