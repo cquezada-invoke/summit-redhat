@@ -1,18 +1,18 @@
-commit: 02437a552940ccfe04689da0791b9bc93289e4fb
-inicio: 2026-11-11T19:27:33-03:00
+commit: ce2255b3a04bf04be2c99dfa2b5fca13b990d54d
+inicio: 2026-11-11T19:24:11-03:00
 ---
-certificado temporal de agente: 0x36C98AF9873A14C0C66456E755808EDC
-asociado a faceops-renovador (temporal)
-0xa85bf9b53dfdea483009765228fac9ce → REVOKED
-0xf78d099a8ce11db890114c54dea701db → REVOKED
-0x36c98af9873a14c0c66456e755808edc → REVOKED
-0x27d3… (JBoss) → VALID
-certificado temporal quitado de faceops-renovador
-certificados de faceops-renovador: 1
-Inventario job 24841 successful
-FICHA nodo-jboss: 1 certificado(s) [('0x27d3173dc3d24e02bf48364f9bbc2642', 'jboss-https', 'vigente')]
-UI /equipos/6/certificados 404 
-UI /inventario/6 404 
-serial=27D3173DC3D24E02BF48364F9BBC2642
-app de pagos por el balanceador: HTTP 200
---- fin: 2026-11-11T19:28:53-03:00 · código: 0
+59f66fe Se retira «Certificados · Limpiar certificados sobrantes» (a pedido de Cristian: la limpieza de nodo-jboss se hace puntual, sin automatización)
+active
+LISTO
+T1708 exitoso creado 2026-11-11T16:33:42+00:00 fin 2026-11-11T18:16:24+00:00 limite nodo-jboss | resultado: AAP terminó (successful): ejecución 19 s, espera de aprobación 6044 s / Revisión de CVE lanzada: FO-LAB-01787
+T1651 {'numero': 'FO-LAB-01651', 'estado': 'exitoso', 'creado': '2026-11-11T14:59:36+00:00', 'fin': '2026-11-11T15:38:10+00:00', 'motivo': 'Revisar CVE tras FO-LAB-01648'}
+POST {'numero': 'FO-LAB-01785', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-11T18:16:24+00:00', 'fin': None, 'motivo': 'Revisar CVE tras FO-LAB-01708'}
+POST {'numero': 'FO-LAB-01786', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-11T18:16:24+00:00', 'fin': None, 'motivo': 'Revisar CVE tras FO-LAB-01708'}
+POST {'numero': 'FO-LAB-01787', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-11T18:16:25+00:00', 'fin': None, 'motivo': 'Revisar CVE tras FO-LAB-01708'}
+USR cquezada
+REV FO-LAB-01906 en_ejecucion
+REVFIN FO-LAB-01906 exitoso AAP terminó (successful): ejecución 34 s, espera de aprobación 32 s / CVE: nodo-jboss: 0 pendientes · 32146 cubiertos
+REVDB {'cliente_id': 1, 'equipo_id': 6, 'repos': 1, 'pendientes': 0, 'cubiertos': 4844, 'cuando': '2026-11-11T22:30:19+00:00', 'ticket_id': 1906, 'kernel_ej': '5.14.0-741.20.1.el9_9.x86_64', 'kernel_inst': '5.14.0-741.20.1.el9_9.x86_64'}
+PEND 0
+ACT None | REINICIO None | pend 0
+--- fin: 2026-11-11T19:30:20-03:00 · código: 0
