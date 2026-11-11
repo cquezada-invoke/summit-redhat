@@ -1,25 +1,17 @@
-commit: 91d5ac7eee0c8773bf6a2536aad993e87f317cb2
-inicio: 2026-11-10T23:55:46-03:00
+commit: 7a1ae5fe0100b9fed63abad2e39655983830b519
+inicio: 2026-11-10T23:57:02-03:00
 ---
-nodo-jboss ruta vigente antes: 404
-  NO SE CREÓ TICKET 302 /faceops/lab/inventario/6#p-redis
-nodo-nginx ruta vigente antes: 404
-  NO SE CREÓ TICKET 302 /faceops/lab/inventario/8#p-redis
-nodo-tomcat ruta vigente antes: ReadTimeout
-  NO SE CREÓ TICKET 302 /faceops/lab/inventario/10#p-redis
-== nodo-jboss 6
- goto: Page.goto: net::ERR_TOO_MANY_REDIRECTS at https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6/consola-web/redis/
-Call log:
-  - navigating to "https://faceops.34.176.42.56.sslip.io:8843
-== nodo-nginx 8
- goto: Page.goto: net::ERR_TOO_MANY_REDIRECTS at https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/8/consola-web/redis/
-Call log:
-  - navigating to "https://faceops.34.176.42.56.sslip.io:8843
-== nodo-tomcat 10
- página: 502 /faceops/lab/inventario/10/consola-web/redis/ título: nodo-tomcat no responde · FaceOps
- api/databases: 502 0
- texto: ☰ FaceOps Managed Service · Invoke v1.0.1518 Clientes Gobierno ES Móvil Panel Banco del Pacífico Sur (demo) Clínica Santa Lucía (demo) Invoke Lab Minera Los Andes (demo) ＋ Agregar cliente… Infraestructura Servidores Redes Storage Sistemas operativos Bases de datos Plataformas Contenedores Estaciones
- >=400/fallas: ['502 GET /faceops/lab/inventario/10/consola-web/redis/', '502 GET /faceops/lab/inventario/10/consola-web/redis/api/databases', '502 GET /faceops/lab/inventario/10/consola-web/redis/']
- socket.io: []
- errores js: []
---- fin: 2026-11-10T23:56:48-03:00 · código: 0
+TASK [Datos válidos] ***********************************************************
+TASK [Acción que necesita un dato · queda como propuesta] **********************
+TASK [Plantilla de la automatización] ******************************************
+TASK [Inventario] **************************************************************
+TASK [Credencial] **************************************************************
+TASK [¿Existe?] ****************************************************************
+TASK [Workflow] ****************************************************************
+TASK [Nodo de aprobación] ******************************************************
+TASK [Aprobación (no vence)] ***************************************************
+TASK [Nodo de la automatización] ***********************************************
+TASK [Credencial del equipo en el nodo] ****************************************
+fatal: [localhost]: FAILED! => {"access_control_expose_headers": "X-API-Request-Id", "allow": "GET, POST, HEAD, OPTIONS", "changed": false, "connection": "close", "content_language": "en", "content_le
+    "json": {"msg": "\"id\" field must be an integer."}, "msg": "Status code was 400 and not [204]: HTTP Error 400: Bad Request", "redirected": false, "server": "envoy", "status": 400, "strict_transport_security": "max-age=63072000", "url": "https://192.168.122.1/api/controller/v2/workflow_job_template_nodes/1757/credentials/", "vary": "Accept, Accept-Language, origin", "x_api_node": "demo-ansible-summit", "x
+--- fin: 2026-11-10T23:57:03-03:00 · código: 0
