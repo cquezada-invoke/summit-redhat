@@ -121,9 +121,20 @@
                 method: POST
                 body_format: json
                 status_code: [204]
-                body: {id: "{{ r_cred.json.results[0].id }}"}
+                body: "{{ {'id': r_cred.json.results[0].id | int} }}"
                 <<: *auth
               when: al_equipo_ | bool
+          rescue:
+            - name: Sin dejar un workflow a medias (el próximo disparo lo vuelve a crear completo)
+              ansible.builtin.uri:
+                url: "{{ api }}/workflow_job_templates/{{ r_nw.json.id }}/"
+                method: DELETE
+                status_code: [202, 204, 404]
+                <<: *auth
+              when: r_nw.json.id is defined
+            - name: Informar el error
+              ansible.builtin.fail:
+                msg: "No se pudo armar «{{ wf_nombre }}»: {{ ansible_failed_result.json.msg | default(ansible_failed_result.msg | default('')) }}"
 
         - name: Workflow vigente
           ansible.builtin.uri:
