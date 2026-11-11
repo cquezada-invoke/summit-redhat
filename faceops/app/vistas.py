@@ -2780,7 +2780,7 @@ def url_consola_publica(e, cod):
     """URL pública (navegador) de la consola de la plataforma a través de FaceOps: https://…/faceops/<cliente>/inventario/<id>/consola-web/<cod>."""
     pub = os.environ.get("FACEOPS_URL_PUBLICA", "https://faceops.34.176.42.56.sslip.io:8843/faceops").rstrip("/")
     ruta = url_for("consola.consola_web_plataforma", eid=e["id"], cod=cod, sub="").rstrip("/")
-    sr = (request.script_root or "").rstrip("/") if request else ""
+    sr = (request.environ.get("faceops.raiz", request.script_root) or "").rstrip("/") if request else ""   # /faceops, sin el código del cliente
     if sr and ruta.startswith(sr + "/"):
         ruta = ruta[len(sr):]
     return pub + ruta
