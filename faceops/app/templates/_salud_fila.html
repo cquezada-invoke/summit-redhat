@@ -1,0 +1,5 @@
+{# Fila única de las listas de salud (pilares de la máquina y de cada plataforma: «Para llegar al 100 %», CVE, políticas de
+   seguridad y remediaciones preventivas): nombre, descripción breve, cuánto suma (+X %) y a la derecha su acción con los
+   mismos estados (Aplicar → En curso · ticket → Aplicada · ticket; deshabilitada con motivo; «sin acción automática aún»).
+   Uso: {% call sl_fila(nombre, desc, sube, cls, attrs) %}…acción…{% endcall %} dentro de <table class="sl-tab">. #}
+{% macro sl_fila(nombre, desc='', sube=none, cls='', attrs='') %}<tr class="sl-fila {{ cls }}" {{ attrs }}><td class="sl-t"><div class="sl-n">{{ nombre }}</div>{% if desc %}<div class="sub sl-d">{{ desc }}</div>{% endif %}</td><td class="sl-s">{% if sube %}<span class="chip s-ok">+{{ sube }} %</span>{% endif %}</td><td class="sl-a">{{ caller() }}</td></tr>{% endmacro %}
