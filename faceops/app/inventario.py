@@ -466,8 +466,13 @@ def sincronizar(cliente, usuario="sistema"):
                 fila["ram_mb"] = -(-so_ // 1024) * 1024
                 r["datos"]["ram_asignada_estimada"] = True
                 fila["datos"] = json.dumps(r["datos"])
-        existe = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
+        existe = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
         if existe:
+            # lo que FaceOps registra en datos y la recolección no trae (puertos_web, frecuencia de inventario, git…) se conserva
+            prev_, nue_ = j(existe["datos"], {}), json.loads(fila["datos"] or "{}")
+            extra_ = {k: v for k, v in prev_.items() if k not in nue_ and k not in ("ram_asignada_estimada",)}
+            if extra_ and isinstance(nue_, dict) and nue_:
+                fila["datos"] = json.dumps(dict(nue_, **extra_))
             ej("UPDATE equipos SET " + ", ".join(f"{k}=?" for k in fila) + " WHERE id=?", *fila.values(), existe["id"])
             vistos.add(existe["id"])
         else:

@@ -3206,7 +3206,11 @@ def plataforma_servicio(eid, cod):
             flash(msg_, "error")
             return redirect(url_for("consola.equipo", eid=eid) + f"#p-{cod}")
     try:
-        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"sp_unidades": SERVICIOS_PLATAFORMA[familia(cod)], "sp_accion": accion, "sp_plataforma": nom},
+        par_ = {"sp_unidades": SERVICIOS_PLATAFORMA[familia(cod)], "sp_accion": accion, "sp_plataforma": nom}
+        d_pw = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+        if (d_pw.get("puertos_web") or {}).get(familia(cod)) and accion in ("encender", "reiniciar"):
+            par_["sp_puerto"] = int(d_pw["puertos_web"][familia(cod)])   # puerto registrado en FaceOps (Keycloak en 8180…): la automatización lo alinea
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, par_,
                                 f"{accion.capitalize()} {nom} en {e['nombre']}")
         if request.headers.get("X-Requested-With") == "fetch":   # panel «Skills» de la plataforma
             return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}

@@ -1,6 +1,10 @@
 # FaceOps · Encender, apagar o reiniciar una plataforma (JBoss, nginx, PostgreSQL, Redis…) sin tocar la máquina.
 # Variables: sp_unidades (unidades systemd candidatas, en orden; se usa la primera que exista en el equipo),
-#            sp_accion (encender | apagar | reiniciar | estado), sp_plataforma (nombre para el registro).
+#            sp_accion (encender | apagar | reiniciar | estado | deshabilitar), sp_plataforma (nombre para el registro),
+#            sp_puerto (opcional: puerto de la máquina registrado en FaceOps para la plataforma; en una plataforma en contenedor
+#            (quadlet) se alinea su PublishPort antes de encender o reiniciar, p. ej. Keycloak en 8180 donde el 8080 es de JBoss).
+# «deshabilitar» detiene la plataforma en contenedor y aparta su quadlet a /var/lib/<unidad>/deshabilitado/ (no arranca con la
+# máquina); «encender» lo devuelve a /etc/containers/systemd/.
 - name: FaceOps · Controlar servicio de plataforma
   hosts: all
   gather_facts: false
@@ -8,13 +12,14 @@
   vars:
     windows: "{{ (ansible_connection | default('ssh')) in ['winrm', 'psrp'] }}"
     accion: "{{ sp_accion | default('estado') }}"
-    estados: {encender: started, apagar: stopped, reiniciar: restarted}
+    estados: {encender: started, apagar: stopped, reiniciar: restarted, deshabilitar: stopped}
   tasks:
     - name: Datos válidos
       ansible.builtin.assert:
         that:
-          - accion in ['encender', 'apagar', 'reiniciar', 'estado']
+          - accion in ['encender', 'apagar', 'reiniciar', 'estado', 'deshabilitar']
           - sp_unidades | default([]) | length > 0
+          - (sp_puerto | default('') | string) is match('^([0-9]{2,5})?$')
           - sp_unidades | select('match', '^[A-Za-z0-9@._-]+$') | list | length == sp_unidades | length
         fail_msg: "Acción o unidades no válidas"
 
@@ -46,24 +51,32 @@
       ansible.builtin.service_facts:
 
     # Plataforma en contenedor (quadlet de podman) dejada «deshabilitada»: su definición se apartó a /var/lib/<plataforma>/deshabilitado/
-    # (sin unidad systemd). Encender la devuelve a /etc/containers/systemd/ y recarga systemd; apagar o reiniciar no la toca.
-    - name: Quadlet deshabilitado de la plataforma
-      when: accion == 'encender'
+    # (sin unidad systemd). Encender la devuelve a /etc/containers/systemd/ y recarga systemd. Con sp_puerto, encender o reiniciar
+    # alinea el puerto publicado (PublishPort=<sp_puerto>:<puerto del contenedor>) con el registrado en FaceOps.
+    - name: Quadlet de la plataforma (habilitar y alinear su puerto)
+      when: accion in ['encender', 'reiniciar']
       ansible.builtin.shell: |
         set -e
+        p={{ (sp_puerto | default('') | string) | quote }}
         for u in {{ sp_unidades | map('quote') | join(' ') }}; do
-          [ -e "/etc/containers/systemd/$u.container" ] && exit 0
-          for f in /var/lib/*/deshabilitado/"$u".container; do
-            [ -f "$f" ] || continue
-            install -m 0644 -o root -g root "$f" "/etc/containers/systemd/$u.container"
-            restorecon "/etc/containers/systemd/$u.container" 2>/dev/null || true
-            rm -f "$f"
-            systemctl daemon-reload
-            echo "habilitado $f → /etc/containers/systemd/$u.container"; exit 0
-          done
+          q="/etc/containers/systemd/$u.container"
+          if [ ! -e "$q" ]; then
+            for f in /var/lib/*/deshabilitado/"$u".container; do
+              [ -f "$f" ] || continue
+              install -m 0644 -o root -g root "$f" "$q"; restorecon "$q" 2>/dev/null || true; rm -f "$f"
+              echo "habilitado $f → $q"; break
+            done
+          fi
+          [ -e "$q" ] || continue
+          if [ -n "$p" ] && grep -qE '^PublishPort=[0-9]+:' "$q" && ! grep -qE "^PublishPort=$p:" "$q"; then
+            antes=$(grep -m1 -E '^PublishPort=' "$q"); sed -i -E "0,/^PublishPort=[0-9]+:/s//PublishPort=$p:/" "$q"
+            echo "puerto $antes → $(grep -m1 -E '^PublishPort=' "$q")"
+          fi
+          systemctl daemon-reload; systemctl reset-failed "$u.service" 2>/dev/null || true
+          exit 0
         done
       register: r_quadlet
-      changed_when: "'habilitado' in r_quadlet.stdout"
+      changed_when: "'habilitado' in r_quadlet.stdout or 'puerto' in r_quadlet.stdout"
 
     - name: Unidades del equipo (tras habilitar su quadlet)
       ansible.builtin.service_facts:
@@ -79,11 +92,34 @@
         that: sp_unidad | length > 0
         fail_msg: "No se encontró el servicio de {{ sp_plataforma | default('la plataforma') }} ({{ sp_unidades | join(', ') }})"
 
+    - name: Deshabilitar solo aplica a plataformas en contenedor (antes de detener nada)
+      when: accion == 'deshabilitar'
+      ansible.builtin.stat:
+        path: "/etc/containers/systemd/{{ sp_unidad | regex_replace('\\.service$', '') }}.container"
+      register: r_q_desh
+
+    - name: La plataforma corre en contenedor (quadlet)
+      when: accion == 'deshabilitar'
+      ansible.builtin.assert:
+        that: r_q_desh.stat.exists
+        fail_msg: "{{ sp_plataforma | default(sp_unidad) }} no corre en contenedor (sin quadlet): «deshabilitar» no aplica; usa «Apagar»"
+
     - name: "{{ accion | capitalize }} {{ sp_plataforma | default(sp_unidad) }}"
       ansible.builtin.systemd_service:
         name: "{{ sp_unidad }}"
-        state: "{{ estados[accion] }}"
+        state: "{{ 'restarted' if (accion == 'encender' and 'puerto' in (r_quadlet.stdout | default(''))) else estados[accion] }}"
       when: accion != 'estado'
+
+    - name: Apartar el quadlet (deshabilitar)
+      when: accion == 'deshabilitar'
+      ansible.builtin.shell: |
+        set -e
+        u={{ (sp_unidad | regex_replace('\\.service$', '')) | quote }}; q="/etc/containers/systemd/$u.container"; d="/var/lib/$u/deshabilitado"
+        [ -e "$q" ] || { echo "sin quadlet en $q: no es una plataforma en contenedor" >&2; exit 3; }
+        mkdir -p "$d"; mv -f "$q" "$d/$u.container"; systemctl daemon-reload
+        echo "deshabilitado $q → $d/$u.container"
+      register: r_desh
+      changed_when: "'deshabilitado' in r_desh.stdout"
 
     - name: Estado final
       ansible.builtin.command: systemctl is-active {{ sp_unidad }}
@@ -94,6 +130,6 @@
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
-          faceops_servicio: "{{ {inventory_hostname: {'unidad': sp_unidad, 'activo': r_fin.stdout | trim, 'accion': accion, 'quadlet': (r_quadlet.stdout | default('')) | trim}} }}"
+          faceops_servicio: "{{ {inventory_hostname: {'unidad': sp_unidad, 'activo': r_fin.stdout | trim, 'accion': accion, 'quadlet': ((r_quadlet.stdout | default('')) ~ ' ' ~ (r_desh.stdout | default(''))) | trim}} }}"
         per_host: false
         aggregate: true
