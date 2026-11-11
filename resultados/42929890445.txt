@@ -1,0 +1,12 @@
+commit: 9d6ec47ebb85a49559bce28cfe8f9466fe36be2d
+inicio: 2026-11-10T21:16:08-03:00
+---
+Traceback (most recent call last):
+  File "/tmp/ag1.py", line 5, in <module>
+    for e in q("SELECT id, nombre, categoria, so, skills, energia, cliente_id FROM equipos WHERE estado!='retirado' ORDER BY id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 178, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: skills
+--- fin: 2026-11-10T21:16:14-03:00 · código: 0
