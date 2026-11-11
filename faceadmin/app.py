@@ -977,6 +977,7 @@ import cuentas  # noqa: E402,F401  (cuentas y sus contactos: toda empresa, con o
 import contactos  # noqa: E402,F401  (contactos independientes de las cuentas, con historial de cuentas)
 import alcance  # noqa: E402,F401  (costo fijo por alcance: análisis con IA y confirmación del especialista de negocio)
 import enriquecer  # noqa: E402,F401  (agente de IA con búsqueda web que completa los datos de las empresas)
+import ia_usos  # noqa: E402,F401  (Producto › Uso de IA: dónde interviene la IA, distintivo «IA» y conteo de llamadas)
 import pulsos  # noqa: E402,F401  (pulsos de uso de FaceOps: ingesta al data lake y vista «Uso de FaceOps»)
 import demo_gcp  # noqa: E402,F401  (Demo instantánea en GCP: VM desde imagen dorada, horario hábil, inactividad y eliminación a los 7 días)
 

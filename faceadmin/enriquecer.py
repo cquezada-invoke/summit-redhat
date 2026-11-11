@@ -65,6 +65,8 @@ def _llamar(key, mensajes):
                       headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
                       json={"model": MODELO, "max_tokens": 2500, "tools": [HERRAMIENTA], "messages": mensajes})
     d = r.json()
+    from alcance import _ia_registrar
+    _ia_registrar("enriquecer", r.status_code == 200)
     if r.status_code != 200:
         raise RuntimeError((d.get("error") or {}).get("message") or f"HTTP {r.status_code}")
     return d

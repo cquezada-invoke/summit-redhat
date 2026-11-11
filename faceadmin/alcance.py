@@ -29,6 +29,14 @@ def _guardar(d):
         json.dump(d, fh)
 
 
+def _ia_registrar(uso, ok):
+    try:
+        from ia_usos import registrar
+        registrar(uso, ok)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def especialista():
     return (ia_config().get("especialista") or "cquezada@invoke.cl").strip()
 
@@ -91,6 +99,7 @@ def analizar(texto):
         r = requests.post("https://api.anthropic.com/v1/messages", timeout=90,
                           headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
                           json={"model": MODELO, "max_tokens": 2000, "messages": [{"role": "user", "content": prompt}]})
+        _ia_registrar("alcance", r.status_code == 200)
         r.raise_for_status()
         txt = "".join(b.get("text", "") for b in r.json().get("content", []))
         d = json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
@@ -141,6 +150,7 @@ def api_empresa():
                               json={"model": MODELO, "max_tokens": 300, "messages": [{"role": "user", "content":
                                     "Empresa latinoamericana: «" + nom + "». Si la conoces con certeza razonable, responde SOLO JSON {\"pais\": str, \"industria\": str, "
                                     "\"razon_social\": str}; si no, usa cadenas vacías. País en español (Chile, México, Honduras, Perú, Colombia...). Industria: exactamente una de: " + "; ".join(INDUSTRIAS) + "."}]})
+            _ia_registrar("empresa", r.status_code == 200)
             txt = "".join(b.get("text", "") for b in r.json().get("content", []))
             d.update({k: str(v)[:80] for k, v in json.loads(txt[txt.index("{"):txt.rindex("}") + 1]).items() if k in ("pais", "industria", "razon_social") and v})
             d["ia"] = True

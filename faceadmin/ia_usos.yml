@@ -1,0 +1,46 @@
+# Uso de IA en FaceAdmin: cada punto donde interviene un modelo de IA. Fuente única de Producto › Uso de IA y de los
+# distintivos «IA» (ia_badge('<id>')). Al agregar o cambiar un uso de IA en el código, se actualiza aquí.
+#   enlace: endpoint de Flask (o URL) para llegar · conteo: clave con que ia_usos.registrar() cuenta cada llamada
+regla: >-
+  En FaceAdmin la IA solo sugiere: completa o propone datos que una persona revisa antes de guardar, y el alcance lo confirma
+  el especialista de negocio antes de fijar un precio. Ninguna acción sobre máquinas de clientes pasa por la IA de FaceAdmin
+  (las acciones son automatizaciones de FaceOps con ticket y aprobación).
+usos:
+  - id: alcance
+    donde: Ventas › Oportunidad nueva › «Alcance del cliente» (costo fijo por alcance)
+    enlace: oportunidad_nueva
+    que_hace: >-
+      Analiza el alcance que describe el vendedor contra el catálogo de automatizaciones: propone cuáles aplican, su volumen
+      mensual, horas de implementación, lo que queda fuera del catálogo y preguntas. El análisis va en el correo al especialista.
+    modelo: Claude (claude-sonnet-5-5, variable FACEADMIN_IA_MODELO)
+    proveedor: Anthropic · API de mensajes
+    envia: El texto del alcance escrito por el vendedor y el catálogo de automatizaciones (nombre, categoría, créditos, unidad).
+    nunca: Precios negociados, contratos, contactos, credenciales ni datos de FaceOps de los clientes.
+    decide: Sugiere; el especialista confirma el alcance antes del precio
+    conteo: alcance
+  - id: empresa
+    donde: Oportunidad nueva › nombre de empresa nueva (país e industria sugeridos)
+    enlace: oportunidad_nueva
+    que_hace: Sugiere país, industria y razón social de una empresa nueva a partir de su nombre (sin búsqueda web).
+    modelo: Claude (claude-sonnet-5-5)
+    proveedor: Anthropic · API de mensajes
+    envia: Solo el nombre de la empresa escrito.
+    nunca: Cualquier otro dato de la cuenta u oportunidad.
+    decide: Sugiere; queda marcado para revisar
+    conteo: empresa
+  - id: enriquecer
+    donde: Cuentas › ficha «Completar con IA»; empresa nueva en oportunidad o contrato; en segundo plano al crearlas
+    enlace: cuentas
+    que_hace: >-
+      Agente con búsqueda web que completa razón social, identificador fiscal (RUT, RFC, NIT, RUC…), país, industria, sitio web,
+      dirección, tamaño y descripción, con las fuentes. Lo que no encuentra con certeza queda vacío.
+    modelo: Claude (claude-sonnet-5-5) con la herramienta de búsqueda web de Anthropic
+    proveedor: Anthropic · API de mensajes + web search
+    envia: Nombre y país de la empresa.
+    nunca: Contratos, montos, contactos, notas internas ni credenciales.
+    decide: "Sugiere: en la ficha se aplica con confirmación; en segundo plano solo llena campos vacíos"
+    conteo: enriquecer
+no_ia:
+  - Precios, créditos, contratos, instalaciones, tenants y versiones se calculan con reglas; no usan IA.
+  - Sin clave configurada, el análisis de alcance usa coincidencia por palabras clave contra el catálogo (queda marcado como tal).
+  - «Uso de FaceOps» muestra pulsos de uso del data lake; no usa IA.
