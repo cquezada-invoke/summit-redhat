@@ -1,0 +1,42 @@
+commit: 8d7fab4801086359f07b3fc7928eacbd70e24c01
+inicio: 2026-11-11T12:00:15-03:00
+---
+EQ {'nombre': 'nodo-jboss', 'ip': '192.168.122.15', 'cpu': 2, 'ram_mb': 2048, 'energia': 'encendido', 'estado': 'con datos', 'so': 'RedHat 9.8', 'servicios': '["NetworkManager", "auditd", "chronyd", "crond", "dbus-broker", "eap8-standalone", "getty@tty1", "gssproxy", "keycloak", "node_exporter", "polkit", "qemu-guest-agent", "redis", "redisinsight", "rhsmcertd", "rpcbind", "rsyslog", "serial-getty@ttyS0", "sshd", "systemd-journald", "systemd-logind", "systemd-udevd", "tuned", "user@1000", "vigia", "vigia-jboss"]'}
+D {"ram_libre_mb": 109, "ram_disponible_mb": 328, "virtual": "kvm", "virtual_rol": "guest"}
+COLS ['id', 'cliente_id', 'nombre', 'aap_host_id', 'inventario', 'inventarios', 'grupos', 'so', 'so_familia', 'so_version', 'ip', 'cpu', 'ram_mb', 'discos', 'servicios', 'datos', 'proveedor', 'ubicacion', 'ambiente', 'skills_auto', 'skills_manual', 'estado', 'ultima_recoleccion', 'visto', 'skills_habilitadas', 'categoria', 'forma', 'segmentos_fijos', 'energia', 'energia_visto', 'codigo', 'codigo_visto', 'descripcion', 'energia_origen', 'energia_cambio', 'infra_lab']
+A {'id': 34, 'nombre': 'Preparar la plataforma de la app', 'nombre_aap': 'Plataforma · Preparar dependencias', 'habilita_skill': ''}
+A {'id': 10, 'nombre': 'Keycloak', 'nombre_aap': 'DC · Keycloak', 'habilita_skill': 'keycloak'}
+A {'id': 100, 'nombre': 'Encender, apagar o reiniciar plataforma', 'nombre_aap': 'Plataforma · Controlar servicio', 'habilita_skill': ''}
+A {'id': 101, 'nombre': 'Desinstalar', 'nombre_aap': 'Plataforma · Desinstalar', 'habilita_skill': ''}
+A {'id': 136, 'nombre': 'Ajustar recursos de máquinas (vCPU y memoria)', 'nombre_aap': 'Infra · Ajustar recursos de máquinas', 'habilita_skill': ''}
+A {'id': 172, 'nombre': 'Levantar desde las plataformas', 'nombre_aap': 'Licencias · Levantar desde las plataformas', 'habilita_skill': ''}
+A {'id': 192, 'nombre': 'OpenShift · Optimizar recursos y limpiar (plantilla)', 'nombre_aap': 'Portal · OpenShift · Optimizar recursos y limpiar (plantilla)', 'habilita_skill': ''}
+A {'id': 179, 'nombre': 'Amdocs · Salud de la plataforma BSS (plantilla)', 'nombre_aap': 'Portal · Amdocs · Salud de la plataforma BSS (plantilla)', 'habilita_skill': ''}
+A {'id': 55, 'nombre': 'Actualizar firmware', 'nombre_aap': 'Plataforma · Actualizar firmware', 'habilita_skill': ''}
+A {'id': 219, 'nombre': 'OpenShift · Optimizar recursos y limpiar', 'nombre_aap': 'Portal · OpenShift · Optimizar recursos y limpiar', 'habilita_skill': ''}
+A {'id': 230, 'nombre': 'Alerta › Plataforma · Controlar servicio · Nodos demo (ansible)', 'nombre_aap': 'FaceOps · Alerta › Plataforma · Controlar servicio · Nodos demo (ansible)', 'habilita_skill': ''}
+T {'id': 1652, 'numero': 'FO-LAB-01652', 'estado': 'pendiente_aprobacion', 'nombre_aap': 'Seguridad · Revisar CVEs', 'creado': '2026-11-11T14:59:36+00:00'}
+T {'id': 1651, 'numero': 'FO-LAB-01651', 'estado': 'pendiente_aprobacion', 'nombre_aap': 'Seguridad · Revisar CVEs', 'creado': '2026-11-11T14:59:36+00:00'}
+T {'id': 1650, 'numero': 'FO-LAB-01650', 'estado': 'exitoso', 'nombre_aap': 'Monitoreo · Configurar alertas del equipo', 'creado': '2026-11-11T14:57:34+00:00'}
+T {'id': 1649, 'numero': 'FO-LAB-01649', 'estado': 'exitoso', 'nombre_aap': 'Infra · Encender o apagar equipo', 'creado': '2026-11-11T14:55:07+00:00'}
+T {'id': 1648, 'numero': 'FO-LAB-01648', 'estado': 'exitoso', 'nombre_aap': 'Seguridad · Aplicar parches de seguridad', 'creado': '2026-11-11T14:52:46+00:00'}
+T {'id': 1647, 'numero': 'FO-LAB-01647', 'estado': 'exitoso', 'nombre_aap': 'Monitoreo · Configurar alertas del equipo', 'creado': '2026-11-11T14:48:06+00:00'}
+T {'id': 1646, 'numero': 'FO-LAB-01646', 'estado': 'exitoso', 'nombre_aap': 'Incidentes · Verificar error conocido', 'creado': '2026-11-11T14:47:16+00:00'}
+T {'id': 1644, 'numero': 'FO-LAB-01644', 'estado': 'exitoso', 'nombre_aap': 'Incidentes · Verificar error conocido', 'creado': '2026-11-11T14:43:09+00:00'}
+T {'id': 1642, 'numero': 'FO-LAB-01642', 'estado': 'exitoso', 'nombre_aap': 'Infra · Replicar máquina', 'creado': '2026-11-11T14:42:42+00:00'}
+T {'id': 1641, 'numero': 'FO-LAB-01641', 'estado': 'exitoso', 'nombre_aap': 'Monitoreo · Configurar alertas del equipo', 'creado': '2026-11-11T14:40:03+00:00'}
+T {'id': 1640, 'numero': 'FO-LAB-01640', 'estado': 'fallido', 'nombre_aap': 'Monitoreo · Configurar alertas del equipo', 'creado': '2026-11-11T14:37:33+00:00'}
+T {'id': 1634, 'numero': 'FO-LAB-01634', 'estado': 'fallido', 'nombre_aap': 'Infra · Replicar máquina', 'creado': '2026-11-11T14:25:19+00:00'}
+State:          running
+CPU(s):         2
+CPU time:       1777.0s
+Max memory:     2097152 KiB
+Used memory:    2097152 KiB
+ 21   nodo-jboss2                  running
+ 25   nodo-jboss                   running
+ 26   nodo-jboss-dev               running
+ 29   nodo-jboss4                  running
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss3                  shut off
+ -    srv-legado-jboss5-01         shut off
+--- fin: 2026-11-11T12:00:22-03:00 · código: 0
