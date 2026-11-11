@@ -1,0 +1,139 @@
+commit: 56793c1e7face4906eb9b6d86ea538b009a41e9e
+inicio: 2026-11-10T20:59:28-03:00
+---
+43ff238
+faceops actualizado
+   · Repositorio Git «repositorio/migraciones-weblogic»
+   · Plantilla «Migración · WebLogic a OpenShift · Evaluar» (id 1130)
+   · Plantilla «Migración · WebLogic a OpenShift» (id 1131)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+===== EVALUAR
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'cambiada'}
+M-C1 emular-origen
+  pedido FO-LAB-01474
+  aprobado
+--- reintento 1 (contenedor reiniciado)
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'cambiada'}
+M-C1 emular-origen
+  reanudo FO-LAB-01474 exitoso
+   ('FO-LAB-01474', 'exitoso', [('ventas', True), ('legado', False)]) 
+E-C1
+  pedido FO-LAB-01475
+  aprobado
+--- reintento 2 (contenedor reiniciado)
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'cambiada'}
+M-C1 emular-origen
+  reanudo FO-LAB-01474 exitoso
+   ('FO-LAB-01474', 'exitoso', [('ventas', True), ('legado', False)]) 
+E-C1
+  reanudo FO-LAB-01475 exitoso
+   ('FO-LAB-01475', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False) git: git sin publicar nodo-jboss-dev/evaluacion.md: [Errno 104] Connection reset by peer
+git ok 0
+E-C2
+  pedido FO-LAB-01476
+  aprobado
+   ('FO-LAB-01476', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], False) git: git sin publicar nodo-jboss-dev/evaluacion.md: [Errno 104] Connection reset by peer
+git ok 0
+E-C3
+  pedido FO-LAB-01477
+  aprobado
+   ('FO-LAB-01477', 'fallido', None, None, [], None) git: None
+   … config.xml en /u01, /opt/oracle, /opt/weblogic, /home/oracle o /srv); indícalo en wl_dominio"} |  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+PLAN EVALUAR OK: False
+FIN-SCRIPT
+ns previo limpio
+===== MIGRAR C2-C4
+catalogo: 223
+M-C2
+  pedido FO-LAB-01478
+Error: container has already been removed
+--- reintento 1 (contenedor reiniciado)
+catalogo: 223
+M-C2
+  reanudo FO-LAB-01478 pendiente_aprobacion
+  aprobado
+--- reintento 2 (contenedor reiniciado)
+catalogo: 223
+M-C2
+  reanudo FO-LAB-01478 en_ejecucion
+--- reintento 3 (contenedor reiniciado)
+catalogo: 223
+M-C2
+  reanudo FO-LAB-01478 en_ejecucion
+Error: container has already been removed
+--- reintento 4 (contenedor reiniciado)
+catalogo: 223
+M-C2
+  reanudo FO-LAB-01478 en_ejecucion
+--- reintento 5 (contenedor reiniciado)
+catalogo: 223
+M-C2
+  reanudo FO-LAB-01478 en_ejecucion
+   ["FO-LAB-01478", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:a2ed7803e1a1ff97704c7c5e9aa1b051ada3dabc74fe036c0cc73e01caeddbe9", "construccion": "Complete: ", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no", "artefactos_git": "git sin publicar nodo-jboss-dev/ventas/manifiestos.json: [Errno 104] Connection reset by peer\ngit sin publicar nodo-jboss-dev/ventas/config.cli: HTTP Error..."}]
+M-C3
+  pedido FO-LAB-01480
+--- reintento 6 (contenedor reiniciado)
+Error: container has already been removed
+Error: no container with name or ID "faceops" found: no such container
+--- reintento 7 (contenedor reiniciado)
+catalogo: 223
+M-C2
+  reanudo FO-LAB-01478 exitoso
+   ["FO-LAB-01478", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:a2ed7803e1a1ff97704c7c5e9aa1b051ada3dabc74fe036c0cc73e01caeddbe9", "construccion": "Complete: ", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no", "artefactos_git": "git sin publicar nodo-jboss-dev/ventas/manifiestos.json: [Errno 104] Connection reset by peer\ngit sin publicar nodo-jboss-dev/ventas/config.cli: HTTP Error..."}]
+M-C3
+  reanudo FO-LAB-01480 pendiente_aprobacion
+  aprobado
+Error: container has already been removed
+--- reintento 8 (contenedor reiniciado)
+catalogo: 223
+M-C2
+  reanudo FO-LAB-01478 exitoso
+   ["FO-LAB-01478", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:a2ed7803e1a1ff97704c7c5e9aa1b051ada3dabc74fe036c0cc73e01caeddbe9", "construccion": "Complete: ", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no", "artefactos_git": "git sin publicar nodo-jboss-dev/ventas/manifiestos.json: [Errno 104] Connection reset by peer\ngit sin publicar nodo-jboss-dev/ventas/config.cli: HTTP Error..."}]
+M-C3
+  reanudo FO-LAB-01480 en_ejecucion
+   ["FO-LAB-01480", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:a2ed7803e1a1ff97704c7c5e9aa1b051ada3dabc74fe036c0cc73e01caeddbe9", "construccion": "sin cambios: se reutiliza la imagen", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no", "artefactos_git": "git sin publicar nodo-jboss-dev/ventas/manifiestos.json: [Errno 104] Connection reset by peer\ngit sin publicar nodo-jboss-dev/ventas/config.cli:
+M-C4
+  pedido FO-LAB-01482
+  aprobado
+   ["FO-LAB-01482", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null, "artefactos_git": null}]
+   … pietaria (ServletAuthentication); Contexto JNDI propietario (WLInitialContextFactory / t3); Propiedades con JNDI remoto de WebLogic (t3 / WLInitialContextFactory). No se creó nada en OpenShift"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=25   changed=9    unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
+FIN-SCRIPT
+imagestream.image.openshift.io/ventas buildconfig.build.openshift.io/ventas deployment.apps/ventas service/ventas route.route.openshift.io/ventas configmap/ventas-config secret/ventas-ds 
+['WL_DS_VENTASDS_URL', 'WL_DS_VENTASDS_USUARIO', 'prop-ventas.properties'] SINCLAVE
+secret: ['WL_DS_VENTASDS_CLAVE']
+{"estado":"ok","datasource":"enlazado","cola":"enlazado","propiedades":"cargadas"} http=200
+===== MIGRAR C5
+catalogo: 223
+M-C5
+  pedido FO-LAB-01483
+  aprobado
+--- reintento 1 (contenedor reiniciado)
+catalogo: 223
+M-C5
+  reanudo FO-LAB-01483 en_ejecucion
+   ["FO-LAB-01483", "fallido", {"construccion": "sin cambios: se reutiliza la imagen", "salud": "/ventas/no-existe → 503", "sano": false, "vuelta_atras": "versión anterior restaurada (HTTP 200)", "retirado": null}]
+   … en; rollout no completó; HTTP 503): se volvió a la versión anterior. El origen sigue intacto"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=52   changed=14   unreachable=0    failed=1    skipped=9    rescued=0    ignored=0   
+A: ['FO-LAB-01474', 'exitoso', [['ventas', True], ['legado', False]]]
+FIN-SCRIPT
+sonda=/ventas/salud salud=200
+===== MIGRAR C6
+catalogo: 223
+M-C6
+  pedido FO-LAB-01488
+  aprobado
+   ["FO-LAB-01488", "exitoso", {"construccion": null, "salud": null, "sano": null, "vuelta_atras": null, "retirado": true}]
+   … AAP terminó (successful): ejecución 9 s, espera de aprobación 20 s
+A: ['FO-LAB-01474', 'exitoso', [['ventas', True], ['legado', False]]]
+FIN-SCRIPT
+ns retirado: true
+{"legado_vacio": true, "cm_sin_clave": true, "salud_c2": "200", "salud_c5": "200", "sonda_c5": "/ventas/salud", "ns_retirado": true}
+===== CERTIFICAR
+catalogo: 223
+casos: {'C1': True, 'C2': True, 'C3': True, 'C4': True, 'C5': True, 'C6': True}
+CERTIFICADA Migración · WebLogic a OpenShift
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'certificada'}
+FIN-SCRIPT
+--- fin: 2026-11-10T21:51:20-03:00 · código: 0
