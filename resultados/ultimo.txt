@@ -1,17 +1,29 @@
-commit: 4d48da27e57cb90ec987cf236f95312223708213
-inicio: 2026-11-11T17:47:02-03:00
+commit: 382869c733d1e631ff5d9edcc7996e5d749fcfe4
+inicio: 2026-11-11T17:55:16-03:00
 ---
-SINCRONIZADO lab
-enuso=- cero=- rollout:v1=- rollout:v2=- sinuso=-
-CASO C1 falla · Valores por defecto
-plan=[] · - · rollout= · poda=False
-CASO C2 falla · Umbral 0, rangos 1,2 y Quay
-CASO C3 falla · Solo el namespace de prueba y organización fija
-git=None None · ficha=FO-LAB-01874 3 · raw=404
-CASO C4 falla · Informe en Git y en la ficha del clúster
-CASO C5 falla · Repetir
-RES {"caso": "C6", "auto": "OpenShift · Evaluar imágenes (uso y antigüedad)", "ticket": "FO-LAB-01877", "estado": "fallido", "stats": {}, "detalle": "Datos · Falta el API del clúster o hay datos no válidos: meses 0–60 (0 = toda imagen sin uso), rangos en meses separados por coma (3,6,12), namespaces con comodines, host y organización de Quay · ", "fallos": ["Datos · Falta el API del clúster o hay datos no válidos: meses 0–60 (0 = toda imagen sin uso), rangos en meses separados por coma (3,6,12), namespaces con comodines, host y organización de Quay"], "resultado": "s (uso y antigüedad)] ******
-CASO C6 ok · Rangos no válidos
-CASOS [{"id": "C1", "caso": "Valores por defecto", "resultado": "falla", "evidencia": "sin respuesta del arnés enuso=- cero=- rollout:v1=- rollout:v2=- sinuso=- cand=0 sys=False rangos=0"}, {"id": "C2", "caso": "Umbral 0, rangos 1,2 y Quay", "resultado": "falla", "evidencia": "sin respuesta del arnés [] -  False"}, {"id": "C3", "caso": "Solo el namespace de prueba y organización fija", "resultado": "falla", "evidencia": "sin respuesta del arnés todas=True n=None -"}, {"id": "C4", "caso": "Informe en Git y en la ficha del clúster", "resultado": "falla", "evidencia": "git=None None ficha=FO-LAB-
-CERT OpenShift · Evaluar imágenes (uso y antigüedad) → sin probar
---- fin: 2026-11-11T17:55:00-03:00 · código: 0
+=== minio
+06b0488 Pruebas · Quitar agente: C3 solo vale si el rechazo 
+· credenciales (se generan en la VM una sola vez)
+  ya existían
+no se pudo descargar la imagen de MinIO (quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z docker.io/minio/minio:RELEASE.2024-10-13T13-34-11Z quay.io/minio/minio:latest)
+lake: disco · /var/lib/faceadmin/lake/faceops-pulsos
+migrados del disco al lake: 0
+=== faceops (más tráfico)
+admin url set: True token set: True
+en cola: 10
+secretos en cola: []
+enviadas: 10 quedan: 0
+=== lake (esperando 60 s: también llega el tráfico real del servicio)
+lake: disco · /var/lib/faceadmin/lake/faceops-pulsos
+objetos: 369
+  instancia=lab/fecha=2026-11-11/hora=20/1836-1836-3475c0523c.ndjson.gz 190
+  instancia=lab/fecha=2026-11-11/hora=20/1837-1841-1685098779.ndjson.gz 300
+  instancia=lab/fecha=2026-11-11/hora=20/1842-1843-8ac6c04ccb.ndjson.gz 204
+  instancia=lab/fecha=2026-11-11/hora=20/1844-1845-c83e9f724e.ndjson.gz 266
+  instancia=lab/fecha=2026-11-11/hora=20/1846-1853-c5c87e3f42.ndjson.gz 733
+  instancia=lab/fecha=2026-11-11/hora=20/1854-1863-c32acae591.ndjson.gz 796
+pulsos: 2231
+secretos: []
+lab req 1364 eventos {'ticket_aprobado': 179, 'ticket_creado': 36, 'error_aap': 276, 'login_fallido': 4, 'prueba_pulsos': 4} e5 7 p50 447.8 p95 4854.5 usuarios 1 top ['GET /tickets/<int:tid>/bitacora', 'GET /tickets/<int:tid>/flujo', 'GET /inventario/<int:eid>', 'GET /equipos/<int:eid>/certificados']
+vista /fabrica/uso-faceops: 200 True
+--- fin: 2026-11-11T17:56:43-03:00 · código: 0

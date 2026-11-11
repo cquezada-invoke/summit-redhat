@@ -1,0 +1,29 @@
+commit: 382869c733d1e631ff5d9edcc7996e5d749fcfe4
+inicio: 2026-11-11T17:55:16-03:00
+---
+=== minio
+06b0488 Pruebas · Quitar agente: C3 solo vale si el rechazo 
+· credenciales (se generan en la VM una sola vez)
+  ya existían
+no se pudo descargar la imagen de MinIO (quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z docker.io/minio/minio:RELEASE.2024-10-13T13-34-11Z quay.io/minio/minio:latest)
+lake: disco · /var/lib/faceadmin/lake/faceops-pulsos
+migrados del disco al lake: 0
+=== faceops (más tráfico)
+admin url set: True token set: True
+en cola: 10
+secretos en cola: []
+enviadas: 10 quedan: 0
+=== lake (esperando 60 s: también llega el tráfico real del servicio)
+lake: disco · /var/lib/faceadmin/lake/faceops-pulsos
+objetos: 369
+  instancia=lab/fecha=2026-11-11/hora=20/1836-1836-3475c0523c.ndjson.gz 190
+  instancia=lab/fecha=2026-11-11/hora=20/1837-1841-1685098779.ndjson.gz 300
+  instancia=lab/fecha=2026-11-11/hora=20/1842-1843-8ac6c04ccb.ndjson.gz 204
+  instancia=lab/fecha=2026-11-11/hora=20/1844-1845-c83e9f724e.ndjson.gz 266
+  instancia=lab/fecha=2026-11-11/hora=20/1846-1853-c5c87e3f42.ndjson.gz 733
+  instancia=lab/fecha=2026-11-11/hora=20/1854-1863-c32acae591.ndjson.gz 796
+pulsos: 2231
+secretos: []
+lab req 1364 eventos {'ticket_aprobado': 179, 'ticket_creado': 36, 'error_aap': 276, 'login_fallido': 4, 'prueba_pulsos': 4} e5 7 p50 447.8 p95 4854.5 usuarios 1 top ['GET /tickets/<int:tid>/bitacora', 'GET /tickets/<int:tid>/flujo', 'GET /inventario/<int:eid>', 'GET /equipos/<int:eid>/certificados']
+vista /fabrica/uso-faceops: 200 True
+--- fin: 2026-11-11T17:56:43-03:00 · código: 0
