@@ -8,7 +8,7 @@
 {% set on_ = est == 'encendido' %}{% set ocp_en_ = (e.categoria or '') == 'clúster openshift' or datos.get('nodo_ocp') %}
 {% if energia_ok or ocp_en_ or skm.total %}<div class="eq-energia-acc">{% if energia_ok %}<button type="button" class="btn-energ prender" data-energia="encender" aria-label="Encender" {{ 'disabled' if on_ }} title="Encender {{ e.nombre }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg></button>
 <button type="button" class="btn-energ apagar" data-energia="apagar" aria-label="Apagar" {{ 'disabled' if not on_ }} title="Apagar {{ e.nombre }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>{% elif ocp_en_ %}{% for ac, ic in [('Encender', '<path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/>'), ('Apagar', '<rect x="6" y="6" width="12" height="12" rx="1"/>')] %}<button type="button" class="btn-energ {{ ac|lower }}" disabled aria-label="{{ ac }}" title="Aún no disponible: los nodos de este clúster no están en un hipervisor que FaceOps controle"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">{{ ic|safe }}</svg></button>{% endfor %}{% endif %}
-{% if skm.total %}<button type="button" class="sk-abrir" id="sk-btn" aria-haspopup="dialog" aria-controls="sk-cajon" aria-label="Skills de la máquina ({{ skm.total - skm.bloqueadas }} disponibles)" title="Skills de la máquina"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M12.2 6.2L11 5"/><path d="M15 9h.01"/><path d="M3 21l9-9"/></svg><b class="sk-n">{{ skm.total - skm.bloqueadas }}</b></button>{% endif %}</div>
+{% if skm.total %}<button type="button" class="sk-abrir" id="sk-btn" aria-haspopup="dialog" aria-controls="sk-cajon" aria-label="Skills de la máquina ({{ skm.total - skm.bloqueadas }} disponibles)" title="Skills de la máquina"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M12.2 6.2L11 5"/><path d="M15 9h.01"/><path d="M3 21l9-9"/></svg><b class="sk-n">{{ skm.total - skm.bloqueadas }}</b></button>{% endif %}</div>
 {% if energia_ok %}<script>(()=>{const caja=document.currentScript.previousElementSibling;
 function pedir(url,datos,pregunta){if(pregunta&&!confirm(pregunta))return;const bs=[...caja.querySelectorAll('[data-energia]')];bs.forEach(x=>{x.dataset.ini=x.disabled?'1':'0';x.disabled=true;});
  const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});Object.entries(datos).forEach(([k,v])=>fd.append(k,v));
@@ -20,17 +20,17 @@ caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()
 <style>
 #btn-mover{display:none!important}
 /* botón «Skills»: mismo estilo que la campana de alertas (degradado naranja, borde, sombra al pasar), pero cuadrado */
-.eq-energia-acc .sk-abrir{position:relative;display:inline-grid;place-items:center;width:52px;height:52px;padding:0;border-radius:10px;border:2px solid #c2410c;
- background:linear-gradient(135deg,#ff8a00,#f0561d);color:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s;margin-left:auto}
+.eq-energia-acc .sk-abrir{position:relative;display:inline-grid;place-items:center;box-sizing:border-box;width:40px;height:40px;padding:0;border-radius:8px;border:1px solid #c2410c;
+ background:linear-gradient(135deg,#ff8a00,#f0561d);color:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s}
 .eq-energia-acc .sk-abrir:hover,.eq-energia-acc .sk-abrir:focus-visible{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.18)}
 .eq-energia-acc .sk-abrir:focus-visible{outline:3px solid #ffb27a;outline-offset:2px}
-.sk-mini{position:relative;display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border-radius:7px;border:2px solid #c2410c;flex:none;
+.sk-mini{position:relative;display:inline-grid;place-items:center;box-sizing:border-box;width:26px;height:22px;padding:0;border-radius:6px;border:1px solid #c2410c;flex:none;line-height:0;
  background:linear-gradient(135deg,#ff8a00,#f0561d);color:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s;margin-left:4px}
 .sk-mini:hover,.sk-mini:focus-visible{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.18)}.sk-mini:focus-visible{outline:3px solid #ffb27a;outline-offset:1px}
-.sk-abrir .sk-n{top:-7px;right:-7px}
 .sk-abrir .sk-n,.sk-mini .sk-n{position:absolute;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#fff;color:#9a3412;
  border:2px solid #c2410c;font-size:11.5px;font-weight:700;display:grid;place-items:center;line-height:1;box-sizing:border-box}
-.sk-mini .sk-n{top:-8px;right:-9px;min-width:17px;height:17px;font-size:10px;padding:0 4px}
+.sk-abrir .sk-n{top:-8px;right:-8px;min-width:18px;height:18px;font-size:10.5px}
+.sk-mini .sk-n{top:-9px;right:-10px;min-width:15px;height:15px;font-size:9.5px;padding:0 3px;border-width:1px}
 #sk-cajon .sk-tit{display:flex;flex-direction:column;margin:2px 0 8px}#sk-cajon .sk-tit h2{margin:2px 0 0}
 #sk-cajon .sk-busca{flex:1;min-width:120px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:13px}
 #sk-cajon .sk-grupo{border-top:1px solid var(--line);padding:6px 0}
