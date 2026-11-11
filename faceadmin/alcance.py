@@ -114,19 +114,24 @@ def api_alcance():
     return analizar(texto)
 
 
+def codigo_empresa(nom):
+    """Código único de una empresa nueva, derivado de su nombre (no se edita a mano)."""
+    cod = re.sub(r"[^a-z0-9]+", "-", _norm(nom or "")).strip("-")
+    pal = [w for w in cod.split("-") if w not in ("sa", "s", "a", "spa", "ltda", "de", "del", "la", "el", "y", "inc", "corp")]
+    base = ("-".join(pal[:2]) or cod)[:16]
+    codigo, i = base, 2
+    while codigo and q1("SELECT id FROM clientes WHERE codigo=?", codigo):
+        codigo, i = f"{base}-{i}", i + 1
+    return codigo
+
+
 @app.route("/api/oportunidad/empresa", methods=["POST"])
 @requiere_login
 def api_empresa():
     """Completa los datos de una empresa nueva a partir de su nombre: código y, con IA, país e industria sugeridos."""
     solo_invoke()
     nom = (request.form.get("nombre") or "").strip()[:120]
-    cod = re.sub(r"[^a-z0-9]+", "-", _norm(nom)).strip("-")
-    pal = [w for w in cod.split("-") if w not in ("sa", "s", "a", "spa", "ltda", "de", "del", "la", "el", "y", "inc", "corp")]
-    base = ("-".join(pal[:2]) or cod)[:16]
-    codigo, i = base, 2
-    while q1("SELECT id FROM clientes WHERE codigo=?", codigo):
-        codigo, i = f"{base}-{i}", i + 1
-    d = {"codigo": codigo}
+    d = {"codigo": codigo_empresa(nom)}
     key = ia_config().get("api_key", "")
     if key and len(nom) >= 3:
         try:

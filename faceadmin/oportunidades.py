@@ -45,6 +45,13 @@ def _contactos_todos():
     return out
 
 
+def _cts_prev(f):
+    """Filas de contactos tal como se enviaron, para no perderlas si el formulario vuelve con un error."""
+    ks = ("ct_id", "ct_nombre", "ct_cargo", "ct_correo", "ct_telefono")
+    ls = {k: f.getlist(k) for k in ks}
+    return [{k: (ls[k][i] if i < len(ls[k]) else "") for k in ks} for i in range(len(ls["ct_id"]))]
+
+
 def _contactos_form(f):
     """Filas de contactos del formulario: existentes (ct_id) o nuevos (nombre y correo)."""
     out = []
@@ -196,6 +203,9 @@ def oportunidad_nueva():
     f = request.form.copy()
     import cobro
     from contratos import _empresa
+    import alcance
+    if not (f.get("empresa_id") or "").isdigit():   # el código de una empresa nueva siempre se genera del nombre
+        f["codigo"] = alcance.codigo_empresa(f.get("nombre"))
     cts = _contactos_form(f)
     if cts:   # el primer contacto es el principal de la cuenta
         p0 = cts[0]
@@ -220,17 +230,17 @@ def oportunidad_nueva():
         c = _empresa(f, "directo" if tipo == "directo" else "tenant", None)
     except ValueError as e:
         flash(str(e), "error")
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES, contactos=_contactos_todos()), 400
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES, contactos=_contactos_todos(), cts_prev=_cts_prev(f)), 400
     import alcance
     alcance.columnas()
     atexto = (f.get("alcance_texto") or "").strip()[:6000]
     if est["modalidad"] == "alcance" and len(atexto) < 20:
         flash("En costo fijo por alcance, describe el alcance (lo evalúa el especialista de negocio antes de fijar el precio)", "error")
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES, contactos=_contactos_todos()), 400
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES, contactos=_contactos_todos(), cts_prev=_cts_prev(f)), 400
     if not cts:
         flash("Agrega al menos un contacto (nombre y correo)", "error")
         return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES,
-                               contactos=_contactos_todos()), 400
+                               contactos=_contactos_todos(), cts_prev=_cts_prev(f)), 400
     num = _numero(c)
     oid = ej("INSERT INTO oportunidades (cliente_id, numero, tipo, etapa, despliegue, plan, nodos, monto_estimado, cierre_estimado, notas, creado, por, modalidad, "
              "estimacion, monto_tentativo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], num, tipo, "prospecto",
