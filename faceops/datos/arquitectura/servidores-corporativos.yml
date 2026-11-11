@@ -1,0 +1,35 @@
+segmento: Servidores corporativos
+codigo: srvcorp
+version: 1
+grupo: aplicaciones
+descripcion: "Servidores RHEL de uso general administrados por AAP (línea base de configuración y paquetes)"
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: Tecnología · Infraestructura
+  dueno: Gerencia de Infraestructura
+  responsable_tecnico: Jefatura de Operaciones
+  criticidad: baja
+  soporte: Managed Service Invoke (N2)
+  usuarios: Administradores de sistemas
+
+entrada:
+  desde: admins
+  hacia: srv
+  puerto: 22
+
+externos:
+  - {id: admins, nombre: Administradores y AAP (SSH)}
+
+componentes:
+  - id: srv
+    nombre: Servidor corporativo RHEL
+    producto: node-exporter
+    sistema: rhel9
+    replicas: 1
+    equipos: [nodo-so]
+
+flujos:
+  - {desde: admins, hacia: srv, puerto: 22, motivo: "entrada: administración por SSH (AAP aplica la línea base)"}

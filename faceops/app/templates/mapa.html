@@ -523,7 +523,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function bifSegmento(){ const cy_=window._cy; if(!cy_) return null; const n=cy_.nodes().filter(x=>!!x.data('bif'))[0]; return n?{b:n.data('bif'),punto:n.data('nombre')||n.data('label')||''}:null; }
   function htmlLakeSegmento(){ const x=bifSegmento(); if(!x) return ''; const b=x.b;
     return sec('Data lake')+fila({izq:'Derivación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
-      det:(b.activa?''+(b.activa?'<div style="margin-top:4px"><b>Enviado al data lake:</b> <span id="lake-req">…</span> requests · <span id="lake-mb">'+(b.enviado_mb!=null?n2(b.enviado_mb):'…')+'</span> MB <span class="sub" id="lake-desde"></span></div>':'')
+      det:(b.activa&&b.declarada?'<div style="margin-top:4px"><b>Enviado al data lake:</b> escritura directa de la aplicación en <b>'+b.destino+'</b> (declarada en su arquitectura; no pasa por el colector, que solo mide los espejos de tráfico)</div>':b.activa?''+(b.activa?'<div style="margin-top:4px"><b>Enviado al data lake:</b> <span id="lake-req">…</span> requests · <span id="lake-mb">'+(b.enviado_mb!=null?n2(b.enviado_mb):'…')+'</span> MB <span class="sub" id="lake-desde"></span></div>':'')
           :'Al activarla (ticket con aprobación), cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, y arrancan flujos funcionales de prueba.')
         +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif-seg">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
         +''}); }
@@ -580,7 +580,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=fila({izq:'Ambientes',ic:letra('A','#2b9af3'),txt:s.ambientes.join(', ')||'—'});
     h+=fila({izq:'Productos',ic:letra('P'),txt:s.productos.join(', ')||'—',det:s.productos.length>2?s.productos.join('<br>'):''});
     h+=fila({izq:'Arquitectura',ic:s.arquitectura?SVG.ok:SVG.warn,txt:s.arquitectura?'v'+s.arquitectura:'sin arquitectura'});
-    if(bifSegmento()&&bifSegmento().b.activa) h+=fila({izq:'Carga de entrada',ic:letra('⇢','#0066cc'),txt:'<span id="lake-rps">…</span> req/s',det:'Media de requests por segundo que recibe la aplicación en su entrada durante el último minuto (copia de cada request al data lake).'});
+    if(bifSegmento()&&bifSegmento().b.activa&&!bifSegmento().b.declarada) h+=fila({izq:'Carga de entrada',ic:letra('⇢','#0066cc'),txt:'<span id="lake-rps">…</span> req/s',det:'Media de requests por segundo que recibe la aplicación en su entrada durante el último minuto (copia de cada request al data lake).'});
     if((s.ocp_comps||[]).length){
       h+=sec('OpenShift (contenedores)');
       h+=fila({izq:'Componentes',ic:letra('C','#ee0000'),txt:s.ocp_comps.join(', ')});

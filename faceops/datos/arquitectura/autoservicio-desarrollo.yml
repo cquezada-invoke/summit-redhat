@@ -1,0 +1,44 @@
+segmento: Autoservicio de desarrollo
+codigo: autoserv
+version: 1
+grupo: aplicaciones
+descripcion: "Portal de autoservicio para los equipos de desarrollo: Nginx publica Keycloak (login único) en /auth/"
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: Desarrollo · Plataformas
+  dueno: Gerencia de Desarrollo
+  responsable_tecnico: Jefatura de Desarrollo
+  criticidad: media
+  soporte: Managed Service Invoke (N2)
+  usuarios: Desarrolladores
+
+entrada:
+  desde: devs
+  hacia: web
+  puerto: 80
+
+externos:
+  - {id: devs, nombre: Desarrolladores}
+
+componentes:
+  - id: web
+    nombre: Nginx (publicación)
+    producto: nginx
+    sistema: rhel9
+    replicas: 1
+    equipos: [nodo-nginx]
+    uso: compartido        # el Nginx es de App de pagos: este segmento paga solo lo que consume
+  - id: sso
+    nombre: Keycloak (login único)
+    producto: keycloak
+    sistema: rhel9
+    replicas: 1
+    equipos: [nodo-tomcat]
+    uso: compartido
+
+flujos:
+  - {desde: devs, hacia: web, puerto: 80, motivo: "entrada: los desarrolladores abren el autoservicio"}
+  - {desde: web, hacia: sso, puerto: 8080, motivo: "Nginx publica Keycloak en /auth/ (proxy_pass a :8080)"}

@@ -1,6 +1,6 @@
 segmento: Red corporativa
 codigo: redcorp
-version: 1
+version: 2
 descripcion: "Arquitectura de red estándar de la empresa: borde con dos ISP, firewall perimetral, DMZ con balanceador, proxy inverso y DNS, firewall interno, core L3 y las zonas de aplicaciones, datos, campus y storage, con gestión fuera de banda. Publica la aplicación en www (198.51.100.10)."
 responsable: Arquitectura Invoke
 centro_de_datos: Centro de datos Santiago
@@ -68,3 +68,4 @@ flujos:
   - {desde: colaboradores, hacia: campus, puerto: 22, motivo: "puesto de trabajo"}
   - {desde: campus, hacia: app, puerto: 8080, via: [core, fwi], motivo: "los colaboradores usan la aplicación"}
   - {desde: app, hacia: dns, puerto: 53, via: [fwi], motivo: "resolución de nombres en la DMZ"}
+  - {desde: proxy, hacia: lb, puerto: 80, motivo: "el proxy inverso (:8443) reenvía al balanceador"}

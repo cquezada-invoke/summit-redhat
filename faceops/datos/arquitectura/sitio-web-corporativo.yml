@@ -1,0 +1,35 @@
+segmento: Sitio web corporativo
+codigo: sitioweb
+version: 1
+grupo: aplicaciones
+descripcion: "Sitio web institucional publicado en IIS sobre Windows Server 2022"
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: Marketing · Comunicación corporativa
+  dueno: Gerencia de Marketing
+  responsable_tecnico: Jefatura de Desarrollo Web
+  criticidad: media
+  soporte: Managed Service Invoke (N2)
+  usuarios: Visitantes del sitio
+
+entrada:
+  desde: visitantes
+  hacia: web
+  puerto: 80
+
+externos:
+  - {id: visitantes, nombre: Visitantes del sitio}
+
+componentes:
+  - id: web
+    nombre: Sitio web (IIS)
+    producto: iis
+    sistema: windows2022
+    replicas: 1
+    equipos: [nodo-windows]
+
+flujos:
+  - {desde: visitantes, hacia: web, puerto: 80, motivo: "entrada: el sitio se publica por HTTP en IIS"}

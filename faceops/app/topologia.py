@@ -282,7 +282,9 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
                             comp_de.setdefault(x["nombre"], c)
         if ambiente:  # un ambiente a la vez: producción, QA y desarrollo no se mezclan
             if _a:
-                dentro = [e for e in dentro if e["nombre"] in comp_de]
+                # las máquinas que la arquitectura asigna a un componente se dibujan aunque aún no tengan su plataforma
+                # instalada (p. ej. el servidor de midPoint recién creado): sin ellas el componente y sus flujos desaparecían
+                dentro = [e for e in eqs if e["nombre"] in comp_de]
             else:
                 dentro = [e for e in dentro if (e.get("ambiente") or "") == ambiente]
             titulo = f"{valor} · {ambiente}"
@@ -489,7 +491,10 @@ def _componentes_ocp(els, m, asg, cliente=None):
                              "info": {"Componente": c["nombre"], "Plataforma": "OpenShift", "Corre en": donde, "Producto": c.get("producto") or "—"}}})
     entrada = (m.get("entrada") or {}).get("hacia")
     route = None
-    if entrada in ids:   # la route de OpenShift es el balanceador de la aplicación: su propia caja
+    c_ent = next((c for c in ocp if c["id"] == entrada), None)
+    # si el componente de entrada ES el router de OpenShift (p. ej. la plataforma misma), no se agrega otra caja «Route»
+    es_router = bool(c_ent and (c_ent.get("tipo") in ("balanceador", "proxy") or "ingress" in str(c_ent.get("producto") or "")))
+    if entrada in ids and not es_router:   # la route de OpenShift es el balanceador de la aplicación: su propia caja
         url = _url_app(cid, m["segmento"], m)
         host = url.split("//")[-1].strip("/")
         route = "c:_route"
@@ -498,24 +503,41 @@ def _componentes_ocp(els, m, asg, cliente=None):
                              "ambiente": "", "estado": 0, "nube": False, "label": "Route", "caja": "Route", "app_url": url, "es_route": True,
                              "info": {"Rol": "Balanceador de OpenShift (route, HAProxy)", "Host": host or "—", "Hacia": entrada}}})
     ext = {x["id"]: x.get("nombre", x["id"]) for x in m["externos"]}
+    presentes = {e["data"]["id"] for e in els if not e["data"].get("source")}
+
+    def nodos_de(comp, origen):
+        """Nodos del mapa que cumplen un extremo del flujo: el componente en OpenShift, las máquinas (del ambiente dibujado)
+        de un componente en VM, o el actor externo (inicio del flujo si es origen; sistema externo si es destino)."""
+        if comp in ids:
+            return ["c:" + comp]
+        if comp in ext:
+            return ["x:" + comp]
+        return [n for n in ("e:" + x["nombre"] for xs in (asg.get(comp) or {}).values() for x in xs) if n in presentes]
+
     for i, f in enumerate(m["flujos"]):
         if f.get("estilo") == "bifurcacion" and not activa:
             continue
-        a = "c:" + f["desde"] if f["desde"] in ids else ("x:" + f["desde"] if f["desde"] in ext else None)
-        b_ = "c:" + f["hacia"] if f["hacia"] in ids else None
-        if not a or not b_:
-            continue
-        if a.startswith("x:") and not any(e["data"]["id"] == a for e in els):
-            els.append({"data": {"id": a, "label": "▶ " + ext[f["desde"]] + "\ninicio del flujo", "tipo": "entrada", "info": {"Rol": "Punto de entrada"}}})
-        comun = {"estilo": f.get("estilo") or "negocio", "estado_flujo": "no aplica", "puertos": " · ".join(f["puertos"]), "label": "",
-                 "texto": f.get("motivo", ""), "desde": f["desde"], "hacia": f["hacia"], "puerto": str(f.get("puerto", ""))}
-        if route and a.startswith("x:") and f["hacia"] == entrada:   # entrada → route → aplicación
-            els.append({"data": dict(comun, id=f"oc{i}r", source=a, target=route, tipo="entrada", hacia="route")})
-            els.append({"data": dict(comun, id=f"oc{i}", source=route, target=b_, tipo="flujo", desde="route", puertos="8080")})
-            continue
-        if route and f.get("estilo") == "bifurcacion" and f["desde"] == entrada:   # la copia sale del balanceador (route)
-            a = route
-        els.append({"data": dict(comun, id=f"oc{i}", source=a, target=b_, tipo="entrada" if a.startswith("x:") else "flujo")})
+        if f["desde"] not in ids and f["hacia"] not in ids:
+            continue   # flujo entre máquinas: lo dibuja el recorrido normal con su estado verificado
+        for a in nodos_de(f["desde"], True):
+            for k, b_ in enumerate(nodos_de(f["hacia"], False)):
+                if a.startswith("x:") and b_.startswith("x:"):
+                    continue
+                if a.startswith("x:") and not any(e["data"]["id"] == a for e in els):
+                    els.append({"data": {"id": a, "label": "▶ " + ext[f["desde"]] + "\ninicio del flujo", "tipo": "entrada", "info": {"Rol": "Punto de entrada"}}})
+                if b_.startswith("x:") and not any(e["data"]["id"] == b_ for e in els):
+                    els.append({"data": {"id": b_, "label": ext[f["hacia"]] + "\nsistema externo", "tipo": "entrada",
+                                         "info": {"Rol": "Sistema externo (destino del flujo)"}}})
+                comun = {"estilo": f.get("estilo") or "negocio", "estado_flujo": "no aplica", "puertos": " · ".join(f["puertos"]), "label": "",
+                         "texto": f.get("motivo", ""), "desde": f["desde"], "hacia": f["hacia"], "puerto": str(f.get("puerto", ""))}
+                sfx = f"-{a}-{k}" if not a.startswith(("c:", "x:")) or k else ""
+                if route and a.startswith("x:") and f["hacia"] == entrada:   # entrada → route → aplicación
+                    els.append({"data": dict(comun, id=f"oc{i}r", source=a, target=route, tipo="entrada", hacia="route")})
+                    els.append({"data": dict(comun, id=f"oc{i}", source=route, target=b_, tipo="flujo", desde="route", puertos="8080")})
+                    continue
+                if route and f.get("estilo") == "bifurcacion" and f["desde"] == entrada:   # la copia sale del balanceador (route)
+                    a = route
+                els.append({"data": dict(comun, id=f"oc{i}{sfx}", source=a, target=b_, tipo="entrada" if a.startswith("x:") else "flujo")})
     # el nodo del clúster donde corren ya está dicho en el marco: no se dibuja suelto
     nodos_ocp = {"e:" + n for n in nodos_cl}
     usados = {e["data"].get(k) for e in els for k in ("source", "target") if e["data"].get("source")}
@@ -606,13 +628,16 @@ def _bifurcacion_lake(els, cliente, segmento, m, asg):
     url = _url_app(cliente["id"], segmento, m)
     uso = _uso_lake(pref) if activa else {}
     for n in punto:
-        nodos[n]["bif"] = {"enviado_mb": uso.get("enviado_mb"), "s3_mb": uso.get("s3_mb"), "desde": uso.get("desde", ""),"segmento": segmento, "destino": f"s3://lake/{pref}/", "activa": activa, "como": como, "declarada": declarada,
+        nodos[n]["bif"] = {"enviado_mb": uso.get("enviado_mb"), "s3_mb": uso.get("s3_mb"), "desde": uso.get("desde", ""),"segmento": segmento, "destino": ((b or {}).get("destino") if declarada and (b or {}).get("destino") else f"s3://lake/{pref}/"), "activa": activa, "como": como, "declarada": declarada,
                            "por": (b or {}).get("por") or "", "en": (b or {}).get("en") or "", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"],
                            "datos": LAKE["datos"] + pref}
         if url and not nodos[n].get("app_url"):
             nodos[n]["app_url"] = url
     if not activa or declarada:
         return   # sin activar no se dibuja; si la arquitectura la declara, la dibuja ella (con su lake como componente)
+    punto = [n for n in punto if nodos[n].get("tipo") != "por_crear"]
+    if not punto:
+        return   # en este ambiente el punto de derivación aún no existe (está por crear): no hay copia que dibujar
     els.append({"data": {"id": "dl:lake", "tipo": "datalake", "label": f"{LAKE['nombre']}\n{LAKE['detalle']}\nlake/{pref}/",
                          "info": {"Destino": f"s3://lake/{pref}/", "Archivos": LAKE["web"] + pref + "/", "Explorador": LAKE["explorador"]}}})
     for i, n in enumerate(punto):
@@ -629,15 +654,26 @@ def m_nombre(m, cid):
 
 def _planificados(els, m, asg, amb, vistos):
     """Componentes que la arquitectura declara en este ambiente pero que aún no existen: cajas «por crear» y sus
-    uniones planificadas, para ver la aplicación completa del ambiente."""
+    uniones planificadas, para ver la aplicación completa del ambiente. Lo que corre en OpenShift no es «por crear» (lo
+    dibuja su marco), la derivación al data lake solo existe si está activada, y un servicio de red del camino ya dibujado
+    «por asignar» no se repite."""
     nodos = {}
     if not any(e["data"].get("id") == "p:seg" for e in els):
         els.append({"data": {"id": "p:seg", "label": f"{m['segmento']} · {amb}", "tipo": "grupo"}})
+    existentes = {e["data"]["id"] for e in els if not e["data"].get("source")}
+    por_crear = set()
     for c in m["componentes"]:
+        if c.get("plataforma") == "openshift":
+            nodos[c["id"]] = []
+            continue
+        if "v:" + c["id"] in existentes:   # servicio de red del camino ya dibujado (por asignar)
+            nodos[c["id"]] = ["v:" + c["id"]]
+            continue
         if c["replicas"].get(amb) and not asg.get(c["id"], {}).get(amb):
             icono, rol = rol_de({}, c)
             nid = f"v:{c['id']}:{amb}"
             nodos[c["id"]] = [nid]
+            por_crear.add(nid)
             els.append({"data": {"id": nid, "parent": "p:seg", "tipo": "por_crear", "icono": icono, "estado": 0,
                                  "componente": c["nombre"], "ambiente": amb, "clave_paso": f"hab:{c['id']}:{amb}", "nombre": c["nombre"],
                                  "rol": rol, "ubicacion": m.get("centro_de_datos") or "", "nube": "cloud" in (m.get("centro_de_datos") or "").lower(),
@@ -649,22 +685,28 @@ def _planificados(els, m, asg, amb, vistos):
             nodos[c["id"]] = ["e:" + e["nombre"] for e in asg.get(c["id"], {}).get(amb, [])]
     ext = {x["id"] for x in m["externos"]}
     for i, f in enumerate(m["flujos"]):
+        if f.get("estilo") == "bifurcacion":
+            continue   # la derivación al data lake se dibuja aparte y solo si está activada
         origen = ["x:" + f["desde"]] if f["desde"] in ext else nodos.get(f["desde"], [])
         destino = nodos.get(f["hacia"], [])
+        via = [n for v in f.get("via") or [] for n in nodos.get(v, [])[:1]]
         for a in origen:
             for b in destino:
-                if not (a.startswith("v:") or b.startswith("v:")):
+                camino_ = [a] + [v for v in via if v not in (a, b)] + [b]
+                if not any(n in por_crear for n in camino_):
                     continue  # las uniones entre máquinas reales ya están dibujadas con su estado
                 if a.startswith("x:") and not any(e["data"]["id"] == a for e in els):
                     els.append({"data": {"id": a, "label": "▶ " + next((x.get("nombre", a[2:]) for x in m["externos"] if x["id"] == a[2:]), a[2:])
                                          + "\ninicio del flujo", "tipo": "entrada", "info": {"Rol": "Punto de entrada"}}})
-                if (a, b) in vistos:
-                    continue
-                vistos.add((a, b))
-                faltan = [n for n, x in ((m_nombre(m, f["desde"]), a), (m_nombre(m, f["hacia"]), b)) if x.startswith("v:")]
-                els.append({"data": {"id": f"pl{i}-{len(vistos)}", "source": a, "target": b, "tipo": "planificado", "ambiente": amb,
-                                     "puertos": " · ".join(f["puertos"]), "label": "", "texto": f.get("motivo", ""),
-                                     "desde_c": m_nombre(m, f["desde"]), "hacia_c": m_nombre(m, f["hacia"]), "faltan": faltan}})
+                faltan = [n for n, x in ((m_nombre(m, f["desde"]), a), (m_nombre(m, f["hacia"]), b)) if x in por_crear]
+                for x, y in zip(camino_, camino_[1:]):
+                    if (x, y) in vistos:
+                        continue
+                    vistos.add((x, y))
+                    els.append({"data": {"id": f"pl{i}-{len(vistos)}", "source": x, "target": y, "tipo": "planificado", "ambiente": amb,
+                                         "puertos": " · ".join(f["puertos"]), "label": "",
+                                         "texto": f.get("motivo", "") + (" · pasa por " + ", ".join(m_nombre(m, v) for v in f["via"]) if f.get("via") else ""),
+                                         "desde_c": m_nombre(m, f["desde"]), "hacia_c": m_nombre(m, f["hacia"]), "faltan": faltan}})
 
 
 # ------------------------------------------------------------------ verificación de flujos (en vivo, vía AAP)

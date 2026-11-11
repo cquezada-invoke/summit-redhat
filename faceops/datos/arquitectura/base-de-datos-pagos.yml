@@ -1,0 +1,36 @@
+segmento: Base de datos de pagos
+codigo: bdpagos
+version: 1
+grupo: aplicaciones
+descripcion: "SQL Server de pagos en dos centros de datos (dc1-sql01 y dc2-sql01): base de la demo de alta disponibilidad"
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: Finanzas · Medios de pago
+  dueno: Gerencia de Medios de Pago
+  responsable_tecnico: Jefatura de Bases de Datos
+  criticidad: alta
+  soporte: Managed Service Invoke (N2)
+  datos: "Transacciones de pago"
+  usuarios: Aplicaciones de pagos
+
+entrada:
+  desde: apps
+  hacia: sql
+  puerto: 1433
+
+externos:
+  - {id: apps, nombre: Aplicaciones de pagos}
+
+componentes:
+  - id: sql
+    nombre: SQL Server
+    producto: sqlserver
+    sistema: rhel9
+    replicas: 2
+    equipos: [dc1-sql01, dc2-sql01]
+
+flujos:
+  - {desde: apps, hacia: sql, puerto: 1433, motivo: "entrada: las aplicaciones consultan y registran pagos (TDS)"}
