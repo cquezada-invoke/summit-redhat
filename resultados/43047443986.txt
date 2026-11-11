@@ -1,0 +1,48 @@
+commit: 8b8d37ce5ae7063be8d5f2155c5750c366acf17c
+inicio: 2026-11-11T12:34:10-03:00
+---
+nodo-jboss2
+nodo-jboss
+nodo-jboss-dev
+nodo-jboss4
+nodo-jboss-qa
+nodo-jboss3
+1
+/etc/nginx/conf.d/app-jboss-upstream.conf:1
+
+
+hosts AAP nodo-jboss4: [(166, 'Servidores habilitados'), (168, 'Servidores de aplicación'), (167, 'FaceOps · Todos los servidores')]
+200 200 200 
+equipos nodo-jboss4: [(128, 'sin datos')]
+AAP terminó (successful): ejecución 100 s, espera de aprobación 35 s
+Servidores dados de alta en el inventario «Servidores habilitados» de AAP: nodo-jboss4 · 192.168.122.105
+Alta disponibilidad: nodo-jboss y sus réplicas balanceados en round robin por nodo-nginx · http://192.168.122.11/app-jboss/salud
+Prueba (6 pedidos): 192.168.122.15:8080, 192.168.122.105:8080, 192.168.122.18:8080, 192.168.122.15:8080, 192.168.122.105:8080, 192.168.122.18:8080
+Réplica nodo-jboss4 (192.168.122.105) de nodo-jboss: jboss responde 200 directo (ok 1.0.44); por balanceador: nodo-nginx → 192.168.122.105:8080, 192.168.122.18:8080, 192.168.122.15:8080, 192.168.122.105:8080, 192.168.122.18:8080, 192.168.122.15:8080, 192.168.122.105:8080, 192.168.122.18:8080
+nodo-jboss4 en el inventario «Servidores de aplicación» de AAP (grupo jboss)
+Políticas aplicadas: APP-02, DAT-01, SO-01
+Error: container has already been removed
+Error: no container with name or ID "faceops" found: no such container
+FINAL FO-HIS-0081 exitoso wf None
+
+nodo-jboss2
+nodo-jboss
+nodo-jboss-dev
+nodo-jboss4
+nodo-jboss-qa
+nodo-jboss3
+upstream app_jboss {
+    server 192.168.122.15:8080 max_fails=2 fail_timeout=10s;
+    server 192.168.122.105:8080 max_fails=2 fail_timeout=10s;  # réplica HA · FaceOps FO-LAB-01658
+    server 192.168.122.18:8080 max_fails=2 fail_timeout=10s;
+}
+
+200 200 200 200 
+equipos nodo-jboss5: []
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/opt/faceops/app/bd.py", line 183, in q1
+    r = con().execute(sql, args).fetchone()
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: ambiguous column name: id
+--- fin: 2026-11-11T12:35:44-03:00 · código: 0
