@@ -132,6 +132,8 @@ def evaluar(api, c):
             items = t.get("items") or []
             por_tag[(ns, nom, t["tag"])] = items
             for i, it in enumerate(items):
+                if not (it.get("dockerImageReference") or "").startswith(REG + "/"):
+                    continue   # solo imágenes guardadas en el registro interno (las importadas de registros externos no se mueven)
                 revs.append({"ns": ns, "is": nom, "tag": t["tag"], "rev": i, "digest": it.get("image", ""), "push": fecha(it.get("created")),
                              "uso": None, "fuente": "", "estado": "sin uso", "historial": []})
 
@@ -265,7 +267,21 @@ def evaluar(api, c):
                       "estado": "huérfana", "historial": [], "bytes": b, "capas": capas, "construida": fecha((im.get("dockerImageMetadata") or {}).get("Created")),
                       "meses": round((AHORA - (f or AHORA)).days / 30.44, 1), "base": "creación en el registro", "candidata": True,
                       "ref": im.get("dockerImageReference") or ""})
-    return plan(c, filas)
+    res = plan(c, filas)
+    res["quay_detectado"] = quay_del_cluster(api, c)
+    return res
+
+
+def quay_del_cluster(api, c):
+    """Quay del clúster (operador de Quay: QuayRegistry) o el indicado en el formulario; con enlace a la organización si se dio."""
+    for q in listar(api, "/apis/quay.redhat.com/v1/quayregistries"):
+        ep = (q.get("status") or {}).get("registryEndpoint") or ""
+        if ep:
+            return {"url": ep.rstrip("/") + (f"/organization/{c['org']}" if c["org"] else ""), "host": re.sub(r"^https?://", "", ep).rstrip("/"),
+                    "fuente": f"QuayRegistry {q['metadata']['namespace']}/{q['metadata']['name']}"}
+    if c["quay"]:
+        return {"url": f"https://{c['quay']}" + (f"/organization/{c['org']}" if c["org"] else ""), "host": c["quay"], "fuente": "indicado en la evaluación"}
+    return {}
 
 
 def destino(c, r):
@@ -344,6 +360,7 @@ def escribir(res, salida):
     L = [f"# Imágenes de OpenShift: uso, antigüedad y movilidad a Quay · {res['cluster']}", "",
          f"- Medido: {res['medido']} · umbral: sin uso hace {res['meses_umbral']} meses o más · rangos: {', '.join(map(str, res['rangos_meses']))} meses",
          f"- Namespaces: {', '.join(res['namespaces']['incluir']) or 'todos los de aplicaciones'} (excluidos: {', '.join(res['namespaces']['excluir'])})",
+         f"- Solo imágenes del registro interno (ImageStreams con la imagen guardada en {REG}); las importadas de registros externos no se listan",
          f"- Revisiones evaluadas: {res['revisiones']} · candidatas a Quay: {res['candidatas']} ({mb(res['bytes_candidatas'])}; capas que se liberan solo con ellas: {res['capas_exclusivas']})",
          f"- Destino: {q} · organización: {res['quay_org']}", "",
          "## Por rango", "", "| Rango | Revisiones | Tamaño |", "|---|---:|---:|"]
@@ -351,6 +368,13 @@ def escribir(res, salida):
     if res["por_namespace"]:
         L += ["", "## Candidatas por namespace", "", "| Namespace | Candidatas | Tamaño |", "|---|---:|---:|"]
         L += [f"| {x['namespace']} | {x['candidatas']} | {mb(x['bytes'])} |" for x in res["por_namespace"]]
+    qd = res.get("quay_detectado") or {}
+    if not res["revisiones"]:
+        L += ["", "## Registro interno", "", (f"El registro interno no guarda imágenes de aplicaciones: ya están en Quay ({qd['url']}). No hay nada que mover."
+                                             if qd else "El clúster no tiene imágenes en el registro interno ni un Quay asociado."), ""]
+        with open(f"{salida}/plan.md", "w") as f:
+            f.write("\n".join(L))
+        return
     L += ["", "## Plan de movilidad", ""]
     if not res["plan"]:
         L += ["No hay imágenes candidatas con este umbral."]
@@ -394,7 +418,8 @@ def publicar(res, salida):
 def resumen_stats(res, git):
     return {"cluster": res["cluster"], "medido": res["medido"], "meses_umbral": res["meses_umbral"], "rangos_meses": res["rangos_meses"],
             "revisiones": res["revisiones"], "candidatas": res["candidatas"], "mb_candidatas": round(res["bytes_candidatas"] / 2**20),
-            "capas_exclusivas": res["capas_exclusivas"], "quay": res["quay"], "quay_org": res["quay_org"],
+            "capas_exclusivas": res["capas_exclusivas"], "quay": res["quay"] or (res["quay_detectado"] or {}).get("host", ""), "quay_org": res["quay_org"],
+            "quay_detectado": res["quay_detectado"],
             "namespaces": res["namespaces"],
             "rangos": [{"rango": x["rango"], "revisiones": x["revisiones"], "mb": round(x["bytes"] / 2**20)} for x in res["rangos"]],
             "por_namespace": [{"namespace": x["namespace"], "candidatas": x["candidatas"], "mb": round(x["bytes"] / 2**20)} for x in res["por_namespace"]][:20],
@@ -523,6 +548,8 @@ def mover(api, c, res):
 def main():
     modo, api, salida = sys.argv[1], sys.argv[2].rstrip("/"), sys.argv[3]
     c = cfg()
+    if not c["quay"]:   # sin host indicado, el destino es el Quay del propio clúster (si lo tiene)
+        c["quay"] = quay_del_cluster(api, c).get("host", "")
     res = evaluar(api, c)
     if modo == "evaluar":
         escribir(res, salida)
