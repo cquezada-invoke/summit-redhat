@@ -1,76 +1,12 @@
-commit: b0cd7dbdc25852c225304e3e7c8c62e84c3a4289
-inicio: 2026-11-11T11:11:48-03:00
+commit: 0296598ce67d384239ab3991d257497ecb64e795
+inicio: 2026-11-11T11:19:26-03:00
 ---
-               total        used        free      shared  buff/cache   available
-Mem:             125          95           3           2          30          30
-/dev/sda2       500G  438G   62G  88% /
-ok 1.0.44
-X-Servidor-JBoss: 192.168.122.15:8080
-autounattend-windows.xml
-base
-claves
-dc1-sat01.qcow2
-dc1-sql01.qcow2
-dc1-vpn01.qcow2
-dc2-sql01.qcow2
-ee-centro-datos-prod.qcow2
-ee-centro-datos-prod-user-data.yml
-llave-legado.pub
-llave.pub
-nodo-storage.qcow2
-nodo-storage-user-data.yml
-nodo-vault.qcow2
-nodo-vault-user-data.yml
-pc-oficina-01-autounattend.iso
-pc-oficina-01.qcow2
-pc-oficina-02-autounattend.iso
-pc-oficina-02.qcow2
-srv-cisco-c240-01.qcow2
-srv-cisco-c240-01-user-data.yml
-srv-dell-r660xs-01.qcow2
-srv-dell-r660xs-01-user-data.yml
-srv-dell-r760-01.qcow2
-srv-dell-r760-01-user-data.yml
-srv-fujitsu-rx2540-01.qcow2
-srv-fujitsu-rx2540-01-user-data.yml
-srv-hpe-dl360-01.qcow2
-srv-hpe-dl360-01-user-data.yml
-srv-hpe-dl380-01.qcow2
-srv-hpe-dl380-01-user-data.yml
-srv-jenkins-01.qcow2
-srv-jenkins-01-user-data.yml
-srv-legado-jboss5-01.eliminado-202611022238.qcow2
-srv-legado-jboss5-01.qcow2
-srv-legado-jboss5-01-user-data.yml
-srv-legado-jboss6-01.eliminado-202611102159.qcow2
-srv-legado-jboss7-01.eliminado-202611102205.qcow2
-srv-lenovo-sr630-01.qcow2
-srv-lenovo-sr630-01-user-data.yml
-srv-lenovo-sr650-01.qcow2
-srv-lenovo-sr650-01-user-data.yml
-srv-mover-01-user-data.yml
-srv-no-existe-99.qcow2
-srv-no-existe-99.reemplazado-202611071115.qcow2
-srv-odoo-demo-01.qcow2
-srv-odoo-demo-01-user-data.yml
-srv-pagos-app-01.qcow2
-srv-pagos-app-01-user-data.yml
-srv-pagos-web-01.eliminado-202611102036.qcow2
-{'instance_count': 50, 'current_instances': 48, 'automated_instances': 50, 'free_instances': 0, 'subscription_name': '60 Day Product Trial of Red Hat Ansible Automation Platform, Self-Supported (50 Managed Nodes)'}
-lab
-Max memory:     2097152 KiB
-Autostart:      enable
-Autostart Once: disable
-Max memory:     2097152 KiB
-Autostart:      enable
-Autostart Once: disable
-Max memory:     2097152 KiB
-Autostart:      enable
-Autostart Once: disable
-Max memory:     2097152 KiB
-Autostart:      enable
-Autostart Once: disable
-Max memory:     2097152 KiB
-Autostart:      disable
-Autostart Once: disable
---- fin: 2026-11-11T11:11:55-03:00 · código: 0
+a7ca092 Ficha de la máquina › salud › Disponibilidad: segmentos que usan la máquina y «Replicar máquina» (máquina paralela desde la imagen base, no clon; rol del origen, balanceo y firewall en todos sus segmentos, verificación HTTP 200 y vuelta atrás; un ticket con aprobación)
+   · Workflow «FaceOps · Replicar con alta disponibilidad» (id 116): aprobación → Habilitar servidor → Replicar y balancear
+   · Workflow «Infra · Replicar máquina» (id 1157): aprobación → Habilitar servidor → configurar · si falla: retirar del balanceo → eliminar la VM
+sync 226
+auto (231, 'workflow', 0, 1)
+prueba sin probar
+ficha 200 True True True
+Segmentos que usan esta máquina (1) App de pagos JBoss EAP (app-jboss) · produccion · balanceo en nodo-nginx · puertos 8080 Para llegar al 100 % Agregar al menos una réplica (otra instancia que sirva lo mismo): con 2 sube a 85 %, con 3 o más a 100 % Replicar máquina · falta su prueba Rendimiento 95 % CPU · 11 % de 2 vCPU 85 % Memoria · 55 % de 2 GB 100 % Disco (volumen más lleno) · 22 % de su capacidad 100 % Para llegar al 100 % CPU al 11 %: sobredimensionado, se puede b
+--- fin: 2026-11-11T11:23:38-03:00 · código: 0

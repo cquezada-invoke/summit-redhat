@@ -1,0 +1,12 @@
+commit: 0296598ce67d384239ab3991d257497ecb64e795
+inicio: 2026-11-11T11:19:26-03:00
+---
+a7ca092 Ficha de la máquina › salud › Disponibilidad: segmentos que usan la máquina y «Replicar máquina» (máquina paralela desde la imagen base, no clon; rol del origen, balanceo y firewall en todos sus segmentos, verificación HTTP 200 y vuelta atrás; un ticket con aprobación)
+   · Workflow «FaceOps · Replicar con alta disponibilidad» (id 116): aprobación → Habilitar servidor → Replicar y balancear
+   · Workflow «Infra · Replicar máquina» (id 1157): aprobación → Habilitar servidor → configurar · si falla: retirar del balanceo → eliminar la VM
+sync 226
+auto (231, 'workflow', 0, 1)
+prueba sin probar
+ficha 200 True True True
+Segmentos que usan esta máquina (1) App de pagos JBoss EAP (app-jboss) · produccion · balanceo en nodo-nginx · puertos 8080 Para llegar al 100 % Agregar al menos una réplica (otra instancia que sirva lo mismo): con 2 sube a 85 %, con 3 o más a 100 % Replicar máquina · falta su prueba Rendimiento 95 % CPU · 11 % de 2 vCPU 85 % Memoria · 55 % de 2 GB 100 % Disco (volumen más lleno) · 22 % de su capacidad 100 % Para llegar al 100 % CPU al 11 %: sobredimensionado, se puede b
+--- fin: 2026-11-11T11:23:38-03:00 · código: 0
