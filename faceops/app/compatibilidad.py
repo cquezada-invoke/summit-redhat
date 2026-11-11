@@ -85,6 +85,27 @@ def falta_recurso(a, e):
     return ""
 
 
+def requisito_encender(e, cod, en_ejecucion=()):
+    """Memoria que necesita la máquina para encender la plataforma `cod` junto a las que ya corren (`en_ejecucion`: familias).
+    None si la plataforma no tiene requisito definido (datos/compatibilidad.yml › encender). Se compara contra la memoria
+    ASIGNADA (la que se ajusta en el hipervisor y muestra la ficha), no contra la que ve el sistema."""
+    from .vistas import familia
+    rq = conf().get("encender") or {}
+    pl = rq.get("plataformas") or {}
+    f = familia(cod)
+    if f not in pl or not e.get("ram_mb"):
+        return None
+    otras = sorted({familia(x) for x in en_ejecucion} - {f})
+    req = int(rq.get("sistema_mb") or 512) + int(pl[f]) + sum(int(pl.get(x) or 0) for x in otras)
+    tiene = int(e["ram_mb"])
+    gb = lambda mb: f"{round(mb / 1024, 1):g}".replace(".", ",")
+    return {"req_mb": req, "tiene_mb": tiene, "ok": tiene >= req, "otras": [x for x in otras if pl.get(x)],
+            "texto": (f"Para encenderla se requieren ~{gb(req)} GB de RAM en la máquina (hoy {gb(tiene)} GB): ajusta la memoria"
+                      if tiene < req else ""),
+            "detalle": f"sistema {gb(int(rq.get('sistema_mb') or 512))} GB + " + " + ".join(
+                f"{x} {gb(int(pl[x]))} GB" for x in [f] + [x for x in otras if pl.get(x)])}
+
+
 def compatible(a, e, recursos=True):
     """(sí/no, por qué no). recursos=False no cuenta la memoria (se puede ajustar; la plataforma se muestra con alerta)."""
     c = de(a)

@@ -196,7 +196,7 @@ def resumir(facts, host_vars):
         "datos": {
             "kernel": f.get("ansible_kernel", ""), "uptime_dias": round((f.get("ansible_uptime_seconds") or 0) / 86400, 1),
             "selinux": (f.get("ansible_selinux") or {}).get("mode") if isinstance(f.get("ansible_selinux"), dict) else "",
-            "ram_libre_mb": f.get("ansible_memfree_mb"), "carga_1m": (f.get("ansible_loadavg") or {}).get("1m"),
+            "ram_libre_mb": f.get("ansible_memfree_mb"), "ram_so_mb": f.get("ansible_memtotal_mb"), "carga_1m": (f.get("ansible_loadavg") or {}).get("1m"),
             "ram_disponible_mb": ((f.get("ansible_memory_mb") or {}).get("nocache") or {}).get("free"), "virtual": f.get("ansible_virtualization_type", ""),
             "registrado": f.get("faceops_registrado"), "parches_seguridad": f.get("faceops_parches_seguridad"),
             "recolectado": f.get("faceops_recolectado", ""), "hostname": f.get("ansible_fqdn", ""),
@@ -376,7 +376,9 @@ def _ajuste_posterior(cliente_id, nombre, facts_fecha):
     if not t:
         return None
     ff, ft = _fecha(facts_fecha), _fecha(t["fin"])
-    if not ft or (ff and ff >= ft):
+    if facts_fecha is None:   # el último ajuste, sea anterior o posterior a los facts
+        ff = None
+    elif not ft or (ff and ff >= ft):
         return None
     for x in (j(t["parametros"], {}).get("ir_maquinas") or "").split(","):
         p_ = x.strip().split(":")
@@ -452,6 +454,18 @@ def sincronizar(cliente, usuario="sistema"):
         aj = _ajuste_posterior(cliente["id"], nombre, a["facts_fecha"])
         if aj:   # facts anteriores al último «Ajustar recursos» exitoso: manda lo que quedó en el hipervisor
             fila["cpu"], fila["ram_mb"] = aj
+        elif r["ram_mb"] and (r.get("datos") or {}).get("ram_so_mb"):
+            # memoria ASIGNADA (hipervisor) vs USABLE (MemTotal del sistema: kernel, crashkernel y firmware se quedan con una
+            # parte). La ficha muestra la asignada; la usable va en datos.ram_so_mb. Asignada: la del último «Ajustar recursos»
+            # si calza con lo que ve el sistema; si no, en una VM, MemTotal redondeado al GB (estimada).
+            so_ = int(r["ram_mb"])
+            ult_ = _ajuste_posterior(cliente["id"], nombre, None)
+            if ult_ and so_ <= ult_[1] <= so_ / 0.75:
+                fila["ram_mb"] = ult_[1]
+            elif (r["datos"].get("virtual_rol") == "guest") and so_ % 1024:
+                fila["ram_mb"] = -(-so_ // 1024) * 1024
+                r["datos"]["ram_asignada_estimada"] = True
+                fila["datos"] = json.dumps(r["datos"])
         existe = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
         if existe:
             ej("UPDATE equipos SET " + ", ".join(f"{k}=?" for k in fila) + " WHERE id=?", *fila.values(), existe["id"])

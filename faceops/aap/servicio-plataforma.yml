@@ -45,6 +45,30 @@
     - name: Unidades del equipo
       ansible.builtin.service_facts:
 
+    # Plataforma en contenedor (quadlet de podman) dejada «deshabilitada»: su definición se apartó a /var/lib/<plataforma>/deshabilitado/
+    # (sin unidad systemd). Encender la devuelve a /etc/containers/systemd/ y recarga systemd; apagar o reiniciar no la toca.
+    - name: Quadlet deshabilitado de la plataforma
+      when: accion == 'encender'
+      ansible.builtin.shell: |
+        set -e
+        for u in {{ sp_unidades | map('quote') | join(' ') }}; do
+          [ -e "/etc/containers/systemd/$u.container" ] && exit 0
+          for f in /var/lib/*/deshabilitado/"$u".container; do
+            [ -f "$f" ] || continue
+            install -m 0644 -o root -g root "$f" "/etc/containers/systemd/$u.container"
+            restorecon "/etc/containers/systemd/$u.container" 2>/dev/null || true
+            rm -f "$f"
+            systemctl daemon-reload
+            echo "habilitado $f → /etc/containers/systemd/$u.container"; exit 0
+          done
+        done
+      register: r_quadlet
+      changed_when: "'habilitado' in r_quadlet.stdout"
+
+    - name: Unidades del equipo (tras habilitar su quadlet)
+      ansible.builtin.service_facts:
+      when: r_quadlet is changed
+
     - name: Unidad de la plataforma (una que termina en «@» toma cualquier instancia)
       ansible.builtin.set_fact:
         sp_unidad: >-
@@ -70,6 +94,6 @@
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
-          faceops_servicio: "{{ {inventory_hostname: {'unidad': sp_unidad, 'activo': r_fin.stdout | trim, 'accion': accion}} }}"
+          faceops_servicio: "{{ {inventory_hostname: {'unidad': sp_unidad, 'activo': r_fin.stdout | trim, 'accion': accion, 'quadlet': (r_quadlet.stdout | default('')) | trim}} }}"
         per_host: false
         aggregate: true

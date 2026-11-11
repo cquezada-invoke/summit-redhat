@@ -3172,6 +3172,16 @@ def plataforma_servicio(eid, cod):
         flash("Falta «Plataforma · Controlar servicio» en el catálogo (sincroniza con AAP)", "error")
         return redirect(url_for("consola.equipo", eid=eid) + f"#p-{cod}")
     nom = request.form.get("nombre") or cod
+    if accion == "encender":   # requisito de memoria: si la máquina no la tiene, no se lanza un encendido que fallaría
+        from .compatibilidad import requisito_encender
+        corren = [k for k in SERVICIOS_PLATAFORMA if k != familia(cod) and servicio_estado(e, k) == "en ejecución"]
+        rq_ = requisito_encender(e, cod, corren)
+        if rq_ and not rq_["ok"]:
+            msg_ = f"{nom}: {rq_['texto']} (Ajustar CPU y memoria · {rq_['detalle']})."
+            if request.headers.get("X-Requested-With") == "fetch":
+                return {"error": msg_, "requisito": rq_}, 409
+            flash(msg_, "error")
+            return redirect(url_for("consola.equipo", eid=eid) + f"#p-{cod}")
     try:
         t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"sp_unidades": SERVICIOS_PLATAFORMA[familia(cod)], "sp_accion": accion, "sp_plataforma": nom},
                                 f"{accion.capitalize()} {nom} en {e['nombre']}")
@@ -4602,6 +4612,11 @@ def equipo(eid):
             c["nota_consola"] = (f"{c['nombre']} está detenido: no responde en el puerto {pto_} de la máquina"
                                  + (" (la última recolección aún lo daba en ejecución)" if viejo_ else "")
                                  + f". Su consola ({CONSOLAS[familia(c['codigo'])][3]}) se habilita sola cuando la plataforma esté encendida.")
+    from .compatibilidad import requisito_encender as _req_enc
+    _corren = [c["codigo"] for c in componentes if not c.get("so") and (c.get("estado_vivo") or servicio_estado(e, c["codigo"])) == "en ejecución"]
+    for c in componentes:   # memoria para encender la plataforma junto a las que ya corren (si no alcanza: «Encender» explica y ofrece ajustar)
+        if not c.get("so") and not c.get("op") and not c.get("nodo") and (c.get("estado_vivo") or servicio_estado(e, c["codigo"])) != "en ejecución":
+            c["req_ram"] = _req_enc(e, c["codigo"], _corren)
     for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
         ent = None
         if c["so"] or (c["codigo"] == "windows" and consola_tipo):
@@ -8638,6 +8653,8 @@ def uso_equipo(e, datos, discos):
                 out.update(cpu_u=12 + h % 38, carga=None)
                 out["emulado"].add("cpu")
     ram_t = e.get("ram_mb") or 0
+    if datos.get("ram_so_mb") and ram_t and int(datos["ram_so_mb"]) <= ram_t:   # el uso se mide sobre lo que ve el sistema (MemTotal), no lo asignado
+        ram_t = int(datos["ram_so_mb"])
     ram_l = datos.get("ram_disponible_mb") if datos.get("ram_disponible_mb") is not None else datos.get("ram_libre_mb")
     if out["ram_u"] is not None:
         pass

@@ -404,6 +404,16 @@ planes:
   "Red · Actualizar firmware":
     casos:
       - {id: C1, caso: "Actualizar el firmware de un equipo de red real (o su emulador del fabricante)", verificar: "versión nueva; configuración intacta; vuelta atrás disponible"}
+  "Plataforma · Controlar servicio":
+    casos:
+      - {id: C1, caso: "Encender Keycloak en nodo-jboss con su quadlet apartado en /var/lib/keycloak/deshabilitado/ (máquina con la memoria que exige su requisito)", tipo: Funcional, verificar: "ticket exitoso; el quadlet vuelve a /etc/containers/systemd/keycloak.container (set_stats quadlet=habilitado…), keycloak.service queda active, responde en el puerto 8180 y su consola abre por FaceOps (HTTP 200); JBoss y la app siguen respondiendo"}
+      - {id: C2, caso: "Repetir «Encender» sobre Keycloak ya encendido", tipo: Idempotencia, verificar: "ticket exitoso sin cambios (no mueve archivos ni reinicia); sigue active"}
+      - {id: C3, caso: "Reiniciar Keycloak", tipo: Funcional, verificar: "ticket exitoso; keycloak.service vuelve a active y la consola responde"}
+      - {id: C4, caso: "Apagar Keycloak", tipo: Funcional, verificar: "ticket exitoso; keycloak.service inactive; la ficha lo muestra detenido; el quadlet queda en su lugar (no se aparta)"}
+      - {id: C5, caso: "Encender Keycloak con su unidad ya presente (sin quadlet apartado)", tipo: Funcional, verificar: "ticket exitoso; active y la consola responde (HTTP 200)"}
+      - {id: C6, caso: "Consultar estado (sp_accion=estado) de JBoss en nodo-jboss", tipo: Funcional, verificar: "ticket exitoso sin cambios; set_stats con unidad eap8-standalone y activo=active"}
+      - {id: C7, caso: "Plataforma sin servicio en la máquina (Tomcat en nodo-jboss)", tipo: Error controlado, verificar: "ticket fallido en «La plataforma tiene servicio en el equipo» con el motivo; nada cambia en la máquina"}
+      - {id: C8, caso: "«Encender» Keycloak desde la ficha con la máquina sin la memoria del requisito (2 GB asignados, requiere ~3 GB)", tipo: Error controlado, verificar: "FaceOps no crea ticket: responde 409 con «Para encenderla se requieren ~3 GB de RAM… ajusta la memoria» y la ficha ofrece «Ajustar CPU y memoria»"}
   "Plataforma · Actualizar firmware":
     casos:
       - {id: C1, caso: "Actualizar BIOS/BMC de un servidor físico real vía Redfish", verificar: "versión nueva; servidor arriba"}
