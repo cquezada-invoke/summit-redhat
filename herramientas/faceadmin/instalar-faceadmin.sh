@@ -42,6 +42,7 @@ if [ "$antes" != "$ahora" ] || ! podman image exists localhost/faceadmin:latest;
 fi
 A
 $S "echo $REPO | sudo tee /etc/faceadmin/repo >/dev/null; sudo install -d -o 1001 -g 0 -m 770 /var/lib/faceadmin"
+$S "sudo test -f /etc/faceadmin/s3.env || sudo install -m 600 /dev/null /etc/faceadmin/s3.env"   # data lake: lo llena instalar-minio-faceadmin.sh
 $S "sudo tee /etc/systemd/system/faceadmin-actualizar.service >/dev/null" <<'U'
 [Unit]
 Description=FaceAdmin · actualizar desde el repositorio central al encender
@@ -58,7 +59,7 @@ U
 $S "sudo tee /etc/containers/systemd/faceadmin.container >/dev/null" <<'U'
 [Unit]
 Description=FaceAdmin · consola global
-After=network-online.target faceadmin-actualizar.service
+After=network-online.target faceadmin-actualizar.service faceadmin-minio.service
 [Container]
 Image=localhost/faceadmin:latest
 ContainerName=faceadmin
@@ -67,6 +68,7 @@ Volume=/var/lib/faceadmin:/var/lib/faceadmin:Z
 Volume=/etc/faceadmin/tls.crt:/etc/faceadmin/tls.crt:ro,Z
 Volume=/etc/faceadmin/tls.key:/etc/faceadmin/tls.key:ro,Z
 EnvironmentFile=/etc/faceadmin.env
+EnvironmentFile=/etc/faceadmin/s3.env
 Environment=TZ=America/Santiago
 Exec=gunicorn --workers 1 --threads 8 --bind 0.0.0.0:8843 --certfile /etc/faceadmin/tls.crt --keyfile /etc/faceadmin/tls.key --access-logfile - app:app
 [Service]

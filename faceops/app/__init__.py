@@ -323,6 +323,11 @@ def create_app():
             pass
         return resp
 
+    try:   # pulsos de uso hacia el data lake de FaceAdmin (antes de importar vistas: envuelve la aprobación de tickets)
+        from . import pulsos
+        pulsos.registrar(app)
+    except Exception as e_:  # noqa: BLE001
+        app.logger.warning("pulsos: %s", e_)
     from .vistas import bp as consola
     from .admin import bp as admin
     from . import mod_redes, mod_storage, mod_contenedores, mod_estaciones, mod_hipervisores, mod_nubes   # noqa: F401  (módulos con repositorio propio)

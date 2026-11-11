@@ -1,7 +1,7 @@
 # FaceAdmin · consola global (UBI 9 + Python 3.11)
 FROM registry.access.redhat.com/ubi9/python-311:latest
 USER 0
-RUN pip install --no-cache-dir "flask==3.1.*" "requests==2.32.*" "gunicorn==23.0.*" "reportlab==4.2.*"
+RUN pip install --no-cache-dir "flask==3.1.*" "requests==2.32.*" "gunicorn==23.0.*" "reportlab==4.2.*" "boto3==1.*"
 COPY *.py *.json /opt/faceadmin/
 COPY templates /opt/faceadmin/templates
 COPY static /opt/faceadmin/static
