@@ -4,12 +4,62 @@
 #            analiza cada aplicación contra EAP 8 (reglas equivalentes a MTA: javax → jakarta, descriptores de JBoss 5,
 #            EJB 2.x, Seam 2, Hibernate 3, log4j 1, JNDI) y deja el informe en informes/<origen>/evaluacion.md (y en
 #            FaceOps, también en Git). Los datasources se leen de copias sin contraseñas.
+#   emular-origen: SOLO laboratorio; deja en el origen una estructura de EAP 7.4 (standalone.xml con datasource y dos
+#            aplicaciones de ejemplo, una que no despliega) para probar el camino EAP 6/7 sin instalar EAP 7.
 #   migrar:  además transforma cada aplicación a Jakarta EE 10 (Eclipse Transformer), crea los datasources en el DESTINO
 #            con jboss-cli, despliega y verifica que responda; si no responde, la retira. El origen no se toca.
 # Variables: mj_modo (evaluar | migrar), mj_destino (equipo con EAP 8, para migrar), mj_apps (opcional: nombres separados
 #            por coma; vacío = todas), mj_jboss_home (opcional: si no se detecta solo), mj_eap_home (EAP 8 del destino;
 #            por defecto el de RPM, /opt/rh/eap8/root/usr/share/wildfly), mj_informes (carpeta de informes),
 #            mj_ds_clave (clave de los datasources en EAP 8; mejor por variable de entorno o vault que en la línea)
+- name: Laboratorio · emular un origen JBoss EAP 7.4 (mj_modo emular-origen; solo laboratorio, no instala EAP 7)
+  hosts: "all:!{{ mj_destino | default('ninguno') }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Solo en modo emular-origen
+      ansible.builtin.meta: end_play
+      when: (mj_modo | default('evaluar')) != 'emular-origen'
+    - name: Estructura de EAP 7.4 con un datasource y dos aplicaciones (inventario-eap7 sana, app-rota que no despliega)
+      ansible.builtin.shell: |
+        set -e; H={{ mj_jboss_home | default('/opt/jboss-eap-7.4') }}
+        mkdir -p $H/bin $H/standalone/configuration $H/standalone/deployments
+        [ -f $H/.faceops-emulado ] && { echo "ya emulado"; exit 0; }
+        echo "Red Hat JBoss Enterprise Application Platform - Version 7.4.0.GA" > $H/version.txt
+        printf '#!/bin/sh\necho "EAP 7.4 emulado por FaceOps (laboratorio): no arranca"\n' > $H/bin/standalone.sh; chmod 755 $H/bin/standalone.sh
+        cat > $H/standalone/configuration/standalone.xml <<'X'
+        <?xml version="1.0" ?>
+        <server xmlns="urn:jboss:domain:16.0"><profile><subsystem xmlns="urn:jboss:domain:datasources:6.0"><datasources>
+          <datasource jndi-name="java:jboss/datasources/ExampleDS" pool-name="ExampleDS"><connection-url>jdbc:h2:mem:test</connection-url><driver>h2</driver></datasource>
+          <datasource jndi-name="java:jboss/datasources/InventarioDS" pool-name="InventarioDS" enabled="true">
+            <connection-url>jdbc:h2:mem:inventario;DB_CLOSE_DELAY=-1</connection-url><driver>h2</driver>
+            <pool><min-pool-size>2</min-pool-size><max-pool-size>10</max-pool-size></pool>
+            <security><user-name>sa</user-name><password>clave-emulada</password></security>
+          </datasource>
+        </datasources></subsystem></profile></server>
+        X
+        python3 - "$H/standalone/deployments" <<'Y'
+        import sys, zipfile
+        d = sys.argv[1]
+        wx = ('<?xml version="1.0" encoding="UTF-8"?>\n<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee" version="3.1">'
+              '<resource-ref><res-ref-name>jdbc/Inventario</res-ref-name><res-type>javax.sql.DataSource</res-type></resource-ref></web-app>\n')
+        jsp = ('<%@ page import="javax.naming.InitialContext, javax.sql.DataSource" %><%\n'
+               'DataSource ds = (DataSource) new InitialContext().lookup("java:jboss/datasources/InventarioDS");\n'
+               'try (java.sql.Connection c = ds.getConnection()) { out.print("inventario-eap7 ok · " + c.getMetaData().getDatabaseProductName()); } %>\n')
+        with zipfile.ZipFile(f"{d}/inventario-eap7.war", "w") as z:
+            z.writestr("WEB-INF/web.xml", wx); z.writestr("index.jsp", jsp)
+            z.writestr("WEB-INF/jboss-web.xml", '<jboss-web><context-root>/inventario-eap7</context-root></jboss-web>\n')
+        with zipfile.ZipFile(f"{d}/app-rota.war", "w") as z:   # descriptor inválido: EAP 8 no la despliega (camino de vuelta atrás)
+            z.writestr("WEB-INF/web.xml", "<web-app><servlet><servlet-name>x</servlet-name><servlet-class>no.Existe</servlet-class>"); z.writestr("index.html", "rota")
+        Y
+        date -Is > $H/.faceops-emulado; echo emulado
+      register: r_emu
+      changed_when: "'emulado' in r_emu.stdout and 'ya emulado' not in r_emu.stdout"
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_migracion_jboss: {origen: "{{ inventory_hostname }}", emulado: "{{ mj_jboss_home | default('/opt/jboss-eap-7.4') }}", estado: "{{ r_emu.stdout_lines | last }}"}
+
 - name: Origen · lo que corre en JBoss
   hosts: "all:!{{ mj_destino | default('ninguno') }}"
   become: true
@@ -17,10 +67,14 @@
   vars:
     modo: "{{ mj_modo | default('evaluar') }}"
   tasks:
+    - name: En modo emular-origen no se evalúa
+      ansible.builtin.meta: end_play
+      when: modo == 'emular-origen'
+
     - name: Datos
       ansible.builtin.assert:
         that:
-          - modo in ['evaluar', 'migrar']
+          - modo in ['evaluar', 'migrar', 'emular-origen']
           - modo == 'evaluar' or (mj_destino | default('') | length > 0)
         fail_msg: "Modo evaluar o migrar; para migrar indica el equipo de destino con JBoss EAP 8"
         quiet: true
@@ -119,6 +173,10 @@
     gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
     dirl: "/tmp/faceops-mj/{{ inventory_hostname }}"
   tasks:
+    - name: En modo emular-origen no hay análisis
+      ansible.builtin.meta: end_play
+      when: (mj_modo | default('evaluar')) == 'emular-origen'
+
     - name: Analizar cada aplicación
       ansible.builtin.command:
         argv: "{{ ['python3', playbook_dir ~ '/files/jboss_eap8_analizar.py', dirl ~ '/' ~ (item | basename)] + (dss | map('basename') | map('regex_replace', '^', dirl ~ '/') | list) }}"
@@ -322,6 +380,10 @@
   connection: local
   gather_facts: false
   tasks:
+    - name: En modo emular-origen no hay análisis
+      ansible.builtin.meta: end_play
+      when: (mj_modo | default('evaluar')) == 'emular-origen'
+
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
@@ -347,3 +409,8 @@
                   + (hostvars[mj_destino].ajustes | default([]) | map('regex_replace', '^', 'Ajuste: ') | list)
                   + (hostvars[mj_destino].ds_estado | default([]) | map('regex_replace', '^', 'Datasource ') | list)) if (mj_modo | default('evaluar')) == 'migrar' else []) }}
       when: analisis is defined
+
+    - name: La migración falla si alguna aplicación no quedó respondiendo (ya se retiró del destino; el origen sigue intacto)
+      ansible.builtin.fail:
+        msg: "No quedaron respondiendo en {{ mj_destino }}: {{ hostvars[mj_destino].fallidas | join(', ') }} (se retiraron del destino; el origen sigue intacto)"
+      when: analisis is defined and (mj_modo | default('evaluar')) == 'migrar' and mj_destino | default('') and (hostvars[mj_destino].fallidas | default([]) | length > 0)

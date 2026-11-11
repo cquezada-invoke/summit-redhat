@@ -275,9 +275,15 @@ planes:
       - {id: C2, caso: "Repetir", verificar: "idempotente"}
   "Migración · JBoss a EAP 8":
     casos:
-      - {id: C1, caso: "evaluar nodo-jboss-dev (EAP 7.4) con sus aplicaciones", verificar: "informe de compatibilidad (MTA) por aplicación; no cambia nada"}
-      - {id: C2, caso: "migrar a un destino de prueba", verificar: "EAP 8 con las aplicaciones desplegadas respondiendo; origen intacto"}
-      - {id: C3, caso: "Origen sin JBoss", verificar: "falla controlada"}
+      - {id: C1, caso: "Evaluar JBoss 5.1 en nodo-jboss-dev (catalogo-legacy con su -ds.xml)", tipo: Funcional, verificar: "informe en Git (repositorio/migraciones-jboss) con la aplicación, sus hallazgos y el datasource; el origen no cambia (huella de la instalación igual antes y después)"}
+      - {id: C2, caso: "emular-origen EAP 7.4 en nodo-jboss-dev (solo laboratorio)", tipo: Funcional, verificar: "/opt/jboss-eap-7.4 con version.txt, standalone.xml con InventarioDS y las aplicaciones inventario-eap7 y app-rota, con su marca de emulado; repetirlo no cambia nada"}
+      - {id: C3, caso: "Evaluar el EAP 7.4 emulado (mj_jboss_home)", tipo: Funcional, verificar: "familia EAP 6/7, dos aplicaciones y el datasource leído de standalone.xml en el informe; la copia no lleva la contraseña"}
+      - {id: C4, caso: "Migrar catalogo-legacy (JBoss 5) a nodo-jboss-qa (EAP 8)", tipo: Funcional, verificar: "aplicación transformada a Jakarta EE 10 desplegada y respondiendo en EAP 8; datasource creado; origen intacto"}
+      - {id: C5, caso: "Migrar inventario-eap7 (EAP 7.4) a nodo-jboss-qa", tipo: Funcional, verificar: "responde 200 en EAP 8 usando InventarioDS creado por la migración"}
+      - {id: C6, caso: "Repetir C4", tipo: Idempotencia, verificar: "sigue respondiendo; el datasource no se duplica (ya existe)"}
+      - {id: C7, caso: "Migrar app-rota (no despliega en EAP 8)", tipo: Vuelta atrás, verificar: "el ticket falla en forma controlada; la aplicación se retira del destino; las ya migradas siguen respondiendo; el origen sigue intacto"}
+      - {id: C8, caso: "Origen sin JBoss (nodo-postgres)", tipo: Error controlado, verificar: "falla controlada: no se encontró una instalación de JBoss; no cambia nada"}
+      - {id: C9, caso: "Migrar sin indicar el destino", tipo: Error controlado, verificar: "se rechaza en la validación antes de tocar nada"}
   "Migración · WebLogic a OpenShift · Evaluar":
     casos:
       - {id: C1, caso: "Evaluar el dominio WebLogic emulado de nodo-jboss-dev (ventas_domain)", verificar: "informe en Git con dominio, datasource Oracle, cola JMS y JVM; ventas migrable a EAP 8 (EAR + JMS, javax → jakarta) y legado bloqueada por APIs weblogic.* y t3; las copias no llevan claves; no cambia nada"}

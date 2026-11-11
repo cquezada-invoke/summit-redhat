@@ -427,8 +427,9 @@
   campos:
     - {var: mj_origen, etiqueta: "Servidor con JBoss (origen)", tipo: jboss_origen, requerido: true, ayuda: "Servidores del inventario con JBoss 5, 6 o 7 y sus aplicaciones"}
     - {var: mj_apps, etiqueta: "Aplicaciones", tipo: jboss_apps, ayuda: "Las desplegadas en ese servidor; marca las que quieres evaluar o migrar"}
-    - {var: mj_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: evaluar, opciones: [evaluar, migrar],
-       ayuda: "evaluar: solo lectura, informe en Git · migrar: transforma a Jakarta EE 10, crea los datasources y despliega en el destino (el origen no se toca)"}
+    - {var: mj_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: evaluar, opciones: [evaluar, migrar, emular-origen],
+       ayuda: "evaluar: solo lectura, informe en Git · migrar: transforma a Jakarta EE 10, crea los datasources y despliega en el destino (el origen no se toca); si una aplicación no responde se retira del destino y el ticket falla · emular-origen: SOLO laboratorio, deja una estructura de EAP 7.4 de ejemplo (sin instalar EAP 7)"}
+    - {var: mj_jboss_home, etiqueta: "Carpeta de JBoss en el origen", tipo: text, ayuda: "Opcional: si hay más de una instalación o no está en /opt, /usr/share o /srv"}
     - {var: mj_destino, etiqueta: "Servidor de destino (JBoss EAP 8)", tipo: jboss_destino, ayuda: "Donde quedará la aplicación migrada"}
 "Migración · WebLogic a OpenShift · Evaluar":
   usa_limite: true
