@@ -1,19 +1,49 @@
-commit: 9120e0e51fcf368ffe1af998f01de2bb4b4e4878
-inicio: 2026-11-10T21:15:06-03:00
+commit: 3e59f02fa1f2b4968ad4f68739dec9d12870d26f
+inicio: 2026-11-10T21:15:27-03:00
 ---
-tecnico: {"playbook": "playbooks/energia.yml", "proyecto": "FaceOps · automatizaciones", "repositorio": "http://192.168.122.1:3000/invoke/faceops-automatizaciones.git", "rama": "main", "commit": "36337bb1", "inventario": "FaceOps · Infraestructura", "organizacion": "FaceOps", "credenciales": ["FaceOps · anfitrión KVM (ssh)"], "descripcion_aap": "Enciende, apaga (ordenado) o reinicia una máquina virtual del anfitrión KVM"}
-archivos: ['energia.yml']
-CERT {'id': 64, 'huella': 'a8e38d679d00', 'resultado': 'aprobada', 'por': 'Claude (regla de Cristian)', 'fecha': '2026-11-05T18:09:36+00:00', 'plan': 'Certificación inicial: ejecuciones exitosas previas a la regla de prueba', 'tickets': '["FO-LAB-00893", "FO-LAB-00828", "FO-LAB-00761"]', 'nota': ''}
-ficha: {"nombre": "Encender o apagar equipo", "descripcion": "Enciende, apaga de forma ordenada o reinicia una máquina virtual (se lanza desde el inventario o el detalle del equipo); en producción pide aprobación", "categoria": "Operación y remediación", "tipo": "escritura", "usa_limite": 0, "requiere_apro
-form: {'usa_limite': False, 'aprobacion_ambientes': ['produccion']}
-huella: a8e38d679d00
-Traceback (most recent call last):
-  File "/tmp/m_en.py", line 15, in <module>
-    for r in q("SELECT ts, accion, detalle FROM auditoria WHERE objeto='Infra · Encender o apagar equipo' ORDER BY rowid DESC LIMIT 8") if q1("SELECT name FROM sqlite_master WHERE name='auditoria'") else []:
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/bd.py", line 178, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: ts
-8462356 2026-11-10 21:13:29 -0300
---- fin: 2026-11-10T21:15:13-03:00 · código: 0
+t 5.1 s; cambios: 41
+CAMBIO (1, 'Autoservicio · 1 Desplegar app', 'certificada', 'cambiada')
+CAMBIO (1, 'Autoservicio · 2 Publicar en Nginx', 'certificada', 'cambiada')
+CAMBIO (1, 'Autoservicio · 3 Validar', 'certificada', 'cambiada')
+CAMBIO (1, 'Autoservicio · Retirar app', 'certificada', 'cambiada')
+CAMBIO (1, 'DC · Base de los equipos', 'certificada', 'cambiada')
+CAMBIO (1, 'DC · Construir identidad (Linux)', 'certificada', 'cambiada')
+CAMBIO (1, 'DC · Directory Server', 'certificada', 'cambiada')
+CAMBIO (1, 'DC · Keycloak', 'certificada', 'cambiada')
+CAMBIO (1, 'DC · Red Hat IdM', 'certificada', 'cambiada')
+CAMBIO (1, 'DC · Registrar en Red Hat', 'certificada', 'cambiada')
+CAMBIO (1, 'Drift · Incorporar servidor', 'certificada', 'cambiada')
+CAMBIO (1, 'Drift · Retirar servidor', 'certificada', 'cambiada')
+CAMBIO (1, 'Drift · Windows', 'certificada', 'cambiada')
+CAMBIO (1, 'Estado · Aplicar base desde Git', 'certificada', 'cambiada')
+CAMBIO (1, 'Estado · Proponer base', 'certificada', 'cambiada')
+CAMBIO (1, 'Estado · Registrar servidor', 'certificada', 'cambiada')
+CAMBIO (1, 'Estado · Volver a un commit', 'certificada', 'cambiada')
+CAMBIO (1, 'JBoss · Aplicar configuración', 'certificada', 'cambiada')
+CAMBIO (1, 'JBoss · Desplegar app', 'certificada', 'cambiada')
+CAMBIO (1, 'JBoss · Restablecer a versión', 'certificada', 'cambiada')
+CAMBIO (1, 'Nube · Dar de baja VM', 'certificada', 'cambiada')
+CAMBIO (1, 'Nube · Limpiar huérfanos', 'certificada', 'cambiada')
+CAMBIO (1, 'Nube · Reporte de huérfanos', 'certificada', 'cambiada')
+CAMBIO (1, 'Nube · Solicitar VM', 'certificada', 'cambiada')
+CAMBIO (1, 'Nube · Vigilar firewall', 'certificada', 'cambiada')
+CAMBIO (1, 'Plataforma · Preparar dependencias', 'certificada', 'cambiada')
+CAMBIO (1, 'Red · Aplicar configuración', 'certificada', 'cambiada')
+CAMBIO (1, 'Red · Bloquear IP', 'certificada', 'cambiada')
+CAMBIO (1, 'Red · Configurar VLAN', 'certificada', 'cambiada')
+CAMBIO (1, 'Red · Revocar acceso', 'certificada', 'cambiada')
+CAMBIO (1, 'Red · Revocar accesos vencidos', 'certificada', 'cambiada')
+CAMBIO (1, 'Red · Solicitar acceso', 'certificada', 'cambiada')
+CAMBIO (1, 'Red · Verificar drift', 'certificada', 'cambiada')
+CAMBIO (1, 'Remediación · Cola de pagos', 'certificada', 'cambiada')
+CAMBIO (1, 'Remediación · Diagnosticar app', 'certificada', 'cambiada')
+CAMBIO (1, 'Remediación · IIS en Windows', 'certificada', 'cambiada')
+CAMBIO (1, 'Remediación · Limpiar logs', 'certificada', 'cambiada')
+CAMBIO (1, 'Remediación · Reiniciar JBoss', 'certificada', 'cambiada')
+CAMBIO (1, 'Remediación · Renovar certificado', 'certificada', 'cambiada')
+CAMBIO (1, 'Remediación · Volver a la versión validada', 'certificada', 'cambiada')
+CAMBIO (1, 'Windows · Provocar caída de IIS (demo)', 'certificada', 'cambiada')
+rev be3154743a
+archivos [('jboss/desplegar.yml', 8955), ('jboss/tareas/manifiesto.yml', 3070)]
+2da pasada 0.35 s
+--- fin: 2026-11-10T21:15:39-03:00 · código: 0
