@@ -31,7 +31,7 @@
 {% if not al.grupos %}<div class="vacio" style="padding:22px 6px;text-align:center"><b>Aún no hay alertas definidas para {{ al.tipo_nombre|lower }}.</b><br><span class="sub">Se agregan al catálogo a medida que se necesitan; cuando exista una, aparecerá aquí para activarla.</span></div>{% endif %}
 {% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
 {% for a in xs %}{% if a.en_revision %}<div class="al-fila al-pend al-rev"><span class="al-sw"><input type="checkbox" disabled><i></i></span>
-  <span class="al-def"><b>{{ a.nombre }} {% if a.grafana_ocp %}<span class="chip s-ok" style="font-size:10px">visible en Grafana</span>{% else %}<span class="chip" style="font-size:10px">tentativa · en revisión</span>{% endif %}</b><small>{{ a.descripcion }}</small>
+  <span class="al-def"><b>{{ a.nombre }} {% if a.mon %}{% elif a.grafana_ocp %}<span class="chip s-ok" style="font-size:10px">visible en Grafana</span>{% else %}<span class="chip" style="font-size:10px">aún no cargada en el clúster</span>{% endif %}</b><small>{{ a.descripcion }}</small>
     {% if a.grafana_ocp %}<small class="al-ver"><a href="{{ a.grafana_ocp }}" target="_blank" rel="noopener">Ver en Grafana ↗</a> · acción: por definir</small>{% endif %}{{ estado_mon(al, a) }}
     <small class="al-ver">PromQL propuesta: <code>{{ a.expr_txt }}</code></small>
     <small>{% if a.umbral is sameas false %}Severidad {{ a.severidad }}{% else %}Aviso {{ a.aviso }} · crítico {{ a.critico }} {{ a.unidad or '' }}{% endif %} · durante {{ a.para }} · acciones: {{ a.acciones_txt|join(' / ') }}</small></span></div>

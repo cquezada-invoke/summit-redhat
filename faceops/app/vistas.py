@@ -8747,6 +8747,20 @@ def equipo_alertas(eid):
             return {"error": ctx["por_que"]}, 400
         flash(ctx["por_que"], "error")
         return redirect(vuelta)
+    if ao.tipo_de(e) == "openshift":   # clúster: sus alertas se cargan juntas en su monitoreo (PrometheusRule) + Grafana
+        try:
+            a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ao.AUTO_GRAFANA_OCP)
+            t = solicitar(g.usuario, g.cliente, a, "", {"go_cluster": e["nombre"]},
+                          request.form.get("motivo") or f"Alertas de {e['nombre']} en su monitoreo y en Grafana")
+        except (ValueError, PermissionError) as x:
+            if js:
+                return {"error": str(x)}, 400
+            flash(str(x), "error")
+            return redirect(vuelta)
+        if js:
+            return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
+        flash(f"Pedido {t['numero']}: Ansible cargará las alertas de {e['nombre']} en su monitoreo y en Grafana", "ok")
+        return redirect(vuelta)
     try:
         par = ao.pedido_de_formulario(e, request.form, amb_)
         _ya = {x["id"]: x.get("accion") for x in ao.aplicadas(e, amb_).get("alertas") or []}

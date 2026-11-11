@@ -180,9 +180,9 @@ def bloqueo_accion(cliente_id, cat, k, _memo={}):
         return ""
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, auto)
     if not a:
-        return f"«{auto}» no está publicada en AAP"
+        return f"sin automatización aún («{auto}» no está en AAP)"
     from .pruebas import estado
-    return "" if estado(dict(a, cliente_id=cliente_id))["estado"] == "certificada" else f"«{auto}» aún no pasa su plan de prueba"
+    return "" if estado(dict(a, cliente_id=cliente_id))["estado"] == "certificada" else f"en prueba («{auto}» aún no pasa su plan de prueba)"
 
 
 def _informe(cliente_id, e):
@@ -211,10 +211,10 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     for a in cat["alertas"]:
         if t in a["tipos"] and a.get("ambito", "maquina") == ambito and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
-            if a.get("pendiente") or a.get("estado") == "en_revision" or (a.get("estado") == "en_prueba" and a["id"] not in act):
+            if a.get("pendiente") or t == "openshift":   # pendiente de métrica, o alerta del clúster (se cargan juntas en su monitoreo)
                 accs_ = [(cat.get("acciones") or {}).get(k, {}).get("texto", k) for k in (a.get("acciones") or ["avisar"])]
                 grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=False, acciones_l=[], pendiente=a.get("pendiente") or "",
-                                                                            en_prueba=a.get("estado") == "en_prueba", en_revision=a.get("estado") == "en_revision",
+                                                                            en_prueba=False, en_revision=t == "openshift",
                                                                             acciones_txt=accs_, mon=(prom or {}).get(a["id"]), grafana_ocp=(f"{g_ocp}?" + urlencode({"orgId": 1, "from": "now-24h", "to": "now", "viewPanel": panel_id(a["id"])})) if g_ocp else "", expr_txt=(a.get("expr") or "").replace('{faceops_equipo="__EQ__"}', "").replace('faceops_equipo="__EQ__",', "")))
                 continue
             accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k), bloqueo_accion(cliente_id, cat, k)) for k in (a.get("acciones") or ["avisar"])]
@@ -225,8 +225,9 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
                                                                          valor_critico=(x or {}).get("critico", a.get("critico")),
                                                                          valor_sev=(x or {}).get("severidad", a.get("severidad", "aviso")),
                                                                          valor_para=_minutos((x or {}).get("para") or a.get("para"))))
-    auto = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, AUTO)
-    disponible, por_que = False, "La automatización «Configurar alertas del equipo» aún no está publicada en AAP"
+    auto_n = AUTO_GRAFANA_OCP if t == "openshift" else AUTO   # el clúster carga sus alertas con «Monitoreo · Grafana de OpenShift»
+    auto = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, auto_n)
+    disponible, por_que = False, f"La automatización «{auto_n}» aún no está publicada en AAP"
     if auto:
         from .pruebas import estado
         est = estado(dict(auto, cliente_id=cliente_id))["estado"]
@@ -245,7 +246,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
             "grafana": url_grafana(e["nombre"], None, ambito), "archivo": f"{REGLAS}/{e['nombre']}{sufijo(ambito)}.yml", "grupo_prom": f"faceops-{e['nombre']}{sufijo(ambito)}",
             "informe": _informe(cliente_id, e), "grafana_ocp": (g_ocp + "?orgId=1&from=now-24h&to=now") if g_ocp else "",
             "puede": puede_escribir, "en_curso": en_curso(cliente_id, e, ambito), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values()),
-            "activables": sum(1 for v in grupos.values() for x in v if not (x.get("pendiente") or x.get("en_prueba") or x.get("en_revision")))}
+            "activables": sum(1 for v in grupos.values() for x in v if not x.get("pendiente"))}
 
 
 def _minutos(p):
@@ -278,10 +279,6 @@ def pedido_de_formulario(e, form, ambito="maquina"):
         if a.get("pendiente"):
             if form.get(f"on_{a['id']}"):
                 raise ValueError(f"«{a['nombre']}» aún no se puede medir: {a['pendiente']}")
-            continue
-        if a.get("estado") == "en_revision" or (a.get("estado") == "en_prueba" and a["id"] not in {x["id"] for x in aplicadas(e, ambito).get("alertas") or []}):
-            if form.get(f"on_{a['id']}"):
-                raise ValueError(f"«{a['nombre']}» está {'en revisión (tentativa)' if a.get('estado') == 'en_revision' else 'en prueba'}: aún no se puede activar")
             continue
         if not form.get(f"on_{a['id']}"):
             fuera.append(a["id"])

@@ -4,8 +4,9 @@
 # ambito: maquina (por defecto: la máquina y su sistema operativo, campana de la ficha) o plataforma:<familia> (jboss, nginx,
 #   redis, keycloak, postgresql…: campana de la tarjeta de esa plataforma). Cada ámbito tiene su propio grupo de reglas en
 #   Prometheus (faceops-<equipo> / faceops-<equipo>--<familia>), su ticket y su tablero de Grafana.
-# estado: en_revision → alerta TENTATIVA (p. ej. clúster OpenShift): visible para revisarla, sin poder activarse todavía.
-# estado: en_prueba → visible pero bloqueada en el flotante hasta que pase su prueba de punta a punta (se libera quitando la marca).
+# Todas las alertas se pueden activar; lo que se bloquea es la ACCIÓN: en el selector, las acciones cuya automatización no
+# existe o no está certificada (regla de prueba) aparecen deshabilitadas con su motivo y la alerta queda en «Solo avisar».
+# Las del clúster OpenShift se cargan juntas en su monitoreo (PrometheusRule) con «Monitoreo · Grafana de OpenShift».
 # pendiente: alerta que aún no se puede medir en el lab (falta su exportador); FaceOps la muestra deshabilitada con el motivo.
 #   __EQ__     → nombre del equipo (etiqueta faceops_equipo de sus métricas)
 #   __UMBRAL__ → umbral de aviso o crítico (una regla por severidad)
@@ -78,41 +79,41 @@ alertas:
      descripcion: "Errores de recepción o transmisión en alguna interfaz",
      expr: 'max by (faceops_equipo, device) (rate(node_network_receive_errs_total{faceops_equipo="__EQ__"}[5m]) + rate(node_network_transmit_errs_total{faceops_equipo="__EQ__"}[5m])) > __UMBRAL__', aviso: 1, critico: 10, para: 10m}
   # ───────── Seguridad (Linux) · métricas de seguridad del agente de monitoreo (textfile faceops-seguridad.prom, cada minuto)
-  - {id: S01, estado: en_prueba, tipos: [linux, storage], grupo: Seguridad, nombre: "Fuerza bruta por SSH", unidad: "intentos en 5 min", acciones: [avisar, diagnosticar, escanear, bloquear_ip],
+  - {id: S01, tipos: [linux, storage], grupo: Seguridad, nombre: "Fuerza bruta por SSH", unidad: "intentos en 5 min", acciones: [avisar, diagnosticar, escanear, bloquear_ip],
      descripcion: "Intentos de ingreso por SSH fallidos (clave errada, usuario inexistente) en los últimos 5 minutos",
      expr: 'faceops_seg_ssh_fallidos_5m{faceops_equipo="__EQ__"} > __UMBRAL__', aviso: 5, critico: 20, para: 0m}
-  - {id: S02, estado: en_prueba, tipos: [linux, storage], grupo: Seguridad, nombre: "Cuenta bloqueada por intentos fallidos", acciones: [avisar, diagnosticar],
+  - {id: S02, tipos: [linux, storage], grupo: Seguridad, nombre: "Cuenta bloqueada por intentos fallidos", acciones: [avisar, diagnosticar],
      descripcion: "Alguna cuenta quedó bloqueada por faillock (desbloquearla aún no tiene acción automática: faillock --user <cuenta> --reset)",
      expr: 'faceops_seg_cuentas_bloqueadas{faceops_equipo="__EQ__"} > 0', umbral: false, severidad: aviso, para: 0m}
-  - {id: S03, estado: en_prueba, tipos: [linux, storage], grupo: Seguridad, nombre: "Ingreso de root por SSH", acciones: [avisar, diagnosticar, escanear],
+  - {id: S03, tipos: [linux, storage], grupo: Seguridad, nombre: "Ingreso de root por SSH", acciones: [avisar, diagnosticar, escanear],
      descripcion: "Se aceptó un ingreso SSH directo como root en los últimos 5 minutos",
      expr: 'faceops_seg_root_login_5m{faceops_equipo="__EQ__"} > 0', umbral: false, severidad: aviso, para: 0m}
-  - {id: S04, estado: en_prueba, tipos: [linux, storage], grupo: Seguridad, nombre: "Archivo crítico modificado", acciones: [avisar, diagnosticar, escanear],
+  - {id: S04, tipos: [linux, storage], grupo: Seguridad, nombre: "Archivo crítico modificado", acciones: [avisar, diagnosticar, escanear],
      descripcion: "Cambió /etc/passwd, /etc/shadow, /etc/group o la configuración de sudo (huella del archivo) en los últimos 10 minutos",
      expr: 'changes(faceops_seg_archivo_huella{faceops_equipo="__EQ__"}[10m]) > 0', umbral: false, severidad: critico, para: 0m}
-  - {id: S05, estado: en_prueba, tipos: [linux, storage], grupo: Seguridad, nombre: "SELinux no está en modo Enforcing", acciones: [avisar, escanear],
+  - {id: S05, tipos: [linux, storage], grupo: Seguridad, nombre: "SELinux no está en modo Enforcing", acciones: [avisar, escanear],
      descripcion: "SELinux quedó permisivo o deshabilitado (2 = Enforcing, 1 = Permissive, 0 = Disabled)",
      expr: 'faceops_seg_selinux_modo{faceops_equipo="__EQ__"} < 2', umbral: false, severidad: critico, para: 5m}
-  - {id: S06, estado: en_prueba, tipos: [linux, storage], grupo: Seguridad, nombre: "firewalld detenido", acciones: [avisar, diagnosticar, reiniciar_servicio],
+  - {id: S06, tipos: [linux, storage], grupo: Seguridad, nombre: "firewalld detenido", acciones: [avisar, diagnosticar, reiniciar_servicio],
      descripcion: "El firewall del sistema (firewalld) no está activo",
      expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name="firewalld.service",state="active"}) == 0', umbral: false, severidad: critico, para: 2m}
-  - {id: S07, estado: en_prueba, tipos: [linux, storage], grupo: Seguridad, nombre: "Auditoría (auditd) detenida", acciones: [avisar, diagnosticar, reiniciar_servicio],
+  - {id: S07, tipos: [linux, storage], grupo: Seguridad, nombre: "Auditoría (auditd) detenida", acciones: [avisar, diagnosticar, reiniciar_servicio],
      descripcion: "El servicio de auditoría del sistema (auditd) no está activo: no quedan registros de auditoría",
      expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name="auditd.service",state="active"}) == 0', umbral: false, severidad: critico, para: 2m}
   # ───────── Bloqueos (Linux) · node_exporter
-  - {id: B01, estado: en_prueba, tipos: [linux, storage], grupo: Bloqueos, nombre: "Procesos bloqueados (estado D)", unidad: "procesos", acciones: [avisar, diagnosticar],
+  - {id: B01, tipos: [linux, storage], grupo: Bloqueos, nombre: "Procesos bloqueados (estado D)", unidad: "procesos", acciones: [avisar, diagnosticar],
      descripcion: "Procesos esperando E/S sin poder interrumpirse (disco, NFS o almacenamiento lento)",
      expr: 'node_procs_blocked{faceops_equipo="__EQ__"} > __UMBRAL__', aviso: 5, critico: 20, para: 5m}
-  - {id: B02, estado: en_prueba, tipos: [linux, storage], grupo: Bloqueos, nombre: "Espera de E/S alta (iowait)", unidad: "%", acciones: [avisar, diagnosticar, ampliar_volumen],
+  - {id: B02, tipos: [linux, storage], grupo: Bloqueos, nombre: "Espera de E/S alta (iowait)", unidad: "%", acciones: [avisar, diagnosticar, ampliar_volumen],
      descripcion: "Tiempo de CPU esperando al almacenamiento, promedio de 5 minutos",
      expr: '100 * avg by (faceops_equipo) (rate(node_cpu_seconds_total{mode="iowait",faceops_equipo="__EQ__"}[5m])) > __UMBRAL__', aviso: 20, critico: 40, para: 10m}
-  - {id: B03, estado: en_prueba, tipos: [linux, storage], grupo: Bloqueos, nombre: "Sistema de archivos en solo lectura", acciones: [avisar, diagnosticar],
+  - {id: B03, tipos: [linux, storage], grupo: Bloqueos, nombre: "Sistema de archivos en solo lectura", acciones: [avisar, diagnosticar],
      descripcion: "Algún sistema de archivos pasó a solo lectura (error de disco o del sistema de archivos)",
      expr: 'max by (faceops_equipo, mountpoint) (node_filesystem_readonly{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs|iso9660"}) == 1', umbral: false, severidad: critico, para: 1m}
-  - {id: B04, estado: en_prueba, tipos: [linux, storage], grupo: Bloqueos, nombre: "OOM killer activado", acciones: [avisar, diagnosticar, recursos, reiniciar_servicio],
+  - {id: B04, tipos: [linux, storage], grupo: Bloqueos, nombre: "OOM killer activado", acciones: [avisar, diagnosticar, recursos, reiniciar_servicio],
      descripcion: "El kernel mató procesos por falta de memoria en los últimos 10 minutos",
      expr: 'increase(node_vmstat_oom_kill{faceops_equipo="__EQ__"}[10m]) > 0', umbral: false, severidad: critico, para: 0m}
-  - {id: B05, estado: en_prueba, tipos: [linux, storage], grupo: Bloqueos, nombre: "Servicio caído (estado failed)", acciones: [avisar, diagnosticar, reiniciar_servicio],
+  - {id: B05, tipos: [linux, storage], grupo: Bloqueos, nombre: "Servicio caído (estado failed)", acciones: [avisar, diagnosticar, reiniciar_servicio],
      descripcion: "Alguna unidad de systemd quedó en estado failed",
      expr: 'count by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",state="failed"} == 1) > 0', umbral: false, severidad: aviso, para: 2m}
   # ───────── Plataformas (cada una en su tarjeta de la ficha) ─────────
@@ -125,75 +126,75 @@ alertas:
   - {id: J04, tipos: [linux], ambito: "plataforma:jboss", grupo: Operación, nombre: "Errores 5xx de las aplicaciones", pendiente: "requiere las métricas de Undertow (jmx_exporter) o del balanceador"}
   - {id: J05, tipos: [linux], ambito: "plataforma:jboss", grupo: Capacidad, nombre: "Pool del datasource agotado", pendiente: "requiere el exportador JMX de JBoss (jmx_exporter) en el equipo"}
   # nginx
-  - {id: N01, estado: en_prueba, tipos: [linux], ambito: "plataforma:nginx", grupo: Disponibilidad, nombre: "nginx detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
+  - {id: N01, tipos: [linux], ambito: "plataforma:nginx", grupo: Disponibilidad, nombre: "nginx detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
      descripcion: "El servicio nginx no está activo", expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name="nginx.service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
   - {id: N02, tipos: [linux], ambito: "plataforma:nginx", grupo: Operación, nombre: "Errores 5xx", pendiente: "requiere nginx-prometheus-exporter o el log de acceso como métrica"}
   - {id: N03, tipos: [linux], ambito: "plataforma:nginx", grupo: Disponibilidad, nombre: "Upstream caído", pendiente: "requiere nginx-prometheus-exporter (NGINX Plus) o sondeo HTTP de cada upstream"}
   # Redis
-  - {id: R01, estado: en_prueba, tipos: [linux], ambito: "plataforma:redis", grupo: Disponibilidad, nombre: "Redis detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
+  - {id: R01, tipos: [linux], ambito: "plataforma:redis", grupo: Disponibilidad, nombre: "Redis detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
      descripcion: "El servicio de Redis no está activo", expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"(redis|valkey).*service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
   - {id: R02, tipos: [linux], ambito: "plataforma:redis", grupo: Capacidad, nombre: "Memoria de Redis alta", pendiente: "requiere redis_exporter en el equipo"}
   - {id: R03, tipos: [linux], ambito: "plataforma:redis", grupo: Bloqueos, nombre: "Clientes bloqueados en Redis", pendiente: "requiere redis_exporter en el equipo"}
   # Keycloak
-  - {id: K01, estado: en_prueba, tipos: [linux], ambito: "plataforma:keycloak", grupo: Disponibilidad, nombre: "Keycloak detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
+  - {id: K01, tipos: [linux], ambito: "plataforma:keycloak", grupo: Disponibilidad, nombre: "Keycloak detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
      descripcion: "El servicio de Keycloak no está activo", expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"(keycloak|rhbk).*service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
-  - {id: K02, estado: en_prueba, tipos: [linux], ambito: "plataforma:keycloak", grupo: Seguridad, nombre: "Logins fallidos en Keycloak", unidad: "por minuto", acciones: [avisar, diagnosticar, bloquear_ip],
+  - {id: K02, tipos: [linux], ambito: "plataforma:keycloak", grupo: Seguridad, nombre: "Logins fallidos en Keycloak", unidad: "por minuto", acciones: [avisar, diagnosticar, bloquear_ip],
      descripcion: "Logins fallidos por IP en el último minuto (métrica de archivo keycloak.prom)",
      expr: 'max by (faceops_equipo) (keycloak_logins_fallidos_ultimo_minuto{faceops_equipo="__EQ__"}) > __UMBRAL__', aviso: 5, critico: 20, para: 0m}
   # PostgreSQL
-  - {id: P01, estado: en_prueba, tipos: [linux], ambito: "plataforma:postgresql", grupo: Disponibilidad, nombre: "PostgreSQL detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
+  - {id: P01, tipos: [linux], ambito: "plataforma:postgresql", grupo: Disponibilidad, nombre: "PostgreSQL detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
      descripcion: "El servicio de PostgreSQL no está activo", expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"postgresql.*service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
   - {id: P02, tipos: [linux], ambito: "plataforma:postgresql", grupo: Capacidad, nombre: "Conexiones cerca del máximo", pendiente: "requiere postgres_exporter en el equipo"}
   - {id: P03, tipos: [linux], ambito: "plataforma:postgresql", grupo: Bloqueos, nombre: "Bloqueos (locks) en espera", pendiente: "requiere postgres_exporter en el equipo"}
   - {id: P04, tipos: [linux], ambito: "plataforma:postgresql", grupo: Disponibilidad, nombre: "Réplica atrasada", pendiente: "requiere postgres_exporter en el equipo"}
   # ───────── Clúster OpenShift (TENTATIVAS, en revisión: expresión propuesta contra el monitoreo del clúster) ─────────
-  - {id: X01, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "API server no disponible", acciones: [avisar, diagnosticar],
+  - {id: X01, tipos: [openshift], grupo: Disponibilidad, nombre: "API server no disponible", acciones: [avisar, diagnosticar],
      descripcion: "Ninguna instancia del API server responde a Prometheus", expr: 'sum(up{job="apiserver"}) == 0', umbral: false, severidad: critico, para: 2m}
-  - {id: X02, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "Nodo NotReady", acciones: [avisar, diagnosticar, remediar_ocp],
+  - {id: X02, tipos: [openshift], grupo: Disponibilidad, nombre: "Nodo NotReady", acciones: [avisar, diagnosticar, remediar_ocp],
      descripcion: "Algún nodo dejó de estar Ready", expr: 'max by (node) (kube_node_status_condition{condition="Ready",status="true"}) == 0', umbral: false, severidad: critico, para: 5m}
-  - {id: X03, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "ClusterOperator degradado o no disponible", acciones: [avisar, diagnosticar],
+  - {id: X03, tipos: [openshift], grupo: Disponibilidad, nombre: "ClusterOperator degradado o no disponible", acciones: [avisar, diagnosticar],
      descripcion: "Algún ClusterOperator está Degraded o no Available", expr: 'max by (name) (cluster_operator_conditions{condition="Degraded"} == 1 or cluster_operator_up == 0) > 0', umbral: false, severidad: critico, para: 10m}
-  - {id: X04, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "etcd sin líder", acciones: [avisar, diagnosticar],
+  - {id: X04, tipos: [openshift], grupo: Disponibilidad, nombre: "etcd sin líder", acciones: [avisar, diagnosticar],
      descripcion: "Algún miembro de etcd no tiene líder", expr: 'min(etcd_server_has_leader) == 0', umbral: false, severidad: critico, para: 1m}
-  - {id: X05, tipos: [openshift], estado: en_revision, grupo: Rendimiento, nombre: "etcd con fsync lento", unidad: ms, acciones: [avisar, diagnosticar],
+  - {id: X05, tipos: [openshift], grupo: Rendimiento, nombre: "etcd con fsync lento", unidad: ms, acciones: [avisar, diagnosticar],
      descripcion: "Percentil 99 del fsync del WAL de etcd (disco lento para el plano de control)",
      expr: '1000 * max(histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))) > __UMBRAL__', aviso: 10, critico: 50, para: 10m}
-  - {id: X06, tipos: [openshift], estado: en_revision, grupo: Operación, nombre: "Actualización del clúster fallida o atascada", acciones: [avisar, diagnosticar],
+  - {id: X06, tipos: [openshift], grupo: Operación, nombre: "Actualización del clúster fallida o atascada", acciones: [avisar, diagnosticar],
      descripcion: "ClusterVersion con Failing=True (o progresando sin avanzar)", expr: 'max(cluster_version_conditions{type="Failing"}) == 1', umbral: false, severidad: critico, para: 15m}
-  - {id: X07, tipos: [openshift], estado: en_revision, grupo: Seguridad, nombre: "Certificados del API o del ingress por vencer", unidad: días, menor: true, acciones: [avisar, diagnosticar],
+  - {id: X07, tipos: [openshift], grupo: Seguridad, nombre: "Certificados del API o del ingress por vencer", unidad: días, menor: true, acciones: [avisar, diagnosticar],
      descripcion: "Días que le quedan al certificado más próximo a vencer del API o del router (sondeo TLS)",
      expr: 'min(probe_ssl_earliest_cert_expiry{job=~".*(api|ingress|router).*"} - time()) / 86400 < __UMBRAL__', aviso: 30, critico: 7, para: 1h}
-  - {id: X08, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "PVC casi lleno", unidad: "%", acciones: [avisar, diagnosticar, remediar_ocp],
+  - {id: X08, tipos: [openshift], grupo: Capacidad, nombre: "PVC casi lleno", unidad: "%", acciones: [avisar, diagnosticar, remediar_ocp],
      descripcion: "Uso de algún volumen persistente (PVC)",
      expr: 'max by (namespace, persistentvolumeclaim) (100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > __UMBRAL__', aviso: 80, critico: 90, para: 5m}
-  - {id: X09, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "Pods en CrashLoopBackOff", unidad: pods, acciones: [avisar, diagnosticar, remediar_ocp],
+  - {id: X09, tipos: [openshift], grupo: Disponibilidad, nombre: "Pods en CrashLoopBackOff", unidad: pods, acciones: [avisar, diagnosticar, remediar_ocp],
      descripcion: "Contenedores reiniciándose en bucle", expr: 'sum(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}) > __UMBRAL__', aviso: 0, critico: 5, para: 10m}
-  - {id: X10, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "CPU de nodos alta", unidad: "%", acciones: [avisar, diagnosticar],
+  - {id: X10, tipos: [openshift], grupo: Capacidad, nombre: "CPU de nodos alta", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Uso de CPU de algún nodo, promedio de 5 minutos",
      expr: 'max by (instance) (100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])))) > __UMBRAL__', aviso: 80, critico: 95, para: 15m}
-  - {id: X11, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "Memoria de nodos alta", unidad: "%", acciones: [avisar, diagnosticar],
+  - {id: X11, tipos: [openshift], grupo: Capacidad, nombre: "Memoria de nodos alta", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Memoria en uso de algún nodo", expr: 'max by (instance) (100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > __UMBRAL__', aviso: 85, critico: 95, para: 15m}
-  - {id: X12, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "Capacidad de pods del nodo", unidad: "%", acciones: [avisar, diagnosticar],
+  - {id: X12, tipos: [openshift], grupo: Capacidad, nombre: "Capacidad de pods del nodo", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Pods en ejecución respecto del máximo de pods del nodo",
      expr: 'max by (node) (100 * sum by (node) (kubelet_running_pods) / max by (node) (kube_node_status_capacity{resource="pods"})) > __UMBRAL__', aviso: 80, critico: 95, para: 15m}
-  - {id: X13, tipos: [openshift], estado: en_revision, grupo: Operación, nombre: "Router (ingress) con errores 5xx", unidad: "%", acciones: [avisar, diagnosticar],
+  - {id: X13, tipos: [openshift], grupo: Operación, nombre: "Router (ingress) con errores 5xx", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Porcentaje de respuestas 5xx del router de OpenShift (HAProxy)",
      expr: '100 * sum(rate(haproxy_server_http_responses_total{code="5xx"}[5m])) / sum(rate(haproxy_server_http_responses_total[5m])) > __UMBRAL__', aviso: 5, critico: 20, para: 5m}
-  - {id: X14, tipos: [openshift], estado: en_revision, grupo: Operación, nombre: "Alertas críticas de OpenShift", acciones: [avisar, diagnosticar],
+  - {id: X14, tipos: [openshift], grupo: Operación, nombre: "Alertas críticas de OpenShift", acciones: [avisar, diagnosticar],
      descripcion: "Reenvía las alertas críticas propias del clúster que están disparadas (sin Watchdog)",
      expr: 'count(ALERTS{alertstate="firing",severity="critical",alertname!="Watchdog"}) > 0', umbral: false, severidad: critico, para: 0m}
-  - {id: X15, tipos: [openshift], estado: en_revision, grupo: Operación, nombre: "MachineConfigPool degradado", acciones: [avisar, diagnosticar],
+  - {id: X15, tipos: [openshift], grupo: Operación, nombre: "MachineConfigPool degradado", acciones: [avisar, diagnosticar],
      descripcion: "Algún MachineConfigPool tiene máquinas degradadas (la configuración de los nodos no se aplicó)",
      expr: 'max by (pool) (mcp_degraded_machine_count) > 0', umbral: false, severidad: critico, para: 10m}
-  - {id: X16, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "Registro de imágenes caído", acciones: [avisar, diagnosticar],
+  - {id: X16, tipos: [openshift], grupo: Disponibilidad, nombre: "Registro de imágenes caído", acciones: [avisar, diagnosticar],
      descripcion: "El operador del registro interno de imágenes no está disponible", expr: 'max(cluster_operator_up{name="image-registry"}) == 0', umbral: false, severidad: critico, para: 5m}
-  - {id: X17, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "Registro de imágenes con riesgo de llenado", unidad: "%", acciones: [avisar, diagnosticar],
+  - {id: X17, tipos: [openshift], grupo: Capacidad, nombre: "Registro de imágenes con riesgo de llenado", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Uso del volumen del registro interno (PVC del image-registry); en revisión además la predicción de llenado en 24 h: predict_linear(kubelet_volume_stats_available_bytes{namespace=\"openshift-image-registry\"}[6h], 86400) < 0. Podar imágenes (oc adm prune images): sin acción automática aún",
      expr: 'max(100 * kubelet_volume_stats_used_bytes{namespace="openshift-image-registry"} / kubelet_volume_stats_capacity_bytes{namespace="openshift-image-registry"}) > __UMBRAL__', aviso: 75, critico: 90, para: 10m}
-  - {id: X18, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "PVC se llenará en 24 h", acciones: [avisar, diagnosticar, remediar_ocp],
+  - {id: X18, tipos: [openshift], grupo: Capacidad, nombre: "PVC se llenará en 24 h", acciones: [avisar, diagnosticar, remediar_ocp],
      descripcion: "Tendencia de las últimas 6 horas: el espacio libre de algún PVC llega a cero dentro de un día",
      expr: 'min by (namespace, persistentvolumeclaim) (predict_linear(kubelet_volume_stats_available_bytes[6h], 86400)) < 0', umbral: false, severidad: aviso, para: 30m}
-  - {id: X19, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "etcd: base de datos cerca de la cuota", unidad: "%", acciones: [avisar, diagnosticar],
+  - {id: X19, tipos: [openshift], grupo: Capacidad, nombre: "etcd: base de datos cerca de la cuota", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Tamaño de la base de etcd respecto de su cuota de backend (al llegar al 100 % etcd deja de aceptar escrituras)",
      expr: 'max(100 * etcd_mvcc_db_total_size_in_bytes / etcd_server_quota_backend_bytes) > __UMBRAL__', aviso: 75, critico: 90, para: 10m}
   # ───────── Servidores Windows ─────────
