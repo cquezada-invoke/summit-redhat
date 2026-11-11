@@ -1,67 +1,60 @@
-commit: 847383bed909f7fe6930af422f7ac95f6eff618d
-inicio: 2026-11-10T21:16:49-03:00
+commit: 3f3698a29820e0ae3a73963a1f57f21f252f6c5f
+inicio: 2026-11-10T21:17:54-03:00
 ---
-APLICAR False
-== reanclada: 40
-   1 Autoservicio · 1 Desplegar app
-   1 Autoservicio · 2 Publicar en Nginx
-   1 Autoservicio · 3 Validar
-   1 Autoservicio · Retirar app
-   1 Red · Aplicar configuración
-   1 Red · Verificar drift
-   1 Red · Solicitar acceso
-   1 Drift · Incorporar servidor
-   1 Drift · Retirar servidor
-   1 Estado · Registrar servidor
-   1 Estado · Aplicar base desde Git
-   1 Remediación · Reiniciar JBoss
-   1 Remediación · Limpiar logs
-   1 Remediación · Diagnosticar app
-   1 Remediación · Volver a la versión validada
-   1 Estado · Proponer base
-   1 Red · Bloquear IP
-   1 Remediación · Cola de pagos
-   1 Remediación · Renovar certificado
-   1 Estado · Volver a un commit
-   1 Remediación · IIS en Windows
-   1 Windows · Provocar caída de IIS (demo)
-   1 JBoss · Aplicar configuración
-   1 JBoss · Restablecer a versión
-   1 Red · Revocar acceso
-   1 Red · Revocar accesos vencidos
-   1 Drift · Windows
-   1 Nube · Solicitar VM
-   1 Nube · Dar de baja VM
-   1 Nube · Reporte de huérfanos
-   1 Nube · Vigilar firewall
-   1 DC · Registrar en Red Hat
-   1 DC · Red Hat IdM
-   1 DC · Directory Server
-   1 DC · Keycloak
-   1 DC · Construir identidad (Linux)
-   1 Red · Configurar VLAN
-   1 Autoservicio · Nuevo ambiente
-   1 Red · Solicitar acceso con aprobación
-   1 Portal · OpenShift · Informe de seguridad del clúster
-== cambiada: 19
-   1 JBoss · Desplegar app JBoss · Desplegar app: probado en f717a314, vigente be315474 con cambios en el playbook o sus includes
-   1 Plataforma · Preparar dependencias Plataforma · Preparar dependencias: probado en f717a314, vigente be315474 con cambios en el playbook o sus includes
-   1 Nube · Limpiar huérfanos Nube · Limpiar huérfanos: sin job previo a la certificación
-   1 DC · Base de los equipos DC · Base de los equipos: sin job previo a la certificación
-   1 Portal · OpenShift · Optimizar recursos y limpiar Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · OpenShift · Respaldo de etcd Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · OpenShift · Alta de proyecto Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · Telco · Onboarding de CNF Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · Telco · Día 2 del clúster de cargas Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · Amdocs · Activar orden de servicio Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · Amdocs · Desplegar release Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · OpenShift · Actualización guiada con ACM Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · OpenShift · De alerta a incidente Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · OpenShift · Certificado de aplicación de punta a punta Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · OpenShift · Acceso de equipo Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · Amdocs · Informe de operación y conciliación Portal · Amdocs · Informe de operación y conciliación (plantilla): probado en b505e4bd, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · Linux · Informe de seguridad Portal · Linux · Informe de seguridad (plantilla): probado en b505e4bd, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · Linux · Liberar espacio en disco Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-   1 Portal · Infra · Atender ticket de Odoo Portal · Informe de ejecución (PDF): probado en 9fbbf860, vigente a61e578f con cambios en el playbook o sus includes
-== otro: 0
---- fin: 2026-11-10T21:17:40-03:00 · código: 0
+faceops-guacd 4822/tcp
+faceops-vcsim 8989/tcp
+faceops-maqueta 8080/tcp, 8110/tcp
+faceops-validador 8080/tcp
+faceops-kb 5432/tcp
+faceops-sni 80/tcp
+faceops-guacamole 192.168.122.1:8111->8080/tcp
+faceops-publico 80/tcp
+faceops 8080/tcp, 8110/tcp
+GET 200 https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6
+encender count 1 disabled True visible True
+reiniciar count 1 disabled False visible True
+apagar count 1 disabled False visible True
+reiniciar → dialog: [] | post: []
+   ticket en lista: 0 | avisos: 
+Traceback (most recent call last):
+  File "<stdin>", line 19, in <module>
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/sync_api/_generated.py", line 17422, in click
+    self._sync(
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_locator.py", line 163, in click
+    return await self._frame._click(self._selector, strict=True, **params)
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_frame.py", line 569, in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 69, in send
+    return await self._connection.wrap_api_call(
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 559, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("[data-energia=\"apagar\"]").first
+    - locator resolved to <button type="button" aria-label="Apagar" data-energia="apagar" class="btn-energ apagar" title="Apagar nodo-jboss">…</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <div id="fx-velo" class="fx-velo">…</div> intercepts pointer events
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <div id="fx-velo" class="fx-velo">…</div> intercepts pointer events
+    - retrying click action
+      - waiting 100ms
+    56 × waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <div id="fx-velo" class="fx-velo">…</div> intercepts pointer events
+     - retrying click action
+       - waiting 500ms
+
+--- fin: 2026-11-10T21:18:46-03:00 · código: 0
