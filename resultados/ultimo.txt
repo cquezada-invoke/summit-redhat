@@ -1,43 +1,41 @@
-commit: 1aa416172bee2db4f4a76bbfa415bdccbbcb8606
-inicio: 2026-11-11T11:46:14-03:00
+commit: 62a203bfeb71bef51756057292b7490b9c5eb7da
+inicio: 2026-11-11T11:12:38-03:00
 ---
-### units
-
-### status
-
-### quadlet
-total 0
-apps
-rh
-### podman
-redisinsight Up 2 hours 0.0.0.0:5540->5540/tcp
-### puertos
-LISTEN 0      4096          0.0.0.0:8443      0.0.0.0:*    java
-LISTEN 0      4096          0.0.0.0:8080      0.0.0.0:*    java
-LISTEN 0      50            0.0.0.0:9990      0.0.0.0:*    java
-### local8180
-000
-000
-### firewall
-/bin/bash: line 1: firewall-cmd: command not found
-/bin/bash: line 1: firewall-cmd: command not found
-/bin/bash: line 1: firewall-cmd: command not found
-/bin/bash: line 1: firewall-cmd: command not found
-### memoria
-total        used        free      shared  buff/cache   available
-Mem:            1707        1188         134           7         542         518
-Swap:              0           0           0
-2
- 09:44:46 up  2:14,  2 users,  load average: 0.22, 0.14, 0.10
-### top_mem
-RSS COMMAND
-691264 java
-146432 node
-24040 python3
-23572 podman
-18072 node_exporter
-### oom
-
-### journal
-
---- fin: 2026-11-11T11:46:22-03:00 · código: 0
+C1 exitoso reglas=7 up=1 reflejo=4
+CASO C1 ok · Activar en Linux con agente
+CASO C9 falla · Acción por alerta y ruta a EDA
+CASO C11 ok · Tablero en Grafana
+CASO C2 ok · Disparo real
+CASO C3 falla · Ajustar y quitar
+CASO C4 falla · Repetir
+CASO C5 falla · Storage y equipo de red
+CASO C6 ok · Equipo sin agente
+CASO C7 ok · Umbral inválido
+CASO C8 falla · Retirar todas
+CERT Monitoreo · Configurar alertas del equipo → cambiada
+FIN-ALERTAS-OBJ
+== flujo del flotante (test_client): un ticket con todas las alertas de nodo-jboss
+HTML generar=True retirar=False aplicar=False cerrar_btn=False
+TICKET 0 [] 302
+FALLA tickets
+== público con sesión de FaceOps (cookie firmada, no se imprime)
+GET con sesión 200 /grafana/d/faceops-alertas/alertas-de-faceops?orgId=1&var-equipo=nodo-jboss&from=now-24h&to=now&viewPanel=6701
+<title>Grafana</title>
+GET con sesión 200 /grafana/d/faceops-alertas/alertas-de-faceops?orgId=1&var-equipo=nodo-jboss&from=now-24h&to=now&viewPanel=7401
+<title>Grafana</title>
+GET sin sesión 302 → https://faceops.34.176.42.56.sslip.io:8843/faceops/ingresar
+tablero Alertas de FaceOps ['JBoss detenido · J01', 'CPU alta · C01']
+usuario grafana visitante
+ds/query 1 series [':52'] 
+ds/query 7 series ['critical:5', 'warning:5', 'critical:1', 'warning:1'] 
+ds/query 1 series [':52'] 
+POST dashboards/db 403
+POST login 403
+GET admin 403
+GET proxy datasource 403
+total 56
+drwxr-xr-x. 2 aap-kvm aap-kvm    34 Nov 11 11:21 .
+drwxr-xr-x. 3     472 root      134 Nov 11 11:10 ..
+-rw-r--r--. 1 aap-kvm aap-kvm 53495 Nov 11 11:21 faceops-alertas.json
+sed: can't read /opt/summit-monitoreo/prometheus/faceops/reglas/nodo-jboss.yml: No such file or directory
+--- fin: 2026-11-11T11:47:04-03:00 · código: 0
