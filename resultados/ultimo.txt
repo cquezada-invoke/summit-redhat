@@ -1,49 +1,24 @@
-commit: 9f017250406f50f79ba1a76c5b3a7eb2a19c86d0
-inicio: 2026-11-11T13:16:12-03:00
+commit: 183208b74bab77ca25b5cffa1b32fb9ba2bd814e
+inicio: 2026-11-11T13:10:30-03:00
 ---
-IP=192.168.122.15
-Red Hat Enterprise Linux release 9.8 (Plow)
-package firewalld is not installed
-nftables-1.0.9-9.el9_8.x86_64
-podman-5.8.5-3.el9_9.x86_64
-netavark-1.17.2-1.el9.x86_64
-== listen
-0.0.0.0:5540 "conmon",pid=2337,fd=5))
-0.0.0.0:8443 "java",pid=2062,fd=441))
-0.0.0.0:111 "rpcbind",pid=231904,fd=4),("systemd",pid=1,fd=46))
-0.0.0.0:22 "sshd",pid=231906,fd=7))
-192.168.122.15:6379 "redis-server",pid=810,fd=7))
-0.0.0.0:8080 "java",pid=2062,fd=429))
-0.0.0.0:9990 "java",pid=2062,fd=424))
-127.0.0.1:6379 "redis-server",pid=810,fd=6))
-[::]:111 "rpcbind",pid=231904,fd=6),("systemd",pid=1,fd=48))
-[::]:22 "sshd",pid=231906,fd=8))
-*:9100 "node_exporter",pid=808,fd=3))
-== nft tables
-table inet faceops_app02
-table ip nat
-table ip filter
-== podman root
-redisinsight Up 4 hours 0.0.0.0:5540->5540/tcp
-netavark fw=netavark-1.17.2-1.el9.x86_64
-#firewall_driver = ""
-== rootless
-== quadlets
-ls: cannot access '/etc/containers/containers.conf.d': No such file or directory
-== systemd units
-eap8-standalone.service
-node_exporter.service
-redis.service
-redisinsight.service
-rpcbind.service
-vigia-jboss.service
-vigia.service
-== tmout
-TMOUT=900
-readonly TMOUT
-export TMOUT
-lo               UNKNOWN        127.0.0.1/8 ::1/128 
-eth0             UP             192.168.122.15/24 fe80::5054:ff:fede:15/64 
-podman0          UP             10.88.0.1/16 fe80::a045:2cff:fe5e:b5a8/64 
-veth0@if2        UP             fe80::a0ef:8ff:fe41:4f0f/64 
---- fin: 2026-11-11T13:16:18-03:00 · código: 0
+inicio: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · dev 1.0.44
+energía nodo-jboss2 apagar: exitoso FO-LAB-01692
+   nodo-jboss2: shut off
+RES {"caso": "C1", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01694", "estado": "fallido", "stats": {}, "detalle": "Desplegar en JBoss con jboss-cli ·  · ", "resultado": "been hidden due to the fact that 'no_log: true' was specified for this result\", \"changed\": true}\n\nTASK [Volver a la versión anterior] ********************************************\nfatal: [nodo-jboss]: FAILED! => {\"censo
+energía nodo-jboss2 encender: exitoso FO-LAB-01695
+C1: fallido · límite/aprobado nodo-jboss|FaceOps (cquezada) → AAP · LB  12 1.0.44; · nodo-jboss 1.0.44
+CASO C1 falla · 1.0.43 con nodo apagado
+RES {"caso": "C2", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01697", "estado": "fallido", "stats": {}, "detalle": "Desplegar en JBoss con jboss-cli ·  · ", "resultado": "rsión anterior] ********************************************\nfatal: [nodo-jboss]: FAILED! => {\"censored\": \"the output has been hidden due to the fact that 'no_log: true' was specified for this result\", \"changed\": true}
+C2: fallido · set_stats None · LB  12 1.0.44; · nodos 1.0.44/1.0.44 · manifiesto con 1.0.44: 1
+CASO C2 falla · 1.0.44 en producción
+RES {"caso": "C3", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01699", "estado": "fallido", "stats": {}, "detalle": "Desplegar en JBoss con jboss-cli ·  · ", "resultado": "rsión anterior] ********************************************\nfatal: [nodo-jboss]: FAILED! => {\"censored\": \"the output has been hidden due to the fact that 'no_log: true' was specified for this result\", \"changed\": true}
+CASO C3 falla · repetir
+RES {"caso": "C4", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01700", "estado": "fallido", "stats": {}, "detalle": "Descargar versión 9.9.999 publicada por el pipeline · Request failed · ", "resultado": ": Not Found\", \"secontext\": \"system_u:object_r:var_lib_t:s0\", \"size\": 53822, \"state\": \"file\", \"status_code\": 404, \"uid\": 0, \"url\": \"http://192.168.122.1:3000/api/packages/invo
+C4: fallido · Descargar versión 9.9.999 publicada por el pipeline · Request failed ·  · LB  12 1.0.44;
+CASO C4 ok · versión inexistente 9.9.999
+RES {"caso": "C5", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01701", "estado": "exitoso", "stats": {"version_desplegada": "1.0.44", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 21 s, espera de aprobación 29 s"}
+C5: exitoso · nodo-jboss-dev|FaceOps (cquezada) → AAP · dev 1.0.44 · LB  12 1.0.44;
+CASO C5 falla · desarrollo sin aprobación
+CERT JBoss · Desplegar app → cambiada
+final: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · HTTP 200
+--- fin: 2026-11-11T13:24:38-03:00 · código: 0
