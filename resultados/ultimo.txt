@@ -1,47 +1,41 @@
-commit: 7172609534640581d575bdbd78f788d53b230a18
-inicio: 2026-11-10T23:06:24-03:00
+commit: 975739fbcb75f2034a3b03fc2b5500272eaf2529
+inicio: 2026-11-10T23:07:55-03:00
 ---
-28e23fe
-faceops actualizado
-6 200 · 8 200 · 10 200 · 12 200 · 14 200 · 
-SIN AMBITO (quedan en el SO): ['Portal · Telco · Red del servicio (VLAN y BGP) (plantilla)']
-puerto: 
-BASE https://faceops.34.176.42.56.sslip.io:8843/faceops/lab
+drwxr-x---.   2 root root   58 Oct 29 00:35 .
+drwxr-xr-x. 126 root root 8192 Nov 10 23:06 ..
+-r--r-----.   1 root root   67 Oct 30 21:30 aap-kvm
+-r--r-----.   1 root root   58 Oct 27 00:18 aap-lab
+-r--r-----.   1 root root   43 Nov 10 18:22 google_sudoers
+--- aap-kvm
+aap-kvm ALL=(root) NOPASSWD: /usr/bin/virsh, /usr/bin/virt-install
+--- aap-lab
+aap-lab ALL=(root) NOPASSWD: /usr/local/sbin/lab-sucursal
+--- google_sudoers
+%google-sudoers ALL=(ALL:ALL) NOPASSWD:ALL
+1114:               "required": ["anfitrion", "usuario", "llave"]},
+1116:                  "extra_vars": {"kvm_anfitrion": "{{ anfitrion }}", "kvm_usuario": "{{ usuario }}", "kvm_llave": "{{ tower.filename.llave }}"}}})
+1119:    "inputs": {"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "llave": llave}})
+drwxr-xr-x. 8 root root 134 Oct 26 15:48 /opt/summit-monitoreo
+drwxr-xr-x. 2 root root  30 Oct 26 15:48 /opt/summit-monitoreo/alertmanager
+drwxr-xr-x. 3 root root  59 Oct 26 23:56 /opt/summit-monitoreo/prometheus
+/opt/summit-monitoreo/alertmanager:
+total 4
+-rw-r--r--. 1 root root 344 Oct 26 15:50 alertmanager.yml
 
-[6] nodo-jboss.demo.local · Skills 40x40 r8px vs Encender 0x0 r8px · mini 26x22 r6px vs vecino 26x22 r6px
-  encabezado: ['Consola web'] · terminal en caja: [('SSH', 'Consola SSH en el navegador')]
-  consolas en tarjetas: ['Redis Insight']
-  botones por tarjeta: [['Skills de Red Hat JBoss EAP · versión 8.0.12 (9 disponibles)'], ['Skills de Redis (4 disponibles)'], ['Skills de Keycloak (4 disponibles)']]
-  caja de estado: ['Skills · RedHat 9.8 (19 disponibles)', 'Mover a otra infraestructura']
-   Skills · RedHat 9.8 → ['Energía 3', 'Inventario y diagnóstico 4', 'Recursos y movimiento 9', 'Seguridad 7', 'Respaldo y recuperación 3', 'Ciclo de vida 11']
-      ['Encender', 'Reiniciar', 'Apagar', 'Diagnosticar la aplicación', 'Verificar error conocido', 'Inventariar', 'Relevar entorno para homologar ambientes', 'Ampliar un disco', 'Evaluar destino de versión', 'Cambiar CPU (vCPU)', 'Cambiar memoria', 'Incorporar un disco', 'Mover a otra infraestructura', 'Ampliar disco en la máquina', 'CentOS a RHEL', 'RHEL a versión soportada', 'Aplicar parches de seguridad', 'Emitir certificado para un servicio', 'Escaneo de seguridad de servidores', 'Inventario', 'Vincular máquina a la bóveda', 'Renovar (EDA)', 'Renovar certificados por vencer', 'Puntos de restauración', 'Recuperar desde un punto', 'Paquetes · inventario y respaldo', 'Eliminar máquina', 'Cambio de hora del país', 'Registrar en Red Hat', 'Uso por segmento', 'Derivar el segmento al data lake', 'Evaluar migración de sistema operativo', 'Preparar la plataforma de la app', 'Preparar red OpenShift', 'Quitar agente', 'Rendimiento del canal', 'Telco · Red del servicio (VLAN y BGP) (plantilla)']
-  Apagar → diálogo: True · ¿Apagar nodo-jboss? Es producción: pasa por aprobación en AAP. · (cancelado)
-  buscar «inventar»: ['Diagnosticar la aplicación', 'Verificar error conocido', 'Inventariar', 'Relevar entorno para homologar ambientes', 'Inventario', 'Paquetes · inventario y respaldo']
-   Skills · Red Hat JBoss EAP · versión 8.0.12 → ['Encender Red Hat JBoss EAP · versión 8.0.12', 'Reiniciar Red Hat JBoss EAP · versión 8.0.12', 'Apagar Red Hat JBoss EAP · versión 8.0.12', 'Reiniciar JBoss', 'Liberar disco (limpiar logs)', 'Desinstalar Red Hat JBoss EAP · versión 8.0.12', 'Aplicar configuración de JBoss desde Git', 'Restablecer JBoss a una versión', 'Volver a la versión validada', 'Redesplegar una versión publicada']
-   Skills · Redis → ['Encender Redis', 'Reiniciar Redis', 'Apagar Redis', 'Desinstalar Redis']
-   Skills · Keycloak → ['Encender Keycloak', 'Reiniciar Keycloak', 'Apagar Keycloak', 'Desinstalar Keycloak']
-  errores JS: []
-
-[12] NODO-WINDOWS · Skills 40x40 r8px vs Encender 0x0 r8px · mini 26x22 r6px vs vecino 26x22 r6px
-  encabezado: ['Consola web'] · terminal en caja: [('Escritorio remoto', 'Escritorio remoto (RDP) en el navegador')]
-  consolas en tarjetas: []
-  botones por tarjeta: [['Skills de Microsoft IIS (7 disponibles)']]
-  caja de estado: ['Skills · Windows Server 2022 (13 disponibles)', 'Mover a otra infraestructura']
-   Skills · Windows Server 2022 → ['Energía 3', 'Inventario y diagnóstico 3', 'Recursos y movimiento 5', 'Seguridad 2', 'Respaldo y recuperación 3', 'Ciclo de vida 3']
-      ['Encender', 'Reiniciar', 'Apagar', 'Verificar error conocido', 'Inventariar', 'Relevar entorno para homologar ambientes', 'Evaluar destino de versión', 'Cambiar CPU (vCPU)', 'Cambiar memoria', 'Incorporar un disco', 'Mover a otra infraestructura', 'Escaneo de seguridad de servidores', 'Vincular máquina a la bóveda', 'Puntos de restauración', 'Recuperar desde un punto', 'Paquetes · inventario y respaldo', 'Eliminar máquina', 'Habilitar escritorio remoto', 'Registrar en Red Hat']
-  Apagar → diálogo: True · ¿Apagar nodo-windows? Es producción: pasa por aprobación en AAP. · (cancelado)
-  buscar «inventar»: ['Verificar error conocido', 'Inventariar', 'Relevar entorno para homologar ambientes', 'Paquetes · inventario y respaldo']
-   Skills · Microsoft IIS → ['Encender Microsoft IIS', 'Reiniciar Microsoft IIS', 'Apagar Microsoft IIS', 'IIS a OpenShift', 'Desinstalar Microsoft IIS', 'Levantar IIS en Windows', 'Prueba: provocar caída de IIS']
-  errores JS: []
-
-[14] fw · Skills 40x40 r8px vs Encender None · mini 26x22 r6px vs vecino None
-  encabezado: [] · terminal en caja: [('SSH', 'Consola SSH en el navegador')]
-  consolas en tarjetas: []
-  botones por tarjeta: [['Skills de Firewall VyOS (4 disponibles)']]
-  caja de estado: ['Skills · VyOS (6 disponibles)']
-   Skills · VyOS → ['Inventario y diagnóstico 1', 'Recursos y movimiento 2', 'Ciclo de vida 6']
-      ['Inventariar', 'Cambiar CPU (vCPU)', 'Cambiar memoria', 'Aplicar configuración de red desde Git', 'Configurar VLAN', 'Revocar acceso', 'Revocar accesos vencidos', 'Solicitar acceso', 'Actualizar firmware']
-  buscar «inventar»: ['Inventariar']
-   Skills · Firewall VyOS → ['Encender Firewall VyOS', 'Reiniciar Firewall VyOS', 'Apagar Firewall VyOS', 'Desinstalar Firewall VyOS']
-  errores JS: []
---- fin: 2026-11-10T23:07:44-03:00 · código: 0
+/opt/summit-monitoreo/prometheus:
+total 16
+-rw-r--r--. 1 root     root     4904 Oct 26 18:57 alertas.yml
+drwxr-xr-x. 2 cquezada cquezada   40 Nov 10 18:22 nube
+-rw-r--r--. 1 root     root     6866 Oct 26 23:56 prometheus.yml
+/opt/summit-monitoreo/prometheus->/etc/prometheus /opt/summit-monitoreo/prom-data->/prometheus 
+summit-dns localhost/dns-summit:1
+summit-blackbox docker.io/prom/blackbox-exporter:v0.25.0
+summit-alertmanager docker.io/prom/alertmanager:v0.27.0
+summit-prometheus docker.io/prom/prometheus:v2.55.1
+summit-grafana docker.io/grafana/grafana:11.3.1
+clab-summit-red-fw localhost/vyos:2026.10.23
+clab-summit-red-srv-app docker.io/library/python:3.12-alpine
+clab-summit-red-pc-usuario localhost/frr-summit:1
+clab-summit-red-rtr localhost/frr-summit:1
+clab-summit-red-isp localhost/frr-summit:1
+--- fin: 2026-11-10T23:07:56-03:00 · código: 0

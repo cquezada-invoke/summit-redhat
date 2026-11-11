@@ -1,0 +1,41 @@
+commit: 975739fbcb75f2034a3b03fc2b5500272eaf2529
+inicio: 2026-11-10T23:07:55-03:00
+---
+drwxr-x---.   2 root root   58 Oct 29 00:35 .
+drwxr-xr-x. 126 root root 8192 Nov 10 23:06 ..
+-r--r-----.   1 root root   67 Oct 30 21:30 aap-kvm
+-r--r-----.   1 root root   58 Oct 27 00:18 aap-lab
+-r--r-----.   1 root root   43 Nov 10 18:22 google_sudoers
+--- aap-kvm
+aap-kvm ALL=(root) NOPASSWD: /usr/bin/virsh, /usr/bin/virt-install
+--- aap-lab
+aap-lab ALL=(root) NOPASSWD: /usr/local/sbin/lab-sucursal
+--- google_sudoers
+%google-sudoers ALL=(ALL:ALL) NOPASSWD:ALL
+1114:               "required": ["anfitrion", "usuario", "llave"]},
+1116:                  "extra_vars": {"kvm_anfitrion": "{{ anfitrion }}", "kvm_usuario": "{{ usuario }}", "kvm_llave": "{{ tower.filename.llave }}"}}})
+1119:    "inputs": {"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "llave": llave}})
+drwxr-xr-x. 8 root root 134 Oct 26 15:48 /opt/summit-monitoreo
+drwxr-xr-x. 2 root root  30 Oct 26 15:48 /opt/summit-monitoreo/alertmanager
+drwxr-xr-x. 3 root root  59 Oct 26 23:56 /opt/summit-monitoreo/prometheus
+/opt/summit-monitoreo/alertmanager:
+total 4
+-rw-r--r--. 1 root root 344 Oct 26 15:50 alertmanager.yml
+
+/opt/summit-monitoreo/prometheus:
+total 16
+-rw-r--r--. 1 root     root     4904 Oct 26 18:57 alertas.yml
+drwxr-xr-x. 2 cquezada cquezada   40 Nov 10 18:22 nube
+-rw-r--r--. 1 root     root     6866 Oct 26 23:56 prometheus.yml
+/opt/summit-monitoreo/prometheus->/etc/prometheus /opt/summit-monitoreo/prom-data->/prometheus 
+summit-dns localhost/dns-summit:1
+summit-blackbox docker.io/prom/blackbox-exporter:v0.25.0
+summit-alertmanager docker.io/prom/alertmanager:v0.27.0
+summit-prometheus docker.io/prom/prometheus:v2.55.1
+summit-grafana docker.io/grafana/grafana:11.3.1
+clab-summit-red-fw localhost/vyos:2026.10.23
+clab-summit-red-srv-app docker.io/library/python:3.12-alpine
+clab-summit-red-pc-usuario localhost/frr-summit:1
+clab-summit-red-rtr localhost/frr-summit:1
+clab-summit-red-isp localhost/frr-summit:1
+--- fin: 2026-11-10T23:07:56-03:00 · código: 0
