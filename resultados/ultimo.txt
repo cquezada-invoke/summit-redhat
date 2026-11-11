@@ -1,18 +1,6 @@
-commit: e988a16d28a40e3991eacbd73c19b4b6ff5586ad
-inicio: 2026-11-11T18:32:49-03:00
+commit: a816b37889a4ef71a5beeb867daa9ab556ce9e16
+inicio: 2026-11-11T18:51:21-03:00
 ---
-energía nodo-jboss-qa encender: fallido FO-LAB-01888
-maquina nodo-jboss-qa
-prep originales respaldo=no monitoreo=si
-prep respaldo: rechazado al solicitar 
-prep monitoreo: rechazado al solicitar 
-antes: 
-CASO C1 falla · Quitar respaldo continuo
-CASO C2 falla · Quitar node_exporter
-CASO C3 ok · Agente desconocido
-EVIDENCIA [{"id": "C1", "caso": "Quitar respaldo continuo", "resultado": "falla", "evidencia": "rechazado al solicitar archivos= skill=no node= "}, {"id": "C2", "caso": "Quitar node_exporter", "resultado": "falla", "evidencia": "rechazado al solicitar  http=000 skill=si"}, {"id": "C3", "caso": "Agente desconocido", "resultado": "ok", "evidencia": "rechazado al solicitar (PermissionError: nodo-jboss-qa: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la acción); la máquina no cambia (huella )"}]
-CERT Sistema · Quitar agente → sin probar
-restaurar monitoreo: rechazado al solicitar 
-energía nodo-jboss-qa apagar: exitoso FO-LAB-01892
-FIN-QUITAR
---- fin: 2026-11-11T18:50:50-03:00 · código: 0
+{'numero': 'FO-LAB-01888', 'estado': 'fallido', 'r': 'AAP GET job_templates/157/ → 503: no healthy upstream'}
+{'nombre': 'nodo-jboss-qa', 'estado': 'con datos', 'energia': 'apagado', 'so': 'RedHat 9.8', 'ram_mb': 2048, 'cpu': 1}
+--- fin: 2026-11-11T18:51:33-03:00 · código: 0
