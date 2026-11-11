@@ -21,7 +21,7 @@
 <div class="cp-e">{% if c.rojo %}<span class="chip s-err">{{ c.rojo }} activo{{ 's' if c.rojo != 1 }}</span>{% endif %}{% if c.amarillo %}<span class="chip e-pendiente_aprobacion">{{ c.amarillo }} sin prevención</span>{% endif %}{% if not c.rojo and not c.amarillo %}<span class="chip e-exitoso">{{ 'sin incidentes' if c.errores else ('sin base de errores' if not c.soporte else 'sin errores aplicables') }}</span>{% endif %}</div></a>{% endfor %}</div>{% endfor %}
 {% if not grupos %}<p class="vacio">No hay máquinas con datos en el inventario.</p>{% endif %}
 {% else %}
-{% if detalle and not buscando %}<div class="card" style="padding:0;margin-bottom:14px;overflow-x:auto"><h2 style="padding:14px 16px 4px;margin:0">Máquinas con {{ detalle.nombre }} · {{ detalle.maquinas|length }}</h2>
+{% if false and detalle and not buscando %}<div class="card" style="padding:0;margin-bottom:14px;overflow-x:auto"><h2 style="padding:14px 16px 4px;margin:0">Máquinas con {{ detalle.nombre }} · {{ detalle.maquinas|length }}</h2>
 <table><tr><th>Máquina</th><th>IP</th><th>Sistema</th><th>Ambiente</th><th class="num">Errores activos</th><th class="num">Riesgo</th></tr>
 {% for m in detalle.maquinas %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b>{{ m.e.nombre }}</b></a></td><td>{{ m.e.ip or '—' }}</td><td style="font-size:12.5px">{{ m.e.so or '—' }}</td><td>{{ m.e.ambiente or '—' }}</td>
 <td class="num">{% if m.activos %}<span class="chip s-err">{{ m.activos }}</span>{% else %}<span class="sub">0</span>{% endif %}</td><td class="num">{{ m.riesgo }} %</td></tr>{% endfor %}
