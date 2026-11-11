@@ -1,12 +1,7 @@
-commit: f1aa9f1198a33ba3075e8dc5ffa08c8cd032f078
-inicio: 2026-11-11T13:11:28-03:00
+commit: c8382c06954a65d5dcbaf134d8692dd3db1ce3e2
+inicio: 2026-11-11T13:12:12-03:00
 ---
-Traceback (most recent call last):
-  File "/tmp/pol.py", line 4, in <module>
-    rows=q("SELECT t.numero,t.estado,t.creado,t.autor,a.nombre_aap,t.parametros,t.resultado FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.creado>='2026-11-11T15:30' ORDER BY t.id DESC LIMIT 40")
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/bd.py", line 179, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: t.autor
---- fin: 2026-11-11T13:11:34-03:00 · código: 0
+hosts: 96 únicos: 49
+['anfitrion-kvm', 'anfitrion-stand', 'dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sat01', 'dc1-sql01', 'dc1-sso01', 'dc1-vpn01', 'dc2-sql01', 'fw', 'fw-sede-01', 'lb-sede-01', 'nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss-qa', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss4', 'nodo-nginx', 'nodo-postgres', 'nodo-so', 'nodo-storage', 'nodo-tomcat', 'nodo-vault', 'nodo-windows', 'ocp-sno', 'pc-usuario', 'rtr', 'rtr-wan-01', 'sno', 'srv-cisco-c240-01', 'srv-dell-r660xs-01', 'srv-dell-r760-01', 'srv-fujitsu-rx2540-01', 'srv-hpe-dl360-01', 'srv-hpe-dl380-01', 'srv-legado-jboss7-01', 'srv-lenovo-sr630-01', 'srv-lenovo-sr650-01', 'srv-mover-01', 'srv-supermicro-01', 'srv-xfusion-2288h-01', 'suc1', 'suc2', 'suc3', 'sw-acc-01', 'sw-core-01']
+license: {'instance_count': 50, 'license_type': 'trial', 'deleted_instances': 34, 'reactivated_instances': 2, 'current_instances': 49, 'automated_instances': 49, 'free_instances': 1}
+--- fin: 2026-11-11T13:12:14-03:00 · código: 0
