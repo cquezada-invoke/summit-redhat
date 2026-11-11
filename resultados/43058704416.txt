@@ -1,0 +1,17 @@
+commit: c3f3a42a2b5beceffd5eb3bb19eac91979224f06
+inicio: 2026-11-11T14:28:14-03:00
+---
+0922c35
+   · Plantilla «FaceOps · Agente de monitoreo (Linux)» (id 107)
+   · Monitoreo: aap-kvm escribe la configuración de FaceOps en Prometheus y Alertmanager
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+SMTP configurado: 0
+== plan agente
+CASO C1 falla · Instalar
+CASO C2 falla · Repetir
+CASO C3 falla · SSH fallidos
+CASO C4 falla · Equipo apagado
+EVIDENCIA [{"id": "C1", "caso": "Instalar", "resultado": "falla", "evidencia": "rechazado al solicitar métricas=0 servicios=inactive active  "}, {"id": "C2", "caso": "Repetir", "resultado": "falla", "evidencia": "rechazado al solicitar pid 833→833 timers=0"}, {"id": "C3", "caso": "SSH fallidos", "resultado": "falla", "evidencia": "faceops_seg_ssh_fallidos_5m="}, {"id": "C4", "caso": "Equipo apagado", "resultado": "falla", "evidencia": "srv-prueba-rocky-01: rechazado al solicitar"}]
+CERT FaceOps · Agente de monitoreo (Linux) → cambiada
+FIN-AGENTE
+== plan alertas
