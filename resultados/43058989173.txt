@@ -1,0 +1,39 @@
+commit: 26b183d89494cf9af082b426f596b1724a92ac31
+inicio: 2026-11-11T13:38:28-03:00
+---
+id 6 ip 192.168.122.15 skills ['jboss', 'keycloak', 'node-exporter', 'redis', 'redisinsight', 'respaldo-git'] amb produccion
+puertos_web None
+FLUJO nodo-nginx -> nodo-jboss '8080'
+FLUJO nodo-jboss -> nodo-postgres '5432'
+FLUJO nodo-jboss -> nodo-tomcat '61616 · 6379'
+puertos ejemplos [('5432', 6), ('8080', 5), ('BGP', 4), ('636', 3), ('61616 · 6379', 3), ('80', 2), ('ssh · winrm', 1), ('LAN', 1), ('8443', 1), ('389', 1), ('6443', 1), ('443', 1)]
+{'codigo': 'APP-02', 'version': 4, 'estado': 'al_dia', 'ticket_id': 1584}
+{'codigo': 'AUD-01', 'version': 1, 'estado': 'al_dia', 'ticket_id': 1680}
+{'codigo': 'COM-01', 'version': 1, 'estado': 'al_dia', 'ticket_id': 1681}
+{'codigo': 'COM-02', 'version': 1, 'estado': 'al_dia', 'ticket_id': 1682}
+{'codigo': 'CON-01', 'version': 1, 'estado': 'al_dia', 'ticket_id': 1683}
+{'codigo': 'CON-02', 'version': 1, 'estado': 'fallida', 'ticket_id': 1702}
+{'codigo': 'DAT-01', 'version': 1, 'estado': 'al_dia', 'ticket_id': 41}
+{'codigo': 'IDN-01', 'version': 1, 'estado': 'al_dia', 'ticket_id': 1685}
+{'codigo': 'RED-01', 'version': 1, 'estado': 'fallida', 'ticket_id': 1703}
+{'codigo': 'RED-02', 'version': 1, 'estado': 'al_dia', 'ticket_id': 1687}
+{'codigo': 'SO-01', 'version': 1, 'estado': 'al_dia', 'ticket_id': 44}
+{'codigo': 'SO-02', 'version': 1, 'estado': 'al_dia', 'ticket_id': 1688}
+{'codigo': 'SO-03', 'version': 1, 'estado': 'al_dia', 'ticket_id': 1689}
+DEF APP-01 1
+DEF APP-02 4
+DEF AUD-01 1
+DEF COM-01 1
+DEF COM-02 1
+DEF CON-01 1
+DEF CON-02 1
+DEF DAT-01 1
+DEF DAT-02 1
+DEF IDN-01 1
+DEF RED-01 1
+DEF RED-02 1
+DEF SO-01 1
+DEF SO-02 1
+DEF SO-03 1
+SKILLS all ['389-directory-server', 'aap', 'active-directory', 'activemq', 'automation-hub', 'certificate-system', 'frrouting', 'gitea', 'iis', 'jboss', 'kafka', 'keycloak', 'kvm', 'nginx', 'node-exporter', 'openshift', 'postgres', 'red-hat-idm', 'redis', 'redisinsight', 'registro-paquetes', 'respaldo-git', 'satellite', 'sqlserver', 'storage-emulado', 'vault', 'vyos-firewall', 'windows-exporter']
+--- fin: 2026-11-11T13:38:34-03:00 · código: 0
