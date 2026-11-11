@@ -393,7 +393,9 @@ def resumen_stats(res, git):
             "rangos": [{"rango": x["rango"], "revisiones": x["revisiones"], "mb": round(x["bytes"] / 2**20)} for x in res["rangos"]],
             "por_namespace": [{"namespace": x["namespace"], "candidatas": x["candidatas"], "mb": round(x["bytes"] / 2**20)} for x in res["por_namespace"]][:20],
             "plan": [{"id": r["id"], "rev": r["rev"], "digest": r["digest"][:19], "ola": r["ola"], "riesgo": r["riesgo"], "meses": r["meses"], "base": r["base"],
-                      "mb": round(r["bytes"] / 2**20), "accion": r["accion"], "destino": r["destino"], "referencias": r["referencias"]} for r in res["plan"]][:60],
+                      "mb": round(r["bytes"] / 2**20), "accion": r["accion"], "destino": r["destino"], "referencias": r["referencias"], "comando": r["comando"]} for r in res["plan"]][:60],
+            "detalle": [{"id": f"{r['ns']}/{r['is']}:{r['tag']}" if r["ns"] else f"huérfana@{r['digest'][7:19]}", "rev": r["rev"], "estado": r["estado"],
+                         "fuente": r["fuente"], "candidata": bool(r.get("candidata"))} for r in sorted(res["filas"], key=lambda x: (x["ns"], x["is"], x["tag"], x["rev"]))][:150],
             "poda": res["poda"][:30], "informe_git": git.startswith("git ok") and git != "git ok 0",
             "git": f"repositorio/openshift-manifiestos/imagenes-movilidad/{res['cluster']}/plan.md" if git.startswith("git ok") and git != "git ok 0" else git}
 
