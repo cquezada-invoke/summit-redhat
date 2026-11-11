@@ -20,7 +20,8 @@ def _tabla():
     from .bd import con
     con().executescript("""CREATE TABLE IF NOT EXISTS pruebas_automatizacion (
       id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, nombre_aap TEXT NOT NULL, huella TEXT NOT NULL, plan TEXT DEFAULT '',
-      casos TEXT DEFAULT '[]', tickets TEXT DEFAULT '[]', resultado TEXT NOT NULL, por TEXT, fecha TEXT, nota TEXT DEFAULT '');""")
+      casos TEXT DEFAULT '[]', tickets TEXT DEFAULT '[]', resultado TEXT NOT NULL, por TEXT, fecha TEXT, nota TEXT DEFAULT '');
+      CREATE TABLE IF NOT EXISTS huellas_repo (url TEXT, rev TEXT, playbook TEXT, huella TEXT, PRIMARY KEY (url, rev, playbook));""")
 
 
 def _yaml(nombre):
@@ -49,6 +50,106 @@ def _archivos(playbook, vistos=None):
     return vistos
 
 
+# ── Playbooks de otros proyectos de AAP ────────────────────────────────────────────────────────────────────────────────
+# Su contenido no vive en faceops/aap: la huella sale de lo que ejecuta AAP, es decir, la revisión SCM vigente del proyecto
+# de la plantilla (project.scm_revision, consultada con el token de FaceOps y en caché) y el playbook con todo lo que
+# incluye, leído del repositorio en esa revisión exacta (Gitea). Si el repositorio no se puede leer, la huella es la
+# revisión del proyecto + el playbook (más conservadora: cualquier commit del repositorio la cambia).
+PROYECTO_FACEOPS = "FaceOps · automatizaciones"
+TTL_PROYECTOS = 120
+_proy_cache = {}     # cliente_id → (t, {nombre proyecto: {rev, url, rama}})
+_contenido = {}      # (url, rev, playbook) → huella del contenido
+
+
+def es_externa(tec):
+    pr = tec.get("proyecto") or ""
+    return bool(pr) and pr != PROYECTO_FACEOPS
+
+
+def _proyectos_aap(cliente_id):
+    import time
+    c = _proy_cache.get(cliente_id)
+    if c and time.time() - c[0] < TTL_PROYECTOS:
+        return c[1]
+    try:
+        from .aap import AAP
+        aap = AAP.de_cliente(q1("SELECT * FROM clientes WHERE id=?", cliente_id))
+        if not aap:
+            raise RuntimeError("sin AAP")
+        m = {p["name"]: {"rev": p.get("scm_revision") or "", "url": p.get("scm_url") or "", "rama": p.get("scm_branch") or ""}
+             for p in aap.todos("projects/")}
+    except Exception:
+        m = c[1] if c else {}      # AAP no responde: se mantiene lo último conocido (o el commit de la sincronización)
+    _proy_cache[cliente_id] = (time.time() - (0 if m else TTL_PROYECTOS - 15), m)
+    return m
+
+
+def _gitea(url):
+    """(base, owner/repo) de una URL SCM de Gitea; None si no es http(s)."""
+    m = re.match(r"(https?://)(?:[^@/]*@)?([^/]+)/([^/]+)/([^/]+?)(?:\.git)?/?$", url or "")
+    return (m.group(1) + m.group(2), f"{m.group(3)}/{m.group(4)}") if m else None
+
+
+def _leer(url, rev, ruta):
+    import requests
+    g, tok = _gitea(url), os.environ.get("FACEOPS_GITEA_TOKEN", "")
+    if not g or not rev:
+        return None
+    r = requests.get(f"{g[0]}/api/v1/repos/{g[1]}/raw/{ruta}", params={"ref": rev}, timeout=5,
+                     headers={"Authorization": "token " + tok} if tok else {})
+    if r.status_code == 404:
+        return b""                 # el include no existe en esa revisión: cuenta como vacío
+    r.raise_for_status()
+    return r.content
+
+
+def archivos_repo(url, rev, playbook):
+    """[(ruta, contenido)] del playbook y lo que importa o incluye, en la revisión dada (rutas relativas al playbook)."""
+    out, pend = [], [playbook]
+    while pend and len(out) < 40:
+        ruta = os.path.normpath(pend.pop(0))
+        if any(r == ruta for r, _ in out):
+            continue
+        cont = _leer(url, rev, ruta)
+        if cont is None:
+            raise RuntimeError("repositorio no legible")
+        out.append((ruta, cont))
+        base = os.path.dirname(ruta)
+        txt = cont.decode("utf-8", "replace")
+        for ref in re.findall(r"(?:import_playbook|include_tasks|import_tasks|include_vars|vars_files:\s*-)\s*:?\s*['\"]?([\w./-]+\.ya?ml)", txt):
+            if "{{" not in ref:
+                pend.append(os.path.join(base, ref))
+        for rol in re.findall(r"(?:include_role|import_role):\s*\n\s*name:\s*['\"]?([\w.-]+)|^\s*-\s*role:\s*['\"]?([\w.-]+)", txt, re.M):
+            n = rol[0] or rol[1]
+            pend.append(os.path.join(base, "roles", n, "tasks", "main.yml"))
+        for ref in re.findall(r"\bfiles/([\w./-]+\.(?:py|sh|j2|ya?ml|json|ps1))", txt):
+            pend.append(os.path.join(base, "files", ref))
+    return out
+
+
+def huella_externa(cliente_id, tec):
+    pr = _proyectos_aap(cliente_id).get(tec.get("proyecto") or "") or {}
+    rev, url = pr.get("rev") or tec.get("commit") or "", pr.get("url") or tec.get("repositorio") or ""
+    clave = (url, rev, tec["playbook"])
+    if clave not in _contenido:
+        _tabla()
+        f = q1("SELECT huella FROM huellas_repo WHERE url=? AND rev=? AND playbook=?", *clave)
+        if f:
+            _contenido[clave] = f["huella"]
+        else:
+            try:
+                h = hashlib.sha256(b"contenido")
+                for ruta, cont in archivos_repo(url, rev, tec["playbook"]):
+                    h.update(ruta.encode())
+                    h.update(cont)
+                _contenido[clave] = h.hexdigest()
+                ej("INSERT OR IGNORE INTO huellas_repo(url, rev, playbook, huella) VALUES (?,?,?,?)", *clave, _contenido[clave])
+            except Exception:
+                # sin acceso al repositorio: revisión del proyecto + playbook (no se guarda, se reintenta en la próxima consulta)
+                return hashlib.sha256(json.dumps({"proyecto": tec.get("proyecto"), "rev": rev, "playbook": tec["playbook"]}).encode()).hexdigest()
+    return _contenido[clave]
+
+
 def huella(auto, _visit=None):
     """sha256 de lo que define la automatización hoy (corta, 12 caracteres)."""
     _visit = _visit or set()
@@ -58,14 +159,15 @@ def huella(auto, _visit=None):
                         sort_keys=True, default=str, ensure_ascii=False).encode())
     h.update(json.dumps(_yaml("formularios.yml").get(n), sort_keys=True, default=str, ensure_ascii=False).encode())
     tec = j(auto.get("tecnico"), {})
-    if tec.get("playbook"):
+    if tec.get("playbook") and es_externa(tec):   # playbook de otro proyecto de AAP: lo que ese proyecto ejecuta hoy
+        h.update(tec["playbook"].encode())
+        h.update(huella_externa(auto["cliente_id"], tec).encode())
+    elif tec.get("playbook"):
         fs = _archivos(tec["playbook"])
         h.update(tec["playbook"].encode())
         for f in fs:
             h.update(f.encode())
             h.update(open(os.path.join(DIR_AAP, f), "rb").read())
-        if not fs:   # playbook de otro repositorio: su proyecto y rama
-            h.update(json.dumps({k: tec.get(k) for k in ("proyecto", "repositorio", "rama")}, sort_keys=True).encode())
     for nodo in tec.get("nodos") or []:   # workflow: la huella de cada plantilla que lo compone
         nom = nodo.get("nombre") if isinstance(nodo, dict) else str(nodo)
         if nom and nom not in _visit:
