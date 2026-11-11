@@ -1300,10 +1300,20 @@ def actualizar_tickets():
             if est == "exitoso" and a and a["nombre_aap"] == "FaceOps · Eliminar servidor":
                 try:   # fuera de los inventarios de AAP y retirado en FaceOps (su respaldo en Git queda)
                     n = j(t["parametros"], {}).get("el_equipo", "")
+                    # La VM ya no existe (el playbook terminó bien): el retiro en FaceOps no depende de AAP. Cada host se
+                    # borra por separado: los de inventarios construidos salen solos con su host de origen (AAP responde
+                    # 400) y uno en uso por un trabajo (409) queda anotado en vez de dejar el equipo sin retirar.
+                    quedan = []
                     for h in aap.get("hosts/", name=n, page_size=50).get("results", []):
-                        aap._r("DELETE", f"hosts/{h['id']}/")
+                        try:
+                            aap._r("DELETE", f"hosts/{h['id']}/")
+                        except ErrorAAP as x_:
+                            if "constructed" not in str(x_):
+                                quedan.append(f"host {h['id']} ({str(x_)[:80]})")
                     ej("UPDATE equipos SET estado='retirado' WHERE cliente_id=? AND nombre=?", c["id"], n)
                     res += f"\n{n} eliminado: fuera del balanceo, VM retirada de KVM (disco conservado aparte), fuera de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git."
+                    if quedan:
+                        res += "\nQuedan en AAP para borrar a mano: " + "; ".join(quedan)
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                     auditar("FaceOps", c["id"], "servidor eliminado", t["numero"], {"equipo": n})
                 except ErrorAAP as x:
