@@ -1,9 +1,24 @@
-commit: a65c84643cf132a4a5411ad8caf793fa36875aa6
-inicio: 2026-11-11T00:00:16-03:00
+commit: cbaa0e634c691c35ca67c641a84867bc2f1204a7
+inicio: 2026-11-10T23:44:09-03:00
 ---
-package/nftables/1-1.0.9-9.el9_8/x86_64/nftables-1.0.9-9.el9_8.x86_64.rpm 200 473262
-package/nftables/1:1.0.9-9.el9_8/x86_64/nftables-1.0.9-9.el9_8.x86_64.rpm 404 22
-package/nftables/1.0.9-9.el9_8/x86_64/nftables-1-1.0.9-9.el9_8.x86_64.rpm 404 22
-{"message":"token is required","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
-
---- fin: 2026-11-11T00:00:17-03:00 · código: 0
+RES {"caso": "C1", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01565", "estado": "exitoso", "stats": {"faceops_datalake": {"app-de-pagos": {"accion": "activar", "equipo": "nodo-nginx", "recibidos": 8022, "flujos": true, "colector": 200}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 11 s, espera de aprobación 31 s"}
+CASO C1 ok · Activar espejo App de pagos
+CASO C2 ok · Flujos y datos en el lake
+RES {"caso": "C3", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01567", "estado": "exitoso", "stats": {"faceops_datalake": {"app-de-pagos": {"accion": "desactivar", "equipo": "nodo-nginx", "recibidos": 8339, "flujos": false, "colector": 200}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 11 s, espera de aprobación 29 s"}
+CASO C3 ok · Desactivar
+RES {"caso": "C4a", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01568", "estado": "exitoso", "stats": {"faceops_datalake": {"app-de-pagos": {"accion": "activar", "equipo": "nodo-nginx", "recibidos": 8340, "flujos": true, "colector": 200}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 10 s, espera de aprobación 27 s"}
+RES {"caso": "C4", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01570", "estado": "exitoso", "stats": {"faceops_datalake": {"app-de-pagos": {"accion": "activar", "equipo": "nodo-nginx", "recibidos": 8575, "flujos": true, "colector": 200}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 11 s, espera de aprobación 28 s"}
+CASO C4 ok · Repetir la activación
+RES {"caso": "C5", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01571", "estado": "exitoso", "stats": {"faceops_datalake": {"banca-core-bancario": {"accion": "activar", "modo": "declarada", "equipo": "nodo-nginx", "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "enviado_lake": 9423}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 5 s, espera de aprobación 56 s"}
+  http=200 lakes=1 bif=1 puertos=['9000'] uso=200:{"archivos": 287, "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9449, "rps": 0.23}
+CASO C5 ok · Declarada: activar Core bancario
+RES {"caso": "C6", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01572", "estado": "exitoso", "stats": {"faceops_datalake": {"banca-core-bancario": {"accion": "activar", "modo": "declarada", "equipo": "nodo-nginx", "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "enviado_lake": 9479}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 5 s, espera de aprobación 27 s"}
+CASO C6 ok · Declarada: repetir
+RES {"caso": "C7", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01573", "estado": "exitoso", "stats": {"faceops_datalake": {"banca-core-bancario": {"accion": "desactivar", "modo": "declarada", "equipo": "nodo-nginx", "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "enviado_lake": 9537}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 5 s, espera de aprobación 28 s"}
+CASO C7 ok · Declarada: desactivar
+ERR 
+REINTENTO (el contenedor de FaceOps se reinició durante el caso)
+RES {"caso": "C8", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01578", "estado": "fallido", "stats": {}, "detalle": "Datos válidos (declarada) · Destino, URL de medición o clave no válidos: no se registra la derivación · ", "resultado": "rtifacts/22936/ssh_key_data (cquezada@demo-ansible-summit)\n\nPLAY [Data lake · Derivar segmento] ********************************************\n\nTASK [Datos válidos (declarada)] ***********************************************\nfatal: [nodo-nginx]: FAILED! => {\n    \"assertion\": \"(dl_medicion_url | default('')) is match('^https://[a-z0-9.-]+(/
+CASO C8 ok · Declarada: URL inválida
+CERT Data lake · Derivar segmento → certificada
+--- fin: 2026-11-11T00:04:30-03:00 · código: 0
