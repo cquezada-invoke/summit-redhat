@@ -195,7 +195,14 @@
       ansible.builtin.shell: |
         D=/var/tmp/faceops-ha-rpms; hecho=""
         if ls $D/*.rpm >/dev/null 2>&1; then
-          dnf -y -q install --disablerepo='*' --setopt=install_weak_deps=False $D/*.rpm && hecho="rpm"
+          # con repositorios (réplica registrada) dnf resuelve lo que la imagen base trae en otra versión; sin ellos, solo los RPM
+          # del origen. Si no se puede instalar, falla aquí con el motivo (antes seguía y caía después en «servicio no encontrado»)
+          if [ -n "$(dnf -q repolist 2>/dev/null)" ]; then
+            dnf -y -q install --setopt=install_weak_deps=False $D/*.rpm || exit 1
+          else
+            dnf -y -q install --disablerepo='*' --setopt=install_weak_deps=False $D/*.rpm || exit 1
+          fi
+          hecho="rpm"
         fi
         if [ -f $D/archivos.tgz ]; then   # usuarios de sistema del origen (mismo UID/GID si están libres) y sus archivos
           while IFS=: read -r n _ gid _; do getent group "$n" >/dev/null || groupadd -r $(getent group "$gid" >/dev/null || echo "-g $gid") "$n"; done < $D/grupos.txt

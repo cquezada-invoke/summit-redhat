@@ -258,8 +258,11 @@ def vuelta_atras(aap, t):
     if (art.get("faceops_replica") or {}).get("ok"):
         return None
     el = art.get("faceops_eliminado") or {}
+    from .operacion import _motivo_falla
+    motivo = _motivo_falla(aap, "workflow", t["aap_job_id"]).strip().splitlines()
     return ("\nLa réplica no quedó verificada: vuelta atrás ejecutada (se retiró del balanceo y se eliminó la máquina nueva"
-            + (f": {', '.join(el.get('detalle') or [])}" if el else "") + "). El origen no se modificó.")
+            + (f": {', '.join(x for x in (el.get('detalle') or []) if x)}" if el else "") + "). El origen no se modificó."
+            + (f"\n{motivo[0]}" if motivo else ""))
 
 
 def registrar(aap, cliente, t):
