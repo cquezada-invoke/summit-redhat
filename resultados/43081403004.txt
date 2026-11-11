@@ -1,0 +1,8 @@
+commit: 4babf0571f100119788a94121a06e5a5da3af9d2
+inicio: 2026-11-11T15:51:06-03:00
+---
+FO-LAB-01811 fallido ut = {}\n    for p in b.sack.query().installed():\n        for a in b.sack.query().available().filter(name=p.name, version=p.version, release=p.release, arch=p.arch):\n            if a.chksum:\n                out[f\"{p.name}|{p.version}-{p.release}|{p.arch}\"] = a.chksum[1].hex()\n                break\n    print(json.dumps(out))\nexcept Exception as x:\n    print(json.dumps({\"_error\": str(x)[:200]}))\nPY\n", "delta": "0:00:00.003566", "end": "2026-11-11 15:48:41.468689", "msg": "non-zero return code", "rc": 127, "start": "2026-11-11 15:48:41.465123", "stderr": "/bin/sh: python3: command not found", "stderr_lines": ["/bin/sh: python3: command not found"], "stdout": "", "stdout_lines": []} |  | PLAY RECAP ********************************************************************* | srv-mig-rhel8-01           : ok=18   changed=0    unreachable=0    failed=1    skipped=7    rescued=0    ignored=0   
+{'id': 129, 'nombre': 'srv-mig-rocky-01', 'estado': 'con datos', 'so': 'Rocky 9.8', 'ip': '192.168.122.231', 'ambiente': 'desarrollo'}
+{'id': 130, 'nombre': 'srv-mig-rhel8-01', 'estado': 'sin datos', 'so': '', 'ip': '192.168.122.233', 'ambiente': 'desarrollo'}
+RES {"caso": "diag", "auto": "Migración · Evaluar sistema operativo", "estado": "rechazado al solicitar", "error": "PermissionError: Esta acción no aplica a srv-mig-rhel8-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»"}
+--- fin: 2026-11-11T15:51:20-03:00 · código: 0
