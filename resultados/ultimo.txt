@@ -1,13 +1,44 @@
-commit: de35b77bec9c12ecebeefffeb9e3b91fae51b08e
-inicio: 2026-11-11T13:40:08-03:00
+commit: 3dc9e3f90c422f27223743fa62b239bfc2efc6c2
+inicio: 2026-11-11T13:40:29-03:00
 ---
-45 [('kernel-5.14.0-687.47.1.el9_8.x86_64', 42), ('kernel-5.14.0-687.55.1.el9_8.x86_64', 38), ('kernel-5.14.0-687.49.1.el9_8.x86_64', 31), ('kernel-5.14.0-687.44.1.el9_8.x86_64', 27), ('kernel-5.14.0-687.41.1.el9_8.x86_64', 27), ('kernel-5.14.0-687.12.1.el9_8.x86_64', 20), ('kernel-5.14.0-687.64.1.el9_8.x86_64', 19), ('kernel-5.14.0-741.14.1.el9_9.x86_64', 18)]
-[('kernel-5.14.0-503.11.1.el9_5.x86_64', 589), ('kernel-5.14.0-362.8.1.el9_3.x86_64', 497), ('kernel-5.14.0-570.12.1.el9_6.x86_64', 406), ('kernel-5.14.0-284.11.1.el9_2.x86_64', 405), ('kernel-5.14.0-427.13.1.el9_4.x86_64', 329)]
-3:# instalados) y los pendientes (hay un parche de seguridad disponible y no está instalado), con su severidad y paquete.
-4:# Usa la información de erratas de Red Hat (dnf updateinfo): el equipo necesita sus repositorios Red Hat.
-15:    - name: CVE pendientes (parche disponible no instalado)
-16:      ansible.builtin.shell: dnf -q updateinfo list --security cves 2>/dev/null | awk '$1 ~ /^CVE-/ {print $1"|"$2"|"$3}' | sort -u
-22:      ansible.builtin.shell: dnf -q updateinfo list --security --installed cves 2>/dev/null | awk '$1 ~ /^CVE-/ {print $1"|"$2"|"$3}' | sort -u
-32:                'pendientes': (r_pend.stdout_lines | default([])),
-37:        msg: "{{ inventory_hostname }}: {{ ((r_pend.stdout_lines | default([]) | length) ~ ' CVE pendientes · ' ~ (r_cub.stdout_lines | default([]) | length) ~ ' cubiertos') if r_repos.stdout | int > 0 else 'sin repositorios Red Hat: no se puede evaluar (registrar el equipo)' }}"
---- fin: 2026-11-11T13:40:14-03:00 · código: 0
+== nodo-jboss 192.168.122.15
+LISTEN 0      50            0.0.0.0:9990      0.0.0.0:*   
+LISTEN 0      4096          0.0.0.0:8080      0.0.0.0:*   
+inactive inactive inactive 
+-bmanagement=0.0.0.0
+-bmanagement=0.0.0.0
+		iifname "lo" tcp dport 9990 accept
+		ip saddr 192.168.122.1 tcp dport 9990 accept
+		tcp dport 9990 drop
+		ip saddr 10.88.0.0/16 tcp dport 5540 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
+		ip saddr 127.0.0.1 tcp dport 5540 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
+aplicaciones.d certificados git-credentials respaldo.conf respaldo.excluir 
+Mem:            2647         941        1054           8         890        1705
+ 11:40:36 up 13 min,  0 users,  load average: 0.07, 0.11, 0.10
+== nodo-jboss2 192.168.122.18
+LISTEN 0      4096         0.0.0.0:8080      0.0.0.0:*   
+LISTEN 0      50           0.0.0.0:9990      0.0.0.0:*   
+inactive inactive inactive 
+-bmanagement=0.0.0.0
+-bmanagement=0.0.0.0
+		iifname "lo" tcp dport 9990 accept
+		ip saddr 192.168.122.1 tcp dport 9990 accept
+		tcp dport 9990 drop
+aplicaciones.d git-credentials respaldo.conf respaldo.excluir 
+Mem:            1707         932         432           4         493         774
+ 11:40:43 up 22 min,  0 users,  load average: 0.12, 0.11, 0.09
+== nodo-jboss-dev 192.168.122.21
+LISTEN 0      50           0.0.0.0:9990      0.0.0.0:*   
+LISTEN 0      4096         0.0.0.0:8080      0.0.0.0:*   
+inactive inactive inactive 
+-bmanagement=0.0.0.0
+-bmanagement=0.0.0.0
+		iifname "lo" tcp dport 9990 accept
+		ip saddr 192.168.122.1 tcp dport 9990 accept
+		tcp dport 9990 drop
+aplicaciones.d certificados git-credentials respaldo.conf respaldo.excluir 
+Mem:            1707         932         472           6         455         774
+ 11:41:07 up 52 min,  0 users,  load average: 0.35, 0.17, 0.11
+FAILED 23658 Desplegar en JBoss con jboss-cli nodo-jboss rc None  
+FAILED 23658 Volver a la versión anterior nodo-jboss rc None  
+--- fin: 2026-11-11T13:41:21-03:00 · código: 0
