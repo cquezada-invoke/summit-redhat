@@ -6,19 +6,17 @@
 <button type="button" class="btn gris" onclick="opHist(true)" title="Ver la historia y agregar comentarios">Historial ({{ (o.historial|length) + (1 if o.notas else 0) }})</button>
 {% if o.nivel_ == 0 and o.etapa != 'perdida' %}<a class="btn der" href="{{ url_for('contrato_nuevo', tipo='directo' if o.tipo == 'directo' else 'tenant', empresa_id=c.id, despliegue=o.despliegue or None) }}">Crear el negocio →</a>{% else %}<span class="sub der" style="font-size:12.5px">El negocio se crea al llegar a nivel 0</span>{% endif %}</div>
 <div class="grid g2" style="margin-top:12px">
-<div class="card"><h2>Oportunidad</h2><table>
-<tr><td class="sub">Cliente</td><td><b>{{ c.nombre }}</b> · {{ c.pais or '—' }}{{ ' · ' ~ c.industria if c.industria }}</td></tr>
-<tr><td class="sub">Contactos</td><td>{% for x in o.contactos_ %}<a href="{{ url_for('contacto', kid=x.id) }}">{{ x.nombre }}</a>{{ ' · ' ~ x.cargo if x.cargo }} <span class="sub" style="font-size:12px">{{ x.correo }}</span>{% if loop.first %} <span class="chip ok" style="font-size:11px">principal</span>{% endif %}<br>{% else %}{{ c.contacto_nombre or '—' }} {{ c.contacto_correo }}{% endfor %}</td></tr>
-{% if o.alcance_texto %}<tr><td class="sub">Alcance</td><td style="white-space:pre-wrap">{{ o.alcance_texto }}</td></tr>{% endif %}
-<tr><td class="sub">Tipo</td><td>{{ tipos.get(o.tipo, o.tipo) }}</td></tr>
-<tr><td class="sub">Modalidad</td><td>{{ 'Por consumo · ' ~ (o.plan or '') if o.modalidad == 'creditos' else ('Costo fijo por alcance · ' ~ (o.est.get('items') or [])|length ~ ' acciones' if o.modalidad == 'alcance' else '—') }}</td></tr>
-<tr><td class="sub">Se espera cerrar</td><td><b>{{ o.quarter }}</b> <span class="sub mono" style="font-size:12px">{{ o.cierre_estimado or '' }}</span></td></tr>
+<div class="card"><h2>Oportunidad</h2>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="etapa"><table>
+<tr><td class="sub">Cliente</td><td><a href="{{ url_for('cuenta', cid=c.id) }}" title="Editar los datos de la cuenta"><b>{{ c.nombre }}</b></a> · {{ c.pais or '—' }}{{ ' · ' ~ c.industria if c.industria }}</td></tr>
+<tr><td class="sub">Contactos</td><td>{% for x in o.contactos_ %}<a href="{{ url_for('contacto', kid=x.id) }}">{{ x.nombre }}</a>{{ ' · ' ~ x.cargo if x.cargo }} <span class="sub" style="font-size:12px">{{ x.correo }}</span>{% if loop.first %} <span class="chip ok" style="font-size:11px">principal</span>{% endif %}<br>{% else %}{{ c.contacto_nombre or '—' }} {{ c.contacto_correo }}{% endfor %}<a class="sub" style="font-size:12.5px" href="{{ url_for('cuenta', cid=c.id, ct=1) }}">+ agregar contacto en la cuenta</a></td></tr>
+<tr><td class="sub">Alcance</td><td><textarea name="alcance_texto" rows="3" style="width:100%">{{ o.alcance_texto or '' }}</textarea></td></tr>
+<tr><td class="sub">Tipo</td><td><select name="tipo">{% for k, t in tipos.items() %}<option value="{{ k }}" {{ 'selected' if o.tipo == k }}>{{ t }}</option>{% endfor %}</select></td></tr>
+<tr><td class="sub">Nivel</td><td class="fila" style="align-items:center;gap:12px"><select name="nivel" style="width:auto">{% for n, p in niveles %}<option value="{{ n }}" {{ 'selected' if o.nivel_ == n }}>{{ 'Nivel 0 · negocio' if n == 0 else 'Nivel ' ~ n ~ ' · ' ~ p ~ ' %' }}</option>{% endfor %}</select>
+<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" name="perdida" value="1" style="width:auto" {{ 'checked' if o.etapa == 'perdida' }}> perdida</label></td></tr>
+<tr><td class="sub">Se espera cerrar</td><td class="fila" style="align-items:center;gap:10px"><input type="date" name="cierre_estimado" value="{{ o.cierre_estimado }}" style="width:auto"> <b>{{ o.quarter }}</b></td></tr>
 <tr><td class="sub">Creada</td><td>{{ o.creado[:10] }} por {{ o.por }}</td></tr></table>
-<form method="post" class="fila" style="margin-top:12px;align-items:end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="etapa">
-<label>Nivel<select name="nivel">{% for n, p in niveles %}<option value="{{ n }}" {{ 'selected' if o.nivel_ == n }}>{{ 'Nivel 0 · negocio' if n == 0 else 'Nivel ' ~ n ~ ' · ' ~ p ~ ' %' }}</option>{% endfor %}</select></label>
-<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="perdida" value="1" style="width:auto" {{ 'checked' if o.etapa == 'perdida' }}> perdida</label>
-<label>Se espera cerrar<input type="date" name="cierre_estimado" value="{{ o.cierre_estimado }}"></label>
-<button class="btn gris">Guardar</button></form>
+<div class="fila" style="margin-top:10px"><button class="btn">Guardar cambios</button></div></form>
 </div>
 </div>
 <div class="card tabla-scroll"><h2>Demos pedidas por el cliente</h2><table><tr><th>Demo</th><th>Pedido</th><th>Período</th><th>FaceOps</th><th>Demo</th><th>Instalación</th><th>Pedida por</th><th></th></tr>

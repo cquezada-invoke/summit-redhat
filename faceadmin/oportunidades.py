@@ -303,6 +303,14 @@ def oportunidad(oid):
                 cambios.append("marcada como perdida")
             if (f.get("cierre_estimado") or "")[:10] and (f.get("cierre_estimado") or "")[:10] != (o.get("cierre_estimado") or ""):
                 cambios.append(f"cierre {quarter(o.get('cierre_estimado') or '')} → {quarter(f['cierre_estimado'])}")
+            if "alcance_texto" in f:
+                at = (f.get("alcance_texto") or "").strip()[:6000]
+                if at != (o.get("alcance_texto") or "").strip():
+                    ej("UPDATE oportunidades SET alcance_texto=? WHERE id=?", at, oid)
+                    cambios.append("alcance actualizado")
+            if f.get("tipo") in TIPOS and f["tipo"] != o["tipo"]:
+                ej("UPDATE oportunidades SET tipo=?, despliegue=? WHERE id=?", f["tipo"], {"multitenant": "centralizado", "tenant": "por_cliente"}.get(f["tipo"], ""), oid)
+                cambios.append(f"tipo {TIPOS.get(o['tipo'], o['tipo'])} → {TIPOS[f['tipo']]}")
             nota = (f.get("nota") or "").strip()[:3000]
             if nota or cambios:
                 ej("INSERT INTO oportunidad_notas (oportunidad_id, fecha, usuario, texto, cambios) VALUES (?,?,?,?,?)", oid, ahora(), g.usuario["usuario"], nota,
@@ -313,7 +321,7 @@ def oportunidad(oid):
             ej("UPDATE oportunidades SET etapa=?, notas=?, cierre_estimado=?, monto_tentativo=? WHERE id=?", f["etapa"], (f.get("notas") or o["notas"] or "")[:3000],
                (f.get("cierre_estimado") or o["cierre_estimado"] or "")[:10], max(0, tent), oid)
             bitacora("oportunidad · etapa", c["codigo"], {"oportunidad": o["numero"], "etapa": f["etapa"]})
-            flash("Oportunidad perdida" if etp == "perdida" else (f"Nivel {niv} · {NIVEL_P[niv]} %" + (": ya es negocio, crea el contrato" if niv == 0 else "")), "ok")
+            flash("Oportunidad perdida" if etp == "perdida" else ("Cambios guardados · " + f"Nivel {niv} · {NIVEL_P[niv]} %" + (": ya es negocio, crea el contrato" if niv == 0 else "")), "ok")
         elif acc == "comentario":
             nota = (f.get("nota") or "").strip()[:3000]
             if nota:
