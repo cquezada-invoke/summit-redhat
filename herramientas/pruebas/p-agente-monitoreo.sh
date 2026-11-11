@@ -26,10 +26,12 @@ from app import create_app
 create_app()
 from app.bd import q1
 r = q1("SELECT nombre FROM equipos WHERE nombre LIKE 'srv-prueba-%' AND estado!='retirado' AND energia='apagado' AND lower(so) NOT LIKE '%windows%' AND ip!='' ORDER BY nombre LIMIT 1")
-print((r or {}).get("nombre") or "")
+r2 = q1("SELECT nombre FROM equipos WHERE nombre LIKE 'srv-prueba-%' AND estado!='retirado' AND lower(so) NOT LIKE '%windows%' AND ip!='' ORDER BY nombre LIMIT 1")
+print(((r or {}).get("nombre") or "") + " " + ((r2 or {}).get("nombre") or ""))
 Q
 )
-if [ -z "$X" ]; then X=srv-prueba-rocky-01; energia $X apagar >/dev/null; sleep 20; fi
+set -- $X
+if echo "$X" | grep -q '^ '; then X=$(echo $X); energia $X apagar >/dev/null; sleep 20; else X=$1; fi   # sin una apagada: apaga una de prueba vigente
 caso_ "{\"auto\":\"$N\",\"equipo\":\"$X\",\"params\":{},\"reinstalar\":true,\"min\":10,\"caso\":\"C4\"}" >/dev/null; E4=$(estado)
 [ "$E4" = fallido ] && anotar C4 "Equipo apagado" ok "$X apagado: el ticket falla ($(jq_ "(r.get('detalle') or '')[:120]"))" || anotar C4 "Equipo apagado" falla "$X: $E4 $(jq_ "(r.get('detalle') or r.get('error') or '')[:200]")"
 echo "C4 $X $E4"
