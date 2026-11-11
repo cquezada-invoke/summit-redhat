@@ -1,14 +1,13 @@
-commit: 8f9c9067641b37e441eb1c87c06f293c79218650
-inicio: 2026-11-11T13:48:44-03:00
+commit: 7de168fb4f9adc4b30b9764bf277d4b1950b7b35
+inicio: 2026-11-11T13:49:05-03:00
 ---
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-Traceback (most recent call last):
-  File "/tmp/ag1.py", line 4, in <module>
-    e=q1("SELECT id,nombre,so,skills,cliente_id FROM equipos WHERE id=6"); print({k:e[k] for k in ("id","nombre","so","skills","cliente_id")})
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/bd.py", line 183, in q1
-    r = con().execute(sql, args).fetchone()
-        ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: skills
---- fin: 2026-11-11T13:48:51-03:00 · código: 0
+9c14599 Políticas: RED-01 v2 abre en firewalld solo lo que la máquina sirve (SSH
+   · Plantilla «FaceOps · Aplicar política de seguridad» (id 124)
+   · Plantilla «Políticas de desarrollo · Evaluar aplicaciones» (id 612)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+RED-01 v 2
+CON-02 v 2
+puertos nodo-jboss {'abrir': ['22/tcp', '5540/tcp', '6379/tcp', '8080/tcp', '8180/tcp', '8443/tcp', '9100/tcp'], 'restringir': ['9990/tcp@192.168.122.1']}
+estado prueba cambiada
+{"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"up","instance":"192.168.122.15:9100","job":"servidores","nombre":"nodo-jboss","rol":"JBoss EAP 8","sistema":"linux"},"value":[1794415963.485,"1"]}]}}
+--- fin: 2026-11-11T13:52:43-03:00 · código: 0
