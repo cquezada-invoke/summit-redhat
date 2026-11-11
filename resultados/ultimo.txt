@@ -1,41 +1,8 @@
-commit: b7a01f4dfc855af970f825786fb4844bb5ceea66
-inicio: 2026-11-11T11:07:23-03:00
+commit: eeaadd06c423ff1b3ecd44299cc58bf284a41870
+inicio: 2026-11-11T11:07:44-03:00
 ---
-{'id': 6, 'nombre': 'nodo-jboss', 'ip': '192.168.122.15', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["jboss", "keycloak", "node-exporter", "redis", "redisinsight"]', 'skills_manual': '[]', 'inventario': 'Servidores de aplicación', 'inventarios': '["Servidores de aplicaci\\u00f3n", "Nodos demo", "Red \\u00b7 laboratorio", "Drift \\u00b7 Servidores"]', 'segmentos_fijos': '[]'}
-{'id': 7, 'nombre': 'nodo-jboss2', 'ip': '192.168.122.18', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["jboss", "node-exporter"]', 'skills_manual': '[]', 'inventario': 'Servidores de aplicación', 'inventarios': '["Servidores de aplicaci\\u00f3n", "Nodos demo", "Drift \\u00b7 Servidores"]', 'segmentos_fijos': '[]'}
-{'id': 8, 'nombre': 'nodo-nginx', 'ip': '192.168.122.11', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["kafka", "nginx", "node-exporter", "redis", "redisinsight"]', 'skills_manual': '[]', 'inventario': 'Servidores de aplicación', 'inventarios': '["Servidores de aplicaci\\u00f3n", "Nodos demo", "Red \\u00b7 laboratorio", "Drift \\u00b7 Servidores"]', 'segmentos_fijos': '[]'}
-{'id': 9, 'nombre': 'nodo-postgres', 'ip': '192.168.122.13', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["node-exporter", "postgres"]', 'skills_manual': '[]', 'inventario': 'Servidores de aplicación', 'inventarios': '["Servidores de aplicaci\\u00f3n", "Nodos demo", "Red \\u00b7 laboratorio", "Drift \\u00b7 Servidores"]', 'segmentos_fijos': '[]'}
-{'id': 10, 'nombre': 'nodo-tomcat', 'ip': '192.168.122.14', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["activemq", "keycloak", "node-exporter", "redis", "redisinsight"]', 'skills_manual': '[]', 'inventario': 'Servidores de aplicación', 'inventarios': '["Servidores de aplicaci\\u00f3n", "Nodos demo", "Drift \\u00b7 Servidores"]', 'segmentos_fijos': '[]'}
-{'id': 11, 'nombre': 'nodo-so', 'ip': '192.168.122.12', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["node-exporter"]', 'skills_manual': '[]', 'inventario': 'Nodos demo', 'inventarios': '["Nodos demo", "Red \\u00b7 laboratorio", "Drift \\u00b7 Servidores"]', 'segmentos_fijos': '[]'}
-{'id': 12, 'nombre': 'nodo-windows', 'ip': '192.168.122.17', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["iis", "windows-exporter"]', 'skills_manual': '[]', 'inventario': 'Servidores Windows', 'inventarios': '["Servidores Windows"]', 'segmentos_fijos': '[]'}
-{'id': 20, 'nombre': 'nodo-jboss3', 'ip': '192.168.122.19', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["jboss", "node-exporter"]', 'skills_manual': '[]', 'inventario': 'Servidores de aplicación', 'inventarios': '["Servidores de aplicaci\\u00f3n", "Nodos demo"]', 'segmentos_fijos': '[]'}
-{'id': 21, 'nombre': 'nodo-jboss-dev', 'ip': '192.168.122.21', 'estado': 'con datos', 'ambiente': 'desarrollo', 'skills_auto': '["jboss", "node-exporter"]', 'skills_manual': '[]', 'inventario': 'Servidores de aplicación', 'inventarios': '["Servidores de aplicaci\\u00f3n", "Nodos demo"]', 'segmentos_fijos': '[]'}
-{'id': 22, 'nombre': 'nodo-jboss-qa', 'ip': '192.168.122.20', 'estado': 'con datos', 'ambiente': 'qa', 'skills_auto': '["jboss", "node-exporter"]', 'skills_manual': '[]', 'inventario': 'Servidores de aplicación', 'inventarios': '["Servidores de aplicaci\\u00f3n", "Nodos demo"]', 'segmentos_fijos': '[]'}
-{'id': 26, 'nombre': 'nodo-vault', 'ip': '192.168.122.210', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["node-exporter", "vault"]', 'skills_manual': '[]', 'inventario': 'Servidores habilitados', 'inventarios': '["Servidores habilitados"]', 'segmentos_fijos': '[]'}
-{'id': 27, 'nombre': 'nodo-storage', 'ip': '192.168.122.167', 'estado': 'con datos', 'ambiente': 'produccion', 'skills_auto': '["storage-emulado"]', 'skills_manual': '[]', 'inventario': 'Servidores habilitados', 'inventarios': '["Servidores habilitados"]', 'segmentos_fijos': '[]'}
-[('App de pagos', '{"nombre": ["nodo-jboss", "nodo-jboss-dev", "nodo-jboss-qa", "nodo-jboss2", "nodo-nginx", "nodo-postgres", "nodo-tomcat"'), ('Autoservicio de desarrollo', '{"nombre": ["nodo-nginx", "nodo-tomcat", "srv-autoserv-*"]}'), ('Banca · Banca digital', '{"nombre": ["ocp-sno", "srv-bdig-*"]}'), ('Banca · CRM y contact center', '{"nombre": ["ocp-sno", "srv-bcon-*"]}'), ('Banca · Core bancario', '{"nombre": ["ocp-sno", "srv-bcor-*"]}'), ('Banca · Originación de créditos', '{"nombre": ["ocp-sno", "srv-bcre-*"]}'), ('Banca · Tarjetas', '{"nombre": ["ocp-sno", "srv-btar-*"]}'), ('Denuncias · Fiscalía (demo)', '{"nombre": ["ocp-sno", "srv-fisc-*"]}'), ('Gobierno de identidades', '{"nombre": ["dc1-ad01", "dc1-ds01", "dc1-idm01", "dc1-iga01", "dc1-sso01", "srv-gid-*"]}'), ('Plataforma OpenShift (SNO)', '{"nombre": ["ocp-sno", "srv-ocpsno-*"]}'), ('Portal de clientes', '{"nombre": ["nodo-jboss3", "nodo-postgres", "srv-portal-*"]}'), ('Red corporativa', '{"nombre": ["borde", "core", "dns-dmz", "fw-interno", "fw-perimetral", "lb-dmz", "nas-01", "pc-campus-01", "proxy-dmz", '), ('Sitio web corporativo', '{"nombre": ["nodo-windows", "srv-sitioweb-*"]}'), ('Telco · BSS · facturación y planes', '{"nombre": ["ocp-sno", "srv-tbss-*"]}'), ('Telco · Mi cuenta y atención', '{"nombre": ["ocp-sno", "srv-tate-*"]}'), ('Telco · OSS · calidad de red', '{"nombre": ["ocp-sno", "srv-toss-*"]}'), ('Telco · Uso de red (CDR)', '{"nombre": ["ocp-sno", "srv-tcdr-*"]}'), ('Telco · Ventas y recargas', '{"nombre": ["ocp-sno", "srv-tven-*"]}')]
-nodo-jboss ['App de pagos'] ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos', 'versiones', 'alertas', 'puertos_web']
-nodo-jboss2 ['App de pagos'] ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos', 'versiones', 'alertas']
-nodo-jboss3 ['Portal de clientes'] ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos', 'alertas']
-cloud-user@192.168.122.11: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
-aap-kvm
-aap-kvm.pub
-acs-central.json
-clientes
-descargas
-faceops.env
-gitops-token
-legado_rsa
-legado_rsa.pub
-nube-simulada-job
-odoo.json
-pull-secret.txt
-repo-ee
-respaldo-token
-rh-offline-token
-rhsm-activacion.json
-transfer
-transporte.key
-vms-apagadas.txt
-200
---- fin: 2026-11-11T11:07:30-03:00 · código: 0
+15d0645
+faceops actualizado
+herramientas/vm/tarea.sh: line 4: syntax error near unexpected token `('
+herramientas/vm/tarea.sh: line 4: `u = q1("SELECT * FROM usuarios WHERE es_admin=1 AND activo=1 LIMIT 1")'
+--- fin: 2026-11-11T11:08:28-03:00 · código: 0
