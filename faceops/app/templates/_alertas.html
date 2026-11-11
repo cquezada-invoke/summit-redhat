@@ -26,7 +26,11 @@
 <div class="al-cuerpo">
 {% if not al.grupos %}<div class="vacio" style="padding:22px 6px;text-align:center"><b>Aún no hay alertas definidas para {{ al.tipo_nombre|lower }}.</b><br><span class="sub">Se agregan al catálogo a medida que se necesitan; cuando exista una, aparecerá aquí para activarla.</span></div>{% endif %}
 {% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
-{% for a in xs %}{% if a.pendiente or a.en_prueba %}<div class="al-fila al-pend" title="{{ a.pendiente or 'En prueba: se libera cuando pase su prueba de punta a punta' }}"><span class="al-sw"><input type="checkbox" disabled><i></i></span>
+{% for a in xs %}{% if a.en_revision %}<div class="al-fila al-pend al-rev"><span class="al-sw"><input type="checkbox" disabled><i></i></span>
+  <span class="al-def"><b>{{ a.nombre }} <span class="chip" style="font-size:10px">tentativa · en revisión</span></b><small>{{ a.descripcion }}</small>
+    <small class="al-ver">PromQL propuesta: <code>{{ a.expr_txt }}</code></small>
+    <small>{% if a.umbral is sameas false %}Severidad {{ a.severidad }}{% else %}Aviso {{ a.aviso }} · crítico {{ a.critico }} {{ a.unidad or '' }}{% endif %} · durante {{ a.para }} · acciones: {{ a.acciones_txt|join(' / ') }}</small></span></div>
+{% elif a.pendiente or a.en_prueba %}<div class="al-fila al-pend" title="{{ a.pendiente or 'En prueba: se libera cuando pase su prueba de punta a punta' }}"><span class="al-sw"><input type="checkbox" disabled><i></i></span>
   <span class="al-def"><b>{{ a.nombre }}</b><small>{% if a.pendiente %}Pendiente de métrica: {{ a.pendiente }}{% else %}Bloqueada · en prueba: {{ a.descripcion }}{% endif %}</small></span></div>{% else %}<label class="al-fila{{ ' on' if a.activa }}">
   <span class="al-sw"><input type="checkbox" name="on_{{ a.id }}" {{ 'checked' if a.activa }} {{ 'disabled' if not al.disponible }} onchange="this.closest('.al-fila').classList.toggle('on', this.checked)"><i></i></span>
   <span class="al-def"><b>{{ a.nombre }}</b><small>{{ a.descripcion }}</small>
@@ -46,7 +50,7 @@
 <footer class="al-pie">
   <input type="text" name="motivo" placeholder="Motivo del cambio (opcional)" {{ 'disabled' if not al.disponible }}>
   <span class="sub">Un solo ticket con todas las alertas del flotante: las activas con su umbral, duración y acción, y las apagadas se retiran. Ansible escribe las reglas en Prometheus, las valida y recarga (con vuelta atrás); Alertmanager las entrega a Event-Driven Ansible.</span>
-  <div class="al-btns"><button class="btn" {{ 'disabled' if not al.disponible or not al.grupos }}>Generar ticket</button></div>
+  <div class="al-btns"><button class="btn" {{ 'disabled' if not al.disponible or not al.activables }} {% if not al.activables %}title="Todas las alertas de este objeto están en revisión o en prueba: aún no se pueden activar"{% endif %}>Generar ticket</button></div>
 </footer>
 </form></dialog>
 <script>

@@ -74,7 +74,9 @@ def tipo_de(e):
         return "red"
     if c == "almacenamiento":
         return "storage"
-    if c.startswith("clúster") or c in ("kubernetes", "openshift"):
+    if "openshift" in c or c == "openshift":
+        return "openshift"   # alertas tentativas del clúster (en revisión)
+    if c.startswith("clúster") or c == "kubernetes":
         return None
     if "windows" in so:
         return "windows"
@@ -144,9 +146,11 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     for a in cat["alertas"]:
         if t in a["tipos"] and a.get("ambito", "maquina") == ambito and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
-            if a.get("pendiente") or (a.get("estado") == "en_prueba" and a["id"] not in act):
+            if a.get("pendiente") or a.get("estado") == "en_revision" or (a.get("estado") == "en_prueba" and a["id"] not in act):
+                accs_ = [(cat.get("acciones") or {}).get(k, {}).get("texto", k) for k in (a.get("acciones") or ["avisar"])]
                 grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=False, acciones_l=[], pendiente=a.get("pendiente") or "",
-                                                                            en_prueba=a.get("estado") == "en_prueba"))
+                                                                            en_prueba=a.get("estado") == "en_prueba", en_revision=a.get("estado") == "en_revision",
+                                                                            acciones_txt=accs_, expr_txt=(a.get("expr") or "").replace('{faceops_equipo="__EQ__"}', "").replace('faceops_equipo="__EQ__",', "")))
                 continue
             accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k), bloqueo_accion(cliente_id, cat, k)) for k in (a.get("acciones") or ["avisar"])]
             grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, grafana=url_grafana(e["nombre"], a["id"], ambito),
@@ -172,7 +176,8 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
             "aplicado": ap.get("actualizado"), "ticket": ap.get("ticket"), "resumen": ap.get("resumen") or [],
             "grafana": url_grafana(e["nombre"], None, ambito), "archivo": f"{REGLAS}/{e['nombre']}{sufijo(ambito)}.yml", "grupo_prom": f"faceops-{e['nombre']}{sufijo(ambito)}",
             "informe": _informe(cliente_id, e),
-            "puede": puede_escribir, "en_curso": en_curso(cliente_id, e, ambito), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values())}
+            "puede": puede_escribir, "en_curso": en_curso(cliente_id, e, ambito), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values()),
+            "activables": sum(1 for v in grupos.values() for x in v if not (x.get("pendiente") or x.get("en_prueba") or x.get("en_revision")))}
 
 
 def _minutos(p):
@@ -206,9 +211,9 @@ def pedido_de_formulario(e, form, ambito="maquina"):
             if form.get(f"on_{a['id']}"):
                 raise ValueError(f"«{a['nombre']}» aún no se puede medir: {a['pendiente']}")
             continue
-        if a.get("estado") == "en_prueba" and a["id"] not in {x["id"] for x in aplicadas(e, ambito).get("alertas") or []}:
+        if a.get("estado") == "en_revision" or (a.get("estado") == "en_prueba" and a["id"] not in {x["id"] for x in aplicadas(e, ambito).get("alertas") or []}):
             if form.get(f"on_{a['id']}"):
-                raise ValueError(f"«{a['nombre']}» está en prueba: se libera cuando pase su prueba de punta a punta")
+                raise ValueError(f"«{a['nombre']}» está {'en revisión (tentativa)' if a.get('estado') == 'en_revision' else 'en prueba'}: aún no se puede activar")
             continue
         if not form.get(f"on_{a['id']}"):
             fuera.append(a["id"])

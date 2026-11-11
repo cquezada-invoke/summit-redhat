@@ -4,6 +4,7 @@
 # ambito: maquina (por defecto: la máquina y su sistema operativo, campana de la ficha) o plataforma:<familia> (jboss, nginx,
 #   redis, keycloak, postgresql…: campana de la tarjeta de esa plataforma). Cada ámbito tiene su propio grupo de reglas en
 #   Prometheus (faceops-<equipo> / faceops-<equipo>--<familia>), su ticket y su tablero de Grafana.
+# estado: en_revision → alerta TENTATIVA (p. ej. clúster OpenShift): visible para revisarla, sin poder activarse todavía.
 # estado: en_prueba → visible pero bloqueada en el flotante hasta que pase su prueba de punta a punta (se libera quitando la marca).
 # pendiente: alerta que aún no se puede medir en el lab (falta su exportador); FaceOps la muestra deshabilitada con el motivo.
 #   __EQ__     → nombre del equipo (etiqueta faceops_equipo de sus métricas)
@@ -12,6 +13,7 @@ tipos:
   linux:   {nombre: "Servidor Linux", fuente: "node_exporter (:9100)", puerto: 9100, job: faceops-equipos}
   windows: {nombre: "Servidor Windows", fuente: "windows_exporter (:9182)", puerto: 9182, job: faceops-equipos}
   storage: {nombre: "Almacenamiento", fuente: "node_exporter (:9100)", puerto: 9100, job: faceops-equipos}
+  openshift: {nombre: "Clúster OpenShift", fuente: "monitoreo del propio clúster (Prometheus/Thanos de openshift-monitoring; se aplicarían como PrometheusRule con «OpenShift · Modelo de alertamiento»)", puerto: 6443, job: ""}
   red:     {nombre: "Equipo de red", fuente: "sondeo TCP del puerto de administración (blackbox)", puerto: 22, job: faceops-sondeo}
 # Acciones: lo que la automatización hará cuando la alerta se dispare (se elige una por alerta en el flotante). «avisar»
 # solo registra el evento en Event-Driven Ansible; las demás piden la automatización indicada, siempre con aprobación.
@@ -34,6 +36,7 @@ acciones:
   hora: {texto: "Corregir la hora (propuesta con aprobación)", auto: "Sistema · Cambio de hora del país", pide_datos: "zona horaria"}
   # Seguridad
   escanear: {texto: "Escaneo de seguridad del servidor (solo lectura, con aprobación)", auto: "Seguridad · Escaneo de servidores", acceso: equipo, vars: {}, informe: true}
+  remediar_ocp: {texto: "Remediar en OpenShift (pod, escala, volumen o nodo; propuesta con aprobación)", auto: "OpenShift · Remediar alerta", pide_datos: "namespace y recurso afectado"}
   bloquear_ip: {texto: "Bloquear la IP de origen (propuesta con aprobación)", auto: "Red · Bloquear IP", pide_datos: "IP de origen a bloquear"}
 alertas:
   # ───────── Servidores Linux y storage ─────────
@@ -143,6 +146,56 @@ alertas:
   - {id: P02, tipos: [linux], ambito: "plataforma:postgresql", grupo: Capacidad, nombre: "Conexiones cerca del máximo", pendiente: "requiere postgres_exporter en el equipo"}
   - {id: P03, tipos: [linux], ambito: "plataforma:postgresql", grupo: Bloqueos, nombre: "Bloqueos (locks) en espera", pendiente: "requiere postgres_exporter en el equipo"}
   - {id: P04, tipos: [linux], ambito: "plataforma:postgresql", grupo: Disponibilidad, nombre: "Réplica atrasada", pendiente: "requiere postgres_exporter en el equipo"}
+  # ───────── Clúster OpenShift (TENTATIVAS, en revisión: expresión propuesta contra el monitoreo del clúster) ─────────
+  - {id: X01, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "API server no disponible", acciones: [avisar, diagnosticar],
+     descripcion: "Ninguna instancia del API server responde a Prometheus", expr: 'sum(up{job="apiserver"}) == 0', umbral: false, severidad: critico, para: 2m}
+  - {id: X02, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "Nodo NotReady", acciones: [avisar, diagnosticar, remediar_ocp],
+     descripcion: "Algún nodo dejó de estar Ready", expr: 'max by (node) (kube_node_status_condition{condition="Ready",status="true"}) == 0', umbral: false, severidad: critico, para: 5m}
+  - {id: X03, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "ClusterOperator degradado o no disponible", acciones: [avisar, diagnosticar],
+     descripcion: "Algún ClusterOperator está Degraded o no Available", expr: 'max by (name) (cluster_operator_conditions{condition="Degraded"} == 1 or cluster_operator_up == 0) > 0', umbral: false, severidad: critico, para: 10m}
+  - {id: X04, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "etcd sin líder", acciones: [avisar, diagnosticar],
+     descripcion: "Algún miembro de etcd no tiene líder", expr: 'min(etcd_server_has_leader) == 0', umbral: false, severidad: critico, para: 1m}
+  - {id: X05, tipos: [openshift], estado: en_revision, grupo: Rendimiento, nombre: "etcd con fsync lento", unidad: ms, acciones: [avisar, diagnosticar],
+     descripcion: "Percentil 99 del fsync del WAL de etcd (disco lento para el plano de control)",
+     expr: '1000 * max(histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))) > __UMBRAL__', aviso: 10, critico: 50, para: 10m}
+  - {id: X06, tipos: [openshift], estado: en_revision, grupo: Operación, nombre: "Actualización del clúster fallida o atascada", acciones: [avisar, diagnosticar],
+     descripcion: "ClusterVersion con Failing=True (o progresando sin avanzar)", expr: 'max(cluster_version_conditions{type="Failing"}) == 1', umbral: false, severidad: critico, para: 15m}
+  - {id: X07, tipos: [openshift], estado: en_revision, grupo: Seguridad, nombre: "Certificados del API o del ingress por vencer", unidad: días, menor: true, acciones: [avisar, diagnosticar],
+     descripcion: "Días que le quedan al certificado más próximo a vencer del API o del router (sondeo TLS)",
+     expr: 'min(probe_ssl_earliest_cert_expiry{job=~".*(api|ingress|router).*"} - time()) / 86400 < __UMBRAL__', aviso: 30, critico: 7, para: 1h}
+  - {id: X08, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "PVC casi lleno", unidad: "%", acciones: [avisar, diagnosticar, remediar_ocp],
+     descripcion: "Uso de algún volumen persistente (PVC)",
+     expr: 'max by (namespace, persistentvolumeclaim) (100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > __UMBRAL__', aviso: 80, critico: 90, para: 5m}
+  - {id: X09, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "Pods en CrashLoopBackOff", unidad: pods, acciones: [avisar, diagnosticar, remediar_ocp],
+     descripcion: "Contenedores reiniciándose en bucle", expr: 'sum(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}) > __UMBRAL__', aviso: 0, critico: 5, para: 10m}
+  - {id: X10, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "CPU de nodos alta", unidad: "%", acciones: [avisar, diagnosticar],
+     descripcion: "Uso de CPU de algún nodo, promedio de 5 minutos",
+     expr: 'max by (instance) (100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])))) > __UMBRAL__', aviso: 80, critico: 95, para: 15m}
+  - {id: X11, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "Memoria de nodos alta", unidad: "%", acciones: [avisar, diagnosticar],
+     descripcion: "Memoria en uso de algún nodo", expr: 'max by (instance) (100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > __UMBRAL__', aviso: 85, critico: 95, para: 15m}
+  - {id: X12, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "Capacidad de pods del nodo", unidad: "%", acciones: [avisar, diagnosticar],
+     descripcion: "Pods en ejecución respecto del máximo de pods del nodo",
+     expr: 'max by (node) (100 * sum by (node) (kubelet_running_pods) / max by (node) (kube_node_status_capacity{resource="pods"})) > __UMBRAL__', aviso: 80, critico: 95, para: 15m}
+  - {id: X13, tipos: [openshift], estado: en_revision, grupo: Operación, nombre: "Router (ingress) con errores 5xx", unidad: "%", acciones: [avisar, diagnosticar],
+     descripcion: "Porcentaje de respuestas 5xx del router de OpenShift (HAProxy)",
+     expr: '100 * sum(rate(haproxy_server_http_responses_total{code="5xx"}[5m])) / sum(rate(haproxy_server_http_responses_total[5m])) > __UMBRAL__', aviso: 5, critico: 20, para: 5m}
+  - {id: X14, tipos: [openshift], estado: en_revision, grupo: Operación, nombre: "Alertas críticas de OpenShift", acciones: [avisar, diagnosticar],
+     descripcion: "Reenvía las alertas críticas propias del clúster que están disparadas (sin Watchdog)",
+     expr: 'count(ALERTS{alertstate="firing",severity="critical",alertname!="Watchdog"}) > 0', umbral: false, severidad: critico, para: 0m}
+  - {id: X15, tipos: [openshift], estado: en_revision, grupo: Operación, nombre: "MachineConfigPool degradado", acciones: [avisar, diagnosticar],
+     descripcion: "Algún MachineConfigPool tiene máquinas degradadas (la configuración de los nodos no se aplicó)",
+     expr: 'max by (pool) (mcp_degraded_machine_count) > 0', umbral: false, severidad: critico, para: 10m}
+  - {id: X16, tipos: [openshift], estado: en_revision, grupo: Disponibilidad, nombre: "Registro de imágenes caído", acciones: [avisar, diagnosticar],
+     descripcion: "El operador del registro interno de imágenes no está disponible", expr: 'max(cluster_operator_up{name="image-registry"}) == 0', umbral: false, severidad: critico, para: 5m}
+  - {id: X17, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "Registro de imágenes con riesgo de llenado", unidad: "%", acciones: [avisar, diagnosticar],
+     descripcion: "Uso del volumen del registro interno (PVC del image-registry); en revisión además la predicción de llenado en 24 h: predict_linear(kubelet_volume_stats_available_bytes{namespace=\"openshift-image-registry\"}[6h], 86400) < 0. Podar imágenes (oc adm prune images): sin acción automática aún",
+     expr: 'max(100 * kubelet_volume_stats_used_bytes{namespace="openshift-image-registry"} / kubelet_volume_stats_capacity_bytes{namespace="openshift-image-registry"}) > __UMBRAL__', aviso: 75, critico: 90, para: 10m}
+  - {id: X18, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "PVC se llenará en 24 h", acciones: [avisar, diagnosticar, remediar_ocp],
+     descripcion: "Tendencia de las últimas 6 horas: el espacio libre de algún PVC llega a cero dentro de un día",
+     expr: 'min by (namespace, persistentvolumeclaim) (predict_linear(kubelet_volume_stats_available_bytes[6h], 86400)) < 0', umbral: false, severidad: aviso, para: 30m}
+  - {id: X19, tipos: [openshift], estado: en_revision, grupo: Capacidad, nombre: "etcd: base de datos cerca de la cuota", unidad: "%", acciones: [avisar, diagnosticar],
+     descripcion: "Tamaño de la base de etcd respecto de su cuota de backend (al llegar al 100 % etcd deja de aceptar escrituras)",
+     expr: 'max(100 * etcd_mvcc_db_total_size_in_bytes / etcd_server_quota_backend_bytes) > __UMBRAL__', aviso: 75, critico: 90, para: 10m}
   # ───────── Servidores Windows ─────────
   - {id: W01, tipos: [windows], grupo: Capacidad, nombre: "CPU alta", unidad: "%", acciones: [avisar, recursos, diagnosticar],
      descripcion: "Uso de CPU promedio de los últimos 5 minutos",
