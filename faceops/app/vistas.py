@@ -4303,7 +4303,15 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
         if web_eq["producto"] == "Redis":   # la consola Redis de FaceOps entra con la credencial de la bóveda
             responde = responde and bool(_web_b(e["nombre"], "redis"))
         if responde and not any(prod_ in x["t"].lower() or x["t"].lower() in prod_ for x in plat):
-            agregar("web", "Consola web", web_eq["abrir"], f"{web_eq['producto']} · " + ("se abre a través de FaceOps" if por_proxy else "se abre directo"))
+            # la consola web de la máquina es la de una plataforma instalada (JBoss, Keycloak, Redis…): va en la tarjeta de esa
+            # plataforma, con la misma URL y la misma comprobación en vivo; solo si no es de ninguna queda en el encabezado
+            c_w = next((c for c in componentes if not c.get("so") and (prod_ in c["nombre"].lower() or familia(c["codigo"]) in prod_
+                                                                        or c["nombre"].lower().split(" · ")[0] in prod_)), None)
+            if c_w is not None:
+                plat.append({"t": f"Consola de {web_eq['producto']}", "url": web_eq["abrir"], "c": c_w,
+                             "title": "se abre a través de FaceOps" if por_proxy else "se abre directo"})
+            else:
+                agregar("web", "Consola web", web_eq["abrir"], f"{web_eq['producto']} · " + ("se abre a través de FaceOps" if por_proxy else "se abre directo"))
     if redis_eq and g.perfil["modo"] == "escritura" and _web_b(e["nombre"], "redis") and puerto_abierto(e["ip"], 6379):
         c_r = next((c for c in componentes if not c.get("so") and familia(c["codigo"]) == "redis"), None)
         if not any(x.get("c") is c_r for x in plat if c_r is not None):   # una sola consola en Redis: Redis Insight si responde; si no, la de FaceOps
