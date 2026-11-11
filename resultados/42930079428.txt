@@ -1,0 +1,124 @@
+commit: 5728dd1454f2ff277ea846756779d235c1782560
+inicio: 2026-11-10T21:19:01-03:00
+---
+20 nodo-jboss3 | servidor | RedHat 9.8 | apagado | cli 1
+21 nodo-jboss-dev | servidor | RedHat 9.8 | encendido | cli 1
+22 nodo-jboss-qa | servidor | RedHat 9.8 | apagado | cli 1
+24 anfitrion-stand | servidor | RedHat 9.8 | encendido | cli 1
+26 nodo-vault | servidor | RedHat 9.8 | encendido | cli 1
+27 nodo-storage | almacenamiento | RedHat 9.8 | encendido | cli 1
+29 ocp-sno | clúster openshift | OpenShift 4.19.51 | encendido | cli 1
+41 sno | servidor | Red Hat Enterprise Linux CoreO | encendido | cli 1
+75 dc1-sql01 | servidor | RedHat 9.6 | apagado | cli 1
+76 dc2-sql01 | servidor | RedHat 9.6 | apagado | cli 1
+77 dc1-sat01 | servidor | RedHat 9.6 | apagado | cli 1
+79 dc1-vpn01 | servidor | RedHat 9.6 | apagado | cli 1
+83 srv-legado-jboss6-01 | servidor | RedHat 7.9 | apagado | cli 1
+84 srv-legado-jboss7-01 | servidor | RedHat 9.6 | apagado | cli 1
+85 srv-cisco-c240-01 | servidor | RedHat 9.6 | encendido | cli 1
+86 srv-dell-r760-01 | servidor | RedHat 9.6 | encendido | cli 1
+87 srv-hpe-dl380-01 | servidor | RedHat 9.6 | encendido | cli 1
+88 srv-lenovo-sr650-01 | servidor | RedHat 9.6 | encendido | cli 1
+89 srv-supermicro-01 | servidor | RedHat 9.6 | encendido | cli 1
+90 srv-prueba-rocky-01 | servidor | RedHat 9.8 | encendido | cli 1
+93 srv-dell-r660xs-01 | servidor | RedHat 9.6 | encendido | cli 1
+94 srv-fujitsu-rx2540-01 | servidor | RedHat 9.6 | encendido | cli 1
+95 srv-hpe-dl360-01 | servidor | RedHat 9.6 | encendido | cli 1
+96 srv-lenovo-sr630-01 | servidor | RedHat 9.6 | encendido | cli 1
+97 srv-xfusion-2288h-01 | servidor | RedHat 9.6 | encendido | cli 1
+98 demo-mla-erp-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 2
+99 demo-mla-erp-02 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 2
+100 demo-mla-scada-01 | servidor | Windows Server 2019 | apagado | cli 2
+101 demo-mla-db-01 | servidor | Red Hat Enterprise Linux 8 | apagado | cli 2
+102 demo-mla-ocp-01 | plataforma | Red Hat OpenShift 4.16 | apagado | cli 2
+103 demo-mla-dev-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 2
+104 demo-mla-fw-01 | red | FortiOS 7.4 | apagado | cli 2
+105 demo-mla-sw-01 | red | Cisco IOS XE 17 | apagado | cli 2
+106 demo-bps-core-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
+107 demo-bps-core-02 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
+108 demo-bps-db-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
+109 demo-bps-db-02 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
+110 demo-bps-ocp-01 | plataforma | Red Hat OpenShift 4.17 | apagado | cli 3
+111 demo-bps-ocp-qa | plataforma | Red Hat OpenShift 4.17 | apagado | cli 3
+112 demo-bps-ad-01 | servidor | Windows Server 2022 | apagado | cli 3
+113 demo-bps-fw-01 | red | PAN-OS 11.1 | apagado | cli 3
+114 demo-bps-lb-01 | red | F5 BIG-IP 17 | apagado | cli 3
+115 demo-bps-qa-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
+116 demo-csl-his-01 | servidor | Red Hat Enterprise Linux 8 | apagado | cli 4
+117 demo-csl-his-02 | servidor | CentOS 7 | apagado | cli 4
+118 demo-csl-pacs-01 | servidor | Windows Server 2016 | apagado | cli 4
+119 demo-csl-db-01 | servidor | Red Hat Enterprise Linux 8 | apagado | cli 4
+120 demo-csl-fw-01 | red | FortiOS 7.2 | apagado | cli 4
+121 fw-sede-01 | firewall | VyOS 2026.10.23-0026-rolling | encendido | cli 1
+122 lb-sede-01 | balanceador | HAProxy 2.8.22-a6a7eb6dd | encendido | cli 1
+123 rtr-wan-01 | router | FRRouting 10.2.1_git | encendido | cli 1
+124 sw-acc-01 | switch | FRRouting 10.2.1_git | encendido | cli 1
+125 sw-core-01 | switch | FRRouting 10.2.1_git | encendido | cli 1
+AUTO 100 1 Plataforma · Controlar servicio certificada
+AUTO 168 1 Sistema · Quitar agente sin probar
+AUTO 61 1 FaceOps · Agente de monitoreo (Linux) certificada
+AUTO 26 1 Monitoreo · Exportador en Windows sin probar
+AUTO 66 1 FaceOps · Respaldo continuo en Git certificada
+EQ 1 dc1-ad01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 2 dc1-ds01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 2 dc1-ds01 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 3 dc1-idm01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 3 dc1-idm01 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 3 dc1-idm01 ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 4 dc1-iga01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 4 dc1-iga01 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 5 dc1-sso01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 5 dc1-sso01 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 6 nodo-jboss ['Acceso de FaceOps'] ['Instalado'] []
+EQ 6 nodo-jboss ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 6 nodo-jboss ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 7 nodo-jboss2 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 7 nodo-jboss2 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 7 nodo-jboss2 ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 8 nodo-nginx ['Acceso de FaceOps'] ['Instalado'] []
+EQ 8 nodo-nginx ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 8 nodo-nginx ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 9 nodo-postgres ['Acceso de FaceOps'] ['Instalado'] []
+EQ 9 nodo-postgres ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 9 nodo-postgres ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 10 nodo-tomcat ['Acceso de FaceOps'] ['Instalado'] []
+EQ 10 nodo-tomcat ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 10 nodo-tomcat ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 11 nodo-so ['Acceso de FaceOps'] ['Instalado'] []
+EQ 11 nodo-so ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 11 nodo-so ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 12 nodo-windows ['Acceso de FaceOps'] ['Instalado'] []
+EQ 12 nodo-windows ['Monitoreo (métricas)'] ['Sin dato'] ['reiniciar', 'quitar', 'salud']
+EQ 14 fw 200 sin agentes
+EQ 15 pc-usuario ['Acceso de FaceOps'] ['Instalado'] []
+EQ 16 rtr 200 sin agentes
+EQ 17 suc1 200 sin agentes
+EQ 18 suc2 200 sin agentes
+EQ 19 suc3 200 sin agentes
+EQ 20 nodo-jboss3 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 20 nodo-jboss3 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 20 nodo-jboss3 ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 21 nodo-jboss-dev ['Acceso de FaceOps'] ['Instalado'] []
+EQ 21 nodo-jboss-dev ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 21 nodo-jboss-dev ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 22 nodo-jboss-qa ['Acceso de FaceOps'] ['Instalado'] []
+EQ 22 nodo-jboss-qa ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 22 nodo-jboss-qa ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 26 nodo-vault ['Acceso de FaceOps'] ['Instalado'] []
+EQ 26 nodo-vault ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 26 nodo-vault ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
+EQ 27 nodo-storage 200 sin agentes
+EQ 29 ocp-sno 200 sin agentes
+EQ 75 dc1-sql01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 76 dc2-sql01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 77 dc1-sat01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 79 dc1-vpn01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 83 srv-legado-jboss6-01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 84 srv-legado-jboss7-01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 90 srv-prueba-rocky-01 ['Acceso de FaceOps'] ['Instalado'] []
+EQ 121 fw-sede-01 200 sin agentes
+EQ 122 lb-sede-01 200 sin agentes
+EQ 123 rtr-wan-01 200 sin agentes
+EQ 124 sw-acc-01 200 sin agentes
+EQ 125 sw-core-01 200 sin agentes
+--- fin: 2026-11-10T21:19:30-03:00 · código: 0
