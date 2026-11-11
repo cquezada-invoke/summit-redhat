@@ -1,28 +1,17 @@
-commit: 85e16b0486b295fc83e2144beb7137a1a1b94eb8
-inicio: 2026-11-11T11:36:14-03:00
+commit: 06e9c536caad12754bb249b30b8885c4f54f1b35
+inicio: 2026-11-11T11:36:44-03:00
 ---
-Traceback (most recent call last):
-  File "<stdin>", line 7, in <module>
-  File "<stdin>", line 6, in r
-  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
-    return opener.open(url, data, timeout)
-  File "/usr/lib64/python3.9/urllib/request.py", line 517, in open
-    response = self._open(req, data)
-  File "/usr/lib64/python3.9/urllib/request.py", line 534, in _open
-    result = self._call_chain(self.handle_open, protocol, protocol +
-  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
-    result = func(*args)
-  File "/usr/lib64/python3.9/urllib/request.py", line 1389, in https_open
-    return self.do_open(http.client.HTTPSConnection, req,
-  File "/usr/lib64/python3.9/urllib/request.py", line 1346, in do_open
-    h.request(req.get_method(), req.selector, req.data, headers,
-  File "/usr/lib64/python3.9/http/client.py", line 1285, in request
-    self._send_request(method, url, body, headers, encode_chunked)
-  File "/usr/lib64/python3.9/http/client.py", line 1296, in _send_request
-    self.putrequest(method, url, **skips)
-  File "/usr/lib64/python3.9/http/client.py", line 1134, in putrequest
-    self._output(self._encode_request(request))
-  File "/usr/lib64/python3.9/http/client.py", line 1214, in _encode_request
-    return request.encode('ascii')
-UnicodeEncodeError: 'ascii' codec can't encode character '\xb7' in position 51: ordinal not in range(128)
---- fin: 2026-11-11T11:36:14-03:00 · código: 0
+WF 23293 running
+dbd6198f-f3a9-4a03-8 ¿Aprueba crear la máquina paralela y sumarla al balanceo de sus segmentos? successful 23294
+crear FaceOps · Habilitar servidor successful 23299
+configurar Infra · Replicar máquina · configurar failed 23303
+    runner_on_start Abrir el puerto del servicio nodo-jboss4 
+    runner_on_skipped Abrir el puerto del servicio nodo-jboss4 [0;36mskipping: [nodo-jboss4][0m
+    playbook_on_task_start Servicio arriba y al iniciar   TASK [Servicio arriba y al iniciar] ********************************************
+    runner_on_start Servicio arriba y al iniciar nodo-jboss4 
+    runner_on_failed Servicio arriba y al iniciar nodo-jboss4 [0;31mfatal: [nodo-jboss4]: FAILED! => {"changed": false, "msg": "Could not find the requested service eap8-standalone: host"}[0m
+    playbook_on_stats    rescued=0    ignored=0    [0;31mnodo-jboss4[0m                : [0;32mok=36  [0m [0;33mchanged=15  [0m unreachable=0    [0;31mfailed=1   [0m [0;36mskipped=5   [0m rescued=0    ignored=0   
+revertir-balanceo FaceOps · Retirar del balanceo pending 23318
+revertir-vm None None None
+revertir-vm-creada None None None
+--- fin: 2026-11-11T11:36:44-03:00 · código: 0
