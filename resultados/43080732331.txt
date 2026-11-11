@@ -1,0 +1,77 @@
+commit: 40b39b80de613b6e896031c09f0a74d42ea53921
+inicio: 2026-11-11T15:50:38-03:00
+---
+TICKET {'id': 1776, 'cliente_id': 1, 'numero': 'FO-LAB-01776', 'automatizacion_id': 82, 'usuario_id': 1, 'estado': 'fallido', 'segmento': 'App de pagos', 'limite': 'nodo-jboss', 'parametros': {'cert_bits': 2048, 'cert_vigencia_dias': 5, 'cert_nombre': 'nodo-jboss', 'cert_formato': 'pem', 'cert_recargar': 'systemctl restart nodo-jboss', 'cert_san': 'nodo-jboss.demo.local', 'cert_cn': 'nodo-jboss.demo.local', 'cert_propietario': 'root', 'cert_puerto': 443, 'cert_revocar_serie': '712b447484972e16f0a76957e9e0cfc6'}, 'motivo': 'Reemplazo del certificado nodo-jboss.demo.local pedido desde su detalle', 'aap_job_id': 24089, 'aap_job_tipo': 'workflow', 'resultado': 'AAP terminó (failed): ejecución 24 s, espera de aprobación 17 s\nFalló en la tarea «Recargar el servicio» de nodo-jboss: non-zero return code\n\nTASK [Respaldar el anterior y dejar el nuevo en su lugar] **********************\nchanged: [nodo-jboss] => (item=nodo-jboss)\n\nTASK [JBoss EAP entrega el keystore emitido (Elytron)] *************************\nskipping: [nodo-jboss]\n\nTASK [Recargar el servicio] ...', 'creado': '2026-11-11T18:01:15+00:00', 'inicio': '2026-11-11T18:01:19+00:00', 'fin': '2026-11-11T18:03:18+00:00', 'duracion_s': 123, 'valor_min': 45, 'tarifa': 10.0, 'externo_ref': 'INC0011466|6c79bcf4c3241710bfc1be13e4013199|incident', 'aprobado_por': 1, 'respuesta': '', 'aap_aprobacion_id': 24090, 'aprobado_en': 'FaceOps (cquezada) → AAP', 'filtros': '{"ambientes": ["produccion"]}', 'dur_ejecucion_s': 24, 'dur_aprobacion_s': 17, 'unidades': 1, 'creditos': 0.0, 'factor': None, 'ahorro': 0.0, 'odoo_ref': '1591'}
+AUTO {'id': 82, 'nombre_aap': 'Certificados · Emitir para servicio', 'nombre': 'Emitir certificado para un servicio', 'aap_tipo': 'job', 'aap_id': 143, 'tipo': 'escritura', 'proyecto': 'FaceOps · automatizaciones', 'version': 'FaceOps · automatizaciones @ 48a2ac1d', 'requiere_aprobacion': 0}
+JOBID 24089
+EXTRA ['cert_bits', 'cert_vigencia_dias', 'cert_nombre', 'cert_formato', 'cert_recargar', 'cert_san', 'cert_cn', 'cert_propietario', 'cert_puerto', 'cert_revocar_serie', 'faceops_ticket', 'faceops_solicitante', 'solicitado_por', 'faceops_autorizacion']
+JOB {'id': 24089, 'type': 'workflow_job', 'name': 'FaceOps · Aprobar › Certificados · Emitir para servicio · Nodos demo · credencial 3 [Seguridad]', 'status': 'failed', 'started': '2026-11-11T18:01:19.229338Z', 'finished': '2026-11-11T18:03:13.726186Z', 'limit': 'nodo-jboss', 'job_explanation': 'No error handling paths found, marking workflow as failed', 'failed': True}
+ NODE 4062 24090 Etapa 1/1 · Seguridad · ¿Ejecutar «Emitir certificado para un servicio»? successful
+ NODE 4063 24091 Certificados · Emitir para servicio failed
+SUBJOB 24091 Certificados · Emitir para servicio failed nodo-jboss playbook playbooks/certificados.yml proj FaceOps · automatizaciones scm 20e79d6621ba324378b682826d9ad35b7567fcb4 expl 
+FAILED nodo-jboss | Certificados · Emitir o renovar | Recargar el servicio | /runner/project/playbooks/certificados.yml:250 | {"changed": true, "stdout": "", "stderr": "Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found.", "rc": 5, "cmd": "systemctl restart nodo-jboss", "start": "2026-11-11 13:03:11.119211", "end": "2026-11-11 13:03:11.131653", "delta": "0:00:00.012442", "msg": "non-zero return code", "invocation": {"module_args": {"_raw_params": "systemctl restart nodo-jboss", "_uses_shell": true, "expand_argument_vars": true, "stdin_add_newline": true, "strip_empty_ends": true, "argv": null, "chdir": null, "executable": null, "creates": null, "removes": null, "stdin": null}}, "stdout_lines": [], "stderr_lines": ["Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found."], "_ansible_no_log": false, "item": {"cn": "nodo-jboss.demo.local", "dns": ["nodo-jboss.demo.local", "nodo-jboss"], "formato": "pem", "ips": ["192.168.122.15"], "nombre": "nodo-jboss", "propietario": "root", "puerto": "443", "recargar": "systemctl restart nodo-jboss"}, "ansible_loop_var": "item", "_ansible_item_label": "nodo-jboss: systemctl restart nodo-jboss"}
+FAILED nodo-jboss | Certificados · Emitir o renovar | Recargar el servicio | /runner/project/playbooks/certificados.yml:250 | {"results": [{"changed": true, "stdout": "", "stderr": "Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found.", "rc": 5, "cmd": "systemctl restart nodo-jboss", "start": "2026-11-11 13:03:11.119211", "end": "2026-11-11 13:03:11.131653", "delta": "0:00:00.012442", "failed": true, "msg": "non-zero return code", "invocation": {"module_args": {"_raw_params": "systemctl restart nodo-jboss", "_uses_shell": true, "expand_argument_vars": true, "stdin_add_newline": true, "strip_empty_ends": true, "argv": null, "chdir": null, "executable": null, "creates": null, "removes": null, "stdin": null}}, "stdout_lines": [], "stderr_lines": ["Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found."], "_ansible_no_log": false, "item": {"cn": "nodo-jboss.demo.local", "dns": ["nodo-jboss.demo.local", "nodo-jboss"], "formato": "pem", "ips": ["192.168.122.15"], "nombre": "nodo-jboss", "propietario": "root", "puerto": "443", "recargar": "systemctl restart nodo-jboss"}, "ansible_loop_var": "item", "_ansible_item_label": "nodo-jboss: systemctl restart nodo-jboss"}], "changed": true, "msg": "One or more items failed"}
+FAILED nodo-jboss | Certificados · Emitir o renovar | Volver al certificado anterior | /runner/project/playbooks/certificados.yml:277 | {"changed": true, "stdout": "", "stderr": "Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found.", "rc": 5, "cmd": "cd /etc/pki/faceops/nodo-jboss || exit 0\nrm -f nuevo.*\n[ -f .reemplazando ] || exit 0            # a\u00fan no se hab\u00eda tocado el certificado en uso\nif ls anterior/servidor.crt >/dev/null 2>&1; then cp -p anterior/* . && cat servidor.crt ca.crt > cadena.crt; fi\nrm -f .reemplazando\nsystemctl restart nodo-jboss\n", "start": "2026-11-11 13:03:11.890812", "end": "2026-11-11 13:03:11.922458", "delta": "0:00:00.031646", "msg": "non-zero return code", "invocation": {"module_args": {"_raw_params": "cd /etc/pki/faceops/nodo-jboss || exit 0\nrm -f nuevo.*\n[ -f .reemplazando ] || exit 0            # a\u00fan no se hab\u00eda tocado el certificado en uso\nif ls anterior/servidor.crt >/dev/null 2>&1; then cp -p anterior/* . && cat servidor.crt ca.crt > cadena.crt; fi\nrm -f .reemplazando\nsystemctl restart nodo-jboss\n", "_uses_shell": true, "expand_argument_vars": true, "stdin_add_newline": true, "strip_empty_ends": true, "argv": null, "chdir": null, "executable": null, "creates": null, "removes": null, "stdin": null}}, "stdout_lines": [], "stderr_lines": ["Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found."], "_ansible_no_log": false, "item": {"cn": "nodo-jboss.demo.local", "dns": ["nodo-jboss.demo.local", "nodo-jboss"], "formato": "pem", "ips": ["192.168.122.15"], "nombre": "nodo-jboss", "propietario": "root", "puerto": "443", "recargar": "systemctl restart nodo-jboss"}, "ansible_loop_var": "item", "_ansible_item_label": "nodo-jboss"}
+FAILED nodo-jboss | Certificados · Emitir o renovar | Volver al certificado anterior | /runner/project/playbooks/certificados.yml:277 | {"results": [{"changed": true, "stdout": "", "stderr": "Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found.", "rc": 5, "cmd": "cd /etc/pki/faceops/nodo-jboss || exit 0\nrm -f nuevo.*\n[ -f .reemplazando ] || exit 0            # a\u00fan no se hab\u00eda tocado el certificado en uso\nif ls anterior/servidor.crt >/dev/null 2>&1; then cp -p anterior/* . && cat servidor.crt ca.crt > cadena.crt; fi\nrm -f .reemplazando\nsystemctl restart nodo-jboss\n", "start": "2026-11-11 13:03:11.890812", "end": "2026-11-11 13:03:11.922458", "delta": "0:00:00.031646", "failed": true, "msg": "non-zero return code", "invocation": {"module_args": {"_raw_params": "cd /etc/pki/faceops/nodo-jboss || exit 0\nrm -f nuevo.*\n[ -f .reemplazando ] || exit 0            # a\u00fan no se hab\u00eda tocado el certificado en uso\nif ls anterior/servidor.crt >/dev/null 2>&1; then cp -p anterior/* . && cat servidor.crt ca.crt > cadena.crt; fi\nrm -f .reemplazando\nsystemctl restart nodo-jboss\n", "_uses_shell": true, "expand_argument_vars": true, "stdin_add_newline": true, "strip_empty_ends": true, "argv": null, "chdir": null, "executable": null, "creates": null, "removes": null, "stdin": null}}, "stdout_lines": [], "stderr_lines": ["Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found."], "_ansible_no_log": false, "item": {"cn": "nodo-jboss.demo.local", "dns": ["nodo-jboss.demo.local", "nodo-jboss"], "formato": "pem", "ips": ["192.168.122.15"], "nombre": "nodo-jboss", "propietario": "root", "puerto": "443", "recargar": "systemctl restart nodo-jboss"}, "ansible_loop_var": "item", "_ansible_item_label": "nodo-jboss"}], "changed": true, "msg": "One or more items failed"}
+STDOUT tail:
+TASK [Registro del certificado] ************************************************
+[0;32mok: [nodo-jboss][0m
+
+TASK [Certificados registrados en el equipo] ***********************************
+[0;32mok: [nodo-jboss][0m
+
+TASK [Leer registros] **********************************************************
+[0;32mok: [nodo-jboss] => (item=jboss-https.json)[0m
+[0;32mok: [nodo-jboss] => (item=nodo-jboss.json)[0m
+
+TASK [Vigencia actual] *********************************************************
+[0;32mok: [nodo-jboss] => (item=jboss-https)[0m
+[0;32mok: [nodo-jboss] => (item=nodo-jboss)[0m
+
+TASK [Qué se renueva] **********************************************************
+[0;32mok: [nodo-jboss][0m
+
+TASK [Estado] ******************************************************************
+[0;32mok: [nodo-jboss] => {[0m
+[0;32m    "msg": [[0m
+[0;32m        "key: value",[0m
+[0;32m        "key: value"[0m
+[0;32m    ][0m
+[0;32m}[0m
+
+TASK [Directorio de cada certificado] ******************************************
+[0;32mok: [nodo-jboss] => (item=nodo-jboss)[0m
+
+TASK [Llave nueva y CSR (se generan en el equipo; la llave no sale de aquí)] ***
+[0;33mchanged: [nodo-jboss] => (item=nodo-jboss)[0m
+
+TASK [Leer los CSR] ************************************************************
+[0;32mok: [nodo-jboss] => (item=nodo-jboss)[0m
+
+TASK [La CA emite y FaceOps aprueba como agente] *******************************
+[0;33mchanged: [nodo-jboss -> localhost] => (item=nodo-jboss)[0m
+
+TASK [Certificado de la CA (para la cadena)] ***********************************
+[0;32mok: [nodo-jboss] => (item=nodo-jboss)[0m
+
+TASK [Certificado nuevo] *******************************************************
+[0;33mchanged: [nodo-jboss] => (item=nodo-jboss)[0m
+
+TASK [Validar (firmado por la CA y corresponde a la llave nueva)] **************
+[0;32mok: [nodo-jboss] => (item=nodo-jboss)[0m
+
+TASK [Respaldar el anterior y dejar el nuevo en su lugar] **********************
+[0;33mchanged: [nodo-jboss] => (item=nodo-jboss)[0m
+
+TASK [JBoss EAP entrega el keystore emitido (Elytron)] *************************
+[0;36mskipping: [nodo-jboss][0m
+
+TASK [Recargar el servicio] ****************************************************
+[0;31mfailed: [nodo-jboss] (item=nodo-jboss: systemctl restart nodo-jboss) => {"ansible_loop_var": "item", "changed": true, "cmd": "systemctl restart nodo-jboss", "delta": "0:00:00.012442", "end": "2026-11-11 13:03:11.131653", "item": {"cn": "nodo-jboss.demo.local", "dns": ["nodo-jboss.demo.local", "nodo-jboss"], "formato": "pem", "ips": ["192.168.122.15"], "nombre": "nodo-jboss", "propietario": "root", "puerto": "443", "recargar": "systemctl restart nodo-jboss"}, "msg": "non-zero return code", "rc": 5, "start": "2026-11-11 13:03:11.119211", "stderr": "Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found.", "stderr_lines": ["Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found."], "stdout": "", "stdout_lines": []}[0m
+
+TASK [Volver al certificado anterior] ******************************************
+[0;31mfailed: [nodo-jboss] (item=nodo-jboss) => {"ansible_loop_var": "item", "changed": true, "cmd": "cd /etc/pki/faceops/nodo-jboss || exit 0\\nrm -f nuevo.*\\n[ -f .reemplazando ] || exit 0            # aún no se había tocado el certificado en uso\\nif ls anterior/servidor.crt >/dev/null 2>&1; then cp -p anterior/* . && cat servidor.crt ca.crt > cadena.crt; fi\\nrm -f .reemplazando\\nsystemctl restart nodo-jboss\\n", "delta": "0:00:00.031646", "end": "2026-11-11 13:03:11.922458", "item": {"cn": "nodo-jboss.demo.local", "dns": ["nodo-jboss.demo.local", "nodo-jboss"], "formato": "pem", "ips": ["192.168.122.15"], "nombre": "nodo-jboss", "propietario": "root", "puerto": "443", "recargar": "systemctl restart nodo-jboss"}, "msg": "non-zero return code", "rc": 5, "start": "2026-11-11 13:03:11.890812", "stderr": "Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found.", "stderr_lines": ["Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found."], "stdout": "", "stdout_lines": []}[0m
+
+PLAY RECAP *********************************************************************
+[0;31mnodo-jboss[0m                 : [0;32mok=18  [0m [0;33mchanged=4   [0m unreachable=0    [0;31mfailed=1   [0m [0;36mskipped=1   [0m [0;32mrescued=1   [0m ignored=0   
+--- fin: 2026-11-11T15:50:47-03:00 · código: 0
