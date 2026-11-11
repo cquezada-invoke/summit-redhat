@@ -1,0 +1,26 @@
+commit: 8e074f8acca1ad3136ecfd182786dcfb1a014cde
+inicio: 2026-11-11T00:01:20-03:00
+---
+fdcfeb5
+faceops actualizado
+nodo-jboss ruta vigente antes: 404
+  aviso: ['Reinstalando Redis Insight en nodo-jboss (FO-LAB-01577): al terminar, el icono de Redis abre su consola']
+   FO-LAB-01577 ri_ruta: /faceops/lab/inventario/6/consola-web/redis
+   FO-LAB-01577 exitoso | AAP terminó (successful): ejecución 35 s, espera de aprobación 35 s
+  ruta vigente después: 200
+nodo-nginx ruta vigente antes: 404
+  aviso: ['Reinstalando Redis Insight en nodo-nginx (FO-LAB-01579): al terminar, el icono de Redis abre su consola']
+   FO-LAB-01579 ri_ruta: /faceops/lab/inventario/8/consola-web/redis
+Error: no container with name or ID "faceops" found: no such container
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+--- fin: 2026-11-11T00:05:01-03:00 · código: 0
