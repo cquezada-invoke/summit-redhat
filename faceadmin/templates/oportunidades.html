@@ -2,12 +2,12 @@
 <div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Oportunidades</h1><p class="sub">El paso previo al contrato: el cliente, lo que se espera cerrar y, si hace falta, una demo de FaceOps por semanas (máximo 4).</p></div>
 <a class="btn der" href="{{ url_for('oportunidad_nueva') }}">+ Nueva oportunidad</a></div>
 <div class="kpis"><div class="kpi"><span class="sub">Abiertas</span><b>{{ kpi.abiertas }}</b></div><div class="kpi"><span class="sub">Demos activas</span><b>{{ kpi.demos }}</b></div>
-<div class="kpi"><span class="sub">Monto tentativo abierto (anual)</span><b>USD {{ kpi.pipeline|num }}</b></div><div class="kpi"><span class="sub">Ponderado por nivel (anual)</span><b>USD {{ kpi.ponderado|num }}</b></div><div class="kpi"><span class="sub">Ganadas</span><b>{{ kpi.ganadas }}</b></div></div>
+<div class="kpi"><span class="sub">Monto tentativo abierto (anual)</span><b>{{ "USD " ~ kpi.pipeline|num if kpi.pipeline else "—" }}</b></div><div class="kpi"><span class="sub">Ponderado por nivel (anual)</span><b>{{ "USD " ~ kpi.ponderado|num if kpi.ponderado else "—" }}</b></div><div class="kpi"><span class="sub">Ganadas</span><b>{{ kpi.ganadas }}</b></div></div>
 {% from "_buscador.html" import buscador %}{{ buscador('Buscar oportunidad: número, cliente, país, nivel, quarter…') }}
-<div class="card tabla-scroll" style="padding:0"><table data-buscable><tr><th>Oportunidad</th><th>Cliente</th><th>País</th><th>Tipo</th><th>Nivel</th><th style="text-align:right">Monto tentativo</th><th style="text-align:right">Precio de lista</th><th>Quarter</th><th>Demo</th></tr>
+<div class="card tabla-scroll" style="padding:0"><table data-buscable><tr><th>Oportunidad</th><th>Cliente</th><th>País</th><th>Tipo</th><th>Nivel</th><th style="text-align:right">Monto tentativo</th><th>Quarter</th><th>Demo</th></tr>
 {% for o in ops %}<tr><td class="mono"><a href="{{ url_for('oportunidad', oid=o.id) }}"><b>{{ o.numero }}</b></a></td><td>{{ o.c.nombre }}</td><td>{{ o.c.pais or '—' }}</td>
 <td>{{ tipos[o.tipo] }}</td><td>{% if o.etapa == 'perdida' %}<span class="chip mal">perdida</span>{% elif o.nivel_ == 0 %}<span class="chip ok">0 · negocio</span>{% else %}<span class="chip {{ 'med' if o.nivel_ <= 2 else '' }}">{{ o.nivel_ }} · {{ o.prob }} %</span>{% endif %}</td>
-<td style="text-align:right">USD {{ (o.monto_tentativo or o.monto_estimado or 0)|num }}</td><td style="text-align:right" class="sub">USD {{ (o.monto_estimado or 0)|num }}</td><td>{{ o.quarter }}</td>
+<td style="text-align:right">{{ 'USD ' ~ o.monto_|num if o.monto_ else '—' }}</td><td>{{ o.quarter }}</td>
 <td>{% if o.demo.k == 'activa' %}<span class="chip ok">{{ o.demo.t }}</span><br><span class="sub" style="font-size:12px">{{ o.demo.dias }} días · {{ o.demo_semanas }} de 4 semanas</span>{% elif o.demo.k == 'vencida' %}<span class="chip mal">{{ o.demo.t }}</span>{% else %}<span class="sub">—</span>{% endif %}</td></tr>
-{% else %}<tr><td colspan="9" class="sub">Aún no hay oportunidades.</td></tr>{% endfor %}</table></div>
+{% else %}<tr><td colspan="8" class="sub">Aún no hay oportunidades.</td></tr>{% endfor %}</table></div>
 {% endblock %}

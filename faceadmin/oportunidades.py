@@ -97,6 +97,12 @@ def _notas_tabla():
     ej("CREATE TABLE IF NOT EXISTS oportunidad_notas (id INTEGER PRIMARY KEY, oportunidad_id INTEGER, fecha TEXT, usuario TEXT, texto TEXT, cambios TEXT DEFAULT '')")
 
 
+def monto_de(o):
+    """Monto que el vendedor ingresó. Vacío = 0: no se deduce del precio de lista (las oportunidades antiguas guardaban el de lista)."""
+    m = o.get("monto_tentativo") or 0
+    return 0 if not m or m == (o.get("monto_estimado") or 0) else m
+
+
 def nivel_de(o):
     n = o.get("nivel")
     return n if n in NIVEL_P else _ETAPA_NIVEL.get(o.get("etapa"), 5)
@@ -175,7 +181,7 @@ def _ops():
         if not c or not en_alcance(c):
             continue
         o["c"], o["demo"] = c, demo_estado(o)
-        o["nivel_"] = nivel_de(o)
+        o["nivel_"], o["monto_"] = nivel_de(o), monto_de(o)
         o["prob"], o["quarter"] = NIVEL_P[o["nivel_"]], quarter(o.get("cierre_estimado") or "")
         out.append(o)
     return out
@@ -189,8 +195,8 @@ def oportunidades():
     abiertas = [o for o in ops if o["etapa"] not in ("ganada", "perdida")]
     return render_template("oportunidades.html", ops=ops, etapa_t=ETAPA_T, tipos=TIPO_CORTO,
                            kpi={"abiertas": len(abiertas), "demos": sum(1 for o in ops if o["demo"]["k"] == "activa"),
-                                "ponderado": sum((o.get("monto_tentativo") or o["monto_estimado"] or 0) * o["prob"] / 100 for o in abiertas),
-                                "pipeline": sum(o.get("monto_tentativo") or o["monto_estimado"] or 0 for o in abiertas), "ganadas": sum(1 for o in ops if o["etapa"] == "ganada")})
+                                "ponderado": sum(o["monto_"] * o["prob"] / 100 for o in abiertas),
+                                "pipeline": sum(o["monto_"] for o in abiertas), "ganadas": sum(1 for o in ops if o["etapa"] == "ganada")})
 
 
 @app.route("/oportunidades/nueva", methods=["GET", "POST"])
@@ -225,7 +231,7 @@ def oportunidad_nueva():
         if tipo not in TIPOS:
             raise ValueError("Elige el tipo: multi-tenant, tenant o cliente directo")
         est = estimar(f)
-        tent = cobro._n(f.get("monto_tentativo") or "", est["anual"])
+        tent = cobro._n(f.get("monto_tentativo") or "", 0)
         if tent < 0:
             raise ValueError("El monto tentativo no puede ser negativo")
         if not (f.get("cierre_estimado") or "").strip():
@@ -308,6 +314,13 @@ def oportunidad(oid):
                (f.get("cierre_estimado") or o["cierre_estimado"] or "")[:10], max(0, tent), oid)
             bitacora("oportunidad · etapa", c["codigo"], {"oportunidad": o["numero"], "etapa": f["etapa"]})
             flash("Oportunidad perdida" if etp == "perdida" else (f"Nivel {niv} · {NIVEL_P[niv]} %" + (": ya es negocio, crea el contrato" if niv == 0 else "")), "ok")
+        elif acc == "comentario":
+            nota = (f.get("nota") or "").strip()[:3000]
+            if nota:
+                _notas_tabla()
+                ej("INSERT INTO oportunidad_notas (oportunidad_id, fecha, usuario, texto, cambios) VALUES (?,?,?,?,?)", oid, ahora(), g.usuario["usuario"], nota, "")
+                flash("Comentario guardado", "ok")
+            return redirect(url_for("oportunidad", oid=oid, hist=1))
         elif acc in ("demo", "extender"):
             try:
                 sem = int(f.get("semanas") or 0)
@@ -335,7 +348,7 @@ def oportunidad(oid):
         o["aia"] = {}
     o["especialista"] = alcance.especialista()
     dem = [_demo_fila(x) for x in q("SELECT * FROM demos WHERE oportunidad_id=? ORDER BY id DESC", oid)]
-    o["nivel_"], o["quarter"] = nivel_de(o), quarter(o.get("cierre_estimado") or "")
+    o["nivel_"], o["quarter"], o["monto_"] = nivel_de(o), quarter(o.get("cierre_estimado") or ""), monto_de(o)
     _notas_tabla()
     o["historial"] = q("SELECT * FROM oportunidad_notas WHERE oportunidad_id=? ORDER BY id DESC", oid)
     try:
