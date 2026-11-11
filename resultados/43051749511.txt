@@ -1,0 +1,77 @@
+commit: e7e361522f9eeaf552d29f429c3218fe0102a4e5
+inicio: 2026-11-11T12:46:56-03:00
+---
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+nodo-jboss 192.168.122.15 encendido RedHat 9.8 virtual skills ["jboss", "keycloak", "node-exporter", "redis", "redisinsight"]
+  disco vda virtio (disco virtual) 20.0 [('/boot/efi', 'vfat'), ('/efi', 'vfat'), ('/boot', 'xfs'), ('/', 'xfs')] /dev/vda
+  disco vdb virtio (disco virtual) 20.0 [('/datos', 'xfs')] /dev/vdb
+  respaldo_datos None montajes_red []
+  punto PR-NODO-JBOSS-0016 2026-11-10T14:25:19+00:00 cob None rec 85 ['Volúmenes de datos con respaldo']
+  vols [('/boot/efi', 'recuperable'), ('/efi', 'recuperable'), ('/boot', 'recuperable'), ('/', 'recuperable'), ('/datos', 'sin respaldo')]
+nodo-storage 192.168.122.167 encendido RedHat 9.8 virtual skills ["storage-emulado"]
+  disco vda virtio (disco virtual) 60.0 [('/boot/efi', 'vfat'), ('/boot', 'xfs'), ('/', 'xfs')] /dev/vda
+  disco vdb virtio (disco virtual) 100.0 [('/srv/datalake', 'xfs')] /dev/vdb
+  disco vdc virtio (disco virtual) 5.0 [('/srv/prueba-ad', 'xfs')] /dev/vdc
+  disco vdd virtio (disco virtual) 2.0 [('/srv/prueba-sis', 'xfs')] /dev/vdd
+  respaldo_datos None montajes_red []
+  punto PR-NODO-STORAGE-0009 2026-11-11T01:19:21+00:00 cob None rec 25 ['Paquetes exactos respaldados en el registro (90 % o más)', 'Configuración en Git', 'Volúmenes de datos con respaldo']
+  vols [('/boot/efi', 'recuperable'), ('/boot', 'recuperable'), ('/', 'recuperable'), ('/srv/datalake', 'sin respaldo'), ('/srv/prueba-ad', 'sin respaldo'), ('/srv/prueba-sis', 'sin respaldo')]
+nodo-vault 192.168.122.210 encendido RedHat 9.8 virtual skills ["node-exporter", "vault"]
+  disco vda virtio (disco virtual) 40.0 [('/boot/efi', 'vfat'), ('/boot', 'xfs'), ('/', 'xfs')] /dev/vda
+  respaldo_datos None montajes_red []
+  punto PR-NODO-VAULT-0010 2026-11-10T14:25:21+00:00 cob None rec 100 []
+  vols [('/boot/efi', 'recuperable'), ('/boot', 'recuperable'), ('/', 'recuperable')]
+auto FaceOps · Respaldo continuo en Git
+auto Sistema · Paquetes · inventario y respaldo
+auto OpenShift · Respaldo de etcd
+auto Storage · Servicio S3 del data lake
+auto Portal · OpenShift · Respaldo de etcd (plantilla)
+auto Portal · OpenShift · Respaldo de etcd
+storage 192.168.122.167
+active
+ls: cannot access '/etc/seaweedfs': No such file or directory
+ExecStart=/usr/local/bin/weed server -dir=/srv/datalake/s3 -ip=127.0.0.1 -ip.bind=0.0.0.0 -master.volumeSizeLimitMB=1024 -volume.max=0 -filer -s3 -s3.port=9000
+s3 000
+ Id   Name                         State
+---------------------------------------------
+ 1    srv-prueba-rhel8-01          running
+ 2    nodo-vault                   running
+ 4    srv-prueba-resp-01           running
+ 5    srv-no-existe-99             running
+ 6    srv-prueba-rhel9-01          running
+ 7    nodo-windows                 running
+ 8    nodo-storage                 running
+ 9    srv-dell-r660xs-01           running
+ 10   srv-hpe-dl360-01             running
+ 11   srv-lenovo-sr630-01          running
+ 12   srv-fujitsu-rx2540-01        running
+ 13   srv-xfusion-2288h-01         running
+ 14   srv-dell-r760-01             running
+ 15   srv-hpe-dl380-01             running
+ 16   srv-lenovo-sr650-01          running
+ 17   srv-cisco-c240-01            running
+ 18   srv-supermicro-01            running
+ 19   sno                          running
+ 20   nodo-so                      running
+ 21   nodo-jboss2                  running
+ 22   nodo-tomcat                  running
+ 23   nodo-postgres                running
+ 24   nodo-nginx                   running
+ 25   nodo-jboss                   running
+ 27   srv-mover-01                 running
+ 29   nodo-jboss4                  running
+ 30   nodo-jboss-dev               running
+ -    dc1-ad01                     shut off
+ -    dc1-ds01                     shut off
+ -    dc1-idm01                    shut off
+ -    dc1-iga01                    shut off
+ -    dc1-sat01                    shut off
+ -    dc1-sql01                    shut off
+ -    dc1-sso01                    shut off
+ -    dc1-vpn01                    shut off
+ -    dc2-sql01                    shut off
+ -    ee-centro-datos-prod         shut off
+ -    nodo-jboss-qa                shut off
+72610c9 Plan de alertas por objeto: corrige la lectura de reglas (paréntesis) y deja el detalle del caso de storage si falla
+--- fin: 2026-11-11T12:47:09-03:00 · código: 0
