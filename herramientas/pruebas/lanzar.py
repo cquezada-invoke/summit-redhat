@@ -86,7 +86,11 @@ with app.app_context():
         else:
             params, secretos = dict(params, rh_org=rh.get("org", "")), {"rh_llave": rh.get("llave", "")}
     try:
-        if eq:
+        if caso.get("reanudar"):   # el arnés se cortó (FaceOps se reinició): sigue esperando el mismo ticket, sin crear otro
+            t = q1("SELECT * FROM tickets WHERE numero=?", caso["reanudar"])
+            if not t:
+                raise ValueError(f"no existe el ticket {caso['reanudar']}")
+        elif eq:
             e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cl["id"], eq)
             if not e:
                 raise ValueError(f"no existe el equipo {eq}")
@@ -102,6 +106,7 @@ with app.app_context():
         print("RES", json.dumps(out, ensure_ascii=False), flush=True)
         sys.exit(0)
     out["ticket"] = t["numero"]
+    print("TICKET", t["numero"], flush=True)
     fin = time.time() + float(caso.get("min", 20)) * 60
     aprob = set()
     while time.time() < fin:

@@ -1,6 +1,36 @@
 # Plan de «Migración · JBoss a EAP 8»: origen nodo-jboss-dev (JBoss 5.1 con catalogo-legacy y un EAP 7.4 emulado),
 # destino nodo-jboss-qa (EAP 8; se enciende para la prueba y se apaga al final, como estaba).
 source ~/summit-redhat/herramientas/pruebas/comun.sh
+# ── El laboratorio se comparte y FaceOps se reinicia a menudo: «caso» sigue el mismo ticket si el arnés se corta
+caso() {
+  local out tk j="$1" i n
+  RES=""
+  for n in 1 2 3 4 5 6 7 8; do
+    case "$1" in *'"rhsm":true'*) sudo podman cp ~/faceops/rhsm-activacion.json faceops:/tmp/rhsm.json 2>/dev/null ;; esac
+    out=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 -u - "$j" < $P/lanzar.py 2>/dev/null)
+    RES=$(echo "$out" | grep '^RES ' | tail -1 | cut -c5-)
+    [ -n "$RES" ] && break
+    tk=$(echo "$out" | grep '^TICKET ' | tail -1 | awk '{print $2}')
+    for i in $(seq 1 40); do sudo podman exec faceops true 2>/dev/null && break; sleep 6; done; sleep 20
+    [ -n "$tk" ] && j=$(python3 -c 'import json,sys;d=json.loads(sys.argv[1]);d["reanudar"]=sys.argv[2];print(json.dumps(d,ensure_ascii=False))' "$1" "$tk")
+    echo "  (arnés cortado en $(echo "$1" | grep -o '"caso":"[^"]*"'); reanudo ${tk:-sin ticket})" >&2
+  done
+  case "$1" in *'"rhsm":true'*) sudo podman exec faceops rm -f /tmp/rhsm.json 2>/dev/null ;; esac
+  [ -z "$RES" ] && RES='{"estado":"sin respuesta del arnés"}'
+  echo "RES $RES"
+}
+ip_de() {  # la IP que tiene FaceOps o, si aún no la tiene, la del DHCP del anfitrión
+  local ip; ip=$(sudo podman exec -i faceops python3 - "$1" 2>/dev/null <<'Q' | tail -1
+import sys
+from app import create_app
+create_app()
+from app.bd import q1
+e = q1("SELECT * FROM equipos WHERE nombre=? AND estado!='retirado'", sys.argv[1]); print((e or {}).get("ip") or "")
+Q
+)
+  [ -z "$ip" ] && ip=$(sudo virsh domifaddr "$1" --source lease 2>/dev/null | awk '/ipv4/{print $4}' | cut -d/ -f1 | head -1)
+  echo "$ip"
+}
 ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(estado)" = "rechazado al solicitar" ]; }
 N="Migración · JBoss a EAP 8"; O=nodo-jboss-dev; D=nodo-jboss-qa
 TOK=$(sudo podman exec faceops printenv FACEOPS_RESPALDO_TOKEN 2>/dev/null); G=http://192.168.122.1:3000/api/v1/repos/repositorio/migraciones-jboss
