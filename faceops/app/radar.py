@@ -173,6 +173,67 @@ def radar_componente(r_maq, c):
     return dict(r_maq, principios=pri, pct=round(sum(vals) / len(vals)) if vals else None, n=1)
 
 
+def radar_plataforma(r_mso, c):
+    """Salud propia de una plataforma instalada (JBoss, Redis, Keycloak…), con los 6 pilares y lo que falta para el 100 %:
+    Disponibilidad = el peor entre su servicio y la máquina que la aloja (si el servicio cae, no está disponible), con la
+    réplica y la alerta de la máquina; Seguridad = sus CVE y políticas; Excelencia operativa = sus remediaciones preventivas;
+    Rendimiento, Recuperación y Costo los comparte con la máquina (se remedian en la salud de la máquina)."""
+    import copy
+    if not r_mso:
+        return None
+    secs = {s.get("clave"): s.get("salud") for s in (c.get("secciones") or [])}
+    nom = c.get("nombre") or c.get("codigo")
+    pri = []
+    for p0 in r_mso["principios"]:
+        p = dict(copy.deepcopy(p0), falta=[], detalle=[], instancias=None)
+        for k_ in ("criterio_cve", "criterio_pol", "criterio_pilar"):
+            p.pop(k_, None)
+        n = p["nombre"]
+        if n == "Disponibilidad":
+            sv, base = secs.get("servicio"), p0.get("pct")
+            vals = [v for v in (sv, base) if v is not None]
+            p["pct"] = min(vals) if vals else None
+            if sv is not None:
+                p["detalle"].append({"t": f"Servicio de {nom}", "v": sv})
+                if sv < 100:
+                    p["falta"].append(f"Levantar el servicio de {nom} (detenido o sin responder)")
+            if base is not None:
+                p["detalle"].append({"t": "Instancias de la máquina que la aloja", "v": base})
+            p["falta"] += [f for f in p0.get("falta") or [] if re.search(r"réplica|tercera instancia|alerta", f)]
+        elif n == "Seguridad":
+            vals = [(k, secs[k]) for k in ("cves", "politicas") if secs.get(k) is not None]
+            p["pct"] = round(sum(v for _, v in vals) / len(vals), 1) if vals else None
+            for k, v in vals:
+                p["detalle"].append({"t": f"{'CVE' if k == 'cves' else 'Políticas de seguridad'} · {nom}", "v": v})
+        elif n == "Excelencia operativa":
+            v = secs.get("remediaciones")
+            p["pct"] = v
+            if v is not None:
+                p["detalle"].append({"t": f"Remediaciones preventivas · {nom}", "v": v})
+        else:
+            p["comparte"] = True   # lo mide la máquina: se remedia en la salud de la máquina
+            if p0.get("pct") is not None:
+                p["detalle"].append({"t": "Compartido con la máquina (se remedia en la salud de la máquina)", "v": p0["pct"]})
+        pri.append(p)
+    vals = [p["pct"] for p in pri if p["pct"] is not None]
+    return dict(r_mso, principios=pri, pct=round(sum(vals) / len(vals)) if vals else None, n=1,
+                actual={p["nombre"]: (p["pct"] if p["pct"] is not None else 100) for p in pri})
+
+
+def salud_combinada(r_mso, plats):
+    """% de la barra principal de la ficha: la máquina con su sistema operativo pesa 50 % y el otro 50 % se reparte por igual
+    entre las plataformas instaladas (sin plataformas, es la de la máquina). plats = [(nombre, radar_plataforma)]."""
+    if not r_mso:
+        return None
+    m = r_mso.get("pct")
+    ps = [(n, r["pct"]) for n, r in plats if r and r.get("pct") is not None]
+    tot = m if (m is None or not ps) else round(0.5 * m + 0.5 * sum(v for _, v in ps) / len(ps))
+    partes = [("Máquina y SO", m)] + ps
+    return {"pct": tot, "partes": [{"nombre": n, "pct": v} for n, v in partes],
+            "texto": " · ".join(f"{n} {v if v is not None else '—'} %" for n, v in partes),
+            "criterio": ("Máquina y SO pesan 50 % y el otro 50 % se reparte por igual entre sus plataformas" if ps else "Sin plataformas: es la salud de la máquina y su SO")}
+
+
 def _pct_uso(u):
     """Salud de un recurso según su uso frente a lo asignado: 15–70 % es lo sano; sobre 70 % baja; bajo 15 % está sobredimensionado."""
     if u is None:
