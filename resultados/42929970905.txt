@@ -1,0 +1,19 @@
+commit: 0e557bb1e7c607e83749016f4bdec506bf850349
+inicio: 2026-11-10T21:16:29-03:00
+---
+{'id': 6, 'nombre': 'nodo-jboss', 'cpu': 1, 'ram_mb': 1707, 'energia': 'encendido', 'energia_visto': '2026-11-11T00:16:27+00:00'}
+{'id': 6, 'nombre': 'nodo-jboss', 'cpu': 1, 'ram_mb': 1707, 'energia': 'encendido', 'energia_visto': '2026-11-11T00:16:27+00:00'}
+{'id': 7, 'nombre': 'nodo-jboss2', 'cpu': 1, 'ram_mb': 1707, 'energia': 'encendido', 'energia_visto': '2026-11-11T00:16:27+00:00'}
+{'id': 20, 'nombre': 'nodo-jboss3', 'cpu': 1, 'ram_mb': 1707, 'energia': 'apagado', 'energia_visto': '2026-11-11T00:16:27+00:00'}
+{'id': 21, 'nombre': 'nodo-jboss-dev', 'cpu': 1, 'ram_mb': 1707, 'energia': 'encendido', 'energia_visto': '2026-11-11T00:16:27+00:00'}
+{'id': 22, 'nombre': 'nodo-jboss-qa', 'cpu': 1, 'ram_mb': 1707, 'energia': 'apagado', 'energia_visto': '2026-11-11T00:16:27+00:00'}
+['id', 'cliente_id', 'numero', 'automatizacion_id', 'usuario_id', 'estado', 'segmento', 'limite', 'parametros', 'motivo', 'aap_job_id', 'aap_job_tipo', 'resultado', 'creado', 'inicio', 'fin', 'duracion_s', 'valor_min', 'tarifa', 'externo_ref', 'aprobado_por', 'respuesta', 'aap_aprobacion_id', 'aprobado_en', 'filtros', 'dur_ejecucion_s', 'dur_aprobacion_s', 'unidades', 'creditos', 'factor', 'ahorro', 'odoo_ref']
+Traceback (most recent call last):
+  File "/tmp/m.py", line 8, in <module>
+    for t in q("SELECT t.id,t.numero,t.estado,t.creado,t.motivo,t.parametros,t.job_id,a.nombre_aap FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.parametros LIKE '%nodo-jboss%' AND (a.nombre_aap LIKE '%recursos%' OR a.nombre_aap LIKE '%nergía%' OR a.nombre_aap LIKE '%apagar%') ORDER BY t.id DESC LIMIT 25"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 178, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: t.job_id
+--- fin: 2026-11-10T21:16:35-03:00 · código: 0
