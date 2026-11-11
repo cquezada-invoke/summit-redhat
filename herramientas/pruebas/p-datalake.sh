@@ -1,6 +1,17 @@
 #!/bin/bash
 # Plan de prueba de «Data lake · Derivar segmento» (C1–C4 espejo en App de pagos; C5–C8 modo declarada en Banca · Core bancario, límite: la máquina de control del lake).
 source ~/summit-redhat/herramientas/pruebas/comun.sh
+caso() {  # con stderr a la vista y un reintento si AAP falla en 0 s (actualización del proyecto concurrente)
+  for intento in 1 2; do
+    sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 -u - "$1" < $P/lanzar.py > /tmp/lz.out 2>/tmp/lz.err
+    RES=$(grep '^RES ' /tmp/lz.out | tail -1 | cut -c5-)
+    [ -z "$RES" ] && { RES='{"estado":"sin respuesta del arnés"}'; echo "ERR $(grep -v -i warn /tmp/lz.err | tail -4 | tr '\n' ' ' | cut -c1-600)"; }
+    if echo "$RES" | grep -q 'ejecución 0 s'; then echo "REINTENTO (AAP falló en 0 s: actualización del proyecto)"; sleep 20; continue; fi
+    if echo "$RES" | grep -q 'sin respuesta'; then echo "REINTENTO (el contenedor de FaceOps se reinició durante el caso)"; for i in $(seq 1 40); do sudo podman exec faceops true 2>/dev/null && break; sleep 5; done; sleep 15; continue; fi
+    break
+  done
+  echo "RES $RES"
+}
 A="Data lake · Derivar segmento"
 py() { sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - "$@" 2>/dev/null; }
 params() {  # params <segmento> <punto> <accion> → JSON de variables del ticket
