@@ -1,0 +1,30 @@
+commit: faf23f35bfb1e528b5479d593c0f04bb6e965397
+inicio: 2026-11-11T00:04:45-03:00
+---
+277e339
+faceops actualizado
+APP-02 vigente antes: v 3 · La consola de administración de JBoss (9990) solo acepta con
+editar: 302
+APP-02 vigente: v 4 · git abe2c2b274
+APLICAR FO-LAB-01580 nodo-jboss exitoso · AAP terminó (successful): ejecución 18 s, espera de aprobación 48 s | Política APP-02 v4 (aplicar): nodo-jboss: al día (/usr/local/sbin/faceops-app02-nft)
+APLICAR FO-LAB-01581 nodo-jboss2 exitoso · AAP terminó (successful): ejecución 36 s, espera de aprobación 44 s | Política APP-02 v4 (aplicar): nodo-jboss2: al día (/usr/local/sbin/faceops-app02-nft, systemctl -q is-enabled faceops-app02-fw && nft list...)
+APLICAR FO-LAB-01582 nodo-jboss-dev exitoso · AAP terminó (successful): ejecución 34 s, espera de aprobación 41 s | Política APP-02 v4 (aplicar): nodo-jboss-dev: al día (/usr/local/sbin/faceops-app02-nft, systemctl -q is-enabled faceops-app02-fw && nft list...)
+VERIFICAR FO-LAB-01584 nodo-jboss exitoso · AAP terminó (successful): ejecución 14 s, espera de aprobación 30 s | Política APP-02 v4 (verificar): nodo-jboss: al día
+VERIFICAR FO-LAB-01585 nodo-jboss2 exitoso · AAP terminó (successful): ejecución 14 s, espera de aprobación 26 s | Política APP-02 v4 (verificar): nodo-jboss2: al día
+VERIFICAR FO-LAB-01586 nodo-jboss-dev exitoso · AAP terminó (successful): ejecución 14 s, espera de aprobación 23 s
+ESTADO {'nombre': 'nodo-jboss', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar', 'detalle': '[]'}
+ESTADO {'nombre': 'nodo-jboss2', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar', 'detalle': '[]'}
+ESTADO {'nombre': 'nodo-jboss-dev', 'version': 4, 'estado': 'al_dia', 'modo': 'aplicar', 'detalle': '["/usr/local/sbin/faceops-app02-nft", "systemctl -q is-enabled faceops-app02-fw && nft list..."]'}
+BOVEDA nodo-jboss credencial actual → 401
+BOVEDA escribir web/nodo-jboss/jboss: False → 401
+CONSOLA nodo-jboss 192.168.122.15 9990 desde FaceOps: True · botón en ficha: ['jboss-eap'] · entrada: 302 → /lab/inventario/6/consola-web/jboss-eap/console/index.html?connect=http%3A%2F%2Flocalhost% · HAL: 200 ['HAL Management Console'] True · /management con credencial de la bóveda: (401, '<html><head><title>Error</title></head><body><div style="fon')
+CONSOLA nodo-jboss2 192.168.122.18 9990 desde FaceOps: True · botón en ficha: ['jboss-eap'] · entrada: 302 → /lab/inventario/7/consola-web/jboss-eap/console/index.html?connect=http%3A%2F%2Flocalhost% · HAL: 200 ['HAL Management Console'] True · /management con credencial de la bóveda: (200, '"21.0.20.Final-redhat-00001"')
+CONSOLA nodo-jboss-dev 192.168.122.21 9990 desde FaceOps: True · botón en ficha: ['jboss-eap'] · entrada: 302 → /lab/inventario/21/consola-web/jboss-eap/console/index.html?connect=http%3A%2F%2Flocalhost · HAL: 200 ['HAL Management Console'] True · /management con credencial de la bóveda: (200, '"21.0.20.Final-redhat-00001"')
+app-jboss salud: 200 ok 1.0.44
+host→192.168.122.15:9990 200 8080 200
+host→192.168.122.18:9990 200 8080 200
+host→192.168.122.21:9990 200 8080 200
+BLOQUEO 22973 desde-nodo-jboss2-a-192.168.122.15:9990=000 8080=200 · local-9990=200 fw=enabled/active
+BLOQUEO 22975 desde-nodo-jboss-a-192.168.122.18:9990=000 8080=200 · local-9990=200 fw=enabled/active
+BLOQUEO 22976 desde-nodo-jboss-a-192.168.122.21:9990=000 8080=200 · local-9990=200 fw=enabled/active
+--- fin: 2026-11-11T00:10:30-03:00 · código: 0
