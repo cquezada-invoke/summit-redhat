@@ -1,10 +1,26 @@
 {% extends "base.html" %}{% from "_radar.html" import col %}{% block titulo %}ITIL{% endblock %}
 {% block cuerpo %}
-<div class="fila"><div><h1>ITIL 4 · cumplimiento de FaceOps <span class="chip s-media" style="font-size:12px;vertical-align:middle">temporal</span></h1><p class="sub">Cómo cubre FaceOps cada práctica de ITIL 4. Los criterios con dato se miden con información real del cliente. Los demás indican si la capacidad existe hoy en FaceOps.</p></div>
-<div class="der" style="text-align:right"><div class="rd-pct">{{ total if total is not none else '—' }} %</div><span class="sub">promedio de {{ n }} prácticas</span></div></div>
-{% for gr, ps in grupos.items() %}<section class="card" style="margin:0 0 14px;padding:12px 16px"><h2 style="margin:0 0 4px">{{ gr }}</h2>
-{% for p in ps %}<div class="it-pr"><div><b>{{ p.nombre }}</b><div class="sub" style="font-size:12px;margin-top:3px">{{ p.como }}</div></div>
-<ul>{% for c in p.criterios %}<li>{% if c.ok is sameas true %}<span style="color:var(--ok)">✓</span>{% elif c.ok is sameas false %}<span style="color:var(--bad)">✗</span>{% else %}<span class="sub">○</span>{% endif %} {{ c.texto }}{% if 'valor' in c %} · <b>{{ c.actual if c.actual is not none else 'sin datos' }}{{ '' if c.actual is none else (' %' if c.valor.endswith('pct') or c.valor.startswith(('crit_', 'radar_')) else '') }}</b> <span class="sub">({{ 'máx ' ~ c.maximo if 'maximo' in c else 'mín ' ~ c.minimo }})</span>{% elif not c.cumple %} <span class="sub">· falta en FaceOps</span>{% endif %}</li>{% endfor %}</ul>
-<div style="text-align:right"><b style="font-size:20px">{{ p.pct if p.pct is not none else '—' }} %</b><span class="kp-barra" style="margin-top:4px"><i class="{{ col(p.pct) }}" style="width:{{ p.pct or 0 }}%"></i></span>{% if p.sin_dato %}<small class="sub">{{ p.sin_dato }} sin dato</small>{% endif %}</div></div>{% endfor %}
+{% set CH = {'cubierta': 's-ok', 'parcial': 's-media', 'no': 's-alta'} %}
+<div class="fila"><div><h1>ITIL 4 · apego de FaceOps <span class="chip s-media" style="font-size:12px;vertical-align:middle">temporal</span></h1>
+<p class="sub">Las {{ n }} prácticas de ITIL 4 y cuánto las cubre FaceOps hoy, con la página que lo demuestra y lo que falta. Revisión {{ revision }} (anterior: {{ revision_anterior }}).</p>
+<p class="sub" style="font-size:12px;margin-top:4px"><b>Regla del %:</b> cubierta = 1 · parcial = 0,5 · no cubierta = 0; apego = suma ÷ {{ n }} × 100. La misma regla aplicada a lo que declaraba la versión anterior da el «antes». Los indicadores medidos (✓ ✗) usan datos reales del cliente y no cambian el %.</p></div>
+<div class="der" style="text-align:right"><div class="rd-pct">{{ total }} %</div><span class="sub">antes {{ total_antes }} % · {{ '+' if total >= total_antes }}{{ total - total_antes }} pts</span>
+<div style="margin-top:6px">{% for k in ['cubierta', 'parcial', 'no'] %}<span class="chip {{ CH[k] }}">{{ resumen[k] }} {{ nombre[k]|lower }}</span>{% endfor %}</div>
+<small class="sub">antes: {{ resumen_antes.cubierta }} · {{ resumen_antes.parcial }} · {{ resumen_antes.no }}{% if medidos_n %} · medidos en meta {{ medidos_ok }}/{{ medidos_n }}{% endif %}</small></div></div>
+
+<section class="card" style="margin:0 0 14px;padding:12px 16px"><h2 style="margin:0 0 6px">Desde la versión anterior</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px 24px;font-size:12.5px">
+<div><b>Subieron ({{ subieron|length }})</b><ul style="margin:4px 0 0;padding-left:18px">{% for p in subieron %}<li>{{ p.nombre }}: {{ nombre[p.antes]|lower }} → <b>{{ nombre[p.estado]|lower }}</b> <span class="sub">· {{ p.nuevo if p.nuevo else 'ya existía; la versión anterior no la evaluaba' }}</span></li>{% endfor %}</ul></div>
+<div>{% if bajaron %}<b>Bajaron ({{ bajaron|length }})</b><ul style="margin:4px 0 8px;padding-left:18px">{% for p in bajaron %}<li>{{ p.nombre }}: {{ nombre[p.antes]|lower }} → <b>{{ nombre[p.estado]|lower }}</b></li>{% endfor %}</ul>{% endif %}
+<b>Corregido</b><ul style="margin:4px 0 0;padding-left:18px">{% for c in corregido %}<li>{{ c }}</li>{% endfor %}</ul></div></div></section>
+
+{% for gr, G in grupos.items() %}<section class="card" style="margin:0 0 14px;padding:12px 16px"><div class="fila"><h2 style="margin:0 0 4px">{{ gr }} <span class="sub" style="font-size:13px;font-weight:400">· {{ G.ps|length }}</span></h2><div class="der"><b>{{ G.pct }} %</b> <span class="sub" style="font-size:12px">antes {{ G.antes }} %</span></div></div>
+{% for p in G.ps %}<div class="it-pr"><div><b>{{ p.nombre }}</b> <span class="sub" style="font-size:11.5px">{{ p.en }}</span>
+<div style="margin-top:4px"><span class="chip {{ CH[p.estado] }}">{{ nombre[p.estado] }}</span>{% if p.sube %}<span class="chip s-baja" title="Antes: {{ nombre[p.antes]|lower }}">sube</span>{% elif p.baja %}<span class="chip s-media" title="Antes: {{ nombre[p.antes]|lower }}">baja</span>{% endif %}</div>
+{% if p.nuevo %}<div class="sub" style="font-size:12px;margin-top:4px"><b>Nuevo:</b> {{ p.nuevo }}</div>{% endif %}</div>
+<div><ul>{% for e in p.evidencia %}<li>{% if e.url %}<a href="{{ e.url }}">{{ e.t }}</a>{% else %}{{ e.t }}{% endif %}</li>{% else %}<li class="sub">Sin evidencia en FaceOps</li>{% endfor %}</ul>
+{% if p.criterios %}<ul style="margin-top:6px">{% for c in p.criterios %}<li>{% if c.ok is sameas true %}<span style="color:var(--ok)">✓</span>{% elif c.ok is sameas false %}<span style="color:var(--bad)">✗</span>{% else %}<span class="sub">○</span>{% endif %} {{ c.texto }} · <b>{{ c.actual if c.actual is not none else 'sin datos' }}{{ '' if c.actual is none or c.valor == 'kb_problemas' else ' %' }}</b> <span class="sub">({{ 'máx ' ~ c.maximo if 'maximo' in c else 'mín ' ~ c.minimo }})</span></li>{% endfor %}</ul>{% endif %}
+{% if p.falta %}<div class="sub" style="font-size:12px;margin-top:6px"><b>Falta:</b> {{ p.falta }}</div>{% endif %}</div>
+<div style="text-align:right"><b style="font-size:20px">{{ (100 if p.estado == 'cubierta' else (50 if p.estado == 'parcial' else 0)) }} %</b><span class="kp-barra" style="margin-top:4px"><i class="{{ col(100 if p.estado == 'cubierta' else (50 if p.estado == 'parcial' else 0)) }}" style="width:{{ 100 if p.estado == 'cubierta' else (50 if p.estado == 'parcial' else 2) }}%"></i></span></div></div>{% endfor %}
 </section>{% endfor %}
 {% endblock %}

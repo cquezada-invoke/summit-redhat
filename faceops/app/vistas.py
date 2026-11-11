@@ -6430,26 +6430,10 @@ def kpi_okr():
 @bp.route("/monitoreo/itil")
 @requiere_login
 def itil():
-    """Monitoreo › ITIL (temporal): cuánto cumple FaceOps cada práctica de ITIL 4, medido con datos reales donde se puede."""
-    import yaml
-    v = _indicadores()["v"]
-    ps = (yaml.safe_load(open(os.path.join(RAIZ_DATOS, "itil.yml"), encoding="utf-8")) or {}).get("practicas") or []
-    for p in ps:
-        for c in p["criterios"]:
-            if "valor" in c:
-                x = v.get(c["valor"])
-                c["actual"] = x
-                c["ok"] = None if x is None else (x <= c["maximo"] if "maximo" in c else x >= c.get("minimo", 0))
-            else:
-                c["ok"] = bool(c.get("cumple"))
-        med = [c for c in p["criterios"] if c["ok"] is not None]
-        p["pct"] = round(100 * sum(1 for c in med if c["ok"]) / len(med)) if med else None
-        p["sin_dato"] = sum(1 for c in p["criterios"] if c["ok"] is None)
-    vals = [p["pct"] for p in ps if p["pct"] is not None]
-    grupos = {}
-    for p in ps:
-        grupos.setdefault(p["grupo"], []).append(p)
-    return render_template("itil.html", grupos=grupos, total=round(sum(vals) / len(vals)) if vals else None, n=len(ps))
+    """Monitoreo › ITIL (temporal): apego de FaceOps a las 34 prácticas de ITIL 4 (cubierta/parcial/no, evidencia y
+    lo que falta), con indicadores medidos con datos reales donde se puede. Regla del % en app/itil.py."""
+    from .itil import calcular
+    return render_template("itil.html", **calcular(_indicadores()["v"]))
 
 
 @bp.route("/monitoreo/aprobaciones-pendientes")

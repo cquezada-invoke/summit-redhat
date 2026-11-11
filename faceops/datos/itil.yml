@@ -1,78 +1,384 @@
-# ITIL 4 · cuánto cumple FaceOps (vista temporal de Monitoreo). Cada práctica: cómo la cubre FaceOps y sus criterios.
-# Un criterio con «valor» se mide con datos reales (app/indicadores.py) contra «minimo» (o «maximo»); uno con «cumple»
-# es una capacidad del producto (true = existe en FaceOps, false = aún no).
+# ITIL 4 · apego de FaceOps (Monitoreo › ITIL). Las 34 prácticas de ITIL 4 en sus tres grupos.
+# Cada práctica:
+#   estado    cubierta | parcial | no   → cobertura real hoy en FaceOps (revisión 2026-11-10)
+#   antes     cubierta | parcial | no   → lo que declaraba la versión anterior de esta página (2026-11-07: 17 prácticas
+#             listadas; una con un criterio «falta en FaceOps» = parcial; una no listada = no)
+#   evidencia lista de {t: texto, ep: endpoint de FaceOps, args: {…}} → enlaza la página que lo demuestra
+#   falta     qué le falta para quedar cubierta
+#   nuevo     qué cambió en FaceOps desde la versión anterior de la página (opcional)
+#   criterios (opcional) indicadores medidos con datos reales (app/indicadores.py) contra «minimo» o «maximo»
+# Regla del % de apego (app/itil.py): cubierta = 1 · parcial = 0,5 · no = 0; apego = suma / 34 × 100, redondeado.
+revision: "2026-11-10"
+revision_anterior: "2026-11-07"
+corregido:
+  - "Seguridad de la información ya no cita la VPN: «VPN y accesos remotos» salió del menú y no se cuenta como evidencia."
+  - "Disponibilidad ya no se apoya en una vista global por ambiente: hoy es un criterio de cada segmento de negocio (sección «Disponibilidad» en el flotante del mapa)."
+  - "Infraestructura y plataformas ya no cita la «Visión global» (salió del menú de Infraestructura); la evidencia son Centros de datos y Arquitectura."
+  - "Despliegues y versiones se separan en dos prácticas, como en ITIL 4; Versiones queda parcial (sin calendario ni notas de versión)."
 practicas:
-  - {nombre: "Gestión de cambios (habilitación del cambio)", grupo: "Gestión de servicios",
-     como: "Todo cambio es un ticket con aprobación por áreas en AAP, trazabilidad y vuelta atrás; nada toca una máquina sin pasar por AAP",
-     criterios: [{texto: "Cambios de escritura con aprobación", valor: autos_con_aprobacion_pct, minimo: 100},
-                 {texto: "Automatizaciones probadas antes de usarse (regla de prueba)", valor: autos_certificadas_pct, minimo: 90},
-                 {texto: "Registro de auditoría de cada cambio", cumple: true},
-                 {texto: "Calendario de cambios y ventanas de mantención", cumple: false}]}
-  - {nombre: "Gestión de solicitudes de servicio", grupo: "Gestión de servicios",
-     como: "Catálogo de automatizaciones con formularios; cada pedido es un ticket que se refleja en la herramienta del cliente",
-     criterios: [{texto: "Catálogo de servicios publicado", cumple: true},
-                 {texto: "Tickets reflejados en la herramienta del cliente", valor: tickets_con_externo_pct, minimo: 80},
-                 {texto: "Tasa de éxito de las solicitudes", valor: tickets_exito_pct, minimo: 95}]}
-  - {nombre: "Gestión de incidentes", grupo: "Gestión de servicios",
-     como: "Incidentes con base de errores conocidos y diagnóstico; remediación automática por EDA con aprobación",
-     criterios: [{texto: "Registro de incidentes", cumple: true},
-                 {texto: "Remediación automática por eventos (EDA)", cumple: true},
-                 {texto: "Acuerdos de tiempo de respuesta por prioridad (SLA de incidentes)", cumple: false}]}
-  - {nombre: "Gestión de problemas", grupo: "Gestión de servicios",
-     como: "Base de errores conocidos por producto y versión, con causa, solución y automatización asociada",
-     criterios: [{texto: "Errores conocidos registrados", valor: kb_problemas, minimo: 1},
-                 {texto: "Acciones preventivas por problema", cumple: true}]}
-  - {nombre: "Monitoreo y gestión de eventos", grupo: "Gestión de servicios",
-     como: "Alertas por objeto configuradas en Ansible y Prometheus; Alertmanager → Event-Driven Ansible",
-     criterios: [{texto: "Objetos con alertas configuradas", valor: alertas_cobertura_pct, minimo: 80},
-                 {texto: "Equipos con agente de métricas", valor: crit_P1, minimo: 80},
-                 {texto: "Eventos que disparan acciones automáticas", cumple: true}]}
-  - {nombre: "Gestión de niveles de servicio", grupo: "Gestión de servicios",
-     como: "Radar de salud con metas por principio; RTO y RPO por segmento; KPI y OKR en Monitoreo",
-     criterios: [{texto: "Metas de salud definidas", cumple: true},
-                 {texto: "Segmentos con RTO y RPO definidos", valor: segmentos_rto_pct, minimo: 100},
-                 {texto: "Informe periódico de cumplimiento al cliente", cumple: false}]}
-  - {nombre: "Gestión de la configuración del servicio (CMDB)", grupo: "Gestión de servicios",
-     como: "Inventario recolectado por AAP con sistema, servicios, paquetes, plataformas, flujos y arquitectura por segmento",
-     criterios: [{texto: "Equipos asociados a un segmento de negocio", valor: equipos_con_segmento_pct, minimo: 90},
-                 {texto: "Inventario actualizado en los últimos 30 días", valor: inventario_reciente_pct, minimo: 90},
-                 {texto: "Relaciones entre componentes (flujos y arquitectura)", cumple: true}]}
-  - {nombre: "Gestión de activos de TI", grupo: "Gestión de servicios",
-     como: "Equipos, licencias y suscripciones, ciclo de vida del fabricante",
-     criterios: [{texto: "Licencias y suscripciones", cumple: true},
-                 {texto: "Ciclo de vida del fabricante por equipo", cumple: true},
-                 {texto: "Equipos con soporte del fabricante", valor: crit_S2, minimo: 90}]}
-  - {nombre: "Gestión de la disponibilidad", grupo: "Gestión de servicios",
-     criterios: [{texto: "Disponibilidad del parque (radar)", valor: radar_eq_disponibilidad, minimo: 99},
-                 {texto: "Alta disponibilidad en producción", valor: crit_SD3, minimo: 100}],
-     como: "Disponibilidad por ambiente, alta disponibilidad por componente y alertas de disponibilidad"}
-  - {nombre: "Gestión de capacidad y rendimiento", grupo: "Gestión de servicios",
-     como: "Uso por equipo y segmento, latencia de flujos, ajuste de recursos y alertas de capacidad",
-     criterios: [{texto: "Equipos con alertas de capacidad", valor: crit_P2, minimo: 80},
-                 {texto: "Flujos con latencia bajo 20 ms", valor: crit_SP2, minimo: 95}]}
-  - {nombre: "Gestión de la continuidad del servicio", grupo: "Gestión de servicios",
-     como: "Respaldo continuo en Git, recuperación de servidores, réplica y alta disponibilidad",
-     criterios: [{texto: "Máquinas con respaldo continuo", valor: crit_R1, minimo: 100},
-                 {texto: "Recuperación probada (automatizaciones certificadas)", cumple: false}]}
-  - {nombre: "Gestión de la seguridad de la información", grupo: "Gestión general",
-     como: "Bóveda de secretos, doble factor, CVE, certificados, VPN, escaneo de seguridad y políticas",
-     criterios: [{texto: "Secretos en bóveda, nunca en FaceOps", cumple: true},
-                 {texto: "Doble factor para acceso público", cumple: true},
-                 {texto: "Equipos sin hallazgos de seguridad", valor: crit_S1, minimo: 90},
-                 {texto: "Usuarios desde una fuente corporativa (AD, LDAP o IGA)", cumple: true}]}
-  - {nombre: "Gestión del conocimiento", grupo: "Gestión general",
-     como: "Errores conocidos, fichas de cada automatización con su plan de prueba y README en Git",
-     criterios: [{texto: "Base de conocimiento", cumple: true}, {texto: "Plan de prueba y evidencia por automatización", cumple: true}]}
-  - {nombre: "Medición y reporte", grupo: "Gestión general",
-     como: "Radar de salud, KPI y OKR, productividad y créditos",
-     criterios: [{texto: "KPI con meta por opción de Monitoreo", cumple: true}, {texto: "OKR definidos", cumple: true},
-                 {texto: "Informe mensual automático", cumple: false}]}
-  - {nombre: "Mejora continua", grupo: "Gestión general",
-     como: "OKR, control de deuda y radar con brecha a la meta",
-     criterios: [{texto: "Registro de deuda operativa", cumple: true}, {texto: "Registro de iniciativas de mejora con responsable", cumple: false}]}
-  - {nombre: "Gestión de despliegues y versiones", grupo: "Gestión técnica",
-     como: "DevSecOps (pipelines), cambio de tráfico, migraciones y homologación de ambientes",
-     criterios: [{texto: "Pipelines de CI/CD gobernados", cumple: true}, {texto: "Cambio de tráfico con vuelta atrás", cumple: true}]}
-  - {nombre: "Gestión de infraestructura y plataformas", grupo: "Gestión técnica",
-     como: "Servidores, redes, storage, hipervisores, OpenShift y nubes operados por AAP",
-     criterios: [{texto: "Operación solo vía AAP", cumple: true}, {texto: "Salud del parque (radar)", valor: radar_eq_pct, minimo: 85}]}
+  # ───────────────────────────── Prácticas generales de gestión (14)
+  - nombre: "Gestión de la arquitectura"
+    en: "Architecture management"
+    grupo: "Prácticas generales de gestión"
+    estado: cubierta
+    antes: "no"
+    evidencia:
+      - {t: "Manifiesto de arquitectura con nivel de madurez por tecnología y capa", ep: consola.manifiesto_arquitectura}
+      - {t: "Arquitecturas por segmento versionadas en Git", ep: consola.mapa}
+      - {t: "Árbol de gobierno de TI y plano de control", ep: consola.gobierno_ti}
+      - {t: "Racionalización del stack", ep: consola.stack_racionalizacion}
+    falta: "Registro formal de decisiones de arquitectura (ADR) con su aprobación"
+    nuevo: "Manifiesto con madurez COBIT/CMMI por tecnología y capa; Redes › Arquitectura"
+  - nombre: "Mejora continua"
+    en: "Continual improvement"
+    grupo: "Prácticas generales de gestión"
+    estado: parcial
+    antes: parcial
+    evidencia:
+      - {t: "Detalle de madurez: qué falta para la meta, dónde y con qué acción del catálogo", ep: consola.madurez_detalle}
+      - {t: "OKR por opción de Monitoreo", ep: consola.kpi_okr}
+      - {t: "Radar de salud con brecha a la meta", ep: consola.radar_salud}
+    falta: "Registro de iniciativas de mejora con responsable, fecha y beneficio esperado (el Control de deuda hoy son aprobaciones pendientes, no mejoras)"
+    nuevo: "Detalle de madurez por pilar con evidencia y acción que lo resuelve"
+  - nombre: "Gestión de la seguridad de la información"
+    en: "Information security management"
+    grupo: "Prácticas generales de gestión"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Políticas con referencias NIST CSF 2.0 y CIS v8", ep: consola.politicas}
+      - {t: "Escaneo de seguridad por servidor, NIST CSF 2.0 y CIS Controls v8", ep: consola.escaneo_seguridad}
+      - {t: "CVEs con solicitud de corrección", ep: consola.cves}
+      - {t: "Certificados: inventario, reemplazo y revocación", ep: consola.certificados}
+      - {t: "Mapa de seguridad", ep: consola.seguridad_mapa}
+      - {t: "Doble factor y secretos en bóveda (nunca en FaceOps)", ep: consola.doble_factor}
+    falta: "Gestión de incidentes de seguridad con SIEM como flujo propio (hoy el SIEM es una integración)"
+    nuevo: "Mapeo explícito a NIST CSF 2.0 y CIS v8; reemplazo de certificados con revocación del anterior"
+    criterios:
+      - {texto: "Equipos sin hallazgos de seguridad", valor: crit_S1, minimo: 90}
+  - nombre: "Gestión del conocimiento"
+    en: "Knowledge management"
+    grupo: "Prácticas generales de gestión"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Base de errores conocidos por producto y versión (KB)", ep: consola.incidentes}
+      - {t: "Ficha de cada automatización con plan de prueba y evidencia", ep: consola.automatizaciones}
+      - {t: "Buenas prácticas por tecnología", ep: consola.buenas_practicas}
+    falta: ""
+    criterios:
+      - {texto: "Errores conocidos registrados", valor: kb_problemas, minimo: 1}
+  - nombre: "Medición y reporte"
+    en: "Measurement and reporting"
+    grupo: "Prácticas generales de gestión"
+    estado: parcial
+    antes: parcial
+    evidencia:
+      - {t: "Radar de salud por los 6 pilares", ep: consola.radar_salud}
+      - {t: "KPI y OKR", ep: consola.kpi_okr}
+      - {t: "Madurez COBIT 2019 / CMMI por pilar", ep: consola.madurez_detalle}
+      - {t: "Resumen del contrato con reporte CSV", ep: consola.resumen}
+    falta: "Informe periódico enviado automáticamente al cliente (hoy el resumen se genera a pedido)"
+    nuevo: "6 pilares (AWS Well-Architected) y escala de madurez COBIT/CMMI"
+  - nombre: "Gestión del cambio organizacional"
+    en: "Organizational change management"
+    grupo: "Prácticas generales de gestión"
+    estado: "no"
+    antes: "no"
+    evidencia: []
+    falta: "Comunicación, capacitación y adopción de los cambios en las personas; fuera del alcance de una consola operativa"
+  - nombre: "Gestión del portafolio"
+    en: "Portfolio management"
+    grupo: "Prácticas generales de gestión"
+    estado: parcial
+    antes: "no"
+    evidencia:
+      - {t: "Segmentos de negocio agrupados por área", ep: consola.segmentos}
+      - {t: "Racionalización del stack", ep: consola.stack_racionalizacion}
+      - {t: "Ciclo de vida de cada tecnología", ep: consola.stack_tecnologico}
+    falta: "Portafolio de iniciativas y servicios con priorización por valor e inversión"
+  - nombre: "Gestión de proyectos"
+    en: "Project management"
+    grupo: "Prácticas generales de gestión"
+    estado: "no"
+    antes: "no"
+    evidencia: []
+    falta: "Planificación de proyectos (hitos, recursos, avance); los Trabajos de la Fábrica son entregas de software, no proyectos"
+  - nombre: "Gestión de relaciones"
+    en: "Relationship management"
+    grupo: "Prácticas generales de gestión"
+    estado: "no"
+    antes: "no"
+    evidencia: []
+    falta: "Registro de partes interesadas del cliente, reuniones de servicio y satisfacción"
+  - nombre: "Gestión de riesgos"
+    en: "Risk management"
+    grupo: "Prácticas generales de gestión"
+    estado: parcial
+    antes: "no"
+    evidencia:
+      - {t: "Indicador de riesgo crítico en la cabecera (segmentos caídos, seguridad, hallazgos)", ep: consola.radar_salud}
+      - {t: "Mapa de seguridad", ep: consola.seguridad_mapa}
+      - {t: "Puntos únicos de falla y RTO/RPO por segmento", ep: consola.mapa}
+    falta: "Registro de riesgos con dueño, probabilidad, impacto y tratamiento"
+  - nombre: "Gestión financiera del servicio"
+    en: "Service financial management"
+    grupo: "Prácticas generales de gestión"
+    estado: cubierta
+    antes: "no"
+    evidencia:
+      - {t: "Resumen del contrato: costo en créditos, beneficio y retorno por área", ep: consola.resumen}
+      - {t: "Facturación mensual por ticket y servicio", ep: consola.facturacion}
+      - {t: "Pilar Costo del radar (recursos ociosos y costo imputable a un servicio)", ep: consola.radar_salud}
+    falta: "Presupuesto por área contra lo consumido"
+  - nombre: "Gestión de la estrategia"
+    en: "Strategy management"
+    grupo: "Prácticas generales de gestión"
+    estado: parcial
+    antes: "no"
+    evidencia:
+      - {t: "Árbol de gobierno de TI por industria y país", ep: consola.gobierno_ti}
+      - {t: "OKR", ep: consola.kpi_okr}
+      - {t: "Meta de madurez competitiva por pilar", ep: consola.madurez_detalle}
+    falta: "Estrategia de TI del cliente declarada y enlazada a los OKR"
+  - nombre: "Gestión de proveedores"
+    en: "Supplier management"
+    grupo: "Prácticas generales de gestión"
+    estado: parcial
+    antes: "no"
+    evidencia:
+      - {t: "Ciclo de vida del fabricante por producto y versión", ep: consola.stack_tecnologico}
+      - {t: "Licencias y suscripciones", ep: consola.licencias}
+    falta: "Contratos, niveles de servicio y desempeño de cada proveedor"
+    criterios:
+      - {texto: "Equipos con soporte del fabricante", valor: crit_S2, minimo: 90}
+  - nombre: "Gestión de la fuerza laboral y el talento"
+    en: "Workforce and talent management"
+    grupo: "Prácticas generales de gestión"
+    estado: "no"
+    antes: "no"
+    evidencia: []
+    falta: "Competencias y capacitación del equipo; FaceOps solo gestiona usuarios y permisos"
+  # ───────────────────────────── Prácticas de gestión de servicios (17)
+  - nombre: "Gestión de la disponibilidad"
+    en: "Availability management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Disponibilidad por segmento: redundancia, puntos únicos de falla, RTO/RPO (flotante del mapa)", ep: consola.mapa}
+      - {t: "Pilar Disponibilidad del radar y alertas «sin respuesta»", ep: consola.radar_salud}
+    falta: ""
+    nuevo: "Disponibilidad como criterio de cada segmento (reemplaza la vista global)"
+    criterios:
+      - {texto: "Disponibilidad del parque (radar)", valor: radar_eq_disponibilidad, minimo: 99}
+      - {texto: "Alta disponibilidad en producción", valor: crit_SD3, minimo: 100}
+  - nombre: "Análisis de negocio"
+    en: "Business analysis"
+    grupo: "Prácticas de gestión de servicios"
+    estado: "no"
+    antes: "no"
+    evidencia: []
+    falta: "Levantamiento de requisitos de negocio antes del diseño (la solicitud de segmento nuevo solo pide su ficha técnica)"
+  - nombre: "Gestión de capacidad y rendimiento"
+    en: "Capacity and performance management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Prueba de rendimiento del canal en vivo, con carga ×1 a ×20 (mapa del segmento)", ep: consola.mapa}
+      - {t: "Pilar Rendimiento del radar y alertas de capacidad", ep: consola.alertas}
+      - {t: "Ajustar recursos de máquinas", ep: consola.automatizaciones}
+    falta: "Proyección de capacidad (tendencia y fecha de saturación)"
+    nuevo: "Prueba de rendimiento del canal con parámetro de carga"
+    criterios:
+      - {texto: "Equipos con alertas de capacidad", valor: crit_P2, minimo: 80}
+      - {texto: "Flujos con latencia bajo el umbral", valor: crit_SP2, minimo: 95}
+  - nombre: "Habilitación del cambio"
+    en: "Change enablement"
+    grupo: "Prácticas de gestión de servicios"
+    estado: parcial
+    antes: parcial
+    evidencia:
+      - {t: "Cada cambio es un ticket con aprobación por áreas en AAP", ep: consola.aprobaciones_pendientes}
+      - {t: "Trazabilidad de aprobaciones", ep: consola.aprobaciones_traza}
+      - {t: "Auditoría de cada acción", ep: consola.auditoria}
+      - {t: "Vuelta atrás: volver a una versión desde Git", ep: consola.respaldos}
+    falta: "Calendario de cambios y ventanas de mantención"
+    nuevo: "La aprobación aparece en la ficha del ticket apenas AAP la crea"
+    criterios:
+      - {texto: "Cambios de escritura con aprobación", valor: autos_con_aprobacion_pct, minimo: 100}
+  - nombre: "Gestión de incidentes"
+    en: "Incident management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: parcial
+    antes: parcial
+    evidencia:
+      - {t: "Incidentes con diagnóstico contra la base de errores conocidos", ep: consola.incidentes}
+      - {t: "Remediación automática por EDA (alertas de Grafana, tickets de ServiceNow u Odoo)", ep: consola.alertas}
+    falta: "Prioridad y tiempos de respuesta y resolución por prioridad (SLA de incidentes)"
+    nuevo: "ServiceNow lanza remediaciones por EDA"
+  - nombre: "Gestión de activos de TI"
+    en: "IT asset management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Servidores físicos y virtuales", ep: consola.inventario}
+      - {t: "Licencias y suscripciones", ep: consola.licencias}
+      - {t: "Ciclo de vida del fabricante", ep: consola.stack_tecnologico}
+    falta: "Costo de adquisición y baja de cada activo"
+  - nombre: "Monitoreo y gestión de eventos"
+    en: "Monitoring and event management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Alertas por objeto configuradas en Ansible y Prometheus", ep: consola.alertas}
+      - {t: "Alertmanager → Event-Driven Ansible", ep: consola.integraciones}
+      - {t: "Radar de salud", ep: consola.radar_salud}
+    falta: ""
+    criterios:
+      - {texto: "Objetos con alertas configuradas", valor: alertas_cobertura_pct, minimo: 80}
+      - {texto: "Equipos con agente de métricas", valor: crit_P1, minimo: 80}
+  - nombre: "Gestión de problemas"
+    en: "Problem management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Errores conocidos con causa, solución, acciones preventivas y automatización asociada", ep: consola.incidentes}
+    falta: ""
+  - nombre: "Gestión de versiones"
+    en: "Release management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: parcial
+    antes: cubierta
+    evidencia:
+      - {t: "Pipelines DevSecOps con su avance por etapa", ep: consola.devsecops}
+      - {t: "Homologación de ambientes", ep: consola.homologacion}
+    falta: "Calendario de versiones y notas de versión por entrega"
+  - nombre: "Gestión del catálogo de servicios"
+    en: "Service catalogue management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: "no"
+    evidencia:
+      - {t: "Catálogo de automatizaciones por área, con formulario y estado de prueba", ep: consola.automatizaciones}
+      - {t: "Catálogo de diseños de pipeline", ep: consola.devsecops_catalogo}
+    falta: ""
+  - nombre: "Gestión de la configuración del servicio"
+    en: "Service configuration management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Inventario recolectado por AAP (equipos, plataformas, servicios, paquetes)", ep: consola.inventario}
+      - {t: "Segmentos con arquitectura versionada en Git y flujos entre componentes", ep: consola.mapa}
+      - {t: "Respaldo continuo de la configuración en Git, con versiones por máquina", ep: consola.respaldos}
+      - {t: "Redes con topología (vecinos LLDP)", ep: consola.redes_arquitectura}
+    falta: ""
+    nuevo: "Código en Git en la ficha de cada máquina; topología de red"
+    criterios:
+      - {texto: "Equipos asociados a un segmento de negocio", valor: equipos_con_segmento_pct, minimo: 90}
+      - {texto: "Inventario actualizado en los últimos 30 días", valor: inventario_reciente_pct, minimo: 90}
+  - nombre: "Gestión de la continuidad del servicio"
+    en: "Service continuity management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: parcial
+    antes: parcial
+    evidencia:
+      - {t: "Respaldos y recuperación (Recuperar servidor, Volver a una versión)", ep: consola.respaldos}
+      - {t: "RTO y RPO por segmento y réplica con alta disponibilidad", ep: consola.mapa}
+    falta: "Plan de continuidad por segmento y ejercicio de recuperación periódico con resultado medido contra el RTO"
+    nuevo: "Recuperar servidor conserva la máquina caída antes de retirarla"
+    criterios:
+      - {texto: "Máquinas con respaldo continuo", valor: crit_R1, minimo: 100}
+      - {texto: "Segmentos con RTO y RPO definidos", valor: segmentos_rto_pct, minimo: 100}
+  - nombre: "Diseño del servicio"
+    en: "Service design"
+    grupo: "Prácticas de gestión de servicios"
+    estado: parcial
+    antes: "no"
+    evidencia:
+      - {t: "Solicitud de segmento nuevo con su arquitectura", ep: consola.arquitectura_nueva}
+      - {t: "Manifiesto de arquitectura y políticas de desarrollo", ep: consola.manifiesto_arquitectura}
+    falta: "Diseño de la experiencia del usuario y de los acuerdos del servicio antes de construirlo"
+  - nombre: "Mesa de servicio"
+    en: "Service desk"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: "no"
+    evidencia:
+      - {t: "Herramientas de tickets integradas (ServiceNow, Jira, Odoo, GLPI…)", ep: consola.integraciones, args: {cat: tickets}}
+      - {t: "Asistente por chat que abre tickets, también en el teléfono", ep: consola.movil}
+    falta: ""
+    nuevo: "ServiceNow de punta a punta (formularios que lanzan automatizaciones)"
+    criterios:
+      - {texto: "Tickets reflejados en la herramienta del cliente", valor: tickets_con_externo_pct, minimo: 80}
+  - nombre: "Gestión de niveles de servicio"
+    en: "Service level management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: parcial
+    antes: parcial
+    evidencia:
+      - {t: "Metas de salud por pilar", ep: consola.radar_salud}
+      - {t: "RTO y RPO por segmento", ep: consola.mapa}
+      - {t: "KPI con meta", ep: consola.kpi_okr}
+    falta: "SLA acordado por servicio y su informe periódico de cumplimiento"
+  - nombre: "Gestión de solicitudes de servicio"
+    en: "Service request management"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Cada pedido del catálogo es un ticket con aprobación y trazabilidad", ep: consola.tickets}
+    falta: ""
+    criterios:
+      - {texto: "Tasa de éxito de las solicitudes", valor: tickets_exito_pct, minimo: 95}
+  - nombre: "Validación y prueba del servicio"
+    en: "Service validation and testing"
+    grupo: "Prácticas de gestión de servicios"
+    estado: cubierta
+    antes: "no"
+    evidencia:
+      - {t: "Regla de prueba: sin plan de prueba aprobado la automatización queda bloqueada", ep: consola.pruebas_automatizaciones}
+      - {t: "La Fábrica corre las pruebas antes de entregar y no entrega con pruebas fallando", ep: consola.fabrica_desarrollo}
+    falta: ""
+    nuevo: "Pruebas nocturnas de punta a punta; pruebas en pod efímero en la Fábrica"
+    criterios:
+      - {texto: "Automatizaciones probadas antes de usarse", valor: autos_certificadas_pct, minimo: 90}
+  # ───────────────────────────── Prácticas de gestión técnica (3)
+  - nombre: "Gestión de despliegues"
+    en: "Deployment management"
+    grupo: "Prácticas de gestión técnica"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Pipelines DevSecOps gobernados", ep: consola.devsecops}
+      - {t: "Cambio de tráfico con vuelta atrás y despliegue por ambiente", ep: consola.automatizaciones}
+    falta: ""
+    nuevo: "Lanzar pipeline desde la Fábrica; despliegue JBoss por ambiente"
+  - nombre: "Gestión de infraestructura y plataformas"
+    en: "Infrastructure and platform management"
+    grupo: "Prácticas de gestión técnica"
+    estado: cubierta
+    antes: cubierta
+    evidencia:
+      - {t: "Centros de datos", ep: consola.centros_datos}
+      - {t: "Plataformas, contenedores, hipervisores, storage y redes operados por AAP", ep: consola.plataformas_vista}
+      - {t: "Nubes", ep: consola.nubes}
+    falta: ""
+    nuevo: "Nubes con conexión leída en AAP; red emulada con su ficha"
+    criterios:
+      - {texto: "Salud del parque (radar)", valor: radar_eq_pct, minimo: 85}
+  - nombre: "Desarrollo y gestión del software"
+    en: "Software development and management"
+    grupo: "Prácticas de gestión técnica"
+    estado: cubierta
+    antes: "no"
+    evidencia:
+      - {t: "Fábrica de software: desarrollo con IA, pruebas y pipeline por rama", ep: consola.fabrica_desarrollo}
+      - {t: "Políticas de desarrollo", ep: consola.politicas_desarrollo}
+    falta: ""
+    nuevo: "Fábrica de software completa (nueva desde la versión anterior)"
