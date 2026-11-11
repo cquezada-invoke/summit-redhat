@@ -1,0 +1,51 @@
+commit: 6956dbad33b73d98664adbcef1bb3ee2fde224c7
+inicio: 2026-11-11T10:56:51-03:00
+---
+{"status":"success","data":{"version":"2.55.1","revision":"6d7569113f1ca814f1e149f74176656540043b8d","branch":"HEAD","buildUser":"root@194e0f5dd5e8","buildDate":"20241106-10:08:33","goVersion":"go1.23.2"}}
+302 http://127.0.0.1:9090/graph
+404 page not found
+
+=====
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel="icon" type="image/x-icon" href="favicon.ico" />
+        <title>Alertmanager</title>
+    </head>
+    <body>
+        <script>
+            // If there is no trailing slash at the end of the path in the url,
+            // add one. This ensures assets like script.js are loaded properly
+            if (location.pathname.substr(-1) != '/') {
+                location.pathname = location.pathname + '/';
+                console.log('added slash');
+            }
+        </script>
+        <script src="script.js"></script>
+        <script>
+            var app = Elm.Main.init({
+                flags: {
+                    production: true,
+                    firstDayOfWeek: JSON.parse(localStorage.getItem('firstDayOfWeek')),
+                    defaultCreator: localStorage.getItem('defaultCreator'),
+                    groupExpandAll: JSON.parse(localStorage.getItem('groupExpandAll'))
+                }
+            });
+            app.ports.persistDefaultCreator.subscribe(function(name) {
+                localStorage.setItem('defaultCreator', name);
+            });
+            app.ports.persistGroupExpandAll.subscribe(function(expanded) {
+                localStorage.setItem('groupExpandAll', JSON.stringify(expanded));
+            });
+            app.ports.persistFirstDayOfWeek.subscribe(function(firstDayOfWeek) {
+                localStorage.setItem('firstDayOfWeek', JSON.stringify(firstDayOfWeek));
+            });
+        </script>
+    </body>
+</html>
+
+=====
+faceops-nodo-jboss /etc/prometheus/faceops/reglas/nodo-jboss.yml ['FaceOpsJbossDetenidoJ01', 'FaceOpsCpuAltaC01Aviso', 'FaceOpsCpuAltaC01Critico']
+--- fin: 2026-11-11T10:56:51-03:00 · código: 0
