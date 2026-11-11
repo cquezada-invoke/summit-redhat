@@ -6,11 +6,16 @@ tienen endpoint propio en la ficha (energía, inventariar, eliminar, mover a otr
 mismos endpoints; el resto se lanza con «ejecutar_en_equipo». Qué automatizaciones aplican lo decide la misma regla de la
 ficha (operacion.aplica_a_equipo: sistema, tipo, red, skills instaladas, inventario de AAP y estado). Las que aplican pero
 aún no pasan su plan de prueba (regla de prueba) se muestran deshabilitadas con el motivo."""
+import os
 import re
 
 from flask import g, url_for
 
 from .bd import j
+
+# Bandera: los botones «Skills» de la ficha (máquina y plataformas) están apagados por ahora; la ficha muestra sus botones de
+# siempre (energía en la caja de estado, CPU/memoria/discos en su caja, encender/apagar en cada plataforma). FACEOPS_SKILLS=1 los vuelve a mostrar.
+ACTIVAS = os.environ.get("FACEOPS_SKILLS", "0") == "1"
 
 GRUPOS = [("energia", "Energía"), ("inventario", "Inventario y diagnóstico"), ("recursos", "Recursos y movimiento"),
           ("seguridad", "Seguridad"), ("respaldo", "Respaldo y recuperación"), ("plataformas", "Plataformas"), ("ciclo", "Ciclo de vida")]

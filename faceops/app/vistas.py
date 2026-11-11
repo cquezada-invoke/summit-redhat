@@ -4708,9 +4708,9 @@ def equipo(eid):
         horas_eq = _uso_energia(e, j(e["datos"], {}))
     except Exception:  # noqa: BLE001 - sin historial la ficha sigue
         horas_eq = None
-    from .skills_maquina import armar as _skills_armar   # panel «Skills»: todas las habilidades de la máquina (g.skills_maq en la plantilla)
+    from .skills_maquina import ACTIVAS as _skills_on, armar as _skills_armar   # panel «Skills» (g.skills_maq; None = botones de siempre)
     _esc_ = g.perfil["modo"] == "escritura"
-    g.skills_maq = _skills_armar(e, acciones, _de_comp, next((c["codigo"] for c in comp_alias if c["so"]), None),
+    g.skills_maq = None if not _skills_on else _skills_armar(e, acciones, _de_comp, next((c["codigo"] for c in comp_alias if c["so"]), None),
                                  energia_ok=energia_posible(e) and _esc_, puede_eliminar=eliminable(e) and _esc_, recursos_ok=recursos_ok,
                                  mover_ok=_esc_ and e.get("forma") == "virtual" and bool(_hipervisor(e)) and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo"),
                                  escritura=_esc_, lim_rec=lim_rec, componentes=componentes, desinstalando=desinstalando)
