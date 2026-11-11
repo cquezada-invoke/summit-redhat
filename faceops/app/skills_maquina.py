@@ -81,7 +81,7 @@ def sin_ambito():
 def nombre_so(e):
     """Rótulo corto del sistema de la máquina para el panel: «RHEL 9.8», «Windows Server 2022», «VyOS»…"""
     so = (e.get("so") or "").strip()
-    m = re.search(r"(?:red ?hat enterprise linux|rhel)[^0-9]*([0-9]+(?:\.[0-9]+)?)", so, re.I)
+    m = re.search(r"(?:red ?hat(?: enterprise linux)?|rhel)[^0-9]*([0-9]+(?:\.[0-9]+)?)", so, re.I)
     if m:
         return f"RHEL {m.group(1)}"
     m = re.search(r"windows server (\d{4})", so, re.I)
