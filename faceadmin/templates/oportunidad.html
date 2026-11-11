@@ -2,7 +2,7 @@
 <p class="sub" style="margin:0"><a href="{{ url_for('oportunidades') }}">Oportunidades</a> ›</p>
 <div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">{{ c.nombre }} <span class="mono" style="font-size:.6em;font-weight:600">{{ o.numero }}</span></h1>
 {% if o.etapa == 'perdida' %}<span class="chip mal">Perdida</span>{% elif o.nivel_ == 0 %}<span class="chip ok">Nivel 0 · negocio</span>{% else %}<span class="chip {{ 'med' if o.nivel_ <= 2 else '' }}">Nivel {{ o.nivel_ }} · {{ dict(niveles)[o.nivel_] }} %</span>{% endif %}
-<button type="button" class="btn" onclick="opDemo(true)" title="Activar o extender la demo de FaceOps">Demo de FaceOps{{ " · " ~ o.demo.t if o.demo.k in ("activa", "vencida") }}</button>
+<button type="button" class="btn" onclick="opDemo(true)" title="Pedir una Demo (entorno de Invoke en la nube) o una PoC (instalación en el cliente)">Demo o PoC{% if dnube and dnube.vigente %} · Demo {{ dnube.est }}{% endif %}{{ " · PoC " ~ o.demo.t if o.demo.k in ("activa", "vencida") }}</button>
 <button type="button" class="btn gris" onclick="opHist(true)" title="Ver la historia y agregar comentarios">Historial ({{ (o.historial|length) + (1 if o.notas else 0) }})</button>
 {% if o.nivel_ == 0 and o.etapa != 'perdida' %}<a class="btn der" href="{{ url_for('contrato_nuevo', tipo='directo' if o.tipo == 'directo' else 'tenant', empresa_id=c.id, despliegue=o.despliegue or None) }}">Crear el negocio →</a>{% else %}<span class="sub der" style="font-size:12.5px">El negocio se crea al llegar a nivel 0</span>{% endif %}</div>
 <div class="grid g2" style="margin-top:12px">
@@ -19,14 +19,19 @@
 <div class="fila" style="margin-top:10px"><button class="btn">Guardar cambios</button></div></form>
 </div>
 </div>
-<div class="card tabla-scroll"><h2>Demos pedidas por el cliente</h2><table><tr><th>Demo</th><th>Pedido</th><th>Período</th><th>FaceOps</th><th>Demo</th><th>Instalación</th><th>Pedida por</th></tr>
-{% for x in demos %}{% set it = inst_t.get(x.inst, (x.inst, '')) %}<tr><td class="mono"><a href="{{ url_for('demo_detalle', did=x.id) }}"><b>{{ x.numero }}</b></a></td><td>{{ x.tipo }} · {{ x.semanas }} sem.</td><td class="mono" style="font-size:12.5px">{{ x.desde }} → {{ x.hasta }}</td>
+<div class="card tabla-scroll" id="demos-poc"><div class="fila" style="align-items:center"><h2 style="margin:0">Demos y PoC pedidas por el cliente</h2><button type="button" class="btn chico der" onclick="opDemo(true)">+ Pedir Demo o PoC</button></div>
+<table><tr><th>Número</th><th>Tipo</th><th>Pedido</th><th>Período</th><th>Entorno / FaceOps</th><th>Estado</th><th>Instalación</th><th>Pedida por</th></tr>
+{% for x in lista %}{% if x.clase == 'demo' %}<tr><td class="mono"><a href="{{ url_for('demo_nube', did=x.id) }}"><b>{{ x.numero }}</b></a></td><td><span class="chip" style="background:#e7f1fa;color:#004080;border-color:transparent">Demo</span><br><span class="sub" style="font-size:11.5px">nube Invoke</span></td>
+<td>{{ x.dias }} día{{ 's' if x.dias != 1 }}</td><td class="mono" style="font-size:12.5px">{{ x.desde }} → {{ x.hasta }}</td>
+<td>{% if x.entorno_nombre %}<b>{{ x.entorno_nombre }}</b>{% if x.entorno_url %}<br><a href="{{ x.entorno_url }}" target="_blank" rel="noopener" style="font-size:12px">{{ x.entorno_url|replace('https://', '') }}</a>{% endif %}{% else %}<a href="{{ url_for('demo_nube', did=x.id) }}">asignar entorno →</a>{% endif %}</td>
+<td><span class="chip {{ x.est_t[1] }}">{{ x.est }}</span></td><td><span class="sub">no aplica</span></td><td>{{ x.por }} · {{ x.creado[:10] }}</td></tr>
+{% else %}{% set it = inst_t.get(x.inst, (x.inst, '')) %}<tr><td class="mono"><a href="{{ url_for('demo_detalle', did=x.id) }}"><b>{{ x.numero }}</b></a></td><td><span class="chip" style="background:#f3e8fd;color:#5e2aa0;border-color:transparent">PoC</span><br><span class="sub" style="font-size:11.5px">en el cliente</span></td>
+<td>{{ x.tipo }} · {{ x.semanas }} sem.</td><td class="mono" style="font-size:12.5px">{{ x.desde }} → {{ x.hasta }}</td>
 <td style="white-space:nowrap"><span class="mono"><b>{{ x.version }}</b></span><br><span class="sub" style="font-size:11.5px">{{ 'instalada' if x.version_instalada else 'se instalará' }}</span> · <a href="{{ url_for('demo_requisitos', did=x.id) }}" target="_blank" rel="noopener" title="Documento para el cliente: máquina, red, licencias y pasos">requisitos técnicos (PDF)</a></td>
-<td><span class="chip {{ 'ok' if x.vigente else ('med' if x.est == 'programada' else '') }}">{{ x.est }}</span></td><td><span class="chip {{ it[1] }}">{{ it[0] }}</span></td><td>{{ x.por }} · {{ x.creado[:10] }}</td>
-</tr>
-{% else %}<tr><td colspan="7" class="sub">El cliente aún no ha pedido demos.</td></tr>{% endfor %}</table></div>
+<td><span class="chip {{ 'ok' if x.vigente else ('med' if x.est == 'programada' else '') }}">{{ x.est }}</span></td><td><span class="chip {{ it[1] }}">{{ it[0] }}</span></td><td>{{ x.por }} · {{ x.creado[:10] }}</td></tr>{% endif %}
+{% else %}<tr><td colspan="8" class="sub">El cliente aún no ha pedido una Demo ni una PoC.</td></tr>{% endfor %}</table></div>
 
-<style>#op-hist[hidden],#op-demo[hidden]{display:none!important}</style>
+<style>#op-hist[hidden],#op-demo[hidden],#op-demo section[hidden]{display:none!important}</style>
 <div id="op-hist-fondo" onclick="opHist(false)" style="position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:90" hidden></div>
 <aside id="op-hist" hidden style="position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);background:var(--fondo,#fff);box-shadow:-8px 0 30px rgba(0,0,0,.2);z-index:91;display:flex;flex-direction:column">
 <div class="fila" style="align-items:center;padding:14px 16px;border-bottom:1px solid var(--borde,#d2d2d2)"><h2 style="margin:0">Historial · {{ o.numero }}</h2><button type="button" class="btn chico gris der" onclick="opHist(false)" title="Cerrar">×</button></div>
@@ -38,23 +43,37 @@
 document.addEventListener('keydown',e=>{if(e.key==='Escape')opHist(false)});{% if request.args.get('hist') %}opHist(true);{% endif %}</script>
 
 <div id="op-demo-fondo" onclick="opDemo(false)" style="position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:90" hidden></div>
-<aside id="op-demo" hidden style="position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);background:var(--fondo,#fff);box-shadow:-8px 0 30px rgba(0,0,0,.2);z-index:91;display:flex;flex-direction:column">
-<div class="fila" style="align-items:center;padding:14px 16px;border-bottom:1px solid var(--borde,#d2d2d2)"><h2 style="margin:0">Demo de FaceOps</h2><button type="button" class="btn chico gris der" onclick="opDemo(false)" title="Cerrar">×</button></div>
+<aside id="op-demo" hidden style="position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:var(--fondo,#fff);box-shadow:-8px 0 30px rgba(0,0,0,.2);z-index:91;display:flex;flex-direction:column">
+<div class="fila" style="align-items:center;padding:14px 16px;border-bottom:1px solid var(--borde,#d2d2d2)"><h2 style="margin:0">Demo o PoC</h2><button type="button" class="btn chico gris der" onclick="opDemo(false)" title="Cerrar">×</button></div>
 <div style="padding:12px 16px;overflow:auto;flex:1">
-<p style="margin:0 0 8px">Se activa por semanas, hasta {{ max_semanas }} en total. Habilita la instalación de FaceOps con las <b>licencias demo del cliente</b> aprobadas en el portal de Red Hat y vence sola; para seguir operando se firma el contrato.</p>
-{% if o.demo.k == 'activa' %}<p><span class="chip ok">{{ o.demo.t }}</span> <span class="sub">{{ o.demo.dias }} días restantes · {{ o.demo_semanas }} de {{ max_semanas }} semanas usadas</span></p>
-{% elif o.demo.k == 'vencida' %}<p><span class="chip mal">{{ o.demo.t }}</span> <span class="sub">{{ o.demo_semanas }} de {{ max_semanas }} semanas usadas</span></p>{% endif %}
+<div class="fila" role="tablist" style="gap:6px;margin:0 0 12px"><button type="button" class="btn chico" id="op-t-demo" onclick="opTipo('demo')">Demo (entorno Invoke en la nube)</button><button type="button" class="btn chico gris" id="op-t-poc" onclick="opTipo('poc')">PoC (instalación en el cliente)</button></div>
+<section id="op-s-demo">
+<p style="margin:0 0 8px">Un <b>entorno de Invoke ya preparado en la nube</b> para que el cliente pruebe la plataforma por unos días. No se instala nada en el cliente ni se usan sus licencias. Máximo <b>{{ max_dias }} días</b>; vence sola.</p>
+{% if dnube and dnube.vigente %}<p><span class="chip {{ dnube.est_t[1] }}">Demo {{ dnube.numero }} · {{ dnube.est }}</span> <span class="sub">{{ dnube.desde }} → {{ dnube.hasta }}</span></p>
+<p><a class="btn gris" href="{{ url_for('demo_nube', did=dnube.id) }}">{{ 'Asignar entorno →' if dnube.est == 'pedida' else 'Ver, extender o cerrar →' }}</a></p>
+{% else %}<form method="post" style="display:grid;gap:8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="demo_nube">
+<label>Duración<select name="dias">{% for n in dias_sug %}<option value="{{ n }}"{{ ' selected' if n == 7 }}>{{ n }} días</option>{% endfor %}</select></label>
+<label>Desde<input type="date" name="desde" value="{{ ahora_fecha() }}" min="{{ ahora_fecha() }}"></label>
+<label>Motivo<input name="motivo" placeholder="ej. el equipo de operaciones quiere conocer la consola"></label>
+<button class="btn" onclick="return confirm('Se pide una Demo en el entorno de Invoke para {{ c.nombre }}. ¿Continuar?')">Pedir Demo</button></form>{% endif %}
+</section>
+<section id="op-s-poc" hidden>
+<p style="margin:0 0 8px">La <b>prueba de concepto</b>: FaceOps se instala en las dependencias del cliente con sus <b>licencias de prueba</b> del portal de Red Hat. Se activa por semanas, hasta <b>{{ max_semanas }} en total</b>, y vence sola; para seguir operando se firma el contrato.</p>
+{% if o.demo.k == 'activa' %}<p><span class="chip ok">PoC {{ o.demo.t }}</span> <span class="sub">{{ o.demo.dias }} días restantes · {{ o.demo_semanas }} de {{ max_semanas }} semanas usadas</span></p>
+{% elif o.demo.k == 'vencida' %}<p><span class="chip mal">PoC {{ o.demo.t }}</span> <span class="sub">{{ o.demo_semanas }} de {{ max_semanas }} semanas usadas</span></p>{% endif %}
 {% set libres = max_semanas - (o.demo_semanas or 0) %}
 {% if libres > 0 %}<form method="post" style="display:grid;gap:8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="{{ 'extender' if o.demo_semanas else 'demo' }}">
 <label>Semanas<select name="semanas">{% for n in range(1, libres + 1) %}<option value="{{ n }}">{{ n }} semana{{ 's' if n > 1 }}</option>{% endfor %}</select></label>
 <label>Motivo<input name="motivo" placeholder="ej. prueba del equipo de redes"></label>
-<button class="btn" onclick="return confirm('{{ 'Se extiende' if o.demo_semanas else 'Se activa' }} la demo de FaceOps para {{ c.nombre }}. ¿Continuar?')">{{ 'Extender la demo' if o.demo_semanas else 'Activar demo' }}</button></form>
-{% else %}<p class="sub">La demo ya usó las {{ max_semanas }} semanas: para seguir, crea el contrato.</p>{% endif %}
-{% if k %}<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)"><b>Instalación de la demo</b> <span class="mono sub" style="font-size:12px">{{ k.numero }}</span><br>
+<button class="btn" onclick="return confirm('{{ 'Se extiende' if o.demo_semanas else 'Se activa' }} la PoC de FaceOps para {{ c.nombre }}. ¿Continuar?')">{{ 'Extender la PoC' if o.demo_semanas else 'Activar PoC' }}</button></form>
+{% else %}<p class="sub">La PoC ya usó las {{ max_semanas }} semanas: para seguir, crea el contrato.</p>{% endif %}
+{% if k %}<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)"><b>Instalación de la PoC</b> <span class="mono sub" style="font-size:12px">{{ k.numero }}</span><br>
 <span class="sub" style="font-size:13px">Licencias del cliente: {% if lic.ok %}<span class="chip ok">cargadas</span>{% else %}<span class="chip mal">faltan</span>{% endif %}
 · Instalación: {% if inst %}<span class="chip {{ 'ok' if inst.resultado == 'commit' else ('mal' if inst.resultado in ('rollback', 'validacion') else 'med') }}">{{ {'commit': 'instalada', 'rollback': 'revertida', 'validacion': 'validación fallida', 'en_curso': 'en curso'}.get(inst.resultado, inst.resultado) }}</span>{% else %}sin lanzar{% endif %}</span>
 {% if o.demo.k == 'activa' %}<p style="margin:8px 0 0"><a class="btn" href="{{ url_for('contrato_instalacion', kid=k.id) }}">Licencias y comando de instalación →</a></p>{% endif %}</div>{% endif %}
+</section>
 </div></aside>
 <script>function opDemo(v){document.getElementById('op-demo').hidden=!v;document.getElementById('op-demo-fondo').hidden=!v}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')opDemo(false)})</script>
+function opTipo(t){for(const x of ['demo','poc']){document.getElementById('op-s-'+x).hidden=x!==t;document.getElementById('op-t-'+x).classList.toggle('gris',x!==t)}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')opDemo(false)});{% if o.demo.k in ('activa', 'vencida') and not (dnube and dnube.vigente) %}opTipo('poc');{% endif %}{% if request.args.get('panel') %}opDemo(true);{% endif %}</script>
 {% endblock %}

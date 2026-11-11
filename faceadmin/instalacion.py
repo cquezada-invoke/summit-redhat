@@ -281,9 +281,10 @@ def puede_instalar(c, en_curso=False):
     if not c or c.get("tipo") == "tenant":
         return False, "Este enlace no corresponde a un FaceOps de cliente."
     k = q1("SELECT * FROM contratos WHERE cliente_id=? AND estado<>'anulado' ORDER BY id DESC LIMIT 1", c["id"])
-    if k and k["estado"] == "demo":   # demo de una oportunidad: vale mientras dure (máximo 4 semanas)
+    if k and k["estado"] == "demo":   # PoC de una oportunidad: vale mientras dure (máximo configurable en «Demos y PoC»)
         if not demo_vigente(k):
-            return False, f"La demo {k['numero']} venció el {k.get('fin')}: extiéndela en la oportunidad (máximo 4 semanas) o firma el contrato."
+            from demos_nube import max_poc_semanas
+            return False, f"La PoC {k['numero']} venció el {k.get('fin')}: extiéndela en la oportunidad (máximo {max_poc_semanas()} semanas) o firma el contrato."
     elif not k or k["estado"] != "firmado":
         return False, "El contrato del cliente aún no está firmado."
     if k["estado"] != "demo" and not q1("SELECT id FROM ordenes WHERE contrato_id=?", k["id"]):
@@ -334,7 +335,7 @@ def contrato_comando(kid):
         flash(str(e), "error")
         return redirect(url_for("contrato_instalacion", kid=kid) + "#licencias")
     lic = licencias(c["id"])
-    if not lic["ok"] and not demo_vigente(k):   # en una demo las licencias son opcionales
+    if not lic["ok"] and not demo_vigente(k):   # en una PoC las licencias son opcionales
         flash("Antes de generar el comando carga las licencias del cliente: " + " y ".join(x for x, v in (("la licencia de AAP (manifiesto)", lic["aap"]),
               ("la suscripción RHEL (organización y clave de activación)", lic["rhel"])) if not v), "error")
         return redirect(url_for("contrato_instalacion", kid=kid) + "#licencias")
@@ -358,12 +359,12 @@ def _enlace(tok):
 
 
 def demo_vigente(k):
-    """Contrato de demo de una oportunidad (semanas de demo) aún dentro de su plazo."""
+    """Contrato de PoC de una oportunidad (estado técnico «demo») aún dentro de su plazo."""
     return bool(k and k.get("estado") == "demo" and (k.get("fin") or "") >= date.today().isoformat())
 
 
 def contrato_aprobado(k):
-    """Contrato aprobado para instalar: firmado con su orden de compra conciliada, o una demo vigente de una oportunidad."""
+    """Contrato aprobado para instalar: firmado con su orden de compra conciliada, o una PoC vigente de una oportunidad."""
     return bool(k and ((k.get("estado") == "firmado" and q1("SELECT id FROM ordenes WHERE contrato_id=?", k["id"])) or demo_vigente(k)))
 
 

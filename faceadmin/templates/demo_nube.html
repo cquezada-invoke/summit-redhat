@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block titulo %}{{ d.numero }}{% endblock %}{% block cuerpo %}
+<p class="sub" style="margin:0"><a href="{{ url_for('demos', tipo='demo') }}">Demos y PoC</a> › Demo ›</p>
+<div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">{{ c.nombre }} <span class="mono" style="font-size:.6em;font-weight:600">{{ d.numero }}</span></h1>
+<span class="chip {{ d.est_t[1] }}">Demo · {{ d.est_t[0]|lower }}</span>
+<a class="btn gris der" href="{{ url_for('oportunidad', oid=o.id) }}">Oportunidad {{ o.numero }} →</a></div>
+<p class="sub" style="margin:0 0 10px">Entorno de Invoke ya preparado en la nube para que el cliente pruebe la plataforma. No se instala nada en el cliente ni se usan sus licencias. Vence sola el {{ d.hasta }}.</p>
+{% set pasos = [("Demo pedida", True, d.creado[:10] ~ " · " ~ d.por), ("Entorno asignado", d.entorno_url and d.entorno_nombre, d.entorno_nombre or "pendiente"), ("Acceso entregado al cliente", d.est in ("activa", "vencida", "cerrada") and d.entorno_url, "desde el " ~ d.desde), ("Término", d.est in ("vencida", "cerrada"), d.est if d.est in ("vencida", "cerrada") else "el " ~ d.hasta)] %}
+<div class="card"><h2>Recorrido</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">
+{% for t, ok, det in pasos %}{% set actual = not ok and (loop.first or pasos[loop.index0 - 1][1]) %}<div style="border:1px solid {{ 'var(--ok)' if ok else ('var(--acc)' if actual else 'var(--line)') }};border-top:4px solid {{ 'var(--ok)' if ok else ('var(--acc)' if actual else 'var(--line)') }};border-radius:8px;padding:8px 10px;font-size:12.5px;{{ 'opacity:.55;' if not ok and not actual }}">
+<b>{{ loop.index }}. {{ t }}</b> {{ '✓' if ok else '' }}<br><span class="sub">{{ det }}</span></div>{% endfor %}</div></div>
+<div class="grid g2">
+<div class="card"><h2>Demo</h2><table>
+<tr><td class="sub">Duración</td><td>{{ d.dias }} día{{ 's' if d.dias != 1 }} de {{ max_dias }} como máximo{% if d.est == 'activa' %} · quedan {{ d.quedan }} días{% endif %}</td></tr>
+<tr><td class="sub">Período</td><td class="mono">{{ d.desde }} → {{ d.hasta }}</td></tr>
+<tr><td class="sub">Entorno</td><td>{% if d.entorno_nombre %}<b>{{ d.entorno_nombre }}</b>{% else %}<span class="chip med">sin asignar</span>{% endif %}{% if d.entorno_url %}<br><a href="{{ d.entorno_url }}" target="_blank" rel="noopener">{{ d.entorno_url }}</a>{% endif %}</td></tr>
+<tr><td class="sub">Credenciales</td><td>{{ d.entrega or 'sin indicar cómo se entregan' }}</td></tr>
+<tr><td class="sub">Pedida por</td><td>{{ d.por }} · {{ d.creado[:16] }}{% if d.origen != 'faceadmin' %} · desde {{ d.origen }}{% endif %}</td></tr>{% if d.motivo %}<tr><td class="sub">Motivo</td><td>{{ d.motivo }}</td></tr>{% endif %}
+</table></div>
+<div class="card"><h2>Entorno asignado</h2>{% if d.est in ('pedida', 'preparada', 'activa') %}
+<form method="post" style="display:grid;gap:8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="entorno">
+<label>Nombre del entorno<input name="entorno_nombre" value="{{ d.entorno_nombre }}" placeholder="ej. demo-faceops-03 (nube Invoke)" maxlength="120"></label>
+<label>URL de acceso<input name="entorno_url" type="url" value="{{ d.entorno_url }}" placeholder="https://…" maxlength="300"></label>
+<label>Cómo se entregan las credenciales<input name="entrega" value="{{ d.entrega }}" placeholder="ej. usuario por correo y clave por WhatsApp al contacto técnico" maxlength="500"></label>
+<p class="sub" style="margin:0;font-size:12px">Las credenciales no se guardan en FaceAdmin: solo la nota de cómo se entregaron.</p>
+<div class="fila"><button class="btn">Guardar entorno</button></div></form>
+{% else %}<p class="sub">La Demo está {{ d.est }}: el entorno ya no se modifica. Verifica que el acceso del cliente quedó retirado.</p>{% endif %}</div></div>
+<div class="grid g2">
+<div class="card"><h2>Extender o cerrar</h2>{% set libres = max_dias - (d.dias or 0) %}
+{% if d.est != 'cerrada' and libres > 0 %}<form method="post" class="fila" style="gap:8px;align-items:end;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="extender">
+<label>Días adicionales<select name="dias">{% for n in range(1, libres + 1) %}<option value="{{ n }}">{{ n }} día{{ 's' if n > 1 }}</option>{% endfor %}</select></label>
+<label style="flex:1">Motivo<input name="motivo" placeholder="ej. el cliente pidió probar con su equipo de redes"></label><button class="btn gris">Extender</button></form>
+<p class="sub" style="font-size:12px;margin:4px 0 0">Quedan {{ libres }} día{{ 's' if libres != 1 }} disponibles hasta el máximo de {{ max_dias }}.</p>
+{% elif d.est != 'cerrada' %}<p class="sub">La Demo ya usó los {{ max_dias }} días: para seguir, pasa a una PoC o al contrato.</p>{% endif %}
+{% if d.est != 'cerrada' %}<form method="post" style="margin-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="cerrar">
+<button class="btn gris" onclick="return confirm('Se cierra la Demo {{ d.numero }}. ¿Continuar?')">Cerrar la Demo</button></form>{% else %}<p class="sub">Cerrada el {{ d.cerrada[:16] }}.</p>{% endif %}</div>
+<div class="card tabla-scroll"><h2>Movimientos</h2>{% if eventos %}<table style="font-size:13px"><tr><th>Fecha</th><th>Quién</th><th>Qué</th></tr>
+{% for e in eventos %}<tr><td class="mono">{{ e.fecha[:16] }}</td><td>{{ e.usuario }}</td><td>{{ e.accion }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Sin movimientos.</p>{% endif %}</div></div>
+{% endblock %}

@@ -1,14 +1,29 @@
-{% extends "base.html" %}{% block titulo %}Demos{% endblock %}{% block cuerpo %}
-<h1 style="margin:0">Demos</h1><p class="sub" style="margin:2px 0 12px">Cada demo de FaceOps pedida por un cliente desde su oportunidad. La instalación no arranca sola: primero las licencias demo, luego el comando y recién al lanzarlo en la máquina empieza a instalar.</p>
-<div class="kpis"><div class="kpi"><span class="sub">Vigentes</span><b>{{ kpi.vigentes }}</b></div><div class="kpi"><span class="sub">Vigentes sin arrancar</span><b style="{{ 'color:var(--warn)' if kpi.sin }}">{{ kpi.sin }}</b></div>
-<div class="kpi"><span class="sub">Instaladas</span><b>{{ kpi.inst }}</b></div><div class="kpi"><span class="sub">Total pedidas</span><b>{{ kpi.total }}</b></div></div>
-{% from "_buscador.html" import buscador %}{{ buscador('Buscar demo: número, cliente, oportunidad, estado…') }}
-<div class="card tabla-scroll" style="padding:0"><table data-buscable><tr><th>Demo</th><th>Cliente</th><th>Oportunidad</th><th>Período</th><th>FaceOps</th><th>Demo</th><th>Instalación</th><th></th></tr>
+{% extends "base.html" %}{% block titulo %}Demos y PoC{% endblock %}{% block cuerpo %}
+<div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Demos y PoC</h1><p class="sub" style="margin:2px 0 12px"><b>Demo</b>: un entorno de Invoke ya preparado en la nube para que el cliente pruebe la plataforma por unos días, sin instalar nada.
+<b>PoC</b> (prueba de concepto): la instalación de FaceOps en las dependencias del cliente, por semanas. Ambas se piden desde la oportunidad y vencen solas al llegar a su fecha máxima.</p></div></div>
+<div class="fila" style="gap:6px;margin:0 0 10px;flex-wrap:wrap">{% for k, t in (('', 'Todas'), ('demo', 'Demos (nube Invoke)'), ('poc', 'PoC (en el cliente)')) %}<a class="btn chico {{ '' if tipo == k else 'gris' }}" href="{{ url_for('demos', tipo=k) if k else url_for('demos') }}">{{ t }}</a>{% endfor %}
+<details style="margin-left:auto"><summary class="sub" style="cursor:pointer">Duración máxima: Demo {{ dur.demo_dias }} días · PoC {{ dur.poc_semanas }} semanas</summary>
+<form method="post" action="{{ url_for('demos_duraciones') }}" class="fila" style="gap:8px;align-items:end;margin-top:6px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Demo (días)<input type="number" name="demo_dias" min="1" max="90" value="{{ dur.demo_dias }}" style="width:90px"></label><label>PoC (semanas)<input type="number" name="poc_semanas" min="1" max="26" value="{{ dur.poc_semanas }}" style="width:90px"></label>
+<button class="btn chico">Guardar</button></form></details></div>
+<div class="kpis">{% if tipo != 'poc' %}<div class="kpi"><span class="sub">Demos activas</span><b>{{ kpi.d_vig }}</b></div><div class="kpi"><span class="sub">Demos sin entorno asignado</span><b style="{{ 'color:var(--warn)' if kpi.d_ped }}">{{ kpi.d_ped }}</b></div>{% endif %}
+{% if tipo != 'demo' %}<div class="kpi"><span class="sub">PoC vigentes</span><b>{{ kpi.vigentes }}</b></div><div class="kpi"><span class="sub">PoC vigentes sin arrancar</span><b style="{{ 'color:var(--warn)' if kpi.sin }}">{{ kpi.sin }}</b></div>
+<div class="kpi"><span class="sub">PoC instaladas</span><b>{{ kpi.inst }}</b></div>{% endif %}</div>
+{% from "_buscador.html" import buscador %}{{ buscador('Buscar: número, tipo, cliente, oportunidad, estado…') }}
+<div class="card tabla-scroll" style="padding:0"><table data-buscable><tr><th>Número</th><th>Tipo</th><th>Cliente</th><th>Oportunidad</th><th>Período</th><th>Entorno / FaceOps</th><th>Estado</th><th>Instalación</th><th></th></tr>
+{% for d in nube %}<tr><td class="mono"><a href="{{ url_for('demo_nube', did=d.id) }}"><b>{{ d.numero }}</b></a><br><span class="sub" style="font-size:11.5px">{{ d.dias }} día{{ 's' if d.dias != 1 }}</span></td>
+<td><span class="chip" style="background:#e7f1fa;color:#004080;border-color:transparent">Demo</span><br><span class="sub" style="font-size:11.5px">nube Invoke</span></td>
+<td><b>{{ d.c.nombre }}</b><br><span class="sub" style="font-size:12px">{{ d.c.pais or '' }}</span></td><td class="mono"><a href="{{ url_for('oportunidad', oid=d.oportunidad_id) }}">{{ d.o.numero }}</a></td>
+<td class="mono" style="font-size:12.5px">{{ d.desde }} → {{ d.hasta }}</td>
+<td>{% if d.entorno_nombre %}<b>{{ d.entorno_nombre }}</b>{% if d.entorno_url %}<br><a href="{{ d.entorno_url }}" target="_blank" rel="noopener" style="font-size:12px">{{ d.entorno_url|replace('https://', '') }}</a>{% endif %}{% else %}<span class="sub">sin asignar</span>{% endif %}</td>
+<td><span class="chip {{ d.est_t[1] }}">{{ d.est }}</span>{% if d.est == 'activa' %}<br><span class="sub" style="font-size:12px">quedan {{ d.quedan }} días</span>{% endif %}</td>
+<td><span class="sub">no aplica</span></td><td style="text-align:right"><a class="btn chico" style="white-space:nowrap" href="{{ url_for('demo_nube', did=d.id) }}">Detalle →</a></td></tr>{% endfor %}
 {% for d in filas %}{% set it = inst_t.get(d.inst, (d.inst, '')) %}<tr><td class="mono"><a href="{{ url_for('demo_detalle', did=d.id) }}"><b>{{ d.numero }}</b></a><br><span class="sub" style="font-size:11.5px">{{ d.tipo }} · {{ d.semanas }} sem.</span></td>
+<td><span class="chip" style="background:#f3e8fd;color:#5e2aa0;border-color:transparent">PoC</span><br><span class="sub" style="font-size:11.5px">en el cliente</span></td>
 <td><b>{{ d.c.nombre }}</b><br><span class="sub" style="font-size:12px">{{ d.c.pais or '' }}</span></td><td class="mono"><a href="{{ url_for('oportunidad', oid=d.oportunidad_id) }}">{{ d.o.numero }}</a></td>
 <td class="mono" style="font-size:12.5px">{{ d.desde }} → {{ d.hasta }}</td>
 <td style="white-space:nowrap"><span class="mono"><b>{{ d.version }}</b></span><br><a href="{{ url_for('demo_requisitos', did=d.id) }}" target="_blank" rel="noopener" style="font-size:12px">requisitos (PDF)</a></td>
 <td><span class="chip {{ 'ok' if d.vigente else ('med' if d.est == 'programada' else '') }}">{{ d.est }}</span>{% if d.vigente %}<br><span class="sub" style="font-size:12px">quedan {{ d.dias }} días</span>{% endif %}</td>
-<td><span class="chip {{ it[1] }}">{{ it[0] }}</span></td><td style="text-align:right"><a class="btn chico" href="{{ url_for('demo_detalle', did=d.id) }}">Detalle →</a></td></tr>
-{% else %}<tr><td colspan="8" class="sub">Aún no hay demos. Se piden desde una oportunidad.</td></tr>{% endfor %}</table></div>
+<td><span class="chip {{ it[1] }}">{{ it[0] }}</span></td><td style="text-align:right"><a class="btn chico" style="white-space:nowrap" href="{{ url_for('demo_detalle', did=d.id) }}">Detalle →</a></td></tr>{% endfor %}
+{% if not nube and not filas %}<tr><td colspan="9" class="sub">Aún no hay {{ {'demo': 'Demos', 'poc': 'PoC'}.get(tipo, 'Demos ni PoC') }}. Se piden desde una oportunidad.</td></tr>{% endif %}</table></div>
 {% endblock %}

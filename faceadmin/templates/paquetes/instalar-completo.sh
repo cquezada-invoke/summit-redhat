@@ -126,7 +126,7 @@ if ! subscription-manager identity >/dev/null 2>&1{% if demo %} && curl -fsk -m 
 elif subscription-manager identity >/dev/null 2>&1; then
   echo "  la máquina ya está registrada en Red Hat: se usa su suscripción" | tee -a "$LOG"
 else
-  echo "  demo sin suscripción RHEL en FaceAdmin: se usan los repositorios que ya tenga la máquina" | tee -a "$LOG"
+  echo "  PoC sin suscripción RHEL en FaceAdmin: se usan los repositorios que ya tenga la máquina" | tee -a "$LOG"
 fi
 NUEVOS=$(for p in ansible-core podman rsync tar firewalld git-core openssl python3; do rpm -q "$p" >/dev/null 2>&1 || printf '%s ' "$p"; done)
 diario "paquetes|$NUEVOS"
@@ -224,7 +224,7 @@ for i in $(seq 1 30); do curl -sk -m 10 -o /dev/null -w '%{http_code}' https://l
 curl -sk -m 10 -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/ping/ | grep -q 200 || falla "AAP no responde después de instalar"
 echo "  ✓ AAP en línea: https://$PUB/ (usuario admin; clave en $ENVF)"
 
-# 4 · licencia de AAP del cliente (CCSP de Invoke o demo del portal de Red Hat): sin ella no se opera
+# 4 · licencia de AAP del cliente (CCSP de Invoke o de prueba del portal de Red Hat): sin ella no se opera
 paso suscripcion "aplicando la licencia de AAP del cliente"
 if curl -fsk -m 60 -H "X-FaceAdmin-Token: $LLAVE" -o /root/manifiesto-aap.zip "$FADMIN/api/instalacion/manifiesto" 2>>"$LOG"; then
 python3 - <<PY >>"$LOG" 2>&1 || { rm -f /root/manifiesto-aap.zip; falla "AAP rechazó la licencia (manifiesto) del cliente: revisa que esté vigente en el portal de Red Hat"; }
@@ -236,7 +236,7 @@ print(urllib.request.urlopen(req, context=ssl._create_unverified_context(), time
 PY
 rm -f /root/manifiesto-aap.zip
 else
-  {% if demo %}rm -f /root/manifiesto-aap.zip; echo "  demo sin licencia de AAP: queda sin suscripción hasta cargarla en AAP › Configuración › Suscripción" | tee -a "$LOG"{% else %}falla "FaceAdmin no entregó la licencia de AAP del cliente: cárgala en la instalación del contrato"{% endif %}
+  {% if demo %}rm -f /root/manifiesto-aap.zip; echo "  PoC sin licencia de AAP: queda sin suscripción hasta cargarla en AAP › Configuración › Suscripción" | tee -a "$LOG"{% else %}falla "FaceAdmin no entregó la licencia de AAP del cliente: cárgala en la instalación del contrato"{% endif %}
 fi
 
 # 5 · catálogo de acciones y token para FaceOps --------------------------------------------------------------------

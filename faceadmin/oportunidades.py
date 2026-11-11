@@ -1,14 +1,16 @@
 """FaceAdmin · Oportunidades: el paso previo al contrato. Se crea el cliente y una oportunidad (más reducida que un contrato) y, desde
-ella, se puede activar una demo de FaceOps por semanas (máximo 4). La demo habilita la instalación con las licencias demo del cliente
-y vence sola; para seguir operando se firma el contrato."""
+ella, el cliente puede pedir una Demo (entorno de Invoke en una nube, por días; ver demos_nube.py) o una PoC (prueba de concepto:
+instalación de FaceOps en las dependencias del cliente, por semanas). La PoC habilita la instalación con las licencias de prueba del
+cliente y vence sola; para seguir operando se firma el contrato. En el código y la base la PoC conserva el nombre técnico «demo»."""
 import json
 from datetime import date, timedelta
 
 from flask import abort, flash, g, redirect, render_template, request, url_for
 
 from app import ahora, app, bitacora, cliente_ok, ej, en_alcance, es_invoke, nuevo_id, q, q1, requiere_login, solo_invoke
+import demos_nube  # noqa: E402  (Demo en el entorno de Invoke en la nube; máximos de Demo y PoC)
 
-ETAPAS = [("prospecto", "Prospecto"), ("demo", "En demo"), ("propuesta", "Propuesta enviada"), ("ganada", "Ganada"), ("perdida", "Perdida")]
+ETAPAS = [("prospecto", "Prospecto"), ("demo", "En demo o PoC"), ("propuesta", "Propuesta enviada"), ("ganada", "Ganada"), ("perdida", "Perdida")]
 ETAPA_T = dict(ETAPAS)
 # nivel de la oportunidad (probabilidad de cierre): 5 → 10 % … 1 → 99 %; 0 = ya es negocio (se puede crear el contrato)
 NIVELES = [(5, 10), (4, 30), (3, 70), (2, 90), (1, 99), (0, 100)]
@@ -129,7 +131,12 @@ def estimar(f):
     return {"modalidad": r["modalidad"], "plan": r.get("plan", ""), "nodos": r["nodos"], "items": r.get("items", []), "servicio": serv, "rh": rh, "licencia": lic,
             "operacion": ope, "habilitacion": hab, "instancias": inst, "clientes": n_cli, "mensual": round(mensual), "anual": round(mensual * 12),
             "valor_credito": r.get("valor_credito", 0), "valor_nodo": r["valor_nodo"]}
-MAX_SEMANAS = 4
+MAX_SEMANAS = 4   # valor por defecto; el vigente es max_semanas() (configurable en «Demos y PoC»)
+
+
+def max_semanas():
+    from demos_nube import max_poc_semanas
+    return max_poc_semanas()
 
 
 def iniciar():
@@ -164,14 +171,14 @@ def _numero(c):
 
 
 def demo_estado(o):
-    """Estado de la demo de la oportunidad: sin demo, activa (días restantes) o vencida."""
+    """Estado de la PoC de la oportunidad: sin PoC, activa (días restantes) o vencida."""
     if not o.get("demo_fin"):
-        return {"k": "sin", "t": "sin demo"}
+        return {"k": "sin", "t": "sin PoC"}
     hoy = date.today()
     fin = date.fromisoformat(o["demo_fin"])
     if fin >= hoy:
-        return {"k": "activa", "t": f"activa hasta el {o['demo_fin']}", "dias": (fin - hoy).days, "puede_extender": o["demo_semanas"] < MAX_SEMANAS}
-    return {"k": "vencida", "t": f"venció el {o['demo_fin']}", "dias": 0, "puede_extender": o["demo_semanas"] < MAX_SEMANAS}
+        return {"k": "activa", "t": f"activa hasta el {o['demo_fin']}", "dias": (fin - hoy).days, "puede_extender": o["demo_semanas"] < max_semanas()}
+    return {"k": "vencida", "t": f"venció el {o['demo_fin']}", "dias": 0, "puede_extender": o["demo_semanas"] < max_semanas()}
 
 
 def _ops():
@@ -181,6 +188,7 @@ def _ops():
         if not c or not en_alcance(c):
             continue
         o["c"], o["demo"] = c, demo_estado(o)
+        o["dnube"] = (demos_nube.de_oportunidad(o["id"]) or [None])[0]
         o["nivel_"], o["monto_"] = nivel_de(o), monto_de(o)
         o["prob"], o["quarter"] = NIVEL_P[o["nivel_"]], quarter(o.get("cierre_estimado") or "")
         out.append(o)
@@ -194,7 +202,8 @@ def oportunidades():
     ops = _ops()
     abiertas = [o for o in ops if o["etapa"] not in ("ganada", "perdida")]
     return render_template("oportunidades.html", ops=ops, etapa_t=ETAPA_T, tipos=TIPO_CORTO,
-                           kpi={"abiertas": len(abiertas), "demos": sum(1 for o in ops if o["demo"]["k"] == "activa"),
+                           kpi={"abiertas": len(abiertas), "pocs": sum(1 for o in ops if o["demo"]["k"] == "activa"),
+                                "demos": sum(1 for o in ops if o["dnube"] and o["dnube"]["vigente"]),
                                 "ponderado": sum(o["monto_"] * o["prob"] / 100 for o in abiertas),
                                 "pipeline": sum(o["monto_"] for o in abiertas), "ganadas": sum(1 for o in ops if o["etapa"] == "ganada")})
 
@@ -338,10 +347,19 @@ def oportunidad(oid):
             except ValueError:
                 sem = 0
             usadas = o["demo_semanas"] or 0
-            if sem < 1 or usadas + sem > MAX_SEMANAS:
-                flash(f"La demo dura entre 1 y {MAX_SEMANAS} semanas en total (ya usadas: {usadas})", "error")
+            if sem < 1 or usadas + sem > max_semanas():
+                flash(f"La PoC dura entre 1 y {max_semanas()} semanas en total (ya usadas: {usadas})", "error")
                 return redirect(url_for("oportunidad", oid=oid))
             _activar_demo(o, c, sem)
+        elif acc == "demo_nube":
+            try:
+                did = demos_nube.pedir(o, c, f)
+            except ValueError as e:
+                flash(str(e), "error")
+                return redirect(url_for("oportunidad", oid=oid, panel=1))
+            dn = q1("SELECT numero FROM demos_nube WHERE id=?", did)
+            flash(f"Demo {dn['numero']} pedida. Falta asignar el entorno en la nube (URL y nombre) para dejarla preparada.", "ok")
+            return redirect(url_for("oportunidad", oid=oid) + "#demos-poc")
         return redirect(url_for("oportunidad", oid=oid))
     o["demo"] = demo_estado(o)
     k = q1("SELECT * FROM contratos WHERE id=?", o["contrato_demo_id"]) if o.get("contrato_demo_id") else None
@@ -359,6 +377,8 @@ def oportunidad(oid):
         o["aia"] = {}
     o["especialista"] = alcance.especialista()
     dem = [_demo_fila(x) for x in q("SELECT * FROM demos WHERE oportunidad_id=? ORDER BY id DESC", oid)]
+    dnube = demos_nube.de_oportunidad(oid)
+    lista = sorted(dnube + dem, key=lambda x: x.get("creado") or "", reverse=True)
     o["nivel_"], o["quarter"], o["monto_"] = nivel_de(o), quarter(o.get("cierre_estimado") or ""), monto_de(o)
     _notas_tabla()
     o["historial"] = q("SELECT * FROM oportunidad_notas WHERE oportunidad_id=? ORDER BY id DESC", oid)
@@ -367,7 +387,9 @@ def oportunidad(oid):
     except ValueError:
         _ids = []
     o["contactos_"] = [x for x in (q1("SELECT * FROM contactos WHERE id=?", i) for i in _ids) if x]
-    return render_template("oportunidad.html", niveles=NIVELES, inst_t=INST_T, demos=dem, o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
+    return render_template("oportunidad.html", niveles=NIVELES, inst_t=INST_T, demos=dem, lista=lista, dnube=(dnube or [None])[0], estados_demo=demos_nube.ESTADOS,
+                           dias_sug=[x for x in demos_nube.DIAS_SUGERIDOS if x <= demos_nube.max_demo_dias()] or [demos_nube.max_demo_dias()], max_dias=demos_nube.max_demo_dias(),
+                           o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=max_semanas(),
                            inst=(intentos(c["id"]) or [None])[0], lic=licencias(c["id"]))
 
 
@@ -377,7 +399,7 @@ INST_T = {"sin_arrancar": ("Sin arrancar", ""), "comando": ("Comando generado ·
 
 
 def estado_instalacion(d):
-    """La instalación de la demo no arranca sola: primero las licencias y el comando; recién al lanzarlo en la máquina pasa a «instalando»."""
+    """La instalación de la PoC no arranca sola: primero las licencias y el comando; recién al lanzarlo en la máquina pasa a «instalando»."""
     from instalacion import intentos
     its = [x for x in intentos(d["cliente_id"]) if x["inicio"][:10] >= d["desde"]]
     if its:
@@ -395,6 +417,7 @@ def _demo_fila(d):
     d["inst"], d["its"] = estado_instalacion(d)
     d["dias"] = (date.fromisoformat(d["hasta"]) - date.today()).days if d["vigente"] else 0
     d["version"], d["version_instalada"] = version_demo(d)
+    d["clase"] = "poc"
     return d
 
 
@@ -422,17 +445,21 @@ def version_demo(d):
 @requiere_login
 def demos():
     solo_invoke()
+    """Demos (entorno de Invoke en la nube) y PoC (instalación en el cliente), con filtro por tipo."""
     filas = [_demo_fila(d) for d in q("SELECT * FROM demos ORDER BY id DESC")]
     filas = [d for d in filas if d["c"] and en_alcance(d["c"])]
-    return render_template("demos.html", filas=filas, inst_t=INST_T,
+    nube = demos_nube.todas()
+    tipo = request.args.get("tipo") if request.args.get("tipo") in ("demo", "poc") else ""
+    return render_template("demos.html", filas=filas if tipo != "demo" else [], nube=nube if tipo != "poc" else [], tipo=tipo, inst_t=INST_T, dur=demos_nube.duraciones(),
                            kpi={"vigentes": sum(1 for d in filas if d["vigente"]), "sin": sum(1 for d in filas if d["vigente"] and d["inst"] == "sin_arrancar"),
-                                "inst": sum(1 for d in filas if d["inst"] == "commit"), "total": len(filas)})
+                                "inst": sum(1 for d in filas if d["inst"] == "commit"), "total": len(filas),
+                                "d_vig": sum(1 for d in nube if d["est"] == "activa"), "d_ped": sum(1 for d in nube if d["est"] == "pedida"), "d_total": len(nube)})
 
 
 @app.route("/demos/<int:did>")
 @requiere_login
 def demo_detalle(did):
-    """La demo como objeto propio: período, licencias, comando e instalación (que no arranca hasta generar y lanzar el comando)."""
+    """La PoC como objeto propio: período, licencias, comando e instalación (que no arranca hasta generar y lanzar el comando)."""
     solo_invoke()
     d = _demo_fila(q1("SELECT * FROM demos WHERE id=?", did) or abort(404))
     c = cliente_ok(d["cliente_id"])
@@ -442,7 +469,7 @@ def demo_detalle(did):
     lic = licencias(c["id"])
     eventos = q("SELECT fecha, usuario, accion FROM bitacora WHERE objeto=? AND substr(fecha,1,10) BETWEEN ? AND ? ORDER BY id DESC LIMIT 60", c["codigo"], d["desde"], d["hasta"])
     cmd = q1("SELECT creado FROM enlaces_paquete WHERE cliente_id=? AND creado>=? ORDER BY id DESC LIMIT 1", c["id"], d["desde"])
-    pasos = [("Demo activada", True, f"{d['desde']} → {d['hasta']}"), ("Licencias demo del cliente", lic["ok"], "AAP y RHEL cargadas" if lic["ok"] else "faltan"),
+    pasos = [("PoC activada", True, f"{d['desde']} → {d['hasta']}"), ("Licencias de prueba del cliente", lic["ok"], "AAP y RHEL cargadas" if lic["ok"] else "faltan"),
              ("Comando de instalación generado", bool(cmd), cmd["creado"][:16] if cmd else "pendiente"),
              ("Instalación lanzada en la máquina", bool(d["its"]), d["its"][0]["inicio"][:16] if d["its"] else "sin arrancar"),
              ("FaceOps instalado y enlazado", d["inst"] == "commit", INST_T.get(d["inst"], (d["inst"],))[0])]
@@ -452,7 +479,7 @@ def demo_detalle(did):
 @app.route("/demos/<int:did>/requisitos.pdf")
 @requiere_login
 def demo_requisitos(did):
-    """Documento para el cliente con los requisitos técnicos de la demo (máquina, red, licencias y pasos)."""
+    """Documento para el cliente con los requisitos técnicos de la PoC (máquina, red, licencias y pasos)."""
     from flask import Response
     solo_invoke()
     d = _demo_fila(q1("SELECT * FROM demos WHERE id=?", did) or abort(404))
@@ -461,8 +488,8 @@ def demo_requisitos(did):
     from requisitos_pdf import pdf_requisitos
     from urllib.parse import urlsplit
     pdf = pdf_requisitos(c, d, d["o"], d["version"], fabrica.productos(fabrica.datos()), urlsplit(request.host_url).hostname or "")
-    bitacora("requisitos técnicos de la demo descargados", c["codigo"], {"demo": d["numero"]})
-    nombre = f"Requisitos tecnicos DEMO FaceOps {d['numero']} {c['codigo']}.pdf"
+    bitacora("requisitos técnicos de la PoC descargados", c["codigo"], {"poc": d["numero"]})
+    nombre = f"Requisitos tecnicos PoC FaceOps {d['numero']} {c['codigo']}.pdf"
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{nombre}"'})
 
 
@@ -473,7 +500,7 @@ def demo_detalle_viejo(oid, did):
 
 
 def _activar_demo(o, c, sem):
-    """Activa o extiende la demo: un contrato «demo» sin cobro que habilita la instalación hasta el fin de la demo."""
+    """Activa o extiende la PoC: un contrato (estado técnico «demo») sin cobro que habilita la instalación hasta el fin de la PoC."""
     hoy = date.today()
     if o["demo_fin"] and date.fromisoformat(o["demo_fin"]) >= hoy:   # extender desde el fin actual
         fin = date.fromisoformat(o["demo_fin"]) + timedelta(weeks=sem)
@@ -487,10 +514,10 @@ def _activar_demo(o, c, sem):
     else:
         pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
                  "enviada, respuesta, emisor) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], o["numero"], 1, "estandar", 1, 0, 0, "USD", 0,
-                 f"Demo de FaceOps de la oportunidad {o['numero']}: sin cobro, con licencias demo del cliente.", "aceptada", ahora(), g.usuario["usuario"],
+                 f"PoC de FaceOps de la oportunidad {o['numero']}: instalación en el cliente, sin cobro, con licencias de prueba del cliente.", "aceptada", ahora(), g.usuario["usuario"],
                  ahora(), ahora(), "invoke")
         kid = ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por, inicio, fin, activacion_limite) VALUES (?,?,?,?,?,?,?,?,?)",
-                 c["id"], pid, o["numero"] + "-DEMO", "demo", ahora(), g.usuario["usuario"], ini, fin, fin)
+                 c["id"], pid, o["numero"] + "-POC", "demo", ahora(), g.usuario["usuario"], ini, fin, fin)
     if not c.get("habilitado") or not c.get("instancia_id"):
         ej("UPDATE clientes SET habilitado=1, instancia_id=COALESCE(NULLIF(instancia_id,''), ?), activacion_limite=? WHERE id=?", nuevo_id(c["codigo"]), fin, c["id"])
     ej("UPDATE oportunidades SET demo_semanas=?, demo_inicio=?, demo_fin=?, contrato_demo_id=?, etapa=CASE WHEN etapa='prospecto' THEN 'demo' ELSE etapa END "
@@ -500,10 +527,10 @@ def _activar_demo(o, c, sem):
        "extensión" if (o["demo_fin"] and o["demo_fin"] >= hoy.isoformat()) else "activación", sem, desde_ped, fin, kid, ahora(), g.usuario["usuario"], (request.form.get("motivo") or "")[:500])
     _notas_tabla()
     ej("INSERT INTO oportunidad_notas (oportunidad_id, fecha, usuario, texto, cambios) VALUES (?,?,?,?,?)", o["id"], ahora(), g.usuario["usuario"],
-       (request.form.get("motivo") or "").strip()[:500], f"demo {'extendida' if o['demo_semanas'] else 'activada'}: {sem} semana{'s' if sem > 1 else ''} hasta el {fin}")
-    bitacora("oportunidad · demo " + ("extendida" if o["demo_semanas"] else "activada"), c["codigo"],
+       (request.form.get("motivo") or "").strip()[:500], f"PoC {'extendida' if o['demo_semanas'] else 'activada'}: {sem} semana{'s' if sem > 1 else ''} hasta el {fin}")
+    bitacora("oportunidad · PoC " + ("extendida" if o["demo_semanas"] else "activada"), c["codigo"],
              {"oportunidad": o["numero"], "semanas": sem, "hasta": fin, "por": g.usuario["usuario"]})
-    flash(f"Demo {'extendida' if o['demo_semanas'] else 'activada'} hasta el {fin}. Ya puedes cargar las licencias demo del cliente y generar el comando de instalación.", "ok")
+    flash(f"PoC {'extendida' if o['demo_semanas'] else 'activada'} hasta el {fin}. Ya puedes cargar las licencias de prueba del cliente y generar el comando de instalación.", "ok")
 
 
 # ---------------------------------------------------------------- oportunidades de demostración (solo con el modo demo)
@@ -564,7 +591,7 @@ def _numero_demo(cid):
     c = q1("SELECT pais FROM clientes WHERE id=?", cid) or {}
     ej("CREATE TABLE IF NOT EXISTS secuencias (clave TEXT PRIMARY KEY, valor INTEGER NOT NULL)")
     ej("INSERT INTO secuencias (clave, valor) VALUES ('demo', 1) ON CONFLICT(clave) DO UPDATE SET valor=valor+1")
-    return f"DEM-{pais_iso(c.get('pais'))}-{date.today().year}-{q1('SELECT valor FROM secuencias WHERE clave=?', 'demo')['valor']:04d}"
+    return f"POC-{pais_iso(c.get('pais'))}-{date.today().year}-{q1('SELECT valor FROM secuencias WHERE clave=?', 'demo')['valor']:04d}"
 
 
 def _demos_previas():

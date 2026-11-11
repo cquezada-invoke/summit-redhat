@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block titulo %}Nueva oportunidad{% endblock %}{% block cuerpo %}
 <p class="sub" style="margin:0"><a href="{{ url_for('oportunidades') }}">Oportunidades</a> ›</p><h1>Nueva oportunidad</h1>
-<p class="sub" style="margin:0 0 14px">Más reducida que un contrato: el cliente y lo que se espera cerrar. Desde la oportunidad se puede activar una demo de FaceOps por semanas.</p>
+<p class="sub" style="margin:0 0 14px">Más reducida que un contrato: el cliente y lo que se espera cerrar. Desde la oportunidad se puede pedir una Demo (entorno de Invoke en la nube) o una PoC (instalación en el cliente).</p>
 <form method="post" class="card"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <fieldset><legend>Cliente</legend><div class="rejilla">
 <label>Empresa<select name="empresa_id" onchange="opEmpresa(this)"><option value="">+ Empresa nueva</option>{% for e in existentes %}<option value="{{ e.id }}" data-pais="{{ e.pais or '' }}" data-industria="{{ e.industria or '' }}" data-tel="{{ e.contacto_telefono or '' }}" {{ 'selected' if f.empresa_id == e.id|string }}>{{ e.nombre }}{{ ' (tenant)' if e.tipo == 'tenant' }}</option>{% endfor %}</select></label>

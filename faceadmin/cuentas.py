@@ -25,7 +25,7 @@ def estado_cuenta(c):
     if any(x["estado"] == "firmado" for x in k):
         return ("cliente", "Cliente")
     if any(x["estado"] == "demo" for x in k):
-        return ("demo", "En demo")
+        return ("demo", "En PoC")
     if k or q1("SELECT id FROM oportunidades WHERE cliente_id=? AND etapa NOT IN ('perdida')", c["id"]):
         return ("prospecto", "Prospecto")
     return ("cuenta", "Cuenta")
