@@ -1,42 +1,44 @@
-commit: 907d1e50de86b3c0724908c9dcd3a93a292540ae
-inicio: 2026-11-11T12:52:09-03:00
+commit: cb287a07fce22f6a33d06c3a0b8965900b8ccb0d
+inicio: 2026-11-11T12:53:49-03:00
 ---
-bc7e61e
-AUTO Infra · Ajustar recursos de máquinas -> cambiada
-AUTO Sistema · Inventariar máquina -> cambiada
-AUTO Storage · Respaldo de datos (restic) -> no existe
-AUTO Infra · Replicar máquina -> sin probar
-AUTO FaceOps · Respaldo continuo en Git -> certificada
-AUTO Sistema · Paquetes · inventario y respaldo -> certificada
-AUTO Infra · Cargar imágenes base al registro -> sin probar
-GET 6 200
-PIL Disponibilidad 100 %
-PIL Rendimiento 95 %
-    CPU al 11 %: sobredimensionado, se puede bajar y liberar el anfitrión Bajar a 1 vCPU «Ajustar recursos de máquinas (vCPU y memoria)» bloqueada: cambió desde su última prueba y debe probarse de nuevo
-PIL Seguridad 44 %
-PIL Recuperación 68 %
-    Volúmenes de datos con respaldo (+15 %): respaldo de datos con restic o snapshot del storage sin acción automática aún
-    El último inventario tiene 1 día(s): sin inventario diario se pierde lo cambiado desde entonces Inventariar ahora «Inventariar máquina» bloqueada: cambió desde su última prueba y debe probarse de nuevo Programar inventario diario
-PIL Costo 100 %
-PIL Excelencia operativa 78 %
-PW 200
-Traceback (most recent call last):
-  File "<stdin>", line 9, in <module>
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/sync_api/_generated.py", line 9122, in evaluate
-    self._sync(
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
-    return task.result()
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_page.py", line 469, in evaluate
-    return await self._main_frame.evaluate(expression, arg)
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_frame.py", line 323, in evaluate
-    await self._channel.send(
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 69, in send
-    return await self._connection.wrap_api_call(
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 559, in wrap_api_call
-    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
-playwright._impl._errors.Error: Page.evaluate: TypeError: window.fxAbrirSalud is not a function
-    at eval (eval at evaluate (:302:30), <anonymous>:1:8)
-    at eval (<anonymous>)
-    at UtilityScript.evaluate (<anonymous>:302:30)
-    at UtilityScript.<anonymous> (<anonymous>:1:44)
---- fin: 2026-11-11T12:53:13-03:00 · código: 0
+1 dc1-ad01 rec_paquetes Respaldar paquetes
+5 dc1-sso01 EN CURSO
+12 nodo-windows rec_paquetes Respaldar paquetes
+27 nodo-storage rec_volumenes Respaldar datos
+41 sno rec_paquetes Respaldar paquetes
+41 sno rec_configuracion Habilitar respaldo en Git
+75 dc1-sql01 rec_paquetes Respaldar paquetes
+75 dc1-sql01 rec_configuracion Habilitar respaldo en Git
+76 dc2-sql01 rec_paquetes Respaldar paquetes
+76 dc2-sql01 rec_configuracion Habilitar respaldo en Git
+77 dc1-sat01 rec_paquetes Respaldar paquetes
+77 dc1-sat01 rec_configuracion Habilitar respaldo en Git
+79 dc1-vpn01 rec_paquetes Respaldar paquetes
+79 dc1-vpn01 rec_configuracion Habilitar respaldo en Git
+84 srv-legado-jboss7-01 rec_paquetes Respaldar paquetes
+84 srv-legado-jboss7-01 rec_configuracion Habilitar respaldo en Git
+85 srv-cisco-c240-01 rec_paquetes Respaldar paquetes
+85 srv-cisco-c240-01 rec_configuracion Habilitar respaldo en Git
+86 srv-dell-r760-01 rec_paquetes Respaldar paquetes
+86 srv-dell-r760-01 rec_configuracion Habilitar respaldo en Git
+87 srv-hpe-dl380-01 rec_paquetes Respaldar paquetes
+87 srv-hpe-dl380-01 rec_configuracion Habilitar respaldo en Git
+88 srv-lenovo-sr650-01 rec_paquetes Respaldar paquetes
+88 srv-lenovo-sr650-01 rec_configuracion Habilitar respaldo en Git
+89 srv-supermicro-01 rec_paquetes Respaldar paquetes
+89 srv-supermicro-01 rec_configuracion Habilitar respaldo en Git
+93 srv-dell-r660xs-01 rec_paquetes Respaldar paquetes
+93 srv-dell-r660xs-01 rec_configuracion Habilitar respaldo en Git
+94 srv-fujitsu-rx2540-01 rec_paquetes Respaldar paquetes
+94 srv-fujitsu-rx2540-01 rec_configuracion Habilitar respaldo en Git
+95 srv-hpe-dl360-01 rec_paquetes Respaldar paquetes
+95 srv-hpe-dl360-01 rec_configuracion Habilitar respaldo en Git
+96 srv-lenovo-sr630-01 rec_paquetes Respaldar paquetes
+96 srv-lenovo-sr630-01 rec_configuracion Habilitar respaldo en Git
+97 srv-xfusion-2288h-01 rec_paquetes Respaldar paquetes
+97 srv-xfusion-2288h-01 rec_configuracion Habilitar respaldo en Git
+127 srv-mover-01 rec_paquetes Respaldar paquetes
+128 nodo-jboss4 rec_paquetes Respaldar paquetes
+PW 200 https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6 nodo-jboss.demo.local · FaceOps
+errores []
+--- fin: 2026-11-11T12:54:58-03:00 · código: 0
