@@ -1,0 +1,25 @@
+{# Flotante lateral derecho de alta o edición de un sitio edge. El código técnico es inmutable: al editar no se cambia. #}
+{% macro cajon_sitio(s, equipos, ocupados, accion_url) %}
+<style>#fi-cx .ed-eq{display:flex;flex-direction:row;gap:8px;align-items:baseline;font-weight:400;font-size:13px;margin:0}#fi-cx .ed-eq>*{margin:0}#fi-cx .ed-eq .sub{font-size:11.5px}#fi-cx .ed-eq input{align-self:center}#fi-cx .ed-otro{opacity:.55}</style>
+<aside id="fi-cx" class="cajon" hidden aria-label="{{ 'Editar sitio' if s else 'Agregar sitio' }}"><div class="cajon-barra"><b style="font-size:15px">{{ ('Editar sitio · ' ~ s.codigo) if s else 'Agregar sitio' }}</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
+<form method="post" action="{{ accion_url }}" class="form-infra" autocomplete="off" style="display:flex;flex-direction:column;gap:10px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+{% if s %}<label>Código técnico<input value="{{ s.codigo }}" disabled class="mono"></label><p class="sub" style="margin:-6px 0 0;font-size:12px">El código no cambia: es la identidad del sitio en AAP (grupo <span class="mono">{{ s.codigo|lower|replace('-', '_') }}</span>).</p>
+{% else %}<label>Código técnico <span class="req" aria-hidden="true">*</span><input name="codigo" required class="mono" placeholder="CL-SCL-TDA-014" pattern="[A-Z]{2}-[A-Z]{3}-(TDA|SUC|BOD|CD)-[0-9]{3}" title="PAÍS-CIUDAD-TIPO-NNN en mayúsculas, p. ej. CL-SCL-TDA-014" id="ed-cod"></label>
+<p class="sub" style="margin:-6px 0 0;font-size:12px">PAÍS-CIUDAD-TIPO-NNN en mayúsculas. Tipos: TDA tienda · SUC sucursal · BOD bodega · CD centro de distribución. No se puede cambiar después.</p>{% endif %}
+<label>Nombre comercial (alias)<input name="alias" maxlength="80" value="{{ s.alias if s }}" placeholder="Tienda Mall Plaza Oeste"></label>
+<label>Ciudad<input name="ciudad" maxlength="60" value="{{ s.ciudad if s }}" placeholder="Santiago"></label>
+<label>Execution node del sitio<input name="nodo" class="mono" value="{{ s.nodo if s }}" placeholder="{{ (s.codigo|lower ~ '-en01') if s else 'cl-scl-tda-014-en01' }}" id="ed-nodo"></label>
+<label>Hop node<input name="hop" class="mono" value="{{ s.hop if s }}" placeholder="hop-dmz-01"></label><p class="sub" style="margin:-6px 0 0;font-size:12px">Opcional: solo si el sitio no tiene salida directa a la central (normalmente en la DMZ).</p>
+<fieldset style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:0"><legend class="sub" style="padding:0 4px">Equipos del sitio</legend>
+<input type="search" placeholder="Filtrar equipos…" aria-label="Filtrar equipos" id="ed-filtro" style="width:100%;margin:0 0 6px">
+<div id="ed-eqs" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">
+{% for e in equipos %}{% set otro = ocupados.get(e.id) %}<label class="ed-eq{{ ' ed-otro' if otro }}"><input type="checkbox" name="equipos" value="{{ e.id }}" {{ 'checked' if s and e.id in s.equipos_l }} {{ 'disabled' if otro }} style="width:auto;margin:0">
+<span class="mono">{{ e.nombre }}</span><span class="sub">{{ e.categoria or 'servidor' }}{{ ' · ' ~ e.ip if e.ip }}{{ (' · en ' ~ otro) if otro }}</span></label>
+{% else %}<p class="sub" style="margin:0">No hay equipos en el inventario.</p>{% endfor %}</div>
+<p class="sub" style="margin:6px 0 0;font-size:12px">Por convención los equipos heredan el código: <span class="mono">{{ (s.codigo|lower) if s else 'cl-scl-tda-014' }}-pos01</span>, <span class="mono">-srv01</span>, <span class="mono">-en01</span>.</p></fieldset>
+<p class="sub" style="margin:0;font-size:12.5px">Registrar el sitio no crea infraestructura: las acciones sobre el sitio bajan por la malla de AAP con ticket y aprobación.</p>
+<div class="fila" style="gap:8px"><button class="btn">{{ 'Guardar' if s else 'Agregar sitio' }}</button><button type="button" class="btn gris" data-fi-cerrar="1">Cancelar</button></div></form>
+<script>(()=>{const f=document.getElementById('ed-filtro'),l=document.getElementById('ed-eqs');if(f)f.addEventListener('input',()=>{const v=f.value.toLowerCase().trim();l.querySelectorAll('label').forEach(x=>x.style.display=!v||x.textContent.toLowerCase().includes(v)?'':'none');});
+const c=document.getElementById('ed-cod'),n=document.getElementById('ed-nodo');if(c&&n)c.addEventListener('input',()=>{n.placeholder=(c.value||'CL-SCL-TDA-014').toLowerCase()+'-en01';});})();</script>
+</aside>
+{% endmacro %}

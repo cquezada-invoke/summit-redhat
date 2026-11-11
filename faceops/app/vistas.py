@@ -8044,7 +8044,7 @@ def menu_nav():
                      {"t": f"Últimos {n} meses" if n > 1 else "Este mes", "url": url_for("consola.resumen", meses=n),
                       "on": request.endpoint == "consola.resumen" and request.args.get("meses", "3") == str(n)} for n in (1, 3, 6, 12)]}]
     from .politicas_seg import CATEGORIAS as CATS_POL
-    activo = {"consola.deudas": "consola.radar_salud", "consola.alertas": "consola.radar_salud", "consola.kpi_okr": "consola.radar_salud", "consola.itil": "consola.radar_salud", "consola.seguridad_mapa": "consola.politicas", "consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
+    activo = {"consola.deudas": "consola.radar_salud", "consola.alertas": "consola.radar_salud", "consola.kpi_okr": "consola.radar_salud", "consola.itil": "consola.radar_salud", "consola.seguridad_mapa": "consola.politicas", "consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario", "consola.edge": "consola.inventario", "consola.edge_ficha": "consola.inventario",
               "consola.ticket": "consola.radar_salud", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.ecosistema", "consola.ciclo_vida_version": "consola.ecosistema", "consola.stack_tecnologico": "consola.ecosistema",
               "consola.modernizacion_apps": "consola.ecosistema", "consola.so_modernizacion": "consola.sistemas_operativos", "consola.so_actualizaciones": "consola.sistemas_operativos",
@@ -8062,7 +8062,8 @@ def menu_nav():
     con = {seccion_de(a) for a in autos_visibles()} | {"nube"}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in SECCIONES if k in con]   # las mismas secciones del menú
     hay_fis_ = any(seccion_eq(x) == "inventario" and (x.get("forma") or "") != "virtual" for x in equipos_visibles())
-    g_inv = [("Virtuales", {"forma": "virtual"})] + ([("Físicos", {"forma": "fisico"})] if hay_fis_ else [])
+    g_inv = [("Virtuales", {"forma": "virtual"})] + ([("Físicos", {"forma": "fisico"})] if hay_fis_ else []) \
+        + [("Edge", {"_ep": "consola.edge", "_sub": True})]   # bajo Servidores físicos: tiendas, sucursales y bodegas del cliente
     from .grupos_segmento import GRUPOS, grupo_de
     segs_v = segmentos_visibles(g.usuario, g.cliente["id"])
     sel = request.args.get("segmento")
@@ -8120,7 +8121,7 @@ def menu_nav():
             if hep == ep:
                 on = request.endpoint == hep and "_ancla" not in args and {k: v for k, v in limpios.items() if DEF_ARGS.get(k) != v} == actuales
             else:   # hijo de otra página (p. ej. Seguridad › CVEs): calza por sus parámetros
-                on = request.endpoint == hep and all(request.args.get(k) == v for k, v in limpios.items())
+                on = (request.endpoint == hep or EP_ALIAS.get(request.endpoint) == hep) and all(request.args.get(k) == v for k, v in limpios.items())
             it["hijos"].append({"t": ht, "url": url, "on": on, "titulo": args.get("_titulo"), "sub": args.get("_sub")})
         out.append(it)
         EP_MENU.setdefault(ep, set()).add(t)

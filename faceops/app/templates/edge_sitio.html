@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% block titulo %}{{ s.codigo }}{% endblock %}
+{% block cuerpo %}{% from "_ficha_infra.html" import salud, caja_energia, cajon_salud, seccion_acciones, recursos with context %}{% from "_edge_form.html" import cajon_sitio with context %}
+{% set url_acc = url_for('consola.edge_accion', sid=s.id) %}
+<div class="miga"><a href="{{ url_for('consola.inventario', forma='fisico') }}">Servidores físicos</a> › <a href="{{ url_for('consola.edge') }}">Edge</a> › {{ s.codigo }}</div>
+<div class="fi-cab"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted)"><path d="M3 10l2-5h14l2 5"/><path d="M4 10v10h16V10"/><path d="M3 10h18"/><path d="M9 20v-5h6v5"/></svg>
+<div style="min-width:0"><h1>{{ s.codigo }}{% if s.demo %} <span class="chip s-media" style="vertical-align:4px" title="Sitio de laboratorio: agrupa máquinas existentes del lab, no es una tienda real">demo</span>{% endif %}</h1>
+<p class="sub" style="margin:0">{{ s.alias or 'Sin nombre comercial' }} · {{ tipos.get(s.tipo, s.tipo) }} · {{ s.pais }} · {{ s.ciudad }}</p></div>
+{% if esc %}<button type="button" class="btn chico gris fi-der" data-fi-abrir="fi-cx"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Editar sitio</button>{% endif %}</div>
+{{ salud(radar_s, s.codigo) }}
+
+<div class="eq-cab">
+{{ caja_energia('on' if eqs and on_ == eqs|length else ('off' if eqs and on_ == 0 else 'nd'),
+   ('Encendido' if on_ == eqs|length else ('Apagado' if on_ == 0 else 'Encendido parcial')) if eqs else 'Sin equipos',
+   [('Equipos', on_ ~ ' encendidos de ' ~ eqs|length), ('Execution node', nodo_t), ('Malla', 'leída de AAP' if m is not none else 'sin lectura de AAP')],
+   url_for('consola.edge_energia', sid=s.id), energia_no, eqs and on_ == eqs|length) }}
+  <dl class="eq-datos">
+    <div><dt>Código técnico</dt><dd class="mono">{{ s.codigo }}</dd></div>
+    <div><dt>Nombre comercial</dt><dd>{{ s.alias or '—' }}</dd></div>
+    <div><dt>Tipo</dt><dd>{{ tipos.get(s.tipo, s.tipo) }} <span class="sub mono">{{ s.tipo }}</span></dd></div>
+    <div><dt>País · ciudad</dt><dd>{{ s.pais }} · {{ s.ciudad }}</dd></div>
+    <div><dt>Grupo en AAP</dt><dd class="mono">{{ grupo }}</dd></div>
+    <div><dt>Actualizado</dt><dd>{{ (s.actualizado|fecha) if s.actualizado else '—' }}{% if s.autor %} <span class="sub">· {{ s.autor }}</span>{% endif %}</dd></div>
+  </dl>
+</div>
+
+<div class="card" style="margin-top:6px" id="malla"><div class="fila"><h2 style="margin:0">Execution node y hop</h2><span class="sub der" style="font-size:12px">Automation Mesh de AAP · {{ 'estado leído de AAP' if m is not none else 'AAP no respondió: estado sin lectura' }}</span></div>
+<table style="margin-top:8px" class="no-apilar"><tr><th>Rol</th><th>Nodo</th><th>Estado en la malla</th><th>Enlace</th></tr>
+<tr><td>Execution node <span class="sub">(en el sitio)</span></td><td class="mono">{{ s.nodo or '—' }}</td><td><span class="chip {{ nodo_c }}">{{ nodo_t }}</span></td><td class="sub" style="font-size:12.5px">{{ ('→ ' ~ s.hop) if s.hop else '→ central' }} · la conexión la inicia el sitio</td></tr>
+<tr><td>Hop node <span class="sub">(DMZ de la central)</span></td><td class="mono">{{ s.hop or '—' }}</td><td><span class="chip {{ hop_c }}">{{ hop_t }}</span></td><td class="sub" style="font-size:12.5px">{{ '→ central' if s.hop else 'no aplica: salida directa' }}</td></tr></table>
+<p class="sub" style="margin:10px 0 0;font-size:12.5px">FaceOps no se conecta a las máquinas del sitio: cada acción es un ticket en AAP, pasa por aprobación y baja al sitio por este túnel.</p></div>
+
+<div class="card fi-lista" style="margin-top:14px;padding:0" id="equipos"><div class="fi-lcab"><h2>Equipos del sitio · {{ eqs|length }}</h2>{% if eqs|length > 10 %}<input type="search" placeholder="Buscar equipo: nombre, IP, sistema…" aria-label="Buscar equipo">{% endif %}</div>
+<table class="sin-pag"><tr><th>Equipo</th><th>Tipo</th><th>IP</th><th>Sistema</th><th>En el grupo del sitio</th><th>Estado</th></tr>
+{% for e in eqs %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a></td><td>{{ e.categoria or 'servidor' }}</td><td class="mono">{{ e.ip or '—' }}</td><td style="font-size:12px">{{ e.so or '—' }}</td>
+<td>{{ 'sí' if grupo in (j(e.grupos, []) or []) else 'no' }}</td><td><span class="chip {{ 's-ok' if e.energia == 'encendido' else ('s-alta' if e.energia == 'apagado' else '') }}">{{ e.energia or '—' }}</span></td></tr>
+{% else %}<tr><td colspan="6" class="sub">El sitio aún no tiene equipos asociados{{ ': «Editar sitio» para agregarlos' if esc }}.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
+
+<div class="card fi-lista" style="margin-top:14px;padding:0" id="alertas"><div class="fi-lcab"><h2>Alertas del sitio · {{ hallazgos|length }}</h2></div>
+<table class="sin-pag"><tr><th>Severidad</th><th>Alerta</th><th>Equipo</th></tr>
+{% for h in hallazgos %}<tr><td><span class="chip {{ 's-alta' if (h.severidad or '')|lower in ('critica', 'crítica', 'alta') else ('s-media' if (h.severidad or '')|lower == 'media' else '') }}">{{ h.severidad or '—' }}</span></td><td>{{ h.titulo }}</td>
+<td>{% if h.equipo %}<a href="{{ url_for('consola.equipo', eid=h.equipo.id) }}">{{ h.equipo.nombre }}</a>{% else %}—{% endif %}</td></tr>
+{% else %}<tr><td colspan="3" class="sub">Sin alertas abiertas en los equipos del sitio.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
+
+<div class="card fi-lista" style="margin-top:14px;padding:0" id="tickets"><div class="fi-lcab"><h2>Tickets del sitio · {{ tickets|length }}</h2></div>
+<table class="sin-pag"><tr><th>Ticket</th><th>Acción</th><th>Estado</th><th>Creado</th></tr>
+{% for t in tickets %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre or '—' }}</td><td><span class="chip e-{{ t.estado }}">{{ t.estado|replace('_', ' ') }}</span></td><td>{{ (t.creado|fecha) if t.creado else '—' }}</td></tr>
+{% else %}<tr><td colspan="4" class="sub">Sin tickets sobre el sitio ni sus equipos.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
+
+{{ seccion_acciones(acciones, areas, url_acc) }}
+
+{{ cajon_salud(radar_s, s.codigo, url_acc) }}
+{% if esc %}{{ cajon_sitio(s, equipos, ocupados, url_for('consola.edge_guardar', sid=s.id)) }}{% endif %}
+{{ recursos(s.codigo) }}
+{% endblock %}

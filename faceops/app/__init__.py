@@ -332,7 +332,7 @@ def create_app():
         app.logger.warning("pulsos: %s", e_)
     from .vistas import bp as consola
     from .admin import bp as admin
-    from . import mod_redes, mod_storage, mod_contenedores, mod_estaciones, mod_hipervisores, mod_nubes   # noqa: F401  (módulos con repositorio propio)
+    from . import mod_redes, mod_storage, mod_contenedores, mod_estaciones, mod_hipervisores, mod_nubes, mod_edge   # noqa: F401  (módulos con repositorio propio)
     from . import fabrica_api   # noqa: F401  (API del agente de la Fábrica de código)
     from . import demo_datos   # noqa: F401  (datos de demostración marcados, se quitan con un clic)
     from . import recuperar   # noqa: F401  (recuperar clave desde el login)
