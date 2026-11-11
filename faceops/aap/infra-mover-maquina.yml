@@ -2,8 +2,8 @@
 # Infra · Mover máquina entre centros de datos (anfitrión KVM; cada centro es una red y un pool de discos de libvirt).
 #   evaluar   solo lectura: estado, discos y tamaño, espacio libre en el destino, red de destino y tiempo estimado
 #   mover     apaga ordenadamente, copia los discos al pool del destino, define la máquina en el destino (misma MAC, red del
-#             destino), la enciende y espera su IP nueva. La de origen queda apagada y renombrada «<nombre>-origen» como
-#             vuelta atrás: no se borra. Si algo falla, se elimina lo creado en el destino y la de origen vuelve a encenderse.
+#             destino), la enciende, espera su IP nueva (debe ser de la red del destino) y que responda en mv_puerto. La de origen queda apagada y renombrada «<nombre>-origen» como
+#             vuelta atrás: no se borra. Si algo falla (también si no responde), se elimina lo creado en el destino y la de origen vuelve a encenderse.
 #   confirmar retira la máquina de origen (definición y discos) una vez validado el traslado
 #   revertir  apaga la del destino, vuelve a encender la de origen con su nombre y retira la copia del destino (sus discos)
 # Variables: mv_maquina · mv_destino (red libvirt del centro: default = Santiago · dc-valpo = Valparaíso) · mv_modo · mv_puerto (22; 5986 en Windows)
@@ -140,10 +140,16 @@
           register: r_ip
           changed_when: false
 
-        - name: Responde en el destino
+        - name: IP en la red del destino
+          ansible.builtin.shell: |
+            sudo -n virsh net-dumpxml {{ red_dst }} | sed -n "s:.*<ip address='\([0-9.]*\)'.*:\1:p" | head -1
+          register: r_gw
+          changed_when: false
+          failed_when: (r_ip.stdout | trim).split('.')[:3] != (r_gw.stdout | trim).split('.')[:3]
+
+        - name: Responde en el destino (su servicio de acceso; si no responde, se vuelve atrás)
           ansible.builtin.wait_for: {host: "{{ r_ip.stdout | trim }}", port: "{{ puerto }}", timeout: 300}
           delegate_to: localhost
-          ignore_errors: true
           register: r_resp
       rescue:
         - name: Vuelta atrás (se elimina lo creado en el destino y vuelve la de origen)
@@ -212,3 +218,4 @@
             minutos_estimados: "{{ (((gb | default(0) | float) / 0.5 / 60) + 3) | round(0) | int }}"
             ip: "{{ (r_ip.stdout | default('') | trim) if modo == 'mover' else ((r_rev.stdout_lines | default([''])) | reject('match', '^RED=') | list | last | default('') if modo == 'revertir' else '') }}"
             responde: "{{ (r_resp is defined and r_resp is succeeded) if modo == 'mover' else '' }}"
+            puerto: "{{ puerto }}"

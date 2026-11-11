@@ -619,5 +619,6 @@ v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;c.querySelector('.re
 <script>document.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();b.disabled=true;const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('motivo',b.dataset.motivo);
   fetch('{{ url_for("consola.ejecutar_en_equipo", eid=e.id, aid=0) }}'.replace(/\/0$/,'/'+b.dataset.aid),{method:'POST',body:fd}).then(r=>r.json()).then(x=>{
     if(x.error){fxAviso(x.error,'error');b.disabled=false;return;}b.outerHTML='<a class="chip" style="font-size:11px" href="'+x.url+'">'+x.numero+' · '+(x.estado||'').replace('_',' ')+'</a>';}).catch(()=>{b.disabled=false;});}));</script>
+{% include "_mover_infra.html" %}
 <script>if(location.hash==='#incorporar-plataforma'){const d_=document.getElementById('dlg-plat');if(d_)d_.showModal();}</script>
 {% endblock %}

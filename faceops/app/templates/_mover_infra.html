@@ -1,0 +1,59 @@
+{# Ficha de la máquina · «Mover a otra infraestructura»: botón en la caja de acciones de la máquina y flotante con los
+   destinos compatibles (los no elegibles se muestran deshabilitados con el motivo). Crea el ticket con aprobación que
+   lanza «Infra · Mover máquina entre centros de datos» con el destino elegido. #}
+{% if perfil_actual.modo == 'escritura' and e.forma == 'virtual' and hipervisor and (e.categoria or 'servidor') in ('servidor', 'estación de trabajo') %}
+<style>
+.btn-energ.mover{color:#7b4fc9;border-color:#7b4fc9}.btn-energ.mover:not(:disabled):hover{background:#7b4fc9;color:#fff}
+#dlg-mover h3{margin:0 0 4px}#dlg-mover .mv-maq{font-size:13px;color:var(--muted);margin:0 0 12px}
+#dlg-mover .mv-lista{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+#dlg-mover .mv-dst{display:grid;grid-template-columns:22px 1fr;gap:4px 10px;border:1px solid var(--line);border-radius:9px;padding:10px 12px;cursor:pointer;background:var(--panel)}
+#dlg-mover .mv-dst:has(input:checked){border-color:#7b4fc9;box-shadow:0 0 0 2px rgba(123,79,201,.25)}
+#dlg-mover .mv-dst.no{cursor:not-allowed;opacity:.62;background:var(--soft)}
+#dlg-mover .mv-dst input{margin-top:3px}#dlg-mover .mv-dst b{font-size:14px}
+#dlg-mover .mv-dst dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:2px 14px;margin:4px 0 0;font-size:12.5px}
+#dlg-mover .mv-dst dt{color:var(--muted);font-size:11px}#dlg-mover .mv-dst dd{margin:0}
+#dlg-mover .mv-nota{grid-column:2;font-size:12px;color:var(--info,#0066cc)}#dlg-mover .mv-motivo{grid-column:2;font-size:12px;color:var(--bad)}
+#dlg-mover .mv-aviso{font-size:12.5px;background:var(--soft);border-radius:8px;padding:8px 10px;margin:8px 0}
+#dlg-mover .mv-pie{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+</style>
+<button type="button" class="btn-energ mover" id="btn-mover" aria-label="Mover a otra infraestructura" title="Mover a otra infraestructura: elige el hipervisor de destino (ticket con aprobación)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="7" height="7" rx="1"/><rect x="15" y="13" width="7" height="7" rx="1"/><path d="M9 7.5h6.5a2 2 0 0 1 2 2V13"/><path d="M15 10.5l2.5 2.5 2.5-2.5"/></svg></button>
+<dialog id="dlg-mover" class="dlg" aria-labelledby="mv-tit"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
+<h3 id="mv-tit">Mover a otra infraestructura</h3><p class="mv-maq" id="mv-maq">Cargando destinos…</p>
+<div id="mv-cuerpo"></div>
+<div class="mv-pie"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button type="button" class="btn" id="mv-ok" disabled>Crear ticket de traslado</button></div>
+</dialog>
+<script>(()=>{const b=document.getElementById('btn-mover'),dlg=document.getElementById('dlg-mover'),cu=document.getElementById('mv-cuerpo'),ok=document.getElementById('mv-ok'),maq=document.getElementById('mv-maq');
+const caja=document.querySelector('.eq-energia-acc')||document.querySelector('.eq-estado');if(caja)caja.appendChild(b);   // junto a los demás botones de la máquina
+const URL_={{ url_for('consola.equipo_traslado', eid=e.id)|tojson }};let info=null,modo='mover';
+const el=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
+const gb=v=>v==null?'—':v+' GB';
+function dato(dl,k,v){dl.append(el('dt',null,k),el('dd',null,v));}
+function pintar(){cu.textContent='';ok.disabled=true;modo='mover';
+ const o=info.origen;maq.textContent=info.maquina+' · '+info.cpu+' vCPU · '+info.ram_gb+' GB RAM · '+info.disco_gb+' GB de disco'+(o?' · hoy en '+o.nombre+' ('+o.centro+', red '+o.red+')':'');
+ if(info.automatizacion&&info.automatizacion.estado!=='certificada')cu.append(el('p','mv-aviso','«'+info.automatizacion.nombre+'» está bloqueada: su versión vigente aún no pasa su plan de prueba. Los destinos se muestran, pero el ticket no se puede crear.'));
+ if(info.bloqueo){cu.append(el('p','mv-aviso',info.bloqueo));return;}
+ if(info.pendiente){const p=info.pendiente,a=el('div','mv-aviso');a.append(el('b',null,'Traslado sin confirmar'),el('div',null,'La máquina se movió a '+p.hacia+' ('+p.ticket+', '+p.fecha+'). La copia de origen sigue apagada como vuelta atrás.'));cu.append(a);
+  const l=el('div','mv-lista');[['confirmar','Confirmar','Retira la copia de origen y sus discos: el traslado queda definitivo.'],['revertir','Revertir','Apaga la del destino, vuelve a encender la de origen con su red e IP anteriores y retira la copia del destino.']].forEach(([m,t,d])=>{
+   const lb=el('label','mv-dst'),r=el('input');r.type='radio';r.name='mv-modo';r.value=m;r.addEventListener('change',()=>{modo=m;ok.disabled=info.automatizacion&&info.automatizacion.estado!=='certificada';ok.textContent=t+' traslado';});
+   const c=el('div');c.append(el('b',null,t),el('div','mv-maq',d));lb.append(r,c);l.append(lb);});cu.append(l);return;}
+ const ds=info.destinos;if(!ds.length){cu.append(el('p','mv-aviso','No hay otros hipervisores registrados en Infraestructuras.'));return;}
+ const n=ds.filter(d=>d.elegible).length;cu.append(el('p','mv-maq',n?(n+' destino'+(n>1?'s':'')+' compatible'+(n>1?'s':'')+'. Elige uno:'):'Ningún hipervisor cumple las condiciones para recibir esta máquina.'));
+ const l=el('div','mv-lista');ds.forEach(d=>{const lb=el('label','mv-dst'+(d.elegible?'':' no')),r=el('input');r.type='radio';r.name='mv-dst';r.value=d.id;r.disabled=!d.elegible;
+  r.addEventListener('change',()=>{ok.disabled=info.automatizacion&&info.automatizacion.estado!=='certificada';ok.textContent='Crear ticket de traslado';});
+  const c=el('div');c.append(el('b',null,d.nombre),document.createTextNode(' · '+d.tipo));const dl=el('dl');
+  dato(dl,'Centro de datos',d.centro+(d.region?' · '+d.region:''));dato(dl,'Red',d.red);dato(dl,'Máquinas',String(d.vms));
+  dato(dl,'Cores físicos',d.cores==null?'—':String(d.cores));dato(dl,'RAM libre',gb(d.ram_libre));dato(dl,'Disco libre',gb(d.disco_libre)+(d.medido?' · medido '+d.medido:''));
+  c.append(dl);lb.append(r,c);
+  if(d.emulado)lb.append(el('div','mv-nota',d.tipo.indexOf('KVM')>=0?'Emulado: '+d.emulado.replace(/^sí:\s*/,'')+'. El traslado es real: apaga, copia el disco al pool del destino, cambia de red y la IP cambia.':'Emulado: '+d.emulado+'.'));
+  else if(d.mismo_anfitrion)lb.append(el('div','mv-nota','Mismo anfitrión físico: la CPU y la memoria no cambian; se copia el disco y cambia la red.'));
+  if(!d.elegible)lb.append(el('div','mv-motivo','No elegible: '+d.motivos.join('; ')+'.'));l.append(lb);});cu.append(l);
+ cu.append(el('p','mv-aviso','Qué hace: apaga la máquina ordenadamente, copia sus discos, la define en el destino (misma MAC, red del destino), la enciende y verifica su IP nueva y que responda'+(info.ambiente==='produccion'?'. Es producción: hay corte durante la copia':'')+'. Si algo falla vuelve atrás sola. La de origen queda apagada como respaldo hasta que confirmes o reviertas. La IP y la ubicación se actualizan en FaceOps y AAP. Ticket con aprobación.'));}
+b.addEventListener('click',()=>{cu.textContent='';maq.textContent='Cargando destinos…';ok.disabled=true;dlg.showModal();
+ fetch(URL_,{headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(x=>{if(x.error){maq.textContent=x.error;return;}info=x;pintar();}).catch(()=>{maq.textContent='No se pudieron leer los destinos';});});
+ok.addEventListener('click',()=>{const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('modo',modo);let txt;
+ if(modo==='mover'){const r=dlg.querySelector('input[name=mv-dst]:checked');if(!r)return;const d=info.destinos.find(x=>String(x.id)===r.value);fd.append('destino',r.value);txt='¿Mover '+info.maquina+' a '+d.nombre+'? Se apaga durante la copia y cambia de IP. Se crea un ticket que pide aprobación.';}
+ else txt=(modo==='confirmar'?'¿Confirmar el traslado de ':'¿Revertir el traslado de ')+info.maquina+'? Se crea un ticket que pide aprobación.';
+ if(!confirm(txt))return;ok.disabled=true;
+ fetch(URL_,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{if(t.error){ok.disabled=false;fxAviso(t.error,'error');return;}dlg.close();window.fxNuevoTicket&&window.fxNuevoTicket(t);})
+ .catch(()=>{ok.disabled=false;fxAviso('No se pudo crear el ticket','error');});});})();</script>
+{% endif %}

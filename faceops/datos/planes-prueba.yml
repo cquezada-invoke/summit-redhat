@@ -89,12 +89,13 @@ planes:
       - {id: C3, caso: "Clave o red no válidas", verificar: "se rechaza sin tocar nada"}
   "Infra · Mover máquina entre centros de datos":
     casos:
-      - {id: C1, caso: "evaluar Santiago → Valparaíso", verificar: "tamaño, espacio y tiempo estimado; no cambia nada"}
-      - {id: C2, caso: "mover Santiago → Valparaíso", verificar: "IP 192.168.150.x, responde por SSH; origen apagada como <nombre>-origen; ubicación e IP actualizadas en AAP y FaceOps"}
+      - {id: C1, caso: "Ficha de la máquina › Mover a otra infraestructura (flotante) y evaluar Santiago → Valparaíso", verificar: "el flotante lista solo destinos compatibles (los demás deshabilitados con su motivo); evaluar informa tamaño, espacio y tiempo estimado sin cambiar nada"}
+      - {id: C2, caso: "mover Santiago → Valparaíso con el ticket que crea el flotante", verificar: "IP 192.168.150.x, responde por SSH; origen apagada como <nombre>-origen; ubicación e IP actualizadas en AAP y FaceOps; la ficha muestra el traslado pendiente"}
       - {id: C3, caso: "revertir", verificar: "vuelve la de origen con su IP de Santiago; ubicación de vuelta a Santiago; la copia del destino y sus discos se retiran"}
-      - {id: C4, caso: "mover de nuevo y confirmar", verificar: "la de origen y sus discos se retiran"}
+      - {id: C4, caso: "mover de nuevo y confirmar", verificar: "la de origen y sus discos se retiran; la ficha ya no muestra traslado pendiente"}
       - {id: C5, caso: "mover Valparaíso → Santiago", verificar: "vuelve a 192.168.122.x y a Santiago"}
       - {id: C6, caso: "Destino donde ya está, o máquina protegida (nodo-vault, sno)", verificar: "se rechaza sin tocar nada"}
+      - {id: C7, caso: "mover a un destino donde no responde (puerto de verificación cerrado)", verificar: "vuelta atrás sola: la copia del destino y sus discos se retiran, la de origen vuelve encendida con su nombre e IP; FaceOps no cambia la ubicación"}
   "FaceOps · Agregar disco":
     casos:
       - {id: C1, caso: "Disco nuevo en una máquina del inventario «Servidores habilitados» (nodo-storage, 100 GB, /srv/datalake)", verificar: "conectado con su serie, particionado, XFS y montado en /srv/datalake (fstab por UUID)"}
