@@ -1,7 +1,29 @@
-commit: 7590810a5f6d907cddab41943e6c04368af94292
-inicio: 2026-11-11T14:02:38-03:00
+commit: 57df7d8ba0d0fd5e5c0cff80d77dbbcbc903c655
+inicio: 2026-11-11T14:03:05-03:00
 ---
-FaceAdmin actualizado a 9c145992
-faceadmin Up 8 seconds
-local 200
---- fin: 2026-11-11T14:03:20-03:00 · código: 0
+  warnings.warn(
+{'id': 6, 'cliente_id': 1, 'nombre': 'nodo-jboss', 'so': 'RedHat 9.8', 'estado': 'con datos'}
+Plataforma · Controlar servicio => 100 False
+Sistema · Quitar agente => 168 False
+FaceOps · Agente de monitoreo (Linux) => 61 False
+FaceOps · Respaldo continuo en Git => 66 True
+200 700192
+>Agentes</h2><span class="sub der" style="font-size:12px">los instala FaceOps para operar la máquina</span></div>
+
+<div class="comp-grid" style="margin-top:10px"><div class="comp n-saludable" title="Usuario de servicio «ansible» con llave propia guardada en la bóveda: por él AAP opera la máquina y hace el inventario diario.">
+<div class="fila comp-cab" style="gap:6px"><b title="Acceso de FaceOps">Acceso de FaceOps</b><span class="der pt">100<small>%</small></span></div>
+<div class="barra-u" style="margin:6px 0 2px" title="instalado. Si falla, AAP usa una credencial compartida."><i class="c-ok" style="width:100%"></i></div><div class="sub" style="font-size:11px;margin-bottom:2px">salud 100 % · llave propia en la bóveda</div>
+<div class="caja-energia"><span class="punto "></span><span class="et">Instalado</span>
+<span class="der" style="display:flex;gap:4px"><button type="button" class="ico-en encender" data-ag="acceso" data-acc="encender" data-nombre="Acceso de FaceOps" title="El acceso de FaceOps es un usuario de servicio, no un proceso: no se enciende ni se apaga" aria-label="Encender" disabled></button><button type="button" class="ico-en reiniciar" data-ag="acceso" data-acc="reiniciar" data-nombre="Acceso de FaceOps" title="El acceso de FaceOps es un usuario de servicio, no un proceso: no se enciende ni se apaga" aria-label="Reiniciar" disabled></button><button type="button" class="ico-en apagar" data-ag="acceso" data-acc="apagar" data-nombre="Acceso de FaceOps" title="El acceso de FaceOps es un usuario de servicio, no un proceso: no se enciende ni se apaga" aria-label="Apagar" disabled></button><button type="button" class="ico-en" data-ag="acceso" data-acc="quitar" data-nombre="Acceso de FaceOps" title="El acceso de FaceOps no se quita desde aquí: por él AAP opera la máquina" aria-label="Quitar" disabled></button></span></div>
+<div class="sub" style="font-size:12px">Usuario de servicio «ansible» con llave propia guardada en la bóveda: por él AAP opera la máquina y hace el inventario diario.</div></div><div class="comp n-saludable" title="Mejora para máquinas críticas: además del inventario diario (repositorio de la máquina, rama master), guarda cada minuto la configuración y registra quién ejecutó qué comando.">
+<div class="fila comp-cab" style="gap:6px"><b title="Respaldo continuo en Git">Respaldo continuo en Git</b><span class="chip" style="font-size:10.5px">opcional</span><span class="der pt">100<small>%</small></span></div>
+<div class="barra-u" style="margin:6px 0 2px" title="encendido. Si falla, la recuperación usa el último inventario diario: se pueden perder los cambios de hasta un día."><i class="c-ok" style="width:100%"></i></div><div class="sub" style="font-size:11px;margin-bottom:2px">salud 100 % · último respaldo hace 22 min</div>
+<div class="caja-energia"><span class="punto on"></span><span class="et">Encendido</span>
+<span class="der" style="display:flex;gap:4px"><button type="button" class="ico-en encender" data-ag="respaldo-git" data-acc="encender" data-nombre="Respaldo continuo en Git" title="Corre con temporizadores de systemd (cada minuto): aún no se controla por separado; para detenerlo, quítalo" aria-label="Encender" disabled></button><button type="button" class="ico-en reiniciar" data-ag="respaldo-git" data-acc="reiniciar" data-nombre="Respaldo continuo en Git" title="Corre con temporizadores de systemd (cada minuto): aún no se controla por separado; para detenerlo, quítalo" aria-label="Reiniciar" disabled></button><button type="button" class="ico-en apagar" data-ag="respaldo-git" data-acc="apagar" data-nombre="Respaldo continuo en Git" title="Corre con temporizadores de systemd (cada minuto): aún no se controla por separado; para detenerlo, quítalo" aria-label="Apagar" disabled></button><button type="button" class="ico-en" data-ag="respaldo-git" data-acc="quitar" data-nombre="Respaldo continuo en Git" title="«Quitar agente» aún no pasa su plan de prueba" aria-label="Quitar" disabled></button></span></div>
+<div class="sub" style="font-size:12px">Mejora para máquinas críticas: además del inventario diario (repositorio de la máquina, rama master), guarda cada minuto la configuración y registra quién ejecutó qué comando.</div></div><div class="comp n-saludable" title="Publica CPU, memoria, discos y red para Grafana y las alertas de capacidad.">
+<div class="fila comp-cab" style="gap:6px"><b title="Monitoreo (métricas)">Monitoreo (métricas)</b><span class="der pt">100<small>%</small></span></div>
+<div class="barra-u" style="margin:6px 0 2px" title="encendido. Si falla, el uso de la máquina se estima o se emula y las alertas de capacidad no llegan."><i class="c-ok" style="width:100%"></i></div><div class="sub" style="font-size:11px;margin-bottom:2px">salud 100 % · servicio node_exporter</div>
+<div class="caja-energia"><span class="punto on"></span><span class="et">Encendido</span>
+<span class="der" style="display:flex;gap:4px"><button type="button" class="ico-en encender" data-ag="node-exporter" data-acc="encender" data-nombre="Monitoreo (métricas)" title="«Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba" aria-label="Encender" disabled></button><button type="button" class="ico-en reiniciar" data-ag="node-exporter" data-acc="reiniciar" data-nombre="Monitoreo (métricas)" title="«Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba" aria-label="Reiniciar" disabled></button><button type="button" class="ico-en apagar" data-ag="node-exporter" data-acc="apagar" data-nombre="Monitoreo (métricas)" title="«Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba" aria-label="Apagar" disabled></button><button type="button" class="ico-en" data-ag="node-exporter" data-acc="quitar" data-nombre="Monitoreo (métricas)" title="«Quitar agente» aún no pasa su plan de prueba" aria-label="Quitar" disabled></button></span></div>
+<div class="sub" style="font-size:12px">Publica CPU, memoria, discos y red para Grafana y las alertas de capac
+--- fin: 2026-11-11T14:03:22-03:00 · código: 0
