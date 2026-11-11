@@ -25,8 +25,9 @@ RK=srv-mig-rocky-01
 if [ "$FASE" = rocky-ev ]; then
   if ! existe $RK; then
     L=$(libres); echo "licencia AAP libres: $L"; [ "${L:-0}" -ge 1 ] || { echo "SIN LICENCIA LIBRE: no se crea la máquina"; exit 0; }
-    hab rocky9 mig-rocky; inv $RK
+    hab rocky9 mig-rocky
   fi
+  [ -n "$(en $(ip_de $RK) 'cat /etc/redhat-release' 2>/dev/null)" ] && inv $RK   # inventario al día (sin él no aplican las automatizaciones)
   IK=$(ip_de $RK); echo "IP $RK $IK · $(en $IK 'cat /etc/redhat-release')"
   # ── Evaluar sistema operativo (casos de la fase rocky)
   CASOS='[]'; TKS='[]'
@@ -85,8 +86,9 @@ if [ "$FASE" = rhel8-ev ]; then
   existe $RK && baja $RK   # libera su nodo de la licencia de AAP
   if ! existe $R8; then
     L=$(libres); echo "licencia AAP libres: $L"; [ "${L:-0}" -ge 1 ] || { echo "SIN LICENCIA LIBRE: no se crea la máquina"; exit 0; }
-    hab rhel8 mig-rhel8; inv $R8
+    hab rhel8 mig-rhel8
   fi
+  inv $R8
   I8=$(ip_de $R8); echo "IP $R8 $I8 · $(en $I8 'cat /etc/redhat-release; sudo subscription-manager identity 2>/dev/null | grep -c "org ID"')"
   cargar evaluar
   R0=$(en $I8 'cat /etc/redhat-release')
