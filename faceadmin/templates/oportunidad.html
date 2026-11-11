@@ -55,7 +55,20 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')opHist(false)});{% i
 <label>Duración<select name="dias">{% for n in dias_sug %}<option value="{{ n }}"{{ ' selected' if n == 7 }}>{{ n }} días</option>{% endfor %}</select></label>
 <label>Desde<input type="date" name="desde" value="{{ ahora_fecha() }}" min="{{ ahora_fecha() }}"></label>
 <label>Motivo<input name="motivo" placeholder="ej. el equipo de operaciones quiere conocer la consola"></label>
-<button class="btn" onclick="return confirm('Se pide una Demo en el entorno de Invoke para {{ c.nombre }}. ¿Continuar?')">Pedir Demo</button></form>{% endif %}
+<button class="btn gris" onclick="return confirm('Se pide una Demo en el entorno de Invoke para {{ c.nombre }}. ¿Continuar?')">Pedir Demo (entorno a asignar)</button></form>
+<details open style="margin-top:12px;border-top:1px solid var(--borde,#d2d2d2);padding-top:10px"><summary style="cursor:pointer"><b>Demo de FaceOps</b> · VM propia en GCP en minutos</summary>
+{% if demo_gcp_listo() %}<p class="sub" style="margin:6px 0">FaceAdmin crea una VM {{ demo_gcp_cfg().tipo }} desde la imagen base (Rocky Linux, AWX y EDA comunitarios, FaceOps). Solo se enciende en horario hábil, se apaga sola sin uso y se elimina al vencer.</p>
+<form method="post" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="demo_faceops">
+<label>Duración<select name="dias">{% for n in (3, 5, 7, 10, 14) if n <= [max_dias, demo_gcp_cfg().dias_max]|min %}<option value="{{ n }}"{{ ' selected' if n == demo_gcp_cfg().dias_def }}>{{ n }} días{{ ' (1 semana)' if n == 7 }}</option>{% endfor %}</select></label>
+<label>Zona horaria<input name="tz" value="{{ demo_gcp_cfg().tz }}" maxlength="40"></label>
+<label>Días hábiles<input name="dias_habiles" value="{{ demo_gcp_cfg().dias_habiles }}" title="1 = lunes … 7 = domingo" maxlength="20"></label>
+<label>Apagar sin uso (min)<input type="number" name="inactividad_min" min="10" max="240" value="{{ demo_gcp_cfg().inactividad_min }}"></label>
+<label>Desde (hora)<input type="number" name="hora_ini" min="0" max="23" value="{{ demo_gcp_cfg().hora_ini }}"></label><label>Hasta (hora)<input type="number" name="hora_fin" min="1" max="24" value="{{ demo_gcp_cfg().hora_fin }}"></label>
+<label>Usuario del cliente<input name="usuario_cliente" value="cliente" maxlength="32"></label>
+<label>Aviso de vencimiento a<input type="email" name="correo_aviso" value="{{ c.contacto_correo or '' }}"></label>
+<label style="grid-column:span 2">Motivo<input name="motivo" placeholder="ej. el equipo de operaciones quiere probar FaceOps"></label>
+<button class="btn" style="grid-column:span 2" onclick="return confirm('Se crea una VM de demo en GCP para {{ c.nombre }} (se elimina sola al vencer). ¿Continuar?')">Demo de FaceOps</button></form>
+{% else %}<p class="sub">Falta la cuenta de servicio de GCP: <a href="{{ url_for('demo_gcp_config') }}">configurar</a>.</p>{% endif %}</details>{% endif %}
 </section>
 <section id="op-s-poc" hidden>
 <p style="margin:0 0 8px">La <b>prueba de concepto</b>: FaceOps se instala en las dependencias del cliente con sus <b>licencias de prueba</b> del portal de Red Hat. Se activa por semanas, hasta <b>{{ max_semanas }} en total</b>, y vence sola; para seguir operando se firma el contrato.</p>

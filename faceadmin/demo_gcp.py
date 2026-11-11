@@ -5,7 +5,7 @@ FaceOps, Gitea, Vault, MinIO, Prometheus/Grafana y KVM con 2–3 VMs Rocky anida
 
   pedida → creando → activa ⇄ apagada → vencida → eliminada        (además: eliminando, error)
 
-- Duración: máximo «dias_max» (7) desde que se crea; la fecha de expiración queda en FaceAdmin y como etiqueta en GCP.
+- Duración: la pedida (por defecto «dias_def» = 7), con tope «dias_max» (14, el máximo de una Demo) desde que se crea; la fecha de expiración queda en FaceAdmin y como etiqueta en GCP.
   Al vencer se elimina todo (VM, discos, IP reservada; la bóveda y las credenciales viven dentro de la VM y se van con ella),
   con aviso por correo «aviso_horas» antes. Como red de seguridad, la VM nace con terminationTime=expiración (acción DELETE) en GCP.
 - Horario hábil por demo (zona horaria del cliente, días y horas configurables): fuera de horario se apaga siempre.
@@ -130,6 +130,7 @@ def de_demo(did):
 
 
 app.jinja_env.globals["demo_gcp_de"] = de_demo
+app.jinja_env.globals["demo_gcp_cfg"] = gcp.config
 app.jinja_env.globals["demo_gcp_listo"] = lambda: gcp.sa_resumen() is not None and bool(gcp.config().get("proyecto"))
 
 
@@ -150,7 +151,13 @@ def pedir(d, f, por):
     tz = (f.get("tz") or cfg["tz"]).strip()
     _zona(tz)
     now = RELOJ()
-    dias = min(int(cfg["dias_max"] or 7), 7)
+    try:
+        dias = int(f.get("dias") or 0) or min(int(cfg.get("dias_def") or 7), _dias_demo(d) or 99)
+    except ValueError as e:
+        raise ValueError("Duración inválida") from e
+    tope = min(int(cfg.get("dias_max") or 14), 14)
+    if not 1 <= dias <= tope:
+        raise ValueError(f"La demo dura entre 1 y {tope} días")
     expira = now + dias * 86400
     clave = secrets.token_urlsafe(12)
     rid = ej("INSERT INTO demos_gcp (demo_id, estado, instancia, zona, tipo, imagen, tz, dias_habiles, hora_ini, hora_fin, inactividad_min, "
@@ -167,6 +174,16 @@ def pedir(d, f, por):
     _bit(r, "pedida", {"instancia": r["instancia"], "expira": local(r, expira), "tipo": cfg["tipo"]})
     _en_fondo(rid)
     return rid
+
+
+def _dias_demo(d):
+    """Días que quedan de la Demo (desde hoy hasta su término, inclusive)."""
+    try:
+        from datetime import date
+        hoy = datetime.fromtimestamp(RELOJ()).date()
+        return max(1, (date.fromisoformat(d.get("hasta") or "") - hoy).days + 1)
+    except ValueError:
+        return 0
 
 
 def _en_fondo(rid):
@@ -192,12 +209,19 @@ def _crear(r, cx):
     exp = datetime.fromtimestamp(r["expira"], timezone.utc)
     etiquetas = {"demo": gcp.etiqueta(d.get("numero", "")), "cliente": gcp.etiqueta(c.get("codigo", "")),
                  "expira": exp.strftime("%Y%m%d-%H%M"), "origen": "faceadmin"}
-    ip = r["ip"] or cx.reservar_ip(r["instancia"], dict(etiquetas, **{gcp.ETIQUETA: "si"}))
-    url = f"https://faceops.{ip}.sslip.io"
+    ip = r["ip"]
+    if not ip:
+        try:
+            ip = cx.reservar_ip(r["instancia"], dict(etiquetas, **{gcp.ETIQUETA: "si"}))
+        except gcp.ErrorGCP as e:
+            if "403" not in str(e):
+                raise
+            ip = ""   # sin permiso para reservar IP: IP efímera; la URL se actualiza en cada encendido
+    url = f"https://faceops.{ip}.sslip.io" if ip else ""
     _act(r["id"], ip=ip, url=url)
     token_vm = secrets.token_urlsafe(32)
     meta = {"faceadmin-url": (cfg.get("faceadmin_url") or request_base()).rstrip("/"), "demo-numero": d.get("numero", ""), "demo-token": token_vm,
-            "demo-ip": ip, "demo-url": url, "demo-tz": r["tz"], "demo-horario": json.dumps({"dias": r["dias_habiles"], "ini": r["hora_ini"], "fin": r["hora_fin"]}),
+            "demo-ip": ip or "efimera", "demo-url": url, "demo-tz": r["tz"], "demo-horario": json.dumps({"dias": r["dias_habiles"], "ini": r["hora_ini"], "fin": r["hora_fin"]}),
             "demo-inactividad-min": r["inactividad_min"], "demo-expira": exp.isoformat()}
     if cx.instancia(r["instancia"]) is None:
         cx.crear(r["instancia"], etiquetas, meta, ip, vence_iso=exp.strftime("%Y-%m-%dT%H:%M:%SZ"))
@@ -270,6 +294,12 @@ def avanzar(rid, cx=None):
                 _crear(r, cx)
                 r = q1("SELECT * FROM demos_gcp WHERE id=?", rid)
             st = cx.estado(r["instancia"])
+            if st == "RUNNING":
+                ipx = cx.ip_externa(r["instancia"])
+                if ipx and ipx != r["ip"]:
+                    _act(rid, ip=ipx, url=f"https://faceops.{ipx}.sslip.io")
+                    ej("UPDATE demos_nube SET entorno_url=? WHERE id=?", f"https://faceops.{ipx}.sslip.io", r["demo_id"])
+                    r = q1("SELECT * FROM demos_gcp WHERE id=?", rid)
             if r["estado"] in ("creando", "error"):
                 if st == "RUNNING":
                     _act(rid, estado="activa", error="", encendida_desde=now, ultimo_uso=now)
@@ -446,11 +476,11 @@ def demo_gcp_config():
                 bitacora("demo gcp · prueba de conexión", "invoke", {"ok": ok})
             else:
                 n = {k: (f.get(k) or "").strip() for k in ("proyecto", "zona", "imagen", "tipo", "red", "prefijo", "faceadmin_url", "tz", "dias_habiles")}
-                for k in ("disco_gb", "inactividad_min", "dias_max", "aviso_horas", "hora_ini", "hora_fin"):
+                for k in ("disco_gb", "inactividad_min", "dias_max", "dias_def", "aviso_horas", "hora_ini", "hora_fin"):
                     n[k] = int(f.get(k) or 0)
                 n["arranque_programado"] = bool(f.get("arranque_programado"))
-                if not (1 <= n["dias_max"] <= 7 and 30 <= n["disco_gb"] <= 500 and 10 <= n["inactividad_min"] <= 240 and 0 <= n["hora_ini"] < n["hora_fin"] <= 24):
-                    raise gcp.ErrorGCP("Revisa los rangos: duración 1–7 días, disco 30–500 GB, inactividad 10–240 min, horario 0–24")
+                if not (1 <= n["dias_max"] <= 14 and 1 <= n["dias_def"] <= n["dias_max"] and 30 <= n["disco_gb"] <= 500 and 10 <= n["inactividad_min"] <= 240 and 0 <= n["hora_ini"] < n["hora_fin"] <= 24):
+                    raise gcp.ErrorGCP("Revisa los rangos: duración 1–14 días (por defecto ≤ máximo), disco 30–500 GB, inactividad 10–240 min, horario 0–24")
                 if not gcp.nombre_valido(n["prefijo"].rstrip("-")):
                     raise gcp.ErrorGCP("El prefijo debe ser minúsculas, dígitos y guiones")
                 _zona(n["tz"])
