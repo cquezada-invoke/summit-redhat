@@ -2543,6 +2543,8 @@ def abrir_web(e, w):
         return url_for("consola.redis_equipo", eid=e["id"])
     if w["producto"].startswith("Consola de OpenShift"):
         return w["url"]
+    if w["producto"] == "Keycloak" and g.perfil["modo"] == "escritura":   # Keycloak puede vivir en /auth u otra ruta: la consola de plataforma la detecta
+        return url_for("consola.consola_web_plataforma", eid=e["id"], cod="keycloak", sub="")
     if w["producto"] == "Gitea" and "kvm" in (e.get("skills") or []):   # el Gitea de la plataforma vive publicado en /git/ (su ROOT_URL)
         return git_publico(w["url"])
     return url_for("consola.web_equipo", eid=e["id"], sub="")
