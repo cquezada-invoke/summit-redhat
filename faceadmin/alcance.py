@@ -92,20 +92,23 @@ def analizar(texto):
     prompt = ("Eres preventa de Invoke (Managed Service sobre Red Hat Ansible Automation Platform). Un vendedor describió el alcance de un cliente. "
               "Elige del CATÁLOGO solo las automatizaciones que cubren ese alcance y estima su volumen mensual en la unidad indicada. "
               "Estima también las horas de implementación (adaptación al cliente) y lista preguntas para el especialista. "
-              "Responde SOLO JSON: {\"resumen\": str, \"automatizaciones\": [{\"nombre\": str (exacto del catálogo), \"volumen\": num, \"motivo\": str}], "
+              "Motivos breves (máx. 15 palabras). Responde SOLO JSON, sin texto antes ni después: {\"resumen\": str, \"automatizaciones\": [{\"nombre\": str (exacto del catálogo), \"volumen\": num, \"motivo\": str}], "
               "\"implementacion_horas\": num, \"fuera_de_catalogo\": [str], \"preguntas\": [str]}\n\nCATÁLOGO:\n" + json.dumps(cat, ensure_ascii=False) +
               "\n\nALCANCE DEL VENDEDOR:\n" + texto[:6000])
     try:
         r = requests.post("https://api.anthropic.com/v1/messages", timeout=90,
                           headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                          json={"model": MODELO, "max_tokens": 2000, "messages": [{"role": "user", "content": prompt}]})
+                          json={"model": MODELO, "max_tokens": 6000, "messages": [{"role": "user", "content": prompt}]})
         _ia_registrar("alcance", r.status_code == 200)
         r.raise_for_status()
-        txt = "".join(b.get("text", "") for b in r.json().get("content", []))
+        rj = r.json()
+        txt = "".join(b.get("text", "") for b in rj.get("content", []))
+        if rj.get("stop_reason") == "max_tokens":
+            raise ValueError("respuesta cortada por largo")
         d = json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
     except Exception as e:  # noqa: BLE001
         d = _heuristico(texto)
-        d["origen"] = f"palabras clave (la IA no respondió: {type(e).__name__})"
+        d["origen"] = f"palabras clave (la IA no respondió: {type(e).__name__}: {str(e)[:80]})"
         return d
     validos = {a["nombre"] for a in cobro.CATALOGO}
     d["automatizaciones"] = [a for a in d.get("automatizaciones") or [] if a.get("nombre") in validos]
