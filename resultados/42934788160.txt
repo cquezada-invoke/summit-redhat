@@ -1,0 +1,24 @@
+commit: 32e487fbe8d4c75a21a818a7b7debf9ffead13cc
+inicio: 2026-11-10T21:57:34-03:00
+---
+C4b flotante antes: None
+Traceback (most recent call last):
+  File "/tmp/m.py", line 5, in <module>
+    x = caso("C4b confirmar (flotante)", pedir_traslado(u, cl, eq(), eqs(), "confirmar", prueba=True))
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/mod_hipervisores.py", line 188, in pedir_traslado
+    raise PermissionError("No hay un traslado pendiente de confirmar")
+PermissionError: No hay un traslado pendiente de confirmar
+--- anfitrión
+ 2    nodo-vault                   running
+ 34   srv-mover-01                 running
+ Interface   Type      Source     Model    MAC
+--------------------------------------------------------------
+ vnet33      network   dc-valpo   virtio   52:54:00:1e:78:c7
+
+ Name       MAC address          Protocol     Address
+-------------------------------------------------------------------------------
+ vnet33     52:54:00:1e:78:c7    ipv4         192.168.150.130/24
+
+ srv-mover-01.qcow2   /var/lib/libvirt/dc-valpo/srv-mover-01.qcow2
+--- fin: 2026-11-10T21:57:41-03:00 · código: 0
