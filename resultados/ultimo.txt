@@ -1,37 +1,17 @@
-commit: 8d0c08ce92e731752935ed11fdd0b3b50c9f507b
-inicio: 2026-11-11T00:05:42-03:00
+commit: b4ae4e082f18e501a16fbfe4a71d46a71041bb07
+inicio: 2026-11-11T00:18:49-03:00
 ---
-pendiente previo: FO-LAB-01579 en_ejecucion
-  -> exitoso
-nodo-jboss ruta vigente antes: 200
-nodo-nginx ruta vigente antes: 200
-nodo-tomcat ruta vigente antes: 404
-  aviso: ['Reinstalando Redis Insight en nodo-tomcat (FO-LAB-01583): al terminar, el icono de Redis abre su consola']
-   FO-LAB-01583 ri_ruta: /faceops/lab/inventario/10/consola-web/redis
-   FO-LAB-01583 en_ejecucion | 
-  ruta vigente después: ReadTimeout
-== nodo-jboss 6
- página: 200 /faceops/lab/inventario/6/consola-web/redis/ título: Redis Insight
- api/databases: 200 0
- alta conexión: 201 
- conectar: 200 overview: 200 {"version":"6.2.24","serverName":null,"totalKeys":0,"usedMemory":875936,"connectedClients":1,"opsPerSecond":11,"networkInKbps":0,"networkOut
- texto: 
- >=400/fallas: ['503 GET /faceops/lab/inventario/6/consola-web/redis/assets/redux-thunk-mZs2rUNu.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/redux-thunk-mZs2rUNu.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/6/consola-web/redis/assets/@reduxjs-B6mEhL_u.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/@reduxjs-B6mEhL_u.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/6/consola-web/redis/assets/lodash-es-C_yls3rA.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/lodash-es-C_yls3rA.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/6/consola-web/redis/assets/date-fns-DDMf5MkQ.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/date-fns-DDMf5MkQ.js net::ERR_ABORTED']
- socket.io: ['503 /faceops/lab/inventario/6/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '503 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '503 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js']
- errores js: []
-== nodo-nginx 8
- página: 200 /faceops/lab/inventario/8/consola-web/redis/ título: Redis Insight
- api/databases: 200 0
- alta conexión: 500 {"message":"Unsupported encryption strategy","name":"UnsupportedEncryptionStrategy","statusCode":500,"errorCode":11807}
- texto: 
- >=400/fallas: ['503 GET /faceops/lab/inventario/8/consola-web/redis/assets/redux-thunk-mZs2rUNu.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/redux-thunk-mZs2rUNu.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/8/consola-web/redis/assets/@reduxjs-B6mEhL_u.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/@reduxjs-B6mEhL_u.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/8/consola-web/redis/assets/lodash-es-C_yls3rA.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/lodash-es-C_yls3rA.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/8/consola-web/redis/assets/date-fns-DDMf5MkQ.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/date-fns-DDMf5MkQ.js net::ERR_ABORTED']
- socket.io: ['503 /faceops/lab/inventario/8/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '503 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '503 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js']
- errores js: []
-== nodo-tomcat 10
- página: 502 /faceops/lab/inventario/10/consola-web/redis/ título: nodo-tomcat no responde · FaceOps
- api/databases: 502 0
- texto: ☰ FaceOps Managed Service · Invoke v1.0.1522 Clientes Gobierno ES Móvil Panel Banco del Pacífico Sur (demo) Clínica Santa Lucía (demo) Invoke Lab Minera Los Andes (demo) ＋ Agregar cliente… Infraestructura Servidores Redes Storage Sistemas operativos Bases de datos Plataformas Contenedores Estaciones
- >=400/fallas: ['502 GET /faceops/lab/inventario/10/consola-web/redis/', '502 GET /faceops/lab/inventario/10/consola-web/redis/api/databases', '502 GET /faceops/lab/inventario/10/consola-web/redis/']
- socket.io: []
- errores js: []
---- fin: 2026-11-11T00:20:16-03:00 · código: 0
+credencial bóveda nodo-jboss antes: 401
+TICKET FO-LAB-01599 exitoso · usuarios: admin-aap admin
+credencial bóveda nodo-jboss después: 200
+KEYCLOAK consola registrada: http://192.168.122.15:8180/admin/ · web_de: http://192.168.122.15:8180/admin/ · jboss 9990: http://192.168.122.15:9990/console/
+HAL nodo-jboss login: 302 ['Redirecting...'] · /management: 200 "21.0.20.Final-redhat-00001"
+HAL nodo-jboss2 login: 302 ['Redirecting...'] · /management: 200 "21.0.20.Final-redhat-00001"
+HAL nodo-jboss-dev login: 302 ['Redirecting...'] · /management: 200 "21.0.20.Final-redhat-00001"
+VERIFICAR FO-LAB-01600 exitoso Política APP-02 v4 (verificar): nodo-jboss-dev: al día
+ESTADO {'nombre': 'nodo-jboss', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar'}
+ESTADO {'nombre': 'nodo-jboss2', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar'}
+ESTADO {'nombre': 'nodo-jboss-dev', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar'}
+MEM 2 · Mem:            1707        1132         304           9         424         574 ·   RSS COMMAND · 621504 java · 141132 node · 24508 python3 · 22024 podman · inactive · Failed to get unit file state for keycloak.service: No such file or directory · 0.0.0.0:9990 · 0.0.0.0:8080
+app-jboss salud: ok 1.0.44
+--- fin: 2026-11-11T00:21:52-03:00 · código: 0
