@@ -1,53 +1,9 @@
-commit: 06ec0b1ae725a57f642a997da5f4c0df274887bc
-inicio: 2026-11-11T11:47:01-03:00
+commit: 0e32a53eaa5ed31e086589f0677656004bea129c
+inicio: 2026-11-11T11:47:54-03:00
 ---
-EQ nodo-jboss 192.168.122.15 energia encendido ram_mb 2048 skills None ult_recol 2026-11-10T06:03:31.592092Z
-SERV_KC ['eap8-standalone', 'keycloak', 'vigia-jboss']
-PUERTOS_WEB {'keycloak': 8180}
-FICHA 200
-  CARD comp-cab" style="gap:6px"><b title="Red Hat JBoss EAP · versión 8.0 Update 12.0">Red Hat JBoss EAP · versión 8.0 Update 12.0</b><span class="chip s-alta" style="font-size:10.5px" title="Existe la versión 8.1">antigua</span><span class="der pt">94<small>%</small></span><a class="comp-entrar" href="/lab/inventario/6/consola-web/jboss-eap/" target="_blank" rel="noopener" title="Consola de administración de JBoss · Consola de Red Hat JBoss EAP · versión 8.0 Update 12.0 · se abre a través de FaceOps" aria-label="Consola de administración de JBoss" onclick="event.stopPropagation()"></a></div>
-  CARD comp-cab" style="gap:6px"><b title="Keycloak">Keycloak</b><span class="comp-entrar sin-web" style="width:auto;padding:0 6px" tabindex="0" data-tip="Keycloak está detenido (su consola web no responde): la consola (Keycloak) se habilita sola cuando la plataforma esté encendida." aria-label="Consola de Keycloak: detenido" onclick="event.stopPropagation()"><small style="font-size:10.5px;margin-left:3px">detenido</small></span></div>
-  LINK /lab/inventario/6/consola-web/jboss-eap/
-  LINK /lab/inventario/6/consola-web/redis/
-  TXT span class="comp-entrar sin-web" style="width:auto;padding:0 6px" tabindex="0" data-tip="Keycloak está detenido (su consola web no responde): la consola (Keycloak) se habilita sola cuando la plataforma esté encendida." aria-label="Consola de Keycloak: detenido" onclick=
-  TXT Keycloak está detenido (su consola web no responde): la consola (Keycloak) se habilita sola cuando la plataforma esté encendida.
-CONSOLA_KC 302 /lab/inventario/6/consola-web/keycloak/admin/  Redirecting... Redirecting... You should be redirected automatically to the target URL: /lab/inventario/6/consola-web/keycloak/admin/ . If not, click the link. 
-SERV_ESTADO en ejecución PUERTO 8180 CONSOLA_NOVERIF {'url': 'http://192.168.122.15:8180/admin/', 'producto': 'Keycloak', 'transparente': False} CONSOLA_VERIF None
-WEB_DE None
-TICKET FO-LAB-01646
-ESTADO FO-LAB-01646 exitoso job 23360
-### userunits
-1000 ansible no active
-### archivos
-/var/lib/keycloak
-/var/lib/keycloak/deshabilitado/keycloak.container
-### rootless
-le or directory
-[rsoto]
-Failed to obtain podman configuration: lstat /run/user/1004: no such file or directory
-[carlos]
-Failed to obtain podman configuration: lstat /run/user/1006: no such file or directory
-[areyes]
-Failed to obtain podman configuration: lstat /run/user/1007: no such file or directory
-[operador]
-Failed to obtain podman configuration: lstat /run/user/1008: no such file or directory
-### procesos
-
-### nft
-ept;
-46:		type nat hook output priority dstnat; policy accept;
-61:		ip saddr 10.88.0.0/16 udp dport 53 counter packets 0 bytes 0 accept
-62:		ip saddr 10.88.0.0/16 tcp dport 53 counter packets 0 bytes 0 accept
-68:		ip saddr 10.88.0.0/16 counter packets 2149 bytes 11482828 accept
-72:		type filter hook forward priority filter; policy accept;
-77:		type filter hook input priority filter; policy accept;
-### ultimo_boot
-IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-  0 d69879edcfb0499bbdca6dddd25c1a54 Wed 2026-11-11 07:30:36 EST Wed 2026-11-11 09:49:22 EST
-reboot   system boot  5.14.0-687.5.3.e Wed Nov 11 07:30   still running
-reboot   system boot  5.14.0-687.5.3.e Tue Nov 10 19:27 - 23:24  (03:57)
-reboot   system boot  5.14.0-687.5.3.e Tue Nov 10 16:30 - 19:26  (02:56)
-### jboss_heap
--Xms1303m
--Xmx1303m
---- fin: 2026-11-11T11:49:45-03:00 · código: 0
+fd06ac4
+RES {"caso": "diag", "auto": "Monitoreo · Configurar alertas del equipo", "ticket": "FO-LAB-01647", "estado": "exitoso", "stats": {"faceops_alertas": {"equipo": "nodo-jboss", "tipo": "linux", "alertas": [{"accion": "avisar", "id": "D01"}, {"accion": "avisar", "aviso": 70, "critico": 90, "id": "C01"}], "reglas": "3", "resumen": ["D01 Sin respuesta (critico) → avisar", "C01 CPU alta → avisar (aviso 70 · crítico 90 %)"], "tablero": true}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 15 s, espera de aprobación 28 s"}
+[('alerting', 'FaceOpsSinRespuestaD01', 'up{faceops_equipo="nodo-jboss",job="faceops-equipos"} == 0', 'ok'), ('alerting', 'FaceOpsCpuAltaC01Aviso', '100 - avg by (faceops_equipo) (rate(node_cpu_seconds_total{f', 'ok'), ('alerting', 'FaceOpsCpuAltaC01Critico', '100 - avg by (faceops_equipo) (rate(node_cpu_seconds_total{f', 'ok'), ('recording', 'faceops_alerta_umbral', 'vector(0)', 'ok'), ('recording', 'faceops_alerta_umbral', 'vector(70)', 'ok'), ('recording', 'faceops_alerta_umbral', 'vector(90)', 'ok')]
+2
+faceops-alertas.json
+--- fin: 2026-11-11T11:50:19-03:00 · código: 0
