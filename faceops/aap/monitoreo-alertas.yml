@@ -8,7 +8,7 @@
 #   al_inventario, al_credencial: de AAP, solo si una acción entra a la máquina (viajan en la regla hasta la respuesta)
 - name: Monitoreo · Configurar alertas del equipo
   hosts: anfitrion_kvm
-  become: true
+  become: false   # aap-kvm escribe solo lo de FaceOps (ACL que deja configurar.py); promtool por sudo acotado
   gather_facts: false
   vars:
     m: /opt/summit-monitoreo/prometheus
@@ -91,11 +91,11 @@
         cmd: |
           set -e
           r={{ m }}/faceops/respaldo
-          cp -p {{ m }}/prometheus.yml $r/prometheus.yml
+          cp --preserve=mode,timestamps {{ m }}/prometheus.yml $r/prometheus.yml
           rm -f $r/regla.yml $r/obj-*.yml
-          [ -f {{ destino_reglas }} ] && cp -p {{ destino_reglas }} $r/regla.yml || true
+          [ -f {{ destino_reglas }} ] && cp --preserve=mode,timestamps {{ destino_reglas }} $r/regla.yml || true
           for f in {{ m }}/faceops/objetivos/exp-{{ al_equipo }}.yml {{ m }}/faceops/objetivos/tcp-{{ al_equipo }}.yml; do
-            [ -f "$f" ] && cp -p "$f" $r/obj-$(basename "$f") || true
+            [ -f "$f" ] && cp --preserve=mode,timestamps "$f" $r/obj-$(basename "$f") || true
           done
       changed_when: false
 
@@ -138,7 +138,7 @@
               set -e
               f=/opt/summit-monitoreo/alertmanager/alertmanager.yml
               grep -q 'faceops-objetos' $f && exit 0
-              cp -p $f {{ m }}/faceops/respaldo/alertmanager.yml
+              cp --preserve=mode,timestamps $f {{ m }}/faceops/respaldo/alertmanager.yml
               python3 - "$f" <<'PY'
               import sys, yaml
               p = sys.argv[1]; d = yaml.safe_load(open(p))
@@ -154,7 +154,7 @@
 
         - name: Validar con promtool
           ansible.builtin.command:
-            argv: [podman, exec, summit-prometheus, promtool, check, config, /etc/prometheus/prometheus.yml]
+            argv: [sudo, -n, /usr/bin/podman, exec, summit-prometheus, promtool, check, config, /etc/prometheus/prometheus.yml]
           changed_when: false
 
         - name: Recargar Prometheus
@@ -177,10 +177,10 @@
           ansible.builtin.shell:
             cmd: |
               r={{ m }}/faceops/respaldo
-              cp -p $r/prometheus.yml {{ m }}/prometheus.yml
+              cp --preserve=mode,timestamps $r/prometheus.yml {{ m }}/prometheus.yml
               rm -f {{ destino_reglas }} {{ m }}/faceops/objetivos/exp-{{ al_equipo }}.yml {{ m }}/faceops/objetivos/tcp-{{ al_equipo }}.yml
-              [ -f $r/regla.yml ] && cp -p $r/regla.yml {{ destino_reglas }}
-              for f in $r/obj-*.yml; do [ -f "$f" ] && cp -p "$f" {{ m }}/faceops/objetivos/$(basename "$f" | sed 's/^obj-//'); done
+              [ -f $r/regla.yml ] && cp --preserve=mode,timestamps $r/regla.yml {{ destino_reglas }}
+              for f in $r/obj-*.yml; do [ -f "$f" ] && cp --preserve=mode,timestamps "$f" {{ m }}/faceops/objetivos/$(basename "$f" | sed 's/^obj-//'); done
               curl -s -X POST http://127.0.0.1:9090/-/reload
           changed_when: true
 

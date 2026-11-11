@@ -1045,6 +1045,19 @@ jid = asegurar("job_templates", "Identidad · Fuente de usuarios de FaceOps", {
     "description": "Lee una fuente de usuarios (AD, LDAP o midPoint) con su credencial y deja su autenticador en el Gateway de AAP"})
 if cr_gw["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jid['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jid['id']}/credentials/", {"id": cr_gw["id"]})
+# Monitoreo · Configurar alertas: la credencial del anfitrión (aap-kvm, sin sudo general) escribe solo la configuración de
+# FaceOps en Prometheus y Alertmanager (ACL) y valida con promtool por un sudo acotado a ese comando.
+_mon = "/opt/summit-monitoreo"
+_r = subprocess.run(["sudo", "-n", "bash", "-c", f"""set -e
+id aap-kvm >/dev/null
+mkdir -p {_mon}/prometheus/faceops/reglas {_mon}/prometheus/faceops/objetivos {_mon}/prometheus/faceops/respaldo
+chown -R aap-kvm: {_mon}/prometheus/faceops
+setfacl -m u:aap-kvm:rwx {_mon}/prometheus {_mon}/alertmanager
+setfacl -m u:aap-kvm:rw {_mon}/prometheus/prometheus.yml {_mon}/alertmanager/alertmanager.yml
+echo 'aap-kvm ALL=(root) NOPASSWD: /usr/bin/podman exec summit-prometheus promtool check config /etc/prometheus/prometheus.yml' > /etc/sudoers.d/aap-kvm-monitoreo
+chmod 0440 /etc/sudoers.d/aap-kvm-monitoreo
+visudo -cq"""], capture_output=True, text=True)
+paso("Monitoreo: aap-kvm escribe la configuración de FaceOps en Prometheus y Alertmanager" if _r.returncode == 0 else f"Monitoreo: no se pudo preparar el acceso de aap-kvm ({_r.stderr.strip()[:160]})")
 jrs = asegurar("job_templates", "Monitoreo · Responder alerta", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/monitoreo-responder.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,
