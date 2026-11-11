@@ -1,7 +1,41 @@
-commit: d380e1496205df8227763a860c1af430080dfd8f
-inicio: 2026-11-11T19:25:24-03:00
+commit: a4b492b1bafdfce9ce2a85414e238dd7d9e830dd
+inicio: 2026-11-11T19:26:03-03:00
 ---
-FO-LAB-01897 fallido 21:56 Migración · CentOS a RHEL Plan de prueba C1 de «Migración · CentOS
-FO-LAB-01899 fallido 21:58 Migración · CentOS a RHEL Plan de prueba C2 de «Migración · CentOS
-FO-LAB-01900 en_ejecucion 22:01 Migración · CentOS a RHEL Plan de prueba C3 de «Migración · CentOS
---- fin: 2026-11-11T19:25:48-03:00 · código: 0
+total 6900
+-rw-r--r--. 1 pkiuser pkiuser  696925 Nov 11 19:24 debug.2026-11-11.log
+-rw-r-----. 1 pkiuser pkiuser   27639 Nov 11 18:31 selftests.log
+-rw-r--r--. 1 pkiuser pkiuser  744218 Nov 10 23:59 debug.2026-11-10.log
+-rw-r--r--. 1 pkiuser pkiuser  550954 Nov  9 23:57 debug.2026-11-09.log
+-rw-r--r--. 1 pkiuser pkiuser  565891 Nov  8 22:56 debug.2026-11-08.log
+-rw-r--r--. 1 pkiuser pkiuser  458918 Nov  7 23:58 debug.2026-11-07.log
+-rw-r--r--. 1 pkiuser pkiuser  403178 Nov  6 23:58 debug.2026-11-06.log
+## debug.2026-11-11.log
+6791:	at com.netscape.cms.servlet.cert.RevocationProcessor.getCertificateRecord(RevocationProcessor.java:263)
+6792:	at org.dogtagpki.server.ca.rest.v1.AgentCertService.revokeCert(AgentCertService.java:226)
+6793:	at org.dogtagpki.server.ca.rest.v1.AgentCertService.revokeCert(AgentCertService.java:139)
+6855:Caused by: netscape.ldap.LDAPException: No such object (32); matchedDN = ou=certificateRepository,ou=ca,o=pki-invoke-CA
+6887:2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: SessionContextInterceptor: Invoking AgentCertResource.revokeCert()
+6903:2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: CertService.revokeCert: client cert issued by this CA
+6905:2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] SEVERE: Unable to pre-process revocation request: Record not found: No such object
+6906:Record not found: No such object
+6911:	at com.netscape.cms.servlet.cert.RevocationProcessor.getCertificateRecord(RevocationProcessor.java:263)
+6912:	at org.dogtagpki.server.ca.rest.v1.AgentCertService.revokeCert(AgentCertService.java:226)
+6913:	at org.dogtagpki.server.ca.rest.v1.AgentCertService.revokeCert(AgentCertService.java:139)
+6975:Caused by: netscape.ldap.LDAPException: No such object (32); matchedDN = ou=certificateRepository,ou=ca,o=pki-invoke-CA
+## selftests.log
+## debug.2026-11-10.log
+4384:2026-11-10 17:29:04 [https-jsse-jss-nio-18443-exec-3] INFO: SessionContextInterceptor: Invoking AgentCertResource.revokeCert()
+4397:2026-11-10 17:29:04 [https-jsse-jss-nio-18443-exec-3] INFO: CertService.revokeCert: client cert issued by this CA
+4409:2026-11-10 17:29:04 [https-jsse-jss-nio-18443-exec-3] INFO: RevocationProcessor: Processing revocation request 0x8208191cef6603fc228feef4b73863c4
+## debug.2026-11-09.log
+localhost_access_log.2026-11-11.txt
+pki
+host-manager.2026-11-11.log
+manager.2026-11-11.log
+localhost.2026-11-11.log
+catalina.2026-11-11.log
+ca
+localhost_access_log.2026-11-10.txt
+host-manager.2026-11-10.log
+localhost.2026-11-10.log
+--- fin: 2026-11-11T19:26:04-03:00 · código: 0
