@@ -135,6 +135,7 @@
 
     - name: Resultado del despliegue
       ansible.builtin.set_stats:
+        aggregate: false   # serial 1: con aggregate los valores de cada JBoss se concatenaban (1.0.441.0.44)
         data:
           version_desplegada: "{{ app_version }}"
           commit: "{{ app_commit | default('') }}"
