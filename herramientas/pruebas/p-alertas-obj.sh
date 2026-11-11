@@ -3,7 +3,7 @@ source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="Monitoreo · Configurar alertas del equipo"; CASOS='[]'; TKS='[]'
 PM=http://127.0.0.1:9090
 reglas() { curl -s $PM/api/v1/rules?type=alert | python3 -c "import json,sys;d=json.load(sys.stdin);g=[x for x in d['data']['groups'] if x['name']=='faceops-$1'];print(len(g[0]['rules']) if g else 0)"; }
-reglas_txt() { curl -s $PM/api/v1/rules?type=alert | python3 -c "import json,sys;d=json.load(sys.stdin);g=[x for x in d['data']['groups'] if x['name']=='faceops-$1'];print(json.dumps(sorted((r['name'],r['query'],r['labels'].get('faceops_accion',''),r['labels'].get('faceops_automatizacion','')) for r in (g[0]['rules'] if g else []))))"; }
+reglas_txt() { curl -s $PM/api/v1/rules?type=alert | python3 -c "import json,sys;d=json.load(sys.stdin);g=[x for x in d['data']['groups'] if x['name']=='faceops-$1'];print(json.dumps(sorted((r['name'],r['query'],r['labels'].get('faceops_accion',''),r['labels'].get('faceops_automatizacion','')) for r in (g[0]['rules'] if g else []))), ensure_ascii=False))"; }
 up() { curl -s "$PM/api/v1/query" --data-urlencode "query=up{job=\"faceops-equipos\",faceops_equipo=\"$1\"}" | python3 -c "import json,sys;r=json.load(sys.stdin)['data']['result'];print(r[0]['value'][1] if r else 'sin-serie')"; }
 pedir() {  # pedir <caso> <equipo> <ip> <tipo> '<alertas json>' [min]
   caso "{\"auto\":\"$N\",\"params\":{\"al_equipo\":\"$2\",\"al_ip\":\"$3\",\"al_tipo\":\"$4\",\"al_alertas\":$5,\"al_retirar\":$( [ "$5" = "[]" ] && echo true || echo false )},\"min\":${6:-20},\"caso\":\"$1\"}"
@@ -79,5 +79,6 @@ pedir C8 $L $IL linux '[]'; E8=$(estado); sleep 40; R8=$(reglas $L); U8=$(up $L)
 pedir C8b $S $IS storage '[]' >/dev/null; [ -n "$RN" ] && pedir C8c $RN $RI red '[]' >/dev/null
 T8=$(sudo test -f /opt/summit-monitoreo/grafana/dashboards/faceops/faceops-al-$L.json && echo queda || echo sin-tablero)
 [ "$E8" = exitoso ] && [ "$R8" = 0 ] && [ "$U8" = sin-serie ] && [ "$OK8" = 200 ] && [ "$T8" = sin-tablero ] && anotar C8 "Retirar todas" ok "sin reglas, objetivo ni tablero; Prometheus listo" || anotar C8 "Retirar todas" falla "$E8 reglas=$R8 up=$U8 ready=$OK8 tablero=$T8"
+echo "EVIDENCIA $CASOS"
 certificar "$N" "Plan alertas por objeto · C1–C9 y C11 (planes-prueba.yml)"
 echo FIN-ALERTAS-OBJ
