@@ -1,92 +1,38 @@
-commit: 55fb26c1217b75b6987e9106f781573b265a9b4c
-inicio: 2026-11-11T11:51:15-03:00
+commit: b5ec8924fcbf78dba00dd88e6d9a3f90e306dfc5
+inicio: 2026-11-11T12:34:04-03:00
 ---
-3123874
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-C1 exitoso reglas=7 up=1 reflejo=4
-CASO C1 ok · Activar en Linux con agente
-CASO C9 falla · Acción por alerta y ruta a EDA
-CASO C11 ok · Tablero en Grafana
-CASO C2 falla · Disparo real
-CASO C3 falla · Ajustar y quitar
-CASO C4 ok · Repetir
-CASO C5 falla · Storage y equipo de red
-CASO C6 ok · Equipo sin agente
-CASO C7 ok · Umbral inválido
-CASO C8 ok · Retirar todas
-EVIDENCIA [{"id": "C1", "caso": "Activar en Linux con agente", "resultado": "ok", "evidencia": "7 reglas faceops-nodo-jboss, up=1, 4 alertas en la ficha (FO-LAB-01650)"}, {"id": "C9", "caso": "Acción por alerta y ruta a EDA", "resultado": "falla", "evidencia": "AM=2 "}, {"id": "C11", "caso": "Tablero en Grafana", "resultado": "ok", "evidencia": "faceops-al-nodo-jboss solo con sus 4 alertas activas y consultas fijas al equipo (6701,6702,6703,6801 True); umbrales C01 critical=95,warning=80"}, {"id": "C2", "caso": "Disparo real", "resultado": "falla", "evidencia": "sin respuesta del arnés firing=4 alertmanager=4"}, {"id": "C3", "caso": "Ajustar y quitar", "resultado": "falla", "evidencia": "exitoso reglas=3"}, {"id": "C4", "caso": "Repetir", "resultado": "ok", "evidencia": "mismas reglas (e3b0c44298); un solo trabajo faceops-equipos"}, {"id": "C5", "caso": "Storage y equipo de red", "resultado": "falla", "evidencia": "fallido/exitoso reglas=0/3 probe=1"}, {"id": "C6", "caso": "Equipo sin agente", "resultado": "ok", "evidencia": "falla con «instala el agente de monitoreo»; Prometheus sin cambios"}, {"id": "C7", "caso": "Umbral inválido", "resultado": "ok", "evidencia": "FaceOps lo rechaza; el playbook falla y deja las reglas como estaban"}, {"id": "C8", "caso": "Retirar todas", "resultado": "ok", "evidencia": "sin reglas, objetivo ni tablero; Prometheus listo"}]
-FIN-ALERTAS-OBJ
-== flujo del flotante (test_client): un ticket con todas las alertas de nodo-jboss
-== público con sesión de FaceOps (cookie firmada, no se imprime)
-GET con sesión 302 /grafana/d/faceops-al-nodo-jboss?orgId=1&from=now-24h&to=now
-<title>302 Found</title>
-GET con sesión 302 /grafana/d/faceops-al-nodo-jboss?orgId=1&from=now-24h&to=now&viewPanel=6701
-<title>302 Found</title>
-GET con sesión 302 /grafana/d/faceops-al-nodo-jboss?orgId=1&from=now-24h&to=now&viewPanel=7401
-<title>302 Found</title>
-GET sin sesión 302 → https://faceops.34.176.42.56.sslip.io:8843/faceops/ingresar
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-POST dashboards/db 403
-POST login 403
-GET admin 403
-GET proxy datasource 403
-total 8
-drwxr-xr-x. 2 aap-kvm aap-kvm   32 Nov 11 12:29 .
-drwxr-xr-x. 3     472 root     134 Nov 11 11:10 ..
--rw-r--r--. 1 aap-kvm aap-kvm 4698 Nov 11 12:20 faceops-al-fw.json
-sed: can't read /opt/summit-monitoreo/prometheus/faceops/reglas/nodo-jboss.yml: No such file or directory
---- fin: 2026-11-11T12:33:45-03:00 · código: 0
+               total        used        free      shared  buff/cache   available
+Mem:          128386      101391        2971        3012       28116       26995
+srv-cisco-c240-01 1024
+srv-dell-r660xs-01 1024
+srv-dell-r760-01 1024
+srv-fujitsu-rx2540-01 1024
+srv-hpe-dl360-01 1024
+srv-hpe-dl380-01 1024
+srv-lenovo-sr630-01 1024
+srv-lenovo-sr650-01 1024
+srv-supermicro-01 1024
+srv-xfusion-2288h-01 1024
+nodo-jboss 2048
+nodo-jboss2 2048
+nodo-jboss4 2048
+nodo-jboss-dev 2048
+nodo-nginx 2048
+nodo-postgres 2048
+nodo-so 2048
+nodo-storage 2048
+nodo-tomcat 2048
+nodo-vault 2048
+nodo-windows 2048
+srv-mover-01 2048
+srv-no-existe-99 2048
+srv-prueba-resp-01 2048
+srv-prueba-rhel8-01 2048
+srv-prueba-rhel9-01 2048
+sno 24576
+TOTAL_VMS_MB 67584
+==== FO-LAB-01644 exitoso
+AAP terminó (successful): ejecución 14 s, espera de aprobación 54 s
+==== FO-LAB-01646 exitoso
+AAP terminó (successful): ejecución 19 s, espera de aprobación 49 s
+--- fin: 2026-11-11T12:34:12-03:00 · código: 0
