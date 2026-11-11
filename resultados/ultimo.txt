@@ -1,19 +1,20 @@
-commit: 280155306fd5a55110a353e30693b26d082a57f3
-inicio: 2026-11-11T11:04:32-03:00
+commit: ddcc2684eee2584e4676e198025443db6a177104
+inicio: 2026-11-11T11:11:31-03:00
 ---
-b7889eb
-== reflejo nodo-jboss
-6 {"tipo": "linux", "alertas": [{"accion": "reiniciar_jboss", "id": "J01", "severidad": "critico"}, {"accion": "recursos", "aviso": 80, "critico": 95, "id": "C01", "para": "2m"}], "resumen": ["J01 JBoss detenido (critico) → reiniciar_jboss", "C01 CPU alta → recursos (aviso 80 · crítico 95 %)"], "actualizado": "2026-11-11T04:21:36+00:00", "ticket": "FO-LAB-01628"}
-== configurar.py
-   · Plantilla «FaceOps · Agente de monitoreo (Linux)» (id 107)
-   · Monitoreo: aap-kvm escribe la configuración de FaceOps en Prometheus y Alertmanager
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-total 0
-drwxr-xr-x. 2 aap-kvm aap-kvm   6 Nov 11 11:10 .
-drwxr-xr-x. 3     472 root    134 Nov 11 11:10 ..
-== grafana público
-2026/11/11 14:10:57 [notice] 53#53: signal process started
-Grafana público detrás de la sesión de FaceOps: /grafana/
-sin sesion 404 
-sesion/valida sin cookie 401
---- fin: 2026-11-11T11:10:57-03:00 · código: 0
+5:server {
+6:    listen 80;
+7:    server_name _;
+11:server {
+12:    listen 8843 ssl;
+15:    server_name faceops.34.176.42.56.sslip.io;
+28:        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+37:        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+51:        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+83:    include /etc/nginx/conf.d/faceops-grafana.inc;
+84:    location / { return 404; }
+/var/lib/faceops-publico/conf/faceops.conf
+/var/lib/faceops-publico/conf/portal-automatizacion.conf
+/var/lib/faceops-publico/conf/satellite.conf
+grafana 302 https://faceops.34.176.42.56.sslip.io:8843/faceops/ingresar
+faceops 200
+--- fin: 2026-11-11T11:11:32-03:00 · código: 0

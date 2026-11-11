@@ -1,0 +1,20 @@
+commit: ddcc2684eee2584e4676e198025443db6a177104
+inicio: 2026-11-11T11:11:31-03:00
+---
+5:server {
+6:    listen 80;
+7:    server_name _;
+11:server {
+12:    listen 8843 ssl;
+15:    server_name faceops.34.176.42.56.sslip.io;
+28:        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+37:        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+51:        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+83:    include /etc/nginx/conf.d/faceops-grafana.inc;
+84:    location / { return 404; }
+/var/lib/faceops-publico/conf/faceops.conf
+/var/lib/faceops-publico/conf/portal-automatizacion.conf
+/var/lib/faceops-publico/conf/satellite.conf
+grafana 302 https://faceops.34.176.42.56.sslip.io:8843/faceops/ingresar
+faceops 200
+--- fin: 2026-11-11T11:11:32-03:00 · código: 0
