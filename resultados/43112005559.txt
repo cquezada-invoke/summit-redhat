@@ -1,0 +1,22 @@
+commit: 30becf9b8e075a55ae9967783c8168a748d37539
+inicio: 2026-11-11T19:29:17-03:00
+---
+9aadf85
+UI antes · campana máquina al-btn al-solo al-curso 2 | checkboxes deshabilitados: 0 | aviso: []
+ACTIVAR máquina → 200 {'numero': 'FO-LAB-01907', 'estado': 'en_ejecucion', 'error': None} | tickets nuevos: 1
+ACTIVAR máquina ticket FO-LAB-01907 exitoso
+ACTIVAR JBoss → 200 {'numero': 'FO-LAB-01909', 'estado': 'en_ejecucion', 'error': None} | tickets nuevos: 1
+ACTIVAR JBoss ticket FO-LAB-01909 exitoso
+PROM máquina [('B05', 'avisar'), ('C01', 'avisar'), ('C02', 'avisar'), ('C03', 'avisar'), ('D01', 'avisar'), ('S01', 'avisar')]
+PROM jboss [('J01', 'diagnosticar')]
+APAGAR C02 → 200 {'numero': 'FO-LAB-01911', 'estado': 'en_ejecucion', 'error': None} | tickets nuevos: 1
+APAGAR C02 ticket FO-LAB-01911 exitoso
+PROM sin C02: True
+ENCENDER C02 → 200 {'numero': 'FO-LAB-01914', 'estado': 'en_ejecucion', 'error': None} | tickets nuevos: 1
+ENCENDER C02 ticket FO-LAB-01914 exitoso
+PROM con C02: True
+UI después · campana máquina al-btn al-solo al-curso 6 | JBoss al-btn al-solo al-on al-chica 1 | 'Regla en el monitoreo': 6 | Probar: 6 | diag a: ['El diagnóstico se envía a Servidores (cquezada@redhat.com)']
+PROBAR C01 200 
+PROBAR C01 falló | 19:39:43 · alerta de prueba enviada a Alertmanager → 19:39:43 · Alertmanager la recibió y la entrega a faceops-objetos (Event-Driven Ansible) → 19:39:43 · notificación: correo a Servidores (cquezada@redhat.com): pendiente: FaceOps aún no tiene servidor de correo
+PROBAR J01 200 
+--- fin: 2026-11-11T19:41:49-03:00 · código: 0
