@@ -1,63 +1,7 @@
-commit: 5ec8546658520845a383ae12fd65ac028422f8b6
-inicio: 2026-11-11T12:37:05-03:00
+commit: 517e070d18b220068f148b247e939057f2b8d2c8
+inicio: 2026-11-11T13:27:32-03:00
 ---
-72610c9
-faceops arrancó: 2026-11-11 12:35:24.038660702 -0300 -03
-CASO C1 ok · Activar en Linux con agente
-CASO C9 ok · Acción por alerta y ruta a EDA
-CASO C11 ok · Tablero en Grafana
-CASO C2 ok · Disparo real
-CASO C3 ok · Ajustar y quitar
-CASO C4 ok · Repetir
-CASO C5 falla · Storage y equipo de red
-CASO C6 falla · Equipo sin agente
-CASO C7 ok · Umbral inválido
-CASO C8 falla · Retirar todas
-EVIDENCIA [{"id": "C1", "caso": "Activar en Linux con agente", "resultado": "ok", "evidencia": "7 reglas faceops-nodo-jboss, up=1, 4 alertas en la ficha (FO-LAB-01669)"}, {"id": "C9", "caso": "Acción por alerta y ruta a EDA", "resultado": "ok", "evidencia": "faceops_accion y faceops_automatizacion en las reglas; Alertmanager enruta faceops-objetos → :5022"}, {"id": "C11", "caso": "Tablero en Grafana", "resultado": "ok", "evidencia": "faceops-al-nodo-jboss solo con sus 4 alertas activas y consultas fijas al equipo (6701,6702,6703,6801 True); umbrales C01 critical=95,warning=80"}, {"id": "C2", "caso": "Disparo real", "resultado": "ok", "evidencia": "C03 firing en Prometheus (4) y en Alertmanager (4)"}, {"id": "C3", "caso": "Ajustar y quitar", "resultado": "ok", "evidencia": "3 reglas, CPU con aviso 70; disco retirado"}, {"id": "C4", "caso": "Repetir", "resultado": "ok", "evidencia": "mismas reglas (706f8cc7ca); un solo trabajo faceops-equipos"}, {"id": "C5", "caso": "Storage y equipo de red", "resultado": "falla", "evidencia": "sin respuesta del arnés/sin respuesta del arnés reglas=0/3 probe=1 "}, {"id": "C6", "caso": "Equipo sin agente", "resultado": "falla", "evidencia": "sin respuesta del arnés '' 88e7539f4c→88e7539f4c"}, {"id": "C7", "caso": "Umbral inválido", "resultado": "ok", "evidencia": "FaceOps lo rechaza; el playbook falla y deja las reglas como estaban"}, {"id": "C8", "caso": "Retirar todas", "resultado": "falla", "evidencia": "sin respuesta del arnés reglas=0 up=sin-serie ready=200 tablero=sin-tablero"}]
-CERT Monitoreo · Configurar alertas del equipo → cambiada
-FIN-ALERTAS-OBJ
-faceops arrancó: 2026-11-11 13:08:11.14952667 -0300 -03
-4048b7d
-UI antes: campana al-btn al-solo al-curso n= 0 | Generar ticket True | Retirar/Aplicar/Cerrar False False False | aviso en curso False | leyenda True | select C01 deshabilitado False
-UI opciones C01 [('avisar', 'Solo avisar (queda en Event-Driven Ansible)'), ('recursos', 'Ajustar CPU y memoria (propuesta con aprobación) — bloqueada: «Infra · Ajustar recursos de máquinas» aún no pasa su plan de prueba'), ('diagnosticar', 'Diagnóstico automático de solo lectura')]
-ACTIVAR respuesta 400 {'numero': None, 'estado': None, 'error': 'La automatización que configura las alertas aún no tiene su plan de prueba aprobado: se podrá activar cuando lo pase'} tickets nuevos: 0
-PROM reglas []
-UI después: campana al-btn al-solo al-curso n= 0 | enlaces [] | reglas []
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-KeyError: 'dashboard'
-DISPARAR respuesta 400 {'numero': None, 'estado': None, 'error': 'La automatización que configura las alertas aún no tiene su plan de prueba aprobado: se podrá activar cuando lo pase'} tickets nuevos: 0
-PROM C01 firing: 0
-EDA respuesta: [] | workflow: None None
-NORMAL respuesta 400 {'numero': None, 'estado': None, 'error': 'La automatización que configura las alertas aún no tiene su plan de prueba aprobado: se podrá activar cuando lo pase'} tickets nuevos: 0
-PROM reglas []
-UI final: campana al-btn al-solo al-curso n= 0
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-KeyError: 'dashboard'
-== público con sesión de FaceOps (cookie firmada, no se imprime)
-GET con sesión 200 /grafana/d/faceops-al-nodo-jboss?orgId=1&from=now-24h&to=now
-<title>Grafana</title>
-GET con sesión 200 /grafana/d/faceops-al-nodo-jboss?orgId=1&from=now-24h&to=now&viewPanel=6701
-<title>Grafana</title>
-GET con sesión 200 /grafana/d/faceops-al-nodo-jboss?orgId=1&from=now-24h&to=now&viewPanel=7401
-<title>Grafana</title>
-GET sin sesión 302 → https://faceops.34.176.42.56.sslip.io:8843/faceops/ingresar
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-KeyError: 'dashboard'
-usuario grafana visitante
-ds/query 1 series [':66'] 
-ds/query 7 series ['critical:16', 'warning:16', 'critical:2', 'warning:2'] 
-ds/query 1 series [':65'] 
-POST dashboards/db 403
-POST login 403
-GET admin 403
-GET proxy datasource 403
-total 0
-drwxr-xr-x. 2 aap-kvm aap-kvm   6 Nov 11 13:13 .
-drwxr-xr-x. 3     472 root    134 Nov 11 11:10 ..
-sed: can't read /opt/summit-monitoreo/prometheus/faceops/reglas/nodo-jboss.yml: No such file or directory
-cookie: 67 caracteres
-sesion/valida con cookie 204
---- fin: 2026-11-11T13:27:33-03:00 · código: 0
+FaceAdmin actualizado a 4b2b1265
+faceadmin Up 8 seconds
+local 200
+--- fin: 2026-11-11T13:28:02-03:00 · código: 0
