@@ -375,6 +375,9 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
                 raise PermissionError(f"«{auto['nombre']}» no se puede lanzar: la plataforma {por_m} (Arquitectura › Manifiesto de arquitectura)")
     if auto["nombre_aap"] == JENKINS:
         parametros = preparar_jenkins(equipo, parametros)
+    if auto["nombre_aap"] == "Recuperación · Respaldar volúmenes con restic":   # sin S3 indicado: el S3 de respaldos del laboratorio
+        from .respaldo_datos import preparar as preparar_respaldo
+        parametros = preparar_respaldo(cliente["id"], parametros)
     if auto["nombre_aap"] == "FaceOps · Habilitar servidor" and str(parametros.get("hab_so", "")) in ("rhel10", "rhel9", "rhel8", "rhel7") \
             and parametros.get("hab_destino", "onpremise") in ("onpremise", "vmware") and not parametros.get("hab_interno"):
         # RHEL on-premise nace registrado en Red Hat (regularizado): la clave de activación es obligatoria y solo viaja a AAP
@@ -1200,6 +1203,15 @@ def actualizar_tickets():
                     registrar_resultado(c["id"], artefactos_ticket(aap, t), t["numero"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error estado de alertas", t["numero"], {"error": str(x)[:300]})
+            if est in ("exitoso", "fallido") and a and a["nombre_aap"] == "Recuperación · Respaldar volúmenes con restic":
+                try:   # respaldo de datos: ficha (datos.respaldo_datos) y punto de restauración; si falló, queda la vuelta atrás en el ticket
+                    from .respaldo_datos import registrar as registrar_respaldo
+                    txt_ = registrar_respaldo(c, t, artefactos_ticket(aap, t))
+                    if txt_:
+                        res += "\n" + txt_
+                        ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error registro respaldo de datos", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "OpenShift · Relevamiento de imágenes":
                 try:   # el informe queda en la ficha del clúster
                     im_ = (artefactos_ticket(aap, t) or {}).get("faceops_imagenes") or {}

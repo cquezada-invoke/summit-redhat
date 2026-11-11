@@ -117,6 +117,17 @@ planes:
       - {id: C1, caso: "Disco nuevo en una máquina del inventario «Servidores habilitados» (nodo-storage, 100 GB, /srv/datalake)", verificar: "conectado con su serie, particionado, XFS y montado en /srv/datalake (fstab por UUID)"}
       - {id: C2, caso: "Repetir con el mismo disco y serie", verificar: "idempotente: no crea otro volumen ni reformatea; sigue montado"}
       - {id: C3, caso: "Máquina del inventario «Nodos demo» (disco ya existente de una prueba anterior)", verificar: "sigue funcionando con el inventario construido"}
+  "Recuperación · Respaldar volúmenes con restic":
+    casos:
+      - {id: C1, caso: "Datos no válidos (hora 25:00) y volumen del sistema («/») sobre nodo-jboss", tipo: Error controlado, verificar: "ambos se rechazan sin instalar nada: sin restic, sin timer, sin cambios en la ficha"}
+      - {id: C2, caso: "Respaldar con el S3 inalcanzable en una máquina sin respaldo previo", tipo: Error controlado, verificar: "ticket fallido con vuelta atrás: sin timer ni unidades de systemd; el ticket informa «retirado el timer»; la ficha no cambia"}
+      - {id: C3, caso: "Respaldar nodo-jboss con los valores por defecto (S3 del laboratorio, detección automática)", verificar: "detecta solo /datos (no los volúmenes del sistema); restic instalado; repositorio creado en respaldos/nodo-jboss; snapshot y check ok; timer diario habilitado con retención; clave en la bóveda (web/nodo-jboss/restic) igual a la de la máquina; FaceOps deja datos.respaldo_datos y un punto nuevo con /datos «respaldado»; Recuperación sube 15 %"}
+      - {id: C4, caso: "Repetir respaldar", tipo: Idempotencia, verificar: "usa el repositorio existente (no lo vuelve a crear); unidades y clave sin cambios; snapshot nuevo; la retención deja uno por día"}
+      - {id: C5, caso: "Programación: hora del respaldo a unos minutos", verificar: "el timer corre solo a esa hora y deja un snapshot nuevo en el repositorio sin intervención"}
+      - {id: C6, caso: "Estado", tipo: Solo lectura, verificar: "informa snapshots, último respaldo, rutas y próxima ejecución; nada cambia en la máquina"}
+      - {id: C7, caso: "Restaurar el último snapshot en un directorio aparte", verificar: "archivos restaurados = archivos del snapshot; canario presente; /datos intacto; la ficha anota la restauración"}
+      - {id: C8, caso: "Respaldar con el S3 inalcanzable cuando ya hay respaldo programado", tipo: Error controlado, verificar: "ticket fallido con vuelta atrás: el timer anterior sigue habilitado con su horario; la ficha conserva el último respaldo bueno"}
+      - {id: C9, caso: "Restaurar en el mismo volumen respaldado (/datos)", tipo: Error controlado, verificar: "se rechaza sin restaurar nada"}
   "Storage · Servicio S3 del data lake":
     casos:
       - {id: C1, caso: "Sin disco dedicado (directorio en la raíz)", verificar: "se rechaza sin instalar nada"}

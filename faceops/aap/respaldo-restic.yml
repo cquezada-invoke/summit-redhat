@@ -1,0 +1,438 @@
+---
+# Recuperación · Respaldar volúmenes con restic. Respalda los volúmenes de DATOS de la máquina (no los del sistema, que se
+# recuperan desde la imagen, los paquetes y la configuración en Git) en un repositorio restic propio de la máquina dentro
+# del S3 del laboratorio (servicio «Storage · Servicio S3 del data lake», bucket «respaldos»), cifrado con una clave que se
+# genera en la máquina (solo root), nunca se imprime y queda en la bóveda (web/<equipo>/restic, credencial «FaceOps ·
+# Bóveda (servicios)») para poder restaurar aunque la máquina se pierda.
+# Modos (rr_modo):
+#   respaldar  detecta los volúmenes de datos (o usa rr_rutas), instala restic, crea el repositorio si no existe, hace el
+#              respaldo, programa el respaldo diario (timer de systemd) con retención y verifica (snapshots + check).
+#              Si algo falla, vuelve atrás: deja el timer y su configuración como estaban (si no había, no queda nada).
+#   estado     solo lectura: snapshots, último respaldo y próxima ejecución del timer.
+#   restaurar  restaura un snapshot (latest o su id) en un directorio aparte (no pisa los datos) y verifica el canario.
+# Variables: rr_s3 (endpoint, p. ej. http://192.168.122.167:9000) · rr_bucket · rr_hora (HH:MM) · rr_dias · rr_semanas
+#            · rr_rutas (opcional, separadas por coma) · rr_snapshot · rr_destino
+# Resultado para FaceOps (set_stats): faceops_respaldo_datos[<equipo>] = herramienta, snapshot, fecha, rutas, repositorio,
+# programa, retención y verificación; FaceOps lo deja en la ficha (datos.respaldo_datos) y en un punto de restauración.
+- name: Recuperación · Respaldar volúmenes con restic
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    modo: "{{ rr_modo | default('respaldar') | trim }}"
+    s3: "{{ rr_s3 | default('') | trim | regex_replace('/+$', '') }}"
+    bucket: "{{ rr_bucket | default('respaldos') | trim }}"
+    hora: "{{ rr_hora | default('02:30') | trim }}"
+    dias: "{{ rr_dias | default(7) | int }}"
+    semanas: "{{ rr_semanas | default(4) | int }}"
+    rutas_pedidas: "{{ (rr_rutas | default('')).split(',') | map('trim') | select | list }}"
+    snap_pedido: "{{ rr_snapshot | default('latest') | trim }}"
+    destino: "{{ rr_destino | default('/var/lib/faceops-restic/restaurado') | trim | regex_replace('/+$', '') }}"
+    version: "0.17.3"
+    base: /etc/faceops-restic
+    var_dir: /var/lib/faceops-restic
+    sistema: ['/', '/boot', '/boot/efi', '/efi', '/usr', '/var', '/tmp', '/home', '/opt']
+    fs_datos: [xfs, ext4, ext3, ext2, btrfs]
+    repo: "s3:{{ s3 }}/{{ bucket }}/{{ inventory_hostname }}"
+    renv: "set -a; . {{ base }}/env; set +a; export PATH=/usr/local/bin:$PATH"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['respaldar', 'estado', 'restaurar']
+          - modo != 'respaldar' or s3 is match('^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$')
+          - bucket is match('^[a-z0-9][a-z0-9-]{2,62}$')
+          - hora is match('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+          - dias | int >= 1 and dias | int <= 90
+          - semanas | int >= 0 and semanas | int <= 52
+          - rutas_pedidas | select('match', '^/[A-Za-z0-9._/-]*$') | list | length == rutas_pedidas | length
+          - snap_pedido is match('^(latest|[0-9a-f]{8,64})$')
+          - destino is match('^/[A-Za-z0-9._/-]+$') and destino not in sistema
+        fail_msg: >-
+          Datos no válidos: modo respaldar|estado|restaurar, S3 como http(s)://equipo:puerto, bucket en minúsculas, hora HH:MM,
+          1 a 90 días y 0 a 52 semanas de retención, rutas absolutas, snapshot «latest» o su id y destino absoluto fuera del sistema
+
+    - name: Credencial de la bóveda presente (la clave del repositorio se guarda en ella)
+      ansible.builtin.assert:
+        that: [faceops_vault_role_id is defined]
+        fail_msg: "Falta la credencial «FaceOps · Bóveda (servicios)» en la plantilla"
+        quiet: true
+      when: modo == 'respaldar'
+
+    - name: Volúmenes montados
+      ansible.builtin.command: findmnt -rn -o TARGET,FSTYPE,SOURCE
+      register: r_mnt
+      changed_when: false
+
+    - name: Volúmenes de datos (fuera del sistema operativo)
+      ansible.builtin.set_fact:
+        vols_datos: >-
+          {%- set l = [] -%}
+          {%- for ln in r_mnt.stdout_lines -%}{%- set p = ln.split() -%}
+          {%- if p | length >= 3 and p[1] in fs_datos and p[2].startswith('/dev/') and p[0] not in sistema
+                and not p[0].startswith('/boot') and p[0] not in l -%}{%- set _ = l.append(p[0]) -%}{%- endif -%}
+          {%- endfor -%}{{ l }}
+
+    - name: Rutas a respaldar
+      ansible.builtin.set_fact:
+        rutas: "{{ rutas_pedidas if rutas_pedidas | length > 0 else vols_datos }}"
+
+    - name: Las rutas pedidas son volúmenes de datos montados (no del sistema)
+      ansible.builtin.assert:
+        that: rutas_pedidas | difference(vols_datos) | length == 0
+        fail_msg: "{{ rutas_pedidas | difference(vols_datos) | join(', ') }} no es un volumen de datos montado en {{ inventory_hostname }} (los del sistema se recuperan desde la imagen y Git)"
+      when: modo == 'respaldar'
+
+    # ------------------------------------------------------------------------------------------------- respaldar
+    - name: Respaldar
+      when: modo == 'respaldar' and rutas | length > 0
+      block:
+        - name: Estado previo (para volver atrás si algo falla)
+          ansible.builtin.shell: |
+            set -e
+            install -d -m 700 {{ var_dir }}/previo
+            rm -f {{ var_dir }}/previo/*
+            for f in /etc/systemd/system/faceops-restic.service /etc/systemd/system/faceops-restic.timer /usr/local/sbin/faceops-restic-respaldo {{ base }}/env {{ base }}/rutas; do
+              [ -f "$f" ] && cp -a "$f" {{ var_dir }}/previo/$(basename "$f") || true
+            done
+            systemctl is-enabled faceops-restic.timer 2>/dev/null || true
+          register: r_previo
+          changed_when: false
+
+        - name: Arquitectura
+          ansible.builtin.command: uname -m
+          register: r_arch
+          changed_when: false
+
+        - name: ¿restic {{ version }} instalado?
+          ansible.builtin.shell: /usr/local/bin/restic version 2>/dev/null | awk '{print $2}'
+          register: r_ver
+          changed_when: false
+
+        - name: Instalar restic {{ version }} (binario oficial verificado con su SHA256SUMS)
+          when: r_ver.stdout | trim != version
+          vars:
+            arq: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64'}[r_arch.stdout | trim] | default('amd64') }}"
+            url: "https://github.com/restic/restic/releases/download/v{{ version }}"
+          block:
+            - name: Descarga
+              ansible.builtin.get_url:
+                url: "{{ url }}/restic_{{ version }}_linux_{{ arq }}.bz2"
+                dest: "/var/tmp/restic_{{ version }}_linux_{{ arq }}.bz2"
+                checksum: "sha256:{{ url }}/SHA256SUMS"
+                mode: "0600"
+            - name: Descomprimir en /usr/local/bin
+              ansible.builtin.shell: |
+                python3 -c 'import bz2,sys; open("/usr/local/bin/restic.nuevo","wb").write(bz2.open(sys.argv[1]).read())' /var/tmp/restic_{{ version }}_linux_{{ arq }}.bz2
+                chmod 755 /usr/local/bin/restic.nuevo && mv -f /usr/local/bin/restic.nuevo /usr/local/bin/restic
+                rm -f /var/tmp/restic_{{ version }}_linux_{{ arq }}.bz2
+                restorecon /usr/local/bin/restic 2>/dev/null || true
+              changed_when: true
+
+        - name: Clave del repositorio y del S3 (se generan una vez; solo root; nunca se imprimen)
+          ansible.builtin.shell: |
+            set -e
+            install -d -m 700 {{ base }}
+            umask 077
+            n=0
+            [ -s {{ base }}/clave ] || { openssl rand -base64 48 | tr -dc A-Za-z0-9 | head -c 48 > {{ base }}/clave; n=1; }
+            [ -s {{ base }}/s3-usuario ] || { echo "restic-{{ inventory_hostname | regex_replace('[^A-Za-z0-9-]', '') }}" > {{ base }}/s3-usuario; n=1; }
+            [ -s {{ base }}/s3-clave ] || { openssl rand -base64 30 | tr -dc A-Za-z0-9 | head -c 30 > {{ base }}/s3-clave; n=1; }
+            nuevo=$(mktemp)
+            { echo "RESTIC_REPOSITORY={{ repo }}"
+              echo "RESTIC_PASSWORD_FILE={{ base }}/clave"
+              echo "AWS_ACCESS_KEY_ID=$(cat {{ base }}/s3-usuario)"
+              echo "AWS_SECRET_ACCESS_KEY=$(cat {{ base }}/s3-clave)"
+              echo "RESTIC_CACHE_DIR={{ var_dir }}/cache"
+              echo "RR_HOST={{ inventory_hostname }}"; } > $nuevo
+            if [ -f {{ base }}/env ] && cmp -s $nuevo {{ base }}/env; then rm -f $nuevo; else mv -f $nuevo {{ base }}/env; chmod 600 {{ base }}/env; n=1; fi
+            printf '%s\n' {{ rutas | map('quote') | join(' ') }} > {{ base }}/rutas.nuevo
+            if [ -f {{ base }}/rutas ] && cmp -s {{ base }}/rutas.nuevo {{ base }}/rutas; then rm -f {{ base }}/rutas.nuevo; else mv -f {{ base }}/rutas.nuevo {{ base }}/rutas; n=1; fi
+            echo "cambio=$n"
+          register: r_cred
+          changed_when: "'cambio=1' in r_cred.stdout"
+          no_log: true
+
+        - name: Clave en la bóveda (FaceOps la usa para restaurar sin mostrarla)
+          ansible.builtin.shell: |
+            python3 - <<'P'
+            import hashlib, json, os, urllib.request
+            B = "{{ base }}"
+            leer = lambda n: open(os.path.join(B, n)).read().strip()
+            datos = {"herramienta": "restic", "repositorio": "{{ repo }}", "clave": leer("clave"), "s3_usuario": leer("s3-usuario"), "s3_clave": leer("s3-clave")}
+            h = hashlib.sha256(json.dumps(datos, sort_keys=True).encode()).hexdigest()
+            marca = os.path.join(B, "en-boveda")
+            if os.path.exists(marca) and open(marca).read().strip() == h:
+                print("igual"); raise SystemExit(0)
+            A = "{{ faceops_vault_addr }}"
+            def pedir(m, ruta, d, tok=None):
+                r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                           headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+                with urllib.request.urlopen(r, timeout=15) as x:
+                    b = x.read(); return json.loads(b) if b else {}
+            tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+            pedir("POST", "faceops/data/web/{{ inventory_hostname }}/restic", {"data": datos}, tok)
+            with open(marca, "w") as f:
+                f.write(h)
+            os.chmod(marca, 0o600)
+            print("guardada")
+            P
+          register: r_boveda
+          changed_when: "'guardada' in r_boveda.stdout"
+          no_log: true
+
+        - name: Repositorio de la máquina (se crea si no existe)
+          ansible.builtin.shell: |
+            {{ renv }}
+            install -d -m 700 {{ var_dir }}/cache
+            if timeout 90 restic cat config >/dev/null 2>&1; then echo existente; exit 0; fi
+            timeout 120 restic init 2>&1 | grep -v -i password | tail -3
+            timeout 90 restic cat config >/dev/null 2>&1 && echo creado
+          register: r_repo
+          changed_when: "'creado' in r_repo.stdout"
+          failed_when: "'existente' not in r_repo.stdout and 'creado' not in r_repo.stdout"
+
+        - name: Script de respaldo (canario, respaldo, retención y registro para FaceOps)
+          ansible.builtin.copy:
+            dest: /usr/local/sbin/faceops-restic-respaldo
+            mode: "0700"
+            content: |
+              #!/bin/bash
+              # FaceOps · respaldo de los volúmenes de datos con restic (lo deja «Recuperación · Respaldar volúmenes con restic»)
+              set -euo pipefail
+              set -a; . {{ base }}/env; set +a
+              export PATH=/usr/local/bin:$PATH
+              mapfile -t R < {{ base }}/rutas
+              install -d -m 700 {{ var_dir }}
+              for r in "${R[@]}"; do date -Is > "$r/.faceops-restic-canario"; done
+              restic backup --host "$RR_HOST" --tag faceops --one-file-system --json --quiet "${R[@]}" > {{ var_dir }}/backup.json
+              restic forget --host "$RR_HOST" --tag faceops --keep-daily {{ dias }} --keep-weekly {{ semanas }} --prune --quiet > /dev/null
+              python3 - "${R[@]}" <<'P'
+              import json, sys, datetime
+              res = {}
+              for ln in open("{{ var_dir }}/backup.json"):
+                  try:
+                      x = json.loads(ln)
+                  except ValueError:
+                      continue
+                  if x.get("message_type") == "summary":
+                      res = x
+              out = {"snapshot": res.get("snapshot_id", ""), "fecha": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
+                     "rutas": sys.argv[1:], "archivos": res.get("total_files_processed", 0), "bytes": res.get("total_bytes_processed", 0),
+                     "agregados": res.get("data_added", 0)}
+              json.dump(out, open("{{ var_dir }}/ultimo.json", "w"))
+              print(json.dumps(out))
+              P
+          register: r_script
+
+        - name: Servicio y timer diario ({{ hora }})
+          ansible.builtin.copy:
+            dest: "/etc/systemd/system/{{ item.n }}"
+            mode: "0644"
+            content: "{{ item.c }}"
+          loop:
+            - n: faceops-restic.service
+              c: |
+                [Unit]
+                Description=FaceOps · respaldo restic de los volúmenes de datos
+                After=network-online.target
+                Wants=network-online.target
+                [Service]
+                Type=oneshot
+                Nice=10
+                IOSchedulingClass=idle
+                ExecStart=/usr/local/sbin/faceops-restic-respaldo
+            - n: faceops-restic.timer
+              c: |
+                [Unit]
+                Description=FaceOps · respaldo restic diario de los volúmenes de datos
+                [Timer]
+                OnCalendar=*-*-* {{ hora }}:00
+                RandomizedDelaySec=120
+                Persistent=true
+                [Install]
+                WantedBy=timers.target
+          loop_control: {label: "{{ item.n }}"}
+          register: r_units
+
+        - name: Activar el timer
+          ansible.builtin.systemd: {name: faceops-restic.timer, enabled: true, state: started, daemon_reload: "{{ r_units.changed }}"}
+
+        - name: Reiniciar el timer si cambió su horario
+          ansible.builtin.systemd: {name: faceops-restic.timer, state: restarted}
+          when: r_units.results[1].changed
+
+        - name: Respaldo ahora
+          ansible.builtin.command: /usr/local/sbin/faceops-restic-respaldo
+          register: r_resp
+          changed_when: true
+
+        - name: Verificar (snapshots y check del repositorio)
+          ansible.builtin.shell: |
+            set -e
+            {{ renv }}
+            restic snapshots --host "$RR_HOST" --tag faceops --json > {{ var_dir }}/snapshots.json
+            restic check --read-data-subset=10% >/dev/null 2>&1 && echo "check=ok" || echo "check=falla"
+            python3 -c 'import json; l=json.load(open("{{ var_dir }}/snapshots.json")); print("n=%d" % len(l)); print("ult=" + (sorted(l, key=lambda x: x["time"])[-1]["id"] if l else ""))'
+            systemctl show faceops-restic.timer -p NextElapseUSecRealtime --value | sed 's/^/proxima=/'
+            systemctl is-enabled faceops-restic.timer | sed 's/^/timer=/'
+          register: r_ver2
+          changed_when: false
+
+        - name: Lectura de la verificación
+          ansible.builtin.set_fact:
+            ultimo: "{{ r_resp.stdout_lines | last | from_json }}"
+            ver: "{%- set d = {} -%}{%- for ln in r_ver2.stdout_lines if '=' in ln -%}{%- set _ = d.update({ln.split('=', 1)[0]: ln.split('=', 1)[1]}) -%}{%- endfor -%}{{ d }}"
+
+        - name: El respaldo quedó verificado
+          ansible.builtin.assert:
+            that:
+              - ver.check == 'ok'
+              - ultimo.snapshot | length > 0
+              - ultimo.snapshot.startswith(ver.ult) or ver.ult.startswith(ultimo.snapshot[:8])
+              - ver.timer == 'enabled'
+            fail_msg: "Verificación fallida: check={{ ver.check | default('') }}, snapshot={{ ultimo.snapshot | default('') }}, timer={{ ver.timer | default('') }}"
+
+        - name: Resultado para FaceOps
+          ansible.builtin.set_stats:
+            data:
+              faceops_respaldo_datos: "{{ {inventory_hostname: {'modo': 'respaldar', 'herramienta': 'restic', 'version': version, 'snapshot': ultimo.snapshot,
+                'fecha': ultimo.fecha, 'rutas': rutas, 'detectadas': vols_datos, 'repositorio': repo, 'archivos': ultimo.archivos, 'bytes': ultimo.bytes,
+                'snapshots': ver.n | int, 'verificacion': 'restic check ok', 'programa': 'diario ' ~ hora, 'proxima': ver.proxima,
+                'retencion': dias ~ ' diarios · ' ~ semanas ~ ' semanales', 'repositorio_nuevo': 'creado' in r_repo.stdout, 'boveda': 'web/' ~ inventory_hostname ~ '/restic'}} }}"
+            aggregate: true
+      rescue:
+        - name: Vuelta atrás (timer y configuración como estaban)
+          ansible.builtin.shell: |
+            P={{ var_dir }}/previo
+            if [ -f $P/faceops-restic.timer ]; then
+              cp -a $P/faceops-restic.timer $P/faceops-restic.service /etc/systemd/system/ 2>/dev/null || true
+              [ -f $P/faceops-restic-respaldo ] && cp -a $P/faceops-restic-respaldo /usr/local/sbin/
+              [ -f $P/env ] && cp -a $P/env {{ base }}/env
+              [ -f $P/rutas ] && cp -a $P/rutas {{ base }}/rutas
+              systemctl daemon-reload
+              {{ 'systemctl enable --now faceops-restic.timer' if 'enabled' in r_previo.stdout | default('') else 'true' }}
+              echo "restaurado el timer anterior"
+            else
+              systemctl disable --now faceops-restic.timer 2>/dev/null || true
+              rm -f /etc/systemd/system/faceops-restic.timer /etc/systemd/system/faceops-restic.service /usr/local/sbin/faceops-restic-respaldo {{ base }}/env {{ base }}/rutas
+              systemctl daemon-reload
+              echo "retirado el timer (no había respaldo programado)"
+            fi
+          register: r_atras
+          changed_when: true
+
+        - name: Resultado para FaceOps (falla)
+          ansible.builtin.set_stats:
+            data:
+              faceops_respaldo_datos: "{{ {inventory_hostname: {'modo': 'respaldar', 'estado': 'fallido', 'vuelta_atras': r_atras.stdout | trim,
+                'error': (ansible_failed_result.msg | default('') ~ ' ' ~ (ansible_failed_result.stderr | default('') | regex_replace('(?i)(password|clave|secret)[^ ]*', '***')))[-400:] | trim}} }}"
+            aggregate: true
+
+        - name: El respaldo falló (vuelta atrás aplicada)
+          ansible.builtin.fail:
+            msg: "El respaldo de {{ inventory_hostname }} falló en «{{ ansible_failed_task.name | default('') }}»: {{ r_atras.stdout | trim }}"
+
+    - name: Sin volúmenes de datos
+      when: modo == 'respaldar' and rutas | length == 0
+      ansible.builtin.set_stats:
+        data:
+          faceops_respaldo_datos: "{{ {inventory_hostname: {'modo': 'respaldar', 'herramienta': 'restic', 'rutas': [], 'detectadas': [], 'snapshot': '',
+            'nota': 'la máquina no tiene volúmenes de datos: se recupera completa desde la imagen, los paquetes y Git'}} }}"
+        aggregate: true
+
+    # ------------------------------------------------------------------------------------------------- estado
+    - name: Estado (solo lectura)
+      when: modo == 'estado'
+      block:
+        - name: Lectura del repositorio y del timer
+          ansible.builtin.shell: |
+            if [ ! -f {{ base }}/env ]; then echo "configurado=no"; exit 0; fi
+            {{ renv }}
+            echo "configurado=si"
+            restic snapshots --host "$RR_HOST" --tag faceops --json --no-lock 2>/dev/null > /tmp/.rr-snap.json || echo "[]" > /tmp/.rr-snap.json
+            python3 -c 'import json; l=json.load(open("/tmp/.rr-snap.json")); l.sort(key=lambda x: x["time"]); print("n=%d" % len(l)); print("ult=" + (l[-1]["id"] if l else "")); print("fecha=" + (l[-1]["time"][:19] if l else ""))'
+            rm -f /tmp/.rr-snap.json
+            echo "rutas=$(paste -sd, {{ base }}/rutas)"
+            echo "timer=$(systemctl is-enabled faceops-restic.timer 2>/dev/null)"
+            echo "proxima=$(systemctl show faceops-restic.timer -p NextElapseUSecRealtime --value)"
+            echo "programa=$(sed -n 's/^OnCalendar=\*-\*-\* \([0-9:]*\):00$/\1/p' /etc/systemd/system/faceops-restic.timer)"
+          register: r_est
+          changed_when: false
+
+        - name: Lectura
+          ansible.builtin.set_fact:
+            est: "{%- set d = {} -%}{%- for ln in r_est.stdout_lines if '=' in ln -%}{%- set _ = d.update({ln.split('=', 1)[0]: ln.split('=', 1)[1]}) -%}{%- endfor -%}{{ d }}"
+
+        - name: Resultado para FaceOps
+          ansible.builtin.set_stats:
+            data:
+              faceops_respaldo_datos: "{{ {inventory_hostname: ({'modo': 'estado', 'herramienta': 'restic', 'configurado': false, 'detectadas': vols_datos, 'snapshot': ''}
+                if est.configurado == 'no' else {'modo': 'estado', 'herramienta': 'restic', 'configurado': true, 'snapshot': est.ult, 'fecha': est.fecha,
+                'snapshots': est.n | int, 'rutas': est.rutas.split(',') | select | list, 'detectadas': vols_datos, 'repositorio': repo if s3 else '',
+                'timer': est.timer, 'proxima': est.proxima, 'programa': 'diario ' ~ est.programa})} }}"
+            aggregate: true
+
+    # ------------------------------------------------------------------------------------------------- restaurar
+    - name: Restaurar en un directorio aparte
+      when: modo == 'restaurar'
+      block:
+        - name: Hay respaldo configurado
+          ansible.builtin.stat: {path: "{{ base }}/env"}
+          register: r_env
+
+        - name: Exigir un respaldo previo
+          ansible.builtin.assert:
+            that: r_env.stat.exists
+            fail_msg: "{{ inventory_hostname }} no tiene respaldo restic: primero «respaldar»"
+
+        - name: El destino no puede ser un volumen respaldado
+          ansible.builtin.assert:
+            that: destino not in vols_datos
+            fail_msg: "{{ destino }} es un volumen de datos: la restauración va a un directorio aparte para no pisar los datos"
+
+        - name: Restaurar y verificar
+          ansible.builtin.shell: |
+            set -e
+            {{ renv }}
+            SN={{ snap_pedido | quote }}
+            ID=$(restic snapshots --host "$RR_HOST" --tag faceops --json {{ '--latest 1' if snap_pedido == 'latest' else '' }} | python3 -c '
+            import json, sys
+            l = sorted(json.load(sys.stdin), key=lambda x: x["time"]); p = sys.argv[1]
+            m = [x for x in l if p == "latest" or x["id"].startswith(p) or x["short_id"] == p]
+            print(m[-1]["id"] if m else "")' "$SN")
+            [ -n "$ID" ] || { echo "sin snapshot $SN" >&2; exit 3; }
+            NEC=$(restic stats --mode restore-size --json "$ID" | python3 -c 'import json,sys; print(json.load(sys.stdin)["total_size"])')
+            install -d -m 700 {{ destino }}
+            LIB=$(df -B1 --output=avail {{ destino }} | tail -1 | tr -d ' ')
+            [ "$NEC" -lt $((LIB * 9 / 10)) ] || { echo "sin espacio: el snapshot necesita $NEC bytes y hay $LIB" >&2; exit 4; }
+            D={{ destino }}/${ID:0:8}-$(date +%Y%m%d%H%M%S)
+            restic restore "$ID" --target "$D" --verify >/dev/null
+            echo "snapshot=$ID"
+            echo "dir=$D"
+            restic ls --json "$ID" | python3 -c 'import json,sys; print("en_snapshot=%d" % sum(1 for ln in sys.stdin for x in [json.loads(ln)] if x.get("struct_type") == "node" and x.get("type") == "file"))'
+            echo "restaurados=$(find "$D" -type f | wc -l)"
+            ok=1; for r in $(restic ls --json "$ID" | python3 -c 'import json,sys; print(" ".join(json.loads(sys.stdin.readline()).get("paths") or []))'); do
+              [ -f "$D$r/.faceops-restic-canario" ] || ok=0
+            done
+            echo "canario=$ok"
+          register: r_rest
+          changed_when: true
+
+        - name: Lectura
+          ansible.builtin.set_fact:
+            rest: "{%- set d = {} -%}{%- for ln in r_rest.stdout_lines if '=' in ln -%}{%- set _ = d.update({ln.split('=', 1)[0]: ln.split('=', 1)[1]}) -%}{%- endfor -%}{{ d }}"
+
+        - name: Resultado para FaceOps
+          ansible.builtin.set_stats:
+            data:
+              faceops_respaldo_datos: "{{ {inventory_hostname: {'modo': 'restaurar', 'herramienta': 'restic', 'restaurado': rest.snapshot, 'directorio': rest.dir,
+                'archivos_snapshot': rest.en_snapshot | int, 'archivos_restaurados': rest.restaurados | int, 'canario': rest.canario == '1'}} }}"
+            aggregate: true
+
+        - name: La restauración quedó completa
+          ansible.builtin.assert:
+            that:
+              - rest.canario == '1'
+              - rest.restaurados | int == rest.en_snapshot | int
+            fail_msg: "Restauración incompleta: {{ rest.restaurados }} de {{ rest.en_snapshot }} archivos, canario {{ rest.canario }}"

@@ -135,7 +135,7 @@ shutil.copy(f"{AQUI}/files/inventario-a-git.py", f"{tmp}/playbooks/files/inventa
 shutil.copytree(f"{AQUI}/files/lib", f"{tmp}/playbooks/files/lib", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
            "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
-           "fiscalia-aviso-complemento.yml", "storage-lake-s3.yml"):
+           "fiscalia-aviso-complemento.yml", "storage-lake-s3.yml", "respaldo-restic.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
@@ -428,6 +428,16 @@ jls = asegurar("job_templates", "Storage · Servicio S3 del data lake", {   # ac
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 1800,
     "description": "Servicio S3 (SeaweedFS) del data lake sobre un disco dedicado del equipo de almacenamiento; puertos solo a los clientes indicados"})
 paso(f"Plantilla «Storage · Servicio S3 del data lake» (id {jls['id']})")
+
+jrr_ = asegurar("job_templates", "Recuperación · Respaldar volúmenes con restic", {   # acción sobre la máquina: inventario y credencial al lanzar
+    "organization": org["id"], "project": proy, "playbook": "playbooks/respaldo-restic.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 3600,
+    "description": "Respaldo restic de los volúmenes de datos al S3 de respaldos (repositorio cifrado por máquina, clave en la bóveda), timer diario con retención y verificación; estado y restaurar en un directorio aparte"})
+_cbs = uno("credentials", name="FaceOps · Bóveda (servicios)")
+if _cbs and _cbs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jrr_['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jrr_['id']}/credentials/", {"id": _cbs["id"]})
+paso(f"Plantilla «Recuperación · Respaldar volúmenes con restic» (id {jrr_['id']}) con la credencial de la bóveda (servicios)")
 
 # VPN (WireGuard): aprobación → Habilitar servidor (RHEL 9 con la llave de la organización) → instalar la VPN · gestión de accesos
 jvi = asegurar("job_templates", "VPN · Instalar", {

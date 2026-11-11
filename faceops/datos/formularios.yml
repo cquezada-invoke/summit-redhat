@@ -136,6 +136,19 @@
 "FaceOps · Respaldo continuo en Git":
   por_inventario: true   # FaceOps usa el inventario y la credencial de cada equipo elegido
   usa_limite: true
+"Recuperación · Respaldar volúmenes con restic":
+  por_inventario: true   # inventario y credencial de la máquina; la credencial de la bóveda va en la plantilla
+  usa_limite: true
+  campos:
+    - {var: rr_modo, etiqueta: "Acción", tipo: multiplechoice, opciones: [respaldar, estado, restaurar], defecto: respaldar, ayuda: "respaldar: detecta los volúmenes de datos, respalda, programa el respaldo diario y verifica · estado: solo lectura · restaurar: un snapshot en un directorio aparte (no pisa los datos)"}
+    - {var: rr_s3, etiqueta: "S3 de respaldos (vacío = el del laboratorio)", tipo: text, defecto: "", ayuda: "http://equipo:9000 del servicio «Storage · Servicio S3 del data lake»; cada máquina tiene su repositorio cifrado"}
+    - {var: rr_bucket, etiqueta: "Bucket", tipo: text, defecto: respaldos}
+    - {var: rr_hora, etiqueta: "Hora del respaldo diario (HH:MM)", tipo: text, defecto: "02:30"}
+    - {var: rr_dias, etiqueta: "Retención: respaldos diarios", tipo: integer, defecto: 7}
+    - {var: rr_semanas, etiqueta: "Retención: respaldos semanales", tipo: integer, defecto: 4}
+    - {var: rr_rutas, etiqueta: "Volúmenes (vacío = todos los de datos)", tipo: text, defecto: "", ayuda: "Puntos de montaje separados por coma; los del sistema no se aceptan (se recuperan desde la imagen y Git)"}
+    - {var: rr_snapshot, etiqueta: "Snapshot a restaurar", tipo: text, defecto: latest, ayuda: "Solo en restaurar: latest o el id del snapshot"}
+    - {var: rr_destino, etiqueta: "Directorio de restauración", tipo: text, defecto: /var/lib/faceops-restic/restaurado, ayuda: "Solo en restaurar: fuera de los volúmenes respaldados"}
 "FaceOps · Recuperar servidor":
   usa_limite: false
 "FaceOps · Volver a una versión":
