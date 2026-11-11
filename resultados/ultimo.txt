@@ -1,7 +1,23 @@
-commit: 12ed5247725df5db08231b3eb04b15de8b27a71a
-inicio: 2026-11-10T22:09:31-03:00
+commit: aba47d4cb548eac9674df43a4b9c13b57b5d4d83
+inicio: 2026-11-10T22:09:53-03:00
 ---
-FO-LAB-01493 exitoso 2026-11-11T00:57 Eliminar srv-legado-jboss6-01 (192.168.122.165)
-FO-LAB-01494 exitoso 2026-11-11T00:59 Eliminar srv-legado-jboss7-01 (192.168.122.85)
-FO-LAB-01497 exitoso 2026-11-11T01:06 Eliminar srv-prueba-rocky-01 (192.168.122.216)
---- fin: 2026-11-10T22:09:37-03:00 · código: 0
+== C6 (sin agente: srv-prueba-rocky-01) y C1 (nodo-jboss: sin respuesta, CPU, memoria, disco)
+CASO C6·srv-prueba-rocky-01 FO-LAB-01501 fallido :: rion-kvm]: FAILED! => {"msg": "Missing sudo password"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO C1·nodo-jboss FO-LAB-01502 fallido :: rion-kvm]: FAILED! => {"msg": "Missing sudo password"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+REFLEJO nodo-jboss: 0 alertas · None · None
+REFLEJO srv-prueba-rocky-01: 0 alertas · None · None
+ls: cannot access '/opt/summit-monitoreo/prometheus/faceops/reglas': No such file or directory
+ls: cannot access '/opt/summit-monitoreo/prometheus/faceops/objetivos': No such file or directory
+REGLAS nodo-jboss : ninguna
+OBJETIVO nodo-jboss []
+REGLAS srv-prueba-rocky-01 : ninguna
+OBJETIVO srv-prueba-rocky-01 []
+FICHA nodo-jboss botón: [] | activas: 0
+== preparación: agente de monitoreo en srv-prueba-rocky-01 y nodo-storage
+CASO prep srv-prueba-rocky-01 no se pudo pedir: PermissionError: srv-prueba-rocky-01: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la acción
+CASO prep nodo-storage no se pudo pedir: PermissionError: Esta acción no aplica a nodo-storage: es almacenamiento
+REFLEJO nodo-storage: 0 alertas · None · None
+REFLEJO srv-prueba-rocky-01: 0 alertas · None · None
+192.168.122.216:9100 000
+192.168.122.167:9100 000
+--- fin: 2026-11-10T22:13:07-03:00 · código: 0
