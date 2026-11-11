@@ -8,7 +8,7 @@
 set -euo pipefail
 IP=$1
 S="ssh -i $HOME/.ssh/id_demo -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR cquezada@$IP"
-IMG=${MINIO_IMAGEN:-quay.io/minio/minio:latest}
+IMGS=${MINIO_IMAGEN:-"docker.io/minio/minio:latest quay.io/minio/minio:latest"}
 
 echo "· credenciales (se generan en la VM una sola vez)"
 $S 'sudo install -d -m 700 /etc/faceadmin; sudo install -d -m 700 /var/lib/faceadmin-minio
@@ -20,8 +20,10 @@ if ! sudo grep -qs "^FACEADMIN_S3_SECRET=." /etc/faceadmin/s3.env; then
 else echo "  ya existían"; fi
 sudo chmod 600 /etc/faceadmin/minio.env /etc/faceadmin/s3.env'
 
+IMG=""
+for i in $IMGS; do if $S "sudo podman pull -q $i >/dev/null 2>&1"; then IMG=$i; break; fi; done
+[ -n "$IMG" ] || { echo "no se pudo descargar la imagen de MinIO ($IMGS)"; exit 1; }
 echo "· imagen $IMG"
-$S "sudo podman pull -q $IMG >/dev/null && echo '  ok'"
 
 echo "· servicio faceadmin-minio"
 $S "sudo tee /etc/containers/systemd/faceadmin-minio.container >/dev/null" <<U
