@@ -1,108 +1,16 @@
-commit: 559adf2bd78ad344d5adeec52294559205899d54
-inicio: 2026-11-10T22:57:24-03:00
+commit: cb24106c81f9a4433f0a760238abf3fa24f01a5b
+inicio: 2026-11-10T22:52:32-03:00
 ---
-0ef0a59
+7868e8e
 faceops actualizado
-   bloqueada: Cambiar memoria → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de
-   form disco-nuevo [('gb', '20', ['10', '20', '50', '100']), ('nombre', 'datos', None), ('montaje', '/datos', None)] · Pool images del hipervisor · disco libre en el anfitrión 121 GB · Bloqueada por la regla de prueba: «Agregar disco» su última prueba falló y debe pasar de n
-   bloqueada: Incorporar un disco → Bloqueada por la regla de prueba: «Agregar disco» su última prueba falló y debe pasar de nuevo
-   bloqueada: Mover a otra infraestructura → Bloqueada por la regla de prueba: «Mover máquina entre centros de datos» cambió desde su última prueba y debe probarse de nuevo
-
-### nodo-tomcat HTTP 200 · caja: ['Encender', 'Apagar']
-  encabezado: ['Consola web', 'SSH']
-  consolas en tarjetas: []
-  lápices CPU/RAM/disco en la ficha: 8
-  skills total 40 · disponibles 24 · bloqueadas 15 · por estado 1
-  [energia] Encender{D} | Reiniciar | Apagar | Encender, apagar o reiniciar plataforma
-  [inventario] Verificar error conocido | Inventariar{B} | Relevar entorno para homologar ambientes{B}
-  [recursos] Ampliar un disco | Evaluar destino de versión | IIS a OpenShift | Migración WebLogic → OpenShift 4.x | WebLogic → OpenShift 4.x · Evaluar | Cambiar CPU (vCPU){B} | Cambiar memoria{B} | Incorporar un disco{B} | Mover a otra infraestructura{B} | Ampliar disco en la máquina{B} | CentOS a RHEL{B} | RHEL a versión soportada{B}
-  [seguridad] Aplicar parches de seguridad | Emitir certificado para un servicio | Escaneo de seguridad de servidores | Inventario | Vincular máquina a la bóveda | Renovar (EDA){B} | Renovar certificados por vencer{B}
-  [respaldo] Puntos de restauración | Recuperar desde un punto | Paquetes · inventario y respaldo
-  [ciclo] Eliminar máquina | Cambiar tráfico de una app (blue-green, canary, A/B) | Cambio de hora del país | Desinstalar | Destrabar la cola de pagos | Registrar en Red Hat | Uso por segmento | Derivar el segmento al data lake{B} | Evaluar migración de sistema operativo{B} | Quitar agente{B} | Rendimiento del canal{B}
-   bloqueada: Inventariar → Bloqueada por la regla de prueba: «Inventariar máquina» cambió desde su última prueba y debe probarse de nuevo
-   form disco-ampliar [('disco', 'vda', ['vda']), ('gb', '40', None), ('montaje', '/', ['/boot/efi', '/efi', '/boot', '/'])] · Actual: vda 20.0 GB · disco libre en el anfitrión 121 GB · 
-   form recursos-cpu [('cpu', '1', ['1', '2', '4', '6', '8', '12', '16'])] · Actual: 1 vCPU · máximo para esta máquina: 16 vCPU en KVM · Santiago (16 cores físicos, 46 GB libres) · Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió d
-   bloqueada: Cambiar CPU (vCPU) → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de
-   form recursos-ram [('ram', '2', ['1', '2', '4', '6', '8', '12', '16', '24', '32'])] · Actual: 2 GB · máximo para esta máquina: 43 GB en KVM · Santiago (16 cores físicos, 46 GB libres) · Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió d
-   bloqueada: Cambiar memoria → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de
-   form disco-nuevo [('gb', '20', ['10', '20', '50', '100']), ('nombre', 'datos', None), ('montaje', '/datos', None)] · Pool images del hipervisor · disco libre en el anfitrión 121 GB · Bloqueada por la regla de prueba: «Agregar disco» su última prueba falló y debe pasar de n
-   bloqueada: Incorporar un disco → Bloqueada por la regla de prueba: «Agregar disco» su última prueba falló y debe pasar de nuevo
-   bloqueada: Mover a otra infraestructura → Bloqueada por la regla de prueba: «Mover máquina entre centros de datos» cambió desde su última prueba y debe probarse de nuevo
-
-### nodo-windows HTTP 200 · caja: ['Encender', 'Apagar']
-  encabezado: ['Consola web', 'Escritorio remoto']
-  consolas en tarjetas: []
-  lápices CPU/RAM/disco en la ficha: 1
-  skills total 25 · disponibles 18 · bloqueadas 6 · por estado 1
-  [energia] Encender{D} | Reiniciar | Apagar | Encender, apagar o reiniciar plataforma
-  [inventario] Verificar error conocido | Inventariar{B} | Relevar entorno para homologar ambientes{B}
-  [recursos] Evaluar destino de versión | Cambiar CPU (vCPU){B} | Cambiar memoria{B} | Incorporar un disco{B} | Mover a otra infraestructura{B}
-  [seguridad] Escaneo de seguridad de servidores | Vincular máquina a la bóveda
-  [respaldo] Puntos de restauración | Recuperar desde un punto | Paquetes · inventario y respaldo
-  [plataformas] IIS a OpenShift | Levantar IIS en Windows | Prueba: provocar caída de IIS
-  [ciclo] Eliminar máquina | Cambiar tráfico de una app (blue-green, canary, A/B) | Desinstalar | Habilitar escritorio remoto | Registrar en Red Hat
-   bloqueada: Inventariar → Bloqueada por la regla de prueba: «Inventariar máquina» cambió desde su última prueba y debe probarse de nuevo
-   form recursos-cpu [('cpu', '2', ['1', '2', '4', '6', '8', '12', '16'])] · Actual: 2 vCPU · máximo para esta máquina: 16 vCPU en KVM · Santiago (16 cores físicos, 46 GB libres) · Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió d
-   bloqueada: Cambiar CPU (vCPU) → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de
-   form recursos-ram [('ram', '2', ['1', '2', '4', '6', '8', '12', '16', '24', '32'])] · Actual: 2 GB · máximo para esta máquina: 44 GB en KVM · Santiago (16 cores físicos, 46 GB libres) · Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió d
-   bloqueada: Cambiar memoria → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de
-   form disco-nuevo [('gb', '20', ['10', '20', '50', '100']), ('nombre', 'datos', None), ('letra', 'E', ['E', 'F', 'G', 'H', 'I', 'J'])] · Pool images del hipervisor · disco libre en el anfitrión 121 GB · Bloqueada por la regla de prueba: «Agregar disco» su última prueba falló y debe pasar de n
-   bloqueada: Incorporar un disco → Bloqueada por la regla de prueba: «Agregar disco» su última prueba falló y debe pasar de nuevo
-   bloqueada: Mover a otra infraestructura → Bloqueada por la regla de prueba: «Mover máquina entre centros de datos» cambió desde su última prueba y debe probarse de nuevo
-
-### fw HTTP 200 · caja: []
-  encabezado: ['SSH']
-  consolas en tarjetas: []
-  lápices CPU/RAM/disco en la ficha: 1
-  skills total 9 · disponibles 6 · bloqueadas 3 · por estado 0
-  [inventario] Inventariar
-  [recursos] Cambiar CPU (vCPU){B} | Cambiar memoria{B}
-  [ciclo] Aplicar configuración de red desde Git | Configurar VLAN | Revocar acceso | Revocar accesos vencidos | Solicitar acceso | Actualizar firmware{B}
-   form recursos-cpu [('cpu', '0', ['1', '2', '4', '6', '8', '12', '16'])] · Actual: 0 vCPU · máximo para esta máquina: 16 vCPU en KVM · Santiago (16 cores físicos, 46 GB libres) · Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió d
-   bloqueada: Cambiar CPU (vCPU) → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de
-   form recursos-ram [('ram', '0', ['1', '2', '4', '6', '8', '12', '16', '24', '32'])] · Actual: 0 GB · máximo para esta máquina: 42 GB en KVM · Santiago (16 cores físicos, 46 GB libres) · Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió d
-   bloqueada: Cambiar memoria → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de
-IDS 6 12 14
-puerto: 
-BASE https://faceops.34.176.42.56.sslip.io:8843/faceops/lab
-
-[6] botones en la caja de estado: ['Encender', 'Apagar', 'Skills\n31']
-  panel abierto: True · a la derecha x= 760 ancho 640
-  grupos: ['Energía 5', 'Inventario y diagnóstico 5', 'Recursos y movimiento 13', 'Seguridad 7', 'Respaldo y recuperación 3', 'Plataformas 3', 'Ciclo de vida 14']
-  items visibles: 50 · deshabilitados: 20
-  búsqueda «inventar»: 15 ['Diagnosticar la aplicación', 'Inventariar equipo de red', 'Verificar error conocido', 'Inventariar']
-  contraer → visibles: 0
-  formulario abierto: 1 campos: ['Disco *', 'Tamaño nuevo (GB) *', 'Montaje que crece']
-Traceback (most recent call last):
-  File "<stdin>", line 37, in <module>
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/sync_api/_generated.py", line 17422, in click
-    self._sync(
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
-    return task.result()
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_locator.py", line 163, in click
-    return await self._frame._click(self._selector, strict=True, **params)
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_frame.py", line 569, in _click
-    await self._channel.send("click", self._timeout, locals_to_params(locals()))
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 69, in send
-    return await self._connection.wrap_api_call(
-  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 559, in wrap_api_call
-    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
-playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
-Call log:
-  - waiting for locator("#sk-cajon").locator(".sk-item:not(.bloq) [data-sk-ir]:has-text('Ejecutar')").first
-    - locator resolved to <button disabled type="button" class="btn chico" data-sk-ir="energia-encender" title="La máquina ya está encendida">Ejecutar</button>
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not enabled
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not enabled
-    - retrying click action
-      - waiting 100ms
-    56 × waiting for element to be visible, enabled and stable
-       - element is not enabled
-     - retrying click action
-       - waiting 500ms
-
---- fin: 2026-11-10T22:59:00-03:00 · código: 0
+   · Proyecto «FaceOps · automatizaciones»: successful
+CASO C1 falla · Activar espejo App de pagos
+CASO C2 ok · Flujos y datos en el lake
+CASO C3 falla · Desactivar
+CASO C4 falla · Repetir la activación
+  http=200 lakes=0 bif=0 puertos=[] uso=200:{"archivos": 243, "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 7710, "rps": 0.5}
+CASO C5 falla · Declarada: activar Core bancario
+CASO C6 falla · Declarada: repetir
+CASO C7 falla · Declarada: desactivar
+CASO C8 falla · Declarada: URL inválida
+--- fin: 2026-11-10T22:59:08-03:00 · código: 0
