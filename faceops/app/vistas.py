@@ -4321,8 +4321,11 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
             c_w = next((c for c in componentes if not c.get("so") and (prod_ in c["nombre"].lower() or familia(c["codigo"]) in prod_
                                                                         or c["nombre"].lower().split(" · ")[0] in prod_)), None)
             if c_w is not None:
-                plat.append({"t": f"Consola de {web_eq['producto']}", "url": web_eq["abrir"], "c": c_w,
-                             "title": "se abre a través de FaceOps" if por_proxy else "se abre directo"})
+                if any(x.get("c") is c_w for x in plat):
+                    pass   # la plataforma ya tiene su consola (p. ej. la de administración de JBoss): una sola por tarjeta
+                else:
+                    plat.append({"t": f"Consola de {web_eq['producto']}", "url": web_eq["abrir"], "c": c_w,
+                                 "title": "se abre a través de FaceOps" if por_proxy else "se abre directo"})
             else:
                 agregar("web", "Consola web", web_eq["abrir"], f"{web_eq['producto']} · " + ("se abre a través de FaceOps" if por_proxy else "se abre directo"))
     if redis_eq and g.perfil["modo"] == "escritura" and _web_b(e["nombre"], "redis") and puerto_abierto(e["ip"], 6379):
