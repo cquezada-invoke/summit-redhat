@@ -1,30 +1,39 @@
-commit: faf23f35bfb1e528b5479d593c0f04bb6e965397
-inicio: 2026-11-11T00:04:45-03:00
+commit: 5b156d22cca311c35a09ee0f0c6546c6b0ddb224
+inicio: 2026-11-11T00:10:45-03:00
 ---
-277e339
-faceops actualizado
-APP-02 vigente antes: v 3 · La consola de administración de JBoss (9990) solo acepta con
-editar: 302
-APP-02 vigente: v 4 · git abe2c2b274
-APLICAR FO-LAB-01580 nodo-jboss exitoso · AAP terminó (successful): ejecución 18 s, espera de aprobación 48 s | Política APP-02 v4 (aplicar): nodo-jboss: al día (/usr/local/sbin/faceops-app02-nft)
-APLICAR FO-LAB-01581 nodo-jboss2 exitoso · AAP terminó (successful): ejecución 36 s, espera de aprobación 44 s | Política APP-02 v4 (aplicar): nodo-jboss2: al día (/usr/local/sbin/faceops-app02-nft, systemctl -q is-enabled faceops-app02-fw && nft list...)
-APLICAR FO-LAB-01582 nodo-jboss-dev exitoso · AAP terminó (successful): ejecución 34 s, espera de aprobación 41 s | Política APP-02 v4 (aplicar): nodo-jboss-dev: al día (/usr/local/sbin/faceops-app02-nft, systemctl -q is-enabled faceops-app02-fw && nft list...)
-VERIFICAR FO-LAB-01584 nodo-jboss exitoso · AAP terminó (successful): ejecución 14 s, espera de aprobación 30 s | Política APP-02 v4 (verificar): nodo-jboss: al día
-VERIFICAR FO-LAB-01585 nodo-jboss2 exitoso · AAP terminó (successful): ejecución 14 s, espera de aprobación 26 s | Política APP-02 v4 (verificar): nodo-jboss2: al día
-VERIFICAR FO-LAB-01586 nodo-jboss-dev exitoso · AAP terminó (successful): ejecución 14 s, espera de aprobación 23 s
-ESTADO {'nombre': 'nodo-jboss', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar', 'detalle': '[]'}
-ESTADO {'nombre': 'nodo-jboss2', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar', 'detalle': '[]'}
-ESTADO {'nombre': 'nodo-jboss-dev', 'version': 4, 'estado': 'al_dia', 'modo': 'aplicar', 'detalle': '["/usr/local/sbin/faceops-app02-nft", "systemctl -q is-enabled faceops-app02-fw && nft list..."]'}
-BOVEDA nodo-jboss credencial actual → 401
-BOVEDA escribir web/nodo-jboss/jboss: False → 401
-CONSOLA nodo-jboss 192.168.122.15 9990 desde FaceOps: True · botón en ficha: ['jboss-eap'] · entrada: 302 → /lab/inventario/6/consola-web/jboss-eap/console/index.html?connect=http%3A%2F%2Flocalhost% · HAL: 200 ['HAL Management Console'] True · /management con credencial de la bóveda: (401, '<html><head><title>Error</title></head><body><div style="fon')
-CONSOLA nodo-jboss2 192.168.122.18 9990 desde FaceOps: True · botón en ficha: ['jboss-eap'] · entrada: 302 → /lab/inventario/7/consola-web/jboss-eap/console/index.html?connect=http%3A%2F%2Flocalhost% · HAL: 200 ['HAL Management Console'] True · /management con credencial de la bóveda: (200, '"21.0.20.Final-redhat-00001"')
-CONSOLA nodo-jboss-dev 192.168.122.21 9990 desde FaceOps: True · botón en ficha: ['jboss-eap'] · entrada: 302 → /lab/inventario/21/consola-web/jboss-eap/console/index.html?connect=http%3A%2F%2Flocalhost · HAL: 200 ['HAL Management Console'] True · /management con credencial de la bóveda: (200, '"21.0.20.Final-redhat-00001"')
-app-jboss salud: 200 ok 1.0.44
-host→192.168.122.15:9990 200 8080 200
-host→192.168.122.18:9990 200 8080 200
-host→192.168.122.21:9990 200 8080 200
-BLOQUEO 22973 desde-nodo-jboss2-a-192.168.122.15:9990=000 8080=200 · local-9990=200 fw=enabled/active
-BLOQUEO 22975 desde-nodo-jboss-a-192.168.122.18:9990=000 8080=200 · local-9990=200 fw=enabled/active
-BLOQUEO 22976 desde-nodo-jboss-a-192.168.122.21:9990=000 8080=200 · local-9990=200 fw=enabled/active
---- fin: 2026-11-11T00:10:30-03:00 · código: 0
+ticket Banca · Core bancario FO-LAB-01587
+ticket Banca · CRM y contact center FO-LAB-01588
+ticket Banca · Originación de créditos FO-LAB-01589
+ticket Banca · Banca digital FO-LAB-01590
+ticket Banca · Tarjetas FO-LAB-01591
+ticket Telco · Mi cuenta y atención FO-LAB-01592
+ticket Telco · BSS · facturación y planes FO-LAB-01593
+ticket Telco · Uso de red (CDR) FO-LAB-01594
+ticket Telco · OSS · calidad de red FO-LAB-01595
+ticket Telco · Ventas y recargas FO-LAB-01597
+RES Banca · Core bancario FO-LAB-01587 exitoso
+RES Banca · CRM y contact center FO-LAB-01588 exitoso
+RES Banca · Originación de créditos FO-LAB-01589 exitoso
+RES Banca · Banca digital FO-LAB-01590 exitoso
+RES Banca · Tarjetas FO-LAB-01591 exitoso
+RES Telco · Mi cuenta y atención FO-LAB-01592 exitoso
+RES Telco · BSS · facturación y planes FO-LAB-01593 exitoso
+RES Telco · Uso de red (CDR) FO-LAB-01594 exitoso
+RES Telco · OSS · calidad de red FO-LAB-01595 exitoso
+RES Telco · Ventas y recargas FO-LAB-01597 exitoso
+CHK Banca · Core bancario | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_core/operaciones_vivo/ por=FO-LAB-01587 en=2026-11-11T03:13 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10127, "rps": 0.75}
+CHK Banca · CRM y contact center | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_contacto/operaciones_vivo/ por=FO-LAB-01588 en=2026-11-11T03:13 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_contacto/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10120, "rps": 0.5}
+CHK Banca · Originación de créditos | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_creditos/operaciones_vivo/ por=FO-LAB-01589 en=2026-11-11T03:13 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_creditos/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10116, "rps": 0.75}
+CHK Banca · Banca digital | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_digital/operaciones_vivo/ por=FO-LAB-01590 en=2026-11-11T03:14 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_digital/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10038, "rps": 0.25}
+CHK Banca · Tarjetas | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_tarjetas/operaciones_vivo/ por=FO-LAB-01591 en=2026-11-11T03:14 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_tarjetas/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10148, "rps": 0.74}
+CHK Telco · Mi cuenta y atención | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_atencion/operaciones_vivo/ por=FO-LAB-01592 en=2026-11-11T03:15 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_atencion/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9934, "rps": 1.0}
+CHK Telco · BSS · facturación y planes | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_bss/operaciones_vivo/ por=FO-LAB-01593 en=2026-11-11T03:15 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_bss/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9951, "rps": 0.75}
+CHK Telco · Uso de red (CDR) | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_cdr/operaciones_vivo/ por=FO-LAB-01594 en=2026-11-11T03:17 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_cdr/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9916, "rps": 0.25}
+CHK Telco · OSS · calidad de red | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_oss/operaciones_vivo/ por=FO-LAB-01595 en=2026-11-11T03:17 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_oss/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9960, "rps": 0.49}
+CHK Telco · Ventas y recargas | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_ventas/operaciones_vivo/ por=FO-LAB-01597 en=2026-11-11T03:17 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_ventas/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10050, "rps": 0.25}
+ARCH Servicios en la nube | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+ARCH Catálogo en línea | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+ARCH Ventas en línea | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+ARCH Servidores corporativos | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+ARCH Base de datos de pagos | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+--- fin: 2026-11-11T00:18:34-03:00 · código: 0
