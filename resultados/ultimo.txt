@@ -1,15 +1,25 @@
-commit: 29b2bcf736bd4a49f3ed1ae6cffcbff444702218
-inicio: 2026-11-10T21:21:58-03:00
+commit: e999b90c837f83bda93b2aaefdbdba30efc8b05a
+inicio: 2026-11-10T21:21:27-03:00
 ---
-GET 200 https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6
-encender count 1 disabled True visible True
-reiniciar count 1 disabled False visible True
-apagar count 1 disabled False visible True
-reiniciar modal: True ¿Reiniciar nodo-jboss? Es producción: pasa por aprobación en AAP.
-reiniciar → modal tras confirmar: False | botones: [True, False, False] | post: ['campos ok']
-   ticket en lista: 1 | avisos: 
-apagar modal: True ¿Apagar nodo-jboss? Es producción: pasa por aprobación en AAP.
-apagar → modal tras confirmar: False | botones: [True, False, False] | post: ['campos ok']
-   ticket en lista: 2 | avisos: 
-errores []
---- fin: 2026-11-10T21:22:19-03:00 · código: 0
+1038db5
+faceops actualizado
+EQ 6 200 | git: ['http://192.168.122.1:3000/repositorio/maquina-nodo-jboss/src/branch/master'] ['maquina-nodo-jboss', '↗', '·', 'rama', 'master', '+4', 'capas']
+   ['Acceso de FaceOps'] barra: True ['— % · sin dato'] [('encender', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('reiniciar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('apagar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e')]
+   ['Respaldo continuo en Git'] barra: True ['100 % · último respaldo hace 4 min'] [('encender', 'OFF', 'Corre con temporizadores de systemd (cada minuto): aún no se controla '), ('reiniciar', 'OFF', 'Corre con temporizadores de systemd (cada minuto): aún no se controla '), ('apagar', 'OFF', 'Corre con temporizadores de systemd (cada minuto): aún no se controla ')]
+   ['Monitoreo (métricas)'] barra: True ['100 % · servicio node_exporter'] [('encender', 'OFF', 'Encender Monitoreo (métricas) (ticket con aprobación)'), ('reiniciar', 'on', 'Reiniciar Monitoreo (métricas) (ticket con aprobación)'), ('apagar', 'on', 'Apagar Monitoreo (métricas) (ticket con aprobación)')]
+EQ 3 200 | git: ['http://192.168.122.1:3000/repositorio/respaldo-servidores/src/branch/dc1-idm01'] ['respaldo-servidores', '·', 'dc1-idm01', '↗', '+1', 'capa']
+   ['Acceso de FaceOps'] barra: True ['— % · sin dato'] [('encender', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('reiniciar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('apagar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e')]
+   ['Respaldo continuo en Git'] barra: True ['100 % · último cambio respaldado hace 146 h'] [('encender', 'OFF', 'Corre con temporizadores de systemd (cada minuto): aún no se controla '), ('reiniciar', 'OFF', 'Corre con temporizadores de systemd (cada minuto): aún no se controla '), ('apagar', 'OFF', 'Corre con temporizadores de systemd (cada minuto): aún no se controla ')]
+   ['Monitoreo (métricas)'] barra: True ['100 % · servicio node_exporter'] [('encender', 'OFF', 'Encender Monitoreo (métricas) (ticket con aprobación)'), ('reiniciar', 'on', 'Reiniciar Monitoreo (métricas) (ticket con aprobación)'), ('apagar', 'on', 'Apagar Monitoreo (métricas) (ticket con aprobación)')]
+EQ 12 200 | git: ['http://192.168.122.1:3000/invoke/estado-servidores'] ['estado-servidores', '↗']
+   ['Acceso de FaceOps'] barra: True ['— % · sin dato'] [('encender', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('reiniciar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('apagar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e')]
+   ['Monitoreo (métricas)'] barra: True ['— % · El último inventario no informó su servicio'] [('encender', 'on', 'Encender Monitoreo (métricas) (ticket con aprobación)'), ('reiniciar', 'on', 'Reiniciar Monitoreo (métricas) (ticket con aprobación)'), ('apagar', 'on', 'Apagar Monitoreo (métricas) (ticket con aprobación)')]
+EQ 15 200 | git: [] ['sin', 'respaldo', 'en', 'Git', 'Habilitar', 'respaldo']
+   ['Acceso de FaceOps'] barra: True ['— % · sin dato'] [('encender', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('reiniciar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('apagar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e')]
+EQ 14 200 | git: ['http://192.168.122.1:3000/invoke/red-laboratorio'] ['red-laboratorio', '↗']
+   sin agentes
+EQ 29 200 | git: [] ['sin', 'respaldo', 'en', 'Git']
+   sin agentes
+EQ 75 200 | git: ['http://192.168.122.1:3000/invoke/datacenter'] ['datacenter', '↗']
+   ['Acceso de FaceOps'] barra: True ['— % · sin dato'] [('encender', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('reiniciar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e'), ('apagar', 'OFF', 'El acceso de FaceOps es un usuario de servicio, no un proceso: no se e')]
+--- fin: 2026-11-10T21:22:21-03:00 · código: 0
