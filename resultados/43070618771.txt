@@ -1,0 +1,30 @@
+commit: e9ce4d8942a4dd4c7b46bc1102e624e96790e06f
+inicio: 2026-11-11T14:47:15-03:00
+---
+ff5a35d Eval
+200
+== Acceso de FaceOps
+    encender | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    reiniciar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    apagar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    estado | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    actualizar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    quitar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+   desc: Usuario de servicio con llave propia por el que AAP opera la máquina
+== Respaldo continuo en Git
+    encender | Ya está encendido | disabled
+    reiniciar | Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para det | disabled
+    apagar | Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para det | disabled
+    estado | Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para det | disabled
+    actualizar btn-agc | Actualizar Respaldo continuo en Git (ticket con aprobación) | on
+    quitar | «Quitar agente» aún no pasa su plan de prueba (regla de prueba) | disabled
+   desc: Guarda cada minuto la configuración de la máquina en Git
+== Monitoreo (métricas)
+    encender | Ya está encendido | disabled
+    reiniciar | «Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba (regla de prueba) | disabled
+    apagar | «Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba (regla de prueba) | disabled
+    estado | «Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba (regla de prueba) | disabled
+    actualizar | «Agente de monitoreo (Linux)» aún no pasa su plan de prueba (regla de prueba) | disabled
+    quitar | «Quitar agente» aún no pasa su plan de prueba (regla de prueba) | disabled
+   desc: Expone métricas de CPU, memoria, disco y red para el monitoreo
+--- fin: 2026-11-11T14:48:13-03:00 · código: 0
