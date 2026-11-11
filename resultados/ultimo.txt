@@ -1,21 +1,8 @@
-commit: a3b999fbc608571e8fea45aea323ae40f60b12ef
-inicio: 2026-11-11T12:11:56-03:00
+commit: 752ae3293e1bfcc17992f874e3a12c42b258760a
+inicio: 2026-11-11T12:13:34-03:00
 ---
-OK post-proceso (interrumpido por un reinicio del contenedor)
-EQUIPO {'id': 128, 'ip': '192.168.122.105', 'estado': 'sin datos', 'ambiente': 'produccion', 'inventario': 'Servidores habilitados', 'inventarios': '["Servidores habilitados", "Servidores de aplicaci\\u00f3n"]', 'grupos': '["jboss", "linux_onpremise"]', 'segmentos_fijos': '["App de pagos"]', 'skills_auto': '[]'}
-REPLICAS [{'id': 1, 'cliente_id': 1, 'origen': 'nodo-jboss', 'replica': 'nodo-jboss4', 'ticket': 'FO-LAB-01642', 'fecha': '2026-11-11T15:12:13+00:00'}]
-VINCULACION [('FO-LAB-01657', 'en_ejecucion')]
-POLITICAS [('APP-02', 'al_dia'), ('DAT-01', 'al_dia'), ('SO-01', 'al_dia')]
-COMPONENTE app {'produccion': ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss4'], 'qa': ['nodo-jboss-qa'], 'desarrollo': ['nodo-jboss-dev']}
-FICHA 6 data-pil="Disponibilidad"> Disponibilidad 90 % Instancias (3) nodo-jboss esta máquina 192.168.122.15 nodo-jboss2 réplica 192.168.122.18 nodo-jboss4 réplica 192.168.122.105 Segmentos que usan esta máquina (1) App de pagos JBoss EAP (app-jboss) · produccion · balanceo en nodo-nginx · puertos 8080 3 instancias : nodo-jboss, nodo-jboss2 , nodo-jboss4 Solicitar réplica · falta su prueba Para llegar al 100 % Configurar la alerta de disponibilidad (sin respuesta) en Alertas Rendimiento 95 % CPU · 11 % de 2 vCPU 85 % Memoria · 55 % de 2 GB 100 % Disco (volumen más lleno) · 22 % de su capacidad 100 % Para llegar al 100 % CPU al 11 %: sobredimensionado, s
-  dialogo False True
-FICHA 128 data-pil="Disponibilidad"> Disponibilidad 90 % Instancias (3) nodo-jboss4 esta máquina 192.168.122.105 nodo-jboss réplica 192.168.122.15 nodo-jboss2 réplica 192.168.122.18 Segmentos que usan esta máquina (1) App de pagos JBoss EAP (app-jboss) · produccion · balanceo en nodo-nginx · puertos 8080 3 instancias : nodo-jboss , nodo-jboss2 , nodo-jboss4 Solicitar réplica · falta su prueba Para llegar al 100 % Configurar la alerta de disponibilidad (sin respuesta) en Alertas Rendimiento 95 % CPU · 2 % de — vCPU 85 % Memoria · 51 % de 0 GB 100 % Disco (volumen más lleno) · 54 % de su capacidad 100 % Para llegar al 100 % CPU al 2 %: sobredimensionado, se pued
-  dialogo False True
-TICKET AAP terminó (successful): ejecución 408 s, espera de aprobación 54 s
-Servidores dados de alta en el inventario «Servidores habilitados» de AAP: nodo-jboss4 · 192.168.122.105
-Alta disponibilidad: nodo-jboss y sus réplicas balanceados en round robin por nodo-nginx · http://192.168.122.11/app-jboss/salud
-Prueba (6 pedidos): 192.168.122.15:8080, 192.168.122.105:8080, 192.168.122.18:8080, 192.168.122.15:8080, 192.168.122.105:8080, 192.168.122.18:8080
-Réplica nodo-jboss4 (192.168.122.105) de nodo-jboss: jboss responde 200 directo (ok 1.0.44); por balanceador: nodo-nginx → 192.168.122.105:8080, 192.168.122.18:8080, 192.168.122.15:8080, 192.168.122.105:8080, 192.168.122.18:8080, 192.168.122.15:8080, 192.168.122.105:8080, 192.168.122.18:8080
-nodo-jboss4 en el inventario «Servidores de aplicación» de AAP (grupo jboss)
-Políticas aplicadas: APP-02, DAT-01, SO-01
---- fin: 2026-11-11T12:12:51-03:00 · código: 0
+TICKET FO-LAB-01658 1658
+aprobado FO-LAB-01658
+FINAL FO-LAB-01658 exitoso wf 23430
+AAP terminó (successful): ejecución 100 s, espera de aprobación 35 s
+--- fin: 2026-11-11T12:20:02-03:00 · código: 0
