@@ -1,0 +1,33 @@
+commit: 4420960bd48eda91dc31ffcbd8f7ae519f7aef37
+inicio: 2026-11-11T13:29:09-03:00
+---
+Traceback (most recent call last):
+  File "/tmp/d3.py", line 7, in <module>
+    print("id", e["id"], "ip", e["ip"], "cat", e["categoria"], "skills", e["skills"], "segs", e["segmentos"], "amb", e["ambiente"])
+                                                                         ~^^^^^^^^^^
+KeyError: 'skills'
+Available Packages
+firewalld.noarch          1.3.4-20.el9_8           rhel-9-for-x86_64-baseos-rpms
+repo id                           repo name
+jb-eap-8.0-for-rhel-9-x86_64-rpms JBoss Enterprise Application Platform 8.0 (RHEL 9 x86_64) (RPMs)
+rhel-9-for-x86_64-appstream-rpms  Red Hat Enterprise Linux 9 for x86_64 - AppStream (RPMs)
+rhel-9-for-x86_64-baseos-rpms     Red Hat Enterprise Linux 9 for x86_64 - BaseOS (RPMs)
+[Unit]
+Description=Redis Insight (consola web de Redis, instalada por FaceOps)
+After=network-online.target
+Wants=network-online.target
+[Service]
+ExecStartPre=-/usr/bin/podman rm -f redisinsight
+ExecStart=/usr/bin/podman run --rm --name redisinsight -p 5540:5540 -v redisinsight:/data -e RI_PROXY_PATH=/faceops/lab/inventario/6/consola-web/redis -e RI_APP_HOST=0.0.0.0 docker.io/redis/redisinsight:latest
+ExecStop=/usr/bin/podman stop -t 10 redisinsight
+Restart=always
+[Install]
+WantedBy=multi-user.target
+pids=2048 log=journald size=-1B mem=0
+keycloak.container
+SHELL=/bin/bash
+gitea firewalld rpm repo 200
+<name>firewalld-filesystem</name>
+<name>firewalld</name>
+<name>python3-firewall</name>
+--- fin: 2026-11-11T13:29:28-03:00 · código: 0
