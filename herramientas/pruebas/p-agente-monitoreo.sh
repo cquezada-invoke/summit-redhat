@@ -31,7 +31,8 @@ Q
 )
 if [ -z "$X" ]; then X=srv-prueba-rocky-01; energia $X apagar >/dev/null; sleep 20; fi
 caso_ "{\"auto\":\"$N\",\"equipo\":\"$X\",\"params\":{},\"reinstalar\":true,\"min\":10,\"caso\":\"C4\"}" >/dev/null; E4=$(estado)
-[ "$E4" = fallido ] && anotar C4 "Equipo apagado" ok "$X apagado: el ticket falla ($(jq_ "(r.get('detalle') or '')[:120]"))" || anotar C4 "Equipo apagado" falla "$X: $E4"
+[ "$E4" = fallido ] && anotar C4 "Equipo apagado" ok "$X apagado: el ticket falla ($(jq_ "(r.get('detalle') or '')[:120]"))" || anotar C4 "Equipo apagado" falla "$X: $E4 $(jq_ "(r.get('detalle') or r.get('error') or '')[:200]")"
+echo "C4 $X $E4"
 echo "EVIDENCIA $CASOS"
 certificar "$N" "Plan agente de monitoreo · C1–C4 (planes-prueba.yml)"
 echo FIN-AGENTE
