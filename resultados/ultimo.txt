@@ -1,23 +1,7 @@
-commit: 58d9c316daedc79a5946dd71cf86ea19b04a2ee2
-inicio: 2026-11-11T10:18:50-03:00
+commit: 253bb712a2014152e0c751993aa75feb965aad60
+inicio: 2026-11-11T10:23:04-03:00
 ---
-#!/bin/bash
-set -u
-R=/home/cquezada/faceops-repo; REPO=$(cat /etc/faceadmin/repo 2>/dev/null)
-[ -d "$R/.git" ] || sudo -u cquezada git clone -q "$REPO" "$R"
-antes=$(sudo -u cquezada git -C "$R" rev-parse HEAD 2>/dev/null)
-sudo -u cquezada git -C "$R" checkout -q -- faceadmin/fabrica.json 2>/dev/null
-for i in 1 2 3 4 5; do sudo -u cquezada git -C "$R" pull -q --ff-only && break; sleep 15; done
-ahora=$(sudo -u cquezada git -C "$R" rev-parse HEAD)
-if [ "$antes" != "$ahora" ] || ! podman image exists localhost/faceadmin:latest; then
-  sudo -u cquezada bash "$R/faceadmin/version.sh"
-  podman build -q -t localhost/faceadmin:latest -f "$R/faceadmin/Containerfile" "$R/faceadmin" >/dev/null && echo "FaceAdmin actualizado a $(git -C "$R" rev-parse --short HEAD)"
-  systemctl try-restart faceadmin
-fi
----
-FaceAdmin actualizado a fc2b392c
-rc=0
-fc2b392c
+FaceAdmin actualizado a 4671780c
 faceadmin Up 8 seconds
 local 200
---- fin: 2026-11-11T10:19:17-03:00 · código: 0
+--- fin: 2026-11-11T10:23:31-03:00 · código: 0
