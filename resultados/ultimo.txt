@@ -1,9 +1,79 @@
-commit: 6372721448c2e89744edadd5d64996789d5794b6
-inicio: 2026-11-11T14:01:31-03:00
+commit: d23e8e3c5e32e849813660cc3b4db5b2a73c79d1
+inicio: 2026-11-11T14:02:14-03:00
 ---
-Seguridad pilar 58.3
-criterio en pilar True | en lista 0
-motivos 531 de 739 CVE importantes pendientes (peso 5) (−67.4) · 10 de 83 CVE moderados pendientes (peso 2) (−0.5) · 2 de 10 CVE bajos pendientes (peso 1) (−0.1)
-sev {'importante': {'p': 531, 't': 739}, 'baja': {'p': 2, 't': 10}, 'moderada': {'p': 10, 't': 83}, 'crítica': {'p': 0, 't': 7}}
-seccion CVE 32.0 -> tras 1 importante 32.2 (+0.20)
---- fin: 2026-11-11T14:02:22-03:00 · código: 0
+FO-LAB-01709 pendiente_aprobacion Plan de prueba C1 de «Plataforma · Controlar servicio» (regl {"sp_unidades": ["keycloak", "rhbk"], "sp_accion": "encender", "sp_plataforma": "Keycloak" | 
+FO-LAB-01713 fallido Plan de prueba C2 de «Plataforma · Controlar servicio» (regl {"sp_unidades": ["keycloak", "rhbk"], "sp_accion": "encender", "sp_plataforma": "Keycloak" | nSee \"systemctl status keycloak.service\" and \"journalctl -xeu keycloak.service\" for details.\n"}  PLAY RECAP ********************************************************************* nodo-jboss                 : ok=6    changed=1    unreachable=0    failed=1    skipped=3    rescued=0    ignored=0   
+FO-LAB-01714 fallido Plan de prueba C3 de «Plataforma · Controlar servicio» (regl {"sp_unidades": ["keycloak", "rhbk"], "sp_accion": "reiniciar", "sp_plataforma": "Keycloak | nSee \"systemctl status keycloak.service\" and \"journalctl -xeu keycloak.service\" for details.\n"}  PLAY RECAP ********************************************************************* nodo-jboss                 : ok=4    changed=0    unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
+FO-LAB-01717 exitoso Plan de prueba C4 de «Plataforma · Controlar servicio» (regl {"sp_unidades": ["keycloak", "rhbk"], "sp_accion": "apagar", "sp_plataforma": "Keycloak"} | AAP terminó (successful): ejecución 10 s, espera de aprobación 36 s
+FO-LAB-01718 fallido Plan de prueba C5 de «Plataforma · Controlar servicio» (regl {"sp_unidades": ["keycloak", "rhbk"], "sp_accion": "encender", "sp_plataforma": "Keycloak" | nSee \"systemctl status keycloak.service\" and \"journalctl -xeu keycloak.service\" for details.\n"}  PLAY RECAP ********************************************************************* nodo-jboss                 : ok=5    changed=0    unreachable=0    failed=1    skipped=4    rescued=0    ignored=0   
+FO-LAB-01721 exitoso Plan de prueba C6 de «Plataforma · Controlar servicio» (regl {"sp_unidades": ["eap8-standalone", "eap7-standalone", "jboss-eap", "wildfly", "jboss"], " | AAP terminó (successful): ejecución 10 s, espera de aprobación 37 s
+FO-LAB-01724 fallido Plan de prueba C7 de «Plataforma · Controlar servicio» (regl {"sp_unidades": ["tomcat", "jws6-tomcat", "jws5-tomcat"], "sp_accion": "encender", "sp_pla | d_to": false,     "msg": "No se encontró el servicio de Tomcat (tomcat, jws6-tomcat, jws5-tomcat)" }  PLAY RECAP ********************************************************************* nodo-jboss                 : ok=4    changed=0    unreachable=0    failed=1    skipped=4    rescued=0    ignored=0   
+               total        used        free      shared  buff/cache   available
+Mem:            2647        1005         992           8         897        1641
+/etc/containers/systemd/:
+total 4
+drwxr-xr-x. 2 root root  32 Nov 11 11:40 .
+drwxr-xr-x. 7 root root 154 Nov  1 00:48 ..
+-rw-r--r--. 1 root root 689 Nov 11 11:40 keycloak.container
+
+/var/lib/keycloak/deshabilitado/:
+total 0
+drwxr-xr-x. 2 root    root  6 Nov 11 11:40 .
+drwxr-x---. 4 ansible root 54 Nov 10 18:32 ..
+× keycloak.service - Keycloak (SSO) del data center
+     Loaded: loaded (/etc/containers/systemd/keycloak.container; generated)
+     Active: failed (Result: exit-code) since Wed 2026-11-11 11:52:04 EST; 10min ago
+    Process: 42432 ExecStopPost=/usr/bin/podman rm -v -f -i keycloak (code=exited, status=0/SUCCESS)
+   Main PID: 42424 (code=exited, status=126)
+        CPU: 90ms
+
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: keycloak.service: Scheduled restart job, restart counter is at 5.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: Stopped Keycloak (SSO) del data center.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: keycloak.service: Start request repeated too quickly.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: keycloak.service: Failed with result 'exit-code'.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: Failed to start Keycloak (SSO) del data center.
+Nov 11 11:52:03 nodo-jboss.demo.local keycloak[42380]: Error: cannot listen on the TCP port: listen tcp4 :8080: bind: address already in use
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42380]: 2026-11-11 11:52:03.179304564 -0500 EST m=+0.022471052 image pull 469d050236bb5aa652a4ae97d5dbcf02c1af4c15bbb2ea088f7d30802f67fcf5 quay.io/keycloak/keycloak:26.0.7
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Main process exited, code=exited, status=126/n/a
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Failed with result 'exit-code'.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: Failed to start Keycloak (SSO) del data center.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Scheduled restart job, restart counter is at 2.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: Stopped Keycloak (SSO) del data center.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: Starting Keycloak (SSO) del data center...
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42394]: 2026-11-11 11:52:03.451451216 -0500 EST m=+0.043122276 container create 0faba4d4ffa3de2c4b080607fc7537a37b55a6c2dc67f9587b22b9f128f6b25c (image=quay.io/keycloak/keycloak:26.0.7, name=keycloak, org.opencontainers.image.created=2024-12-03T07:16:32.6
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42394]: 2026-11-11 11:52:03.476571921 -0500 EST m=+0.068242983 container remove 0faba4d4ffa3de2c4b080607fc7537a37b55a6c2dc67f9587b22b9f128f6b25c (image=quay.io/keycloak/keycloak:26.0.7, name=keycloak, org.opencontainers.image.licenses=Apache-2.0, descript
+Nov 11 11:52:03 nodo-jboss.demo.local keycloak[42394]: Error: cannot listen on the TCP port: listen tcp4 :8080: bind: address already in use
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42394]: 2026-11-11 11:52:03.43303258 -0500 EST m=+0.024703663 image pull 469d050236bb5aa652a4ae97d5dbcf02c1af4c15bbb2ea088f7d30802f67fcf5 quay.io/keycloak/keycloak:26.0.7
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Main process exited, code=exited, status=126/n/a
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Failed with result 'exit-code'.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: Failed to start Keycloak (SSO) del data center.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Scheduled restart job, restart counter is at 3.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: Stopped Keycloak (SSO) del data center.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: Starting Keycloak (SSO) del data center...
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42409]: 2026-11-11 11:52:03.696370826 -0500 EST m=+0.036441641 container create 5b138dfbbbccacb878e5e1e37dc2255eba51fdae1f7d095aa91baf376b604d10 (image=quay.io/keycloak/keycloak:26.0.7, name=keycloak, vcs-type=git, com.redhat.component=, org.opencontainer
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42409]: 2026-11-11 11:52:03.721674291 -0500 EST m=+0.061745098 container remove 5b138dfbbbccacb878e5e1e37dc2255eba51fdae1f7d095aa91baf376b604d10 (image=quay.io/keycloak/keycloak:26.0.7, name=keycloak, io.openshift.expose-services=, org.opencontainers.imag
+Nov 11 11:52:03 nodo-jboss.demo.local keycloak[42409]: Error: cannot listen on the TCP port: listen tcp4 :8080: bind: address already in use
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42409]: 2026-11-11 11:52:03.678967758 -0500 EST m=+0.019038578 image pull 469d050236bb5aa652a4ae97d5dbcf02c1af4c15bbb2ea088f7d30802f67fcf5 quay.io/keycloak/keycloak:26.0.7
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Main process exited, code=exited, status=126/n/a
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Failed with result 'exit-code'.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: Failed to start Keycloak (SSO) del data center.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Scheduled restart job, restart counter is at 4.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: Stopped Keycloak (SSO) del data center.
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: Starting Keycloak (SSO) del data center...
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42424]: 2026-11-11 11:52:03.945143494 -0500 EST m=+0.038590847 container create d7dc81e08e8342271f267a8e1c5f4902bd20d4ff01db08300f19f812c28490e8 (image=quay.io/keycloak/keycloak:26.0.7, name=keycloak, io.openshift.expose-services=, PODMAN_SYSTEMD_UNIT=key
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42424]: 2026-11-11 11:52:03.980095086 -0500 EST m=+0.073542437 container remove d7dc81e08e8342271f267a8e1c5f4902bd20d4ff01db08300f19f812c28490e8 (image=quay.io/keycloak/keycloak:26.0.7, name=keycloak, org.opencontainers.image.revision=9dc36e6787c902eff4e7
+Nov 11 11:52:03 nodo-jboss.demo.local keycloak[42424]: Error: cannot listen on the TCP port: listen tcp4 :8080: bind: address already in use
+Nov 11 11:52:03 nodo-jboss.demo.local podman[42424]: 2026-11-11 11:52:03.924984235 -0500 EST m=+0.018431590 image pull 469d050236bb5aa652a4ae97d5dbcf02c1af4c15bbb2ea088f7d30802f67fcf5 quay.io/keycloak/keycloak:26.0.7
+Nov 11 11:52:03 nodo-jboss.demo.local systemd[1]: keycloak.service: Main process exited, code=exited, status=126/n/a
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: keycloak.service: Failed with result 'exit-code'.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: Failed to start Keycloak (SSO) del data center.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: keycloak.service: Scheduled restart job, restart counter is at 5.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: Stopped Keycloak (SSO) del data center.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: keycloak.service: Start request repeated too quickly.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: keycloak.service: Failed with result 'exit-code'.
+Nov 11 11:52:04 nodo-jboss.demo.local systemd[1]: Failed to start Keycloak (SSO) del data center.
+REPOSITORY                    TAG         IMAGE ID      CREATED        SIZE
+docker.io/redis/redisinsight  latest      3e9a2017a4d4  3 months ago   394 MB
+quay.io/keycloak/keycloak     26.0.7      469d050236bb  23 months ago  436 MB
+LISTEN 0      4096          0.0.0.0:8080      0.0.0.0:*    users:(("java",pid=1450,fd=473))                        
+--- fin: 2026-11-11T14:02:21-03:00 · código: 0
