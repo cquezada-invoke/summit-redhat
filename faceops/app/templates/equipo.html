@@ -345,9 +345,10 @@ PIL.forEach(n=>{const xs=blSO.filter(x=>x.dataset.pilar===n&&SALUD_SO[n]&&!x.cla
 /* Flotante de salud: el mismo de siempre, pero solo con lo que resta puntos (lo que hay que remediar); cada tema trae su
    propia acción en «Para llegar al 100 %». Lo que está OK y el historial no se muestran; un pilar al 100 % queda cerrado. */
 pSal.querySelectorAll('details.pil-caja').forEach(g=>{const cu=g.querySelector('.pil-cuerpo');if(!cu)return;
-  cu.querySelectorAll('.pil-det .pd-fila').forEach(x=>{if(+x.dataset.v>=100)x.hidden=true;});
-  cu.querySelectorAll('.pil-det .rep-acc').forEach(x=>x.hidden=true);   /* la réplica va como acción de su tema */
-  cu.querySelectorAll(':scope>.fila').forEach(x=>x.hidden=true);   /* «Ajustar CPU/Memoria/Disco» genéricos: cada tema trae el suyo */
+  const oc_=x=>{x.hidden=true;x.style.display='none';};   /* .pd-fila/.fila tienen display propio: [hidden] no basta */
+  cu.querySelectorAll('.pil-det .pd-fila').forEach(x=>{if(+x.dataset.v>=100)oc_(x);});
+  cu.querySelectorAll('.pil-det .rep-acc').forEach(oc_);   /* la réplica va como acción de su tema */
+  cu.querySelectorAll(':scope>.fila').forEach(oc_);   /* «Ajustar CPU/Memoria/Disco» genéricos: cada tema trae el suyo */
   cu.querySelectorAll('.comp-err').forEach(b=>{b.querySelectorAll('.ce').forEach(ce=>{if(!ce.classList.contains('act')&&!ce.querySelector('.btn-prev')&&!/en deuda|aplicar prevención/.test(ce.textContent))ce.hidden=true;});
     if(![...b.querySelectorAll('.ce')].some(ce=>!ce.hidden))b.hidden=true;});
   cu.querySelectorAll('#politicas tr').forEach(tr=>{if(tr.querySelector('.chip.e-exitoso'))tr.hidden=true;});
@@ -355,7 +356,7 @@ pSal.querySelectorAll('details.pil-caja').forEach(g=>{const cu=g.querySelector('
   cu.querySelectorAll('#cves').forEach(b=>{const c_=b.querySelector('.chip');if(c_&&/^0 pendientes/.test(c_.textContent.trim()))b.hidden=true;});
   const pct_=parseInt((g.querySelector('.pil-cab .pct')||{}).textContent),fil_=cu.querySelectorAll('.pil-det .pd-fila:not([hidden])').length,
     fal_=cu.querySelectorAll('.sa-lista li').length,car_=[...cu.children].filter(x=>!x.hidden&&!x.classList.contains('pil-crit')).length;
-  if(pct_===100||!(fil_||fal_||car_)){g.open=false;[...cu.children].forEach(x=>x.hidden=true);const z=document.createElement('div');z.className='sub pil-nada';z.textContent='Sin acciones pendientes';cu.appendChild(z);
+  if(pct_===100||!(fil_||fal_||car_)){g.open=false;[...cu.children].forEach(oc_);const z=document.createElement('div');z.className='sub pil-nada';z.textContent='Sin acciones pendientes';cu.appendChild(z);
     const n_=g.querySelector('.pil-n');if(n_)n_.textContent='sin acciones pendientes';}
   else{const n_=g.querySelector('.pil-n'),k_=Math.max(fil_,fal_)||car_;if(n_)n_.textContent=k_+' tema'+(k_>1?'s':'')+' a remediar';}});
 if(pSO)pSO.querySelectorAll('.grid.g2').forEach(gr=>{if(!gr.children.length)gr.remove()});
