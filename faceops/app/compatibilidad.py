@@ -99,11 +99,12 @@ def requisito_encender(e, cod, en_ejecucion=()):
     req = int(rq.get("sistema_mb") or 512) + int(pl[f]) + sum(int(pl.get(x) or 0) for x in otras)
     tiene = int(e["ram_mb"])
     gb = lambda mb: f"{round(mb / 1024, 1):g}".replace(".", ",")
+    gb2 = lambda mb: f"{round(mb / 1024, 2):g}".replace(".", ",")
     return {"req_mb": req, "tiene_mb": tiene, "ok": tiene >= req, "otras": [x for x in otras if pl.get(x)],
             "texto": (f"Para encenderla se requieren ~{gb(req)} GB de RAM en la máquina (hoy {gb(tiene)} GB): ajusta la memoria"
                       if tiene < req else ""),
-            "detalle": f"sistema {gb(int(rq.get('sistema_mb') or 512))} GB + " + " + ".join(
-                f"{x} {gb(int(pl[x]))} GB" for x in [f] + [x for x in otras if pl.get(x)])}
+            "detalle": f"sistema {gb2(int(rq.get('sistema_mb') or 512))} GB + " + " + ".join(
+                f"{x} {gb2(int(pl[x]))} GB" for x in [f] + [x for x in otras if pl.get(x)])}
 
 
 def compatible(a, e, recursos=True):
