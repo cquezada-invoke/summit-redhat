@@ -257,6 +257,11 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         Object.keys(niveles).map(Number).sort((a,b)=>a-b).forEach((k,i)=>{const col=niveles[k].sort((a,b)=>a.position('y')-b.position('y'));
           const y0=-(col.length-1)*120/2;col.forEach((n,j)=>n.position({x:i*340,y:y0+j*120}));});
         bb=cy.elements().boundingBox(); }
+      else {  // sin girar: en cada fila las cajas (280 de ancho) no se solapan, p. ej. dos operadores de OpenShift lado a lado
+        const filas={}; hojas.forEach(n=>{const k=Math.round(n.position('y')/60);(filas[k]=filas[k]||[]).push(n);});
+        let mov=false; Object.values(filas).forEach(f=>{ f.sort((a,b)=>a.position('x')-b.position('x'));
+          for(let j=1;j<f.length;j++){ const min=f[j-1].position('x')+300; if(f[j].position('x')<min){ f[j].position({x:min,y:f[j].position('y')}); mov=true; } } });
+        if(mov) bb=cy.elements().boundingBox(); }
       // posiciones que el usuario dejó al mover las cajas (por segmento, solo para él)
       try{ const g=JSON.parse(localStorage.getItem(POS_K)||'{}'); let n_=0; hojas.forEach(n=>{const p=g[n.id()]; if(p){n.position(p);n_++;}}); if(n_) bb=cy.elements().boundingBox(); }catch(e){}
       cy.on('dragfree','node',()=>{ try{ const g={}; cy.nodes().filter(n=>n.isChildless()).forEach(n=>{g[n.id()]=n.position();}); localStorage.setItem(POS_K,JSON.stringify(g)); }catch(e){} });
