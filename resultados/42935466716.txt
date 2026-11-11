@@ -1,0 +1,23 @@
+commit: a80b1aeac7a6f16990e32c30290f8eca4ddca75f
+inicio: 2026-11-10T21:58:59-03:00
+---
+FO-LAB-01484 exitoso 2026-11-11T00:39:27 FaceOps · Vincular máquina a la bóveda | Vinculación automática a la bóveda · servidor creado en FO-LAB-01481 | {"vm_usuario": "faceops", "vm_tipo": "linux"}
+FO-LAB-01485 exitoso 2026-11-11T00:43:17 Infra · Mover máquina entre centros de datos | Prueba C1: evaluar srv-mover-01 → Valparaíso | {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "evaluar", "mv_puerto": 22}
+FO-LAB-01486 exitoso 2026-11-11T00:45:10 Infra · Mover máquina entre centros de datos | Mover srv-mover-01 de KVM · Santiago a KVM · Valparaíso | {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22}
+FO-LAB-01487 exitoso 2026-11-11T00:47:26 Infra · Mover máquina entre centros de datos | Revertir el traslado de srv-mover-01: vuelve a su infraestructura de origen | {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "revertir", "mv_puerto": 22}
+FO-LAB-01489 exitoso 2026-11-11T00:49:18 Infra · Mover máquina entre centros de datos | Mover srv-mover-01 de KVM · Santiago a KVM · Valparaíso | {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22}
+FO-LAB-01490 exitoso 2026-11-11T00:51:34 Infra · Mover máquina entre centros de datos | Confirmar el traslado de srv-mover-01 a KVM · Valparaíso (retira la copia de ori | {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "confirmar", "mv_puerto": 22}
+Traceback (most recent call last):
+  File "/tmp/m.py", line 6, in <module>
+    for x in q("SELECT fecha, usuario, accion, objeto, detalle FROM auditoria WHERE (objeto LIKE '%mover%' OR detalle LIKE '%srv-mover%') ORDER BY id DESC LIMIT 12"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 179, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: fecha
+Nov 10 21:50:52 demo-ansible-summit sudo[1057097]:  aap-kvm : TTY=pts/26 ; PWD=/home/aap-kvm ; USER=root ; COMMAND=/usr/bin/virsh autostart --disable srv-mover-01-origen
+                                                      v=srv-mover-01-origen
+Nov 10 21:54:11 demo-ansible-summit sudo[1079152]:  aap-kvm : TTY=pts/26 ; PWD=/home/aap-kvm ; USER=root ; COMMAND=/usr/bin/virsh dominfo srv-mover-01-origen
+Nov 10 21:54:11 demo-ansible-summit sudo[1079167]:  aap-kvm : TTY=pts/26 ; PWD=/home/aap-kvm ; USER=root ; COMMAND=/usr/bin/virsh domstate srv-mover-01-origen
+Nov 10 21:54:11 demo-ansible-summit sudo[1079182]:  aap-kvm : TTY=pts/26 ; PWD=/home/aap-kvm ; USER=root ; COMMAND=/usr/bin/virsh undefine srv-mover-01-origen --remove-all-storage --snapshots-metadata
+--- fin: 2026-11-10T21:59:09-03:00 · código: 0
