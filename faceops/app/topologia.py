@@ -548,7 +548,9 @@ def _componentes_ocp(els, m, asg, cliente=None):
 LAKE = {"nombre": "Data lake corporativo", "detalle": "S3 + Trino (demo-datalake)", "web": "https://lake.sno.34.176.42.56.sslip.io/buckets/lake/",
         "explorador": "https://sql-lake.sno.34.176.42.56.sslip.io/lake",
         "colector": os.environ.get("FACEOPS_LAKE_COLECTOR", "http://192.168.122.50:30480"),   # interno: lo usa el espejo de nginx
-        "datos": os.environ.get("FACEOPS_LAKE_DATOS", "https://colector-lake.sno.34.176.42.56.sslip.io/datos/")}
+        "datos": os.environ.get("FACEOPS_LAKE_DATOS", "https://colector-lake.sno.34.176.42.56.sslip.io/datos/"),
+        # máquina de control para las derivaciones declaradas: el ticket no la toca (todo corre en AAP), solo la usa de límite
+        "control": os.environ.get("FACEOPS_LAKE_CONTROL", "nodo-nginx")}
 PRIORIDAD_PUNTO = ["balanceo", "web", "servicios", "base_datos"]   # dónde es más factible copiar cada request: el que la recibe primero
 
 
@@ -604,7 +606,7 @@ def params_derivacion(cliente_id, segmento, punto, accion):
          "dl_minutos": int(ff.get("minutos", 30)), "dl_modo": "espejo"}
     d = declaracion_lake((arq or {}).get("m"))
     if d:
-        p.update(dl_modo="declarada", dl_flujos="no", dl_destino=d["destino"], dl_medicion_url=d["medicion_url"], dl_medicion_clave=d["medicion_clave"])
+        p.update(dl_modo="declarada", dl_flujos="no", dl_punto="Route", dl_destino=d["destino"], dl_medicion_url=d["medicion_url"], dl_medicion_clave=d["medicion_clave"])
     return p
 
 

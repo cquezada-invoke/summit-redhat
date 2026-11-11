@@ -1,5 +1,5 @@
 #!/bin/bash
-# Plan de prueba de «Data lake · Derivar segmento» (C1–C4 espejo en App de pagos; C5–C8 modo declarada en Banca · Core bancario).
+# Plan de prueba de «Data lake · Derivar segmento» (C1–C4 espejo en App de pagos; C5–C8 modo declarada en Banca · Core bancario, límite: la máquina de control del lake).
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 A="Data lake · Derivar segmento"
 py() { sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - "$@" 2>/dev/null; }
@@ -61,20 +61,20 @@ N=$(en $NG 'sudo nginx -T 2>/dev/null | grep -c "mirror /fo_lake_app_de_pagos;"'
 [ "$(estado)" = exitoso ] && [ "$N" = 1 ] && [ "${B%%|*}" = 1 ] && anotar C4 "Repetir la activación" ok "$T1 + $(ticket) · 1 mirror · bif $B" || anotar C4 "Repetir la activación" falla "$(estado) · mirrors $N · $B"
 # ---- C5 modo declarada: activar Banca · Core bancario
 S="Banca · Core bancario"
-P=$(params "$S" ocp-sno activar)
-caso "{\"auto\":\"$A\",\"equipo\":\"ocp-sno\",\"params\":$P,\"min\":15,\"caso\":\"C5\"}"
+P=$(params "$S" nodo-nginx activar)
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C5\"}"
 B=$(bif "$S"); M=$(mapa "$S"); echo "  $M"
 [ "$(estado)" = exitoso ] && [ "${B%%|*}" = 1 ] && echo "$B" | grep -q "apps/banca_core" && echo "$M" | grep -q "lakes=1 bif=1" && echo "$M" | grep -q '"directa": true' \
   && anotar C5 "Declarada: activar Core bancario" ok "$(ticket) · bif $B · $M" || anotar C5 "Declarada: activar Core bancario" falla "$(estado) · $B · $M · $(jq_ 'r.get(\"detalle\",\"\")')"
 # ---- C6 repetir
-caso "{\"auto\":\"$A\",\"equipo\":\"ocp-sno\",\"params\":$P,\"min\":15,\"caso\":\"C6\"}"; B=$(bif "$S")
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C6\"}"; B=$(bif "$S")
 [ "$(estado)" = exitoso ] && [ "${B%%|*}" = 1 ] && [ "${B##*|}" = 1 ] && anotar C6 "Declarada: repetir" ok "$(ticket) · bif $B" || anotar C6 "Declarada: repetir" falla "$(estado) · $B"
 # ---- C7 desactivar
-P=$(params "$S" ocp-sno desactivar)
-caso "{\"auto\":\"$A\",\"equipo\":\"ocp-sno\",\"params\":$P,\"min\":15,\"caso\":\"C7\"}"; B=$(bif "$S"); M=$(mapa "$S"); H=$(curl -sk -o /dev/null -w '%{http_code}' https://banca.sno.34.176.42.56.sslip.io/salud)
+P=$(params "$S" nodo-nginx desactivar)
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C7\"}"; B=$(bif "$S"); M=$(mapa "$S"); H=$(curl -sk -o /dev/null -w '%{http_code}' https://banca.sno.34.176.42.56.sslip.io/salud)
 [ "$(estado)" = exitoso ] && [ "${B%%|*}" = 0 ] && echo "$M" | grep -q "lakes=0 bif=0" && [ "$H" = 200 ] && anotar C7 "Declarada: desactivar" ok "$(ticket) · bif $B · $M · app $H" || anotar C7 "Declarada: desactivar" falla "$(estado) · $B · $M · $H"
 # ---- C8 URL de medición inválida
-P=$(params "$S" ocp-sno activar | python3 -c 'import json,sys;p=json.load(sys.stdin);p["dl_medicion_url"]="http://no-valida";print(json.dumps(p,ensure_ascii=False))')
-caso "{\"auto\":\"$A\",\"equipo\":\"ocp-sno\",\"params\":$P,\"min\":15,\"caso\":\"C8\"}"; B=$(bif "$S")
+P=$(params "$S" nodo-nginx activar | python3 -c 'import json,sys;p=json.load(sys.stdin);p["dl_medicion_url"]="http://no-valida";print(json.dumps(p,ensure_ascii=False))')
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C8\"}"; B=$(bif "$S")
 [ "$(estado)" = fallido ] && [ "${B%%|*}" = 0 ] && anotar C8 "Declarada: URL inválida" ok "$(ticket) · falla controlada · bif $B" || anotar C8 "Declarada: URL inválida" falla "$(estado) · $B"
 certificar "$A" "C1–C8: espejo en App de pagos (activar, datos, desactivar, repetir) y modo declarada en Banca · Core bancario (activar, repetir, desactivar, URL inválida)"

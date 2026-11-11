@@ -5728,9 +5728,10 @@ def mapa_bifurcacion():
     from .arquitectura import vigente as _vig
     from .topologia import declaracion_lake
     dec = declaracion_lake((_vig(g.cliente["id"], seg) or {}).get("m"))
-    # derivación declarada en la arquitectura: la aplicación ya escribe en el lake; el ticket corre sobre la máquina donde vive
-    # (p. ej. el nodo de OpenShift) y solo verifica y registra, sin espejo
-    punto = dec["equipo"] if dec and dec.get("equipo") else f.get("punto", "")
+    # derivación declarada en la arquitectura: la aplicación ya escribe en el lake; el ticket solo verifica y registra, sin
+    # espejo ni cambios en ninguna máquina (corre en AAP con la máquina de control del lake como límite)
+    from .topologia import LAKE as _LAKE
+    punto = _LAKE["control"] if dec else f.get("punto", "")
     e = next((x for x in equipos_visibles() if x["nombre"] == punto), None)
     if not e:
         return {"error": "No encuentro la máquina de entrada del segmento (el punto donde se copia el tráfico)"}, 400
