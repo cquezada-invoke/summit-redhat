@@ -2,14 +2,14 @@
 {% block cuerpo %}{% include "_login_fondo.html" %}
 <div class="login">
   <form method="post" class="card f">
-    <div style="text-align:center;margin:0 0 10px"><span style="display:inline-block;background:#fff;border-radius:12px;padding:10px 16px;box-shadow:0 2px 10px rgba(0,0,0,.25)"><img src="{{ url_for('static', filename='logo-faceops.png') }}" alt="FaceOps" width="120" height="113" style="display:block;height:auto"></span></div>
+    <h1 class="login-marca"><span class="login-logo"><img src="{{ url_for('static', filename='logo-faceops.png') }}" alt="" width="30" height="28"></span>FaceOps</h1>
     <p class="sub" style="margin:0 0 6px">Consola de acción del Managed Service de Invoke</p>
     {% if bloqueo.bloqueado %}<div style="background:#fdeaea;color:#a30000;border-radius:8px;padding:10px 12px;margin:4px 0 8px;font-size:14px"><b>Acceso suspendido</b><br>{{ bloqueo.motivo or 'El acceso a esta consola está suspendido. Contacta a Invoke.' }}</div>
     {% elif bloqueo.aviso %}<div style="background:#fdf5e1;color:#795600;border-radius:8px;padding:10px 12px;margin:4px 0 8px;font-size:13.5px">{{ bloqueo.aviso }}</div>{% endif %}
     <label>Usuario<input type="text" name="usuario" autofocus autocomplete="username" required></label>
     <label>Clave<input type="password" name="clave" autocomplete="current-password" required></label>
     <p><button class="btn" style="width:100%;margin-top:8px">Ingresar</button></p>
-    <p style="text-align:center;font-size:13px;margin:4px 0 0"><a href="{{ url_for('consola.recuperar') }}">¿Olvidaste tu clave?</a></p>
+    <p style="text-align:center;margin:4px 0 0"><a class="login-olvido" href="{{ url_for('consola.recuperar') }}">¿Olvidaste tu clave?</a></p>
   </form>
 </div>
 {% endblock %}
