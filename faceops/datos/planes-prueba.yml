@@ -415,6 +415,7 @@ planes:
       - {id: C8, caso: "Retirar todas las alertas del equipo", tipo: Funcional, verificar: "sin reglas ni objetivo del equipo; Prometheus sano; el botón vuelve a «sin alertas»"}
       - {id: C9, caso: "Acción por alerta: «Encender el equipo» en «Sin respuesta» y «Solo avisar» en «Disco lleno»", tipo: Funcional, verificar: "la regla lleva faceops_accion y faceops_automatizacion; Alertmanager enruta a EDA :5022"}
       - {id: C10, caso: "JBoss detenido con «Reiniciar JBoss» (acción que entra a la máquina) y CPU alta con duración de 2 min", tipo: Funcional, verificar: "la regla de JBoss lleva faceops_inventario y faceops_credencial del equipo (plan de recolección); CPU con for: 2m; en un Linux sin JBoss la alerta JBoss no se ofrece"}
+      - {id: C11, caso: "Tablero «Alertas de FaceOps» en Grafana", tipo: Funcional, verificar: "el tablero faceops-alertas queda en Grafana (provisionado por archivo), con un panel por alerta del catálogo; la serie faceops_alerta_umbral del equipo trae los umbrales vigentes (CPU aviso 80 / crítico 95)"}
   "Identidad · Fuente de usuarios de FaceOps":
     casos:
       - {id: C1, caso: "Probar un LDAP de laboratorio (OpenLDAP con usuarios y grupos de prueba)", tipo: Funcional, verificar: "el ticket termina bien, cuenta los usuarios de la fuente y FaceOps no abrió ninguna conexión al directorio"}

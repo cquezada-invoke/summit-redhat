@@ -89,6 +89,7 @@ server {
         proxy_set_header Host \$http_host;
         proxy_read_timeout 3600s;
     }
+    include /etc/nginx/conf.d/faceops-grafana.inc;   # Grafana del monitoreo, solo con sesión (grafana-publico.sh)
     location / { return 404; }
 }
 C
@@ -133,7 +134,11 @@ if ! sudo test -s $D/letsencrypt/live/$DOM/fullchain.pem; then
     certonly --webroot -w /var/www -d "$DOM" --agree-tos --register-unsafely-without-email --non-interactive -q
 fi
 paso "Proxy público con TLS en :$PUERTO"
-escribir_conf tls; arrancar
+escribir_conf tls
+sudo test -f $D/conf/faceops-grafana.inc || echo "# sin Grafana (grafana-publico.sh)" | sudo tee $D/conf/faceops-grafana.inc >/dev/null
+arrancar
+paso "Grafana del monitoreo detrás de la sesión de FaceOps"
+bash "$(dirname "$0")/grafana-publico.sh" || echo "Grafana público: sin configurar"
 
 paso "Renovación automática del certificado (semanal)"
 sudo tee /etc/systemd/system/faceops-publico-cert.service >/dev/null <<U

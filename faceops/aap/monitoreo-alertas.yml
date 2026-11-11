@@ -2,7 +2,8 @@
 # Monitoreo · Configurar alertas del equipo. La configuración de alertas de cada equipo vive en Ansible y en Prometheus,
 # no en FaceOps: este playbook escribe en el Prometheus del anfitrión las reglas del equipo (reglas/<equipo>.yml) y su
 # objetivo (objetivos/exp-<equipo>.yml o tcp-<equipo>.yml), valida con promtool y recarga. Alertmanager las entrega a EDA.
-# Cualquier error deja la configuración anterior (respaldo y vuelta atrás).
+# Cualquier error deja la configuración anterior (respaldo y vuelta atrás). Junto a cada umbral deja la regla de registro
+# faceops_alerta_umbral y mantiene en Grafana el tablero «Alertas de FaceOps» (lo que evalúa cada regla, umbrales e historia).
 #   al_equipo: nombre · al_ip: IP · al_tipo: linux | windows | storage | red
 #   al_alertas: [{id, aviso?, critico?, severidad?, para?}]  (vacía o al_retirar=true → quita todas las del equipo)
 #   al_inventario, al_credencial: de AAP, solo si una acción entra a la máquina (viajan en la regla hasta la respuesta)
@@ -188,6 +189,27 @@
           ansible.builtin.fail:
             msg: "No se aplicaron las alertas de {{ al_equipo }}; quedó la configuración anterior. {{ ansible_failed_result.msg | default(ansible_failed_result.stderr | default('')) }}"
 
+    - name: Tablero «Alertas de FaceOps» en Grafana (provisionado por archivo; Grafana lo relee solo)
+      block:
+        - name: Armar el tablero desde el catálogo
+          ansible.builtin.command:
+            argv: [python3, "{{ playbook_dir }}/files/alertas_objeto.py", --tablero, "{{ playbook_dir }}/files/alertas-objetos.yml"]
+          delegate_to: localhost
+          become: false
+          register: r_tab
+          changed_when: false
+
+        - name: Dejar el tablero en la carpeta de Grafana
+          ansible.builtin.copy:
+            dest: /opt/summit-monitoreo/grafana/dashboards/faceops/faceops-alertas.json
+            content: "{{ r_tab.stdout }}\n"
+            mode: "0644"
+          register: r_tab_f
+      rescue:
+        - name: Sin tablero (las alertas sí quedaron aplicadas)
+          ansible.builtin.debug:
+            msg: "No se pudo dejar el tablero de Grafana: {{ ansible_failed_result.msg | default('') }}"
+
     - name: Estado de las alertas del equipo para FaceOps (la configuración queda en Prometheus, administrada por Ansible)
       ansible.builtin.set_stats:
         data:
@@ -197,4 +219,5 @@
             alertas: "{{ [] if retirar else al_alertas }}"
             reglas: "{{ 0 if retirar else arm.n_reglas }}"
             resumen: "{{ arm.resumen }}"
+            tablero: "{{ r_tab_f is defined and r_tab_f is not failed and r_tab_f is not skipped }}"
         per_host: false

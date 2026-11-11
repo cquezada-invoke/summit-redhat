@@ -8396,6 +8396,13 @@ def equipo_alertas(eid):
     return redirect(vuelta)
 
 
+@bp.route("/sesion/valida")
+def sesion_valida():
+    """auth_request del proxy público (Grafana del monitoreo en /grafana/, faceops/grafana-publico.sh): 204 si hay una sesión
+    de FaceOps válida, 401 si no. No devuelve datos."""
+    return ("", 204) if g.get("usuario") and g.get("cliente") else ("", 401)
+
+
 @bp.route("/inventario/<int:eid>/descripcion", methods=["POST"])
 @requiere_login
 def equipo_descripcion(eid):

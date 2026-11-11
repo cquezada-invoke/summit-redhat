@@ -6,6 +6,8 @@ aap/files/alertas-objetos.yml, el mismo que usa el playbook) y pide su configura
 dejó aplicado (datos.alertas del equipo, desde los artefactos del ticket) para mostrar el estado del botón."""
 import json
 import os
+import re
+from urllib.parse import urlencode
 
 import yaml
 
@@ -15,6 +17,29 @@ AUTO = "Monitoreo · Configurar alertas del equipo"
 RUTA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "aap", "files", "alertas-objetos.yml")
 RED = ("router", "switch", "firewall", "balanceador")
 _cache = {}
+# Grafana del monitoreo: tablero «Alertas de FaceOps» que deja el mismo playbook. Por el acceso público vive en /grafana/
+# detrás de la sesión de FaceOps (proxy con auth_request, solo lectura); FACEOPS_GRAFANA cambia la base si hace falta.
+GRAFANA = os.environ.get("FACEOPS_GRAFANA", "/grafana").rstrip("/")
+TABLERO = "faceops-alertas"
+REGLAS = "/opt/summit-monitoreo/prometheus/faceops/reglas"
+
+
+def panel_id(aid):
+    """El mismo id de panel que arma aap/files/alertas_objeto.py (C01 → 6701)."""
+    return ord(aid[0].upper()) * 100 + int(re.sub(r"\D", "", aid) or 0)
+
+
+def url_grafana(equipo, aid=None):
+    """Tablero «Alertas de FaceOps» con el equipo elegido, últimas 24 h y, si se indica, solo el panel de esa alerta."""
+    par = {"orgId": 1, "var-equipo": equipo, "from": "now-24h", "to": "now"}
+    if aid:
+        par["viewPanel"] = panel_id(aid)
+    return f"{GRAFANA}/d/{TABLERO}/alertas-de-faceops?" + urlencode(par)
+
+
+def nombre_regla(a):
+    """Nombre de la regla en Prometheus (igual que el playbook): «CPU alta» C01 → FaceOpsCpuAltaC01 (+Aviso/Critico)."""
+    return "FaceOps" + re.sub(r"[^A-Za-z0-9]", "", a["nombre"].title()) + a["id"]
 
 
 def catalogo():
@@ -74,7 +99,8 @@ def contexto(cliente_id, e, puede_escribir):
         if t in a["tipos"] and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
             accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k)) for k in (a.get("acciones") or ["avisar"])]
-            grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, valor_accion=(x or {}).get("accion", "avisar"),
+            grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, grafana=url_grafana(e["nombre"], a["id"]),
+                                                                         regla=nombre_regla(a), valor_accion=(x or {}).get("accion", "avisar"),
                                                                          valor_aviso=(x or {}).get("aviso", a.get("aviso")),
                                                                          valor_critico=(x or {}).get("critico", a.get("critico")),
                                                                          valor_sev=(x or {}).get("severidad", a.get("severidad", "aviso")),
@@ -92,6 +118,7 @@ def contexto(cliente_id, e, puede_escribir):
         disponible, por_que = False, "El equipo no tiene IP registrada"
     return {"tipo": t, "tipo_nombre": cat["tipos"][t]["nombre"], "fuente": cat["tipos"][t]["fuente"], "grupos": grupos,
             "n": len(act), "aplicado": ap.get("actualizado"), "ticket": ap.get("ticket"), "resumen": ap.get("resumen") or [],
+            "grafana": url_grafana(e["nombre"]), "archivo": f"{REGLAS}/{e['nombre']}.yml", "grupo_prom": f"faceops-{e['nombre']}",
             "en_curso": en_curso(cliente_id, e), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values())}
 
 
@@ -115,9 +142,12 @@ def pedido_de_formulario(e, form):
     """Del flotante → parámetros del ticket (validados contra el catálogo)."""
     t = tipo_de(e)
     cat = catalogo()
-    out = []
+    out, fuera = [], []
     for a in cat["alertas"]:
-        if t not in a["tipos"] or not form.get(f"on_{a['id']}"):
+        if t not in a["tipos"]:
+            continue
+        if not form.get(f"on_{a['id']}"):
+            fuera.append(a["id"])
             continue
         acc = form.get(f"acc_{a['id']}") or "avisar"
         if acc not in (a.get("acciones") or ["avisar"]):
@@ -145,7 +175,8 @@ def pedido_de_formulario(e, form):
             if "aviso" in x and "critico" in x and ((x["aviso"] <= x["critico"]) if a.get("menor") else (x["aviso"] >= x["critico"])):
                 raise ValueError(f"«{a['nombre']}»: el aviso debe ser {'mayor' if a.get('menor') else 'menor'} que el crítico")
         out.append(x)
-    return {"al_equipo": e["nombre"], "al_ip": e.get("ip") or "", "al_tipo": t, "al_alertas": out, "al_retirar": not out}
+    # un solo ticket con el grupo completo: las activas con su configuración y las apagadas (quedan fuera de las reglas)
+    return {"al_equipo": e["nombre"], "al_ip": e.get("ip") or "", "al_tipo": t, "al_alertas": out, "al_retiradas": fuera, "al_retirar": not out}
 
 
 def registrar_resultado(cliente_id, art, numero):

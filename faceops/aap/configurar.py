@@ -1046,12 +1046,13 @@ jid = asegurar("job_templates", "Identidad · Fuente de usuarios de FaceOps", {
 if cr_gw["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jid['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jid['id']}/credentials/", {"id": cr_gw["id"]})
 # Monitoreo · Configurar alertas: la credencial del anfitrión (aap-kvm, sin sudo general) escribe solo la configuración de
-# FaceOps en Prometheus y Alertmanager (ACL) y valida con promtool por un sudo acotado a ese comando.
+# FaceOps en Prometheus y Alertmanager (ACL), el tablero «Alertas de FaceOps» de Grafana (dashboards/faceops) y valida con promtool por un sudo acotado a ese comando.
 _mon = "/opt/summit-monitoreo"
 _r = subprocess.run(["sudo", "-n", "bash", "-c", f"""set -e
 id aap-kvm >/dev/null
 mkdir -p {_mon}/prometheus/faceops/reglas {_mon}/prometheus/faceops/objetivos {_mon}/prometheus/faceops/respaldo
 chown -R aap-kvm: {_mon}/prometheus/faceops
+mkdir -p {_mon}/grafana/dashboards/faceops && chown aap-kvm: {_mon}/grafana/dashboards/faceops && chmod 0755 {_mon}/grafana/dashboards/faceops
 setfacl -m u:aap-kvm:rwx {_mon}/prometheus {_mon}/alertmanager
 setfacl -m u:aap-kvm:rw {_mon}/prometheus/prometheus.yml {_mon}/alertmanager/alertmanager.yml
 echo 'aap-kvm ALL=(root) NOPASSWD: /usr/bin/podman exec summit-prometheus promtool check config /etc/prometheus/prometheus.yml' > /etc/sudoers.d/aap-kvm-monitoreo
