@@ -1,25 +1,11 @@
-commit: bb80adeab2144d803e95e9596e125dc825464ab8
-inicio: 2026-11-11T15:59:18-03:00
+commit: 2cce1f8376cffb10dee12c2a94fe673d969b1e2a
+inicio: 2026-11-11T16:17:23-03:00
 ---
-a7cb172 Inventariar máquina: en RHEL 8 la huella de paquetes usa platform-python
-   · Plantilla «Infra · Cargar imágenes base al registro» (id 586)
-   · Plantilla «FaceOps · Preparar imágenes RHEL» (id 255)
-   · Plantilla «OpenShift · Relevamiento de imágenes» (id 546)
-   · Plantilla «OpenShift · Evaluar imágenes (uso y antigüedad)» (id 1170)
-   · Plantilla «OpenShift · Mover imágenes a Quay» (id 1171)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-   · AppRole «faceops-quay» (solo lee web/<equipo>/quay) en «OpenShift · Mover imágenes a Quay»
-LISTO
-tickets activos de otros antes de reiniciar: ?
-faceops 200
-enuso=- cero=- rollout:v1=- rollout:v2=- sinuso=-
-CASO C1 falla · Valores por defecto
-plan=[] · - · rollout= · poda=False
-CASO C2 falla · Umbral 0, rangos 1,2 y Quay
-CASO C3 falla · Solo el namespace de prueba y organización fija
-git=None None · ficha=- - · raw=404
-CASO C4 falla · Informe en Git y en la ficha del clúster
-CASO C5 falla · Repetir
-CASO C6 falla · Rangos no válidos
-CASOS [{"id": "C1", "caso": "Valores por defecto", "resultado": "falla", "evidencia": "sin automatización enuso=- cero=- rollout:v1=- rollout:v2=- sinuso=- cand=0 sys=False rangos=0"}, {"id": "C2", "caso": "Umbral 0, rangos 1,2 y Quay", "resultado": "falla", "evidencia": "sin automatización [] -  False"}, {"id": "C3", "caso": "Solo el namespace de prueba y organización fija", "resultado": "falla", "evidencia": "sin automatización todas=True n=None -"}, {"id": "C4", "caso": "Informe en Git y en la ficha del clúster", "resultado": "falla", "evidencia": "git=None None ficha=- - tk="}, {"id": "C5", "caso": "Repetir", "resultado": "falla", "evidencia": "sin automatización [] vs [] foto 6896e37a→6896e37a"}, {"id": "C6", "caso": "Rangos no válidos", "resultado": "falla", "evidencia": "sin automatización"}]
---- fin: 2026-11-11T16:17:56-03:00 · código: 0
+481de99
+1
+remote: . Processing 1 references        
+remote: Processed 1 references in total        
+gitea 97285f0
+faceops actualizado
+Error: no container with name or ID "faceops" found: no such container
+--- fin: 2026-11-11T16:21:15-03:00 · código: 0
