@@ -1,0 +1,103 @@
+commit: a669b220e4b9d85b6823432642944017419c409e
+inicio: 2026-11-11T10:57:56-03:00
+---
+active
+-e GF_SERVER_HTTP_PORT=3001
+-e GF_SERVER_ROOT_URL=http://34.176.42.56:8090/grafana/
+-e GF_SERVER_SERVE_FROM_SUB_PATH=true
+-e GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/summit-operacion.json
+-e GF_USERS_DEFAULT_THEME=light
+-e GF_ANALYTICS_REPORTING_ENABLED=false
+-e GF_NEWS_NEWS_FEED_ENABLED=false
+/opt/summit-monitoreo/grafana/:
+total 0
+drwxr-xr-x. 5  472 root  56 Oct 26 15:50 .
+drwxr-xr-x. 8 root root 134 Oct 26 15:48 ..
+drwxr-xr-x. 2  472 root 119 Oct 26 23:56 dashboards
+drwxr-xr-x. 7  472 root  90 Nov 11 10:57 data
+drwxr-xr-x. 4  472 root  43 Oct 26 15:50 provisioning
+
+/opt/summit-monitoreo/grafana/dashboards:
+total 56
+drwxr-xr-x. 2  472 root   119 Oct 26 23:56 .
+drwxr-xr-x. 5  472 root    56 Oct 26 15:50 ..
+-rw-r--r--. 1 root root 16626 Oct 26 18:57 summit-ecosistema.json
+-rw-r--r--. 1 root root  8816 Oct 27 00:25 summit-nube.json
+-rw-r--r--. 1  472 root  7002 Oct 26 18:57 summit-operacion.json
+-rw-r--r--. 1  472 root 15262 Oct 26 18:57 summit-servidores.json
+
+/opt/summit-monitoreo/grafana/provisioning/dashboards:
+total 4
+drwxr-xr-x. 2 472 root  24 Oct 26 15:50 .
+drwxr-xr-x. 4 472 root  43 Oct 26 15:50 ..
+-rw-r--r--. 1 472 root 141 Oct 26 15:50 summit.yml
+apiVersion: 1
+providers:
+  - {name: summit, folder: Summit, type: file, allowUiUpdates: false, options: {path: /var/lib/grafana/dashboards}}
+user::rwx
+group::r-x
+other::r-x
+
+user::rwx
+group::r-x
+other::r-x
+
+{
+  "database": "ok",
+  "version": "11.3.1",
+  "commit": "64b556c137a1d9bcacd19ccb16c4cf138c78ca40"
+}
+http://34.176.42.56:8090/grafana/api/health 000
+https://faceops.34.176.42.56.sslip.io:8843/grafana/api/health 404
+faceops-cabeceras.inc
+faceops.conf
+faceops.conf.bak-1793497539
+pki.conf
+portal-automatizacion.conf
+portal-automatizacion.conf.antes-ocp
+satellite.conf
+validador.conf
+/etc/nginx/conf.d/faceops.conf:8:    location /.well-known/acme-challenge/ { root /var/www; }
+/etc/nginx/conf.d/faceops.conf:9:    location / { return 301 https://faceops.34.176.42.56.sslip.io:8843$request_uri; }
+/etc/nginx/conf.d/faceops.conf:23:    location = / { return 302 /faceops/; }
+/etc/nginx/conf.d/faceops.conf:24:    location ~ ^/faceops/(ingresar|ingresar/codigo)$ {
+/etc/nginx/conf.d/faceops.conf:27:        proxy_pass http://192.168.122.1:8110/$1;
+/etc/nginx/conf.d/faceops.conf:31:    location ~ ^/faceops/((?:[a-z0-9_-]+/)?inventario/\d+/(consola-web|web)/.*)$ {
+/etc/nginx/conf.d/faceops.conf:33:        proxy_pass http://192.168.122.1:8110/$1$is_args$args;
+/etc/nginx/conf.d/faceops.conf:39:    location /maqueta/ {
+/etc/nginx/conf.d/faceops.conf:41:        proxy_pass http://192.168.122.1:8112/;
+/etc/nginx/conf.d/faceops.conf:48:    location /faceops/ {
+/etc/nginx/conf.d/faceops.conf:50:        proxy_pass http://192.168.122.1:8110/;
+/etc/nginx/conf.d/faceops.conf:54:    location ~ ^/ca/(agent|admin)/ { return 403; }
+/etc/nginx/conf.d/faceops.conf:55:    location ~ ^/(ca/(ee|rest|ui|css|js|images|fonts|pki)|pki/|ca/ee) {
+/etc/nginx/conf.d/faceops.conf:57:        proxy_pass https://127.0.0.1:18443;
+/etc/nginx/conf.d/faceops.conf:63:    location /git/ {
+/etc/nginx/conf.d/faceops.conf:65:        proxy_pass http://127.0.0.1:3000/;
+/etc/nginx/conf.d/faceops.conf:74:    location /consola/ {
+/etc/nginx/conf.d/faceops.conf:75:        proxy_pass http://192.168.122.1:8111/consola/;
+/etc/nginx/conf.d/faceops.conf:83:    location / { return 404; }
+/etc/nginx/conf.d/pki.conf:8:    location = / { return 302 /ca/ee/ca/; }
+/etc/nginx/conf.d/pki.conf:9:    location ~ ^/ca/(agent|admin)/ { return 403; }
+/etc/nginx/conf.d/pki.conf:10:    location ~ ^/(ca/(ee|rest|ui|css|js|images|fonts|pki)|pki/|ca/ee) {
+/etc/nginx/conf.d/pki.conf:12:        proxy_pass https://127.0.0.1:18443;
+/etc/nginx/conf.d/pki.conf:18:    location / { return 404; }
+/etc/nginx/conf.d/validador.conf:9:    location / { proxy_pass http://127.0.0.1:8120; proxy_set_header X-Real-IP $remote_addr; proxy_set_header Host $host; }
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:7:    location /.well-known/acme-challenge/ { root /var/www; }
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:8:    location / { return 301 https://faceops.34.176.42.56.sslip.io:8843$request_uri; }
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:21:    location = / { return 302 /faceops/; }
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:22:    location ~ ^/faceops/(ingresar|ingresar/codigo)$ {
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:25:        proxy_pass http://192.168.122.1:8110/$1;
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:28:    location /faceops/ {
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:30:        proxy_pass http://192.168.122.1:8110/;
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:33:    location /consola/ {
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:34:        proxy_pass http://192.168.122.1:8111/consola/;
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:42:    location / { return 404; }
+/etc/nginx/conf.d/satellite.conf:8:    location = /faceops-entrar {   # ingreso directo como admin desde FaceOps (ficha de un solo uso)
+/etc/nginx/conf.d/satellite.conf:9:        proxy_pass http://192.168.122.1:8110/satellite/entrar$is_args$args;
+/etc/nginx/conf.d/satellite.conf:13:    location / {
+/etc/nginx/conf.d/satellite.conf:15:        proxy_pass https://192.168.122.2:443;
+/etc/nginx/conf.d/portal-automatizacion.conf:11:    location = /ingresar {
+uid=1003(aap-kvm) gid=1008(aap-kvm) groups=1008(aap-kvm)
+/etc/sudoers.d/aap-kvm:1:aap-kvm ALL=(root) NOPASSWD: /usr/bin/virsh, /usr/bin/virt-install
+/etc/sudoers.d/aap-kvm-monitoreo:1:aap-kvm ALL=(root) NOPASSWD: /usr/bin/podman exec summit-prometheus promtool check config /etc/prometheus/prometheus.yml
+--- fin: 2026-11-11T10:58:02-03:00 · código: 0
