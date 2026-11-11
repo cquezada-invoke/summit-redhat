@@ -649,6 +649,9 @@ jsp = asegurar("job_templates", "Plataforma · Controlar servicio", {
     "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Enciende, apaga o reinicia el servicio de una plataforma (JBoss, nginx, PostgreSQL, Redis…) sin tocar la máquina"})
+_cbs = uno("credentials", name="FaceOps · Bóveda (servicios)")   # registra la credencial de admin de Keycloak al encenderlo
+if _cbs and _cbs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jsp['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jsp['id']}/credentials/", {"id": _cbs["id"]})
 paso(f"Plantilla «Plataforma · Controlar servicio» (id {jsp['id']})")
 jqa = asegurar("job_templates", "Sistema · Quitar agente", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/quitar-agente.yml", "inventory": inv["id"],

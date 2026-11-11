@@ -107,7 +107,7 @@
     - name: Deshabilitar solo aplica a plataformas en contenedor (antes de detener nada)
       when: accion == 'deshabilitar'
       ansible.builtin.stat:
-        path: "/etc/containers/systemd/{{ sp_unidad | regex_replace('\\.service$', '') }}.container"
+        path: "/etc/containers/systemd/{{ sp_unidad | replace('.service', '') }}.container"
       register: r_q_desh
 
     - name: La plataforma corre en contenedor (quadlet)
@@ -126,12 +126,48 @@
       when: accion == 'deshabilitar'
       ansible.builtin.shell: |
         set -e
-        u={{ (sp_unidad | regex_replace('\\.service$', '')) | quote }}; q="/etc/containers/systemd/$u.container"; d="/var/lib/$u/deshabilitado"
+        u={{ (sp_unidad | replace('.service', '')) | quote }}; q="/etc/containers/systemd/$u.container"; d="/var/lib/$u/deshabilitado"
         [ -e "$q" ] || { echo "sin quadlet en $q: no es una plataforma en contenedor" >&2; exit 3; }
         mkdir -p "$d"; mv -f "$q" "$d/$u.container"; systemctl daemon-reload
         echo "deshabilitado $q → $d/$u.container"
       register: r_desh
       changed_when: "'deshabilitado' in r_desh.stdout"
+
+    - name: Credencial de administración de Keycloak en la bóveda (FaceOps entra a su consola sin mostrarla)
+      when:
+        - accion in ['encender', 'reiniciar']
+        - sp_unidad is match('^(keycloak|rhbk)')
+        - faceops_vault_role_id is defined
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, re, urllib.request
+        q = open("/etc/containers/systemd/{{ sp_unidad | replace('.service', '') }}.container").read()
+        env = {}
+        for f in re.findall(r"^EnvironmentFile=(.+)$", q, re.M):
+            try:
+                env.update(dict(l.strip().split("=", 1) for l in open(f.strip()) if "=" in l))
+            except OSError:
+                pass
+        env.update(dict(re.findall(r"^Environment=([A-Z_]+)=(.*)$", q, re.M)))
+        clave = env.get("KC_BOOTSTRAP_ADMIN_PASSWORD") or env.get("KEYCLOAK_ADMIN_PASSWORD")
+        if not clave:
+            print("sin clave de administración en el quadlet"); raise SystemExit(0)
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/keycloak", {"data": {"sitio": "keycloak", "clave": clave,
+              "usuario": env.get("KC_BOOTSTRAP_ADMIN_USERNAME") or env.get("KEYCLOAK_ADMIN") or "admin",
+              "puerto": {{ (sp_puerto | default(8080)) | int }}, "ruta": env.get("KC_HTTP_RELATIVE_PATH", "")}}, tok)
+        print("credencial registrada")
+        P
+      register: r_kc_cred
+      no_log: true
+      changed_when: "'registrada' in r_kc_cred.stdout"
+      failed_when: false
 
     - name: Estado final
       ansible.builtin.command: systemctl is-active {{ sp_unidad }}
@@ -142,6 +178,6 @@
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
-          faceops_servicio: "{{ {inventory_hostname: {'unidad': sp_unidad, 'activo': r_fin.stdout | trim, 'accion': accion, 'quadlet': ((r_quadlet.stdout | default('')) ~ ' ' ~ (r_desh.stdout | default(''))) | trim}} }}"
+          faceops_servicio: "{{ {inventory_hostname: {'unidad': sp_unidad, 'activo': r_fin.stdout | trim, 'accion': accion, 'quadlet': ((r_quadlet.stdout | default('')) ~ ' ' ~ (r_desh.stdout | default(''))) | trim, 'boveda': (r_kc_cred is changed)}} }}"
         per_host: false
         aggregate: true
