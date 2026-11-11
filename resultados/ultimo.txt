@@ -1,30 +1,64 @@
-commit: e9ce4d8942a4dd4c7b46bc1102e624e96790e06f
-inicio: 2026-11-11T14:47:15-03:00
+commit: 49d51939b906dd359fbe093ec5accad22ba7391f
+inicio: 2026-11-11T14:09:11-03:00
 ---
-ff5a35d Eval
-200
-== Acceso de FaceOps
-    encender | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
-    reiniciar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
-    apagar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
-    estado | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
-    actualizar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
-    quitar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
-   desc: Usuario de servicio con llave propia por el que AAP opera la máquina
-== Respaldo continuo en Git
-    encender | Ya está encendido | disabled
-    reiniciar | Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para det | disabled
-    apagar | Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para det | disabled
-    estado | Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para det | disabled
-    actualizar btn-agc | Actualizar Respaldo continuo en Git (ticket con aprobación) | on
-    quitar | «Quitar agente» aún no pasa su plan de prueba (regla de prueba) | disabled
-   desc: Guarda cada minuto la configuración de la máquina en Git
-== Monitoreo (métricas)
-    encender | Ya está encendido | disabled
-    reiniciar | «Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba (regla de prueba) | disabled
-    apagar | «Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba (regla de prueba) | disabled
-    estado | «Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba (regla de prueba) | disabled
-    actualizar | «Agente de monitoreo (Linux)» aún no pasa su plan de prueba (regla de prueba) | disabled
-    quitar | «Quitar agente» aún no pasa su plan de prueba (regla de prueba) | disabled
-   desc: Expone métricas de CPU, memoria, disco y red para el monitoreo
---- fin: 2026-11-11T14:48:13-03:00 · código: 0
+e6047f4 Ficha › Agentes: acciones operativas dentro de la fi
+puertos_web antes: None
+puertos_web registrado: {'keycloak': 8180}
+FO-LAB-01709 rechazado
+C1
+RES {"caso": "C1", "auto": "Plataforma · Controlar servicio", "ticket": "FO-LAB-01734", "estado": "fallido", "stats": {}, "detalle": "Datos válidos · Acción o unidades no válidas · ", "fallos": ["Datos válidos · Acción o unidades no válidas"], "resultado": "alló en la tarea «Datos válidos» de nodo-jboss: {\nIdentity added: /runner/artifacts/23872/ssh_key_data (cquezada@demo-ansible-summit)\n\nPLAY [FaceOps · Controlar servicio de plataforma] ******************************\n\nTASK [Datos válidos] ***********************************************************\nfatal: [nodo-jboss]: FAILED! => {\n    \"assertion\": \"accion in ['encender', 'apagar', 'reiniciar', 'estado']\",\n    \"changed\": false,\n    \"evaluated_to\": false,\n    \"msg\": \"Acción o unidades no válidas\"\n}\n\nPLAY RECAP *********************************************************************\nnodo-jboss                 : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   "}
+  vm: /etc/containers/systemd/: keycloak.container  /var/lib/keycloak/deshabilitado/: 
+  vm: PublishPort=8080:8080
+  vm: failed active active 
+  kc8180=000 app=200 lb=200
+C2
+RES {"caso": "C2", "auto": "Plataforma · Controlar servicio", "ticket": "FO-LAB-01736", "estado": "fallido", "stats": {}, "detalle": "Encender Keycloak · Unable to start service keycloak.service: Job for keycloak.service failed because the control process exited with error code.\nSee \"systemctl status keycloak.service\" and \"journalctl -xeu keycloak.service\" for details.\n · ", "fallos": ["Encender Keycloak · Unable to start service keycloak.service: Job for keycloak.service failed because the control process exited with error code.\nSee \"systemctl status keycloak.service\" and \"journalctl -xeu keycloak.service\" for details.\n"], "resultado": "vicio en el equipo] *******************************\nok: [nodo-jboss] => {\n    \"changed\": false,\n    \"msg\": \"All assertions passed\"\n}\n\nTASK [Encender Keycloak] *******************************************************\nfatal: [nodo-jboss]: FAILED! => {\"changed\": false, \"msg\": \"Unable to start service keycloak.service: Job for 
+  vm: /etc/containers/systemd/: keycloak.container  /var/lib/keycloak/deshabilitado/: 
+  vm: PublishPort=8080:8080
+  vm: failed active active 
+  kc8180=000 app=200 lb=200
+  consolaFO 502 | tarjeta: [] | detenido: True
+C3
+RES {"caso": "C3", "auto": "Plataforma · Controlar servicio", "ticket": "FO-LAB-01742", "estado": "fallido", "stats": {}, "detalle": "Encender Keycloak · Unable to start service keycloak.service: Job for keycloak.service failed because the control process exited with error code.\nSee \"systemctl status keycloak.service\" and \"journalctl -xeu keycloak.service\" for details.\n · ", "fallos": ["Encender Keycloak · Unable to start service keycloak.service: Job for keycloak.service failed because the control process exited with error code.\nSee \"systemctl status keycloak.service\" and \"journalctl -xeu keycloak.service\" for details.\n"], "resultado": "vicio en el equipo] *******************************\nok: [nodo-jboss] => {\n    \"changed\": false,\n    \"msg\": \"All assertions passed\"\n}\n\nTASK [Encender Keycloak] *******************************************************\nfatal: [nodo-jboss]: FAILED! => {\"changed\": false, \"msg\": \"Unable to start service keycloak.service: Job for 
+  kc8180=000 app=200 lb=200
+C4
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+TICKET FO-LAB-01745
+  kc8180=000 app=200 lb=200
+C5
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+TICKET FO-LAB-01748
+  vm: /etc/containers/systemd/: keycloak.container  /var/lib/keycloak/deshabilitado/: 
+  vm: PublishPort=8080:8080
+  vm: failed active active 
+  kc8180=000 app=200 lb=200
+C6
+RES {"caso": "C6", "auto": "Plataforma · Controlar servicio", "ticket": "FO-LAB-01749", "estado": "exitoso", "stats": {"faceops_servicio": {"nodo-jboss": {"unidad": "keycloak.service", "activo": "active", "accion": "encender", "quadlet": "puerto PublishPort=8080:8080 → PublishPort=8180:8080"}}}, "detalle": "", "fallos": [], "resultado": "AAP terminó (successful): ejecución 23 s, espera de aprobación 30 s"}
+  vm: /etc/containers/systemd/: keycloak.container  /var/lib/keycloak/deshabilitado/: 
+  vm: PublishPort=8180:8080
+  vm: active active active 
+  kc8180=000 app=200 lb=200
+  consolaFO 502 | tarjeta: [] | detenido: True
+C7
+RES {"caso": "C7", "auto": "Plataforma · Controlar servicio", "ticket": "FO-LAB-01755", "estado": "exitoso", "stats": {"faceops_servicio": {"nodo-jboss": {"unidad": "eap8-standalone.service", "activo": "active", "accion": "estado", "quadlet": ""}}}, "detalle": "", "fallos": [], "resultado": "AAP terminó (successful): ejecución 10 s, espera de aprobación 28 s"}
+C8
+RES {"caso": "C8", "auto": "Plataforma · Controlar servicio", "ticket": "FO-LAB-01757", "estado": "fallido", "stats": {}, "detalle": "La plataforma tiene servicio en el equipo · No se encontró el servicio de Tomcat (tomcat, jws6-tomcat, jws5-tomcat) · ", "fallos": ["La plataforma tiene servicio en el equipo · No se encontró el servicio de Tomcat (tomcat, jws6-tomcat, jws5-tomcat)"], "resultado": "\nFalló en la tarea «La plataforma tiene servicio en el equipo» de nodo-jboss: {\nskipping: [nodo-jboss]\n\nTASK [Unidad de la plataforma (una que termina en «@» toma cualquier instancia)] ***\nok: [nodo-jboss]\n\nTASK [La plataforma tiene servicio en el equipo] *******************************\nfatal: [nodo-jboss]: FAILED! => {\n    \"assertion\": \"sp_unidad | length > 0\",\n    \"changed\": false,\n    \"evaluated_to\": false,\n    \"msg\": \"No se encontró el servicio de Tomcat (tomcat, jws6-tomcat, jws5-tomcat)\"\n}\n\nPLAY RECAP ************************************************************
+C9
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+TICKET FO-LAB-01760
+  vm: /etc/containers/systemd/: keycloak.container  /var/lib/keycloak/deshabilitado/: 
+  vm: PublishPort=8180:8080
+  vm: active active active 
+C10
+C10 nodo-jboss2 2048 MB → 409 Keycloak: Para encenderla se requieren ~3 GB de RAM en la máquina (hoy 2 GB): ajusta la memoria (Ajustar CPU y memoria · sistema 0,5 GB + keycloak 1,25 GB + jboss 1,25 GB). | tickets nuevos: 0
+INVENTARIO
+inventariar 400 None «Inventariar máquina» está bloqueada: cambió desde su última prueba y debe probarse de nuevo
+FIN FaceOps nodo-jboss: 2 vCPU · 3072 MB asignados · 1707 MB usables · puertos_web {'keycloak': 8180}
+  kc8180=302 app=200 lb=200
+  File "/opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py", line 1030, in resolve_redirect
+    raise RuntimeError("Following external redirects is not supported.")
+RuntimeError: Following external redirects is not supported.
+--- fin: 2026-11-11T14:48:22-03:00 · código: 0
