@@ -762,6 +762,12 @@ def automatizacion(aid):
         for c in campos:
             if request.args.get("v_" + c["var"]):
                 c["defecto"] = request.args.get("v_" + c["var"])
+    equipo_sel = None   # máquina elegida antes (p. ej. desde Modernización): solo una compatible y visible
+    eid_sel = request.form.get("equipo") if request.method == "POST" else request.args.get("equipo")
+    if eid_sel and str(eid_sel).isdigit() and (a["usa_limite"] or a.get("por_inventario")):
+        equipo_sel = next((e for e in _compatibles(a) if e["id"] == int(eid_sel)), None)
+        if not equipo_sel:
+            flash("Esa máquina no es compatible con esta acción o no está en tu inventario: elige otra", "error")
     elegibles = equipos_elegibles(g.usuario, g.cliente["id"], a) if any(c["tipo"] in ("equipo", "equipos") for c in campos) else []
     jboss_eqs = []
     if any(c["tipo"] in ("jboss_origen", "jboss_destino") for c in campos):   # servidores con JBoss (inventario recolectado)
@@ -775,7 +781,12 @@ def automatizacion(aid):
     if request.method == "POST":
         params, secretos = {}, {}
         validos = {e["nombre"] for e in elegibles}
+        if eid_sel and not equipo_sel:
+            return redirect(request.url)
         for c in campos:
+            if equipo_sel and c["tipo"] in ("equipo", "equipos"):   # la máquina ya elegida
+                params[c["var"]] = equipo_sel["nombre"] if c["tipo"] == "equipo" else [equipo_sel["nombre"]]
+                continue
             v = request.form.get("v_" + c["var"], "").strip()
             if c["tipo"] in ("multiselect", "equipos", "jboss_apps"):
                 v = [x for x in request.form.getlist("v_" + c["var"]) if x]
@@ -852,8 +863,12 @@ def automatizacion(aid):
                 params["hab_vc_puerto"] = str(_vc(j(inf_.get("detalle"), {}).get("host", ""))[1])
             params.pop("hab_segmento", None)
         try:
-            t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip(), secretos,
-                          {"ambientes": [x for x in request.form.getlist("f_ambiente") if x][:1], "infraestructura": request.form.getlist("f_infra")})
+            if equipo_sel:   # sobre la máquina elegida: mismo ticket y misma aprobación que desde su detalle
+                from .operacion import solicitar_en_equipo
+                t = solicitar_en_equipo(g.usuario, g.cliente, a, equipo_sel, params, request.form.get("motivo", "").strip(), secretos)
+            else:
+                t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip(), secretos,
+                              {"ambientes": [x for x in request.form.getlist("f_ambiente") if x][:1], "infraestructura": request.form.getlist("f_infra")})
             from .operacion import requiere_aprobacion
             amb = (j(t["filtros"], {}).get("ambientes") or [None])[0]
             flash(f"{t['numero']} creado y enviado a AAP" + (" (esperará la aprobación en AAP)" if requiere_aprobacion(a, amb) else ""), "ok")
@@ -870,11 +885,52 @@ def automatizacion(aid):
     from .pruebas import estado as estado_prueba, plan_de, calidad as calidad_de
     return render_template("automatizacion.html", prueba=estado_prueba(dict(a, cliente_id=g.cliente["id"])), plan_prueba=plan_de(a["nombre_aap"]),
                            calidad=calidad_de(dict(a, cliente_id=g.cliente["id"])), jboss_eqs=jboss_eqs, objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
-                           compat_eqs=_compatibles(a), met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
+                           compat_eqs=_compatibles(a), equipo_sel=equipo_sel, met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            infras_cli=q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],
                            guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,
                            segmentos=segs)
+
+
+# ------------------------------------------------------------------ modernización (migraciones agrupadas por origen → destino)
+def _pagina_modernizacion(clave):
+    """Las migraciones ya trabajadas de la página, con su estado (regla de prueba) y las máquinas compatibles para elegir.
+    Cada opción se lanza con el formulario de siempre (ticket y aprobación en AAP)."""
+    from .identidad import codigo as _cod
+    from .modernizacion import armar
+    from .pruebas import estado as estado_prueba
+    titulo, sub, grupos = armar(clave, autos_visibles(todas=True))
+    textos = {"cambiada": "cambió desde su última prueba: debe probarse de nuevo", "fallida": "su última prueba falló",
+              "sin probar": "aún sin su plan de prueba aprobado"}
+    for gr in grupos:
+        for a in gr["opciones"]:
+            a["puede"], a["por_que"] = puede_ejecutar(g.usuario, g.cliente["id"], a)
+            st_ = estado_prueba(dict(a, cliente_id=g.cliente["id"]))["estado"] if a.get("_bloqueada") else "certificada"
+            a["prueba_txt"] = textos.get(st_, "")
+            a["proposito"] = j(a.get("guia"), {}).get("proposito", "")
+            campos_ = j(a.get("campos"), [])
+            a["var_origen"] = next((c["var"] for c in campos_ if c["tipo"] == "jboss_origen"), "")
+            a["maquinas"] = [{"id": e["id"], "nombre": e["nombre"], "cod": _cod(e), "ambiente": e.get("ambiente") or "", "ip": e.get("ip") or ""}
+                             for e in _compatibles(a)] if (a.get("por_inventario") or a.get("usa_limite")) else []
+    return render_template("modernizacion.html", titulo=titulo, sub=sub, grupos=grupos, clave=clave)
+
+
+@bp.route("/arquitectura/modernizacion")
+@requiere_login
+def modernizacion_apps():
+    return _pagina_modernizacion("aplicaciones")
+
+
+@bp.route("/sistemas-operativos/modernizacion")
+@requiere_login
+def so_modernizacion():
+    return _pagina_modernizacion("so")
+
+
+@bp.route("/sistemas-operativos/actualizaciones")
+@requiere_login
+def so_actualizaciones():
+    return _pagina_modernizacion("so_actualizaciones")
 
 
 # ------------------------------------------------------------------ tickets
@@ -7623,6 +7679,7 @@ def menu_nav():
     activo = {"consola.deudas": "consola.radar_salud", "consola.alertas": "consola.radar_salud", "consola.kpi_okr": "consola.radar_salud", "consola.itil": "consola.radar_salud", "consola.seguridad_mapa": "consola.politicas", "consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.radar_salud", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.ecosistema", "consola.ciclo_vida_version": "consola.ecosistema", "consola.stack_tecnologico": "consola.ecosistema",
+              "consola.modernizacion_apps": "consola.ecosistema", "consola.so_modernizacion": "consola.sistemas_operativos", "consola.so_actualizaciones": "consola.sistemas_operativos",
               "consola.tickets": "consola.radar_salud", "consola.aprobaciones_pendientes": "consola.radar_salud", "consola.aprobaciones_traza": "consola.radar_salud"}.get(request.endpoint, request.endpoint)
     ep_ = request.endpoint or ""
     if ep_.startswith(("consola.devsecops", "consola.buenas_practicas", "consola.stack_")):
@@ -7657,7 +7714,7 @@ def menu_nav():
                  ("consola.inventario", "Servidores", "inventario", g_inv),
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Arquitectura", {"_ep": "consola.redes_arquitectura"})]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
-                 ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
+                 ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {}), ("Actualizaciones de sistemas operativos", {"_ep": "consola.so_actualizaciones"}), ("Modernización", {"_ep": "consola.so_modernizacion"})]),
                  ("consola.bases_datos", "Bases de datos", "bd", [("Todas las bases de datos", {})]),
                  ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})]),
                  ("consola.contenedores", "Contenedores", "contenedores", [("Todos los clústeres", {})]),
@@ -7672,7 +7729,7 @@ def menu_nav():
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Incidentes", {"_ep": "consola.incidentes"})]),   # «VPN y accesos remotos» fuera del menú por ahora (la ruta sigue)
                  # «Disponibilidad» ya no es una sección: es un criterio de cada segmento de negocio (sección en su flotante del mapa)
-                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Manifiesto de arquitectura", {"_ep": "consola.manifiesto_arquitectura"}), ("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Políticas de desarrollo", {"_ep": "consola.politicas_desarrollo"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
+                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Manifiesto de arquitectura", {"_ep": "consola.manifiesto_arquitectura"}), ("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Políticas de desarrollo", {"_ep": "consola.politicas_desarrollo"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}), ("Modernización de aplicaciones", {"_ep": "consola.modernizacion_apps"}),
                                                                       ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True})]),   # «Buenas prácticas por tecnología» quitada del menú
                  ("consola.fabrica_desarrollo", "Fábrica de software", "segmentos", [("Desarrollo", {}), ("Políticas de software", {"_ep": "consola.politicas_desarrollo"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),

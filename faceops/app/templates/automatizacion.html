@@ -38,7 +38,12 @@
     {% if not puede %}<div class="flash error">{{ por_que }}</div>{% endif %}
     <form method="post" class="f" id="formu" enctype="multipart/form-data">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
-      {% if a.usa_limite %}
+      {% if equipo_sel %}
+      <input type="hidden" name="equipo" value="{{ equipo_sel.id }}"><input type="hidden" name="f_ambiente" value="{{ equipo_sel.ambiente or '' }}">
+      <label>Máquina <span class="ayuda">· elegida antes; AAP la ejecuta solo en ella · <a href="{{ url_for('consola.automatizacion', aid=a.id) }}">elegir por segmento</a></span>
+        <input type="text" value="{{ equipo_sel.nombre }}{{ ' · ' ~ equipo_sel.ambiente if equipo_sel.ambiente }}{{ ' · ' ~ equipo_sel.ip if equipo_sel.ip }}" disabled></label>
+      <p id="aviso-aprob" class="flash" style="display:none;margin:4px 0 10px;background:var(--warnbg);color:var(--warn)"></p>
+      {% elif a.usa_limite %}
       <label>Segmento de negocio <span class="ayuda">· {% if a.habilita_skill %}solo equipos {{ j(a.compatibles, [])|join(' o ') }} que aún no tienen la skill «{{ a.habilita_skill }}»{% else %}AAP la ejecuta solo en esos equipos (los que están en «{{ a.inventario }}»){% endif %}</span>
         <select name="segmento" required data-limite>{% for s in segmentos %}<option value="{{ s.nombre }}" data-equipos='{{ s.equipos|tojson }}'>{{ s.etiqueta }} · {{ s.equipos|length }} equipo{{ 's' if s.equipos|length != 1 }}</option>{% else %}<option value="">{{ 'Todos los equipos compatibles ya tienen esta skill (o no tienes segmentos con equipos compatibles)' if a.habilita_skill else 'No tienes segmentos con equipos para esta acción' }}</option>{% endfor %}</select></label>
       <div class="grid g2" style="gap:10px">
@@ -48,7 +53,7 @@
       <p class="ayuda" id="hosts-seg" style="margin:2px 0 4px"></p>
       <p id="aviso-aprob" class="flash" style="display:none;margin:4px 0 10px;background:var(--warnbg);color:var(--warn)"></p>
       {% endif %}
-      {% for c in campos %}{% set ay = c.ayuda or (guia.entradas or {}).get(c.var) %}
+      {% for c in campos if not (equipo_sel and c.tipo in ('equipo', 'equipos')) %}{% set ay = c.ayuda or (guia.entradas or {}).get(c.var) %}
       <label>{{ c.etiqueta }}{% if c.requerido %} <span class="req">*</span>{% endif %}{% if c.enlace %} <a class="campo-enlace" href="{{ c.enlace.url }}" target="_blank" rel="noopener" style="font-size:12px;font-weight:400;margin-left:6px">{{ c.enlace.texto or "dónde se obtiene" }} ↗</a>{% endif %}
         {% if c.tipo == 'multiplechoice' and c.opciones %}<select name="v_{{ c.var }}" data-var="{{ c.var }}">{% for o in c.opciones %}<option {{ 'selected' if o == c.defecto }}>{{ o }}</option>{% endfor %}</select>
         {% elif c.tipo == 'multiselect' and c.opciones %}<span class="opciones">{% for o in c.opciones %}<label class="op"><input type="checkbox" name="v_{{ c.var }}" value="{{ o }}" data-var="{{ c.var }}" data-lista {{ 'checked' if c.defecto and o in c.defecto }}> {{ o }}</label>{% endfor %}</span>

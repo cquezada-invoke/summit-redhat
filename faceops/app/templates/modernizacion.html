@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block titulo %}{{ titulo }}{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>{{ titulo }}</h1><p class="sub">{{ sub }} · cada opción se lanza con su formulario, queda en un ticket y, si cambia el entorno, espera su aprobación en AAP</p></div></div>
+{% for gr in grupos %}
+<div class="cat"><h2>{{ gr.origen }} <span style="color:var(--muted);font-weight:400">→</span> {{ gr.destino }}</h2><span class="sub">{{ gr.nota }} · {{ gr.opciones|length }} opci{{ 'ón' if gr.opciones|length == 1 else 'ones' }}</span></div>
+<div class="autos" style="margin-bottom:22px">{% for a in gr.opciones %}
+  <div class="auto auto-hub{{ ' bloqueada-pr' if a._bloqueada }}{{ ' sin-permiso' if not a.puede }}" style="min-height:0">
+    <span class="arriba">{{ a|icono_auto }}{% if a.requiere_aprobacion %}<span class="hub-badge">Aprobación</span>{% elif a.tipo == 'lectura' %}<span class="hub-badge">Solo lectura</span>{% endif %}</span>
+    <a class="t" href="{{ url_for('consola.automatizacion', aid=a.id) }}" style="color:inherit">{{ a.nombre }}</a>
+    {% if a._bloqueada %}<span class="chip pr-bloq">No disponible: {{ a.prueba_txt }}</span>{% endif %}
+    <span class="por">{{ 'solo lectura' if a.tipo == 'lectura' else 'cambia el entorno' }}{% if a.por_inventario or a.usa_limite %} · sobre máquinas del inventario{% endif %}</span>
+    <span class="d" style="margin-bottom:12px">{{ a.proposito or a.descripcion or a.nombre_aap }}</span>
+    {% if a._bloqueada %}<button class="btn gris" disabled title="Regla de prueba: no se puede lanzar hasta aprobar su plan de prueba completo">No disponible</button>
+    {% elif not a.puede %}<button class="btn gris" disabled title="{{ a.por_que }}">Sin permiso</button><span class="sub" style="font-size:12px">{{ a.por_que }}</span>
+    {% else %}<form method="get" action="{{ url_for('consola.automatizacion', aid=a.id) }}" class="f" style="margin:0;display:flex;flex-direction:column;gap:8px">
+      {% if a.maquinas %}<label style="margin:0">Máquina<select name="{{ 'v_' ~ a.var_origen if a.var_origen else 'equipo' }}" required>
+        <option value="">— elige una máquina compatible —</option>{% for e in a.maquinas %}<option value="{{ e.nombre if a.var_origen else e.id }}">{{ e.cod }}{{ ' · ' ~ e.ambiente if e.ambiente }}{{ ' · ' ~ e.ip if e.ip }}</option>{% endfor %}</select></label>
+      {% elif a.por_inventario or a.usa_limite %}<span class="sub" style="font-size:12px">Ninguna máquina compatible en tu inventario</span>{% endif %}
+      <button class="btn">{{ 'Solicitar' if a.requiere_aprobacion else 'Lanzar' }}</button></form>{% endif %}
+  </div>{% endfor %}</div>
+{% else %}<p class="vacio">No hay opciones disponibles en esta página.</p>{% endfor %}
+{% endblock %}
