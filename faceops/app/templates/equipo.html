@@ -356,7 +356,8 @@ document.querySelectorAll('.pil-cabs[id^="pil-cabs-"]').forEach(cb=>{const cod=c
    propia acción en «Para llegar al 100 %». Lo que está OK y el historial no se muestran; un pilar al 100 % queda cerrado. */
 caj.querySelectorAll('.cajon-sal details.pil-caja').forEach(g=>{const cu=g.querySelector('.pil-cuerpo');if(!cu)return;
   const oc_=x=>{x.hidden=true;x.style.display='none';};   /* .pd-fila/.fila tienen display propio: [hidden] no basta */
-  cu.querySelectorAll('.pil-det .pd-fila').forEach(x=>{if(+x.dataset.v>=100)oc_(x);});
+  /* solo temas a remediar y el % del pilar: sin barras, sin filas de puntaje ni listas de contexto (instancias, segmentos) */
+  cu.querySelectorAll('.pil-det .pd-fila,.pil-det .pd-inst,.pil-det>.pd-tit:not(.sa-tit),.pil-det>.sub,.pil-det>div:not([class])').forEach(oc_);
   cu.querySelectorAll('.pil-det .rep-acc').forEach(oc_);   /* la réplica va como acción de su tema */
   cu.querySelectorAll(':scope>.fila').forEach(oc_);   /* «Ajustar CPU/Memoria/Disco» genéricos: cada tema trae el suyo */
   cu.querySelectorAll('.comp-err').forEach(b=>{b.querySelectorAll('.ce').forEach(ce=>{if(!ce.classList.contains('act')&&!ce.querySelector('.btn-prev')&&!/en deuda|aplicar prevención/.test(ce.textContent))oc_(ce);});
@@ -364,7 +365,7 @@ caj.querySelectorAll('.cajon-sal details.pil-caja').forEach(g=>{const cu=g.query
   cu.querySelectorAll('#politicas tr').forEach(tr=>{if(tr.querySelector('.chip.e-exitoso'))tr.hidden=true;});
   cu.querySelectorAll('#politicas').forEach(b=>{if(![...b.querySelectorAll('tr')].some(tr=>!tr.hidden))b.hidden=true;});
   cu.querySelectorAll('#cves').forEach(b=>{const c_=b.querySelector('.chip');if(c_&&/^0 pendientes/.test(c_.textContent.trim()))b.hidden=true;});
-  const pct_=parseInt((g.querySelector('.pil-cab .pct')||{}).textContent),fil_=cu.querySelectorAll('.pil-det .pd-fila:not([hidden])').length,
+  const pct_=parseInt((g.querySelector('.pil-cab .pct')||{}).textContent),fil_=0,
     fal_=cu.querySelectorAll('.sa-lista li').length,car_=[...cu.children].filter(x=>!x.hidden&&!x.classList.contains('pil-crit')).length;
   if(pct_===100||!(fil_||fal_||car_)){g.open=false;[...cu.children].forEach(oc_);const z=document.createElement('div');z.className='sub pil-nada';z.textContent='Sin acciones pendientes';cu.appendChild(z);
     const n_=g.querySelector('.pil-n');if(n_)n_.textContent='sin acciones pendientes';}
