@@ -1,7 +1,15 @@
-commit: b90e55783acdee6f141317a19ce1d1d08b2267fd
-inicio: 2026-11-11T19:24:38-03:00
+commit: a8b6ddfe224787bbf6ebcb5c32fa7b4609fcb641
+inicio: 2026-11-11T19:25:03-03:00
 ---
-{'numero': 'FO-LAB-01902', 'estado': 'fallido', 'nombre_aap': 'Sistema · Quitar agente', 'r': "AAP terminó (failed): ejecución 25 s, espera de aprobación 46 s\nFalló en la tarea «Respaldo continuo · detener y retirar (el historial en Git se conserva)» de nodo-jboss-qa: no se pudo conectar con el equipo (apagado o sin red): Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.20' (ED25519) to the list of known hosts.\r\nroot@192.168.122.20: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\n\nPLAY [Sistema · Quitar agente] ************************************"}
-{'numero': 'FO-LAB-01903', 'estado': 'fallido', 'nombre_aap': 'Sistema · Quitar agente', 'r': "AAP terminó (failed): ejecución 6 s, espera de aprobación 45 s\nFalló en la tarea «Monitoreo (Linux) · detener y retirar node_exporter» de nodo-jboss-qa: no se pudo conectar con el equipo (apagado o sin red): Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.20' (ED25519) to the list of known hosts.\r\nroot@192.168.122.20: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\n\nTASK [Agente válido] ***********************************************************\nok: [no"}
-{'numero': 'FO-LAB-01904', 'estado': 'fallido', 'nombre_aap': 'Sistema · Quitar agente', 'r': 'AAP terminó (failed): ejecución 8 s, espera de aprobación 37 s\nFalló en la tarea «Agente válido» de nodo-jboss-qa: {\n\nPLAY [Sistema · Quitar agente] *************************************************\n\nTASK [Agente válido] ***********************************************************\nfatal: [nodo-jboss-qa]: FAILED! => {\n    "assertion": "agente in [\'respaldo-git\', \'node-exporter\', \'windows-exporter\']",\n    "changed": false,\n    "evaluated_to": false,\n    "msg": "Agente desconocido: agente-inexistent'}
---- fin: 2026-11-11T19:24:46-03:00 · código: 0
+summit-dns localhost/dns-summit:1
+faceops-guacd docker.io/guacamole/guacd:1.5.5
+faceops-validador localhost/faceops-validador:latest
+faceops-maqueta localhost/faceops:latest
+faceops-guacamole docker.io/guacamole/guacamole:1.5.5
+clab-summit-red-fw localhost/vyos:2026.10.23
+clab-summit-red-rtr localhost/frr-summit:1
+clab-summit-red-isp localhost/frr-summit:1
+clab-summit-red-pc-usuario localhost/frr-summit:1
+clab-red-sede-fw-sede-01 localhost/vyos:2026.10.23
+logs: /var/log/pki/pki-invoke/ca
+--- fin: 2026-11-11T19:25:09-03:00 · código: 0
