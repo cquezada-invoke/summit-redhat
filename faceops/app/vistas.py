@@ -2592,7 +2592,7 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
         txt = cuerpo.decode(r.encoding or "utf-8", "replace").replace(origen, prefijo)
         if w.get("host"):
             txt = txt.replace(f"https://{w['host']}", prefijo).replace(f"http://{w['host']}", prefijo)
-        txt = re.sub(r'((?:href|src|action|data-base)=["\'])/(?!/)', lambda m: m.group(1) + prefijo + "/", txt)
+        txt = re.sub(r'((?:href|src|action|data-base)=["\'])/(?!/)(?!' + re.escape(prefijo.lstrip("/")) + ')', lambda m: m.group(1) + prefijo + "/", txt)   # lo que ya viene con el prefijo (Keycloak con KC_HOSTNAME en FaceOps) no se toca
         for ra in w.get("abs") or []:   # rutas absolutas dentro del JavaScript de la aplicación (p. ej. IdM llama a "/ipa/session/json")
             txt = re.sub(r'(["\'])' + re.escape(ra), lambda m: m.group(1) + prefijo + ra, txt)
         if w.get("vault"):
@@ -2776,6 +2776,50 @@ def consola_plataforma(e, cod, verificar=True):
     return w
 
 
+def url_consola_publica(e, cod):
+    """URL pública (navegador) de la consola de la plataforma a través de FaceOps: https://…/faceops/<cliente>/inventario/<id>/consola-web/<cod>."""
+    pub = os.environ.get("FACEOPS_URL_PUBLICA", "https://faceops.34.176.42.56.sslip.io:8843/faceops").rstrip("/")
+    ruta = url_for("consola.consola_web_plataforma", eid=e["id"], cod=cod, sub="").rstrip("/")
+    sr = (request.script_root or "").rstrip("/") if request else ""
+    if sr and ruta.startswith(sr + "/"):
+        ruta = ruta[len(sr):]
+    return pub + ruta
+
+
+def _keycloak_entrar(e, w, sub, prefijo):
+    """Entrada sin credenciales a la consola de Keycloak: con la credencial de administración de la bóveda
+    (web/<máquina>/keycloak) FaceOps completa el formulario de login del realm master del lado del servidor y entrega al
+    navegador la redirección con el código y las cookies de sesión. Si algo no calza, None (se muestra el login normal)."""
+    from .boveda import web as cred_web
+    import html as _html
+    cr = cred_web(e["nombre"], "keycloak") or {}
+    if not cr.get("clave") or "prompt" in request.args:
+        return None
+    origen = "/".join(w["url"].split("/", 3)[:3])
+    galletas = {k: v for k, v in request.cookies.items() if k != current_app.config.get("SESSION_COOKIE_NAME", "session")}
+    try:
+        s_ = requests.Session()
+        r1 = s_.get(f"{origen}/{sub}", params=request.args, cookies=galletas, timeout=10, allow_redirects=False)
+        m_ = re.search(r'<form[^>]+id="kc-form-login"[^>]+action="([^"]+)"', r1.text) if r1.status_code == 200 else None
+        if not m_:
+            return None
+        accion = _html.unescape(m_.group(1))
+        i_ = accion.find("/consola-web/keycloak/")
+        accion = origen + accion[i_ + len("/consola-web/keycloak"):] if i_ >= 0 else re.sub(r"^https?://[^/]+", origen, accion)
+        r2 = s_.post(accion, data={"username": cr.get("usuario") or "admin", "password": cr["clave"], "credentialId": ""},
+                     timeout=10, allow_redirects=False)
+        if r2.status_code not in (302, 303) or not r2.headers.get("Location"):
+            return None
+    except requests.RequestException:
+        return None
+    resp = redirect(r2.headers["Location"].replace(origen, prefijo))
+    for r_ in (r1, r2):
+        for c in r_.raw.headers.getlist("Set-Cookie") if hasattr(r_.raw.headers, "getlist") else []:
+            resp.headers.add("Set-Cookie", re.sub(r"(?i)path=/[^;]*", f"Path={prefijo}/", c))
+    auditar(g.usuario["usuario"], g.cliente["id"], "entrar a consola web", e["nombre"], {"plataforma": "keycloak", "usuario": cr.get("usuario") or "admin"})
+    return resp
+
+
 @bp.route("/inventario/<int:eid>/consola-web/<cod>/", defaults={"sub": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 @bp.route("/inventario/<int:eid>/consola-web/<cod>/<path:sub>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 @requiere_login
@@ -2806,6 +2850,10 @@ def consola_web_plataforma(eid, cod, sub):
         if loc2_.startswith("http") and e["ip"] not in loc2_:
             return redirect(loc2_)
         return redirect(f"{prefijo}/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/")
+    if familia(cod) == "keycloak" and request.method == "GET" and re.search(r"(^|/)realms/master/protocol/openid-connect/auth$", sub or ""):
+        r_kc = _keycloak_entrar(e, w, sub, prefijo)
+        if r_kc is not None:
+            return r_kc
     if familia(cod) == "redis" and not sub and request.method == "GET" and request.environ.get("faceops.cliente"):
         # Redis Insight instalado antes de que las URL llevaran el código del cliente (RI_PROXY_PATH=/faceops/inventario/<id>/…):
         # solo atiende esa ruta y su HTML no se puede servir desde la vigente (la URL sin el código vuelve a la del cliente y
@@ -3210,6 +3258,8 @@ def plataforma_servicio(eid, cod):
         d_pw = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
         if (d_pw.get("puertos_web") or {}).get(familia(cod)) and accion in ("encender", "reiniciar"):
             par_["sp_puerto"] = int(d_pw["puertos_web"][familia(cod)])   # puerto registrado en FaceOps (Keycloak en 8180…): la automatización lo alinea
+        if familia(cod) == "keycloak" and accion in ("encender", "reiniciar"):   # Keycloak publica su nombre: el de su consola en FaceOps
+            par_["sp_url_consola"] = url_consola_publica(e, "keycloak")
         t = solicitar_en_equipo(g.usuario, g.cliente, a, e, par_,
                                 f"{accion.capitalize()} {nom} en {e['nombre']}")
         if request.headers.get("X-Requested-With") == "fetch":   # panel «Skills» de la plataforma

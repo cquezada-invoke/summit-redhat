@@ -3,6 +3,8 @@
 #            sp_accion (encender | apagar | reiniciar | estado | deshabilitar), sp_plataforma (nombre para el registro),
 #            sp_puerto (opcional: puerto de la máquina registrado en FaceOps para la plataforma; en una plataforma en contenedor
 #            (quadlet) se alinea su PublishPort antes de encender o reiniciar, p. ej. Keycloak en 8180 donde el 8080 es de JBoss).
+#            sp_url_consola (opcional, Keycloak en contenedor: URL pública de su consola en FaceOps; KC_HOSTNAME queda en esa URL
+#            + su ruta relativa, así la consola abre completa a través de FaceOps).
 # «deshabilitar» detiene la plataforma en contenedor y aparta su quadlet a /var/lib/<unidad>/deshabilitado/ (no arranca con la
 # máquina); «encender» lo devuelve a /etc/containers/systemd/.
 - name: FaceOps · Controlar servicio de plataforma
@@ -20,6 +22,7 @@
           - accion in ['encender', 'apagar', 'reiniciar', 'estado', 'deshabilitar']
           - sp_unidades | default([]) | length > 0
           - (sp_puerto | default('') | string) is match('^([0-9]{2,5})?$')
+          - (sp_url_consola | default('') | string) is match('^(https?://[A-Za-z0-9.:_/-]+)?$')
           - sp_unidades | select('match', '^[A-Za-z0-9@._-]+$') | list | length == sp_unidades | length
         fail_msg: "Acción o unidades no válidas"
 
@@ -72,11 +75,20 @@
             antes=$(grep -m1 -E '^PublishPort=' "$q"); sed -i -E "0,/^PublishPort=[0-9]+:/s//PublishPort=$p:/" "$q"
             echo "puerto $antes → $(grep -m1 -E '^PublishPort=' "$q")"
           fi
+          url={{ (sp_url_consola | default('') | string) | quote }}
+          if [ -n "$url" ] && grep -qE '^Environment=KC_HOSTNAME=' "$q"; then
+            rel=$(sed -n 's/^Environment=KC_HTTP_RELATIVE_PATH=//p' "$q" | head -1)
+            nuevo="${url%/}${rel}"
+            if ! grep -qxF "Environment=KC_HOSTNAME=$nuevo" "$q"; then
+              sed -i -E "s|^Environment=KC_HOSTNAME=.*|Environment=KC_HOSTNAME=$nuevo|" "$q"
+              echo "url KC_HOSTNAME → $nuevo"
+            fi
+          fi
           systemctl daemon-reload; systemctl reset-failed "$u.service" 2>/dev/null || true
           exit 0
         done
       register: r_quadlet
-      changed_when: "'habilitado' in r_quadlet.stdout or 'puerto' in r_quadlet.stdout"
+      changed_when: "'habilitado' in r_quadlet.stdout or 'puerto' in r_quadlet.stdout or 'url ' in r_quadlet.stdout"
 
     - name: Unidades del equipo (tras habilitar su quadlet)
       ansible.builtin.service_facts:
@@ -107,7 +119,7 @@
     - name: "{{ accion | capitalize }} {{ sp_plataforma | default(sp_unidad) }}"
       ansible.builtin.systemd_service:
         name: "{{ sp_unidad }}"
-        state: "{{ 'restarted' if (accion == 'encender' and 'puerto' in (r_quadlet.stdout | default(''))) else estados[accion] }}"
+        state: "{{ 'restarted' if (accion == 'encender' and ('puerto' in (r_quadlet.stdout | default('')) or 'url ' in (r_quadlet.stdout | default('')))) else estados[accion] }}"
       when: accion != 'estado'
 
     - name: Apartar el quadlet (deshabilitar)
