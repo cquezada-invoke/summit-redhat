@@ -5,7 +5,7 @@
 {% set on_ = est == 'encendido' %}{% set ocp_en_ = (e.categoria or '') == 'clúster openshift' or datos.get('nodo_ocp') %}
 {% if energia_ok or ocp_en_ or skm.total %}<div class="eq-energia-acc">{% if energia_ok %}<button type="button" class="btn-energ prender" data-energia="encender" aria-label="Encender" {{ 'disabled' if on_ }} title="Encender {{ e.nombre }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg></button>
 <button type="button" class="btn-energ apagar" data-energia="apagar" aria-label="Apagar" {{ 'disabled' if not on_ }} title="Apagar {{ e.nombre }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>{% elif ocp_en_ %}{% for ac, ic in [('Encender', '<path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/>'), ('Apagar', '<rect x="6" y="6" width="12" height="12" rx="1"/>')] %}<button type="button" class="btn-energ {{ ac|lower }}" disabled aria-label="{{ ac }}" title="Aún no disponible: los nodos de este clúster no están en un hipervisor que FaceOps controle"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">{{ ic|safe }}</svg></button>{% endfor %}{% endif %}
-{% if skm.total %}<button type="button" class="btn-energ sk-abrir" id="sk-btn" aria-haspopup="dialog" aria-controls="sk-cajon" title="Skills de {{ e.nombre }}: encender, apagar, inventariar, mover, recursos, seguridad, respaldo… (cada una crea su ticket)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><span>Skills</span><b class="sk-n">{{ skm.total - skm.bloqueadas }}</b></button>{% endif %}</div>
+{% if skm.total %}<button type="button" class="sk-abrir" id="sk-btn" aria-haspopup="dialog" aria-controls="sk-cajon" aria-label="Skills de la máquina ({{ skm.total - skm.bloqueadas }} disponibles)" title="Skills de la máquina"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M12.2 6.2L11 5"/><path d="M15 9h.01"/><path d="M3 21l9-9"/></svg><b class="sk-n">{{ skm.total - skm.bloqueadas }}</b></button>{% endif %}</div>
 {% if energia_ok %}<script>(()=>{const caja=document.currentScript.previousElementSibling;
 function pedir(url,datos,pregunta){if(pregunta&&!confirm(pregunta))return;const bs=[...caja.querySelectorAll('[data-energia]')];bs.forEach(x=>{x.dataset.ini=x.disabled?'1':'0';x.disabled=true;});
  const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});Object.entries(datos).forEach(([k,v])=>fd.append(k,v));
@@ -16,8 +16,18 @@ caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()
 {% endif %}{% if skm.total %}
 <style>
 #btn-mover{display:none!important}
-.btn-energ.sk-abrir{color:var(--acc);border-color:var(--acc);width:auto!important;padding:0 14px!important}.btn-energ.sk-abrir:hover{background:var(--acc);color:#fff}
-.sk-abrir .sk-n{font-size:11px;background:var(--soft);color:var(--ink);border-radius:9px;padding:0 6px;font-weight:600}
+/* botón «Skills»: mismo estilo que la campana de alertas (degradado naranja, borde, sombra al pasar), pero cuadrado */
+.eq-energia-acc .sk-abrir{position:relative;display:inline-grid;place-items:center;width:52px;height:52px;padding:0;border-radius:10px;border:2px solid #c2410c;
+ background:linear-gradient(135deg,#ff8a00,#f0561d);color:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s;margin-left:auto}
+.eq-energia-acc .sk-abrir:hover,.eq-energia-acc .sk-abrir:focus-visible{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.eq-energia-acc .sk-abrir:focus-visible{outline:3px solid #ffb27a;outline-offset:2px}
+.sk-mini{position:relative;display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border-radius:7px;border:2px solid #c2410c;flex:none;
+ background:linear-gradient(135deg,#ff8a00,#f0561d);color:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s;margin-left:4px}
+.sk-mini:hover,.sk-mini:focus-visible{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.18)}.sk-mini:focus-visible{outline:3px solid #ffb27a;outline-offset:1px}
+.sk-abrir .sk-n{top:-7px;right:-7px}
+.sk-abrir .sk-n,.sk-mini .sk-n{position:absolute;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#fff;color:#9a3412;
+ border:2px solid #c2410c;font-size:11.5px;font-weight:700;display:grid;place-items:center;line-height:1;box-sizing:border-box}
+.sk-mini .sk-n{top:-8px;right:-9px;min-width:17px;height:17px;font-size:10px;padding:0 4px}
 #sk-cajon .sk-tit{display:flex;flex-direction:column;margin:2px 0 8px}#sk-cajon .sk-tit h2{margin:2px 0 0}
 #sk-cajon .sk-busca{flex:1;min-width:120px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:13px}
 #sk-cajon .sk-grupo{border-top:1px solid var(--line);padding:6px 0}
@@ -39,10 +49,10 @@ caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()
 </style>
 <div id="sk-velo" class="cajon-velo" hidden></div>
 <aside id="sk-cajon" class="cajon" hidden aria-label="Skills de la máquina"><div class="cajon-barra"><input type="search" class="sk-busca" placeholder="Buscar skill ({{ skm.total }})…" aria-label="Buscar skill"><button type="button" class="btn chico gris" data-sk-todo="abrir">Expandir</button><button type="button" class="btn chico gris" data-sk-todo="cerrar">Contraer</button><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
-<div class="sk-tit"><span class="sub" style="font-size:12px">{{ cod_eq(e) }} · skills</span><h2>Skills de la máquina</h2>
+<div class="sk-tit"><span class="sub" style="font-size:12px">{{ cod_eq(e) }} · skills</span><h2 class="sk-h">Skills de la máquina</h2><span class="sk-filtro" hidden style="font-size:12.5px;margin-top:4px"><span class="chip s-info"></span> <a href="#" class="sk-todas">ver todas las skills de la máquina</a></span>
 <span class="sub" style="font-size:12.5px;margin-top:4px">Cada skill es una automatización del catálogo con contexto propio sobre {{ e.nombre }}: crea su ticket{% if skm.bloqueadas %} · {{ skm.bloqueadas }} bloqueada{{ 's' if skm.bloqueadas != 1 }} por la regla de prueba{% endif %}.</span></div>
 {% for gr in skm.grupos %}<details class="sk-grupo" data-g="{{ gr.clave }}" open><summary>{{ gr.nombre }} <span class="sub">{{ gr.skills|length }}</span></summary>
-{% for s in gr.skills %}{% set dis = s.bloqueo or s.deshab %}<div class="sk-item{{ ' bloq' if s.bloqueo }}" data-sk="{{ s.id }}" data-q="{{ (s.nombre ~ ' ' ~ s.que ~ ' ' ~ s.aap ~ ' ' ~ gr.nombre)|lower }}"{% if dis %} title="{{ dis }}"{% endif %}>
+{% for s in gr.skills %}{% set dis = s.bloqueo or s.deshab %}<div class="sk-item{{ ' bloq' if s.bloqueo }}" data-sk="{{ s.id }}" data-plats=",{{ (s.plats or [])|join(',') }}," data-q="{{ (s.nombre ~ ' ' ~ s.que ~ ' ' ~ s.aap ~ ' ' ~ gr.nombre)|lower }}"{% if dis %} title="{{ dis }}"{% endif %}>
 <b>{{ s.nombre }}</b><span class="sk-que">{{ s.que or '—' }}</span>
 <span class="sk-chips">{% if s.aprob %}<span class="chip s-media" title="El ticket espera la aprobación de su área antes de ejecutarse">con aprobación</span>{% else %}<span class="chip" title="Se ejecuta al crear el ticket">sin aprobación</span>{% endif %}{% if s.lectura %}<span class="chip s-ok" title="Solo lee: no cambia la máquina">solo lectura</span>{% endif %}{% if s.bloqueo %}<span class="chip s-alta">bloqueada · falta su prueba</span>{% elif s.aid %}<span class="chip" title="Pasó su plan de prueba (regla de prueba)">certificada</span>{% endif %}{% if s.tipo == 'form' %}<span class="chip" title="Pide datos antes de crear el ticket">pide datos</span>{% endif %}</span>
 <span class="sk-acc"><button type="button" class="btn chico{{ ' peligro' if s.destructiva and not dis }}{{ ' gris' if s.tipo == 'abrir' }}" data-sk-ir="{{ s.id }}" {{ 'disabled' if dis }}{% if dis %} title="{{ dis }}"{% endif %}>{{ 'Abrir' if s.tipo == 'abrir' else ('Completar datos' if s.tipo == 'form' else 'Ejecutar') }}</button><span class="sk-tk"></span></span>
@@ -55,12 +65,15 @@ caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()
 <script>(()=>{const SK=Object.fromEntries({{ skm.grupos|map(attribute='skills')|sum(start=[])|tojson }}.map(s=>[s.id,s]));
 const c=document.getElementById('sk-cajon'),v=document.getElementById('sk-velo'),dlg=document.getElementById('sk-dlg'),bq=c.querySelector('.sk-busca'),CSRF={{ csrf|tojson }},MAQ={{ e.nombre|tojson }};
 const ETQ={exitoso:'exitoso',fallido:'fallido',rechazado:'rechazado',vencido:'aprobación vencida',pendiente_aprobacion:'espera aprobación',en_ejecucion:'en ejecución',en_cola:'en cola',cancelado:'cancelado'};
-const abrir=window.fxAbrirSkills=()=>{c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'));setTimeout(()=>bq.focus(),60);};
+let plat='',platN='';
+const filtrar=()=>{const t=bq.value.trim().toLowerCase();let n=0;c.querySelectorAll('.sk-grupo').forEach(gr=>{let k=0;gr.querySelectorAll('.sk-item').forEach(it=>{const ok=(!t||it.dataset.q.includes(t))&&(!plat||it.dataset.plats.includes(','+plat+','));it.hidden=!ok;if(ok)k++;});gr.hidden=!k;if((t||plat)&&k)gr.open=true;gr.querySelector('summary .sub').textContent=k;n+=k;});c.querySelector('.sk-vacio').hidden=!!n;};
+const abrir=window.fxAbrirSkills=(cod,nom)=>{plat=typeof cod==='string'?cod:'';platN=nom||plat;c.querySelector('.sk-h').textContent=plat?'Skills de '+platN:'Skills de la máquina';
+ const fi=c.querySelector('.sk-filtro');fi.hidden=!plat;fi.querySelector('.chip').textContent=plat?'solo '+platN:'';bq.value='';filtrar();c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'));setTimeout(()=>bq.focus(),60);};
 const cerrar=()=>{c.classList.remove('abierto');v.hidden=true;setTimeout(()=>c.hidden=true,180);};
-document.getElementById('sk-btn').onclick=abrir;v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;
+document.getElementById('sk-btn').onclick=()=>abrir();v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!c.hidden&&!dlg.open)cerrar();});
 c.querySelectorAll('[data-sk-todo]').forEach(b=>b.onclick=()=>c.querySelectorAll('.sk-grupo').forEach(d=>d.open=b.dataset.skTodo==='abrir'));
-bq.oninput=()=>{const t=bq.value.trim().toLowerCase();let n=0;c.querySelectorAll('.sk-grupo').forEach(gr=>{let k=0;gr.querySelectorAll('.sk-item').forEach(it=>{const ok=!t||it.dataset.q.includes(t);it.hidden=!ok;if(ok)k++;});gr.hidden=!k;if(t&&k)gr.open=true;n+=k;});c.querySelector('.sk-vacio').hidden=!!n;};
+bq.oninput=filtrar;c.querySelector('.sk-todas').onclick=ev=>{ev.preventDefault();abrir();};
 const tk=(it,t)=>{const x=it.querySelector('.sk-tk');x.textContent='';const a=document.createElement('a');a.href=t.url;a.textContent=t.numero;a.title='Abrir el ticket';x.append(a,' · '+(ETQ[t.estado]||String(t.estado||'').replace(/_/g,' ')));};
 function crear(s,it,extra){const b=it.querySelector('[data-sk-ir]');b.disabled=true;const x=it.querySelector('.sk-tk');x.textContent='creando…';
  const fd=new FormData();fd.append('_csrf',CSRF);fd.append('motivo',s.nombre+' en '+MAQ+' (skill desde su ficha)');Object.entries(s.datos||{}).forEach(([k,v_])=>fd.append(k,v_));

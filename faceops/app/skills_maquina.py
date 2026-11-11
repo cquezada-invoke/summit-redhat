@@ -65,7 +65,7 @@ def _que(a):
     return t[:170] + ("…" if len(t) > 170 else "")
 
 
-def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok, mover_ok, escritura, lim_rec=None):
+def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok, mover_ok, escritura, lim_rec=None, componentes=(), desinstalando=None):
     """Grupos con sus skills para el panel. acciones: automatizaciones del catálogo que aplican (ya certificadas)."""
     from .vistas import AGREGAR_DISCO, ELIMINAR, ENERGIA, CATEGORIAS_RED
     from .operacion import aplica_a_equipo
@@ -85,7 +85,7 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
         a = todas.get(nombre_aap)
         s = {"id": clave, "grupo": grupo, "nombre": nombre, "que": que, "aap": nombre_aap, "aid": a["id"] if a else None,
              "aprob": bool(a and a.get("requiere_aprobacion")), "lectura": False, "bloqueo": "", "deshab": "", "campos": [],
-             "confirmar": "", "destructiva": False, "url": "", "datos": {}, "abrir": "", "tipo": "ticket"}
+             "confirmar": "", "destructiva": False, "url": "", "datos": {}, "abrir": "", "tipo": "ticket", "plats": []}
         s.update(kw)
         if not a:
             s["bloqueo"] = f"Falta «{nombre_aap}» en el catálogo (sincroniza con AAP)"
@@ -172,16 +172,52 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
     if cat not in CATEGORIAS_RED and escritura:
         out.append({"id": "puntos", "grupo": "respaldo", "nombre": "Puntos de restauración", "que": "Crea un punto ahora o ajusta la frecuencia automática.",
                     "aap": "", "aid": None, "aprob": False, "lectura": False, "bloqueo": "", "deshab": "", "campos": [], "confirmar": "",
-                    "destructiva": False, "url": "", "datos": {}, "abrir": "puntos", "tipo": "abrir"})
+                    "destructiva": False, "url": "", "datos": {}, "abrir": "puntos", "tipo": "abrir", "plats": []})
         out.append({"id": "recuperar", "grupo": "respaldo", "nombre": "Recuperar desde un punto", "que": "Elige el punto de restauración y pide la recuperación (con aprobación).",
                     "aap": "", "aid": None, "aprob": True, "lectura": False, "bloqueo": "", "deshab": "", "campos": [], "confirmar": "",
-                    "destructiva": False, "url": "", "datos": {}, "abrir": "recuperar", "tipo": "abrir"})
+                    "destructiva": False, "url": "", "datos": {}, "abrir": "recuperar", "tipo": "abrir", "plats": []})
     # ── Ciclo de vida: eliminar (endpoint eliminar_equipo)
     if puede_eliminar:
         base("eliminar", "ciclo", "Eliminar máquina", "La saca del balanceo, la apaga, la retira del hipervisor y de AAP; disco y Git se conservan.",
              ELIMINAR, url=url_for("consola.eliminar_equipo", eid=e["id"]), destructiva=True,
              confirmar=f"¿Eliminar {e['nombre']}? Se apaga, se retira del hipervisor y sale de los inventarios de AAP. El disco y su respaldo en Git se conservan para poder recuperarlo.")
         propios.add(ELIMINAR)
+
+    # ── Plataformas: energía del servicio (Encender/Reiniciar/Apagar), operadores y desinstalar; cada una ligada a su plataforma
+    from .vistas import SERVICIOS_PLATAFORMA, desinstalable, familia, servicio_estado
+    propios.update({"Plataforma · Controlar servicio", "Plataforma · Desinstalar", "OpenShift · Operador"})
+    for c in componentes if escritura else ():
+        if c.get("so"):
+            continue
+        cod, nom = c["codigo"], c["nombre"]
+        if c.get("op"):
+            for ac, et, q_, des in (("reiniciar", "Reiniciar", "Reinicia los pods del operador.", False),
+                                    ("desinstalar", "Desinstalar", "Borra su suscripción y su CSV del clúster.", True)):
+                base(f"op-{ac}-{cod}", "energia" if ac == "reiniciar" else "ciclo", f"{et} {nom}", q_, "OpenShift · Operador", plats=[cod],
+                     url=url_for("consola.equipo", eid=e["id"]) + f"/operador/{cod}", datos={"accion": ac}, destructiva=des,
+                     confirmar=f"¿{et} el operador {nom}?")
+            continue
+        if c.get("nodo"):
+            continue
+        if familia(cod) in SERVICIOS_PLATAFORMA:
+            st = servicio_estado(e, cod)
+            for ac, et, q_ in (("encender", "Encender", "Levanta el servicio de la plataforma (no toca la máquina)."),
+                               ("reiniciar", "Reiniciar", "Reinicia el servicio de la plataforma."),
+                               ("apagar", "Apagar", "Detiene el servicio de la plataforma (no toca la máquina).")):
+                sk = base(f"srv-{ac}-{cod}", "energia", f"{et} {nom}", q_, "Plataforma · Controlar servicio", plats=[cod],
+                          url=url_for("consola.plataforma_servicio", eid=e["id"], cod=cod), datos={"accion": ac, "nombre": nom},
+                          confirmar=f"¿{et} {nom} en {e['nombre']}?")
+                if ac == "encender" and st == "en ejecución":
+                    sk["deshab"] = f"{nom} ya está en ejecución"
+                elif ac != "encender" and st == "detenido":
+                    sk["deshab"] = f"{nom} está detenido"
+        if desinstalable(cod):
+            dz = (desinstalando or {}).get(familia(cod))
+            sk = base(f"desinstalar-{cod}", "ciclo", f"Desinstalar {nom}", "Detiene su servicio y quita sus paquetes (o su contenedor).", "Plataforma · Desinstalar",
+                      plats=[cod], url=url_for("consola.equipo", eid=e["id"]) + f"/plataforma/{cod}/desinstalar", datos={"nombre": nom}, destructiva=True,
+                      confirmar=f"¿Desinstalar {nom} de {e['nombre']}? Se detiene su servicio y se quitan sus paquetes.")
+            if dz:
+                sk["deshab"] = f"En desinstalación: {dz['numero']}"
 
     # ── Catálogo: todas las automatizaciones que aplican a la máquina (las bloqueadas por la regla de prueba, deshabilitadas)
     vistos = set(propios)
@@ -192,7 +228,7 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
         vistos.add(a["nombre_aap"])
         comps = [c for c in (de_comp(a) or []) if c and c != so_cod]
         campos = [c for c in j(a.get("campos"), []) if c.get("tipo") not in ("equipo", "equipos")]
-        s = {"id": f"a{a['id']}", "grupo": grupo_de(a, bool(comps)), "nombre": a["nombre"], "que": _que(a), "aap": a["nombre_aap"], "aid": a["id"],
+        s = {"id": f"a{a['id']}", "plats": comps, "grupo": grupo_de(a, bool(comps)), "nombre": a["nombre"], "que": _que(a), "aap": a["nombre_aap"], "aid": a["id"],
              "aprob": bool(a.get("requiere_aprobacion")), "lectura": lectura(a), "deshab": "", "campos": campos,
              "bloqueo": f"Bloqueada por la regla de prueba: {_motivo_bloqueo(a)}" if a.get("_bloqueada") else "",
              "confirmar": "", "destructiva": bool(re.search(r"eliminar|desinstalar|borrar|retirar", _texto(a))),
@@ -205,4 +241,8 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
         if xs:
             grupos.append({"clave": k, "nombre": n, "skills": xs if k == "energia" else
                            sorted(xs, key=lambda s: (bool(s["bloqueo"]), bool(re.fullmatch(r"a\d+", s["id"])), s["nombre"].lower()))})
-    return {"grupos": grupos, "total": len(out), "bloqueadas": sum(1 for s in out if s["bloqueo"])}
+    por_plat = {}
+    for s in out:
+        for c in s.get("plats") or []:
+            por_plat[c] = por_plat.get(c, 0) + (0 if s["bloqueo"] else 1)
+    return {"grupos": grupos, "total": len(out), "bloqueadas": sum(1 for s in out if s["bloqueo"]), "por_plat": por_plat}
