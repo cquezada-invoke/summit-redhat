@@ -1,0 +1,37 @@
+commit: fd35284f070d06539645372ffe4b098a6ecc1c83
+inicio: 2026-11-11T13:45:25-03:00
+---
+fc90853 Ficha › salud: la barra principal abre solo la salud
+faceops-guacd Up 4 hours (healthy)
+faceops-vcsim Up 4 hours
+faceops-validador Up 4 hours
+faceops-maqueta Up 4 hours
+faceops-sni Up 4 hours
+faceops-kb Up 4 hours
+faceops-guacamole Up 4 hours
+faceops-publico Up 4 hours
+faceops Up 15 seconds
+admin url set: True token set: True
+/ 200
+/inventario 200
+/automatizaciones 200
+/tickets 200
+/mapa/salud 200
+/no-existe-xyz 404
+/inventario?token=SUPERSECRETO123&q=web 200
+/static/faceops.css 200
+/version 200
+en cola: 10
+evento prueba_pulsos {'detalle': 'clave=[redactado] correo [correo]'} None None None None None
+request GET /inventario?token=[redactado]&q=web 200 17.9 Chrome 131 · macOS 127.0.0.0/24 admin
+request GET /no-existe-xyz 404 0.6 Chrome 131 · macOS 127.0.0.0/24 admin
+request GET /mapa/salud 200 88.7 Chrome 131 · macOS 127.0.0.0/24 admin
+request GET /tickets 200 16.6 Chrome 131 · macOS 127.0.0.0/24 admin
+request GET /automatizaciones 200 33.3 Chrome 131 · macOS 127.0.0.0/24 admin
+request GET /inventario 200 363.8 Chrome 131 · macOS 127.0.0.0/24 admin
+request GET / 200 195.4 Chrome 131 · macOS 127.0.0.0/24 admin
+evento login_fallido {'status': 200} None None None None None
+request POST /ingresar 200 104.2 Chrome 131 · macOS 127.0.0.0/24 None
+secretos en cola: []
+enviadas: 10 quedan: 0
+--- fin: 2026-11-11T13:46:29-03:00 · código: 0
