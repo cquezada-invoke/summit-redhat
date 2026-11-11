@@ -367,7 +367,7 @@ caj.querySelectorAll('.cajon-sal details.pil-caja').forEach(g=>{const cu=g.query
   cu.querySelectorAll('#politicas').forEach(b=>{if(![...b.querySelectorAll('tr')].some(tr=>!tr.hidden))b.hidden=true;});
   cu.querySelectorAll('#cves').forEach(b=>{const c_=b.querySelector('.chip');if(c_&&/^0 pendientes/.test(c_.textContent.trim()))b.hidden=true;});
   const pct_=parseInt((g.querySelector('.pil-cab .pct')||{}).textContent),fil_=0,
-    fal_=cu.querySelectorAll('.sa-lista li').length,car_=[...cu.children].filter(x=>!x.hidden&&!x.classList.contains('pil-crit')).length;
+    fal_=cu.querySelectorAll('.sa-lista tr').length,car_=[...cu.children].filter(x=>!x.hidden&&!x.classList.contains('pil-crit')).length;
   if(pct_===100||!(fil_||fal_||car_)){g.open=false;[...cu.children].forEach(oc_);const z=document.createElement('div');z.className='sub pil-nada';z.textContent=comp_&&pct_<100?'Se remedia en la salud de la máquina (barra principal de la ficha)':'Sin acciones pendientes';cu.appendChild(z);
     const n_=g.querySelector('.pil-n');if(n_)n_.textContent=comp_&&pct_<100?'se remedia en la máquina':'sin acciones pendientes';}
   else{const n_=g.querySelector('.pil-n'),k_=Math.max(fil_,fal_)||car_;if(n_)n_.textContent=k_+' tema'+(k_>1?'s':'')+' a remediar';}});
