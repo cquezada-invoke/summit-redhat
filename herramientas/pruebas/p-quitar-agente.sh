@@ -13,17 +13,27 @@ import sys, json
 from app import create_app
 create_app()
 from app.bd import q1
-e = q1("SELECT skills_auto, skills_manual FROM equipos WHERE nombre=? AND estado!='retirado'", sys.argv[1])
-print("si" if e and sys.argv[2] in json.loads(e["skills_auto"] or "[]") + json.loads(e["skills_manual"] or "[]") else "no")
+from app.inventario import skills_de
+e = q1("SELECT * FROM equipos WHERE nombre=? AND estado!='retirado'", sys.argv[1])
+print("si" if e and sys.argv[2] in set(skills_de(dict(e))) else "no")
 Q
 }
-O_RES=$(sk respaldo-git); O_MON=$(sk node-exporter); echo "prep originales respaldo=$O_RES monitoreo=$O_MON"
+O_RES=$(sk respaldo-git); O_MON=$(sk node-exporter); [ "$M" = nodo-jboss-qa ] && O_RES=si   # nodo-jboss-qa tenía el respaldo continuo antes de las pruebas (corrida del 11-11 lo quitó); echo "prep originales respaldo=$O_RES monitoreo=$O_MON"
 # preparación: la máquina de prueba con ambos agentes (si ya los tiene, FaceOps no relanza)
 caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-respaldo\"}" >/dev/null; echo "prep respaldo: $(estado) $(ticket) $(jq_ "(r.get('error') or r.get('detalle') or '')[:200]")"
 caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-monitoreo\"}" >/dev/null; echo "prep monitoreo: $(estado) $(ticket) $(jq_ "(r.get('error') or r.get('detalle') or '')[:200]")"
 R0=$(en $IP 'systemctl is-active faceops-respaldo.timer node_exporter' | tr '\n' ' '); echo "antes: $R0"
 # C1 · quitar el respaldo continuo
 caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"params\":{\"qa_agente\":\"respaldo-git\"},\"min\":10,\"caso\":\"C1\"}" >/dev/null; E1=$(estado)
+[ "$E1" = "sin respuesta del arnés" ] && { sleep 120; E1=$(sudo podman exec -i faceops python3 - "$M" 2>/dev/null <<'Q' | tail -1
+import sys
+from app import create_app
+create_app()
+from app.bd import q1
+t = q1("SELECT t.estado FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE a.nombre_aap='Sistema · Quitar agente' AND t.limite=? ORDER BY t.id DESC LIMIT 1", sys.argv[1])
+print((t or {}).get("estado") or "")
+Q
+); }   # FaceOps reiniciado a mitad del caso: se lee el estado final del mismo ticket
 U1=$(en $IP 'ls /etc/systemd/system/faceops-respaldo* /usr/local/sbin/faceops-respaldo* 2>/dev/null | wc -l'); S1=$(sk respaldo-git); N1=$(en $IP 'systemctl is-active node_exporter')
 [ "$E1" = exitoso ] && [ "$U1" = 0 ] && [ "$S1" = no ] && [ "$N1" = active ] && anotar C1 "Quitar respaldo continuo" ok "timers y scripts retirados (0 archivos); skill respaldo-git fuera del equipo (Agentes: no instalado); node_exporter intacto; la rama en Git no se toca" || anotar C1 "Quitar respaldo continuo" falla "$E1 archivos=$U1 skill=$S1 node=$N1 $(jq_ "(r.get('detalle') or '')[:160]")"
 # C2 · quitar node_exporter
