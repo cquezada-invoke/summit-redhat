@@ -1,0 +1,63 @@
+commit: a4c8c41f1ef5275701559ca20917d63181e151e7
+inicio: 2026-11-10T21:37:51-03:00
+---
+summit-dns localhost/dns-summit:1 Up 3 hours
+faceops-guacd docker.io/guacamole/guacd:1.5.5 Up 3 hours (healthy)
+summit-blackbox docker.io/prom/blackbox-exporter:v0.25.0 Up 3 hours
+faceops-vcsim docker.io/vmware/vcsim:v0.52.0 Up 3 hours
+faceops-maqueta localhost/faceops:latest Up 3 hours
+faceops-validador localhost/faceops-validador:latest Up 3 hours
+faceops-kb docker.io/library/postgres:16.4 Up 3 hours
+kc-doble-factor quay.io/keycloak/keycloak:26.0.7 Up 3 hours
+faceops-sni docker.io/library/nginx:1.27-alpine Up 3 hours
+summit-alertmanager docker.io/prom/alertmanager:v0.27.0 Up 3 hours
+summit-prometheus docker.io/prom/prometheus:v2.55.1 Up 3 hours
+summit-grafana docker.io/grafana/grafana:11.3.1 Up 3 hours
+faceops-guacamole docker.io/guacamole/guacamole:1.5.5 Up 3 hours
+faceops-publico docker.io/library/nginx:1.27-alpine Up 3 hours
+clab-summit-red-fw localhost/vyos:2026.10.23 Up 3 hours
+clab-summit-red-srv-app docker.io/library/python:3.12-alpine Up 3 hours
+clab-summit-red-pc-usuario localhost/frr-summit:1 Up 3 hours
+clab-summit-red-rtr localhost/frr-summit:1 Up 3 hours
+clab-summit-red-isp localhost/frr-summit:1 Up 3 hours
+suc1 quay.io/frrouting/frr:9.1.0 Up 3 hours
+suc2 quay.io/frrouting/frr:9.1.0 Up 3 hours
+suc3 quay.io/frrouting/frr:9.1.0 Up 3 hours
+clab-red-sede-pc-piso1 docker.io/library/alpine:3.20 Up 3 hours
+clab-red-sede-pc-piso2 docker.io/library/alpine:3.20 Up 3 hours
+clab-red-sede-fw-sede-01 localhost/vyos:2026.10.23 Up 3 hours
+clab-red-sede-srv-web-02 docker.io/library/python:3.12-alpine Up 3 hours
+clab-red-sede-srv-web-01 docker.io/library/python:3.12-alpine Up 3 hours
+clab-red-sede-rtr-wan-01 localhost/frr-red:1 Up 3 hours
+clab-red-sede-sw-acc-01 localhost/frr-red:1 Up 3 hours
+clab-red-sede-pe-isp localhost/frr-red:1 Up 3 hours
+clab-red-sede-lb-sede-01 localhost/frr-red:1 Up 3 hours
+clab-red-sede-sw-core-01 localhost/frr-red:1 Up 3 hours
+faceops localhost/faceops:latest Up 2 minutes
+  faceops-guacamole.service                                                  loaded active running FaceOps · Guacamole (
+  faceops-guacd.service                                                      loaded active running FaceOps · guacd (cone
+  faceops-kb.service                                                         loaded active running FaceOps · base de con
+  faceops-maqueta.service                                                    loaded active running FaceOps · maqueta (de
+  faceops-publico.service                                                    loaded active running FaceOps · proxy públi
+  faceops-sni.service                                                        loaded active running FaceOps · enrutador S
+  faceops-validador.service                                                  loaded active running FaceOps Admin · valid
+  faceops-vcsim.service                                                      loaded active running FaceOps · VMware vSph
+  faceops.service                                                            loaded active running FaceOps · consola del
+== faceops-guacamole.service
+== faceops-guacd.service
+== faceops-kb.service
+== faceops-maqueta.service
+== faceops-publico.service
+Nov 10 19:22:57 demo-ansible-summit faceops-publico[5912]: 200.113.129.178 - - [10/Nov/2026:22:22:57 +0000] "GET /faceops/lab/respaldos HTTP/2.0" 200 31847 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/disponibilidad" "Mozilla/5.0 (Macintosh; Intel M
+Nov 10 20:09:27 demo-ansible-summit faceops-publico[5912]: 200.113.129.178 - - [10/Nov/2026:23:09:27 +0000] "GET /faceops/lab/respaldos HTTP/2.0" 200 31216 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_
+Nov 10 20:09:31 demo-ansible-summit faceops-publico[5912]: 200.113.129.178 - - [10/Nov/2026:23:09:31 +0000] "GET /faceops/lab/gobierno/plano-de-control HTTP/2.0" 200 32805 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/respaldos" "Mozilla/5.0 (Macinto
+Nov 10 21:21:43 demo-ansible-summit faceops-publico[5912]: 2026/11/11 00:21:43 [error] 21#21: *1794 connect() failed (111: Connection refused) while connecting to upstream, client: 200.113.129.178, server: faceops.34.176.42.56.sslip.io, request: "GET /faceops/
+Nov 10 21:21:43 demo-ansible-summit faceops-publico[5912]: 200.113.129.178 - - [11/Nov/2026:00:21:43 +0000] "GET /faceops/lab/respaldos HTTP/2.0" 502 552 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/monitoreo/itil" "Mozilla/5.0 (Macintosh; Intel Mac
+== faceops-sni.service
+== faceops-validador.service
+== faceops-vcsim.service
+== faceops.service
+Nov 10 19:22:57 demo-ansible-summit faceops[225044]: 200.113.129.178 - - [10/Nov/2026:19:22:57 -0300] "GET /lab/respaldos HTTP/1.0" 200 31847 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/disponibilidad" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_
+Nov 10 20:09:27 demo-ansible-summit faceops[444933]: 200.113.129.178 - - [10/Nov/2026:20:09:27 -0300] "GET /lab/respaldos HTTP/1.0" 200 31216 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit
+Nov 10 20:09:31 demo-ansible-summit faceops[444933]: 200.113.129.178 - - [10/Nov/2026:20:09:31 -0300] "GET /lab/gobierno/plano-de-control HTTP/1.0" 200 32805 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/respaldos" "Mozilla/5.0 (Macintosh; Intel Mac 
+--- fin: 2026-11-10T21:37:51-03:00 · código: 0
