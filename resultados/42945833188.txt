@@ -1,0 +1,102 @@
+commit: 3b80fa0342c2dc784f64c4e2ea56e732c54599a3
+inicio: 2026-11-10T23:24:46-03:00
+---
+== preparación: srv-prueba-rocky-01 encendida en FaceOps
+CASO prep srv-prueba-rocky-01 no se pudo pedir: TypeError: 'NoneType' object is not subscriptable
+Traceback (most recent call last):
+  File "/tmp/arnes.py", line 70, in <module>
+    al = (j(e["datos"], {}) or {}).get("alertas") or {}
+            ~^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable
+== C6 equipo sin agente (srv-prueba-rocky-01)
+rocky :9100 antes: 000
+CASO C6 srv-prueba-rocky-01 no se pudo pedir: AttributeError: 'NoneType' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/tmp/arnes.py", line 70, in <module>
+    al = (j(e["datos"], {}) or {}).get("alertas") or {}
+            ~^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable
+C6 prometheus.yml a7dab93750c1→a7dab93750c1 · reglas rocky: 0
+== preparación: agente de monitoreo en srv-prueba-rocky-01
+CASO prep srv-prueba-rocky-01 no se pudo pedir: TypeError: 'NoneType' object is not subscriptable
+Traceback (most recent call last):
+  File "/tmp/arnes.py", line 70, in <module>
+    al = (j(e["datos"], {}) or {}).get("alertas") or {}
+            ~^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable
+rocky :9100 después: 000
+== C1 nodo-jboss2: sin respuesta, CPU, memoria y disco
+CASO C1·nodo-jboss2 FO-LAB-01540 exitoso :: AAP terminó (successful): ejecución 13 s, espera de aprobación 29 s
+REFLEJO nodo-jboss2: 4 alertas · FO-LAB-01540 · ['D01 Sin respuesta (critico) → avisar', 'C01 CPU alta → avisar (aviso 80 · crítico 95 %)', 'C02 Memoria alta → avisar (aviso 85 · crítico 95 %)', 'C03 Disco lleno → avisar (aviso 80 · crítico 90 %)']
+REGLA nodo-jboss2 FaceOpsSinRespuestaD01 for 120 | up{faceops_equipo="nodo-jboss2",job="faceops-equipos"} == 0 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsCpuAltaC01Aviso for 600 | l{faceops_equipo="nodo-jboss2",mode="idle"}[2m])) * 100 > 80 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsCpuAltaC01Critico for 600 | l{faceops_equipo="nodo-jboss2",mode="idle"}[2m])) * 100 > 95 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsMemoriaAltaC02Aviso for 600 | de_memory_MemTotal_bytes{faceops_equipo="nodo-jboss2"}) > 85 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsMemoriaAltaC02Critico for 600 | de_memory_MemTotal_bytes{faceops_equipo="nodo-jboss2"}) > 95 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsDiscoLlenoC03Aviso for 300 | equipo="nodo-jboss2",fstype!~"tmpfs|overlay|squashfs"}) > 80 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsDiscoLlenoC03Critico for 300 | equipo="nodo-jboss2",fstype!~"tmpfs|overlay|squashfs"}) > 90 | avisar    | estado: inactive
+OBJETIVO nodo-jboss2 [('faceops-equipos', '192.168.122.18:9100', 'up')]
+== C2 disparo real: disco aviso 1 % (durante 0)
+CASO C2·nodo-jboss2 FO-LAB-01542 exitoso :: AAP terminó (successful): ejecución 14 s, espera de aprobación 23 s
+REFLEJO nodo-jboss2: 4 alertas · FO-LAB-01542 · ['D01 Sin respuesta (critico) → avisar', 'C01 CPU alta → avisar (aviso 80 · crítico 95 %)', 'C02 Memoria alta → avisar (aviso 85 · crítico 95 %)', 'C03 Disco lleno → avisar (aviso 1 · crítico 90 %)']
+PROM-ALERTAS nodo-jboss2 [('FaceOpsDiscoLlenoC03Aviso', 'warning', 'firing'), ('FaceOpsDiscoLlenoC03Aviso', 'warning', 'firing'), ('FaceOpsDiscoLlenoC03Aviso', 'warning', 'firing'), ('FaceOpsDiscoLlenoC03Aviso', 'warning', 'firing')]
+ALERTMANAGER nodo-jboss2 [('FaceOpsDiscoLlenoC03Aviso', 'active', ['faceops-objetos']), ('FaceOpsDiscoLlenoC03Aviso', 'active', ['faceops-objetos']), ('FaceOpsDiscoLlenoC03Aviso', 'active', ['faceops-objetos']), ('FaceOpsDiscoLlenoC03Aviso', 'active', ['faceops-objetos'])]
+EDA-AUDIT 2026-11-11T02:28:43 Alerta de objeto · solo avisar successful FaceOps · Alertas de objetos
+== C3 ajustar umbrales (CPU 70/90) y quitar memoria
+CASO C3·nodo-jboss2 FO-LAB-01544 exitoso :: AAP terminó (successful): ejecución 14 s, espera de aprobación 35 s
+REFLEJO nodo-jboss2: 3 alertas · FO-LAB-01544 · ['D01 Sin respuesta (critico) → avisar', 'C01 CPU alta → avisar (aviso 70 · crítico 90 %)', 'C03 Disco lleno → avisar (aviso 80 · crítico 90 %)']
+REGLA nodo-jboss2 FaceOpsSinRespuestaD01 for 120 | up{faceops_equipo="nodo-jboss2",job="faceops-equipos"} == 0 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsCpuAltaC01Aviso for 600 | l{faceops_equipo="nodo-jboss2",mode="idle"}[2m])) * 100 > 70 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsCpuAltaC01Critico for 600 | l{faceops_equipo="nodo-jboss2",mode="idle"}[2m])) * 100 > 90 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsDiscoLlenoC03Aviso for 300 | equipo="nodo-jboss2",fstype!~"tmpfs|overlay|squashfs"}) > 80 | avisar    | estado: inactive
+REGLA nodo-jboss2 FaceOpsDiscoLlenoC03Critico for 300 | equipo="nodo-jboss2",fstype!~"tmpfs|overlay|squashfs"}) > 90 | avisar    | estado: inactive
+OBJETIVO nodo-jboss2 [('faceops-equipos', '192.168.122.18:9100', 'up')]
+== C4 repetir el mismo pedido
+CASO C4·nodo-jboss2 FO-LAB-01546 exitoso :: AAP terminó (successful): ejecución 13 s, espera de aprobación 23 s
+REFLEJO nodo-jboss2: 3 alertas · FO-LAB-01546 · ['D01 Sin respuesta (critico) → avisar', 'C01 CPU alta → avisar (aviso 70 · crítico 90 %)', 'C03 Disco lleno → avisar (aviso 80 · crítico 90 %)']
+C4 reglas 62b9db349480→62b9db349480 · prometheus.yml a7dab93750c1→a7dab93750c1 · trabajos faceops-equipos: 1 · faceops-sondeo: 1 · rule_files faceops: 1
+== C7 umbral inválido
+CASO C7 FaceOps rechaza antes del ticket: «CPU alta»: el aviso debe ser menor que el crítico
+CASO C7·nodo-jboss2 FO-LAB-01548 fallido :: e el crítico (80)"], "stdout": "", "stdout_lines": []} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=6    changed=1    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+REFLEJO nodo-jboss2: 3 alertas · FO-LAB-01546 · ['D01 Sin respuesta (critico) → avisar', 'C01 CPU alta → avisar (aviso 70 · crítico 90 %)', 'C03 Disco lleno → avisar (aviso 80 · crítico 90 %)']
+C7 reglas 62b9db349480→62b9db349480
+prometheus sano: 200
+== C5 equipo de red (fw-sede-01)
+CASO C5·fw-sede-01 FO-LAB-01551 exitoso :: AAP terminó (successful): ejecución 12 s, espera de aprobación 29 s
+REFLEJO fw-sede-01: 2 alertas · FO-LAB-01551 · ['D02 No responde en su puerto de administración (critico) → avisar', 'D03 Respuesta lenta → avisar (aviso 200 · crítico 1000 ms)']
+REGLA fw-sede-01 FaceOpsNoRespondeEnSuPuertoDeAdministracinD02 for 120 | ccess{faceops_equipo="fw-sede-01",job="faceops-sondeo"} == 0 | avisar    | estado: inactive
+REGLA fw-sede-01 FaceOpsRespuestaLentaD03Aviso for 300 | onds{faceops_equipo="fw-sede-01",job="faceops-sondeo"} > 200 | avisar    | estado: inactive
+REGLA fw-sede-01 FaceOpsRespuestaLentaD03Critico for 300 | nds{faceops_equipo="fw-sede-01",job="faceops-sondeo"} > 1000 | avisar    | estado: inactive
+OBJETIVO fw-sede-01 [('faceops-sondeo', '172.20.20.72:22', 'up')]
+probe_success fw-sede-01: ['1']
+== C9 acción por alerta: encender en sin respuesta + solo avisar en disco (srv-prueba-rocky-01)
+CASO C9 srv-prueba-rocky-01 no se pudo pedir: AttributeError: 'NoneType' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/tmp/arnes.py", line 70, in <module>
+    al = (j(e["datos"], {}) or {}).get("alertas") or {}
+            ~^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable
+REGLAS srv-prueba-rocky-01 : ninguna
+OBJETIVO srv-prueba-rocky-01 []
+AM ruta: {'receiver': 'faceops-objetos', 'matchers': ['faceops_equipo=~".+"'], 'continue': False} | receptor: [{'name': 'faceops-objetos', 'webhook_configs': [{'url': 'http://127.0.0.1:5022/endpoint', 'send_resolved': True}]}]
+== C8 retirar todas (fw-sede-01)
+CASO C8·fw-sede-01 FO-LAB-01554 exitoso :: AAP terminó (successful): ejecución 12 s, espera de aprobación 26 s
+CASO C8·nodo-jboss2 FO-LAB-01555 exitoso :: AAP terminó (successful): ejecución 12 s, espera de aprobación 23 s
+REFLEJO fw-sede-01: 0 alertas · FO-LAB-01554 · []
+REFLEJO nodo-jboss2: 0 alertas · FO-LAB-01555 · []
+REGLAS fw-sede-01 : ninguna
+OBJETIVO fw-sede-01 [('faceops-sondeo', '172.20.20.72:22', 'up')]
+REGLAS nodo-jboss2 : ninguna
+OBJETIVO nodo-jboss2 []
+/opt/summit-monitoreo/prometheus/faceops/objetivos:
+exp-nodo-jboss.yml
+
+/opt/summit-monitoreo/prometheus/faceops/reglas:
+nodo-jboss.yml
+prometheus sano: 200
+== C10 (evidencia FO-LAB-01539): reglas vigentes de nodo-jboss
+REGLA nodo-jboss FaceOpsJbossDetenidoJ01 for 60 | ",name=~"(eap|jboss|wildfly).*service",state="active"}) == 0 | reiniciar_jboss Plataforma · Controlar servicio Nodos demo Nodos demo (ansible) | estado: inactive
+REGLA nodo-jboss FaceOpsCpuAltaC01Aviso for 120 | al{faceops_equipo="nodo-jboss",mode="idle"}[2m])) * 100 > 80 | recursos Infra · Ajustar recursos de máquinas   | estado: inactive
+REGLA nodo-jboss FaceOpsCpuAltaC01Critico for 120 | al{faceops_equipo="nodo-jboss",mode="idle"}[2m])) * 100 > 95 | recursos Infra · Ajustar recursos de máquinas   | estado: inactive
+OBJETIVO nodo-jboss [('faceops-equipos', '192.168.122.15:9100', 'up')]
+--- fin: 2026-11-10T23:39:40-03:00 · código: 0
