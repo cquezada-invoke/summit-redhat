@@ -1,75 +1,102 @@
-commit: 7a3eb4cd896d13b6c6ebecf9da0174221057c21c
-inicio: 2026-11-11T12:01:10-03:00
+commit: a2880c5d9026642ee97c4b469479a0153cd38252
+inicio: 2026-11-11T12:10:01-03:00
 ---
-3123874 Ficha › salud › Seguridad: CVE solo pendientes con buscador y paginador de 10; «Aplicar parche» por CVE (ticket de «Aplicar parches de seguridad» limitado a ese CVE, con aprobación) y en Políticas «Aplicar» sin recargar: el botón queda «En curso» con su ticket al lado (también al recargar) y al terminar «Aplicada · ticket»; tras un parche exitoso FaceOps relanza «Revisar CVEs» para sacarlo de pendientes y subir Seguridad
-EQUIPO None
-REPLICAS []
-VINCULACION []
-COMPONENTE app {'produccion': ['nodo-jboss', 'nodo-jboss2'], 'qa': ['nodo-jboss-qa'], 'desarrollo': ['nodo-jboss-dev']}
-FICHA 6 data-pil="Disponibilidad"> Disponibilidad 85 % Instancias (2) nodo-jboss esta máquina 192.168.122.15 nodo-jboss2 réplica 192.168.122.18 Segmentos que usan esta máquina (1) App de pagos JBoss EAP (app-jboss) · produccion · balanceo en nodo-nginx · puertos 8080 2 instancias : nodo-jboss, nodo-jboss2 Solicitar réplica · falta su prueba Para llegar al 100 % Una tercera instancia lleva la disponibilidad al 100 % Rendimiento 95 % CPU · 11 % de 2 vCPU 85 % Memoria · 55 % de 2 GB 100 % Disco (volumen más lleno) · 22 % de su capacidad 100 % Para llegar al 100 % CPU al 11 %: sobredimensionado, se puede bajar y liberar el anfitrión Seguridad 20 % CVE · Red Hat Enterprise Linux 0 % P
-  dialogo False True
-TICKET AAP terminó (successful): ejecución 408 s, espera de aprobación 54 s
-== origen antes
-[adhoc 23292 successful]
-nodo-jboss | CHANGED | rc=0 >>
-machine_id=de9c057e5bc345b0af02c1279799e227
-host=nodo-jboss.demo.local
-ip=192.168.122.15 10.88.0.1
-conf=efda0869843f
-svc=active
-marca=ninguna
-salud=ok 1.0.44
-== origen después
-[adhoc 23400 successful]
-nodo-jboss | CHANGED | rc=0 >>
-machine_id=de9c057e5bc345b0af02c1279799e227
-host=nodo-jboss.demo.local
-ip=192.168.122.15 10.88.0.1
-conf=efda0869843f
-svc=active
-marca=ninguna
-salud=ok 1.0.44
-== réplica
-[adhoc 23401 successful]
-nodo-jboss4 | CHANGED | rc=0 >>
-machine_id=4c17e0bed7ea48d2ab546ed48b3808f5
-host=nodo-jboss4
-ip=192.168.122.105
-conf=efda0869843f
-svc=active
-marca=nodo-jboss
-salud=ok 1.0.44
-uuid=4c17e0be-d7ea-48d2-ab54-6ed48b3808f5
-llaves=SHA256:PWqx3/HUv+1DYLDEIbVz+0+C/JmhlgM9AFNWygegYeI,SHA256:JPuN7dC5NPCTYT8GvihvFva+JmEN9dS7of6L3rkZTbs,SHA256:plyMp3H+37NoZclPS9wa9fSY0iFMicpw9g27pHD4gso
-rhsm=49ae81a0-bab7-4eb0-b91c-920a931015b7
-node_exporter=active
-fw=0
-version=eap8-wildfly-8.0.12-5.GA_redhat_00008.1.el9eap.noarch
-== origen identidad
-== balanceador
-[adhoc 23403 successful]
-Identity added: /runner/artifacts/23403/ssh_key_data (cquezada@demo-ansible-summit)
-nodo-nginx | CHANGED | rc=0 >>
-3:    server 192.168.122.15:8080 max_fails=2 fail_timeout=10s;
-4:    server 192.168.122.105:8080 max_fails=2 fail_timeout=10s;  # réplica HA · FaceOps FO-LAB-01642
-5:    server 192.168.122.18:8080 max_fails=2 fail_timeout=10s;
-== destinos
-[adhoc 23404 successful]
-Identity added: /runner/artifacts/23404/ssh_key_data (cquezada@demo-ansible-summit)
-nodo-tomcat | CHANGED | rc=0 >>
-nodo-postgres | CHANGED | rc=0 >>
-rule family="ipv4" source address="192.168.122.15/32" port port="5432" protocol="tcp" accept
-== por el balanceador
-HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.15:8080
-ok 1.0.44
-HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.105:8080
-ok 1.0.44
-HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.18:8080
-ok 1.0.44
-HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.15:8080
-ok 1.0.44
-HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.105:8080
-ok 1.0.44
-HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.18:8080
-ok 1.0.44
---- fin: 2026-11-11T12:02:34-03:00 · código: 0
+dbd6198f-f3a9-4a03-8 ¿Aprueba crear la máquina paralela y sumarla al balanceo de sus segmentos? successful 23338
+crear FaceOps · Habilitar servidor successful 23351
+configurar Infra · Replicar máquina · configurar successful 23358
+máquina es réplica; no copia nada del origen)] ***
+changed: [nodo-jboss4]
+
+PLAY [Replicar máquina · firewall de salida (destinos que filtran por la IP del origen)] ***
+
+TASK [Reglas de firewalld que nombran al origen] *******************************
+ok: [nodo-tomcat]
+ok: [nodo-postgres]
+
+TASK [Las mismas reglas para la réplica] ***************************************
+skipping: [nodo-tomcat]
+changed: [nodo-postgres] => (item=public|rule family="ipv4" source address="192.168.122.15/32" port port="5432" protocol="tcp" accept)
+
+TASK [PostgreSQL · accesos (pg_hba) que nombran al origen] *********************
+skipping: [nodo-tomcat]
+ok: [nodo-postgres]
+
+TASK [Recargar PostgreSQL] *****************************************************
+skipping: [nodo-postgres]
+skipping: [nodo-tomcat]
+
+PLAY [Replicar máquina · verificación por el balanceador (HTTP 200 con ambas instancias)] ***
+
+TASK [La réplica responde directo] *********************************************
+ok: [localhost]
+
+TASK [El origen sigue respondiendo] ********************************************
+ok: [localhost]
+
+TASK [8 pedidos por cada balanceador (todas con 200)] **************************
+ok: [localhost] => (item=nodo-nginx #0)
+ok: [localhost] => (item=nodo-nginx #1)
+ok: [localhost] => (item=nodo-nginx #2)
+ok: [localhost] => (item=nodo-nginx #3)
+ok: [localhost] => (item=nodo-nginx #4)
+ok: [localhost] => (item=nodo-nginx #5)
+ok: [localhost] => (item=nodo-nginx #6)
+ok: [localhost] => (item=nodo-nginx #7)
+
+TASK [Quién respondió por el balanceador] **************************************
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+
+TASK [Misma versión que el origen y la réplica recibe tráfico por cada balanceador] ***
+ok: [localhost] => (item=nodo-nginx)
+
+TASK [Resultado para FaceOps] **************************************************
+ok: [localhost]
+
+TASK [Verificación] ************************************************************
+ok: [localhost] => {
+    "msg": "nodo-jboss4 200 directo · origen 200 · por balanceador: {'nodo-nginx': ['192.168.122.105:8080', '192.168.122.18:8080', '192.168.122.15:8080', '192.168.122.105:8080', '192.168.122.18:8080', '192.168.122.15:8080', '192.168.122.105:8080', '192.168.122.18:8080']}"
+}
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=23   changed=5    unreacha
+ [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+
+TASK [Misma versión que el origen y la réplica recibe tráfico por cada balanceador] ***
+ok: [localhost] => (item=nodo-nginx)
+
+TASK [Resultado para FaceOps] **************************************************
+ok: [localhost]
+
+TASK [Verificación] ************************************************************
+ok: [localhost] => {
+    "msg": "nodo-jboss4 200 directo · origen 200 · por balanceador: {'nodo-nginx': ['192.168.122.105:8080', '192.168.122.18:8080', '192.168.122.15:8080', '192.168.122.105:8080', '192.168.122.18:8080', '192.168.122.15:8080', '192.168.122.105:8080', '192.168.122.18:8080']}"
+}
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=23   changed=5    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-jboss                 : ok=10   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss4                : ok=40   changed=18   unreachable=0    failed=0    skipped=6    rescued=0    ignored=0   
+nodo-nginx                 : ok=7    changed=2    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0   
+nodo-postgres              : ok=3    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-tomcat                : ok=1    changed=0    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0   
+
+ART {"el_equipo": "nodo-jboss4", "el_ip": "192.168.122.105", "faceops_politica": {"nodo-jboss4": {"cumple": true, "incumplia": ["PermitRootLogin no", "PasswordAuthentication no", "MaxAuthTries 4", "X11Forwarding no", "ClientAliveInterval 300", "/etc/sysconfig/faceops-app02.nft", "/etc/systemd/system/faceops-app02-fw.service", "/usr/local/sbin/faceops-app02-nft", "systemctl -q is-enabled faceops-app02-fw && nft list..."], "modo": "aplicar"}}, "faceops_ha": {"origen": "nodo-jboss", "balanceador": "nodo-nginx", "nuevo": false, "url": "http://192.168.122.11/app-jboss/salud", "miembros": ["192.168.122.15", "192.168.122.105"], "respondieron": ["192.168.122.15:8080", "192.168.122.105:8080", "192.168.122.18:8080", "192.168.122.15:8080", "192.168.122.105:8080", "192.168.122.18:8080"]}, "faceops_replica": {"ok": true, "origen": "nodo-jboss", "replica": "nodo-jboss4", "ip": "192.168.122.105", "producto": "jboss", "balanceadores": ["nodo-nginx"], "segmentos": ["App de pagos"], "directo": "200", "version": "ok 1.0.44", "origen_responde": "200", "repartos": {"nodo-nginx": ["192.168.122.105:8080", "192.168.122.18:8080", "192.168.122.15:8080", "192.168.122.105:8080", "192.168.122.18:8080", "192.168.122.15:8080", "192.168.122.105:8080", "192.168.122.18:8080"]}, "politica": ["APP-02", "DAT-01", "SO-01"]}}
+revertir-balanceo None None None
+revertir-vm None None None
+revertir-vm-creada None None None
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/opt/faceops/app/bd.py", line 179, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: fecha
+--- fin: 2026-11-11T12:10:08-03:00 · código: 0
