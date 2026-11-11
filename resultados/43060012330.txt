@@ -1,0 +1,13 @@
+commit: e6d9fc20490d1989bcb6e5cdfe7a3be6bdcd0ceb
+inicio: 2026-11-11T13:39:15-03:00
+---
+dev 192.168.122.21
+/opt/jboss-5.1.0.GA
+/opt/rh/eap8/root/usr/share/wildfly
+catalogo-ds.xml
+catalogo-legacy.war
+/usr/lib/jvm/jre/bin/java -D[Standalone] -Xlog:gc*:file=/opt/rh/eap8/root/usr/share/wildfly/standalone/log/gc.log:time,uptimemillis:filecount=5,filesi
+nodo-jboss-qa ip=192.168.122.20 virsh=shut off
+nodo-jboss3 ip=192.168.122.19 virsh=shut off
+srv-legado-jboss7-01 ip=192.168.122.85 virsh=error: failed to get domain 'srv-legado-jboss7-01'
+--- fin: 2026-11-11T13:39:51-03:00 · código: 0
