@@ -1,0 +1,28 @@
+commit: 51bd13fb6ec037a77698411e9a981f4a2a408ada
+inicio: 2026-11-10T23:57:44-03:00
+---
+nodo-jboss ruta vigente antes: 404
+  aviso: ['Esta acción no aplica a nodo-jboss: el equipo ya tiene redisinsight']
+  NO SE CREÓ TICKET 302
+nodo-nginx ruta vigente antes: 404
+  aviso: ['Esta acción no aplica a nodo-nginx: el equipo ya tiene redisinsight']
+  NO SE CREÓ TICKET 302
+nodo-tomcat ruta vigente antes: ReadTimeout
+  aviso: ['Esta acción no aplica a nodo-tomcat: el equipo ya tiene redisinsight']
+  NO SE CREÓ TICKET 302
+== nodo-jboss 6
+ goto: Page.goto: net::ERR_TOO_MANY_REDIRECTS at https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6/consola-web/redis/
+Call log:
+  - navigating to "https://faceops.34.176.42.56.sslip.io:8843
+== nodo-nginx 8
+ goto: Page.goto: net::ERR_TOO_MANY_REDIRECTS at https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/8/consola-web/redis/
+Call log:
+  - navigating to "https://faceops.34.176.42.56.sslip.io:8843
+== nodo-tomcat 10
+ página: 502 /faceops/lab/inventario/10/consola-web/redis/ título: nodo-tomcat no responde · FaceOps
+ api/databases: 502 0
+ texto: ☰ FaceOps Managed Service · Invoke v1.0.1518 Clientes Gobierno ES Móvil Panel Banco del Pacífico Sur (demo) Clínica Santa Lucía (demo) Invoke Lab Minera Los Andes (demo) ＋ Agregar cliente… Infraestructura Servidores Redes Storage Sistemas operativos Bases de datos Plataformas Contenedores Estaciones
+ >=400/fallas: ['502 GET /faceops/lab/inventario/10/consola-web/redis/', '502 GET /faceops/lab/inventario/10/consola-web/redis/api/databases', '502 GET /faceops/lab/inventario/10/consola-web/redis/']
+ socket.io: []
+ errores js: []
+--- fin: 2026-11-10T23:58:45-03:00 · código: 0
