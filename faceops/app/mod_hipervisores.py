@@ -79,7 +79,22 @@ def _cap_anfitrion(hips, x):
         return d_["capacidad"]
     o = next((i for i in hips if i["tipo"] == x["tipo"] and d_.get("anfitrion") and i["detalle_d"].get("anfitrion") == d_["anfitrion"]
               and i["detalle_d"].get("capacidad")), None)
-    return (o or {}).get("detalle_d", {}).get("capacidad") or {}
+    cap = dict((o or {}).get("detalle_d", {}).get("capacidad") or {})
+    if cap and d_.get("pool") and d_["pool"] != o["detalle_d"].get("pool"):   # pool propio: el disco del otro no vale para este
+        cap.update(disco_gb=None, disco_disp_gb=None)
+    return cap
+
+
+MEDICION_VIGENTE_H = 12   # una medición más vieja (o anterior a un reinicio del laboratorio) no sirve para decidir un traslado
+
+
+def _medicion_vieja(cap):
+    from datetime import datetime, timezone
+    try:
+        m_ = datetime.fromisoformat(cap["medido"])
+    except (KeyError, TypeError, ValueError):
+        return True
+    return (datetime.now(timezone.utc) - m_).total_seconds() > MEDICION_VIGENTE_H * 3600
 
 
 def _emulado(x):
@@ -138,9 +153,14 @@ def destinos_traslado(cliente_id, e, eqs):
             motivos.append(f"la automatización no convierte máquinas KVM a {x['prov'].get('nombre', x['tipo'])}")
         elif origen and origen["tipo"] == "kvm" and not mismo:
             motivos.append("está en otro anfitrión KVM: el traslado entre anfitriones distintos aún no está soportado")
+        vieja = bool(cap) and _medicion_vieja(cap)
         if x["tipo"] == "kvm" and not cap:
-            motivos.append("sin capacidad medida: usa «Probar acceso» en el hipervisor")
-        if cap:
+            motivos.append("sin capacidad medida: re-mide el destino")
+        elif x["tipo"] == "kvm" and vieja:
+            motivos.append(f"medición del {(cap.get('medido') or '?')[:10]}, anterior a las últimas {MEDICION_VIGENTE_H} h: re-mide el destino")
+        elif x["tipo"] == "kvm" and cap.get("disco_disp_gb") is None:
+            motivos.append("disco libre sin medición: re-mide el destino")
+        if cap and not vieja:
             if cap.get("cores") and cpu > cap["cores"]:
                 motivos.append(f"la máquina tiene {cpu} vCPU y el anfitrión {cap['cores']} cores físicos")
             if not mismo and cap.get("ram_disp_gb") is not None and ram_gb > cap["ram_disp_gb"]:
@@ -150,8 +170,9 @@ def destinos_traslado(cliente_id, e, eqs):
         out.append({"id": x["id"], "nombre": x["nombre"], "tipo": x["prov"].get("nombre", x["tipo"]), "centro": x["centro"],
                     "region": x.get("region") or "", "red": d_.get("red") or (f"datacenter vSphere {d_['datacenter']}" if d_.get("datacenter") else "—"),
                     "red_libvirt": d_.get("red_libvirt") or "default", "estado": x["estado"], "vms": len(vms),
-                    "cores": cap.get("cores"), "ram_libre": cap.get("ram_disp_gb"), "disco_libre": cap.get("disco_disp_gb"),
-                    "medido": (cap.get("medido") or "")[:10], "mismo_anfitrion": mismo, "emulado": _emulado(x),
+                    "cores": cap.get("cores"), "ram_libre": None if vieja else cap.get("ram_disp_gb"), "disco_libre": None if vieja else cap.get("disco_disp_gb"),
+                    "medido": (cap.get("medido") or "")[:16].replace("T", " "), "vieja": vieja, "remedir": x["tipo"] == "kvm" and x["estado"] == "conectada",
+                    "mismo_anfitrion": mismo, "emulado": _emulado(x),
                     "elegible": not motivos and not bloqueo, "motivos": motivos})
     out.sort(key=lambda y: (not y["elegible"], y["nombre"]))
     return {"maquina": e["nombre"], "cpu": cpu, "ram_gb": ram_gb, "disco_gb": disco, "ambiente": e.get("ambiente") or "",
@@ -193,6 +214,29 @@ def pedir_traslado(usuario, cliente, e, eqs, modo, destino_id=None, prueba=False
               "mv_puerto": 5986 if "windows" in (e.get("so") or "").lower() else 22}
     return solicitar(usuario, cliente, a, ((e.get("segmentos") or [""])[0]), params, texto,
                      filtros={"ambientes": [e["ambiente"]]} if e.get("ambiente") else None, prueba=prueba)
+
+
+@bp.route("/inventario/<int:eid>/traslado/medir", methods=["POST"])
+@requiere_login
+def equipo_traslado_medir(eid):
+    """Re-mide la capacidad de un destino KVM (cores, memoria y disco libre de su pool) con el «Probar acceso» del hipervisor,
+    que va por AAP (FaceOps no toca el anfitrión), y devuelve los destinos actualizados."""
+    from flask import request, session
+    from .aap import ErrorAAP
+    from .infraestructuras import probar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    eqs = equipos_visibles()
+    e = next((x for x in eqs if x["id"] == eid), None)
+    if not e:
+        return {"error": "Equipo no visible"}, 404
+    try:
+        st, msg = probar(g.usuario, g.cliente, int(request.form.get("destino") or 0))
+    except (ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    if st != "conectada":
+        return {"error": f"No se pudo medir: {msg}"}, 400
+    return destinos_traslado(g.cliente["id"], e, equipos_visibles())
 
 
 @bp.route("/inventario/<int:eid>/traslado", methods=["GET", "POST"])

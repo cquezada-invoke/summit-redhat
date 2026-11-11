@@ -42,8 +42,12 @@ function pintar(){cu.textContent='';ok.disabled=true;modo='mover';
   r.addEventListener('change',()=>{ok.disabled=info.automatizacion&&info.automatizacion.estado!=='certificada';ok.textContent='Crear ticket de traslado';});
   const c=el('div');c.append(el('b',null,d.nombre),document.createTextNode(' · '+d.tipo));const dl=el('dl');
   dato(dl,'Centro de datos',d.centro+(d.region?' · '+d.region:''));dato(dl,'Red',d.red);dato(dl,'Máquinas',String(d.vms));
-  dato(dl,'Cores físicos',d.cores==null?'—':String(d.cores));dato(dl,'RAM libre',gb(d.ram_libre));dato(dl,'Disco libre',gb(d.disco_libre)+(d.medido?' · medido '+d.medido:''));
+  dato(dl,'Cores físicos',d.cores==null?'—':String(d.cores));dato(dl,'RAM libre',gb(d.ram_libre));dato(dl,'Disco libre',(d.disco_libre==null?'sin medición':d.disco_libre+' GB')+(d.medido?' · medido '+d.medido+(d.vieja?' (vieja)':''):''));
   c.append(dl);lb.append(r,c);
+  if(d.remedir){const m=el('button','btn gris','Re-medir');m.type='button';m.style.cssText='grid-column:2;justify-self:start;padding:3px 10px;font-size:12px';
+   m.addEventListener('click',ev=>{ev.preventDefault();m.disabled=true;m.textContent='Midiendo por AAP…';const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('destino',d.id);
+    fetch(URL_+'/medir',{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(x=>{if(x.error){m.disabled=false;m.textContent='Re-medir';fxAviso(x.error,'error');return;}info=Object.assign(info,x);pintar();})
+    .catch(()=>{m.disabled=false;m.textContent='Re-medir';fxAviso('No se pudo medir','error');});});lb.append(m);}
   if(d.emulado)lb.append(el('div','mv-nota',d.tipo.indexOf('KVM')>=0?'Emulado: '+d.emulado.replace(/^sí:\s*/,'')+'. El traslado es real: apaga, copia el disco al pool del destino, cambia de red y la IP cambia.':'Emulado: '+d.emulado+'.'));
   else if(d.mismo_anfitrion)lb.append(el('div','mv-nota','Mismo anfitrión físico: la CPU y la memoria no cambian; se copia el disco y cambia la red.'));
   if(!d.elegible)lb.append(el('div','mv-motivo','No elegible: '+d.motivos.join('; ')+'.'));l.append(lb);});cu.append(l);

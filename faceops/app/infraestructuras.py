@@ -2,6 +2,7 @@
 llega FaceOps a cada una. Al incorporar una, sus secretos van directo a una credencial cifrada de AAP (FaceOps no los
 guarda), se crea su inventario en AAP (con fuente dinámica en las nubes) y sus equipos entran al inventario de FaceOps."""
 import json
+import shlex
 
 from .bd import ahora, auditar, ej, j, q, q1
 
@@ -616,9 +617,10 @@ def probar(usuario, cliente, iid):
         estado = "conectada" if st == "successful" else "error"
         if st == "successful" and not fuentes:   # anfitrión propio (KVM): capacidad total del equipo (cores físicos, memoria, disco de VMs)
             try:
+                ruta_ = shlex.quote(j(x["detalle"], {}).get("pool") or "/var/lib/libvirt/images")   # disco libre del pool propio (Valparaíso: dc-valpo)
                 cmd = ("echo CAP $(lscpu -p=core,socket | grep -v '^#' | sort -u | wc -l) "
                        "$(free -m | awk '/^Mem/{print $2, $7}') "
-                       "$(df -BG --output=size,avail /var/lib/libvirt/images 2>/dev/null | tail -1 | tr -d G); " + INFO_KVM)
+                       f"$(df -BG --output=size,avail {ruta_} 2>/dev/null | tail -1 | tr -d G); " + INFO_KVM)
                 c_ = aap.post(f"inventories/{inv['id']}/ad_hoc_commands/", {"module_name": "shell", "module_args": cmd,
                                                                             "credential": cred["id"] if cred else None, "limit": "all"})
                 for _ in range(30):
@@ -629,7 +631,8 @@ def probar(usuario, cliente, iid):
                     sal_ = (ev.get("event_data", {}).get("res", {}).get("stdout") or "").splitlines()
                     lin = next((l_ for l_ in sal_ if l_.startswith("CAP ")), "")
                     v_ = lin.split()[1:]
-                    if len(v_) >= 3:
+                    if len(v_) >= 3 and all(t_.isdigit() for t_ in v_[:3]):
+                        v_ = v_[:3] + (v_[3:5] if len(v_) >= 5 and all(t_.isdigit() for t_ in v_[3:5]) else [])   # sin df legible: disco «sin medición», no 0
                         d_ = j(x["detalle"], {})
                         d_["info"] = dict(l_[4:].split("=", 1) for l_ in sal_ if l_.startswith("INF ") and "=" in l_)   # datos generales del anfitrión
                         d_["info"]["medido"] = ahora()
