@@ -1,28 +1,20 @@
-commit: 3676ea808b3cee8df852747f372513c103a37457
-inicio: 2026-11-10T22:17:17-03:00
+commit: 86cd923098b358a396fcfe5517e45df7540fa4e3
+inicio: 2026-11-10T22:18:27-03:00
 ---
 a28a4ed
-faceops actualizado
-marcar sno 302 1
-marcar nodo-vault 302 1
-marcar dc1-idm01 302 1
-marcar dc1-sat01 302 1
-marcar dc1-ad01 302 1
-marcar dc1-ds01 302 1
-marcar dc1-iga01 302 1
-marcar dc1-sso01 302 1
-marcar nodo-jboss-qa 302 1
-marcar nodo-windows 302 1
-csrf malo: 400
-auditoria: 10
-/lab/inventario?forma=virtual&n=100 200 14 ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss2', 'nodo-postgres', 'nodo-so', 'nodo-tomcat', 'srv-mover-01', 'dc1-sql01', 'dc1-vpn01', 'dc2-sql01', 'nodo-jboss3', 'srv-legado-jboss6-01', 'srv-legado-jboss7-01', 'srv-prueba-rocky-01'] | boton: ['Mostrar infraestructura (10)'] | chips: 0
-/lab/inventario?forma=virtual&n=100&mostrar=infra 200 24 ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss2', 'nodo-postgres', 'nodo-so', 'nodo-tomcat', 'nodo-vault', 'nodo-windows', 'sno', 'srv-mover-01', 'dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sat01', 'dc1-sql01', 'dc1-sso01', 'dc1-vpn01', 'dc2-sql01', 'nodo-jboss-qa', 'nodo-jboss3', 'srv-legado-jboss6-01', 'srv-legado-jboss7-01', 'srv-prueba-rocky-01'] | boton: ['Ocultar infraestructura'] | chips: 10
-/lab/inventario?n=100 200 24 ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss2', 'nodo-postgres', 'nodo-so', 'nodo-tomcat', 'srv-cisco-c240-01', 'srv-dell-r660xs-01', 'srv-dell-r760-01', 'srv-fujitsu-rx2540-01', 'srv-hpe-dl360-01', 'srv-hpe-dl380-01', 'srv-lenovo-sr630-01', 'srv-lenovo-sr650-01', 'srv-mover-01', 'srv-supermicro-01', 'srv-xfusion-2288h-01', 'dc1-sql01', 'dc1-vpn01', 'dc2-sql01', 'nodo-jboss3', 'srv-legado-jboss6-01', 'srv-legado-jboss7-01', 'srv-prueba-rocky-01'] | boton: ['Mostrar infraestructura (10)'] | chips: 0
-/lab/inventario?forma=virtual&q=nodo-vault 200 1 ['nodo-vault'] | boton: [] | chips: 1
-ficha vault: 1 1
-ficha jboss: 1
-/lab/mapa?vista=aplicaciones&segmento=App+de+pagos 200
-/lab/monitoreo/radar 200
-/lab/inventario?forma=fisico 200
-mapa identidades con dc1-idm01: True
---- fin: 2026-11-10T22:18:13-03:00 · código: 0
+2
+estado antes: cambiada
+inicio: ['\x1b[0;33mnodo-jboss-dev st=running cfg=1:1:2097152 live=1:2097152\x1b[0m', '\x1b[0;33mnodo-jboss-qa st=shut off cfg=1:1:2097152 live=:2097152\x1b[0m']
+C1 FO-LAB-01509 exitoso | AAP terminó (successful): ejecución 12 s, espera de aprobación 53 s
+ C1 virsh: ['\x1b[0;33mnodo-jboss-dev st=running cfg=2:2:2097152 live=2:2097152\x1b[0m']
+ C1 ficha tras ticket: {'cpu': 2, 'ultima_recoleccion': '2026-11-10T06:03:31.597378Z'}
+ C6 ficha tras sincronizar: {'cpu': 2, 'ram_mb': 2048, 'ultima_recoleccion': '2026-11-10T06:03:31.597378Z'}
+C2 FO-LAB-01511 exitoso | AAP terminó (successful): ejecución 6 s, espera de aprobación 53 s
+C3 FO-LAB-01513 exitoso | AAP terminó (successful): ejecución 8 s, espera de aprobación 29 s
+ C3 virsh: ['\x1b[0;33mnodo-jboss-qa st=shut off cfg=1:1:3145728 live=:3145728\x1b[0m']
+C4 FO-LAB-01514 exitoso | AAP terminó (successful): ejecución 13 s, espera de aprobación 22 s
+ C4 virsh: ['\x1b[0;33mnodo-jboss-dev st=running cfg=1:1:2097152 live=1:2097152\x1b[0m', '\x1b[0;33mnodo-jboss-qa st=shut off cfg=1:1:2097152 live=:2097152\x1b[0m']
+C5 FO-LAB-01515 fallido | ted_to": false, "msg": "Formato: nombre:vcpu:ram_mb separados por coma (1-32 vCPU, 1024-131072 MB)"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+ C5 virsh: ['\x1b[0;33mnodo-jboss-dev st=running cfg=1:1:2097152 live=1:2097152\x1b[0m']
+fichas: [{'nombre': 'nodo-jboss', 'cpu': 2, 'ram_mb': 2048}, {'nombre': 'nodo-jboss-dev', 'cpu': 1, 'ram_mb': 2048}, {'nombre': 'nodo-jboss-qa', 'cpu': 1, 'ram_mb': 2048}]
+--- fin: 2026-11-10T22:29:18-03:00 · código: 0

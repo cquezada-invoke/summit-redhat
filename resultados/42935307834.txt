@@ -1,0 +1,20 @@
+commit: 86cd923098b358a396fcfe5517e45df7540fa4e3
+inicio: 2026-11-10T22:18:27-03:00
+---
+a28a4ed
+2
+estado antes: cambiada
+inicio: ['\x1b[0;33mnodo-jboss-dev st=running cfg=1:1:2097152 live=1:2097152\x1b[0m', '\x1b[0;33mnodo-jboss-qa st=shut off cfg=1:1:2097152 live=:2097152\x1b[0m']
+C1 FO-LAB-01509 exitoso | AAP terminó (successful): ejecución 12 s, espera de aprobación 53 s
+ C1 virsh: ['\x1b[0;33mnodo-jboss-dev st=running cfg=2:2:2097152 live=2:2097152\x1b[0m']
+ C1 ficha tras ticket: {'cpu': 2, 'ultima_recoleccion': '2026-11-10T06:03:31.597378Z'}
+ C6 ficha tras sincronizar: {'cpu': 2, 'ram_mb': 2048, 'ultima_recoleccion': '2026-11-10T06:03:31.597378Z'}
+C2 FO-LAB-01511 exitoso | AAP terminó (successful): ejecución 6 s, espera de aprobación 53 s
+C3 FO-LAB-01513 exitoso | AAP terminó (successful): ejecución 8 s, espera de aprobación 29 s
+ C3 virsh: ['\x1b[0;33mnodo-jboss-qa st=shut off cfg=1:1:3145728 live=:3145728\x1b[0m']
+C4 FO-LAB-01514 exitoso | AAP terminó (successful): ejecución 13 s, espera de aprobación 22 s
+ C4 virsh: ['\x1b[0;33mnodo-jboss-dev st=running cfg=1:1:2097152 live=1:2097152\x1b[0m', '\x1b[0;33mnodo-jboss-qa st=shut off cfg=1:1:2097152 live=:2097152\x1b[0m']
+C5 FO-LAB-01515 fallido | ted_to": false, "msg": "Formato: nombre:vcpu:ram_mb separados por coma (1-32 vCPU, 1024-131072 MB)"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+ C5 virsh: ['\x1b[0;33mnodo-jboss-dev st=running cfg=1:1:2097152 live=1:2097152\x1b[0m']
+fichas: [{'nombre': 'nodo-jboss', 'cpu': 2, 'ram_mb': 2048}, {'nombre': 'nodo-jboss-dev', 'cpu': 1, 'ram_mb': 2048}, {'nombre': 'nodo-jboss-qa', 'cpu': 1, 'ram_mb': 2048}]
+--- fin: 2026-11-10T22:29:18-03:00 · código: 0
