@@ -16,6 +16,7 @@ planes:
       - {id: C4, caso: "Aplicar CON-02 v2 (límites por contenedor) en nodo-jboss, con Redis Insight en ejecución y sin /etc/containers/containers.conf.d", verificar: "ticket exitoso; se crea el directorio y 50-faceops.conf (pids_limit 2048, log_size_max 100 MB); los contenedores en ejecución tienen tope de procesos sin reiniciarse; Redis Insight sigue respondiendo"}
       - {id: C5, caso: "Verificar CON-02 v2 en un equipo sin Podman", tipo: Funcional, verificar: "ticket exitoso; cumple (no aplica) sin crear nada en el equipo"}
       - {id: C6, caso: "Política de firewall con un puerto inválido (prueba ad hoc PRB-FW en nodo-jboss)", tipo: Error controlado, verificar: "ticket fallido en la tarea Firewall con «puerto inválido … no se cambió nada»; el firewall de nodo-jboss queda igual y la app sigue respondiendo; la fila de prueba se quita del estado de políticas"}
+      - {id: C8, caso: "Aplicar RED-02 v2 en nodo-jboss (servidor con contenedores: v1 dejó ip_forward en 0 y Redis Insight dejó de responder desde fuera)", verificar: "ticket exitoso; ip_forward en 1 persistido en 91-faceops-contenedores.conf y sin la línea en 0; los parámetros de SO-02 siguen; Redis Insight responde desde FaceOps; en un servidor sin contenedores sigue en 0"}
       - {id: C7, caso: "Verificar SO-03 (regla de archivo) en nodo-jboss", tipo: Funcional, verificar: "ticket exitoso; las tareas «Directorios de los archivos» y «Archivos» en modo verificar no cambian nada; cumple y conserva el ticket que la resolvió"}
   "JBoss · Desplegar app":
     casos:

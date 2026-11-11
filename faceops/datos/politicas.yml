@@ -93,10 +93,24 @@
   nombre: Sin reenvío de paquetes en servidores
   categoria: redes
   severidad: media
-  descripcion: Un servidor no debe enrutar tráfico entre redes (eso es de routers y firewalls).
+  descripcion: >-
+    Un servidor no debe enrutar tráfico entre redes (eso es de routers y firewalls): net.ipv4.ip_forward en 0. Excepción: un
+    servidor con contenedores de Podman necesita el reenvío hacia sus propios contenedores (puertos publicados como Redis
+    Insight o Keycloak); ahí queda en 1 y el firewall local (RED-01) solo deja pasar lo que va a un puerto publicado.
   aplica: {sistemas: [linux], categorias: [servidor]}
   reglas:
-    - {tipo: sysctl, nombre: net.ipv4.ip_forward, valor: '0'}
+    - tipo: comando
+      verificar: >-
+        F=/etc/sysctl.d/90-faceops-politicas.conf; C=/etc/sysctl.d/91-faceops-contenedores.conf;
+        if command -v podman >/dev/null && [ -n "$(podman ps -aq)" ]; then
+        [ "$(sysctl -n net.ipv4.ip_forward)" = 1 ] && grep -qsx 'net.ipv4.ip_forward=1' $C;
+        else [ "$(sysctl -n net.ipv4.ip_forward)" = 0 ] && grep -qsx 'net.ipv4.ip_forward=0' $F && [ ! -e $C ]; fi
+      aplicar: >-
+        F=/etc/sysctl.d/90-faceops-politicas.conf; C=/etc/sysctl.d/91-faceops-contenedores.conf; touch $F; sed -i '/^net.ipv4.ip_forward/d' $F;
+        if command -v podman >/dev/null && [ -n "$(podman ps -aq)" ]; then
+        echo 'net.ipv4.ip_forward=1' > $C; chmod 0644 $C;
+        else rm -f $C; echo 'net.ipv4.ip_forward=0' >> $F; fi;
+        { [ ! -e $C ] || sysctl -q -p $C; } && sysctl -q -p $F
 - id: DAT-01
   nombre: Permisos de archivos sensibles
   categoria: datos
