@@ -1,0 +1,16 @@
+commit: 9be985f03c3f2231d1acfbe34cec5decfc8905b7
+inicio: 2026-11-11T16:29:09-03:00
+---
+faf47ea
+CA total: 25
+estado previo cambiada
+TICKET FO-LAB-01824
+Traceback (most recent call last):
+  File "/tmp/k1776f.py", line 35, in <module>
+    x = esperar(t); tickets.append(x["numero"]); inv, jb = inv_de(x)
+                                                           ^^^^^^^^^
+  File "/tmp/k1776f.py", line 30, in inv_de
+    return (jb.get("artifacts") or {}).get("faceops_cert_inventario") or {}, jb
+            ^^^^^^
+AttributeError: 'NoneType' object has no attribute 'get'
+--- fin: 2026-11-11T16:31:37-03:00 · código: 0
