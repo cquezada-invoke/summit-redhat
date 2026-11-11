@@ -3,6 +3,13 @@
 # verificación. Se ejecuta completo con tickets reales (aprobados por Claude con «Aprobado por Claude (regla de Cristian)»);
 # solo con todos los casos ok la versión vigente queda certificada. Si la automatización cambia, se ejecuta de nuevo.
 planes:
+  "JBoss · Desplegar app":
+    casos:
+      - {id: C1, caso: "Desplegar en producción una versión publicada anterior (vuelta atrás a 1.0.43) con un nodo del grupo apagado (nodo-jboss3)", verificar: "aprobación de producción respondida; ticket exitoso con límite solo en los nodos activos (nodo-jboss, nodo-jboss2); el apagado queda fuera del límite (FaceOps no lanza sobre apagados) y no se toca; el balanceador https://192.168.122.11/app-jboss/salud responde 1.0.43 en todas las consultas"}
+      - {id: C2, caso: "Desplegar en producción la última versión publicada (1.0.44)", verificar: "ticket exitoso; set_stats version_desplegada=1.0.44; cada nodo activo y el balanceador responden 1.0.44; el manifiesto de producción registra la versión"}
+      - {id: C3, caso: "Repetir el despliegue de la misma versión", tipo: Idempotencia, verificar: "ticket exitoso; nada se rompe: el balanceador sigue en 1.0.44 sin cortes"}
+      - {id: C4, caso: "Versión inexistente (9.9.999)", tipo: Error controlado, verificar: "ticket fallido con el motivo (la versión no está publicada); ningún nodo cambia: la versión anterior queda en servicio (vuelta atrás) y el balanceador sigue en 1.0.44"}
+      - {id: C5, caso: "Desplegar en desarrollo (sin aprobación)", verificar: "ticket exitoso sin etapa de aprobación; solo nodo-jboss-dev recibe 1.0.44; producción no cambia"}
   "Red · Inventariar equipo de red":
     casos:
       - {id: C1, caso: "Firewall VyOS (fw): colección vyos.vyos por network_cli y lectura por SSH", verificar: "ticket exitoso; faceops_red en la caché de facts con plataforma VyOS y versión, interfaces con estado e IP, rutas con su ruta por defecto; FaceOps deja so «VyOS …», familia Red"}
