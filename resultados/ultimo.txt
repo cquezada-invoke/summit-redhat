@@ -1,11 +1,24 @@
-commit: 0ed3ff4830d03b16d2dfa3ae1c14767bf9e924ad
-inicio: 2026-11-11T17:29:10-03:00
+commit: 35337b638d2b30804d1b5ff7edaf349df45ed291
+inicio: 2026-11-11T18:32:31-03:00
 ---
-  (arnés cortado en "caso":"inventario srv-mig-rhel8-01"; reanudo FO-LAB-01867)
-inventariar srv-mig-rhel8-01: cancelado FO-LAB-01867
-IP srv-mig-rhel8-01 192.168.122.233 · Red Hat Enterprise Linux release 8.10 (Ootpa)
-  C3 srv-mig-rhel8-01: rechazado al solicitar  · None → None · None · None · análisis None 
-CASO C3 falla · RHEL 8 → 9 con Leapp preupgrade
-EVALUAR: [{"id": "C1", "caso": "Rocky 9 política mínimo", "resultado": "ok", "evidencia": "Rocky Linux 9.8 → RHEL 9 · convertir · verde · camino [\"Convertir Rocky Linux 9.8 → RHEL 9 (Convert2RHEL)\"] · paquetes 7969f069f54d=7969f069f54d"}, {"id": "C2", "caso": "Rocky 9 con convert2rhel analyze", "resultado": "ok", "evidencia": "análisis {\"herramienta\": \"convert2rhel analyze\", \"codigo\": \"2\", \"bloqueos\": [\"Invalid kernel version detected\"], \"advertencias\": [\"Outdated packages detected\"], \"error\": \"\"} · Rocky Linux release 9.8 (Blue Onyx) sin-llave"}, {"id": "C4", "caso": "RHEL 9 al día (nodo-jboss-dev)", "resultado": "ok", "evidencia": "RHEL 9.8 · sin acción · amarillo"}, {"id": "C5", "caso": "Destino no válido (99)", "resultado": "ok", "evidencia": "semáforo rojo: Versión de destino 99 no válida para Rocky Linux 9.8: use una versión mayor de RHEL entre 9 y 10"}, {"id"
-EVALUAR sin certificar (casos incompletos o con falla)
---- fin: 2026-11-11T18:04:23-03:00 · código: 0
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/adapters.py", line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='127.0.0.1', port=443): Max retries exceeded with url: /api/controller/v2/workflow_jobs/24600/workflow_nodes/?page_size=200 (Caused by NewConnectionError("HTTPSConnection(host='127.0.0.1', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/m.py", line 10, in <module>
+    jobs = [x["job"] for x in aap.todos(f"workflow_jobs/{t['aap_job_id']}/workflow_nodes/") if x.get("job")]
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 51, in todos
+    datos = self.get(ruta, **params)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 35, in _r
+    raise ErrorAAP(f"AAP no responde: {e}") from e
+app.aap.ErrorAAP: AAP no responde: HTTPSConnectionPool(host='127.0.0.1', port=443): Max retries exceeded with url: /api/controller/v2/workflow_jobs/24600/workflow_nodes/?page_size=200 (Caused by NewConnectionError("HTTPSConnection(host='127.0.0.1', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+--- fin: 2026-11-11T18:33:04-03:00 · código: 0
