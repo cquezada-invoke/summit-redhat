@@ -32,7 +32,7 @@
 <script>(()=>{const caja=document.currentScript.previousElementSibling;
 function pedir(b,url,datos,pregunta){if(pregunta&&!confirm(pregunta))return;const bs=[...caja.querySelectorAll('button')];bs.forEach(x=>{x.dataset.ini=x.disabled?'1':'0';x.disabled=true;});
  const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});Object.entries(datos).forEach(([k,v])=>fd.append(k,v));
- fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');
+ fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.text().then(x=>{try{return JSON.parse(x);}catch(_){const m=(x.match(/<p>([^<]*)<\/p>/)||[])[1];return {error:m||('No se pudo crear el ticket (error '+r.status+')')};}})).then(t=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');
   if(t.error){fxAviso(t.error,'error');return;}window.fxNuevoTicket&&window.fxNuevoTicket(t);}).catch(()=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');fxAviso('No se pudo crear el ticket','error');});}
 caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()=>{const ac=b.dataset.energia;
  pedir(b,{{ url_for('consola.equipo_energia', eid=e.id)|tojson }},{accion:ac},'¿'+ac.charAt(0).toUpperCase()+ac.slice(1)+' {{ e.nombre }}?{{ " Se aplica a todos los nodos del clúster." if e.categoria == "clúster openshift" else "" }}{{ " Es producción: pasa por aprobación en AAP." if e.ambiente == "produccion" else "" }}');}));
