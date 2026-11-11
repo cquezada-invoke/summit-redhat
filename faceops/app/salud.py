@@ -52,6 +52,30 @@ def _seccion_cves(cv):
     return s
 
 
+# Políticas: proporcional a las que cumple de las que le aplican (8 de 10 al día → 80 %). Una desactualizada (aplicada en una
+# versión anterior) vale la mitad; pendiente, fallida o que no cumple no suma.
+CREDITO_POL = {"al_dia": 1.0, "desactualizada": 0.5}
+CRITERIO_POL = ("Puntaje de políticas: proporcional a las políticas al día sobre las que le aplican a la máquina "
+                "(cada una pesa 100 ÷ aplicables; una desactualizada vale la mitad; pendiente, fallida o que no cumple no suma).")
+
+
+def _seccion_politicas(pols):
+    n = len(pols)
+    peso = 100.0 / n
+    ms, suma = [], 0.0
+    for x in pols:
+        c = CREDITO_POL.get(x.get("estado"), 0.0)
+        suma += c
+        if c < 1:
+            est = (x.get("estado") or "pendiente").replace("_", " ")
+            ms.append({"t": f"{x.get('codigo')} {est}", "d": round(peso * (1 - c), 1),
+                       "nivel": "rojo" if x.get("estado") in ("no_cumple", "fallida") else "amarillo"})
+    s = _seccion("politicas", "Políticas de seguridad", ms)
+    s["salud"] = round(100.0 * suma / n, 1)
+    s["al_dia"], s["aplicables"] = sum(1 for x in pols if x.get("estado") == "al_dia"), n
+    return s
+
+
 def _m(t, d, nivel_="amarillo"):
     return {"t": t, "d": int(round(d)), "nivel": nivel_}
 
@@ -131,12 +155,7 @@ def componentes(e, riesgo, productos, extras=None):
                 secs.append(_seccion_cves(cv))
             pols = extras.get("politicas")
             if pols:
-                ms = []
-                for x in pols:
-                    d = {"no_cumple": 30, "fallida": 25, "desactualizada": 12, "pendiente": 6}.get(x.get("estado"), 0)
-                    if d:
-                        ms.append(_m(f"{x.get('codigo')} {x.get('estado').replace('_', ' ')}", d, "rojo" if d >= 25 else "amarillo"))
-                secs.append(_seccion("politicas", "Políticas de seguridad", ms))
+                secs.append(_seccion_politicas(pols))
         else:
             alias = [a.lower() for a in (p.get("detecta") or [])] + ([p["skill"].lower()] if p.get("skill") else [])
             ms = []
@@ -197,9 +216,7 @@ def componente_sistema(e, extras=None, nombre=None):
         secs.append(_seccion_cves(cv))
     pols = extras.get("politicas")
     if pols:
-        ms = [_m(f"{x.get('codigo')} {x.get('estado').replace('_', ' ')}", {"no_cumple": 30, "fallida": 25, "desactualizada": 12, "pendiente": 6}[x["estado"]],
-                 "rojo" if x["estado"] in ("no_cumple", "fallida") else "amarillo") for x in pols if x.get("estado") in ("no_cumple", "fallida", "desactualizada", "pendiente")]
-        secs.append(_seccion("politicas", "Políticas de seguridad", ms))
+        secs.append(_seccion_politicas(pols))
     vals = [x["salud"] for x in secs]
     pts = round(0.5 * min(vals) + 0.5 * sum(vals) / len(vals))
     for x in secs:
