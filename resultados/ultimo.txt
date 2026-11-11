@@ -1,22 +1,18 @@
-commit: b295592f5cd903de9adf70ccf1230a64ebbe892b
-inicio: 2026-11-11T13:46:46-03:00
+commit: d826157f4cc87c09bcc2adc1be056b2394f16d1e
+inicio: 2026-11-11T14:05:51-03:00
 ---
-energía nodo-storage encender: exitoso FO-LAB-01716
-energía nodo-jboss-dev encender: sin respuesta del arnés 
-nodo-storage 192.168.122.167 · nodo-jboss-dev 192.168.122.21
-registro nodo-storage: rechazado al solicitar 
-CASO C1 ok · Sin disco dedicado
-CASO C2 falla · Instalar sobre /srv/datalake
-CASO C3 falla · Repetir instalar
-estado: None
-CASO C5 falla · Estado y CIDR inválido
-antes: 0 0 0 (fiscalía, telco, javia crm) · S3 viejo 10.128.0.137
-tras migrar: 0 0 0
-energía nodo-storage apagar: exitoso FO-LAB-01727
-energía nodo-storage encender: exitoso FO-LAB-01729
-tras reiniciar: 0 0 0 · active
-S3 del lake ahora en 192.168.122.167
-CASO C4 ok · Lake en el storage y reinicio
-CERT Storage · Servicio S3 del data lake → sin probar
-FIN-DISCO-S3
---- fin: 2026-11-11T14:08:56-03:00 · código: 0
+inventariar srv-mig-rocky-01: sin respuesta del arnés 
+IP srv-mig-rocky-01  · 
+  C1 srv-mig-rocky-01: sin respuesta del arnés  · None → None · None · None · análisis None 
+CASO C1 falla · Rocky 9 política mínimo
+  C2 srv-mig-rocky-01: rechazado al solicitar  · None → None · None · None · análisis None 
+CASO C2 falla · Rocky 9 con convert2rhel analyze
+  C4 nodo-jboss-dev: exitoso FO-LAB-01733 · RHEL 9.8 → RHEL 9 · sin acción · amarillo · análisis None 
+CASO C4 ok · RHEL 9 al día (nodo-jboss-dev)
+  C5 srv-mig-rocky-01: exitoso FO-LAB-01735 · Rocky Linux 9.8 → RHEL 9 · convertir · rojo · análisis None 
+CASO C5 ok · Destino no válido (99)
+  C6 srv-mig-rocky-01: exitoso FO-LAB-01737 · Rocky Linux 9.8 → RHEL 9 · convertir · verde · análisis None 
+CASO C6 falla · Repetir C1
+CASO C7 ok · Equipo apagado (nodo-jboss-qa)
+EVALUAR fase rocky: [{"id": "C1", "caso": "Rocky 9 política mínimo", "resultado": "falla", "evidencia": "sin respuesta del arnés {} / /"}, {"id": "C2", "caso": "Rocky 9 con convert2rhel analyze", "resultado": "falla", "evidencia": "rechazado al solicitar None  None"}, {"id": "C4", "caso": "RHEL 9 al día (nodo-jboss-dev)", "resultado": "ok", "evidencia": "RHEL 9.8 · sin acción · amarillo"}, {"id": "C5", "caso": "Destino no válido (99)", "resultado": "ok", "evidencia": "semáforo rojo: Versión de destino 99 no válida para Rocky Linux 9.8: use una versión mayor de RHEL entre 9 y 10"}, {"id": "C6",
+--- fin: 2026-11-11T14:15:50-03:00 · código: 0
