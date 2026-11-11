@@ -1,9 +1,6 @@
-commit: 0e32a53eaa5ed31e086589f0677656004bea129c
-inicio: 2026-11-11T11:47:54-03:00
+commit: 2aeed39de5e21181e2d320138db50ab1c9e21535
+inicio: 2026-11-11T11:43:23-03:00
 ---
-fd06ac4
-RES {"caso": "diag", "auto": "Monitoreo · Configurar alertas del equipo", "ticket": "FO-LAB-01647", "estado": "exitoso", "stats": {"faceops_alertas": {"equipo": "nodo-jboss", "tipo": "linux", "alertas": [{"accion": "avisar", "id": "D01"}, {"accion": "avisar", "aviso": 70, "critico": 90, "id": "C01"}], "reglas": "3", "resumen": ["D01 Sin respuesta (critico) → avisar", "C01 CPU alta → avisar (aviso 70 · crítico 90 %)"], "tablero": true}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 15 s, espera de aprobación 28 s"}
-[('alerting', 'FaceOpsSinRespuestaD01', 'up{faceops_equipo="nodo-jboss",job="faceops-equipos"} == 0', 'ok'), ('alerting', 'FaceOpsCpuAltaC01Aviso', '100 - avg by (faceops_equipo) (rate(node_cpu_seconds_total{f', 'ok'), ('alerting', 'FaceOpsCpuAltaC01Critico', '100 - avg by (faceops_equipo) (rate(node_cpu_seconds_total{f', 'ok'), ('recording', 'faceops_alerta_umbral', 'vector(0)', 'ok'), ('recording', 'faceops_alerta_umbral', 'vector(70)', 'ok'), ('recording', 'faceops_alerta_umbral', 'vector(90)', 'ok')]
-2
-faceops-alertas.json
---- fin: 2026-11-11T11:50:19-03:00 · código: 0
+aprobado FO-LAB-01642
+Error: container has already been removed
+--- fin: 2026-11-11T11:51:46-03:00 · código: 0
