@@ -1,0 +1,26 @@
+commit: c78be28b00589a204289898af204b8038276f644
+inicio: 2026-11-11T00:41:36-03:00
+---
+9402ae1
+faceops actualizado
+== Responder C3 (versión vigente): CPU alta con «Ajustar CPU y memoria» (pide datos) · umbral de demo 30 % durante 1 min
+CASO R-C3·nodo-jboss FO-LAB-01611 exitoso :: AAP terminó (successful): ejecución 21 s, espera de aprobación 29 s
+REFLEJO nodo-jboss: 2 alertas · FO-LAB-01611 · ['J01 JBoss detenido (critico) → reiniciar_jboss', 'C01 CPU alta → recursos (aviso 30 · crítico 95 %)']
+ad hoc AAP 23087 successful
+disparada a los 130 s
+PROM-ALERTAS nodo-jboss [('FaceOpsCpuAltaC01Aviso', 'warning', 'firing')]
+ALERTMANAGER nodo-jboss [('FaceOpsCpuAltaC01Aviso', 'active', ['faceops-objetos'])]
+RESPONDER 23090 2026-11-11T03:46:14 pending | 
+resuelta en Prometheus tras 210 s
+PROM-ALERTAS nodo-jboss []
+ALERTMANAGER nodo-jboss []
+CASO C10·nodo-jboss FO-LAB-01612 exitoso :: AAP terminó (successful): ejecución 13 s, espera de aprobación 23 s
+REFLEJO nodo-jboss: 2 alertas · FO-LAB-01612 · ['J01 JBoss detenido (critico) → reiniciar_jboss', 'C01 CPU alta → recursos (aviso 80 · crítico 95 %)']
+REGLA nodo-jboss FaceOpsJbossDetenidoJ01 for 60 | ",name=~"(eap|jboss|wildfly).*service",state="active"}) == 0 | reiniciar_jboss Plataforma · Controlar servicio Nodos demo Nodos demo (ansible) | estado: inactive
+REGLA nodo-jboss FaceOpsCpuAltaC01Aviso for 120 | al{faceops_equipo="nodo-jboss",mode="idle"}[2m])) * 100 > 80 | recursos Infra · Ajustar recursos de máquinas   | estado: inactive
+REGLA nodo-jboss FaceOpsCpuAltaC01Critico for 120 | al{faceops_equipo="nodo-jboss",mode="idle"}[2m])) * 100 > 95 | recursos Infra · Ajustar recursos de máquinas   | estado: inactive
+OBJETIVO nodo-jboss [('faceops-equipos', '192.168.122.15:9100', 'up')]
+200 200 200 
+HUELLA Monitoreo · Configurar alertas del equipo 5dc7f50b9c6f sin probar
+HUELLA Monitoreo · Responder alerta 19edecb73966 sin probar
+--- fin: 2026-11-11T00:52:20-03:00 · código: 0
