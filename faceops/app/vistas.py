@@ -3610,9 +3610,18 @@ def _agentes_de(e, d_=None):
 AGENTE_QUITABLE = {"respaldo-git", "node-exporter", "windows-exporter"}   # los que retira «Sistema · Quitar agente» (aap/quitar-agente.yml)
 
 
-AGENTE_ACCIONES = (("estado", "Ver estado"), ("reiniciar", "Reiniciar"), ("encender", "Encender"), ("apagar", "Apagar"),
-                   ("actualizar", "Actualizar"), ("quitar", "Quitar"))
+AGENTE_ACCIONES = (("encender", "Encender"), ("reiniciar", "Reiniciar"), ("apagar", "Apagar"), ("estado", "Ver estado"),
+                   ("actualizar", "Actualizar"), ("quitar", "Quitar"))   # mismo orden e íconos que las plataformas
 _AG_ABIERTO = ("pendiente_aprobacion", "en_cola", "en_ejecucion", "en curso", "ejecutando", "esperando")
+
+
+def _agentes_desc():
+    """Descripción breve de cada agente (datos/agentes.yml)."""
+    import yaml as _y
+    try:
+        return _y.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "agentes.yml"), encoding="utf-8")) or {}
+    except (OSError, _y.YAMLError):
+        return {}
 
 
 def _agente_tickets(cliente_id, e):
@@ -3651,14 +3660,17 @@ def _agente_control(cliente_id, e=None):
 
     def f(a):
         if a.get("skill") == "acceso":
-            return {"acciones": [], "nota": "Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina)"}
+            no_ = "Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina)"
+            return {"acciones": [{"acc": acc, "et": et, "ok": False, "motivo": no_, "ticket": None} for acc, et in AGENTE_ACCIONES], "nota": no_}
         est = (a.get("salud") or {}).get("estado")
         acs = []
         for acc, et in AGENTE_ACCIONES:
-            if acc == "encender" and est == "encendido" or acc == "apagar" and est == "apagado":
-                continue   # el estado contrario ya rige: se muestra solo el que sirve
             if acc in ("estado", "reiniciar", "encender", "apagar"):
-                if not a.get("unidades"):
+                if acc == "encender" and est == "encendido":
+                    no = "Ya está encendido"
+                elif acc == "apagar" and est == "apagado":
+                    no = "Ya está apagado"
+                elif not a.get("unidades"):
                     no = "Este agente no tiene un servicio que controlar"
                 elif any(not u.endswith(".service") and "." in u for u in a["unidades"]):
                     no = "Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para detenerlo, quítalo"
@@ -4756,6 +4768,8 @@ def equipo(eid):
                               "que": (f"Usuario de servicio «{_acc['usuario']}» con llave propia guardada en la bóveda: por él AAP opera la máquina y hace el inventario diario."
                                       if _acc.get("usuario") else "Usuario de servicio con llave propia en la bóveda: por él AAP opera la máquina."),
                               "falta": "Sin él, AAP usa una credencial compartida.", "aid": None, "probada": False, "pendiente": None, "limite": "se vincula al incorporar la máquina"})
+    for a_ in agentes_eq or []:   # una línea por agente (datos/agentes.yml)
+        a_["desc"] = _agentes_desc().get(a_["skill"]) or a_.get("que")
     for c in componentes:
         c["acc"] = [a for a in acciones if c["codigo"] in _de_comp(a)]
         c["compat"] = [(n, xs) for n, xs in ((n, [a for a in autos if c["codigo"] in _de_comp(a)]) for n, autos in compat_all) if xs]
