@@ -1,18 +1,43 @@
-commit: f4abc4cfdaa35f33b07e460a4827bc0f48c35102
-inicio: 2026-11-11T14:41:14-03:00
+commit: 6127135cb73eb7c0e8fd17c687501e43edf8171b
+inicio: 2026-11-11T14:43:20-03:00
 ---
-fallido FO-LAB-01754
-Sin firewalld ni nftables, instalar nftables (necesita repositorios; si no, registrar con «Sistema · Registrar en Red Hat») · Failed to install some of the specified packages · 
-********************
-ok: [nodo-storage]
-
-TASK [Sin firewalld ni nftables, instalar nftables (necesita repositorios; si no, registrar con «Sistema · Registrar en Red Hat»)] ***
-fatal: [nodo-storage]: FAILED! => {"ansible_facts": {"pkg_mgr": "dnf"}, "changed": false, "failures": ["No package nftables available."], "msg": "Failed to install some of the specified packages", "rc": 1, "results": []}
-
-PLAY RECAP *********************************************************************
-nodo-storage               : ok=8    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
-active
-s3 200
-package nftables is not installed
-package firewalld is not installed
---- fin: 2026-11-11T14:43:05-03:00 · código: 0
+C8 RED-02 v 2 aplicar en nodo-jboss
+RES FO-LAB-01756 exitoso job=24005
+    Política RED-02 v2 (aplicar): nodo-jboss: al día (F=/etc/sysctl.d/90-faceops-politicas.conf;...)
+   estado RED-02 en nodo-jboss: al_dia v2 modo=aplicar ticket=FO-LAB-01756 detalle=["F=/etc/sysctl.d/90-faceops-politicas.conf;..."]
+== chequeos
+APP http://192.168.122.11/app-jboss/: 200
+APP https://192.168.122.11/app-jboss/: 200
+JBOSS 8080 directo: 200  9990 desde host: 302  RedisInsight 5540: 404
+CONSOLA jboss por FaceOps: HTTP 302 447 bytes 
+CONSOLA redis por FaceOps: HTTP 409 86141 bytes 
+PROMETHEUS [('servidores', '192.168.122.15:9100', '1')]
+SSH ok nodo-jboss.demo.local
+HORA: yes chronyd=active
+FIREWALLD: inactive / Failed to get unit file state for firewalld.service: No such file or directory
+APP02: tabla-ok
+CONTAINERS: ls: cannot access '/etc/containers/containers.conf.d/': No such file or directory  redisinsight Up About an hour;keycloak Up 11 minutes; pids="PidsLimit": 2048
+TMOUT login no interactivo: [900] interactivo: [900]
+SESION no interactiva sobrevive (sleep 3) rc=0
+C1 RED-01 v 2 aplicar en nodo-jboss
+RES FO-LAB-01758 exitoso job=24010
+    Política RED-01 v2 (aplicar): nodo-jboss: al día (firewall: firewalld instalado)
+   estado RED-01 en nodo-jboss: al_dia v2 modo=aplicar ticket=FO-LAB-01758 detalle=["firewall: firewalld instalado"]
+== chequeos
+APP http://192.168.122.11/app-jboss/: 200
+APP https://192.168.122.11/app-jboss/: 200
+JBOSS 8080 directo: 200  9990 desde host: 302  RedisInsight 5540: 404
+CONSOLA jboss por FaceOps: HTTP 302 447 bytes 
+CONSOLA redis por FaceOps: HTTP 409 86141 bytes 
+PROMETHEUS [('servidores', '192.168.122.15:9100', '1')]
+SSH ok nodo-jboss.demo.local
+HORA: yes chronyd=active
+FIREWALLD: active / enabled
+  zona public: puertos [22/tcp 5540/tcp 6379/tcp 8080/tcp 8180/tcp 8443/tcp 9100/tcp] servicios [cockpit dhcpv6-client ssh]
+  rich: rule family="ipv4" source address="192.168.122.1" port port="9990" protocol="tcp" accept
+  trusted: 10.88.0.0/16
+APP02: tabla-ok
+CONTAINERS: ls: cannot access '/etc/containers/containers.conf.d/': No such file or directory  redisinsight Up About an hour;keycloak Up 14 minutes; pids="PidsLimit": 2048
+TMOUT login no interactivo: [900] interactivo: [900]
+SESION no interactiva sobrevive (sleep 3) rc=0
+--- fin: 2026-11-11T14:46:46-03:00 · código: 0
