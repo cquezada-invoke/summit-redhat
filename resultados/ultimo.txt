@@ -1,20 +1,24 @@
-commit: ee5546e8b0f5b63b1c213b196546a2b7fa817b29
-inicio: 2026-11-10T21:12:58-03:00
+commit: 9b02b77c5cd8e26c996549eb37f851af3212f1c8
+inicio: 2026-11-10T21:13:20-03:00
 ---
-913bc45
-/home/cquezada/summit-redhat/demo-cicd
-436be7f JBoss · Desplegar app: el manifiesto se actualiza en cada ambiente que r
-cliente 1
-PROJ 5 Demo Project | https://github.com/ansible/ansible-tower-samples  347e44fea0 uol= False cache= 0 successful  local_path= _5__demo_project
-PROJ 7 Demo Summit | http://192.168.122.1:3000/invoke/automatizacion.git main f717a3143f uol= True cache= 0 successful 2026-11-02T07:40:15 local_path= _7__demo_summit
-PROJ 15 Despliegues de aplicaciones | http://192.168.122.1:3000/invoke/automatizacion.git main be3154743a uol= True cache= 0 successful 2026-11-10T23:47:04 local_path= _15__despliegues_de_aplicaciones
-PROJ 17 Red · laboratorio | http://192.168.122.1:3000/invoke/red-laboratorio.git main 7041813ac4 uol= True cache= 3600 successful 2026-11-11T00:11:11 local_path= _17__red_laboratorio
-PROJ 21 Cumplimiento de servidores | http://192.168.122.1:3000/invoke/automatizacion.git main f717a3143f uol= True cache= 0 successful 2026-11-02T08:54:38 local_path= _21__cumplimiento_de_servidores
-PROJ 26 Operación · remediación | http://192.168.122.1:3000/invoke/operacion.git main 09058e9ce7 uol= True cache= 0 successful 2026-11-10T19:53:17 local_path= _26__operacion_remediacion
-PROJ 51 JBoss · configuración | http://192.168.122.1:3000/invoke/jboss-config.git main 19d5ad6832 uol= True cache= 0 successful 2026-11-03T01:10:06 local_path= _51__jboss_configuracion
-PROJ 62 Nube · GCP | http://192.168.122.1:3000/invoke/nube.git main 5f97aae6cb uol= True cache= 0 successful 2026-11-02T07:14:40 local_path= _62__nube_gcp
-PROJ 87 Data center | http://192.168.122.1:3000/invoke/datacenter.git main 5ef1f28972 uol= True cache= 0 successful 2026-11-06T17:46:35 local_path= _87__data_center
-PROJ 99 FaceOps · automatizaciones | http://192.168.122.1:3000/invoke/faceops-automatizaciones.git main 36337bb1eb uol= True cache= 0 pending 2026-11-11T00:10:28 local_path= _99__faceops_automatizaciones
-PROJ 617 Portal · automatizaciones | http://192.168.122.1:3000/invoke/portal-automatizaciones.git main 48327a0405 uol= True cache= 30 successful 2026-11-09T19:06:03 local_path= _617__portal_automatizaciones
-PROJ 671 Claro PR · automatizaciones | http://192.168.122.1:3000/invoke/portal-automatizaciones.git main a61e578fd9 uol= True cache= 30 successful 2026-11-10T16:09:10 local_path= _671__claro_pr_automatizaciones
---- fin: 2026-11-10T21:13:06-03:00 · código: 0
+AUTO 95 1 Encender o apagar equipo → cambiada 64f2e6b09c81 2026-11-05T18:09 aprobada
+EQ {'id': 6, 'nombre': 'nodo-jboss', 'ip': '192.168.122.15', 'forma': 'virtual', 'categoria': 'servidor', 'ambiente': 'produccion', 'energia': 'encendido', 'estado': 'con datos', 'ubicacion': 'Centro de datos Santiago', 'cliente_id': 1}
+EQ {'id': 7, 'nombre': 'nodo-jboss2', 'ip': '192.168.122.18', 'forma': 'virtual', 'categoria': 'servidor', 'ambiente': 'produccion', 'energia': 'encendido', 'estado': 'con datos', 'ubicacion': 'Centro de datos Santiago', 'cliente_id': 1}
+GET 200 2053568
+bloque: >
+</div><div class="eq-energia-acc"><a class="btn-energ entrar" href="/lab/inventario/6/consola" target="_blank" title="Consola SSH" aria-label="Entrar a la máquina"></a>
+<button type="button" class="btn-energ prender" data-energia="encender" aria-label="Encender" disabled title="Encender nodo-jboss"></button>
+<button type="button" class="btn-energ reiniciar" data-energia="reiniciar" aria-label="Reiniciar"  title="Reiniciar nodo-jboss"></button>
+<button type="button" class="btn-energ apagar" data-energia="apagar" aria-label="Apagar"  title="Apagar nodo-jboss"></button>
+<button type="button" class="btn-energ inventariar" data-inventariar="1" aria-label="Inventariar" title="Inventariar: trae sistema, servicios y paquetes; FaceOps los contrasta con lo que sabe de la máquina"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="
+JS: "16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
+<script>(()=>{const caja=document.currentScript.previousElementSibling;
+function pedir(b,url,datos,pregunta){if(pregunta&&!confirm(pregunta))return;const bs=[...caja.querySelectorAll('button')];bs.forEach(x=>{x.dataset.ini=x.disabled?'1':'0';x.disabled=true;});
+ const fd=new FormData();fd.append('_csrf',"cf55cbb47a389be43fc5699059183b29");Object.entries(datos).forEach(([k,v])=>fd.append(k,v));
+ fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');
+  if(t.error){fxAviso(t.error,'error');return;}window.fxNuevoTicket&&window.fxNuevoTicket(t);}).catch(()=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');fxAviso('No se pudo crear el ticket','error');});}
+caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()=>{const ac=b.dataset.energia;
+ pedir(b,"/lab/inventario/6/energia",{accion:ac},'¿'+ac.charAt(0).toUpperCase()+ac.slice(1)+' nodo-jboss? Es producción: pasa por aprobación en AAP.');}));
+const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('click',()=>pedir(bi,"/lab/inventario/6/inventariar",{},null));
+const be=caja.querySelector('[data-eliminar]');if(be)be.addEventListener('click',()=>pedir(be,"/lab/inventario/6/eliminar",{},'¿Eliminar nodo-jboss? Se apaga, se retira del hipervisor y sale de los inventarios de AAP. El disco y su respaldo en Git se conservan para poder recuperarlo. Pasa por
+--- fin: 2026-11-10T21:13:33-03:00 · código: 0
