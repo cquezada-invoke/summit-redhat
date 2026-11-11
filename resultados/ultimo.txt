@@ -1,25 +1,27 @@
-commit: 6aa97e29b2fedd44756b7299bea7b3868216a4ea
-inicio: 2026-11-11T16:40:14-03:00
+commit: 73df7aab58a4181cf2b69bc688ddcd507185bbdc
+inicio: 2026-11-11T16:50:14-03:00
 ---
-caf04dc
-1
-remote: . Processing 1 references        
-remote: Processed 1 references in total        
-gitea 7f2f5d7
-faceops actualizado
-project update successful
-CA total: 25
-estado previo cambiada
-TICKET FO-LAB-01831
-C1 exitoso limite nodo-jboss alcance ['nodo-jboss'] completo False emitidos 25 CA 25 nuevo True
-  panel nuevo ('vigente', 'jboss-https') huérfano reemplazado
-C2 panel otros con en uso ['nodo-nginx', 'nodo-tomcat', 'nodo-jboss2', 'nodo-jboss-qa', 'dc1-sso01', 'nodo-vault', 'dc1-idm01']
-C2 en_uso [('jboss-https', 8443, True, '27d3173d'), ('nodo-jboss', 443, None, 'a85bf9b5')]
-TICKET FO-LAB-01834
-C3 exitoso changed 0 mismos True
-nodo-jboss3 energia apagado
-TICKET FO-LAB-01838
-C4 exitoso limite nodo-jboss en_uso ['nodo-jboss'] jboss3 apagado
-CASOS [{"id": "C1", "caso": "lista completa de la CA", "resultado": "ok", "evidencia": "FO-LAB-01831: 25/25 emitidos; nuevo vigente; huérfano reemplazado"}, {"id": "C2", "caso": "en uso en nodo-jboss", "resultado": "ok", "evidencia": "FO-LAB-01831: jboss-https :8443 entrega=True"}, {"id": "C3", "caso": "repetir la lectura", "resultado": "ok", "evidencia": "FO-LAB-01834: changed=0, mismos emitidos"}, {"id": "C4", "caso": "máquina apagada en el pedido", "resultado": "ok", "evidencia": "FO-LAB-01838: límite nodo-jboss; nodo-jboss3 sigue apagado"}]
-CERTIFICADA certificada
---- fin: 2026-11-11T16:49:58-03:00 · código: 0
+===== FO-LAB-01825 24395
+runner_on_ok Informe de evaluación (informes/<origen> | local ok /runner/project/playbooks/informes/nodo-jboss-dev/evaluacion.md / git ok nodo-jboss-dev/evaluacion.md |  | 
+runner_item_on_ok Transformar a Jakarta EE 10 | Copyright (c) Contributors to the Eclipse Foundation / org.eclipse.transformer.cli.JakartaTransformerCLI Version [ 0.5.0 ] /  / -rw-r--r--. 1 root root 1440 Nov 11 14:31 /opt/faceops/migracion/eap8/catalogo-legacy.war |  | 
+runner_on_ok Transformar a Jakarta EE 10 |  |  | All items completed
+runner_item_on_ok Ajustar descriptores para EAP 8 (jboss-w | vlet 6.0 / WEB-INF/jboss-web.xml: quitado <class-loading> (JBoss 5) → jboss-deployment-structure.xml / WEB-INF/jboss-web.xml: JNDI java:/CatalogoDS → java:jboss/datasources/CatalogoDS / WEB-INF/jboss-web.xml: JNDI CatalogoDS → java:jboss/datasources/CatalogoDS / agregado jboss-deployment-structure.xml /  | Shared connection to 192.168.122.20 closed. /  | 
+runner_on_ok Ajustar descriptores para EAP 8 (jboss-w |  |  | All items completed
+runner_on_ok Driver JDBC de PostgreSQL en EAP 8 (si a | ya existe |  | 
+runner_item_on_ok Datasources en EAP 8 (los que tengan dri | creado | tgresql --connection-url=jdbc:postgresql://192.168.122.13:5432/catalogo --user-name=catalogo --password=${env.DS_CATALOGODS_CLAVE} --min-pool-size=2 --max-pool-size=15 --enabled=true: bad substitution | 
+runner_on_ok Datasources en EAP 8 (los que tengan dri |  |  | All items completed
+runner_item_on_ok Desplegar | t installed:" => ["jboss.naming.context.java.jboss.datasources.CatalogoDS"],"WFLYCTL0180: Services with missing/unavailable dependencies" => ["jboss.naming.context.java.module.catalogo-legacy.catalogo-legacy.env.jdbc.CatalogoDS is missing [jboss.naming.context.java.jboss.datasources.CatalogoDS]"]}}} |  | non-zero return code
+runner_on_ok Desplegar |  |  | All items completed
+===== FO-LAB-01826 24407
+runner_on_ok Informe de evaluación (informes/<origen> | local ok /runner/project/playbooks/informes/nodo-jboss-dev/evaluacion.md / git ok nodo-jboss-dev/evaluacion.md |  | 
+runner_item_on_ok Transformar a Jakarta EE 10 | Copyright (c) Contributors to the Eclipse Foundation / org.eclipse.transformer.cli.JakartaTransformerCLI Version [ 0.5.0 ] /  / -rw-r--r--. 1 root root 982 Nov 11 14:34 /opt/faceops/migracion/eap8/inventario-eap7.war |  | 
+runner_on_ok Transformar a Jakarta EE 10 |  |  | All items completed
+runner_item_on_ok Ajustar descriptores para EAP 8 (jboss-w | WEB-INF/web.xml: esquema Jakarta Servlet 6.0 /  | Shared connection to 192.168.122.20 closed. /  | 
+runner_on_ok Ajustar descriptores para EAP 8 (jboss-w |  |  | All items completed
+runner_item_on_ok Datasources en EAP 8 (los que tengan dri | creado |  --driver-name=h2 --connection-url=jdbc:h2:mem:inventario;DB_CLOSE_DELAY=-1 --user-name=sa --password=${env.DS_INVENTARIODS_CLAVE} --min-pool-size=2 --max-pool-size=10 --enabled=true: bad substitution | 
+runner_on_ok Datasources en EAP 8 (los que tengan dri |  |  | All items completed
+runner_item_on_ok Desplegar |  |  | 
+runner_on_ok Desplegar |  |  | All items completed
+===== FO-LAB-01818 24351
+runner_on_ok Informe de evaluación (informes/<origen> | local ok /runner/project/playbooks/informes/nodo-jboss-dev/evaluacion.md / git ok nodo-jboss-dev/evaluacion.md |  | 
+--- fin: 2026-11-11T16:50:22-03:00 · código: 0
