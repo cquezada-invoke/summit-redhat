@@ -3,7 +3,7 @@ source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="Monitoreo · Configurar alertas del equipo"; CASOS='[]'; TKS='[]'
 PM=http://127.0.0.1:9090
 reglas() { curl -s $PM/api/v1/rules?type=alert | python3 -c "import json,sys;d=json.load(sys.stdin);g=[x for x in d['data']['groups'] if x['name']=='faceops-$1'];print(len(g[0]['rules']) if g else 0)"; }
-reglas_txt() { curl -s $PM/api/v1/rules?type=alert | python3 -c "import json,sys;d=json.load(sys.stdin);g=[x for x in d['data']['groups'] if x['name']=='faceops-$1'];print(json.dumps(sorted((r['name'],r['query'],r['labels'].get('faceops_accion',''),r['labels'].get('faceops_automatizacion','')) for r in (g[0]['rules'] if g else []))), ensure_ascii=False))"; }
+reglas_txt() { curl -s $PM/api/v1/rules?type=alert | python3 -c "import json,sys;d=json.load(sys.stdin);g=[x for x in d['data']['groups'] if x['name']=='faceops-$1'];print(json.dumps(sorted((r['name'],r['query'],r['labels'].get('faceops_accion',''),r['labels'].get('faceops_automatizacion','')) for r in (g[0]['rules'] if g else [])), ensure_ascii=False))"; }
 up() { curl -s "$PM/api/v1/query" --data-urlencode "query=up{job=\"faceops-equipos\",faceops_equipo=\"$1\"}" | python3 -c "import json,sys;r=json.load(sys.stdin)['data']['result'];print(r[0]['value'][1] if r else 'sin-serie')"; }
 pedir() {  # pedir <caso> <equipo> <ip> <tipo> '<alertas json>' [min]
   caso "{\"auto\":\"$N\",\"params\":{\"al_equipo\":\"$2\",\"al_ip\":\"$3\",\"al_tipo\":\"$4\",\"al_alertas\":$5,\"al_retirar\":$( [ "$5" = "[]" ] && echo true || echo false )},\"min\":${6:-20},\"caso\":\"$1\"}"
@@ -46,10 +46,10 @@ from app.bd import q1
 e = q1("SELECT nombre, ip FROM equipos WHERE categoria IN ('firewall','router') AND ip!='' AND estado!='retirado' ORDER BY nombre LIMIT 1"); print(f"{e['nombre']} {e['ip']}" if e else "")
 Q
 ); RN=${RD% *}; RI=${RD#* }; echo "storage $S $IS · red $RN $RI"; [ -n "$RN" ] && energia $RN encender
-pedir C5a $S $IS storage '[{"id":"C03","aviso":80,"critico":90,"accion":"ampliar_volumen"},{"id":"C08","aviso":80,"critico":95,"accion":"avisar"}]'; E5a=$(estado)
+pedir C5a $S $IS storage '[{"id":"C03","aviso":80,"critico":90,"accion":"ampliar_volumen"},{"id":"C08","aviso":80,"critico":95,"accion":"avisar"}]'; E5a=$(estado); D5a=$(jq_ "(r.get('detalle') or r.get('error') or '')[:220]")
 pedir C5b $RN $RI red '[{"id":"D02","accion":"avisar"},{"id":"D05","aviso":99,"critico":95,"accion":"avisar"}]'; E5b=$(estado); sleep 45
 R5a=$(reglas $S); R5b=$(reglas $RN); P5=$(curl -s "$PM/api/v1/query" --data-urlencode "query=probe_success{job=\"faceops-sondeo\",faceops_equipo=\"$RN\"}" | python3 -c "import json,sys;r=json.load(sys.stdin)['data']['result'];print(r[0]['value'][1] if r else 'sin-serie')")
-[ "$E5a" = exitoso ] && [ "$E5b" = exitoso ] && [ "$R5a" = 4 ] && [ "$R5b" = 3 ] && [ "$P5" = 1 ] && anotar C5 "Storage y equipo de red" ok "$S 4 reglas; $RN 3 reglas y probe_success=1" || anotar C5 "Storage y equipo de red" falla "$E5a/$E5b reglas=$R5a/$R5b probe=$P5"
+[ "$E5a" = exitoso ] && [ "$E5b" = exitoso ] && [ "$R5a" = 4 ] && [ "$R5b" = 3 ] && [ "$P5" = 1 ] && anotar C5 "Storage y equipo de red" ok "$S 4 reglas; $RN 3 reglas y probe_success=1" || anotar C5 "Storage y equipo de red" falla "$E5a/$E5b reglas=$R5a/$R5b probe=$P5 $D5a"
 # C6 · equipo sin agente (rocky de prueba o el primero sin :9100)
 X=srv-prueba-rocky-01; IX=$(ip_de $X); [ -z "$IX" ] && { X=srv-prueba-rhel9-01; IX=$(ip_de $X); }
 F0=$(sudo ls /opt/summit-monitoreo/prometheus/faceops/reglas/ 2>/dev/null | sha256sum | cut -c1-10)
