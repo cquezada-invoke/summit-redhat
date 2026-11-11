@@ -1,7 +1,22 @@
 # Plan «Sistema · Quitar agente» (C1–C3) sobre una máquina de prueba: respaldo continuo, node_exporter y agente desconocido
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="Sistema · Quitar agente"; CASOS='[]'; TKS='[]'
-M=srv-prueba-rhel9-01; energia $M encender; IP=$(ip_de $M); echo "$M $IP"
+# máquina de prueba vigente (no retirada) con RHEL/Rocky 8 o superior (el respaldo continuo usa dnf); primero la de respaldos
+M=$(sudo podman exec -i faceops python3 - 2>/dev/null <<'Q' | tail -1
+import re
+from app import create_app
+create_app()
+from app.bd import q
+ok = []
+for e in q("SELECT nombre, so FROM equipos WHERE nombre LIKE 'srv-prueba-%' AND estado!='retirado' AND ip!='' ORDER BY nombre"):
+    so = (e["so"] or "").lower(); m = re.search(r"(\d+)", so)
+    if "windows" not in so and "ubuntu" not in so and m and int(m.group(1)) >= 8:
+        ok.append(e["nombre"])
+print(next((x for x in ok if "resp" in x), ok[0] if ok else ""))
+Q
+)
+[ -z "$M" ] && { echo "CASO C0 falla · sin máquina de prueba Linux vigente"; exit 0; }
+energia $M encender; IP=$(ip_de $M); echo "maquina $M"
 sk() { sudo podman exec -i faceops python3 - "$M" "$1" 2>/dev/null <<'Q' | tail -1
 import sys, json
 from app import create_app
