@@ -1,0 +1,32 @@
+commit: 4c1e7f46730443b3319c1c1c8a79a7f9b0f9b008
+inicio: 2026-11-11T12:48:40-03:00
+---
+LISTEN 0      5            0.0.0.0:8080      0.0.0.0:*    users:(("python3",pid=802,fd=3))                        
+LISTEN 0      4096               *:9333            *:*    users:(("weed",pid=11964,fd=8))                         
+● lake-s3.service - Data lake · servicio S3 (SeaweedFS) sobre /srv/datalake
+     Loaded: loaded (/etc/systemd/system/lake-s3.service; enabled; preset: disabled)
+     Active: active (running) since Wed 2026-11-11 12:48:39 -03; 1s ago
+   Main PID: 11964 (weed)
+      Tasks: 7 (limit: 9421)
+     Memory: 12.1M (peak: 12.3M)
+        CPU: 54ms
+     CGroup: /system.slice/lake-s3.service
+Nov 11 12:48:39 localhost weed[11957]: I1111 12:48:39.546302 volume_grpc_client_to_master.go:52 Volume server start with seed master nodes: [127.0.0.1:9333]
+Nov 11 12:48:39 localhost systemd[1]: lake-s3.service: Main process exited, code=exited, status=255/EXCEPTION
+Nov 11 12:48:39 localhost systemd[1]: lake-s3.service: Failed with result 'exit-code'.
+Nov 11 12:48:39 localhost systemd[1]: lake-s3.service: Scheduled restart job, restart counter is at 654.
+Nov 11 12:48:39 localhost systemd[1]: Stopped Data lake · servicio S3 (SeaweedFS) sobre /srv/datalake.
+Nov 11 12:48:39 localhost systemd[1]: Started Data lake · servicio S3 (SeaweedFS) sobre /srv/datalake.
+Nov 11 12:48:39 localhost weed[11964]: I1111 12:48:39.794935 master.go:282 current: 127.0.0.1:9333 peers:
+Nov 11 12:48:39 localhost weed[11964]: I1111 12:48:39.796483 file_util.go:27 Folder /srv/datalake/s3 Permission: -rwxr-x---
+Nov 11 12:48:39 localhost weed[11964]: I1111 12:48:39.796606 master.go:282 current: 127.0.0.1:9333 peers:127.0.0.1:9333
+Nov 11 12:48:39 localhost weed[11964]: I1111 12:48:39.796707 master_server.go:134 Volume Size Limit is 1024 MB
+Nov 11 12:48:39 localhost weed[11964]: I1111 12:48:39.796872 master.go:163 Start Seaweed Master 30GB 3.80 7b3c0e937f83d3b49799b5d5dcb98b0043461c25 at 0.0.0.0:9333
+Nov 11 12:48:39 localhost weed[11964]: I1111 12:48:39.797073 raft_server.go:119 Starting RaftServer with 127.0.0.1:9333
+Nov 11 12:48:39 localhost weed[11964]: I1111 12:48:39.800106 raft_server.go:168 current cluster leader:
+Nov 11 12:48:39 localhost weed[11964]: I1111 12:48:39.800321 file_util.go:27 Folder /srv/datalake/s3 Permission: -rwxr-x---
+Nov 11 12:48:39 localhost weed[11964]: I1111 12:48:39.801179 volume_grpc_client_to_master.go:43 checkWithMaster 127.0.0.1:9333: get master 127.0.0.1:9333 configuration: rpc error: code = Unavailable desc = connection err
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vdb1       100G  751M  100G   1% /srv/datalake
+sudo: nft: command not found
+--- fin: 2026-11-11T12:48:41-03:00 · código: 0
