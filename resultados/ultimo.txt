@@ -1,20 +1,9 @@
-commit: 9793ee9856de8ded1f7aa6002eda7412400ee171
-inicio: 2026-11-11T01:10:36-03:00
+commit: 4a5d1be55e508fa633e6ca2d87b5acf0912085a3
+inicio: 2026-11-11T01:21:55-03:00
 ---
-== Responder C4 (versión vigente): CPU alta de nuevo dentro de 30 min del disparo de las 03:46 UTC
-CASO R-C4·nodo-jboss FO-LAB-01623 exitoso :: AAP terminó (successful): ejecución 12 s, espera de aprobación 41 s
-REFLEJO nodo-jboss: 2 alertas · FO-LAB-01623 · ['J01 JBoss detenido (critico) → reiniciar_jboss', 'C01 CPU alta → recursos (aviso 30 · crítico 95 %)']
-ad hoc AAP 23156 successful
-disparada a los 130 s (04:15 UTC)
-PROM-ALERTAS nodo-jboss [('FaceOpsCpuAltaC01Aviso', 'warning', 'firing')]
-ALERTMANAGER nodo-jboss [('FaceOpsCpuAltaC01Aviso', 'active', ['faceops-objetos'])]
--- desde 2026-11-11T04:13:05 (no debe haber respuesta nueva):
-resuelta tras 180 s
-CASO C10·nodo-jboss FO-LAB-01628 exitoso :: AAP terminó (successful): ejecución 13 s, espera de aprobación 35 s
-REFLEJO nodo-jboss: 2 alertas · FO-LAB-01628 · ['J01 JBoss detenido (critico) → reiniciar_jboss', 'C01 CPU alta → recursos (aviso 80 · crítico 95 %)']
-REGLA nodo-jboss FaceOpsJbossDetenidoJ01 for 60 | ",name=~"(eap|jboss|wildfly).*service",state="active"}) == 0 | reiniciar_jboss Plataforma · Controlar servicio Nodos demo Nodos demo (ansible) | estado: inactive
-REGLA nodo-jboss FaceOpsCpuAltaC01Aviso for 120 | al{faceops_equipo="nodo-jboss",mode="idle"}[2m])) * 100 > 80 | recursos Infra · Ajustar recursos de máquinas   | estado: inactive
-REGLA nodo-jboss FaceOpsCpuAltaC01Critico for 120 | al{faceops_equipo="nodo-jboss",mode="idle"}[2m])) * 100 > 95 | recursos Infra · Ajustar recursos de máquinas   | estado: inactive
-OBJETIVO nodo-jboss [('faceops-equipos', '192.168.122.15:9100', 'up')]
-200 200 200 
---- fin: 2026-11-11T01:21:40-03:00 · código: 0
+ticket: fallido | ['FaceOps detuvo la ejecución: sin avance durante más de 20 min en la tarea «Podman» de nodo-tomcat. El equipo puede estar colgado o sin respuesta; revisa y vuelve a solicitar.']
+ruta vigente: 000
+cpu tomcat 10s: 136%
+CPU(s):         1
+Max memory:     2097152 KiB
+--- fin: 2026-11-11T01:22:16-03:00 · código: 0
