@@ -1,78 +1,63 @@
-commit: b98fbfd52958cc5068475a17549961c23ecd6de0
-inicio: 2026-11-10T21:35:59-03:00
+commit: 84b7fe1b9b8634285c08c7cd1e52a39322430088
+inicio: 2026-11-10T21:36:20-03:00
 ---
-
-## Sitio web corporativo | regla {"nombre": ["nodo-windows"]} | sistema windows | area Marketing | ficha {}
-  tickets abiertos 5
-  arqs []
-
-## Servidores corporativos | regla {"nombre": ["nodo-so"]} | sistema linux | area Tecnología | ficha {}
-  tickets abiertos 4
-  arqs []
-
-## Base de datos de pagos | regla {"nombre": ["dc1-sql01", "dc2-sql01"]} | sistema linux | area  | ficha {}
-  tickets abiertos 2
-  arqs []
-
-## Autoservicio de desarrollo | regla {"nombre": ["nodo-tomcat", "nodo-nginx"]} | sistema linux | area Desarrollo | ficha {}
-  tickets abiertos 1
-  arqs []
-
-## Gobierno de identidades | regla {"nombre": ["dc1-ad01", "dc1-ds01", "dc1-idm01", "dc1-iga01", "dc1-sso01", "srv-gid-*"]} | sistema  | area Seguridad de la información | ficha {"area_negocio": "Tecnología · Seguridad de la información", "dueno": "Gerencia de Seguridad de la Información (CISO)", "responsable_tecnico": "Arquitectura de Identidades", "soporte": "Managed Service Invoke (N2) · mesa de ayuda 24x7", "criticidad": "alta", "horario_servicio": "24x7", "ventana_mant
-  tickets abiertos 17
-  arqs [(1, 'aprobada', 'git')]
-
-## Red corporativa | regla {"nombre": ["borde", "core", "dns-dmz", "fw-interno", "fw-perimetral", "lb-dmz", "nas-01", "pc-campus-01", "proxy-dmz", "srv-app-01", "srv-bd-01", "srv-redcorp-*"]} | sistema  | area Tecnología | ficha {"area_negocio": "Tecnología · Infraestructura de red", "dueno": "Gerencia de Infraestructura", "responsable_tecnico": "Jefatura de Redes y Seguridad", "criticidad": "alta", "soporte": "Managed Service Invoke (N2)", "horario_servicio": "24x7", "ventana_mantencion": "Domingo 01:00 a 04:00", "rto": "1
-  tickets abiertos 2
-  arqs [(1, 'aprobada', 'git')]
-
-## Servicios en la nube | regla {"inventarios": ["Nube GCP"]} | sistema linux | area Tecnología | ficha {}
-  tickets abiertos 0
-  arqs []
-
-## Catálogo en línea | regla {"nombre": ["srv-catalogo-*"]} | sistema  | area Comercial | ficha {"area_negocio": "Comercial · Ventas digitales", "dueno": "Gerencia Comercial", "responsable_tecnico": "Jefatura de Desarrollo Web", "criticidad": "media", "soporte": "Managed Service Invoke (N2)", "horario_servicio": "Lunes a domingo 07:00 a 23:00", "ventana_mantencion": "Miércoles 23:00 a 01:00", 
-  tickets abiertos 1
-  arqs [(1, 'aprobada', 'solicitud')]
-
-## Ventas en línea | regla {"nombre": ["fgt", "nodo-jboss", "nodo-jboss2", "nodo-nginx", "nodo-postgres", "srv-ventas-*"]} | sistema  | area Comercial | ficha {"area_negocio": "Comercial · Venta digital", "dueno": "Gerencia de Comercio Electrónico", "responsable_tecnico": "Jefatura de Desarrollo de Canales", "soporte": "Managed Service Invoke (N2)", "criticidad": "alta", "horario_servicio": "24x7", "ventana_mantencion": "Miércoles 01:00 a 03:00", "rto": "
-  tickets abiertos 1
-  arqs [(1, 'aprobada', 'solicitud')]
-
-## Portal de clientes | regla {"nombre": ["nodo-jboss3", "nodo-postgres", "srv-portal-*"]} | sistema  | area Atención de clientes | ficha {"area_negocio": "Comercial · Experiencia de clientes", "dueno": "Gerencia de Canales Digitales", "responsable_tecnico": "Jefatura de Desarrollo Web", "soporte": "Managed Service Invoke (N2)", "criticidad": "media", "horario_servicio": "Lunes a domingo 07:00 a 23:00", "ventana_mantencion": "Martes 2
-  tickets abiertos 2
-  arqs [(1, 'reemplazada', 'git'), (2, 'aprobada', 'git')]
-
-EQ nodo-windows con datos encendido produccion 192.168.122.17 Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 skills ["iis", "windows-exporter"] [] fijos [] | puertos ['apphostsvc', 'bfe', 'bits', 'brokerinfrastructure', 'cdpsvc', 'certpropsvc', 'coremessagingregistrar', 'cryptsvc', 'dcomlaunch', 'dhcp', 'diagtrack', 'dispbrokerdesktopsvc', 'dnscache', 'dps', 'dssvc', 'eventlog', 'eventsystem', 'fdphost', 'fdrespub', 'fontcache', 'gpsvc', 'iphlpsvc', 'keyiso', 'lanmanserver', 'lanmanworkstation', 'lmhosts', 'lsm', 'mdcoresvc', 'mpssvc', 'msdtc'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'componentes_internos']
-
-EQ nodo-so con datos encendido produccion 192.168.122.12 RedHat 9.8 skills ["node-exporter"] [] fijos [] | puertos ['NetworkManager', 'auditd', 'chronyd', 'crond', 'dbus-broker', 'getty@tty1', 'gssproxy', 'node_exporter', 'polkit', 'qemu-guest-agent', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000', 'vigia'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ dc1-sql01 con datos apagado produccion 192.168.122.89 RedHat 9.6 skills ["sqlserver"] [] fijos [] | puertos ['NetworkManager', 'auditd', 'chronyd', 'crond', 'dbus-broker', 'getty@tty1', 'gssproxy', 'irqbalance', 'mssql-server', 'polkit', 'qemu-guest-agent', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ dc2-sql01 con datos apagado produccion 192.168.122.78 RedHat 9.6 skills ["sqlserver"] [] fijos [] | puertos ['NetworkManager', 'auditd', 'chronyd', 'crond', 'dbus-broker', 'getty@tty1', 'gssproxy', 'irqbalance', 'mssql-server', 'polkit', 'qemu-guest-agent', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ nodo-nginx con datos encendido produccion 192.168.122.11 RedHat 9.8 skills ["kafka", "nginx", "node-exporter", "redis", "redisinsight"] [] fijos [] | puertos ['NetworkManager', 'auditd', 'chronyd', 'crond', 'dbus-broker', 'getty@tty1', 'gssproxy', 'kafka', 'nginx', 'node_exporter', 'polkit', 'qemu-guest-agent', 'redis', 'redisinsight', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000', 'vigia'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ nodo-tomcat con datos encendido produccion 192.168.122.14 RedHat 9.8 skills ["activemq", "keycloak", "node-exporter", "redis", "redisinsight"] [] fijos [] | puertos ['NetworkManager', 'app-prueba-flujo-qa', 'artemis', 'auditd', 'chronyd', 'consumidor-pagos', 'crond', 'dbus-broker', 'getty@tty1', 'gssproxy', 'keycloak', 'node_exporter', 'polkit', 'qemu-guest-agent', 'redisinsight', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000', 'valkey', 'vigia'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ dc1-iga01 con datos apagado produccion 10.101.20.13 RedHat 9.8 skills [] [] fijos [] | puertos ['NetworkManager', 'auditd', 'chronyd', 'crond', 'dbus-broker', 'getty@tty1', 'gssproxy', 'irqbalance', 'polkit', 'qemu-guest-agent', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ dc1-sso01 con datos apagado produccion 10.101.20.14 RedHat 9.8 skills ["keycloak"] [] fijos [] | puertos ['NetworkManager', 'auditd', 'chronyd', 'crond', 'dbus-broker', 'firewalld', 'getty@tty1', 'gssproxy', 'keycloak', 'polkit', 'qemu-guest-agent', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ dc1-ds01 con datos apagado produccion 10.101.20.12 RedHat 9.8 skills ["389-directory-server"] [] fijos [] | puertos ['NetworkManager', 'auditd', 'chronyd', 'crond', 'dbus-broker', 'dirsrv@invoke', 'firewalld', 'getty@tty1', 'gssproxy', 'polkit', 'qemu-guest-agent', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ dc1-idm01 con datos apagado produccion 10.101.20.11 RedHat 9.8 skills ["node-exporter", "red-hat-idm"] [] fijos [] | puertos ['NetworkManager', 'auditd', 'certmonger', 'chronyd', 'crond', 'dbus-broker', 'dirsrv@LINUX-INVOKE-LAB', 'firewalld', 'getty@tty1', 'gssproxy', 'httpd', 'ipa-custodia', 'ipa-dnskeysyncd', 'irqbalance', 'kadmin', 'krb5kdc', 'named', 'node_exporter', 'oddjobd', 'pki-tomcatd@pki-tomcat', 'polkit', 'qemu-guest-agent', 'rhsmcertd', 'rpc-gssd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'sssd', 'systemd-journald'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ dc1-ad01 con datos apagado produccion 10.101.20.10 Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 skills ["active-directory"] [] fijos [] | puertos ['adws', 'appxsvc', 'bfe', 'brokerinfrastructure', 'camsvc', 'cdpsvc', 'certpropsvc', 'certsvc', 'coremessagingregistrar', 'cryptsvc', 'dcomlaunch', 'dfs', 'dfsr', 'dhcp', 'diagtrack', 'dispbrokerdesktopsvc', 'dns', 'dnscache', 'dps', 'efs', 'eventlog', 'eventsystem', 'fontcache', 'gpsvc', 'iphlpsvc', 'ismserv', 'kdc', 'keyiso', 'lanmanserver', 'lanmanworkstation'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'componentes_internos']
-
-EQ nodo-jboss3 con datos apagado produccion 192.168.122.19 RedHat 9.8 skills ["jboss", "node-exporter"] [] fijos [] | puertos ['NetworkManager', 'auditd', 'chronyd', 'crond', 'dbus-broker', 'eap8-standalone', 'getty@tty1', 'gssproxy', 'node_exporter', 'polkit', 'qemu-guest-agent', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos', 'versiones']
-
-EQ nodo-postgres con datos encendido produccion 192.168.122.13 RedHat 9.8 skills ["node-exporter", "postgres"] [] fijos [] | puertos ['NetworkManager', 'auditd', 'chronyd', 'crond', 'dbus-broker', 'firewalld', 'getty@tty1', 'gssproxy', 'node_exporter', 'polkit', 'postgresql', 'qemu-guest-agent', 'rhsmcertd', 'rpcbind', 'rsyslog', 'serial-getty@ttyS0', 'sshd', 'systemd-journald', 'systemd-logind', 'systemd-udevd', 'tuned', 'user@1000', 'vigia'] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
-
-EQ fgt retirado encendido produccion 172.20.20.12 FortiOS skills [] [] fijos [] | puertos [] | escucha  | claves datos ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol']
-
-EQ ocp-sno con datos encendido produccion 192.168.122.50 OpenShift 4.19.51 skills [] ["openshift"] fijos [] | puertos [] | escucha  | claves datos ['ocp', 'recolectado', 'openshift', 'componentes_internos']
-
-FLUJOS [('dc1-iga01>dc1-ad01:636', 'sin respuesta', '2026-11-10'), ('dc1-iga01>dc1-ds01:636', 'sin respuesta', '2026-11-10'), ('dc1-iga01>dc1-idm01:636', 'sin respuesta', '2026-11-10'), ('dc1-sso01>dc1-ds01:389', 'sin respuesta', '2026-11-10'), ('nodo-jboss-dev>nodo-postgres:5432', 'abierto', '2026-11-10'), ('nodo-jboss-dev>nodo-tomcat:61616', 'abierto', '2026-10-29'), ('nodo-jboss-dev>nodo-tomcat:6379', 'abierto', '2026-10-29'), ('nodo-jboss-qa>nodo-postgres:5432', 'sin respuesta', '2026-11-10'), ('nodo-jboss-qa>nodo-tomcat:61616', 'abierto', '2026-10-29'), ('nodo-jboss-qa>nodo-tomcat:6379', 'abierto', '2026-10-29'), ('nodo-jboss2>nodo-postgres:5432', 'abierto', '2026-11-10'), ('nodo-jboss2>nodo-tomcat:61616', 'abierto', '2026-11-10'), ('nodo-jboss2>nodo-tomcat:6379', 'abierto', '2026-11-10'), ('nodo-jboss3>nodo-postgres:5432', 'sin respuesta', '2026-11-10'), ('nodo-jboss>nodo-postgres:5432', 'abierto', '2026-11-10'), ('nodo-jboss>nodo-tomcat:61616', 'abierto', '2026-11-10'), ('nodo-jboss>nodo-tomcat:6379', 'abierto', '2026-11-10'), ('nodo-nginx>nodo-jboss2:8080', 'abierto', '2026-11-10'), ('nodo-nginx>nodo-jboss:8080', 'abierto', '2026-11-10'), ('nodo-nginx>nodo-tomcat:8080', 'bloqueado', '2026-11-10'), ('nodo-nginx>srv-pagos-app-01:8080', 'abierto', '2026-10-30'), ('srv-pagos-app-01>nodo-postgres:5432', 'bloqueado', '2026-10-30'), ('srv-pagos-app-01>nodo-tomcat:61616', 'abierto', '2026-10-30'), ('srv-pagos-app-01>nodo-tomcat:6379', 'abierto', '2026-10-30')]
-
-TOPO flujos [{'desde': 'aap', 'hacia': '*', 'puerto': 'ssh · winrm', 'texto': 'AAP administra'}, {'desde': 'nodo-nginx', 'hacia': 'nodo-jboss', 'puerto': 8080, 'texto': 'balanceo app-jboss'}, {'desde': 'nodo-nginx', 'hacia': 'nodo-jboss2', 'puerto': 8080, 'texto': 'balanceo app-jboss'}, {'desde': 'nodo-nginx', 'hacia': 'nodo-tomcat', 'puerto': 8080, 'texto': 'Keycloak / apps de autoservicio'}, {'desde': 'nodo-jboss', 'hacia': 'nodo-postgres', 'puerto': 5432, 'texto': 'base de datos'}, {'desde': 'nodo-jboss2', 'hacia': 'nodo-postgres', 'puerto': 5432, 'texto': 'base de datos'}, {'desde': 'nodo-jboss3', 'hacia': 'nodo-postgres', 'puerto': 5432, 'texto': 'base de datos'}, {'desde': 'nodo-jboss-qa', 'hacia': 'nodo-postgres', 'puerto': 5432, 'texto': 'base de datos'}, {'desde': 'nodo-jboss-dev', 'hacia': 'nodo-postgres', 'puerto': 5432, 'texto': 'base de datos'}, {'desde': 'nodo-jboss', 'hacia': 'nodo-tomcat', 'puerto': '61616 · 6379', 'texto': 'colas (Artemis) y caché (Valkey)'}, {'desde': 'nodo-jboss2', 'hacia': 'nodo-tomcat', 'puerto': '61616 · 6379', 'texto': 'colas y caché'}, {'desde': 'dc1-iga01', 'hacia': 'dc1-ad01', 'puerto': 636, 'texto': 'midPoint aprovisiona (LDAPS)'}, {'desde': 'dc1-iga01', 'hacia': 'dc1-ds01', 'puerto': 636, 'texto': 'midPoint aprovisiona'}, {'desde': 'dc1-iga01', 'hacia': 'dc1-idm01', 'puerto': 636, 'texto': 'midPoint aprovisiona'}, {'desde': 'dc1-sso01', 'hacia': 'dc1-ds01', 'puerto': 389, 'texto': 'Keycloak lee el directorio'}, {'desde': 'rtr', 'hacia': 'fw', 'puerto': 'BGP', 'texto': 'borde → firewall'}, {'desde': 'fw', 'hacia': 'pc-usuario', 'puerto': 'LAN', 'texto': 'red de usuarios'}, {'desde': 'rtr', 'hacia': 'suc1', 'puerto': 'BGP', 'texto': 'sucursal'}, {'desde': 'rtr', 'hacia': 'suc2', 'puerto': 'BGP', 'texto': 'sucursal'}, {'desde': 'rtr', 'hacia': 'suc3', 'puerto': 'BGP', 'texto': 'sucursal'}]
---- fin: 2026-11-10T21:36:05-03:00 · código: 0
+HTTP 200 len 139369
+conteo pagina: 20 servidores
+cliente demo-banco 3
+VIRTUALES_EN_LISTA 10 · virtuales en otras secciones: []
+en HTML: 0
+SEGMENTOS []
+FLUJOS 0
+ACCIONES_AUDIT []
+USUARIOS_AUDIT []
+=== VM demo-bps-ad-01
+{"id": 112, "ip": "10.21.0.16", "ubic": "DEMO · Perú", "cat": "servidor", "amb": "produccion", "energia": "apagado", "energia_cambio": "2026-11-08T18:57:14+00:00", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "Windows Server 2022", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": true, "energia_ok": true}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+=== VM demo-bps-core-01
+{"id": 106, "ip": "10.21.0.10", "ubic": "DEMO · Perú", "cat": "servidor", "amb": "produccion", "energia": "apagado", "energia_cambio": "2026-11-08T18:57:14+00:00", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "Red Hat Enterprise Linux 9", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": true, "energia_ok": true}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+=== VM demo-bps-core-02
+{"id": 107, "ip": "10.21.0.11", "ubic": "DEMO · Perú", "cat": "servidor", "amb": "produccion", "energia": "apagado", "energia_cambio": "2026-11-08T18:57:14+00:00", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "Red Hat Enterprise Linux 9", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": true, "energia_ok": true}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+=== VM demo-bps-db-01
+{"id": 108, "ip": "10.21.0.12", "ubic": "DEMO · Perú", "cat": "servidor", "amb": "produccion", "energia": "apagado", "energia_cambio": "2026-11-08T18:57:14+00:00", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "Red Hat Enterprise Linux 9", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": true, "energia_ok": true}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+=== VM demo-bps-db-02
+{"id": 109, "ip": "10.21.0.13", "ubic": "DEMO · Perú", "cat": "servidor", "amb": "produccion", "energia": "apagado", "energia_cambio": "2026-11-08T18:57:14+00:00", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "Red Hat Enterprise Linux 9", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": true, "energia_ok": true}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+=== VM demo-bps-fw-01
+{"id": 113, "ip": "10.21.0.17", "ubic": "DEMO · Perú", "cat": "red", "amb": "produccion", "energia": "apagado", "energia_cambio": "2026-11-08T18:57:14+00:00", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "PAN-OS 11.1", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": false, "energia_ok": false}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+=== VM demo-bps-lb-01
+{"id": 114, "ip": "10.21.0.18", "ubic": "DEMO · Perú", "cat": "red", "amb": "produccion", "energia": "apagado", "energia_cambio": "2026-11-08T18:57:14+00:00", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "F5 BIG-IP 17", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": false, "energia_ok": false}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+=== VM demo-bps-ocp-01
+{"id": 110, "ip": "10.21.0.14", "ubic": "DEMO · Perú", "cat": "plataforma", "amb": "produccion", "energia": "apagado", "energia_cambio": "2026-11-08T18:57:14+00:00", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "Red Hat OpenShift 4.17", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": false, "energia_ok": false}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+=== VM demo-bps-ocp-qa
+{"id": 111, "ip": "10.21.0.15", "ubic": "DEMO · Perú", "cat": "plataforma", "amb": "calidad", "energia": "apagado", "energia_cambio": "2026-11-08T18:57:14+00:00", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "Red Hat OpenShift 4.17", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": false, "energia_ok": false}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+=== VM demo-bps-qa-01
+{"id": 115, "ip": "10.21.0.19", "ubic": "DEMO · Perú", "cat": "servidor", "amb": "calidad", "energia": "apagado", "energia_cambio": "", "energia_visto": "2026-11-11T00:35:35+00:00", "estado": "con datos", "so": "Red Hat Enterprise Linux 9", "cpu": 4, "ram_mb": 16384, "disco_gb": 0, "segs": [], "fijos": [], "skills": [], "inventarios": [], "aap_host_id": null, "ult_recol": null, "visto": null, "desc": "", "datos_keys": ["demo", "rol"], "hv": "", "nodo_ocp": false, "eliminable": true, "energia_ok": true}
+  AUD [] ACCESOS 0 
+  TK [] tk30d 0
+  EH [] FLUJOS []
+--- fin: 2026-11-10T21:36:29-03:00 · código: 0
