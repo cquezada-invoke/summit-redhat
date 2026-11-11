@@ -1,0 +1,39 @@
+commit: 442e60a62c14e8dbf2fb5c1dba593a9983861de1
+inicio: 2026-11-10T23:38:31-03:00
+---
+REG nodo-jboss True None
+REG nodo-jboss2 False None
+REG nodo-jboss-dev False None
+AD HOC nodo-jboss 22832 successful
+== nodo-jboss.demo.local
+nftables-1.0.9-9.el9_8.x86_64 iptables-nft-1.8.10-11.el9_5.x86_64 package iptables-legacy is not installed package firewalld is not installed libnftnl-1.2.6-4.el9_4.x86_64 package python3-nftables is not installed package python3-firewall is not installed 
+redhat.repo
+   System Status Details
+Overall Status: Registered
+Content Access Mode is set to Simple Content Access. This host has access to content, regardless of subscription status.
+repo id                           repo name
+jb-eap-8.0-for-rhel-9-x86_64-rpms JBoss Enterprise Application Platform 8.0 (RHEL 9 x86_64) (RPMs)
+rhel-9-for-x86_64-appstream-rpms  Red Hat Enterprise Linux 9 for x86_64 - AppStream (RPMs)
+rhel-9-for-x86_64-baseos-rpms     Red Hat Enterprise Linux 9 for x86_64 - BaseOS (RPMs)
+/usr/sbin/iptables /usr/sbin/nft /usr/sbin/xtables-nft-multi 
+Nov 10 21:13:23 nodo-jboss.demo.local systemd[1]: Starting FaceOps APP-02: consola de administración de JBoss (9990) solo desde FaceOps/AAP...
+Nov 10 21:13:23 nodo-jboss.demo.local systemd[1]: Finished FaceOps APP-02: consola de administración de JBoss (9990) solo desde FaceOps/AAP.
+expired_repos.json
+jb-eap-8.0-for-rhel-9-x86_64-rpms-d174687bba1c1fd3
+jb-eap-8.0-for-rhel-9-x86_64-rpms-filenames.solvx
+
+AD HOC nodo-jboss2 22835 successful
+== nodo-jboss2.demo.local
+package nftables is not installed package iptables-nft is not installed package iptables-legacy is not installed package firewalld is not installed package libnftnl is not installed package python3-nftables is not installed package python3-firewall is not installed 
+redhat.repo
+   System Status Details
+Overall Status: Not registered
+ls: cannot access '/usr/sbin/nft': No such file or directory ls: cannot access '/usr/sbin/iptables': No such file or directory ls: cannot access '/usr/sbin/xtables-nft-multi': No such file or directory 
+Nov 10 21:13:24 nodo-jboss2.demo.local systemd[1]: faceops-app02-fw.service: Main process exited, code=exited, status=203/EXEC
+Nov 10 21:13:24 nodo-jboss2.demo.local systemd[1]: faceops-app02-fw.service: Failed with result 'exit-code'.
+Nov 10 21:13:24 nodo-jboss2.demo.local systemd[1]: Failed to start FaceOps APP-02: consola de administración de JBoss (9990) solo desde FaceOps/AAP.
+expired_repos.json
+faceops-registro-6bf401ed7fc4b752
+faceops-registro-filenames.solvx
+
+--- fin: 2026-11-10T23:38:55-03:00 · código: 0
