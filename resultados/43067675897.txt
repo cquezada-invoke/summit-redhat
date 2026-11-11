@@ -1,0 +1,19 @@
+commit: d3de4f4cc9188ec2943c01883a3b80d1f077aedb
+inicio: 2026-11-11T14:35:27-03:00
+---
+        add_header X-Servidor $upstream_addr always;
+    add_header X-Servidor-JBoss $upstream_addr always;
+    proxy_next_upstream error timeout http_502 http_503;
+    server 192.168.122.105:8080 max_fails=2 fail_timeout=10s;  # réplica HA · FaceOps FO-LAB-01658
+    server 192.168.122.15:8080 max_fails=2 fail_timeout=10s;
+    server 192.168.122.18:8080 max_fails=2 fail_timeout=10s;
+upstream app_jboss {
+upstream fo_app_jboss_azul { server 192.168.122.15:8080; }
+upstream fo_app_jboss_verde { server 192.168.122.21:8080; }
+.15 ok 1.0.44
+.18 ok 1.0.44
+.105 ok 1.0.44
+GR 8 Nodos demo ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss-dev', 'nodo-jboss-qa']
+GR 9 Servidores de aplicación ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss4', 'nodo-jboss-dev', 'nodo-jboss-qa']
+GR 43 FaceOps · Todos los servidores ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss-dev', 'nodo-jboss-qa']
+--- fin: 2026-11-11T14:35:35-03:00 · código: 0

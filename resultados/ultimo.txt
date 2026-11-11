@@ -1,21 +1,19 @@
-commit: 270cec3721914fb45d4147b4acc857807d5e8a73
-inicio: 2026-11-11T14:17:26-03:00
+commit: d3de4f4cc9188ec2943c01883a3b80d1f077aedb
+inicio: 2026-11-11T14:35:27-03:00
 ---
-inventariar srv-mig-rocky-01: exitoso FO-LAB-01740
-IP srv-mig-rocky-01 192.168.122.231 · Rocky Linux release 9.8 (Blue Onyx)
-  (arnés cortado en "caso":"C1"; reanudo FO-LAB-01744)
-  C1 srv-mig-rocky-01: exitoso FO-LAB-01744 · Rocky Linux 9.8 → RHEL 9 · convertir · verde · análisis None 
-CASO C1 ok · Rocky 9 política mínimo
-  (arnés cortado en "caso":"C2"; reanudo FO-LAB-01746)
-  C2 srv-mig-rocky-01: fallido FO-LAB-01746 · None → None · None · None · análisis None Analizar · non-zero return code · Shared connection to 192.168.122.231 closed.
-CASO C2 falla · Rocky 9 con convert2rhel analyze
-  C4 nodo-jboss-dev: exitoso FO-LAB-01747 · RHEL 9.8 → RHEL 9 · sin acción · amarillo · análisis None 
-CASO C4 ok · RHEL 9 al día (nodo-jboss-dev)
-  (arnés cortado en "caso":"C5"; reanudo sin ticket)
-  C5 srv-mig-rocky-01: exitoso FO-LAB-01750 · Rocky Linux 9.8 → RHEL 9 · convertir · rojo · análisis None 
-CASO C5 ok · Destino no válido (99)
-  C6 srv-mig-rocky-01: exitoso FO-LAB-01752 · Rocky Linux 9.8 → RHEL 9 · convertir · verde · análisis None 
-CASO C6 ok · Repetir C1
-CASO C7 ok · Equipo apagado (nodo-jboss-qa)
-EVALUAR fase rocky: [{"id": "C1", "caso": "Rocky 9 política mínimo", "resultado": "ok", "evidencia": "Rocky Linux 9.8 → RHEL 9 · convertir · verde · camino [\"Convertir Rocky Linux 9.8 → RHEL 9 (Convert2RHEL)\"] · paquetes 7969f069f54d=7969f069f54d"}, {"id": "C2", "caso": "Rocky 9 con convert2rhel analyze", "resultado": "falla", "evidencia": "fallido None Rocky Linux release 9.8 (Blue Onyx)\nsin-llave Analizar · non-zero return code · Shared connection to 192.168.122.231 closed.\r"}, {"id": "C4", "caso": "RHEL 9 al día (nodo-jboss-dev)", "resultado": "ok", "evidencia": "RHEL 9.8 · sin acción ·
---- fin: 2026-11-11T14:35:12-03:00 · código: 0
+        add_header X-Servidor $upstream_addr always;
+    add_header X-Servidor-JBoss $upstream_addr always;
+    proxy_next_upstream error timeout http_502 http_503;
+    server 192.168.122.105:8080 max_fails=2 fail_timeout=10s;  # réplica HA · FaceOps FO-LAB-01658
+    server 192.168.122.15:8080 max_fails=2 fail_timeout=10s;
+    server 192.168.122.18:8080 max_fails=2 fail_timeout=10s;
+upstream app_jboss {
+upstream fo_app_jboss_azul { server 192.168.122.15:8080; }
+upstream fo_app_jboss_verde { server 192.168.122.21:8080; }
+.15 ok 1.0.44
+.18 ok 1.0.44
+.105 ok 1.0.44
+GR 8 Nodos demo ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss-dev', 'nodo-jboss-qa']
+GR 9 Servidores de aplicación ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss4', 'nodo-jboss-dev', 'nodo-jboss-qa']
+GR 43 FaceOps · Todos los servidores ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss-dev', 'nodo-jboss-qa']
+--- fin: 2026-11-11T14:35:35-03:00 · código: 0
