@@ -1063,6 +1063,10 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 @keyframes al-pulso{0%{box-shadow:0 0 0 0 rgba(255,255,255,.75)}70%{box-shadow:0 0 0 12px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
 @keyframes al-gira{50%{transform:rotate(-14deg)}}
 @media (prefers-reduced-motion:reduce){.al-off .al-ic,.al-curso .al-ic{animation:none}}
+.al-leyenda{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 18px 0;font-size:11.5px;color:var(--muted)}.al-leyenda span{display:inline-flex;align-items:center;gap:6px}
+.al-lg{position:relative;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;color:#fff;flex:none}.al-lg.al-off{animation:al-lgp 1.8s infinite}@keyframes al-lgp{0%{box-shadow:0 0 0 0 rgba(240,86,29,.6)}70%{box-shadow:0 0 0 6px rgba(240,86,29,0)}100%{box-shadow:0 0 0 0 rgba(240,86,29,0)}}.al-lg.al-curso svg{animation:al-gira 2.4s linear infinite}
+.al-lg b{position:absolute;top:-5px;right:-7px;min-width:12px;height:12px;padding:0 2px;border-radius:999px;background:#fff;color:#1e7a1e;font-size:8px;line-height:10px;text-align:center;border:1px solid #1e7a1e;font-style:normal}
+@media (prefers-reduced-motion:reduce){.al-lg.al-off,.al-lg.al-curso svg{animation:none}}
 .al-dlg{width:min(860px,96vw);max-height:90vh;border:0;border-radius:14px;padding:0;background:var(--panel);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
 .al-dlg::backdrop{background:rgba(10,10,20,.55)}
 .al-form{display:flex;flex-direction:column;max-height:90vh}

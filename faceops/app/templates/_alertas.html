@@ -13,6 +13,10 @@
 <header class="al-cab"><span class="al-ic grande al-{{ est_ }}">{{ campana(26) }}</span>
   <div><h2>Alertas de {{ nombre }}</h2><p class="sub">{{ al.tipo_nombre }} · métricas de {{ al.fuente }} · {{ al.total }} alertas posibles · la configuración queda en Ansible y Prometheus, no en FaceOps</p></div>
   <button type="button" class="al-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">✕</button></header>
+<p class="al-leyenda" aria-label="Colores del botón Alertas">
+  <span><i class="al-lg al-off">{{ campana(12) }}</i>Naranja pulsando: sin alertas configuradas</span>
+  <span><i class="al-lg al-on">{{ campana(12) }}<b>N</b></i>Verde con número: N alertas activas en Prometheus</span>
+  <span><i class="al-lg al-curso">{{ campana(12) }}</i>Azul girando: cambio de alertas en curso (ticket)</span></p>
 {% if not al.disponible %}<div class="flash error">{{ al.por_que }}</div>{% endif %}
 {% if al.aplicado %}<p class="sub al-ult">Configuración vigente en Ansible desde {{ al.aplicado|fecha }}{% if al.ticket %} · {{ al.ticket }}{% endif %}</p>{% endif %}
 {% if al.n %}<p class="sub al-ult al-donde">Reglas en Prometheus: <code>{{ al.archivo }}</code> (grupo <code>{{ al.grupo_prom }}</code>) ·
