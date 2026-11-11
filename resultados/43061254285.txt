@@ -1,0 +1,20 @@
+commit: 7266e63e3ac805c87b44283acce82c811cfcd438
+inicio: 2026-11-11T13:45:59-03:00
+---
+licencia AAP libres: 1
+habilitar mig-rocky (rocky9): sin respuesta del arnés  
+inventariar srv-mig-rocky-01: rechazado al solicitar 
+IP srv-mig-rocky-01  · 
+  C1 srv-mig-rocky-01: rechazado al solicitar  · None → None · None · None · análisis None 
+CASO C1 falla · Rocky 9 política mínimo
+  C2 srv-mig-rocky-01: rechazado al solicitar  · None → None · None · None · análisis None 
+CASO C2 falla · Rocky 9 con convert2rhel analyze
+  C4 nodo-jboss-dev: exitoso FO-LAB-01715 · RHEL 9.8 → RHEL 9 · sin acción · amarillo · análisis None 
+CASO C4 ok · RHEL 9 al día (nodo-jboss-dev)
+  C5 srv-mig-rocky-01: rechazado al solicitar  · None → None · None · None · análisis None 
+CASO C5 falla · Destino no válido
+  C6 srv-mig-rocky-01: rechazado al solicitar  · None → None · None · None · análisis None 
+CASO C6 falla · Repetir C1
+CASO C7 ok · Equipo apagado (nodo-jboss-qa)
+EVALUAR fase rocky: [{"id": "C1", "caso": "Rocky 9 política mínimo", "resultado": "falla", "evidencia": "rechazado al solicitar {} / /"}, {"id": "C2", "caso": "Rocky 9 con convert2rhel analyze", "resultado": "falla", "evidencia": "rechazado al solicitar None  None"}, {"id": "C4", "caso": "RHEL 9 al día (nodo-jboss-dev)", "resultado": "ok", "evidencia": "RHEL 9.8 · sin acción · amarillo"}, {"id": "C5", "caso": "Destino no válido", "resultado": "falla", "evidencia": "rechazado al solicitar {}"}, {"id": "C6", "caso": "Repetir C1", "resultado": "falla", "evidencia": "rechazado al solicitar {}"}, {
+--- fin: 2026-11-11T13:48:28-03:00 · código: 0
