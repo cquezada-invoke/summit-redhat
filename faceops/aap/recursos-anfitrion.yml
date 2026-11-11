@@ -2,6 +2,9 @@
 # Infra · Ajustar recursos de máquinas (anfitrión KVM). Deja cada máquina con los vCPU y la memoria pedidos (subir o bajar).
 # El cambio se aplica a la definición de la VM: si estaba encendida, se apaga ordenadamente (virsh shutdown, hasta 3 min),
 # se ajusta y se vuelve a encender; si estaba apagada, queda apagada con los recursos nuevos.
+# Al final verifica la definición (--config: máximo y actual de vCPU, memoria máxima y actual), que es lo que sobrevive a un
+# reinicio del anfitrión, y, si la máquina estaba encendida, lo vigente (live). Si no calza, el ticket falla.
+# «igual» solo cuando definición y estado vigente ya tienen lo pedido.
 #   ir_maquinas: "nombre:vcpu:ram_mb,nombre:vcpu:ram_mb,…"
 - name: Infra · Ajustar recursos de máquinas
   hosts: anfitrion_kvm
@@ -23,10 +26,15 @@
       ansible.builtin.shell: |
         set -e
         v="{{ item.n }}"; cpu={{ item.cpu }}; ram=$(( {{ item.ram }} * 1024 ))
-        cur_cpu=$(sudo -n virsh dominfo "$v" | awk '/^CPU\(s\)/{print $2}')
-        cur_ram=$(sudo -n virsh dominfo "$v" | awk '/^Max memory/{print $3}')
-        if [ "$cur_cpu" = "$cpu" ] && [ "$cur_ram" = "$ram" ]; then echo "$v|igual|$cur_cpu|$((cur_ram/1024))"; exit 0; fi
+        sudo -n virsh dominfo "$v" | grep -q '^Persistent: *yes' || { echo "$v no tiene definición persistente: el cambio no sobreviviría a un reinicio" >&2; exit 3; }
+        # Estado de la definición (lo que sobrevive a reinicios) y, si está encendida, el vigente (live)
+        cfg() { echo "$(sudo -n virsh vcpucount "$v" --config --maximum):$(sudo -n virsh vcpucount "$v" --config --current):$(sudo -n virsh dumpxml --inactive "$v" | sed -n "s/.*<memory unit='KiB'>\([0-9]*\)<.*/\1/p"):$(sudo -n virsh dumpxml --inactive "$v" | sed -n "s/.*<currentMemory unit='KiB'>\([0-9]*\)<.*/\1/p")"; }
+        vivo() { echo "$(sudo -n virsh vcpucount "$v" --live --current):$(sudo -n virsh dominfo "$v" | awk '/^Max memory/{print $3}')"; }
+        cur_cpu=$(sudo -n virsh vcpucount "$v" --config --current)
+        cur_ram=$(sudo -n virsh dumpxml --inactive "$v" | sed -n "s/.*<memory unit='KiB'>\([0-9]*\)<.*/\1/p")
         estado=$(sudo -n virsh domstate "$v")
+        if [ "$(cfg)" = "$cpu:$cpu:$ram:$ram" ] && { [ "$estado" != "running" ] || [ "$(vivo)" = "$cpu:$ram" ]; }; then
+          echo "$v|igual|$cpu|{{ item.ram }}|config=$(cfg)|live=$([ "$estado" = running ] && vivo || echo apagada)"; exit 0; fi
         if [ "$estado" = "running" ]; then
           sudo -n virsh shutdown "$v" >/dev/null
           for i in $(seq 1 36); do [ "$(sudo -n virsh domstate "$v")" = "shut off" ] && break; sleep 5; done
@@ -36,8 +44,13 @@
         else sudo -n virsh setmem "$v" "$ram" --config >/dev/null; sudo -n virsh setmaxmem "$v" "$ram" --config >/dev/null; fi
         if [ "$cpu" -gt "$cur_cpu" ]; then sudo -n virsh setvcpus "$v" "$cpu" --config --maximum >/dev/null; sudo -n virsh setvcpus "$v" "$cpu" --config >/dev/null
         else sudo -n virsh setvcpus "$v" "$cpu" --config >/dev/null; sudo -n virsh setvcpus "$v" "$cpu" --config --maximum >/dev/null; fi
-        [ "$estado" = "running" ] && sudo -n virsh start "$v" >/dev/null
-        echo "$v|ajustada|$cur_cpu→$cpu|$((cur_ram/1024))→{{ item.ram }}|$estado"
+        # Verificación: la definición queda con lo pedido (persiste a reinicios del anfitrión) y, si estaba encendida, también lo vigente
+        [ "$(cfg)" = "$cpu:$cpu:$ram:$ram" ] || { echo "$v: la definición quedó en $(cfg), se pidió $cpu:$cpu:$ram:$ram" >&2; exit 4; }
+        if [ "$estado" = "running" ]; then
+          sudo -n virsh start "$v" >/dev/null
+          [ "$(vivo)" = "$cpu:$ram" ] || { echo "$v: encendida con $(vivo), se pidió $cpu:$ram" >&2; exit 5; }
+        fi
+        echo "$v|ajustada|$cur_cpu→$cpu|$((cur_ram/1024))→{{ item.ram }}|$estado|config=$(cfg)|live=$([ "$estado" = running ] && vivo || echo apagada)"
       loop: "{{ lista }}"
       loop_control: {label: "{{ item.n }}"}
       register: r_aj

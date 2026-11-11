@@ -140,6 +140,14 @@ planes:
       - {id: C1, caso: "Alerta crítica real (crash loop del modelo de alertamiento) llega a EDA", verificar: "EDA lanza el workflow con los datos de la alerta (namespace, pod, acción)"}
       - {id: C2, caso: "Aprobar en AAP", verificar: "corre la acción (reiniciar-pod) y el pod se recrea"}
       - {id: C3, caso: "Rechazar la aprobación de un segundo disparo", verificar: "el workflow termina sin ejecutar la acción; el pod no cambia"}
+  "Infra · Ajustar recursos de máquinas":
+    casos:
+      - {id: C1, caso: "Subir vCPU de una máquina encendida (nodo-jboss-dev 1→2, 2 GB)", verificar: "apagado ordenado, ajuste y encendido; set_stats con config=2:2:2097152:2097152 y live=2:2097152 (virsh vcpucount/dumpxml --inactive: persiste a reinicios)"}
+      - {id: C2, caso: "Repetir el mismo pedido", verificar: "idempotente: «igual», sin reinicio"}
+      - {id: C3, caso: "Cambiar memoria de una máquina apagada (nodo-jboss-qa a 3 GB)", verificar: "queda apagada; la definición con 3145728 KiB"}
+      - {id: C4, caso: "Volver ambas al mínimo en un solo ticket (nodo-jboss-dev:1:2048,nodo-jboss-qa:1:2048)", verificar: "las dos «ajustada»; definición y vigente con 1 vCPU y 2 GB"}
+      - {id: C5, caso: "Formato inválido (0 vCPU)", verificar: "falla controlada en «Datos válidos» sin tocar máquinas"}
+      - {id: C6, caso: "Sincronizar el inventario tras C1 con facts anteriores al cambio", verificar: "la ficha de FaceOps muestra los vCPU del ticket, no los de los facts viejos"}
   "FaceOps · Ampliar disco":
     casos:
       - {id: C1, caso: "Ampliar 5 GB el disco de datos de prueba de nodo-storage (/srv/prueba-ad)", verificar: "el volumen crece en el hipervisor, la partición y el XFS crecen en línea; el montaje sigue y los datos están"}

@@ -359,6 +359,32 @@ def alta_nodos_ocp(aap, cliente):
         ej("UPDATE clientes SET clasificacion=? WHERE id=?", json.dumps(cl, ensure_ascii=False), cliente["id"])
 
 
+def _fecha(s):
+    try:
+        d = datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+        return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def _ajuste_posterior(cliente_id, nombre, facts_fecha):
+    """(vCPU, MB) del último «Infra · Ajustar recursos de máquinas» exitoso sobre la máquina si es posterior a sus facts.
+    Sin esto, la sincronización volvía a mostrar los recursos de facts recolectados antes del cambio (el hipervisor ya tenía lo nuevo)."""
+    t = q1("SELECT t.parametros, t.fin FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+           "WHERE t.cliente_id=? AND a.nombre_aap='Infra · Ajustar recursos de máquinas' AND t.estado='exitoso' "
+           "AND t.parametros LIKE ? ORDER BY t.fin DESC LIMIT 1", cliente_id, f"%{nombre}:%")
+    if not t:
+        return None
+    ff, ft = _fecha(facts_fecha), _fecha(t["fin"])
+    if not ft or (ff and ff >= ft):
+        return None
+    for x in (j(t["parametros"], {}).get("ir_maquinas") or "").split(","):
+        p_ = x.strip().split(":")
+        if len(p_) == 3 and p_[0] == nombre and p_[1].isdigit() and p_[2].isdigit():
+            return int(p_[1]), int(p_[2])
+    return None
+
+
 def sincronizar(cliente, usuario="sistema"):
     """Lee inventarios y hosts de AAP (con sus facts) y actualiza el inventario de FaceOps del cliente.
     Un mismo equipo puede estar en varios inventarios de AAP: en FaceOps es uno solo. Su clasificación
@@ -422,6 +448,9 @@ def sincronizar(cliente, usuario="sistema"):
             fila["skills_manual"] = json.dumps(sorted(set(a["hv"]["faceops_skills"])))
         elif isinstance(a["over"].get("skills"), list):     # o en la clasificación del cliente (p. ej. el software de un router)
             fila["skills_manual"] = json.dumps(sorted(set(a["over"]["skills"])))
+        aj = _ajuste_posterior(cliente["id"], nombre, a["facts_fecha"])
+        if aj:   # facts anteriores al último «Ajustar recursos» exitoso: manda lo que quedó en el hipervisor
+            fila["cpu"], fila["ram_mb"] = aj
         existe = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
         if existe:
             ej("UPDATE equipos SET " + ", ".join(f"{k}=?" for k in fila) + " WHERE id=?", *fila.values(), existe["id"])
