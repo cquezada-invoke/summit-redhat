@@ -1,44 +1,31 @@
-commit: 3dc9e3f90c422f27223743fa62b239bfc2efc6c2
-inicio: 2026-11-11T13:40:29-03:00
+commit: cc5f7b4873bceb6561067c6f512fdc67a433d9f7
+inicio: 2026-11-11T13:41:37-03:00
 ---
-== nodo-jboss 192.168.122.15
-LISTEN 0      50            0.0.0.0:9990      0.0.0.0:*   
-LISTEN 0      4096          0.0.0.0:8080      0.0.0.0:*   
-inactive inactive inactive 
--bmanagement=0.0.0.0
--bmanagement=0.0.0.0
-		iifname "lo" tcp dport 9990 accept
-		ip saddr 192.168.122.1 tcp dport 9990 accept
-		tcp dport 9990 drop
-		ip saddr 10.88.0.0/16 tcp dport 5540 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
-		ip saddr 127.0.0.1 tcp dport 5540 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
-aplicaciones.d certificados git-credentials respaldo.conf respaldo.excluir 
-Mem:            2647         941        1054           8         890        1705
- 11:40:36 up 13 min,  0 users,  load average: 0.07, 0.11, 0.10
-== nodo-jboss2 192.168.122.18
-LISTEN 0      4096         0.0.0.0:8080      0.0.0.0:*   
-LISTEN 0      50           0.0.0.0:9990      0.0.0.0:*   
-inactive inactive inactive 
--bmanagement=0.0.0.0
--bmanagement=0.0.0.0
-		iifname "lo" tcp dport 9990 accept
-		ip saddr 192.168.122.1 tcp dport 9990 accept
-		tcp dport 9990 drop
-aplicaciones.d git-credentials respaldo.conf respaldo.excluir 
-Mem:            1707         932         432           4         493         774
- 11:40:43 up 22 min,  0 users,  load average: 0.12, 0.11, 0.09
-== nodo-jboss-dev 192.168.122.21
-LISTEN 0      50           0.0.0.0:9990      0.0.0.0:*   
-LISTEN 0      4096         0.0.0.0:8080      0.0.0.0:*   
-inactive inactive inactive 
--bmanagement=0.0.0.0
--bmanagement=0.0.0.0
-		iifname "lo" tcp dport 9990 accept
-		ip saddr 192.168.122.1 tcp dport 9990 accept
-		tcp dport 9990 drop
-aplicaciones.d certificados git-credentials respaldo.conf respaldo.excluir 
-Mem:            1707         932         472           6         455         774
- 11:41:07 up 52 min,  0 users,  load average: 0.35, 0.17, 0.11
-FAILED 23658 Desplegar en JBoss con jboss-cli nodo-jboss rc None  
-FAILED 23658 Volver a la versión anterior nodo-jboss rc None  
---- fin: 2026-11-11T13:41:21-03:00 · código: 0
+      11:20 bash herramientas/vm/tarea.sh
+      09:23 bash herramientas/vm/tarea.sh
+      02:40 bash herramientas/vm/tarea.sh
+      00:00 bash herramientas/vm/tarea.sh
+srv-mover-01 srv-mover-01-origen 
+TK FO-LAB-01694 fallido 16:14 Plan de prueba C1: desplegar 1.0.43 en produccion | ********************** nodo-jboss                 : ok=7    changed=2    unreachable=0    failed=1    skipped=1    rescued=1    ignored=0   
+TK FO-LAB-01696 exitoso 16:16 Eliminar dc1-sql01 (192.168.122.89) | AAP terminó (successful): ejecución 14 s, espera de aprobación 34 s
+TK FO-LAB-01697 fallido 16:18 Plan de prueba C2: desplegar 1.0.44 en produccion | cued=1    ignored=0    nodo-jboss2                : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+TK FO-LAB-01698 exitoso 16:20 Eliminar dc2-sql01 (192.168.122.78) | AAP terminó (successful): ejecución 14 s, espera de aprobación 40 s
+TK FO-LAB-01699 fallido 16:20 Plan de prueba C3: desplegar 1.0.44 en produccion | cued=1    ignored=0    nodo-jboss2                : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+TK FO-LAB-01700 fallido 16:21 Plan de prueba C4: desplegar 9.9.999 en produccion | cued=0    ignored=0    nodo-jboss2                : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+TK FO-LAB-01701 exitoso 16:22 Plan de prueba C5: desplegar 1.0.44 en desarrollo | AAP terminó (successful): ejecución 21 s, espera de aprobación 29 s
+TK FO-LAB-01704 exitoso 16:24 Eliminar dc1-vpn01 (192.168.122.75) | anceo, VM retirada de KVM (disco conservado aparte), fuera de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git.
+TK FO-LAB-01707 exitoso 16:32 Prueba C1: evaluar srv-mover-01 → Valparaíso | AAP terminó (successful): ejecución 9 s, espera de aprobación 29 s
+TK FO-LAB-01710 fallido 16:35 Prueba C6: destino donde ya está | ********************** anfitrion-kvm              : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+TK FO-LAB-01711 fallido 16:37 Prueba C6: nodo-vault no se mueve | ********************** anfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+TK FO-LAB-01712 en_ejecucion 16:39 Prueba C7: no responde en el destino → vuelta atrás | 
+EQ [('dc1-sql01', 'con datos', '192.168.122.89', 'Centro de datos Santiago'), ('dc2-sql01', 'con datos', '192.168.122.78', 'Centro de datos Santiago'), ('dc1-vpn01', 'retirado', '192.168.122.75', 'Centro de datos Santiago'), ('srv-mover-01', 'sin datos', '192.168.122.35', 'Centro de datos Santiago')]
+faceops-guacd Up 4 hours (healthy)
+faceops-vcsim Up 4 hours
+faceops-validador Up 4 hours
+faceops-maqueta Up 4 hours
+faceops-sni Up 4 hours
+faceops-kb Up 4 hours
+faceops-guacamole Up 4 hours
+faceops-publico Up 4 hours
+faceops Up 7 minutes
+--- fin: 2026-11-11T13:41:44-03:00 · código: 0
