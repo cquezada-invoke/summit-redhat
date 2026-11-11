@@ -1,0 +1,29 @@
+commit: e233c0f4ef369666ee54aff40222d364b60696a2
+inicio: 2026-11-11T13:32:15-03:00
+---
+inicio: 192.168.122.35|Centro de datos Santiago · dominios: srv-mover-01  · running
+FLOT 200 origen: KVM · Santiago | bloqueo: - | auto: {'estado': 'cambiada', 'nombre': 'Mover máquina entre centros de datos'}
+FLOT   ELEGIBLE KVM · Valparaíso Hipervisor KVM Centro de datos Valparaíso red 192.168.150.0/24 libres: 16 cores 46 GB RAM 121 GB disco | 
+FLOT   no VMware · Santiago VMware vSphere Centro de datos Santiago red datacenter vSphere Santiago libres: None cores None GB RAM None GB disco | la automatización no convierte máquinas KVM a VMware vSphere
+RES {"estado":"sin respuesta del arnés"}
+CASO C1 falla · flotante y evaluar
+RES {"estado":"sin respuesta"}
+192.168.122.35|Centro de datos Santiago · srv-mover-01 
+CASO C2 falla · mover desde el flotante
+RES {"estado":"sin respuesta"}
+CASO C3 falla · revertir
+RES {"estado":"sin respuesta"}
+RES {"estado":"sin respuesta"}
+CASO C4 falla · mover y confirmar
+RES {"estado":"sin respuesta"}
+RES {"estado":"sin respuesta"}
+CASO C5 falla · Valparaíso → Santiago
+RES {"caso": "C6: destino donde ya está", "auto": "Infra · Mover máquina entre centros de datos", "ticket": "FO-LAB-01710", "estado": "fallido", "stats": {}, "detalle": "Se puede mover · La máquina ya está en ese centro de datos · ", "resultado": "******************************\nok: [anfitrion-kvm]\n\nTASK [Situación actual] ********************************************************\nok: [anfitrion-kvm]\n\nTASK [Lectura] *****************************************************************\nok: [anfitrion-kvm]\n\nTASK [Se puede mover] **********************************************************\nfatal: [anfitrion-kvm]: FAILED! => {\"assertion\": \"sit.RED != red_dst\", \"changed\": false, \"evaluated_to\": false, \"msg\": \"La máquina ya está en ese centro de datos\"}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   "}
+RES {"caso": "C6: nodo-vault no se mueve", "auto": "Infra · Mover máquina entre centros de datos", "ticket": "FO-LAB-01711", "estado": "fallido", "stats": {}, "detalle": "Datos válidos · Máquina, destino o modo no válidos (nodo-vault y OpenShift no se mueven) · ", "resultado": "o modo no válidos (nodo-vault y OpenShift no se mueven)\nIdentity added: /runner/artifacts/23737/ssh_key_data (aap-kvm (FaceOps))\n\nPLAY [Infra · Mover máquina entre centros de datos] ****************************\n\nTASK [Datos válidos] ***********************************************************\nfatal: [anfitrion-kvm]: FAILED! => {\"assertion\": \"vm not in ['nodo-vault', 'sno']\", \"changed\": false, \"evaluated_to\": false, \"msg\": \"Máquina, destino o modo no válidos (nodo-vault y OpenShift no se mueven)\"}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   "}
+CASO C6 ok · destino actual y máquina protegida
+RES {"estado":"sin respuesta del arnés"}
+CASO C7 falla · no responde en el destino
+final:  · srv-mover-01 srv-mover-01-origen  · estado VM running
+CERT Infra · Mover máquina entre centros de datos → cambiada
+FIN-MOVER
+--- fin: 2026-11-11T13:44:22-03:00 · código: 0
