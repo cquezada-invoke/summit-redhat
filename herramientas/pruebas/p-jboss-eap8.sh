@@ -35,7 +35,7 @@ ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(
 N="Migración · JBoss a EAP 8"; O=nodo-jboss-dev; D=nodo-jboss-qa
 TOK=$(sudo podman exec faceops printenv FACEOPS_RESPALDO_TOKEN 2>/dev/null); G=http://192.168.122.1:3000/api/v1/repos/repositorio/migraciones-jboss
 mj() {  # mj <caso> <equipo origen> '<params extra>' <min>
-  caso "{\"auto\":\"$N\",\"equipo\":\"$2\",\"params\":{\"mj_origen\":\"$2\"${3:+,$3}},\"min\":${4:-20},\"caso\":\"$1\"}" >/dev/null
+  caso "{\"auto\":\"$N\",\"equipo\":\"\",\"params\":{\"mj_origen\":\"$2\"${3:+,$3}},\"min\":${4:-20},\"caso\":\"$1\"}" >/dev/null   # elige sus equipos en el formulario
   echo "  $1: $(estado) $(ticket) · $(jq_ "json.dumps(s.get('faceops_migracion_jboss') or {}, ensure_ascii=False)[:300]") $(jq_ "(r.get('error') or r.get('detalle') or '')[:300]")"
 }
 st() { jq_ "json.dumps((s.get('faceops_migracion_jboss') or {}).get('$1'), ensure_ascii=False)"; }
@@ -85,7 +85,7 @@ D8=$(jq_ "(r.get('error') or r.get('detalle') or '')")
 no_ && echo "$D8" | grep -qi "No se encontró una instalación de JBoss" && anotar C8 "Origen sin JBoss" ok "falla controlada: $(echo "$D8" | grep -o 'No se encontró[^(]*' | head -1)" || anotar C8 "Origen sin JBoss" falla "$(estado) $D8"
 mj C9 $O '"mj_modo":"migrar","mj_apps":"catalogo-legacy"'
 D9=$(jq_ "(r.get('error') or r.get('detalle') or '')")
-no_ && [ "$(huella5)" = "$H5" ] && anotar C9 "Migrar sin destino" ok "rechazado: $(echo "$D9" | head -c 200)" || anotar C9 "Migrar sin destino" falla "$(estado) $D9"
+no_ && echo "$D9" | grep -q "equipo de destino" && [ "$(huella5)" = "$H5" ] && anotar C9 "Migrar sin destino" ok "rechazado: $(echo "$D9" | head -c 200)" || anotar C9 "Migrar sin destino" falla "$(estado) $D9"
 echo "JBOSS: $CASOS" | cut -c1-2500
 grep -q '"falla"' <<<"$CASOS" || certificar "$N" "planes-prueba.yml · Migración · JBoss a EAP 8 (C1–C9)"
 [ "$QA_ANTES" = running ] || energia $D apagar
