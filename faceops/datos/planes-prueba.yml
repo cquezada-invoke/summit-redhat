@@ -218,7 +218,7 @@ planes:
       - {id: C1, caso: "Rocky 9 de prueba (srv-mig-rocky-01, creada con Habilitar servidor) con política mínimo", tipo: Funcional, verificar: "origen Rocky 9, acción convertir, destino RHEL 9 y camino con Convert2RHEL; la máquina no cambia (release y lista de paquetes iguales antes y después)"}
       - {id: C2, caso: "Rocky 9 con el análisis oficial (convert2rhel analyze)", tipo: Funcional, verificar: "informe de convert2rhel analyze con su código; sigue siendo Rocky; la llave de activación no queda en la máquina"}
       - {id: C3, caso: "RHEL 8 de prueba (srv-mig-rhel8-01) con destino 9 y el análisis oficial (Leapp preupgrade)", tipo: Funcional, verificar: "camino 8 → 9 con Leapp, semáforo y bloqueos de Leapp; sigue en RHEL 8"}
-      - {id: C4, caso: "RHEL 9 al día (nodo-jboss-dev) con política mínimo", tipo: Funcional, verificar: "sin acción, semáforo al día; no cambia nada"}
+      - {id: C4, caso: "RHEL 9 al día (nodo-jboss-dev) con política mínimo", tipo: Funcional, verificar: "sin acción (sin saltos ni conversión) con sus hallazgos; no cambia nada"}
       - {id: C5, caso: "Versión de destino no válida (99)", tipo: Error controlado, verificar: "semáforo rojo con el motivo; no cambia nada"}
       - {id: C6, caso: "Repetir C1", tipo: Idempotencia, verificar: "mismo resultado (solo lectura)"}
       - {id: C7, caso: "Equipo apagado (nodo-jboss-qa)", tipo: Error controlado, verificar: "FaceOps no lanza el ticket (equipo apagado); nada cambia"}
