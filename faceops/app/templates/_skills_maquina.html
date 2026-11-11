@@ -40,6 +40,7 @@ caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()
 #sk-cajon .sk-grupo[open]>summary::before{transform:rotate(45deg)}
 #sk-cajon .sk-grupo>summary .sub{font-weight:400;font-size:12px}
 #sk-cajon .sk-item{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;margin:0 0 6px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+#sk-cajon .sk-item[hidden],#sk-cajon .sk-grupo[hidden]{display:none}
 #sk-cajon .sk-item.bloq{background:var(--soft);opacity:.75}
 #sk-cajon .sk-item b{font-size:13.5px}#sk-cajon .sk-que{grid-column:1;font-size:12px;color:var(--muted)}
 #sk-cajon .sk-chips{grid-column:1;display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}#sk-cajon .sk-chips .chip{font-size:10.5px;padding:0 6px}
