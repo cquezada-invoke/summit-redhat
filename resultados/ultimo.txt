@@ -1,28 +1,31 @@
-commit: 123137e51b95b4aa1cb4f6098ad6aba402bd7aca
-inicio: 2026-11-10T23:40:13-03:00
+commit: 1fa44867daa8cc6134e7e580face698afe6f9a2e
+inicio: 2026-11-10T23:39:09-03:00
 ---
-ae6cf1e
-faceops actualizado
-APP-02 vigente antes: v 2 · La consola de administración de JBoss (9990) solo acepta con
-editar: 302
-APP-02 vigente: v 3 · git 993e0b1d24
-APLICAR FO-LAB-01559 nodo-jboss exitoso · AAP terminó (successful): ejecución 25 s, espera de aprobación 30 s | Política APP-02 v3 (aplicar): nodo-jboss: al día (systemctl -q is-enabled faceops-app02-fw && nft list...)
-APLICAR FO-LAB-01560 nodo-jboss2 fallido · nodo-jboss2                : ok=3    changed=0    unreachable=0    failed=1    skipped=4    rescued=0    ignored=0    | Política APP-02 v3 (aplicar): nodo-jboss2: falló
-APLICAR FO-LAB-01561 nodo-jboss-dev fallido · nodo-jboss-dev             : ok=3    changed=0    unreachable=0    failed=1    skipped=4    rescued=0    ignored=0    | Política APP-02 v3 (aplicar): nodo-jboss-dev: falló
-VERIFICAR FO-LAB-01562 nodo-jboss exitoso · AAP terminó (successful): ejecución 14 s, espera de aprobación 30 s | Política APP-02 v3 (verificar): nodo-jboss: al día
-VERIFICAR FO-LAB-01563 nodo-jboss2 exitoso · AAP terminó (successful): ejecución 14 s, espera de aprobación 26 s | Política APP-02 v3 (verificar): nodo-jboss2: no cumple (systemctl -q is-enabled faceops-app02-fw && nft list...)
-VERIFICAR FO-LAB-01564 nodo-jboss-dev exitoso · AAP terminó (successful): ejecución 14 s, espera de aprobación 23 s | Política APP-02 v3 (verificar): nodo-jboss-dev: no cumple (systemctl -q is-enabled faceops-app02-fw && nft list...)
-ESTADO {'nombre': 'nodo-jboss', 'version': 3, 'estado': 'al_dia', 'modo': 'verificar', 'detalle': '[]'}
-ESTADO {'nombre': 'nodo-jboss2', 'version': 3, 'estado': 'no_cumple', 'modo': 'verificar', 'detalle': '["systemctl -q is-enabled faceops-app02-fw && nft list..."]'}
-ESTADO {'nombre': 'nodo-jboss-dev', 'version': 3, 'estado': 'no_cumple', 'modo': 'verificar', 'detalle': '["systemctl -q is-enabled faceops-app02-fw && nft list..."]'}
-CONSOLA nodo-jboss 192.168.122.15 9990 desde FaceOps: True · botón en ficha: ['jboss-eap'] · entrada: 302 → /lab/inventario/6/consola-web/jboss-eap/console/index.html?connect=http%3A%2F%2Flocalhost% · HAL: 200 ['HAL Management Console'] True · /management con credencial de la bóveda: (401, '<html><head><title>Error</title></head><body><div style="fon')
-CONSOLA nodo-jboss2 192.168.122.18 9990 desde FaceOps: False · botón en ficha: [] · entrada: 409 →  · HAL: 409 ['Consola de JBoss solo local · FaceOps'] False · /management con credencial de la bóveda: (409, '<!doctype html>\n<html lang="es"><head><meta charset="utf-8">')
-CONSOLA nodo-jboss-dev 192.168.122.21 9990 desde FaceOps: False · botón en ficha: [] · entrada: 409 →  · HAL: 409 ['Consola de JBoss solo local · FaceOps'] False · /management con credencial de la bóveda: (409, '<!doctype html>\n<html lang="es"><head><meta charset="utf-8">')
-app-jboss salud: 200 ok 1.0.44
-host→192.168.122.15:9990 200 8080 200
-host→192.168.122.18:9990 000 8080 200
-host→192.168.122.21:9990 000 8080 200
-BLOQUEO 22880 desde-nodo-jboss2-a-192.168.122.15:9990=000 8080=200 · local-9990=200 fw=enabled/failed
-BLOQUEO 22884 desde-nodo-jboss-a-192.168.122.18:9990=000 8080=200 · local-9990=200 fw=enabled/active
-BLOQUEO 22885 desde-nodo-jboss-a-192.168.122.21:9990=000 8080=200 · local-9990=200 fw=enabled/active
---- fin: 2026-11-10T23:45:28-03:00 · código: 0
+== estado previo nodo-jboss: running · arranque hace 7931s
+200 200 200 
+== Responder C6: se detiene JBoss en nodo-jboss por AAP (nodo-jboss2 sostiene la app)
+Error: container has already been removed
+200 200 200  (balanceador con JBoss detenido en nodo-jboss)
+J01 en Alertmanager a los 90 s
+PROM-ALERTAS nodo-jboss [('FaceOpsJbossDetenidoJ01', 'critical', 'firing')]
+ALERTMANAGER nodo-jboss [('FaceOpsJbossDetenidoJ01', 'active', ['faceops-objetos'])]
+APROBACION: no apareció
+EDA-AUDIT 2026-11-11T02:42:04 Alerta de objeto · acción con aprobación failed FaceOps · Alertas de objetos
+RESPONDER 22865 2026-11-11T02:42:05 failed | roduct_name": "Red Hat Ansible Automation Platform", "x_api_product_version": "4.8.11", "x_api_request_id": "e35e6699a9c840da955aecaa3833ace5", "x_api_time": "0.013s", "x_api_total_time": "0.045s", "x_content_type_options": "nosniff", "x_envoy_upstream_service_time": "47", "x_frame_options": "DENY"}
+J01 resuelta en Prometheus tras 10 s
+PROM-ALERTAS nodo-jboss []
+ALERTMANAGER nodo-jboss []
+node_systemd_unit_state{name="eap8-standalone.service",state="active",type="simple"} 1
+200 200 200 200 
+== Responder C4: misma alerta dentro de 30 min (throttle)
+CASO R-C4 detener·nodo-jboss FO-LAB-01566 exitoso :: AAP terminó (successful): ejecución 9 s, espera de aprobación 35 s
+REFLEJO nodo-jboss: 2 alertas · FO-LAB-01550 · ['J01 JBoss detenido (critico) → reiniciar_jboss', 'C01 CPU alta → recursos (aviso 80 · crítico 95 %)']
+J01 de nuevo en Alertmanager a los 60 s
+-- desde 2026-11-11T02:46:44 (no debe haber respuesta ni workflow nuevos):
+CASO R-C4 levantar·nodo-jboss FO-LAB-01569 exitoso :: AAP terminó (successful): ejecución 11 s, espera de aprobación 35 s
+REFLEJO nodo-jboss: 2 alertas · FO-LAB-01550 · ['J01 JBoss detenido (critico) → reiniciar_jboss', 'C01 CPU alta → recursos (aviso 80 · crítico 95 %)']
+node_systemd_unit_state{name="eap8-standalone.service",state="active",type="simple"} 1
+200 200 200 200 
+nodo-jboss directo: 200
+nodo-jboss2 directo: 200
+--- fin: 2026-11-10T23:52:48-03:00 · código: 0
