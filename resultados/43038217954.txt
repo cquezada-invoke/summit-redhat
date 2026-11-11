@@ -1,0 +1,28 @@
+commit: 7a9a6fcf4403116497f13b06d63bd38f46516071
+inicio: 2026-11-11T11:24:55-03:00
+---
+métricas sin host en AAP: ['srv-pagos-web-01', 'srv-prueba-rocky-01', 'srv-legado-jboss6-01', 'localhost']
+  dada de baja: srv-pagos-web-01
+  dada de baja: srv-prueba-rocky-01
+  dada de baja: srv-legado-jboss6-01
+LIC {'current_instances': 48, 'instance_count': 50, 'free_instances': 3, 'automated_instances': 47}
+[adhoc 23292 successful]
+nodo-jboss | CHANGED | rc=0 >>
+machine_id=de9c057e5bc345b0af02c1279799e227
+host=nodo-jboss.demo.local
+ip=192.168.122.15 10.88.0.1
+conf=efda0869843f
+svc=active
+marca=ninguna
+salud=ok 1.0.44
+PLAN {"posible": true, "por_que": "", "producto": "jboss", "so": "rhel9", "nombre": "nodo-jboss4", "recursos": {"cpu": 2, "ram_gb": 2, "disco_gb": 20}, "entradas": [8080], "balanceadores": [{"segmento": "App de pagos", "nombre": "nodo-nginx", "ip": "192.168.122.11", "url": "https://192.168.122.11/app-jboss/"}], "destinos": [{"nombre": "nodo-postgres", "ip": "192.168.122.13", "puertos": [5432]}, {"nombre": "nodo-tomcat", "ip": "192.168.122.14", "puertos": [6379, 61616]}], "instancias": 1}
+POLITICA ['APP-02', 'DAT-01', 'SO-01'] 13
+CUPO 3
+C1 TICKET FO-LAB-01634 1634 en_ejecucion
+C6 ('sin plataforma', 'rechazado: No se puede replicar nodo-so: la máquina no tiene una plataforma replicable detrás de un balanceador (JBoss o Nginx)')
+C6 ('nombre existente', 'rechazado: nodo-jboss3 ya existe: la réplica necesita un nombre nuevo (sugerido: nodo-jboss4)')
+C6 ('sin cupo', 'rechazado: La licencia de AAP no tiene nodos libres: la réplica sería un nodo más. Libera uno o amplía la suscripción')
+C6 ('sin prueba (bloqueada) por la ficha', '400 «Replicar máquina» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado')
+C6 ('en curso', 'rechazado: Ya hay una réplica de nodo-jboss en curso (FO-LAB-01634)')
+estado {'numero': 'FO-LAB-01634', 'estado': 'en_ejecucion'}
+--- fin: 2026-11-11T11:25:22-03:00 · código: 0
