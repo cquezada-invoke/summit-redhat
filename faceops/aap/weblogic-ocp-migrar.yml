@@ -408,7 +408,7 @@
         - [decision.md, "# {{ app_n }} → {{ ns }}\n\n- Destino: JBoss EAP 8 en OpenShift · {{ ap.destino.motivo }}\n- Capas: {{ prep.capas | join(', ') }}\n- javax → jakarta: {{ 'sí (Eclipse Transformer en la construcción)' if ap.destino.transformar_javax else 'no' }}\n- jboss-web.xml generado: {{ prep.jboss_web | join(', ') }}\n- Datasources: {{ prep.datasources | map(attribute='nombre') | zip(prep.datasources | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—' }}\n- JMS: {{ prep.jms | map(attribute='nombre') | zip(prep.jms | map(attribute='jndi_eap')) | map('join', ' → ') | join(', ') or '—' }}\n- Imagen: {{ imagen or '—' }}\n- Resultado: {{ 'sano (HTTP 200 por la Route)' if sano else 'falló; vuelta atrás' }}\n"]
       loop_control: {label: "{{ item.0 }}"}
 
-    - name: Publicar artefactos y decisión en Git (repositorio/migraciones-weblogic/<origen>/<app>/)
+    - name: Publicar artefactos y decisión en Git (repositorio/openshift-manifiestos/migraciones-weblogic/<origen>/<app>/)
       ansible.builtin.command:
         argv: >-
           {% set l = ['python3', playbook_dir ~ '/files/weblogic_git.py'] %}{% for f in ['manifiestos.json', 'config.cli', 'decision.md'] %}{% set _ = l.extend([inventory_hostname ~ '/' ~ app_n ~ '/' ~ f, '/tmp/faceops-wl-ocp/' ~ k8s ~ '/git/' ~ f]) %}{% endfor %}{{ l }}

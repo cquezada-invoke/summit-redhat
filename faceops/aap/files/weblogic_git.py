@@ -1,9 +1,10 @@
 #!/usr/bin/python3
-# Migración WebLogic → OpenShift · publica archivos en repositorio/migraciones-weblogic (Gitea), creando o actualizando cada uno.
+# Migración WebLogic → OpenShift · publica archivos en repositorio/openshift-manifiestos, carpeta migraciones-weblogic/ (Gitea),
+# creando o actualizando cada uno.
 # Uso: weblogic_git.py <ruta en el repo> <archivo local> [...]; entorno: G (URL de Gitea), T (token), MSG (mensaje del commit)
 import base64, json, os, sys, time, urllib.request
 
-api = os.environ["G"].rstrip("/") + "/api/v1/repos/repositorio/migraciones-weblogic/contents/"
+api = os.environ["G"].rstrip("/") + "/api/v1/repos/repositorio/openshift-manifiestos/contents/migraciones-weblogic/"
 hd = {"Authorization": "token " + os.environ["T"], "Content-Type": "application/json"}
 ok = 0
 for ruta, local in zip(sys.argv[1::2], sys.argv[2::2]):

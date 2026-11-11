@@ -1193,11 +1193,6 @@ for c_ in (uno("credentials", name="FaceOps · Gitea respaldo"),):
         aap("POST", f"job_templates/{jmj['id']}/credentials/", {"id": c_["id"]})
 paso(f"Plantilla «Migración · JBoss a EAP 8» (id {jmj['id']})")
 # Migración de aplicaciones Oracle WebLogic a JBoss EAP 8 en OpenShift: evaluar (solo lectura) y migrar/revertir (con aprobación)
-if os.path.exists(TOK_R) and not gitea("GET", "repos/repositorio/migraciones-weblogic", t=True):   # informes y artefactos (dueño: la cuenta del token de respaldo)
-    http("POST", f"{GITEA}/user/repos", {"name": "migraciones-weblogic", "private": False, "auto_init": True, "default_branch": "main",
-                                        "description": "FaceOps: evaluaciones y artefactos de migración WebLogic → OpenShift"},
-         auth="token " + open(TOK_R).read().strip(), tolerar=True)
-    paso("Repositorio Git «repositorio/migraciones-weblogic»")
 for nombre_w, pb_w, desc_w, to_w in (
         ("Migración · WebLogic a OpenShift · Evaluar", "weblogic-ocp-evaluar.yml",
          "Lee el dominio WebLogic y sus aplicaciones (descriptores, APIs weblogic.*, JDBC, JMS) y decide el destino en OpenShift; informe en Git (solo lectura)", 1800),
