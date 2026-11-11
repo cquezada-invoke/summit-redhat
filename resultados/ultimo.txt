@@ -1,31 +1,21 @@
-commit: 1fa44867daa8cc6134e7e580face698afe6f9a2e
-inicio: 2026-11-10T23:39:09-03:00
+commit: e551e516b3dc16627f6d09d17f485487244fa2d3
+inicio: 2026-11-10T23:53:24-03:00
 ---
-== estado previo nodo-jboss: running · arranque hace 7931s
-200 200 200 
-== Responder C6: se detiene JBoss en nodo-jboss por AAP (nodo-jboss2 sostiene la app)
-Error: container has already been removed
-200 200 200  (balanceador con JBoss detenido en nodo-jboss)
-J01 en Alertmanager a los 90 s
-PROM-ALERTAS nodo-jboss [('FaceOpsJbossDetenidoJ01', 'critical', 'firing')]
-ALERTMANAGER nodo-jboss [('FaceOpsJbossDetenidoJ01', 'active', ['faceops-objetos'])]
-APROBACION: no apareció
-EDA-AUDIT 2026-11-11T02:42:04 Alerta de objeto · acción con aprobación failed FaceOps · Alertas de objetos
-RESPONDER 22865 2026-11-11T02:42:05 failed | roduct_name": "Red Hat Ansible Automation Platform", "x_api_product_version": "4.8.11", "x_api_request_id": "e35e6699a9c840da955aecaa3833ace5", "x_api_time": "0.013s", "x_api_total_time": "0.045s", "x_content_type_options": "nosniff", "x_envoy_upstream_service_time": "47", "x_frame_options": "DENY"}
-J01 resuelta en Prometheus tras 10 s
-PROM-ALERTAS nodo-jboss []
-ALERTMANAGER nodo-jboss []
-node_systemd_unit_state{name="eap8-standalone.service",state="active",type="simple"} 1
-200 200 200 200 
-== Responder C4: misma alerta dentro de 30 min (throttle)
-CASO R-C4 detener·nodo-jboss FO-LAB-01566 exitoso :: AAP terminó (successful): ejecución 9 s, espera de aprobación 35 s
-REFLEJO nodo-jboss: 2 alertas · FO-LAB-01550 · ['J01 JBoss detenido (critico) → reiniciar_jboss', 'C01 CPU alta → recursos (aviso 80 · crítico 95 %)']
-J01 de nuevo en Alertmanager a los 60 s
--- desde 2026-11-11T02:46:44 (no debe haber respuesta ni workflow nuevos):
-CASO R-C4 levantar·nodo-jboss FO-LAB-01569 exitoso :: AAP terminó (successful): ejecución 11 s, espera de aprobación 35 s
-REFLEJO nodo-jboss: 2 alertas · FO-LAB-01550 · ['J01 JBoss detenido (critico) → reiniciar_jboss', 'C01 CPU alta → recursos (aviso 80 · crítico 95 %)']
-node_systemd_unit_state{name="eap8-standalone.service",state="active",type="simple"} 1
-200 200 200 200 
-nodo-jboss directo: 200
-nodo-jboss2 directo: 200
---- fin: 2026-11-10T23:52:48-03:00 · código: 0
+EQ 11 nodo-so 192.168.122.12 con datos RedHat 9.8 Nodos demo encendido
+EQ 26 nodo-vault 192.168.122.210 con datos RedHat 9.8 Servidores habilitados encendido
+EQ 38 srv-test-vmware-01  retirado Red Hat Enterprise Linux 9 Infra · VMware · Santiago encendido
+EQ 39 srv-test-vinculacion-01 192.168.122.151 retirado RedHat 9.8 Servidores habilitados encendido
+EQ 40 srv-test-ubuntu-01 192.168.122.113 retirado Ubuntu 24.04 Servidores habilitados apagado
+EQ 90 srv-prueba-rocky-01 192.168.122.216 retirado RedHat 9.8 Servidores habilitados apagado
+EQ 91 srv-prueba-rhel9-01 192.168.122.247 retirado RedHat 9.6 Servidores habilitados encendido
+EQ 92 srv-prueba-rhel8-01 192.168.122.64 retirado RedHat 8.10 Servidores habilitados encendido
+192.168.122.210:9100 200
+192.168.122.12:9100 200
+192.168.122.216:9100 000
+ vnet4      52:54:00:78:57:b5    ipv4         192.168.122.247/24
+
+ vnet5      52:54:00:01:97:ff    ipv4         192.168.122.64/24
+
+ vnet3      52:54:00:59:a6:1e    ipv4         192.168.122.149/24
+
+--- fin: 2026-11-10T23:53:33-03:00 · código: 0
