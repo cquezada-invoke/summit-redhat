@@ -119,9 +119,16 @@ if [ "$FASE" = rhel8-ev ]; then
     L=$(libres); echo "licencia AAP libres: $L"; [ "${L:-0}" -ge 1 ] || { echo "SIN LICENCIA LIBRE: no se crea la máquina"; exit 0; }
     hab rhel8 mig-rhel8
   fi
-  inv $R8
+  [ "$(sudo podman exec -i faceops python3 - $R8 2>/dev/null <<'Q' | tail -1
+import sys
+from app import create_app
+create_app()
+from app.bd import q1
+e = q1("SELECT estado FROM equipos WHERE nombre=? AND estado!='retirado'", sys.argv[1]); print((e or {}).get("estado") or "")
+Q
+)" = "con datos" ] || inv $R8
   I8=$(ip_de $R8); echo "IP $R8 $I8 · $(en $I8 'cat /etc/redhat-release; sudo subscription-manager identity 2>/dev/null | grep -c "org ID"')"
-  cargar evaluar
+  cargar evaluar; CASOS=$(python3 -c 'import json,sys;print(json.dumps([c for c in json.loads(sys.argv[1]) if c["id"] != "C3"],ensure_ascii=False))' "$CASOS")   # C3 se repite entero
   R0=$(en $I8 'cat /etc/redhat-release')
   evaluar C3 $R8 '"mig_destino":"9","mig_preupgrade":"true"' 40; M3=$M
   A3=$(campo "$M3" analisis); R3=$(en $I8 'cat /etc/redhat-release')
@@ -132,29 +139,41 @@ if [ "$FASE" = rhel8-ev ]; then
   [ "$(python3 -c "import json,sys;l=json.loads(sys.argv[1]);print(len(l), all(c['resultado']=='ok' for c in l))" "$CASOS")" = "7 True" ] \
     && certificar "$EV" "planes-prueba.yml · Migración · Evaluar sistema operativo (C1–C7)" || echo "EVALUAR sin certificar (casos incompletos o con falla)"
 fi
-if [ "$FASE" = rhel8-rv ]; then
+if [ "$FASE" = rhel8-rv ]; then   # reanudable: cada corrida del runner dura hasta 60 min; lo hecho queda en ~/pruebas-mig
   I8=$(ip_de $R8); echo "IP $R8 $I8 · $(en $I8 'cat /etc/redhat-release')"
-  CASOS='[]'; TKS='[]'
-  S0=$(snaps $R8)
-  caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_politica\":\"minimo\",\"mig_snapshot\":\"kvm\",\"mig_destino\":\"7\"},\"min\":20,\"caso\":\"C1\"}" >/dev/null
-  S1=$(snaps $R8); R1=$(en $I8 'cat /etc/redhat-release'); D1=$(jq_ "r.get('detalle') or ''")
-  no_ && [ "$S0" = "$S1" ] && echo "$R1" | grep -q "release 8" && echo "$D1" | grep -q "no válida" && anotar C1 "Destino anterior (7)" ok "rechazado en validaciones: snapshots $S0=$S1, sigue $R1" || anotar C1 "Destino anterior (7)" falla "$(estado) $S0/$S1 $R1 $D1"
-  caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_politica\":\"minimo\",\"mig_snapshot\":\"kvm\"},\"min\":40,\"caso\":\"C2\"}" >/dev/null
-  M2=$(mig $R8); R2=$(en $I8 'cat /etc/redhat-release')
-  ok_ && echo "$R2" | grep -q "release 8.10" && anotar C2 "Política mínimo" ok "$(campo "$M2" accion) · queda $R2" || anotar C2 "Política mínimo" falla "$(estado) $R2 $M2 $(jq_ "r.get('detalle')")"
-  caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_destino\":\"9\",\"mig_snapshot\":\"kvm\",\"mig_prueba_falla\":true},\"min\":30,\"caso\":\"C3\"}" >/dev/null
-  D3=$(jq_ "' · '.join(r.get('fallos') or [])"); R3=$(en $I8 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
-  no_ && echo "$D3" | grep -q "volvió al snapshot" && echo "$R3" | grep -q "release 8" && echo "$R3" | grep -q sin-marca \
-    && anotar C3 "Falla tras el snapshot" ok "vuelta atrás: $(echo "$D3" | grep -o 'volvió al snapshot [^ ]*') · $(echo $R3)" || anotar C3 "Falla tras el snapshot" falla "$(estado) $D3 $R3"
-  S3=$(snaps $R8)
-  caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_destino\":\"9\",\"mig_snapshot\":\"kvm\"},\"min\":180,\"caso\":\"C4\"}" >/dev/null
-  sleep 20; M4=$(mig $R8); R4=$(en $I8 'cat /etc/redhat-release; sudo subscription-manager identity 2>/dev/null | grep -c "org ID"'); S4=$(snaps $R8)
-  ok_ && echo "$R4" | grep -q "Red Hat Enterprise Linux release 9" && [ "$S4" -gt "$S3" ] \
-    && anotar C4 "RHEL 8 → 9 con Leapp" ok "$(echo $R4) · snapshot previo ($S3→$S4) · fallidos: $(campo "$(campo "$M4" resultado)" fallidos)" || anotar C4 "RHEL 8 → 9 con Leapp" falla "$(estado) $R4 $S3/$S4 $(jq_ "r.get('detalle')")"
-  caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_destino\":\"9\",\"mig_snapshot\":\"kvm\"},\"min\":30,\"caso\":\"C5\"}" >/dev/null
-  M5=$(mig $R8); R5=$(en $I8 'cat /etc/redhat-release'); S5=$(snaps $R8)
-  ok_ && echo "$R5" | grep -q "release 9" && [ "$(campo "$M5" saltos)" = "[]" ] && anotar C5 "Repetir destino 9" ok "$(campo "$M5" accion) · sigue $R5 · snapshots $S4→$S5" || anotar C5 "Repetir destino 9" falla "$(estado) $R5 $M5 $(jq_ "r.get('detalle')")"
-  guardar rhel; echo "RHEL: $CASOS" | cut -c1-1200
+  cargar rhel; hecho() { grep -q "\"id\": \"$1\"" <<<"$CASOS"; }
+  hecho C1 || {
+    S0=$(snaps $R8)
+    caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_politica\":\"minimo\",\"mig_snapshot\":\"kvm\",\"mig_destino\":\"7\"},\"min\":20,\"caso\":\"C1\"}" >/dev/null
+    S1=$(snaps $R8); R1=$(en $I8 'cat /etc/redhat-release'); D1=$(jq_ "r.get('detalle') or ''")
+    no_ && [ "$S0" = "$S1" ] && echo "$R1" | grep -q "release 8" && echo "$D1" | grep -q "no válida" && anotar C1 "Destino anterior (7)" ok "rechazado en validaciones: snapshots $S0=$S1, sigue $R1" || anotar C1 "Destino anterior (7)" falla "$(estado) $S0/$S1 $R1 $D1"
+    guardar rhel; }
+  hecho C2 || {
+    caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_politica\":\"minimo\",\"mig_snapshot\":\"kvm\"},\"min\":40,\"caso\":\"C2\"}" >/dev/null
+    M2=$(mig $R8); R2=$(en $I8 'cat /etc/redhat-release')
+    ok_ && echo "$R2" | grep -q "release 8.10" && anotar C2 "Política mínimo" ok "$(campo "$M2" accion) · queda $R2" || anotar C2 "Política mínimo" falla "$(estado) $R2 $M2 $(jq_ "r.get('detalle')")"
+    guardar rhel; }
+  hecho C3 || {
+    caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_destino\":\"9\",\"mig_snapshot\":\"kvm\",\"mig_prueba_falla\":true},\"min\":30,\"caso\":\"C3\"}" >/dev/null
+    D3=$(jq_ "' · '.join(r.get('fallos') or [])"); R3=$(en $I8 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
+    no_ && echo "$D3" | grep -q "volvió al snapshot" && echo "$R3" | grep -q "release 8" && echo "$R3" | grep -q sin-marca \
+      && anotar C3 "Falla tras el snapshot" ok "vuelta atrás: $(echo "$D3" | grep -o 'volvió al snapshot [^ ]*') · $(echo $R3)" || anotar C3 "Falla tras el snapshot" falla "$(estado) $D3 $R3"
+    snaps $R8 > $EST/rhel.s3; guardar rhel; }
+  hecho C4 || {
+    J4="{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_destino\":\"9\",\"mig_snapshot\":\"kvm\"},\"min\":45,\"caso\":\"C4\"}"
+    [ -s $EST/rhel.c4 ] && J4=$(python3 -c 'import json,sys;d=json.loads(sys.argv[1]);d["reanudar"]=sys.argv[2];print(json.dumps(d))' "$J4" "$(cat $EST/rhel.c4)")
+    caso "$J4" >/dev/null; ticket > $EST/rhel.c4
+    case "$(estado)" in exitoso|fallido|rechazado|cancelado|error|"rechazado al solicitar") ;; *) echo "  C4 $(ticket) sigue en curso ($(estado)): continúa en la próxima corrida"; exit 0;; esac
+    sleep 20; S3=$(cat $EST/rhel.s3); M4=$(mig $R8); R4=$(en $I8 'cat /etc/redhat-release; sudo subscription-manager identity 2>/dev/null | grep -c "org ID"'); S4=$(snaps $R8)
+    ok_ && echo "$R4" | grep -q "Red Hat Enterprise Linux release 9" && [ "$S4" -gt "$S3" ] \
+      && anotar C4 "RHEL 8 → 9 con Leapp" ok "$(echo $R4) · snapshot previo ($S3→$S4) · fallidos: $(campo "$(campo "$M4" resultado)" fallidos)" || anotar C4 "RHEL 8 → 9 con Leapp" falla "$(estado) $R4 $S3/$S4 $(jq_ "' · '.join(r.get('fallos') or [])")"
+    guardar rhel; }
+  hecho C5 || {
+    caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_destino\":\"9\",\"mig_snapshot\":\"kvm\"},\"min\":30,\"caso\":\"C5\"}" >/dev/null
+    M5=$(mig $R8); R5=$(en $I8 'cat /etc/redhat-release'); S5=$(snaps $R8)
+    ok_ && echo "$R5" | grep -q "release 9" && [ "$(campo "$M5" saltos)" = "[]" ] && anotar C5 "Repetir destino 9" ok "$(campo "$M5" accion) · sigue $R5 · snapshots $S5" || anotar C5 "Repetir destino 9" falla "$(estado) $R5 $M5 $(jq_ "r.get('detalle')")"
+    guardar rhel; }
+  echo "RHEL: $CASOS" | cut -c1-1500
   grep -q '"falla"' <<<"$CASOS" || certificar "$RV" "planes-prueba.yml · Migración · RHEL a versión soportada (C1–C5)"
   echo FIN-RHEL8
 fi
