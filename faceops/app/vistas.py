@@ -2842,7 +2842,10 @@ def consola_web_plataforma(eid, cod, sub):
             loc_ = requests.get(f"{base_kc}/", allow_redirects=False, timeout=5).headers.get("Location", "")
         except requests.RequestException:
             loc_ = ""
-        rel_ = re.sub(r"^https?://[^/]+", "", loc_).strip("/")
+        rel_ = re.sub(r"^https?://[^/]+", "", loc_)
+        if f"/consola-web/{cod}" in rel_:   # KC_HOSTNAME ya es la URL de esta consola en FaceOps: su ruta propia es lo que sigue (/sso)
+            rel_ = rel_.split(f"/consola-web/{cod}", 1)[1]
+        rel_ = rel_.strip("/")
         try:   # si Keycloak tiene publicado su nombre propio (KC_HOSTNAME), su consola se abre ahí: así la sesión y las redirecciones funcionan
             loc2_ = requests.get(f"{base_kc}/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/", allow_redirects=False, timeout=5).headers.get("Location", "")
         except requests.RequestException:
@@ -3660,8 +3663,7 @@ def _agentes_de(e, d_=None):
 AGENTE_QUITABLE = {"respaldo-git", "node-exporter", "windows-exporter"}   # los que retira «Sistema · Quitar agente» (aap/quitar-agente.yml)
 
 
-AGENTE_ACCIONES = (("encender", "Encender"), ("reiniciar", "Reiniciar"), ("apagar", "Apagar"), ("estado", "Ver estado"),
-                   ("actualizar", "Actualizar"), ("quitar", "Quitar"))   # mismo orden e íconos que las plataformas
+AGENTE_ACCIONES = (("encender", "Encender"), ("apagar", "Apagar"), ("actualizar", "Actualizar"), ("quitar", "Quitar"))   # mismos íconos que las plataformas (sin reinicio)
 _AG_ABIERTO = ("pendiente_aprobacion", "en_cola", "en_ejecucion", "en curso", "ejecutando", "esperando")
 
 
@@ -3672,6 +3674,45 @@ def _agentes_desc():
         return _y.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "agentes.yml"), encoding="utf-8")) or {}
     except (OSError, _y.YAMLError):
         return {}
+
+
+def _agente_version_vigente(ag):
+    """Versión que deja hoy la automatización que instala el agente (variable «version» de su playbook), si la declara."""
+    try:
+        a_ = q1("SELECT tecnico FROM automatizaciones WHERE nombre_aap=? LIMIT 1", ag.get("auto") or "")
+        pb = (j((a_ or {}).get("tecnico"), {}) or {}).get("playbook") or ""
+        txt = open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "aap", os.path.basename(pb)), encoding="utf-8").read() if pb else ""
+    except OSError:
+        return ""
+    m_ = re.search(r'^\s+version:\s*"?([0-9][0-9.]*)"?', txt, re.M)
+    return m_.group(1) if m_ else ""
+
+
+def _salud_agente_detalle(e, a):
+    """Flotante de salud de un agente (solo salud): estado, si reporta y versión vigente u obsoleta; cada fila que resta trae la
+    acción que la remedia (encender, actualizar), con ticket y aprobación."""
+    d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    sa = a.get("salud") or {}
+    est = sa.get("estado")
+    if a.get("skill") == "acceso":
+        return [{"n": "Acceso", "d": "Usuario de servicio con llave propia en la bóveda: AAP opera la máquina con él", "ok": bool(a.get("instalado")), "acc": None}]
+    filas = []
+    inv = (e.get("ultima_recoleccion") or "")[:16].replace("T", " ")
+    if a.get("skill") == "respaldo-git":
+        filas.append({"n": "Estado", "d": "Temporizadores activos (respaldo cada minuto)" if sa.get("ok") else (sa.get("estado") or "sin dato"), "ok": sa.get("ok"), "acc": None})
+        filas.append({"n": "Reporta", "d": sa.get("detalle") or "sin dato del repositorio", "ok": sa.get("ok"), "acc": None})
+    else:
+        filas.append({"n": "Estado", "d": ("Encendido" if est == "encendido" else "Apagado" if est == "apagado" else "Sin dato") + (f" · servicio {a['unidades'][0]}" if a.get("unidades") else "") + (f" · inventario {inv}" if inv else ""),
+                      "ok": True if est == "encendido" else (False if est == "apagado" else None), "acc": "encender" if est == "apagado" else None})
+        filas.append({"n": "Reporta", "d": "Publica sus métricas (servicio arriba en el último inventario)" if est == "encendido" else "No publica métricas mientras esté apagado",
+                      "ok": est == "encendido" if est in ("encendido", "apagado") else None, "acc": None})
+    vig = _agente_version_vigente(a)
+    inst = ((d_.get("agentes") or {}).get(a.get("skill")) or {}).get("version") or ""
+    if vig:
+        obs = bool(inst) and inst != vig
+        filas.append({"n": "Versión", "d": (f"{inst} · obsoleta (vigente {vig})" if obs else f"{inst} · vigente") if inst else f"Vigente {vig} (el inventario no informa la instalada: «Actualizar» la deja en la vigente)",
+                      "ok": (not obs) if inst else None, "acc": "actualizar" if obs or not inst else None})
+    return filas
 
 
 def _agente_tickets(cliente_id, e):
@@ -4952,7 +4993,7 @@ def equipo(eid):
             radar_mso["mix"] = salud_combinada(radar_mso, [(c_["nombre"], c_.get("radar_sal")) for c_ in componentes if not c_.get("so")])
     except Exception as x_:  # noqa: BLE001
         current_app.logger.warning("salud por plataforma: %s", x_)
-    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"], e), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"], e), agente_salud=lambda a_: _salud_agente_detalle(e, a_), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
