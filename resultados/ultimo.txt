@@ -1,14 +1,24 @@
-commit: b5813102eff2f340f1ce6c181c9b673253b590e9
-inicio: 2026-11-11T14:16:06-03:00
+commit: e9e7fd673faea4a086f4ded7df20532b50821e3a
+inicio: 2026-11-11T14:03:38-03:00
 ---
-e6047f4
-RED-02 v 2
-RED-02 en {'nombre': 'nodo-jboss', 'energia': 'encendido', 'version': 1, 'estado': 'al_dia'}
-{'nombre': 'nodo-postgres', 'energia': 'encendido', 'ip': '192.168.122.13', 'skills_auto': '["node-exporter", "postgres"]', 'skills_manual': '[]'}
-{'nombre': 'nodo-nginx', 'energia': 'encendido', 'ip': '192.168.122.11', 'skills_auto': '["kafka", "nginx", "node-exporter", "redis", "redisinsight"]', 'skills_manual': '[]'}
-{'nombre': 'nodo-tomcat', 'energia': 'encendido', 'ip': '192.168.122.14', 'skills_auto': '["activemq", "keycloak", "node-exporter", "redis", "redisinsight"]', 'skills_manual': '[]'}
-nodo-nginx podman=1 fwd=1
-nodo-jboss2 podman=no fwd=0
-nodo-so podman=no fwd=0
-nodo-postgres podman=no fwd=0
---- fin: 2026-11-11T14:17:01-03:00 · código: 0
+anoche C5: FO-LAB-01507 AAP terminó (successful): ejecución 15 s, espera de aprobación 35 s
+inicio: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · dev 1.0.44
+energía nodo-jboss2 apagar: exitoso FO-LAB-01728
+   nodo-jboss2: shut off
+RES {"ticket": "FO-LAB-01731", "estado": "exitoso", "limite": "nodo-jboss", "resultado": "AAP terminó (successful): ejecución 17 s, espera de aprobación 41 s", "stats": {"version_desplegada": "1.0.43", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
+energía nodo-jboss2 encender: sin respuesta del arnés 
+C1: exitoso · límite nodo-jboss · aprobación True · LB  6 1.0.43; 6 1.0.44; · nodo-jboss 1.0.43 · 
+CASO C1 falla · 1.0.43 con nodo apagado
+RES {"ticket": "FO-LAB-01738", "estado": "exitoso", "limite": "nodo-jboss:nodo-jboss2", "resultado": "AAP terminó (successful): ejecución 28 s, espera de aprobación 40 s", "stats": {"version_desplegada": "1.0.441.0.44", "commit": "", "solicitado_por": "cquezadacquezada", "origen": "AAPAAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
+C2: exitoso · set_stats 1.0.441.0.44 · LB  12 1.0.44; · nodos 1.0.44/1.0.44 · manifiesto 1 · 
+CASO C2 falla · 1.0.44 en producción
+RES {"ticket": "FO-LAB-01739", "estado": "exitoso", "limite": "nodo-jboss:nodo-jboss2", "resultado": "AAP terminó (successful): ejecución 39 s, espera de aprobación 38 s", "stats": {"version_desplegada": "1.0.441.0.44", "commit": "", "solicitado_por": "cquezadacquezada", "origen": "AAPAAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
+CASO C3 ok · repetir 1.0.44
+RES {"ticket": "FO-LAB-01741", "estado": "fallido", "limite": "nodo-jboss:nodo-jboss2", "resultado": "            : ok=6    changed=1    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   \nnodo-jboss2                : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   ", "stats": {}, "detalle": "Descargar versión 9.9.999 publicada por el pipeline · Request failed", "aprobado": true}
+CASO C4 ok · versión inexistente 9.9.999
+RES {"ticket": "FO-LAB-01743", "estado": "exitoso", "limite": "nodo-jboss-dev", "resultado": "AAP terminó (successful): ejecución 16 s, espera de aprobación 61 s", "stats": {"version_desplegada": "1.0.44", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
+C5: exitoso · límite nodo-jboss-dev · aprobación True · dev 1.0.44 · LB  12 1.0.44;
+CASO C5 ok · desarrollo
+CERT JBoss · Desplegar app → cambiada
+final: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · HTTP 200
+--- fin: 2026-11-11T14:22:19-03:00 · código: 0
