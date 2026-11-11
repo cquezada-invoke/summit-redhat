@@ -578,14 +578,34 @@ def prefijo_lake(segmento):
     return re.sub(r"[^a-z0-9]+", "-", t).strip("-")[:40]
 
 
+def declaracion_lake(m):
+    """La derivación que declara la arquitectura (flujo «estilo: bifurcacion»): la aplicación escribe directo en su zona del
+    lake, sin espejo. Devuelve su destino, cómo medirla (la propia aplicación informa lo que escribe) y la máquina donde corre."""
+    if not m:
+        return None
+    f = next((x for x in m.get("flujos") or [] if x.get("estilo") == "bifurcacion"), None)
+    if not f:
+        return None
+    comps = {c["id"]: c for c in m["componentes"]}
+    eq = next((e for cid in (f["desde"], f["hacia"]) for e in (comps.get(cid) or {}).get("equipos") or []), "")
+    med = f.get("medicion") or {}
+    return {"destino": f.get("destino") or "", "medicion_url": med.get("url") or "", "medicion_clave": str(med.get("clave") or ""), "equipo": eq}
+
+
 def params_derivacion(cliente_id, segmento, punto, accion):
-    """Variables del ticket «Data lake · Derivar segmento»: espejo en el punto de entrada y flujos funcionales de su arquitectura."""
+    """Variables del ticket «Data lake · Derivar segmento»: espejo en el punto de entrada y flujos funcionales de su arquitectura.
+    Si la arquitectura declara la derivación (la aplicación ya escribe en el lake), el ticket no pone espejo: verifica que la
+    aplicación informe lo que escribe y deja la derivación registrada (modo «declarada»)."""
     from .arquitectura import vigente
     arq = vigente(cliente_id, segmento)
     ff = ((arq or {}).get("m") or {}).get("flujos_funcionales") or {}
-    return {"dl_accion": accion, "dl_prefijo": prefijo_lake(segmento), "dl_segmento": segmento, "dl_punto": punto, "dl_colector": LAKE["colector"],
-            "dl_flujos": "si" if ff.get("base") else "no", "dl_app_url": ff.get("base", ""), "dl_escenario": ff.get("escenario") or [["GET", "/"]],
-            "dl_minutos": int(ff.get("minutos", 30))}
+    p = {"dl_accion": accion, "dl_prefijo": prefijo_lake(segmento), "dl_segmento": segmento, "dl_punto": punto, "dl_colector": LAKE["colector"],
+         "dl_flujos": "si" if ff.get("base") else "no", "dl_app_url": ff.get("base", ""), "dl_escenario": ff.get("escenario") or [["GET", "/"]],
+         "dl_minutos": int(ff.get("minutos", 30)), "dl_modo": "espejo"}
+    d = declaracion_lake((arq or {}).get("m"))
+    if d:
+        p.update(dl_modo="declarada", dl_flujos="no", dl_destino=d["destino"], dl_medicion_url=d["medicion_url"], dl_medicion_clave=d["medicion_clave"])
+    return p
 
 
 def _bifurcacion_lake(els, cliente, segmento, m, asg):
@@ -628,7 +648,8 @@ def _bifurcacion_lake(els, cliente, segmento, m, asg):
     url = _url_app(cliente["id"], segmento, m)
     uso = _uso_lake(pref) if activa else {}
     for n in punto:
-        nodos[n]["bif"] = {"enviado_mb": uso.get("enviado_mb"), "s3_mb": uso.get("s3_mb"), "desde": uso.get("desde", ""),"segmento": segmento, "destino": ((b or {}).get("destino") if declarada and (b or {}).get("destino") else f"s3://lake/{pref}/"), "activa": activa, "como": como, "declarada": declarada,
+        nodos[n]["bif"] = {"enviado_mb": uso.get("enviado_mb"), "s3_mb": uso.get("s3_mb"), "desde": uso.get("desde", ""),"segmento": segmento, "destino": ((b or {}).get("destino") if declarada and (b or {}).get("destino") else f"s3://lake/{pref}/"), "activa": activa,
+                           "medicion": bool(declarada and (declaracion_lake(m) or {}).get("medicion_url")), "como": como, "declarada": declarada,
                            "por": (b or {}).get("por") or "", "en": (b or {}).get("en") or "", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"],
                            "datos": LAKE["datos"] + pref}
         if url and not nodos[n].get("app_url"):

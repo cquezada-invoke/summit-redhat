@@ -5719,7 +5719,13 @@ def mapa_bifurcacion():
     seg = f.get("segmento", "")
     if not q1("SELECT id FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], seg) or not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
         return {"error": "Segmento no encontrado"}, 404
-    e = next((x for x in equipos_visibles() if x["nombre"] == f.get("punto", "")), None)
+    from .arquitectura import vigente as _vig
+    from .topologia import declaracion_lake
+    dec = declaracion_lake((_vig(g.cliente["id"], seg) or {}).get("m"))
+    # derivación declarada en la arquitectura: la aplicación ya escribe en el lake; el ticket corre sobre la máquina donde vive
+    # (p. ej. el nodo de OpenShift) y solo verifica y registra, sin espejo
+    punto = dec["equipo"] if dec and dec.get("equipo") else f.get("punto", "")
+    e = next((x for x in equipos_visibles() if x["nombre"] == punto), None)
     if not e:
         return {"error": "No encuentro la máquina de entrada del segmento (el punto donde se copia el tráfico)"}, 400
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], DATALAKE)
@@ -5762,12 +5768,31 @@ def mapa_lake_uso():
     seg = request.args.get("segmento", "")
     if not any(x["nombre"] == seg for x in segmentos_visibles(g.usuario, g.cliente["id"])):
         abort(404)
+    from .arquitectura import vigente as _vig
+    from .topologia import declaracion_lake
+    dec = declaracion_lake((_vig(g.cliente["id"], seg) or {}).get("m"))
+    if dec and dec.get("medicion_url"):   # derivación declarada: la aplicación informa lo que escribe en su zona del lake
+        try:
+            ap = (rq.get(dec["medicion_url"], timeout=4).json().get("aplicaciones") or {}).get(dec["medicion_clave"]) or {}
+        except Exception:  # noqa: BLE001
+            return {"error": "la aplicación no informa su medición"}, 503
+        import time as _t
+        ahora_, tot = _t.time(), int(ap.get("total") or 0)
+        prev, rps = _MED_LAKE.get(seg), None
+        if prev and 3 <= ahora_ - prev[0] <= 600 and tot >= prev[1]:
+            rps = round((tot - prev[1]) / (ahora_ - prev[0]), 2)
+        _MED_LAKE[seg] = (ahora_, tot) if not prev or ahora_ - prev[0] >= 3 else prev
+        return {"requests": ap.get("lake"), "rps": rps, "archivos": ap.get("archivos"), "mb": None, "directa": True,
+                "destino": dec["destino"], "error_app": ap.get("error") or ""}
     try:
         x = rq.get(f"{LAKE['colector']}/estado/{prefijo_lake(seg)}", timeout=4).json()
     except Exception:  # noqa: BLE001
         return {"error": "colector no disponible"}, 503
     return {"requests": x.get("enviado_registros"), "rps": x.get("rps_1m"), "mb": round((x.get("enviado_bytes") or 0) / 1048576, 2),
             "desde": x.get("enviado_desde", "")}
+
+
+_MED_LAKE = {}   # última muestra (instante, operaciones) por segmento: la carga de entrada es la diferencia entre dos lecturas
 
 
 @bp.route("/mapa/rendimiento", methods=["GET", "POST"])

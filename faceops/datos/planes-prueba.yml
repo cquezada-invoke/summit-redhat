@@ -30,6 +30,10 @@ planes:
       - {id: C2, caso: "Flujos funcionales y datos en el lake", verificar: "el generador envía tráfico por el balanceador; aparecen requests en s3://lake/app-de-pagos/requests/ y la tabla lake.seg_app_de_pagos.requests en Trino responde; la vista «Ver los datos» los muestra, sin cookies ni claves"}
       - {id: C3, caso: "Desactivar", verificar: "se quita el espejo y se detienen los flujos; la aplicación sigue respondiendo; la derivación queda inactiva"}
       - {id: C4, caso: "Repetir la activación", verificar: "idempotente: no duplica la configuración de nginx"}
+      - {id: C5, caso: "Modo declarada: activar la derivación de Banca · Core bancario (la app ya escribe en s3://lake/apps/banca_core/)", verificar: "ticket con aprobación exitoso sin espejo ni cambios en la máquina; la app informa lo que escribe; la bifurcación queda activa con destino, ticket y fecha; el lake se dibuja una sola vez y el flotante muestra operaciones enviadas y carga de entrada"}
+      - {id: C6, caso: "Modo declarada: repetir la activación", verificar: "idempotente: una sola fila de bifurcación, sigue activa"}
+      - {id: C7, caso: "Modo declarada: desactivar", verificar: "la bifurcación queda inactiva y el lake deja de dibujarse; la aplicación sigue respondiendo"}
+      - {id: C8, caso: "Modo declarada con URL de medición inválida", verificar: "falla controlada en la validación; la bifurcación no cambia"}
   "FaceOps · Rendimiento del canal":
     casos:
       - {id: C1, caso: "Prueba del canal de App de pagos", verificar: "trabajos en AAP exitosos; cada tramo con 3 rondas de 10 muestras (prom, p95, máx, jitter, pérdidas) y la entrada HTTP medida"}

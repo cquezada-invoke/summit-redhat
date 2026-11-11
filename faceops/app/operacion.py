@@ -1094,7 +1094,8 @@ def actualizar_tickets():
                     ej("INSERT INTO bifurcaciones(cliente_id, segmento, punto, destino, activa, por, en) VALUES (?,?,?,?,?,?,?) "
                        "ON CONFLICT(cliente_id, segmento) DO UPDATE SET punto=excluded.punto, destino=excluded.destino, activa=excluded.activa, "
                        "por=excluded.por, en=excluded.en", t["cliente_id"], p_dl.get("dl_segmento", ""), p_dl.get("dl_punto", ""),
-                       f"s3://lake/{p_dl.get('dl_prefijo', '')}/", 1 if p_dl.get("dl_accion") == "activar" else 0, t.get("numero", ""), ahora())
+                       p_dl.get("dl_destino") or f"s3://lake/{p_dl.get('dl_prefijo', '')}/", 1 if p_dl.get("dl_accion") == "activar" else 0,
+                       t.get("numero", ""), ahora())
                 except Exception as x:  # noqa: BLE001
                     print("Derivación al data lake:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") == "Políticas de desarrollo · Evaluar aplicaciones":

@@ -1,6 +1,6 @@
 segmento: "Banca · Core bancario"
 codigo: bcor
-version: 2
+version: 3
 grupo: aplicaciones
 descripcion: "Aplicación típica de banca (demo). Atiende su operación y una bifurcación copia cada operación al data lake central (S3 + Trino, zona banca_core). Datos sintéticos."
 responsable: Arquitectura Invoke
@@ -46,4 +46,6 @@ componentes:
 
 flujos:
   - {desde: usuarios, hacia: app, puerto: 443, motivo: "operación del negocio"}
-  - {desde: app, hacia: lake, puerto: 9000, estilo: bifurcacion, motivo: "bifurcación: cada operación se copia al data lake (JSON por minuto)"}
+  - {desde: app, hacia: lake, puerto: 9000, estilo: bifurcacion, motivo: "bifurcación: cada operación se copia al data lake (JSON por minuto)",
+     destino: "s3://lake/apps/banca_core/operaciones_vivo/",
+     medicion: {url: "https://banca.sno.34.176.42.56.sslip.io/salud", clave: core}}

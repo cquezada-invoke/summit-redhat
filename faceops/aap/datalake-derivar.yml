@@ -3,6 +3,9 @@
 # envía una copia en paralelo y no espera su respuesta. Con dl_flujos=si, además arranca flujos funcionales hacia la aplicación.
 # Variables: dl_accion (activar | desactivar), dl_prefijo (segmento en el lake), dl_colector (URL interna del colector),
 #            dl_app_url (entrada de la aplicación), dl_flujos (si | no), dl_escenario (lista [método, ruta, cuerpo]), dl_minutos
+# Modo «declarada» (dl_modo): la arquitectura declara la derivación y la aplicación ya escribe cada operación en su zona del
+# lake (dl_destino). No se pone espejo ni se toca la máquina: se verifica que la aplicación informe lo que escribe
+# (dl_medicion_url, dl_medicion_clave) y FaceOps deja la derivación registrada como activa o inactiva.
 - name: Data lake · Derivar segmento
   hosts: all
   gather_facts: false
@@ -12,7 +15,39 @@
     pref: "{{ dl_prefijo | default('') }}"
     colector: "{{ dl_colector | default('http://192.168.122.50:30480') }}"
     archivo: "/etc/nginx/default.d/fo-lake-{{ pref }}.conf"
+    modo: "{{ dl_modo | default('espejo') }}"
   tasks:
+    - name: Derivación declarada en la arquitectura (sin espejo)
+      when: modo == 'declarada'
+      become: false
+      block:
+        - name: Datos válidos (declarada)
+          ansible.builtin.assert:
+            that:
+              - accion in ['activar', 'desactivar']
+              - (dl_destino | default('')) is match('^s3://lake/[a-z0-9_/-]+/$')
+              - (dl_medicion_url | default('')) is match('^https://[a-z0-9.-]+(/[A-Za-z0-9._/-]*)?$')
+              - (dl_medicion_clave | default('')) is match('^[a-z0-9_-]{1,40}$')
+            fail_msg: "Destino, URL de medición o clave no válidos: no se registra la derivación"
+
+        - name: La aplicación informa lo que escribe en su zona del lake
+          ansible.builtin.uri: {url: "{{ dl_medicion_url }}", timeout: 15, return_content: true, validate_certs: false}
+          delegate_to: localhost
+          register: r_med
+          failed_when: >-
+            accion == 'activar' and (r_med.status | default(0) != 200
+            or dl_medicion_clave not in ((r_med.json | default({})).get('aplicaciones') or {}))
+
+        - name: Resultado para FaceOps (declarada)
+          ansible.builtin.set_stats:
+            data:
+              faceops_datalake: "{{ {pref: {'accion': accion, 'modo': 'declarada', 'equipo': inventory_hostname, 'destino': dl_destino,
+                                    'enviado_lake': (((r_med.json | default({})).get('aplicaciones') or {}).get(dl_medicion_clave) or {}).get('lake', 0)}} }}"
+            aggregate: true
+
+        - name: Nada más que hacer en la máquina
+          ansible.builtin.meta: end_host
+
     - name: Datos válidos
       ansible.builtin.assert:
         that:
