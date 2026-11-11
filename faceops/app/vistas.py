@@ -3610,35 +3610,68 @@ def _agentes_de(e, d_=None):
 AGENTE_QUITABLE = {"respaldo-git", "node-exporter", "windows-exporter"}   # los que retira «Sistema · Quitar agente» (aap/quitar-agente.yml)
 
 
-def _agente_control(cliente_id):
-    """Qué botones de un agente se pueden usar (encender/reiniciar/apagar y quitar) y, si no, por qué (title del botón)."""
+AGENTE_ACCIONES = (("estado", "Ver estado"), ("reiniciar", "Reiniciar"), ("encender", "Encender"), ("apagar", "Apagar"),
+                   ("actualizar", "Actualizar"), ("quitar", "Quitar"))
+_AG_ABIERTO = ("pendiente_aprobacion", "en_cola", "en_ejecucion", "en curso", "ejecutando", "esperando")
+
+
+def _agente_tickets(cliente_id, e):
+    """Último ticket (24 h) de cada agente y acción en la máquina: {(skill, acción): ticket}. Así la ficha muestra «En curso» con
+    su número mientras no termina (también al recargar) y «Aplicada · número» cuando terminó bien."""
+    from datetime import timedelta
+    desde = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat(timespec="seconds")
+    autos_ = {a["auto"]: a for a in AGENTES}
+    out = {}
+    for t in q("SELECT t.id, t.numero, t.estado, t.parametros, t.motivo, a.nombre_aap FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+               "WHERE t.cliente_id=? AND t.limite=? AND t.creado>=? ORDER BY t.id", cliente_id, e["nombre"], desde):
+        p_ = j(t["parametros"], {})
+        if t["nombre_aap"] == "Plataforma · Controlar servicio":
+            ag = next((a for a in AGENTES if a["unidades"] == p_.get("sp_unidades") and a["nombre"] == p_.get("sp_plataforma")), None)
+            acc = p_.get("sp_accion")
+        elif t["nombre_aap"] == "Sistema · Quitar agente":
+            ag, acc = next((a for a in AGENTES if a["skill"] == p_.get("qa_agente")), None), "quitar"
+        else:
+            ag, acc = autos_.get(t["nombre_aap"]), ("actualizar" if (t["motivo"] or "").startswith("Actualizar") else "instalar")
+        if ag and acc:
+            out[(ag["skill"], acc)] = {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": t["estado"] in _AG_ABIERTO}
+    return out
+
+
+def _agente_control(cliente_id, e=None):
+    """Acciones de cada agente en la ficha (ver estado, reiniciar, encender, apagar, actualizar y quitar), cada una con ticket y
+    aprobación: si se puede o, si no, por qué (regla de prueba, temporizadores…), y su último ticket (En curso / Aplicada)."""
     cache = {}
+    tks = _agente_tickets(cliente_id, e) if e else {}
 
     def _cert(nom):
         if nom not in cache:
             a_ = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, nom)
-            cache[nom] = "" if a_ and _certificada(a_) else (f"Falta «{nom}» en el catálogo" if not a_ else f"«{a_['nombre']}» aún no pasa su plan de prueba")
+            cache[nom] = "" if a_ and _certificada(a_) else (f"Falta «{nom}» en el catálogo" if not a_ else f"«{a_['nombre']}» aún no pasa su plan de prueba (regla de prueba)")
         return cache[nom]
 
     def f(a):
-        out = {"servicio": False, "no_servicio": "", "quitar": False, "no_quitar": ""}
         if a.get("skill") == "acceso":
-            out["no_servicio"] = "El acceso de FaceOps es un usuario de servicio, no un proceso: no se enciende ni se apaga"
-            out["no_quitar"] = "El acceso de FaceOps no se quita desde aquí: por él AAP opera la máquina"
-            return out
-        if not a.get("unidades"):
-            out["no_servicio"] = "Este agente no tiene un servicio que controlar"
-        elif any(not u.endswith(".service") and "." in u for u in a["unidades"]):
-            out["no_servicio"] = "Corre con temporizadores de systemd (cada minuto): aún no se controla por separado; para detenerlo, quítalo"
-        else:
-            out["no_servicio"] = _cert("Plataforma · Controlar servicio")
-            out["servicio"] = not out["no_servicio"]
-        if a.get("skill") not in AGENTE_QUITABLE:
-            out["no_quitar"] = "Este agente no se puede quitar desde FaceOps"
-        else:
-            out["no_quitar"] = _cert("Sistema · Quitar agente")
-            out["quitar"] = not out["no_quitar"]
-        return out
+            return {"acciones": [], "nota": "Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina)"}
+        est = (a.get("salud") or {}).get("estado")
+        acs = []
+        for acc, et in AGENTE_ACCIONES:
+            if acc == "encender" and est == "encendido" or acc == "apagar" and est == "apagado":
+                continue   # el estado contrario ya rige: se muestra solo el que sirve
+            if acc in ("estado", "reiniciar", "encender", "apagar"):
+                if not a.get("unidades"):
+                    no = "Este agente no tiene un servicio que controlar"
+                elif any(not u.endswith(".service") and "." in u for u in a["unidades"]):
+                    no = "Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para detenerlo, quítalo"
+                elif acc == "reiniciar" and est == "apagado":
+                    no = "Está apagado: enciéndelo"
+                else:
+                    no = _cert("Plataforma · Controlar servicio")
+            elif acc == "actualizar":
+                no = _cert(a["auto"]) if a.get("auto") else "Sin automatización de instalación"
+            else:
+                no = _cert("Sistema · Quitar agente") if a.get("skill") in AGENTE_QUITABLE else "Este agente no se puede quitar desde FaceOps"
+            acs.append({"acc": acc, "et": et, "ok": not no, "motivo": no, "ticket": tks.get((a.get("skill"), acc))})
+        return {"acciones": acs, "nota": ""}
     return f
 
 
@@ -4855,7 +4888,7 @@ def equipo(eid):
             radar_mso["mix"] = salud_combinada(radar_mso, [(c_["nombre"], c_.get("radar_sal")) for c_ in componentes if not c_.get("so")])
     except Exception as x_:  # noqa: BLE001
         current_app.logger.warning("salud por plataforma: %s", x_)
-    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"]), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"], e), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -8463,24 +8496,32 @@ def equipo_servicio(eid):
 @bp.route("/inventario/<int:eid>/agente", methods=["POST"])
 @requiere_login
 def equipo_agente(eid):
-    """Encender, apagar o reiniciar un agente (sus unidades de systemd) o quitarlo de la máquina: ticket con aprobación."""
+    """Acción sobre un agente desde la ficha: ver estado, encender, apagar o reiniciar (sus unidades de systemd), actualizar
+    (reinstala su versión vigente) o quitarlo. Siempre ticket con aprobación; si ya hay uno abierto para lo mismo, lo devuelve."""
     from .operacion import solicitar_en_equipo
     if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
         return {"error": "Necesitas perfil de escritura"}, 403
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
     ag = next((a for a in AGENTES if a["skill"] == request.form.get("agente")), None)
     accion = request.form.get("accion", "")
-    if not e or not ag or accion not in ("encender", "apagar", "reiniciar", "quitar"):
+    if not e or not ag or accion not in dict(AGENTE_ACCIONES):
         return {"error": "Pedido no válido"}, 400
-    nom = "Sistema · Quitar agente" if accion == "quitar" else "Plataforma · Controlar servicio"
+    ctl = next((x for x in _agente_control(g.cliente["id"], e)(dict(ag, instalado=True))["acciones"] if x["acc"] == accion), None)
+    if ctl and ctl["ticket"] and ctl["ticket"]["abierto"]:
+        tk = ctl["ticket"]
+        return {"numero": tk["numero"], "estado": tk["estado"], "url": url_for("consola.ticket", tid=tk["id"]), "id": tk["id"], "existente": True}
+    if not ctl or not ctl["ok"]:
+        return {"error": (ctl or {}).get("motivo") or "Acción no disponible para este agente"}, 400
+    nom = "Sistema · Quitar agente" if accion == "quitar" else (ag["auto"] if accion == "actualizar" else "Plataforma · Controlar servicio")
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], nom)
-    if not a:
-        return {"error": f"Falta «{nom}» en el catálogo (sincroniza con AAP)"}, 400
-    if not _certificada(a):
-        return {"error": f"«{a['nombre']}» aún no pasa su plan de prueba: no se puede lanzar"}, 400
-    params = {"qa_agente": ag["skill"]} if accion == "quitar" else {"sp_unidades": ag["unidades"], "sp_accion": accion, "sp_plataforma": ag["nombre"]}
+    if not a or not _certificada(a):   # regla de prueba: nunca se lanza una acción sin su plan aprobado
+        return {"error": f"«{nom}» aún no pasa su plan de prueba: no se puede lanzar"}, 400
+    params = ({"qa_agente": ag["skill"]} if accion == "quitar" else {} if accion == "actualizar"
+              else {"sp_unidades": ag["unidades"], "sp_accion": accion, "sp_plataforma": ag["nombre"]})
+    et = dict(AGENTE_ACCIONES)[accion]
     try:
-        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, f"{'Quitar' if accion == 'quitar' else accion.capitalize()} el agente «{ag['nombre']}» en {e['nombre']}")
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, f"{'Consultar el estado del' if accion == 'estado' else et + ' el'} agente «{ag['nombre']}» en {e['nombre']}",
+                                reinstalar=accion == "actualizar")
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "id": t["id"]}
