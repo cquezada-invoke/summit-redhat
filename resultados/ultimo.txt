@@ -1,31 +1,15 @@
-commit: 9eb6d4f42276ebee999a906118a573c70b055150
-inicio: 2026-11-10T22:29:33-03:00
+commit: 3498b49b15ad3e5389878e0bf576ef8b2fc38a98
+inicio: 2026-11-10T22:47:08-03:00
 ---
-C4 estado (tras FO-LAB-01490): {'faceops': {'ip': '192.168.150.130', 'ubicacion': 'Centro de datos Valparaíso'}, 'aap': [('192.168.150.130', 'Centro de datos Valparaíso'), ('192.168.150.130', 'Centro de datos Valparaíso')]}
-C5 flotante: {'origen': 'KVM · Valparaíso', 'bloqueo': '', 'pendiente': None, 'destinos': [('KVM · Santiago', True, []), ('VMware · Santiago', False, ['la automatización no convierte máquinas KVM a VMware vSphere'])]}
-C5 mover Valparaíso → Santiago (flotante): FO-LAB-01516 exitoso | stats: {'maquina': 'srv-mover-01', 'modo': 'mover', 'destino': 'default', 'red_origen': 'dc-valpo', 'red_actual': 'default', 'gb': '1.3', 'minutos_estimados': '3', 'ip': '192.168.122.35', 'responde': True, 'puerto': '22'} | AAP terminó (successful): ejecución 68 s, espera de aprobación 12 s
-C5 estado: {'faceops': {'ip': '192.168.122.35', 'ubicacion': 'Centro de datos Santiago'}, 'aap': [('192.168.122.35', 'Centro de datos Santiago'), ('192.168.122.35', 'Centro de datos Santiago')]}
-C5b confirmar (flotante): FO-LAB-01518 exitoso | stats: {'maquina': 'srv-mover-01', 'modo': 'confirmar', 'destino': 'default', 'red_origen': '', 'red_actual': '', 'gb': '0', 'minutos_estimados': '3', 'ip': '', 'responde': '', 'puerto': '22'} | AAP terminó (successful): ejecución 8 s, espera de aprobación 23 s
-C5b estado: {'faceops': {'ip': '192.168.122.35', 'ubicacion': 'Centro de datos Santiago'}, 'aap': [('192.168.122.35', 'Centro de datos Santiago'), ('192.168.122.35', 'Centro de datos Santiago')]}
-C5b flotante: {'origen': 'KVM · Santiago', 'bloqueo': '', 'pendiente': None, 'destinos': [('KVM · Valparaíso', True, []), ('VMware · Santiago', False, ['la automatización no convierte máquinas KVM a VMware vSphere'])]}
-C6a destino donde ya está: FO-LAB-01519 fallido | stats: None | se centro de datos"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-C6b máquina protegida: FO-LAB-01520 fallido | stats: None | hift no se mueven)"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-C6c FaceOps rechaza nodo-vault: PermissionError La bóveda y los nodos de OpenShift no se mueven
-C6c flotante nodo-vault: La bóveda y los nodos de OpenShift no se mueven
-C6d FaceOps rechaza VMware: PermissionError VMware · Santiago no es un destino posible: la automatización no convierte máquinas KVM a VMware vSphere
-C7 mover con puerto de verificación cerrado: FO-LAB-01521 fallido | stats: None | de datos de origen"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=10   changed=4    unreachable=0    failed=1    skipped=0    rescued=1    ignored=0   
-C7 estado antes: {'faceops': {'ip': '192.168.122.35', 'ubicacion': 'Centro de datos Santiago'}, 'aap': [('192.168.122.35', 'Centro de datos Santiago'), ('192.168.122.35', 'Centro de datos Santiago')]} después: {'faceops': {'ip': '192.168.122.35', 'ubicacion': 'Centro de datos Santiago'}, 'aap': [('192.168.122.35', 'Centro de datos Santiago'), ('192.168.122.35', 'Centro de datos Santiago')]}
-C7 flotante: None KVM · Santiago
---- anfitrión
- 2    nodo-vault                   running
- 39   srv-mover-01                 running
- Interface   Type      Source    Model    MAC
--------------------------------------------------------------
- vnet38      network   default   virtio   52:54:00:1e:78:c7
-
- Name       MAC address          Protocol     Address
--------------------------------------------------------------------------------
- vnet38     52:54:00:1e:78:c7    ipv4         192.168.122.35/24
-
- srv-mover-01.qcow2             /var/lib/libvirt/images/srv-mover-01.qcow2
---- fin: 2026-11-10T22:45:08-03:00 · código: 0
+53ae721
+faceops actualizado
+   · Proyecto «FaceOps · automatizaciones»: successful
+   · Plantilla «Storage · Servicio S3 del data lake» (id 557)
+   · Plantilla «Data lake · Derivar segmento» (id 613)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+ocp-sno → el equipo no está en el inventario de AAP de esta acción | inv ["OpenShift \u00b7 cl\u00fasteres"]
+nodo-nginx → None | inv ["Servidores de aplicaci\u00f3n", "Nodos demo", "Red \u00b7 laboratorio", "Drift \u00b7 Servidores"]
+auto: {'inventario': 'Nodos demo', 'compatibles': '[]', 'skills': '[]', 'usa_limite': 1, 'visible': 1} | prueba: cambiada
+arq banca core: 3
+Error: can only create exec sessions on running containers: container state improper
+--- fin: 2026-11-10T22:50:47-03:00 · código: 0
