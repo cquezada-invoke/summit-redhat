@@ -1,26 +1,11 @@
-commit: 12a991dcb055e622b4ece95e42ab4b8dbdcbfca4
-inicio: 2026-11-11T12:53:29-03:00
+commit: a1827d0d36b38595fa2e9c3b69b891a370d4da70
+inicio: 2026-11-11T13:10:08-03:00
 ---
-aprobado FO-LAB-01667
-Error: container has already been removed
-FINAL FO-LAB-01667 fallido wf 23494
-AAP terminó (successful): ejecución 635 s, espera de aprobación 907 s
-La réplica no quedó verificada: vuelta atrás ejecutada (se retiró del balanceo y se eliminó la máquina nueva: Domain 'nodo-jboss5' destroyed, Domain 'nodo-jboss5' has been undefined, vm eliminada, disco conservado aparte). El origen no se modificó.
-Falló en la tarea «La réplica responde directo» de localhost: Status code was 404 and not [200]: HTTP Error 404: Not Found
-== VMs
-nodo-jboss2
-nodo-jboss
-nodo-jboss4
-nodo-jboss-dev
-nodo-jboss-qa
-nodo-jboss3
-== upstream
-upstream app_jboss {
-    server 192.168.122.15:8080 max_fails=2 fail_timeout=10s;
-    server 192.168.122.105:8080 max_fails=2 fail_timeout=10s;  # réplica HA · FaceOps FO-LAB-01658
-    server 192.168.122.18:8080 max_fails=2 fail_timeout=10s;
-}
-
-== balanceador
-200 200 200 200 
---- fin: 2026-11-11T13:10:10-03:00 · código: 0
+clientes: [(1, 'lab', True), (2, 'demo-minera', False), (3, 'demo-banco', False), (4, 'demo-clinica', False)]
+/monitoreo/eventos-aap?dias=30 200 filas: 191 maquinas: 66 tickets: 83 [('Todos', '191'), ('Reglas EDA', '100'), ('Activaciones EDA', '0'), ('Trabajos fallidos', '11'), ('Aprobaciones', '80')]
+/monitoreo/eventos-aap?dias=30&origen=trabajo 200 filas: 11 maquinas: 3 tickets: 4 [('Todos', '191'), ('Reglas EDA', '100'), ('Activaciones EDA', '0'), ('Trabajos fallidos', '11'), ('Aprobaciones', '80')]
+/monitoreo/eventos-aap?dias=30&origen=eda 200 filas: 100 maquinas: 0 tickets: 0 [('Todos', '191'), ('Reglas EDA', '100'), ('Activaciones EDA', '0'), ('Trabajos fallidos', '11'), ('Aprobaciones', '80')]
+/monitoreo/eventos-aap?dias=1&origen=eda-activacion 200 filas: 0 maquinas: 0 tickets: 0 [('Todos', '143'), ('Reglas EDA', '52'), ('Activaciones EDA', '0'), ('Trabajos fallidos', '11'), ('Aprobaciones', '80')]
+/monitoreo/eventos-aap?dias=1 200 filas: 143 maquinas: 66 tickets: 83 [('Todos', '143'), ('Reglas EDA', '52'), ('Activaciones EDA', '0'), ('Trabajos fallidos', '11'), ('Aprobaciones', '80')]
+/monitoreo/eventos-aap?origen=aprobacion 200 filas: 80 maquinas: 63 tickets: 79 [('Todos', '191'), ('Reglas EDA', '100'), ('Activaciones EDA', '0'), ('Trabajos fallidos', '11'), ('Aprobaciones', '80')]
+--- fin: 2026-11-11T13:10:47-03:00 · código: 0
