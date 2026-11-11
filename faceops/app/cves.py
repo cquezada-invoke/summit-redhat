@@ -23,6 +23,34 @@ CREATE TABLE IF NOT EXISTS cves_revision (
 def iniciar():
     from .bd import con
     con().executescript(ESQUEMA)
+    for col in ("kernel_ej", "kernel_inst"):   # kernel en ejecución / instalado más nuevo (reinicio pendiente)
+        try:
+            con().execute(f"ALTER TABLE cves_revision ADD COLUMN {col} TEXT")
+        except Exception:  # noqa: BLE001 - ya existe
+            pass
+
+
+_KERNEL = ("kernel", "kernel-core", "kernel-modules", "kernel-modules-core", "kernel-modules-extra", "kernel-rt", "kernel-tools", "kernel-tools-libs")
+
+
+def _vr(txt):
+    """Versión-release comparable de un kernel o paquete kernel-…-5.14.0-741.20.1.el9_9.x86_64."""
+    import re
+    m = re.search(r"(\d+\.\d+\.\d+-[\d.]+(?:\.el\d+(?:_\d+)?)?)", str(txt or ""))
+    return tuple(int(x) for x in re.findall(r"\d+", m.group(1))) if m else ()
+
+
+def reinicio(rev):
+    """{ejecucion, instalado} si hay un kernel instalado más nuevo que el que corre (falta reiniciar para cargarlo)."""
+    ej_, in_ = (rev or {}).get("kernel_ej"), (rev or {}).get("kernel_inst")
+    return {"ejecucion": ej_, "instalado": in_} if ej_ and in_ and _vr(in_) > _vr(ej_) else None
+
+
+def _por_reinicio(fila, kernel_inst):
+    """El parche de este CVE ya está instalado (kernel nuevo) y solo falta reiniciar para cargarlo."""
+    pkg = fila.get("paquete") or ""
+    nom = pkg.rsplit("-", 2)[0] if pkg.count("-") >= 2 else pkg
+    return bool(kernel_inst) and nom in _KERNEL and _vr(pkg) and _vr(pkg) <= _vr(kernel_inst)
 
 
 def registrar(aap, cliente, t):
@@ -43,11 +71,13 @@ def registrar(aap, cliente, t):
                 ej("INSERT OR IGNORE INTO cves_equipo(cliente_id, equipo_id, cve, severidad, paquete, estado, visto) VALUES (?,?,?,?,?,?,?)",
                    cliente["id"], e["id"], cve, SEV.get(sev, sev), pkg, estado, ahora())
         _a_base(cliente["id"], e["id"], r.get("pendientes") or [])
-        ej("INSERT INTO cves_revision(cliente_id, equipo_id, repos, pendientes, cubiertos, cuando, ticket_id) VALUES (?,?,?,?,?,?,?) "
+        k_ = r.get("kernel") or {}
+        iniciar()
+        ej("INSERT INTO cves_revision(cliente_id, equipo_id, repos, pendientes, cubiertos, cuando, ticket_id, kernel_ej, kernel_inst) VALUES (?,?,?,?,?,?,?,?,?) "
            "ON CONFLICT(cliente_id, equipo_id) DO UPDATE SET repos=excluded.repos, pendientes=excluded.pendientes, cubiertos=excluded.cubiertos, "
-           "cuando=excluded.cuando, ticket_id=excluded.ticket_id",
+           "cuando=excluded.cuando, ticket_id=excluded.ticket_id, kernel_ej=excluded.kernel_ej, kernel_inst=excluded.kernel_inst",
            cliente["id"], e["id"], int(bool(r.get("repos"))), len({x.split("|")[0] for x in r.get("pendientes") or []}),
-           len({x.split("|")[0] for x in r.get("cubiertos") or []}), ahora(), t["id"])
+           len({x.split("|")[0] for x in r.get("cubiertos") or []}), ahora(), t["id"], k_.get("ejecucion") or None, k_.get("instalado") or None)
         lineas.append(f"{n}: " + (f"{len(r.get('pendientes') or [])} pendientes · {len(r.get('cubiertos') or [])} cubiertos" if r.get("repos")
                                   else "sin repositorios Red Hat (no se puede evaluar)"))
     return "CVE: " + " · ".join(lineas)
@@ -98,15 +128,19 @@ def por_equipo(cliente_id, eqs):
     out = {}
     for e in eqs:
         r = rev.get(e["id"])
+        r = dict(r) if r else None
+        rb_ = reinicio(r)
         ps = sorted(pend.get(e["id"], {}).values(), key=lambda x: (ORDEN.get(x["severidad"], 9), x["cve"]))
         out[e["id"]] = {"revisado": bool(r), "repos": bool(r and r["repos"]), "pendientes": len(ps), "cubiertos": r["cubiertos"] if r else 0,
                         "criticos": len([x for x in ps if x["severidad"] == "crítica"]), "importantes": len([x for x in ps if x["severidad"] == "importante"]),
                         "cuando": r["cuando"] if r else None, "top": ps[:8],
                         # por severidad: CVE distintos pendientes y detectados (pendientes + corregidos), para el puntaje proporcional
                         "sev": _por_sev(pend.get(e["id"], {}), base.get(e["id"], {})), "criterio": CRITERIO,
-                        "act": actualizacion(e, pend.get(e["id"], {}).values()),
+                        # parche ya instalado (kernel nuevo) que se carga al reiniciar: no se ofrece «Aplicar», se ofrece reiniciar
+                        "reinicio": dict(rb_, cves=len([x for x in ps if _por_reinicio(x, rb_["instalado"])])) if rb_ else None,
+                        "act": actualizacion(e, [x for x in ps if not (rb_ and _por_reinicio(x, rb_["instalado"]))]),
                         # todos los CVE reportados para su sistema: pendientes primero (por severidad) y los resueltos marcados ok
-                        "todos": [dict(x, ok=False) for x in ps] + [dict(x, ok=True) for x in sorted(
+                        "todos": [dict(x, ok=False, al_reiniciar=bool(rb_ and _por_reinicio(x, rb_["instalado"]))) for x in ps] + [dict(x, ok=True) for x in sorted(
                             (v for k, v in cub.get(e["id"], {}).items() if k not in pend.get(e["id"], {})),
                             key=lambda x: (ORDEN.get(x["severidad"], 9), x["cve"]))]}
     return out
@@ -118,9 +152,9 @@ REINICIO = ("kernel", "kernel-core", "kernel-rt", "kernel-modules", "glibc", "li
 
 
 def actualizacion(e, filas):
-    """Qué deja «Aplicar todos los parches de seguridad»: versión actual → versión menor resultante (la del flujo de los paquetes
-    que corrigen los CVE pendientes: .el9_8 = 9.8; si el release estuviera fijado, los repositorios solo ofrecerían esa menor),
-    cuántos paquetes cambian y si exige reiniciar. Dentro de la misma versión mayor: 9 → 10 es Modernización."""
+    """Qué deja «Aplicar todos los parches de seguridad»: versión actual (/etc/redhat-release) → la que queda. Solo sube si entre
+    los paquetes viene redhat-release (un kernel .el9_9 no cambia la versión del sistema), cuántos paquetes cambian y si exige
+    reiniciar. Sin pendientes no ofrece nada. Dentro de la misma versión mayor: 9 → 10 es Modernización."""
     import re
     m = re.search(r"(\d+)(?:\.(\d+))?", str(e.get("so") or ""))
     may, men = (int(m.group(1)), int(m.group(2) or 0)) if m else (None, None)
@@ -128,7 +162,8 @@ def actualizacion(e, filas):
     if not pkgs:
         return None
     nombres = {p.rsplit("-", 2)[0] if p.count("-") >= 2 else p for p in pkgs}
-    menores = [int(b) for p in pkgs for a, b in re.findall(r"\.el(\d+)_(\d+)", p) if may is None or int(a) == may]
+    # /etc/redhat-release solo cambia si entre los paquetes viene redhat-release; un kernel .el9_9 no sube la versión del sistema
+    menores = [int(b) for p in pkgs if p.startswith("redhat-release-") for a, b in re.findall(r"-(\d+)\.(\d+)-", p) if may is None or int(a) == may]
     dest = max([men or 0] + menores) if may is not None else None
     return {"actual": f"{may}.{men}" if may is not None else (e.get("so") or "—"), "destino": f"{may}.{dest}" if may is not None else None,
             "sube": may is not None and dest > (men or 0), "paquetes": len(nombres), "familia": "RHEL" if re.search(r"red ?hat|rhel", str(e.get("so") or ""), re.I) else (str(e.get("so") or "").split(" ")[0] or "SO"),

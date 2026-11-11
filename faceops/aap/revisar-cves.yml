@@ -24,13 +24,20 @@
       changed_when: false
       when: r_repos.stdout | int > 0
 
+    - name: Kernel en ejecución y kernel instalado más nuevo (si difieren, falta reiniciar para cargarlo)
+      ansible.builtin.shell: >-
+        echo "$(uname -r)|$(rpm -q kernel-core --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' 2>/dev/null | sort -V | tail -1)"
+      register: r_ker
+      changed_when: false
+
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
           faceops_cves: >-
             {{ {inventory_hostname: {'repos': r_repos.stdout | int > 0,
                 'pendientes': (r_pend.stdout_lines | default([])),
-                'cubiertos': (r_cub.stdout_lines | default([]))}} }}
+                'cubiertos': (r_cub.stdout_lines | default([])),
+                'kernel': {'ejecucion': r_ker.stdout.split('|')[0], 'instalado': (r_ker.stdout.split('|') + [''])[1]}}} }}
 
     - name: Resumen
       ansible.builtin.debug:

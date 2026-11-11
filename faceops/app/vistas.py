@@ -631,7 +631,45 @@ def _cves_equipo(e):
                 ok_[c_] = x
     for x in cv["todos"]:
         x["en_curso"], x["aplicado"] = abiertos.get(x["cve"]), ok_.get(x["cve"])
+    if cv.get("reinicio"):   # kernel nuevo instalado sin cargar: reinicio con ticket (aprobación en producción)
+        cv["reinicio"]["posible"] = energia_posible(e) and g.perfil["modo"] == "escritura"
+        for t in q("SELECT t.id, t.numero, t.estado, t.parametros FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.cliente_id=? "
+                   "AND a.nombre_aap=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion','en curso','ejecutando') ORDER BY t.id DESC",
+                   g.cliente["id"], ENERGIA):
+            p_ = j(t["parametros"], {})
+            if p_.get("en_equipo") == e["nombre"] and p_.get("en_accion") == "reiniciar":
+                cv["reinicio"]["en_curso"] = {"id": t["id"], "numero": t["numero"], "estado": t["estado"]}
+                break
     return cv
+
+
+@bp.route("/inventario/<int:eid>/reinicio-kernel", methods=["POST"])
+@requiere_login
+def equipo_reinicio_kernel(eid):
+    """Reinicio para cargar el kernel ya instalado por los parches: ticket de «Encender o apagar equipo» (reiniciar), con aprobación."""
+    from .operacion import solicitar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    cv = _cves_equipo(e) if e else None
+    rb = (cv or {}).get("reinicio")
+    if not rb:
+        return {"error": "No hay un kernel nuevo pendiente de cargar en esta máquina"}, 400
+    if rb.get("en_curso"):
+        x = rb["en_curso"]
+        return {"id": x["id"], "numero": x["numero"], "estado": x["estado"], "url": url_for("consola.ticket", tid=x["id"]), "existente": True}
+    if not energia_posible(e):
+        return {"error": "Este equipo no se reinicia desde FaceOps (solo máquinas virtuales del anfitrión KVM)"}, 400
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ENERGIA)
+    if not a:
+        return {"error": f"Falta «{ENERGIA}» en el catálogo (sincroniza con AAP)"}, 400
+    try:
+        t = solicitar(g.usuario, g.cliente, a, (e["segmentos"] or [""])[0], {"en_equipo": e["nombre"], "en_accion": "reiniciar"},
+                      f"Reinicio programado de {e['nombre']}: cargar el kernel {rb['instalado']} (en ejecución {rb['ejecucion']})",
+                      filtros={"ambientes": [e["ambiente"]]} if e.get("ambiente") else None)
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
 def _politicas_equipo(e):
