@@ -1,15 +1,16 @@
-commit: fac09458a92497c39aa70140f3b692c609e1fac5
-inicio: 2026-11-10T23:25:34-03:00
+commit: bee0018a5caa0a3cddbff9ec676c6878da892586
+inicio: 2026-11-10T23:25:55-03:00
 ---
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-Traceback (most recent call last):
-  File "/tmp/ri1.py", line 4, in <module>
-    for e in q("SELECT id,nombre,ip,cliente_id,skills FROM equipos WHERE nombre IN ('nodo-jboss','nodo-nginx','nodo-tomcat') AND estado!='retirado'"):
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/bd.py", line 179, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: skills
-cquezada
---- fin: 2026-11-10T23:25:40-03:00 · código: 0
+FO-LAB-01528 runner_on_ok Archivos rc= None changed= True |  | 
+FO-LAB-01528 runner_on_ok Archivos rc= None changed= True |  | 
+FO-LAB-01528 runner_on_ok Verificaciones rc= 1 changed= False | non-zero return code | 
+FO-LAB-01528 runner_on_ok Correcciones rc= 0 changed= True |  | Created symlink /etc/systemd/system/multi-user.target.wants/faceops-app02-fw.service → /etc/systemd/system/faceops-app02-fw.service.
+FO-LAB-01528 runner_on_ok Resumen rc= None changed= False | nodo-jboss: corregido: /etc/sysconfig/faceops-app02.nft, /etc/systemd/system/faceops-app02-fw.service, systemctl -q is-enabled faceops-app02-fw && nft list... | 
+FO-LAB-01529 runner_on_ok Archivos rc= None changed= True |  | 
+FO-LAB-01529 runner_on_ok Archivos rc= None changed= True |  | 
+FO-LAB-01529 runner_on_ok Verificaciones rc= 1 changed= False | non-zero return code | 
+FO-LAB-01529 runner_on_failed Correcciones rc= 1 changed= True | non-zero return code | s in "/etc/yum.repos.d", "/etc/yum/repos.d", "/etc/distro.repos.d".
+Created symlink /etc/systemd/system/multi-user.target.wants/faceops-app02-fw.service → /etc/systemd/system/faceops-app02-fw.service.
+Job for faceops-app02-fw.service failed because the control process exited with error code.
+See "systemctl status faceops-app02-fw.service" and "journalctl -xeu faceops-app02-fw.service" for details.
+--- fin: 2026-11-10T23:26:01-03:00 · código: 0
