@@ -63,7 +63,7 @@ if [ "$FASE" = rocky-cr ]; then
   S1=$(snaps $RK); R1=$(en $IK 'cat /etc/redhat-release'); D1=$(jq_ "r.get('detalle') or ''")
   no_ && [ "$S0" = "$S1" ] && echo "$R1" | grep -q Rocky && echo "$D1" | grep -q "no válida" && anotar C1 "Destino no válido (99)" ok "rechazado en validaciones: snapshots $S0=$S1, sigue $R1" || anotar C1 "Destino no válido" falla "$(estado) $S0/$S1 $R1 $D1"
   caso "{\"auto\":\"$CR\",\"equipo\":\"$RK\",\"params\":{\"mig_politica\":\"minimo\",\"mig_snapshot\":\"kvm\",\"mig_prueba_falla\":true},\"min\":30,\"caso\":\"C2\"}" >/dev/null
-  D2=$(jq_ "r.get('detalle') or ''"); R2=$(en $IK 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
+  D2=$(jq_ "' · '.join(r.get('fallos') or [])"); R2=$(en $IK 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
   no_ && echo "$D2" | grep -q "volvió al snapshot" && echo "$R2" | grep -q Rocky && echo "$R2" | grep -q sin-marca \
     && anotar C2 "Falla tras el snapshot" ok "vuelta atrás: $(echo "$D2" | grep -o 'volvió al snapshot [^ ]*') · $(echo $R2)" || anotar C2 "Falla tras el snapshot" falla "$(estado) $D2 $R2"
   S2=$(snaps $RK)
@@ -110,7 +110,7 @@ if [ "$FASE" = rhel8-rv ]; then
   M2=$(mig $R8); R2=$(en $I8 'cat /etc/redhat-release')
   ok_ && echo "$R2" | grep -q "release 8.10" && anotar C2 "Política mínimo" ok "$(campo "$M2" accion) · queda $R2" || anotar C2 "Política mínimo" falla "$(estado) $R2 $M2 $(jq_ "r.get('detalle')")"
   caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_destino\":\"9\",\"mig_snapshot\":\"kvm\",\"mig_prueba_falla\":true},\"min\":30,\"caso\":\"C3\"}" >/dev/null
-  D3=$(jq_ "r.get('detalle') or ''"); R3=$(en $I8 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
+  D3=$(jq_ "' · '.join(r.get('fallos') or [])"); R3=$(en $I8 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
   no_ && echo "$D3" | grep -q "volvió al snapshot" && echo "$R3" | grep -q "release 8" && echo "$R3" | grep -q sin-marca \
     && anotar C3 "Falla tras el snapshot" ok "vuelta atrás: $(echo "$D3" | grep -o 'volvió al snapshot [^ ]*') · $(echo $R3)" || anotar C3 "Falla tras el snapshot" falla "$(estado) $D3 $R3"
   S3=$(snaps $R8)

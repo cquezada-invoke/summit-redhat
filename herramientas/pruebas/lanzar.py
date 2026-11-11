@@ -35,6 +35,22 @@ with app.app_context():
             return f"(sin detalle: {e})"
         return ""
 
+    def fallos(t):   # todos los fallos del trabajo (incluidos los rescatados o ignorados), para ver la causa final
+        out_ = []
+        try:
+            jobs = [t["aap_job_id"]]
+            if t["aap_job_tipo"] == "workflow":
+                jobs = [x["job"] for x in aap.todos(f"workflow_jobs/{t['aap_job_id']}/workflow_nodes/") if x.get("job")]
+            for jb in jobs:
+                try:
+                    evs = aap.get(f"jobs/{jb}/job_events/", event="runner_on_failed", page_size=20).get("results") or []
+                except Exception:  # noqa: BLE001
+                    continue
+                out_ += [f"{x.get('task')} · {str((x.get('event_data', {}).get('res') or {}).get('msg', ''))[:400]}" for x in evs]
+        except Exception:  # noqa: BLE001
+            pass
+        return out_[-6:]
+
     def stats(t):
         try:
             if t["aap_job_tipo"] == "workflow":
@@ -108,5 +124,6 @@ with app.app_context():
     out["estado"] = x["estado"]
     out["stats"] = stats(x) if x.get("aap_job_id") else {}
     out["detalle"] = fallo(x) if x["estado"] != "exitoso" and x.get("aap_job_id") else ""
+    out["fallos"] = fallos(x) if x["estado"] != "exitoso" and x.get("aap_job_id") else []
     out["resultado"] = (x["resultado"] or "")[-700:]
     print("RES", json.dumps(out, ensure_ascii=False, default=str), flush=True)
