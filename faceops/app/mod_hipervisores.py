@@ -12,13 +12,96 @@ def hipervisores():
     return inventario(seccion="hipervisores")
 
 
+# Acción que enciende o apaga el anfitrión (por su gestión fuera de banda, con ticket y aprobación en AAP). Mientras no esté
+# publicada y certificada, la caja Encendido muestra sus botones deshabilitados con el motivo.
+ENERGIA_HIP = "Infra · Encender o apagar anfitrión"
+# Acciones del catálogo del hipervisor (datos/hipervisor-automatizaciones.yml) que ya existen en AAP: nombre → plantilla y
+# parámetros fijos. «por_maquina»: se lanza desde la ficha de cada máquina (necesita elegirla), no desde aquí.
+ACCION_AAP = {"Encendido automático controlado": ("Infra · Encendido automático de máquinas", {"ia_encender": "nodo-vault"}),
+              "Mover máquina entre centros de datos": ("Infra · Mover máquina entre centros de datos", "por_maquina")}
+
+
+def _accion_aap(cliente_id, nombre_aap):
+    """(automatización, motivo): motivo vacío si se puede lanzar (publicada en AAP y certificada, o con excepción autorizada)."""
+    from .bd import q1
+    from .pruebas import estado, exceptuada
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, nombre_aap) if nombre_aap else None
+    if not a:
+        return None, "Aún no disponible: no está publicada en AAP"
+    ep = estado(dict(a, cliente_id=cliente_id))["estado"]
+    if ep != "certificada" and not exceptuada(nombre_aap):
+        return a, ("Bloqueada por la regla de prueba: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep == "cambiada" else
+                   "su última prueba falló y debe pasar de nuevo" if ep == "fallida" else "aún no tiene su plan de prueba ejecutado y aprobado"))
+    return a, ""
+
+
+def _ticket_hv(cliente_id, aid, nombre):
+    """Último ticket de la acción pedido sobre este hipervisor (parámetro hv_infra): abierto = «En curso», exitoso = «Aplicada»."""
+    from .bd import q
+    from .salud_acciones import ABIERTOS
+    for t in q("SELECT id, numero, estado, parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 40", cliente_id, aid):
+        if (j(t["parametros"], {}) or {}).get("hv_infra") == nombre:
+            return dict(t, abierto=t["estado"] in ABIERTOS) if (t["estado"] in ABIERTOS or t["estado"] == "exitoso") else None
+    return None
+
+
+def _accion(x, nombre, escritura):
+    """Estado de una acción del hipervisor para pintarla: ticket en curso o aplicado, bloqueada con motivo, o lista para pedir."""
+    nom_aap, extra = ACCION_AAP.get(nombre, ("", None))
+    a, motivo = _accion_aap(g.cliente["id"], nom_aap)
+    if not motivo and extra == "por_maquina":
+        motivo = "Se pide desde la ficha de cada máquina (botón «Mover a otra infraestructura»)"
+    if not motivo and x["tipo"] != "kvm":
+        motivo = f"La acción corre sobre anfitriones KVM; este es {x['prov'].get('nombre', x['tipo'])}"
+    if not motivo and x["estado"] != "conectada":
+        motivo = "El hipervisor no está conectado: primero verifica su conexión"
+    ac = {"nombre": nombre, "auto": (a or {}).get("nombre") or nom_aap, "aid": (a or {}).get("id"), "bloqueo": motivo, "escritura": escritura,
+          "ticket": _ticket_hv(g.cliente["id"], a["id"], x["nombre"]) if a else None}
+    return ac
+
+
+def radar_hipervisor(x, cap, asig, info, escritura):
+    """Salud del hipervisor con los 6 pilares (los de todo FaceOps). Cada criterio no cumplido lleva su acción («acc»):
+    un ticket en AAP (con su estado), o la conexión (editarla o volver a probarla)."""
+    from .radar import _armar
+    crit = []
+
+    def c_(cid, pr, nom, exp, v, acc):
+        crit.append({"id": cid, "principio": pr, "nombre": nom, "explica": exp, "faltan": [], "n_faltan": 0, "acc": acc,
+                     "pct": None if v is None else (max(0, min(100, round(v))) if not isinstance(v, bool) else (100 if v else 0))})
+    con_ = {"tipo": "ui", "ui": "conexion", "boton": "Editar conexión"}
+    c_("HV1", "Disponibilidad", "Conexión verificada", "FaceOps llega al hipervisor por AAP con su credencial", x["estado"] == "conectada", con_)
+    c_("HV2", "Seguridad", "Credencial cifrada en AAP", "El acceso vive en una credencial cifrada de AAP, no en FaceOps", bool(x.get("credencial")), con_)
+    c_("HV3", "Excelencia operativa", f"Capacidad medida en las últimas {MEDICION_VIGENTE_H} h", "CPU, memoria y disco libre leídos con «Probar acceso»",
+       (not _medicion_vieja(cap)) if cap else (False if x["estado"] == "conectada" else None), {"tipo": "ui", "ui": "probar", "boton": "Probar acceso"})
+    cores = cap.get("cores")
+    c_("HV4", "Rendimiento", "Sobreasignación de CPU bajo 2×", "vCPU asignadas frente a 2 por core físico",
+       (100 if asig["cpu"] <= cores * 2 else cores * 2 * 100 / asig["cpu"]) if cores and asig["cpu"] else None,
+       _accion(x, "Informe de capacidad y sobreasignación", escritura))
+    if cap.get("ram_gb") and cap.get("ram_disp_gb") is not None:
+        lib = cap["ram_disp_gb"] * 100 / cap["ram_gb"]
+        c_("HV5", "Rendimiento", "Memoria libre sobre 10 %", f"Hoy {round(lib)} % libre en el anfitrión", min(100, lib * 10), _accion(x, "Alertas de capacidad del anfitrión", escritura))
+    if cap.get("disco_gb") and cap.get("disco_disp_gb") is not None:
+        lib = cap["disco_disp_gb"] * 100 / cap["disco_gb"]
+        c_("HV6", "Recuperación", "Disco libre sobre 15 %", f"Hoy {round(lib)} % libre en el pool de las máquinas (snapshots y traslados)",
+           min(100, lib * 100 / 15), _accion(x, "Ampliar un pool de almacenamiento", escritura))
+    if x["tipo"] == "kvm" and info.get("medido"):
+        auto_ = [v for v in (info.get("autoinicio") or "").split() if v]
+        c_("HV7", "Costo", "Encendido automático controlado", "Al reiniciar el anfitrión solo arranca sola la bóveda"
+           + (f" (hoy: {', '.join(auto_)})" if auto_ else ""), set(auto_) <= {"nodo-vault"}, _accion(x, "Encendido automático controlado", escritura))
+    r = _armar(crit, 1, g.cliente)
+    r["remediables"] = sorted([c for c in crit if c["pct"] is not None and c["pct"] < 100], key=lambda c: c["pct"])
+    return r
+
+
 @bp.route("/hipervisores/<int:iid>")
 @requiere_login
 def hipervisor(iid):
-    """Ficha del hipervisor: datos generales del anfitrión, recursos, salud, sus máquinas virtuales y, al final, la lista de
-    automatizaciones que se pueden abordar sobre él (aún no implementadas)."""
+    """Ficha del hipervisor con el esquema de toda ficha de FaceOps (como OpenShift y las máquinas): cabecera, barra de
+    salud (su flotante muestra solo lo remediable, cada ítem con su acción), caja Encendido, datos, secciones y acciones.
+    Toda acción va por AAP con ticket y aprobación; «Editar conexión» abre un flotante lateral."""
     import yaml
-    from .infraestructuras import etiqueta_centro, lista
+    from .infraestructuras import ACCESO_CAMPOS, etiqueta_centro, lista
     eqs_ = equipos_visibles()
     infras = lista(g.cliente["id"], eqs_)
     x = next((i for i in infras if i["id"] == iid and i["tipo"] in TIPOS_HIPERVISOR), None)
@@ -28,20 +111,95 @@ def hipervisor(iid):
     d_ = x["detalle_d"]
     host = next((e for e in eqs_ if d_.get("anfitrion") and e.get("ip") == d_["anfitrion"] and (e.get("categoria") or "servidor") == "servidor"), None)
     vms = [e for e in vms if not host or e["id"] != host["id"]]
-    cap = d_.get("capacidad") or {}
+    cap = _cap_anfitrion([i for i in infras if i["tipo"] in TIPOS_HIPERVISOR], x)
+    info = d_.get("info") or {}
     fisicos = nodos_fisicos(x, eqs_)
     asig = {"cpu": sum(e.get("cpu") or 0 for e in vms), "ram": round(sum(e.get("ram_mb") or 0 for e in vms) / 1024),
             "ram_on": round(sum(e.get("ram_mb") or 0 for e in vms if e.get("energia") == "encendido") / 1024),
             "disco": round(sum(sum(dd.get("gb") or 0 for dd in j(e.get("discos"), [])) for e in vms))}
+    esc = g.perfil["modo"] == "escritura"
     try:
         cat = yaml.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "datos", "hipervisor-automatizaciones.yml"), encoding="utf-8")) or {}
     except OSError:
         cat = {}
-    autos = (cat.get("todos") or []) + (cat.get(x["tipo"]) or [])
-    areas = list(dict.fromkeys(a["area"] for a in autos))
-    return render_template("hipervisor.html", x=x, info=d_.get("info") or {}, cap=cap, asig=asig, vms=vms, host=host, fisicos=fisicos,
-                           res=_resumen_grupo(vms) if vms else None, autos=autos, areas=areas,
+    acciones = [dict(_accion(x, a["nombre"], esc), area=a["area"], texto=a.get("texto", "")) for a in (cat.get("todos") or []) + (cat.get(x["tipo"]) or [])]
+    _, energia_no = _accion_aap(g.cliente["id"], ENERGIA_HIP)
+    if energia_no and energia_no.startswith("Aún no disponible"):
+        energia_no = "Aún no disponible: encender o apagar el anfitrión va por su gestión fuera de banda (BMC) y la acción aún no está publicada en AAP"
+    if not energia_no and not esc:
+        energia_no = "Tu perfil es de solo lectura"
+    # Conexión: lo que el tipo realmente pide. Un hipervisor por API (vSphere, OpenShift Virtualization) no pide credenciales de
+    # máquinas individuales; KVM sí pide el acceso SSH a su anfitrión, porque se administra con virsh.
+    p_ = dict(x["prov"], campos=[c for c in x["prov"].get("campos", []) if c[0] not in ACCESO_CAMPOS])
+    radar_h = radar_hipervisor(x, cap, asig, info, esc)
+    on_ = sum(1 for e in vms if e.get("energia") == "encendido")
+    return render_template("hipervisor.html", x=x, info=info, cap=cap, asig=asig, vms=vms, vms_on=on_, host=host, fisicos=fisicos,
+                           acciones=acciones, areas=list(dict.fromkeys(a["area"] for a in acciones)), radar_h=radar_h, energia_no=energia_no,
+                           prov_ctx=p_, esc=esc, emulado=_emulado(x), medicion_vieja=bool(cap) and _medicion_vieja(cap),
                            etiq=etiqueta_centro([i for i in infras if i["centro"] == x["centro"]]))
+
+
+@bp.route("/hipervisores/<int:iid>/accion", methods=["POST"])
+@requiere_login
+def hipervisor_accion(iid):
+    """Lanza una acción del hipervisor (flotante de salud o sección Acciones): ticket en AAP con su aprobación, en segundo
+    plano. FaceOps no toca el anfitrión. Valida en el servidor lo mismo que muestra la ficha (publicada, certificada, aplica)."""
+    from flask import request, session, url_for
+    from .aap import ErrorAAP
+    from .infraestructuras import lista
+    from .operacion import solicitar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    eqs_ = equipos_visibles()
+    x = next((i for i in lista(g.cliente["id"], eqs_) if i["id"] == iid and i["tipo"] in TIPOS_HIPERVISOR), None)
+    aid = str(request.form.get("aid") or "")
+    nombre = None
+    for n_, (na_, _) in ACCION_AAP.items():
+        a_ = _accion_aap(g.cliente["id"], na_)[0]
+        if a_ and str(a_["id"]) == aid:
+            nombre = n_
+            break
+    if not x or not nombre:
+        return {"error": "Hipervisor o acción no válidos"}, 400
+    ac = _accion(x, nombre, True)
+    if ac["ticket"] and ac["ticket"]["abierto"]:
+        t = ac["ticket"]
+        return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "existente": True}
+    if ac["bloqueo"]:
+        return {"error": ac["bloqueo"]}, 400
+    nom_aap, extra = ACCION_AAP[nombre]
+    a, _ = _accion_aap(g.cliente["id"], nom_aap)
+    params = dict(extra if isinstance(extra, dict) else {}, hv_infra=x["nombre"])
+    try:
+        t = solicitar(g.usuario, g.cliente, a, None, params, f"{nombre} en {x['nombre']}")
+    except (PermissionError, ErrorAAP, ValueError) as err:
+        return {"error": str(err)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"]}
+
+
+@bp.route("/hipervisores/<int:iid>/energia", methods=["POST"])
+@requiere_login
+def hipervisor_energia(iid):
+    """Encender o apagar el anfitrión: ticket con la acción certificada y aprobación en AAP. FaceOps nunca lo hace directo."""
+    from flask import request, session, url_for
+    from .aap import ErrorAAP
+    from .infraestructuras import lista
+    from .operacion import solicitar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    accion = request.form.get("accion", "")
+    x = next((i for i in lista(g.cliente["id"], equipos_visibles()) if i["id"] == iid and i["tipo"] in TIPOS_HIPERVISOR), None)
+    if not x or accion not in ("encender", "apagar"):
+        return {"error": "Hipervisor o acción no válidos"}, 400
+    a, motivo = _accion_aap(g.cliente["id"], ENERGIA_HIP)
+    if motivo:
+        return {"error": motivo}, 400
+    try:
+        t = solicitar(g.usuario, g.cliente, a, None, {"hv_infra": x["nombre"], "hv_accion": accion, "hv_anfitrion": x["detalle_d"].get("anfitrion") or ""},
+                      f"{accion.capitalize()} el anfitrión de {x['nombre']}")
+    except (PermissionError, ErrorAAP, ValueError) as err:
+        return {"error": str(err)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"]}
 
 
 def nodos_fisicos(x, eqs):

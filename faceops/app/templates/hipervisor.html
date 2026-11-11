@@ -1,67 +1,52 @@
 {% extends "base.html" %}{% block titulo %}{{ x.nombre }}{% endblock %}
-{% block cuerpo %}{% from "_infra.html" import logo %}
-<style>.hv-cab{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.hv-cab h1{margin:0}
-.hv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}
-.hv-grid .card h3{margin:0 0 8px;font-size:14px}.hv-dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
-.hv-dl dt{color:var(--muted)}.hv-dl dd{margin:0;word-break:break-word}
-.hv-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:4px 24px;margin:0;padding:0;list-style:none}
-.hv-auto li{padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}.hv-auto li b{display:block;font-size:13.5px}
-.hv-lcab{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px 6px}.hv-lcab h3{margin:0;font-size:14px}.hv-lcab input{margin-left:auto;max-width:300px;width:100%}
-.hv-area{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 2px}</style>
-<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.hipervisores') }}">Hipervisores</a> ›</p>
-<div class="hv-cab">{{ logo(x.tipo, 44) }}<div><h1>{{ x.nombre }}</h1><span class="sub">{{ x.prov.nombre }} · {{ x.centro }} <span class="chip {{ 'nat-nube' if etiq == 'cloud' else 'nat-vm' }}">{{ etiq }}</span></span></div>
-<span class="chip der {{ 's-ok' if x.estado == 'conectada' else ('s-alta' if x.estado in ('error', 'sin credencial') else 's-media') }}">{{ '● ' if x.estado == 'conectada' }}{{ x.estado }}</span></div>
-{% if x.detalle_d.emulado %}<p class="sub" style="margin:6px 0 0"><span class="chip">emulado</span> {{ x.detalle_d.emulado }}: los datos del anfitrión y del hardware son los del anfitrión compartido.</p>{% endif %}
-{% if x.mensaje %}<p class="sub" style="margin:6px 0 0">{{ x.mensaje }}{{ ' · ' ~ (x.verificado|fecha) if x.verificado }}</p>{% endif %}
+{% block cuerpo %}{% from "_infra.html" import logo %}{% from "_ficha_infra.html" import cabecera, salud, caja_energia, cajon_salud, cajon_conexion, seccion_acciones, recursos with context %}
+{% set ok_ = x.estado == 'conectada' %}{% set url_acc = url_for('consola.hipervisor_accion', iid=x.id) %}{% set url_probar = url_for('consola.infraestructura_probar', iid=x.id) %}
+{{ cabecera(logo(x.tipo, 40), x.nombre, url_for('consola.hipervisores'), 'Hipervisores',
+   x.prov.nombre ~ ' · ' ~ x.centro ~ ' (' ~ etiq ~ ') · verificado ' ~ (x.verificado|fecha if x.verificado else 'nunca'), x.credencial, esc) }}
+{{ salud(radar_h, x.nombre) }}
 
-<div class="hv-grid">
-<div class="card"><h3>Información general</h3><dl class="hv-dl">
-<dt>Anfitrión</dt><dd>{{ info.nombre or x.detalle_d.anfitrion or '—' }}{% if info.nombre and x.detalle_d.anfitrion %} <span class="sub">({{ x.detalle_d.anfitrion }})</span>{% endif %}{% if host %} · <a href="{{ url_for('consola.equipo', eid=host.id) }}">ficha del equipo ›</a>{% endif %}</dd>
-<dt>Sistema operativo</dt><dd>{{ info.so or '—' }}</dd>
-<dt>Kernel</dt><dd>{{ info.kernel or '—' }}</dd>
-<dt>Virtualización</dt><dd>{{ x.detalle_d.hipervisor or x.prov.nombre }}{% if info.qemu %} · {{ info.qemu }}{% endif %}{% if info.libvirt %} · libvirt {{ info.libvirt }}{% endif %}</dd>
-<dt>Encendido desde</dt><dd>{{ info.desde or '—' }}</dd>
-<dt>Centro de datos</dt><dd>{{ x.centro }} ({{ etiq }})</dd>
-<dt>Credencial AAP</dt><dd>{{ x.credencial or '—' }}</dd><dt>Inventario AAP</dt><dd>{{ x.inventario or '—' }}</dd>
-</dl></div>
-
-<div class="card"><h3>Virtualización</h3><dl class="hv-dl">
-<dt>Máquinas virtuales</dt><dd>{{ info.vms or vms|length }}{% if info.vms_on %} · {{ info.vms_on }} encendidas{% endif %}</dd>
-<dt>Redes</dt><dd>{% for r in (info.redes or x.detalle_d.red or '—').split() %}<span class="chip">{{ r }}</span> {% endfor %}</dd>
-<dt>Pools de discos</dt><dd>{% for r in (info.pools or '—').split() %}<span class="chip">{{ r }}</span> {% endfor %}</dd>
-<dt>Encendido automático</dt><dd>{{ info.autoinicio or 'ninguna' }}</dd>
-</dl>{% if not info %}<p class="sub" style="font-size:11.5px;margin:8px 0 0">Los datos del anfitrión se leen con «Probar acceso» en <a href="{{ url_for('consola.infraestructuras') }}#infra-{{ x.id }}">Infraestructura</a>.</p>{% else %}<p class="sub" style="font-size:11.5px;margin:8px 0 0">Leído {{ info.medido|fecha }}</p>{% endif %}</div>
+<div class="eq-cab">
+{{ caja_energia('on' if ok_ else ('off' if x.estado in ('error', 'sin credencial') else 'nd'),
+   'Encendido' if ok_ else {'error': 'Con error', 'sin credencial': 'Sin credencial', 'sin probar': 'Sin probar'}.get(x.estado, x.estado|capitalize),
+   [('Encendido desde', info.desde or '—'), ('Máquinas', vms_on ~ ' encendidas de ' ~ vms|length), ('Medición', (cap.medido|fecha) if cap.medido else 'sin medir')],
+   url_for('consola.hipervisor_energia', iid=x.id), energia_no, ok_) }}
+  <dl class="eq-datos">
+    <div><dt>Tipo</dt><dd>{{ x.detalle_d.hipervisor or x.prov.nombre }}{% if info.qemu %} · {{ info.qemu }}{% endif %}{% if info.libvirt %} · libvirt {{ info.libvirt }}{% endif %}</dd></div>
+    <div><dt>Anfitrión</dt><dd>{{ info.nombre or x.detalle_d.anfitrion or x.detalle_d.host or x.detalle_d.api or '—' }}{% if info.nombre and x.detalle_d.anfitrion %} <span class="sub mono">{{ x.detalle_d.anfitrion }}</span>{% endif %}{% if host %} · <a href="{{ url_for('consola.equipo', eid=host.id) }}">ficha ›</a>{% endif %}</dd></div>
+    <div><dt>Sistema</dt><dd>{{ info.so or '—' }}{% if info.kernel %} <span class="sub">· {{ info.kernel }}</span>{% endif %}</dd></div>
+    <div><dt>Centro de datos</dt><dd>{{ x.centro }}</dd></div>
+    <div><dt>Redes</dt><dd>{% for r in (info.redes or x.detalle_d.red or '—').split() %}<span class="chip">{{ r }}</span> {% endfor %}</dd></div>
+    <div><dt>Pools de discos</dt><dd>{% for r in (info.pools or '—').split() %}<span class="chip">{{ r }}</span> {% endfor %}</dd></div>
+    <div><dt>Credencial AAP</dt><dd>{{ x.credencial or '—' }}</dd></div>
+    <div><dt>Inventario AAP</dt><dd>{{ x.inventario or '—' }}</dd></div>
+  </dl>
 </div>
+{% if emulado or x.mensaje %}<p class="sub" style="margin:-4px 0 10px;font-size:12.5px">{% if emulado %}<span class="chip">emulado</span> {{ emulado }}: los datos del anfitrión y del hardware son los del anfitrión compartido.{% endif %}{% if x.mensaje %} {{ x.mensaje }}{% endif %}</p>{% endif %}
 
-<div class="card hv-lista" style="margin-top:14px;padding:0" data-hv="fis"><div class="hv-lcab"><h3>Nodos físicos · {{ fisicos|length }}</h3>{% if fisicos|length > 10 %}<input type="search" placeholder="Buscar nodo: nombre, IP, procesador…" aria-label="Buscar nodo">{% endif %}</div>
-<table class="sin-pag"><tr><th>Nodo</th><th>IP</th><th>Procesador</th><th>Sockets · cores · hilos</th><th>Virt.</th><th>Memoria</th><th>Disco de máquinas</th><th>Estado</th></tr>
-{% for n in fisicos %}<tr><td>{% if n.equipo %}<a href="{{ url_for('consola.equipo', eid=n.equipo.id) }}">{{ n.nombre }}</a>{% else %}{{ n.nombre or '—' }}{% endif %}</td><td>{{ n.ip or '—' }}</td><td style="font-size:12px">{{ n.cpu or '—' }}</td>
-<td>{{ n.sockets or '—' }} · {{ n.cores or '—' }} · {{ n.hilos or '—' }}</td><td>{{ {'si': 'sí', 'no': 'no'}.get(n.virt, '—') }}</td>
+<div class="card" style="margin-top:6px" id="recursos"><div class="fila"><h2 style="margin:0">Recursos</h2><span class="sub der" style="font-size:12px">{% if cap.medido %}medido {{ cap.medido|fecha }}{% if medicion_vieja %} · <span style="color:var(--warn)">medición antigua</span>{% endif %}{% else %}sin medición: «Probar acceso» en Editar conexión{% endif %}</span></div>
+<table class="infra-rec" style="margin-top:8px"><tr><th></th><th>Total</th><th>Asignado</th><th>Disponible</th></tr>
+<tr><td>CPU</td><td>{{ (cap.cores ~ ' cores físicos') if cap.cores else '—' }}</td><td>{{ asig.cpu }} vCPU</td><td>{{ '—' if not cap.cores else ('%.1f'|format(asig.cpu / (cap.cores * 2)) ~ '× de sobreasignación' if asig.cpu > cap.cores * 2 else (cap.cores * 2 - asig.cpu) ~ ' vCPU sin asignar') }}</td></tr>
+<tr><td>Memoria</td><td>{{ (cap.ram_gb ~ ' GB') if cap.ram_gb else '—' }}</td><td>{{ asig.ram }} GB <span class="sub">({{ asig.ram_on }} encendidas)</span></td><td>{{ (cap.ram_disp_gb ~ ' GB libres') if cap.ram_disp_gb is not none and cap.ram_disp_gb is defined else '—' }}</td></tr>
+<tr><td>Disco</td><td>{{ (cap.disco_gb ~ ' GB') if cap.disco_gb else '—' }}</td><td>{{ asig.disco }} GB</td><td>{{ (cap.disco_disp_gb ~ ' GB libres') if cap.disco_disp_gb is not none and cap.disco_disp_gb is defined else '—' }}</td></tr></table></div>
+
+<div class="card fi-lista" style="margin-top:14px;padding:0" id="nodos"><div class="fi-lcab"><h2>Nodos físicos · {{ fisicos|length }}</h2>{% if fisicos|length > 10 %}<input type="search" placeholder="Buscar nodo: nombre, IP, procesador…" aria-label="Buscar nodo">{% endif %}</div>
+<table class="sin-pag"><tr><th>Nodo</th><th>IP</th><th>Procesador</th><th>Sockets · cores</th><th>Virt.</th><th>Memoria</th><th>Disco de máquinas</th><th>Estado</th></tr>
+{% for n in fisicos %}<tr><td>{% if n.equipo %}<a href="{{ url_for('consola.equipo', eid=n.equipo.id) }}">{{ n.nombre }}</a>{% else %}{{ n.nombre or '—' }}{% endif %}</td><td class="mono">{{ n.ip or '—' }}</td><td style="font-size:12px">{{ n.cpu or '—' }}</td>
+<td>{{ n.sockets or '—' }} · {{ n.cores or '—' }}</td><td>{{ {'si': 'sí', 'no': 'no'}.get(n.virt, '—') }}</td>
 <td>{{ (n.ram_gb ~ ' GB') if n.ram_gb else '—' }}{% if n.ram_libre is not none %} <span class="sub">· {{ n.ram_libre }} libres</span>{% endif %}</td>
 <td>{{ (n.disco_gb ~ ' GB') if n.disco_gb else '—' }}{% if n.disco_libre is not none %} <span class="sub">· {{ n.disco_libre }} libres</span>{% endif %}</td>
 <td><span class="chip {{ 's-ok' if n.estado == 'encendido' else '' }}">{{ n.estado }}</span></td></tr>
-{% else %}<tr><td colspan="8" class="sub">Sin nodos físicos leídos: usa «Probar acceso» en Infraestructura.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
+{% else %}<tr><td colspan="8" class="sub">Sin nodos físicos leídos: «Probar acceso» en Editar conexión.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
 
-<div class="card" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:14px">Recursos y salud</h3>
-{% if res and res.salud is not none %}{% set sv_ = res.salud|int %}<div class="ci-fila" style="display:flex;gap:10px;align-items:center;margin-bottom:6px"><span class="sub" style="min-width:120px">Salud consolidada</span><span class="salud-barra s-{{ semaforo_salud(sv_) }}" style="flex:1"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span></div>{% endif %}
-<table class="infra-rec"><tr><th></th><th>Total</th><th>Asignado</th><th>Disponible</th></tr>
-<tr><td>CPU</td><td>{{ (cap.cores ~ ' cores físicos') if cap.cores else '—' }}</td><td>{{ asig.cpu }} vCPU</td><td>{{ '—' if not cap.cores else ('%.1f'|format(asig.cpu / (cap.cores * 2)) ~ '× de sobreasignación' if asig.cpu > cap.cores * 2 else (cap.cores * 2 - asig.cpu) ~ ' vCPU sin asignar') }}</td></tr>
-<tr><td>Memoria</td><td>{{ (cap.ram_gb ~ ' GB') if cap.ram_gb else '—' }}</td><td>{{ asig.ram }} GB <span class="sub">({{ asig.ram_on }} encendidas)</span></td><td>{{ (cap.ram_disp_gb ~ ' GB libres ahora') if cap.ram_disp_gb is defined and cap.ram_disp_gb is not none else '—' }}</td></tr>
-<tr><td>Disco</td><td>{{ (cap.disco_gb ~ ' GB') if cap.disco_gb else '—' }}</td><td>{{ asig.disco }} GB</td><td>{{ (cap.disco_disp_gb ~ ' GB') if cap.disco_disp_gb is defined and cap.disco_disp_gb is not none else '—' }}</td></tr></table></div>
-
-<div class="card hv-lista" style="margin-top:14px;padding:0" data-hv="vm"><div class="hv-lcab"><h3>Máquinas virtuales · {{ vms|length }}</h3><input type="search" placeholder="Buscar máquina: nombre, IP, sistema, estado…" aria-label="Buscar máquina virtual"></div>
+<div class="card fi-lista" style="margin-top:14px;padding:0" id="maquinas"><div class="fi-lcab"><h2>Máquinas virtuales · {{ vms|length }}</h2><input type="search" placeholder="Buscar máquina: nombre, IP, sistema, estado…" aria-label="Buscar máquina virtual"></div>
 <table class="sin-pag"><tr><th>Máquina</th><th>IP</th><th>Sistema</th><th>vCPU</th><th>Memoria</th><th>Estado</th></tr>
-{% for e in vms %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a></td><td>{{ e.ip or '—' }}</td><td style="font-size:12px">{{ e.so or '—' }}</td><td>{{ e.cpu or '—' }}</td><td>{{ ((e.ram_mb / 1024)|round(1) ~ ' GB') if e.ram_mb else '—' }}</td>
+{% for e in vms %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a></td><td class="mono">{{ e.ip or '—' }}</td><td style="font-size:12px">{{ e.so or '—' }}</td><td>{{ e.cpu or '—' }}</td><td>{{ ((e.ram_mb / 1024)|round(1) ~ ' GB') if e.ram_mb else '—' }}</td>
 <td><span class="chip {{ 's-ok' if e.energia == 'encendido' else '' }}">{{ e.energia or '—' }}</span></td></tr>
 {% else %}<tr><td colspan="6" class="sub">Sin máquinas virtuales registradas.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
 
+{{ seccion_acciones(acciones, areas, url_acc) }}
 
-<script>/* buscador + paginador (10 por página) de las listas del hipervisor */
-document.querySelectorAll('.hv-lista').forEach(c=>{const tb=c.querySelector('table'),nav=c.querySelector('.pag-js'),q=c.querySelector('input[type=search]');
- const filas=[...tb.rows].filter(r=>r.querySelector('td')&&!r.querySelector('td[colspan]'));let p=0;const N=10;
- function pintar(){const v=(q&&q.value||'').toLowerCase().trim(),vis=filas.filter(r=>!v||r.textContent.toLowerCase().includes(v)),tot=Math.max(1,Math.ceil(vis.length/N));p=Math.min(p,tot-1);
-  filas.forEach(r=>r.style.display='none');vis.forEach((r,i)=>r.style.display=(i>=p*N&&i<(p+1)*N)?'':'none');
-  if(filas.length<=N&&!v){nav.innerHTML='';return;}
-  nav.innerHTML='<span class="sub">'+(vis.length?p*N+1:0)+'–'+Math.min((p+1)*N,vis.length)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(p?'':'disabled')+'>‹ anterior</button><span class="sub">página '+(p+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(p<tot-1?'':'disabled')+'>siguiente ›</button>';}
- nav.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){p+=+b.dataset.p;pintar();}});if(q)q.addEventListener('input',()=>{p=0;pintar();});pintar();});</script>
+{{ cajon_salud(radar_h, x.nombre, url_acc, url_probar) }}
+{% if esc %}{{ cajon_conexion(x, prov_ctx, url_for('consola.infraestructura_editar', iid=x.id), url_probar, x.credencial and true) }}{% endif %}
+{{ recursos(x.nombre) }}
 {% endblock %}
