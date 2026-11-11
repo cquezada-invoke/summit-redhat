@@ -131,7 +131,8 @@ def actualizacion(e, filas):
     menores = [int(b) for p in pkgs for a, b in re.findall(r"\.el(\d+)_(\d+)", p) if may is None or int(a) == may]
     dest = max([men or 0] + menores) if may is not None else None
     return {"actual": f"{may}.{men}" if may is not None else (e.get("so") or "—"), "destino": f"{may}.{dest}" if may is not None else None,
-            "sube": may is not None and dest > (men or 0), "paquetes": len(nombres), "familia": "RHEL" if "red hat" in str(e.get("so") or "").lower() or "rhel" in str(e.get("so") or "").lower() else (str(e.get("so") or "").split(" ")[0] or "SO"),
+            "sube": may is not None and dest > (men or 0), "paquetes": len(nombres), "familia": "RHEL" if re.search(r"red ?hat|rhel", str(e.get("so") or ""), re.I) else (str(e.get("so") or "").split(" ")[0] or "SO"),
+            "nombres": sorted(nombres)[:6],
             "reinicio": any(n in REINICIO for n in nombres)}
 
 
