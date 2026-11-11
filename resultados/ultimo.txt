@@ -1,20 +1,99 @@
-commit: 86cd923098b358a396fcfe5517e45df7540fa4e3
-inicio: 2026-11-10T22:18:27-03:00
+commit: 8f5b14d241a827b0de26002b260304900fcc9358
+inicio: 2026-11-10T21:57:58-03:00
 ---
-a28a4ed
-2
-estado antes: cambiada
-inicio: ['\x1b[0;33mnodo-jboss-dev st=running cfg=1:1:2097152 live=1:2097152\x1b[0m', '\x1b[0;33mnodo-jboss-qa st=shut off cfg=1:1:2097152 live=:2097152\x1b[0m']
-C1 FO-LAB-01509 exitoso | AAP terminó (successful): ejecución 12 s, espera de aprobación 53 s
- C1 virsh: ['\x1b[0;33mnodo-jboss-dev st=running cfg=2:2:2097152 live=2:2097152\x1b[0m']
- C1 ficha tras ticket: {'cpu': 2, 'ultima_recoleccion': '2026-11-10T06:03:31.597378Z'}
- C6 ficha tras sincronizar: {'cpu': 2, 'ram_mb': 2048, 'ultima_recoleccion': '2026-11-10T06:03:31.597378Z'}
-C2 FO-LAB-01511 exitoso | AAP terminó (successful): ejecución 6 s, espera de aprobación 53 s
-C3 FO-LAB-01513 exitoso | AAP terminó (successful): ejecución 8 s, espera de aprobación 29 s
- C3 virsh: ['\x1b[0;33mnodo-jboss-qa st=shut off cfg=1:1:3145728 live=:3145728\x1b[0m']
-C4 FO-LAB-01514 exitoso | AAP terminó (successful): ejecución 13 s, espera de aprobación 22 s
- C4 virsh: ['\x1b[0;33mnodo-jboss-dev st=running cfg=1:1:2097152 live=1:2097152\x1b[0m', '\x1b[0;33mnodo-jboss-qa st=shut off cfg=1:1:2097152 live=:2097152\x1b[0m']
-C5 FO-LAB-01515 fallido | ted_to": false, "msg": "Formato: nombre:vcpu:ram_mb separados por coma (1-32 vCPU, 1024-131072 MB)"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
- C5 virsh: ['\x1b[0;33mnodo-jboss-dev st=running cfg=1:1:2097152 live=1:2097152\x1b[0m']
-fichas: [{'nombre': 'nodo-jboss', 'cpu': 2, 'ram_mb': 2048}, {'nombre': 'nodo-jboss-dev', 'cpu': 1, 'ram_mb': 2048}, {'nombre': 'nodo-jboss-qa', 'cpu': 1, 'ram_mb': 2048}]
---- fin: 2026-11-10T22:29:18-03:00 · código: 0
+dac7269
+faceops ya trae la versión
+   · Plantilla «Migración · WebLogic a OpenShift · Evaluar» (id 1130)
+   · Plantilla «Migración · WebLogic a OpenShift» (id 1131)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+===== EVALUAR
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'cambiada'}
+M-C1 emular-origen
+  pedido FO-LAB-01495
+  aprobado
+   ('FO-LAB-01495', 'exitoso', [('ventas', True), ('legado', False)]) 
+E-C1
+  pedido FO-LAB-01496
+  aprobado
+   ('FO-LAB-01496', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], True) git: git ok 1
+E-C2
+  pedido FO-LAB-01498
+  aprobado
+   ('FO-LAB-01498', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], True) git: git ok 1
+E-C3
+  pedido FO-LAB-01499
+  aprobado
+--- reintento 1 (contenedor reiniciado)
+catalogo: 223
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'sin probar', 'Migración · WebLogic a OpenShift': 'cambiada'}
+M-C1 emular-origen
+  reanudo FO-LAB-01495 exitoso
+   ('FO-LAB-01495', 'exitoso', [('ventas', True), ('legado', False)]) 
+E-C1
+  reanudo FO-LAB-01496 exitoso
+   ('FO-LAB-01496', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], True) git: git ok 1
+E-C2
+  reanudo FO-LAB-01498 exitoso
+   ('FO-LAB-01498', 'exitoso', 'ventas_domain', '14.1.1.0.0', [('ventas', 'eap8', True, 'baja', 0), ('legado', 'eap8', False, 'alta', 3)], True) git: git ok 1
+E-C3
+  reanudo FO-LAB-01499 en_ejecucion
+   ('FO-LAB-01499', 'fallido', None, None, [], None) git: None
+   … config.xml en /u01, /opt/oracle, /opt/weblogic, /home/oracle o /srv); indícalo en wl_dominio"} |  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+PLAN EVALUAR OK: True
+CERTIFICADA Migración · WebLogic a OpenShift · Evaluar
+FIN-SCRIPT
+ns previo limpio
+===== MIGRAR C2-C4
+catalogo: 223
+M-C2
+  pedido FO-LAB-01503
+  aprobado
+Error: container has already been removed
+--- reintento 1 (contenedor reiniciado)
+catalogo: 223
+M-C2
+  reanudo FO-LAB-01503 exitoso
+   ["FO-LAB-01503", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:5bc032f12475563c644e8b386338c0ab915d6093f137eaf9d15a718c7d74d7cb", "construccion": "Complete: ", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no", "artefactos_git": "git ok 3"}]
+M-C3
+  pedido FO-LAB-01508
+  aprobado
+   ["FO-LAB-01508", "exitoso", {"destino": "JBoss EAP 8 · cloud-server, embedded-activemq, datasources-web-server", "imagen": "image-registry.openshift-image-registry.svc:5000/wl-ventas/ventas@sha256:5bc032f12475563c644e8b386338c0ab915d6093f137eaf9d15a718c7d74d7cb", "construccion": "sin cambios: se reutiliza la imagen", "route": "ventas-wl-ventas.apps.sno.invoke.lab", "salud": "/ventas/salud → 200", "sano": true, "vuelta_atras": "no", "artefactos_git": "git ok 3"}]
+M-C4
+  pedido FO-LAB-01510
+  aprobado
+   ["FO-LAB-01510", "fallido", {"destino": null, "imagen": null, "construccion": null, "route": null, "salud": null, "sano": null, "vuelta_atras": null, "artefactos_git": null}]
+   … pietaria (ServletAuthentication); Contexto JNDI propietario (WLInitialContextFactory / t3); Propiedades con JNDI remoto de WebLogic (t3 / WLInitialContextFactory). No se creó nada en OpenShift"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=25   changed=10   unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
+FIN-SCRIPT
+imagestream.image.openshift.io/ventas buildconfig.build.openshift.io/ventas deployment.apps/ventas service/ventas route.route.openshift.io/ventas configmap/ventas-config secret/ventas-ds 
+['WL_DS_VENTASDS_URL', 'WL_DS_VENTASDS_USUARIO', 'prop-ventas.properties'] SINCLAVE
+secret: ['WL_DS_VENTASDS_CLAVE']
+{"estado":"ok","datasource":"enlazado","cola":"enlazado","propiedades":"cargadas"} http=200
+===== MIGRAR C5
+catalogo: 223
+M-C5
+  pedido FO-LAB-01512
+  aprobado
+   ["FO-LAB-01512", "fallido", {"construccion": "sin cambios: se reutiliza la imagen", "salud": "/ventas/no-existe → 503", "sano": false, "vuelta_atras": "versión anterior restaurada (HTTP 200)", "retirado": null}]
+   … en; rollout no completó; HTTP 503): se volvió a la versión anterior. El origen sigue intacto"} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=52   changed=16   unreachable=0    failed=1    skipped=9    rescued=0    ignored=0   
+A: ['FO-LAB-01495', 'exitoso', [['ventas', True], ['legado', False]]]
+FIN-SCRIPT
+sonda=/ventas/salud salud=200
+===== MIGRAR C6
+catalogo: 223
+M-C6
+  pedido FO-LAB-01517
+  aprobado
+   ["FO-LAB-01517", "exitoso", {"construccion": null, "salud": null, "sano": null, "vuelta_atras": null, "retirado": true}]
+   … AAP terminó (successful): ejecución 9 s, espera de aprobación 39 s
+A: ['FO-LAB-01495', 'exitoso', [['ventas', True], ['legado', False]]]
+FIN-SCRIPT
+ns retirado: true
+{"legado_vacio": true, "cm_sin_clave": true, "salud_c2": "200", "salud_c5": "200", "sonda_c5": "/ventas/salud", "ns_retirado": true}
+===== CERTIFICAR
+catalogo: 223
+casos: {'C1': True, 'C2': True, 'C3': True, 'C4': True, 'C5': True, 'C6': True}
+CERTIFICADA Migración · WebLogic a OpenShift
+estado: {'Migración · WebLogic a OpenShift · Evaluar': 'certificada', 'Migración · WebLogic a OpenShift': 'certificada'}
+FIN-SCRIPT
+--- fin: 2026-11-10T22:34:24-03:00 · código: 0
