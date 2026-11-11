@@ -1,0 +1,13 @@
+commit: de35b77bec9c12ecebeefffeb9e3b91fae51b08e
+inicio: 2026-11-11T13:40:08-03:00
+---
+45 [('kernel-5.14.0-687.47.1.el9_8.x86_64', 42), ('kernel-5.14.0-687.55.1.el9_8.x86_64', 38), ('kernel-5.14.0-687.49.1.el9_8.x86_64', 31), ('kernel-5.14.0-687.44.1.el9_8.x86_64', 27), ('kernel-5.14.0-687.41.1.el9_8.x86_64', 27), ('kernel-5.14.0-687.12.1.el9_8.x86_64', 20), ('kernel-5.14.0-687.64.1.el9_8.x86_64', 19), ('kernel-5.14.0-741.14.1.el9_9.x86_64', 18)]
+[('kernel-5.14.0-503.11.1.el9_5.x86_64', 589), ('kernel-5.14.0-362.8.1.el9_3.x86_64', 497), ('kernel-5.14.0-570.12.1.el9_6.x86_64', 406), ('kernel-5.14.0-284.11.1.el9_2.x86_64', 405), ('kernel-5.14.0-427.13.1.el9_4.x86_64', 329)]
+3:# instalados) y los pendientes (hay un parche de seguridad disponible y no está instalado), con su severidad y paquete.
+4:# Usa la información de erratas de Red Hat (dnf updateinfo): el equipo necesita sus repositorios Red Hat.
+15:    - name: CVE pendientes (parche disponible no instalado)
+16:      ansible.builtin.shell: dnf -q updateinfo list --security cves 2>/dev/null | awk '$1 ~ /^CVE-/ {print $1"|"$2"|"$3}' | sort -u
+22:      ansible.builtin.shell: dnf -q updateinfo list --security --installed cves 2>/dev/null | awk '$1 ~ /^CVE-/ {print $1"|"$2"|"$3}' | sort -u
+32:                'pendientes': (r_pend.stdout_lines | default([])),
+37:        msg: "{{ inventory_hostname }}: {{ ((r_pend.stdout_lines | default([]) | length) ~ ' CVE pendientes · ' ~ (r_cub.stdout_lines | default([]) | length) ~ ' cubiertos') if r_repos.stdout | int > 0 else 'sin repositorios Red Hat: no se puede evaluar (registrar el equipo)' }}"
+--- fin: 2026-11-11T13:40:14-03:00 · código: 0
