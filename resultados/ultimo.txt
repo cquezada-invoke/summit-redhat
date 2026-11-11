@@ -1,14 +1,18 @@
-commit: 230a66e14aad5bd046d487e10fef179fec0e37e2
-inicio: 2026-11-11T18:31:47-03:00
+commit: b81bbcb2d9d2152e37b34ee6e44e0a6574e720fc
+inicio: 2026-11-11T18:43:09-03:00
 ---
-nodo-jboss3 FO-LAB-01886 fallido · equipo: con datos · AAP terminó (failed): ejecución 0 s, espera de aprobación 41 s
-FIN nodo-jboss3 sin ticket exitoso: no se toca
-AAP host 165 AAP DELETE hosts/165/ → 400: {"error":"Delete constructed inventory hosts from i
-AAP host 164 borrado
-LISTA ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss4', 'nodo-postgres', 'nodo-tomcat', 'srv-mig-rhel8-01', 'srv-mig-rocky-01', 'nodo-jboss2', 'nodo-jboss3']
-CERT JBoss · Desplegar app → cambiada
-CERT Infra · Mover máquina entre centros de datos → certificada
-CERT Migración · WebLogic a OpenShift → certificada
-CERT Migración · WebLogic a OpenShift · Evaluar → certificada
-CERT FaceOps · Eliminar servidor → certificada
---- fin: 2026-11-11T18:37:59-03:00 · código: 0
+PAGINA /lab/sistemas-operativos/modernizacion 200
+   BLOQUEADA | Evaluar migración de sistema operativo
+   BLOQUEADA | RHEL a versión soportada
+   BLOQUEADA | CentOS a RHEL
+PAGINA /lab/arquitectura/modernizacion 200
+   habilitada | WebLogic → OpenShift 4.x · Evaluar
+   habilitada | Migración WebLogic → OpenShift 4.x
+   habilitada | JBoss a EAP 8
+   habilitada | IIS a OpenShift
+   BLOQUEADA | Migración K8s → OpenShift · Evaluar origen
+   BLOQUEADA | Migración K8s → OpenShift · Preparar destino en GCP
+   BLOQUEADA | Migración K8s → OpenShift · Convertir manifiestos
+   BLOQUEADA | Migración K8s → OpenShift · Migrar aplicación
+   BLOQUEADA | Migración K8s → OpenShift · Validar y conmutar
+--- fin: 2026-11-11T18:43:33-03:00 · código: 0
