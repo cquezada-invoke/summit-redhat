@@ -1,76 +1,23 @@
-commit: b5a90808411f390326c573016e6c48b308a733e9
-inicio: 2026-11-10T23:58:19-03:00
+commit: 8f27dda783086e1ca3b9a0c5ff6a4f4d285eb0a2
+inicio: 2026-11-11T00:30:33-03:00
 ---
-6c6bd30
-configurar: 0
-workflow a medias borrado: FaceOps · Alerta › Plataforma · Controlar servicio · Nodos demo (ansible)
-== C6 equipo apagado (nodo-jboss-qa, shut off)
-C6 prometheus.yml a7dab93750c1→a7dab93750c1 · reglas qa: 0
-== C9 acción por alerta (nodo-jboss2): encender en sin respuesta + solo avisar en disco
-Error: container "faceops" does not exist
-Error: no container with name or ID "faceops" found: no such container
-REGLAS nodo-jboss2 : ninguna
-OBJETIVO nodo-jboss2 []
-CASO C9 retirar·nodo-jboss2 FO-LAB-01576 exitoso :: AAP terminó (successful): ejecución 13 s, espera de aprobación 53 s
-REFLEJO nodo-jboss2: 0 alertas · FO-LAB-01576 · []
-== Responder C1/C2: encender nodo-jboss-qa y nodo-jboss3 (pruebas, apagadas)
-CASO prep nodo-jboss-qa no se pudo pedir: PermissionError: Esta acción no aplica a nodo-jboss-qa: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
-CASO prep nodo-jboss3 no se pudo pedir: PermissionError: Esta acción no aplica a nodo-jboss3: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
-REFLEJO nodo-jboss-qa: 0 alertas · None · None
-REFLEJO nodo-jboss3: 0 alertas · None · None
-agentes qa:000 jboss3:000
-CASO R prep·nodo-jboss-qa FO-LAB-01596 fallido :: gente de monitoreo («FaceOps · Agente de monitoreo»)"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-CASO R prep·nodo-jboss3 FO-LAB-01598 fallido :: gente de monitoreo («FaceOps · Agente de monitoreo»)"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-REFLEJO nodo-jboss-qa: 0 alertas · None · None
-REFLEJO nodo-jboss3: 0 alertas · None · None
-CASO R apagar nodo-jboss-qa no se pudo pedir: PermissionError: Esta acción no aplica a nodo-jboss-qa: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
-CASO R apagar nodo-jboss3 no se pudo pedir: PermissionError: Esta acción no aplica a nodo-jboss3: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
-REFLEJO nodo-jboss-qa: 0 alertas · None · None
-REFLEJO nodo-jboss3: 0 alertas · None · None
-qa: shut off · jboss3: shut off
-D01 en Alertmanager a los 300 s
-PROM-ALERTAS nodo-jboss-qa []
-ALERTMANAGER nodo-jboss-qa []
-PROM-ALERTAS nodo-jboss3 []
-ALERTMANAGER nodo-jboss3 []
-APROBACIONES {}
-sin aprobación para nodo-jboss-qa
-sin aprobación para nodo-jboss3
-qa: shut off · jboss3: shut off
-PROM-ALERTAS nodo-jboss-qa []
-ALERTMANAGER nodo-jboss-qa []
-PROM-ALERTAS nodo-jboss3 []
-ALERTMANAGER nodo-jboss3 []
-== limpieza: retirar alertas y dejar ambas apagadas como estaban
-CASO R retirar·nodo-jboss-qa FO-LAB-01601 exitoso :: AAP terminó (successful): ejecución 12 s, espera de aprobación 38 s
-CASO R retirar·nodo-jboss3 FO-LAB-01602 exitoso :: AAP terminó (successful): ejecución 13 s, espera de aprobación 35 s
-REFLEJO nodo-jboss-qa: 0 alertas · FO-LAB-01601 · []
-REFLEJO nodo-jboss3: 0 alertas · None · None
-CASO R limpieza nodo-jboss-qa no se pudo pedir: PermissionError: Esta acción no aplica a nodo-jboss-qa: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
-REFLEJO nodo-jboss-qa: 0 alertas · FO-LAB-01601 · []
-qa: shut off · jboss3: shut off
-== Responder C6 (corregido): JBoss detenido en nodo-jboss → Reiniciar JBoss con aprobación
-nodo-jboss running · arranque hace 10849s
-CASO R-C6 detener·nodo-jboss FO-LAB-01603 exitoso :: AAP terminó (successful): ejecución 10 s, espera de aprobación 47 s
-REFLEJO nodo-jboss: 2 alertas · FO-LAB-01550 · ['J01 JBoss detenido (critico) → reiniciar_jboss', 'C01 CPU alta → recursos (aviso 80 · crítico 95 %)']
-200 200 200  (balanceador con JBoss detenido en nodo-jboss)
-J01 en Alertmanager a los 40 s
-PROM-ALERTAS nodo-jboss [('FaceOpsJbossDetenidoJ01', 'critical', 'firing')]
-ALERTMANAGER nodo-jboss [('FaceOpsJbossDetenidoJ01', 'active', ['faceops-objetos'])]
-APROBACION pendiente 23047 · FaceOps · Alerta › Plataforma · Controlar servicio · Nodos demo (ansible) · workflow 23046
-WORKFLOW 23046 successful · approve · nodos: [('¿Aprueba la respuesta automática a la alerta?', 'successful'), ('Plataforma · Controlar servicio', 'successful')]
-EDA-AUDIT 2026-11-11T03:31:04 Alerta de objeto · acción con aprobación successful FaceOps · Alertas de objetos
-RESPONDER 23038 2026-11-11T03:31:04 successful | "msg": "nodo-jboss · JBoss detenido → «Plataforma · Controlar servicio» pedido (workflow 23046), esperando aprobación"
-WORKFLOW 23046 FaceOps · Alerta › Plataforma · Controlar servicio · Nodos demo (ansible) successful 2026-11-11T03:31:33
-J01 resuelta en Prometheus tras 10 s
-PROM-ALERTAS nodo-jboss []
-ALERTMANAGER nodo-jboss []
-node_systemd_unit_state{name="eap8-standalone.service",state="active",type="simple"} 1
-nodo-jboss directo: 200
-nodo-jboss2 directo: 200
-200 200 200 200 
-REGLA nodo-jboss FaceOpsJbossDetenidoJ01 for 60 | ",name=~"(eap|jboss|wildfly).*service",state="active"}) == 0 | reiniciar_jboss Plataforma · Controlar servicio Nodos demo Nodos demo (ansible) | estado: inactive
-REGLA nodo-jboss FaceOpsCpuAltaC01Aviso for 120 | al{faceops_equipo="nodo-jboss",mode="idle"}[2m])) * 100 > 80 | recursos Infra · Ajustar recursos de máquinas   | estado: inactive
-REGLA nodo-jboss FaceOpsCpuAltaC01Critico for 120 | al{faceops_equipo="nodo-jboss",mode="idle"}[2m])) * 100 > 95 | recursos Infra · Ajustar recursos de máquinas   | estado: inactive
-OBJETIVO nodo-jboss [('faceops-equipos', '192.168.122.15:9100', 'up')]
---- fin: 2026-11-11T00:34:25-03:00 · código: 0
+9402ae1
+faceops actualizado
+configurar AAP: código 0
+   · Plantilla «Redis · Instalar Redis Insight» (id 159)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+estado antes: cambiada 828045e86254
+C1 nodo-nginx
+  FO-LAB-01604 exitoso | AAP terminó (successful): ejecución 19 s, espera de aprobación 29 s
+   acuerdos: {'eula': True, 'analytics': False, 'notifications': False, 'encryption': False}
+   alta conexión: 201 
+   conexión d4cdb2b4 connect 200 overview 200 6.2.24
+C2 nodo-jboss
+  FO-LAB-01606 exitoso | AAP terminó (successful): ejecución 19 s, espera de aprobación 35 s
+   conexiones antes/después: 1 1 acuerdos iguales: True
+   conexión 470d9e5b connect 200 overview 200 6.2.24
+C3 ruta vacía en nodo-nginx
+  FO-LAB-01608 fallido |  | PLAY RECAP ********************************************************************* | nodo-nginx                 : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+   instancia sigue respondiendo: 200 motivo: True
+RESULTADOS {'C1': True, 'C2': True, 'C3': True} TICKETS ['FO-LAB-01604', 'FO-LAB-01606', 'FO-LAB-01608']
+--- fin: 2026-11-11T00:41:21-03:00 · código: 0
