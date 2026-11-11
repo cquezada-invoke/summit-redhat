@@ -58,7 +58,7 @@
   tasks:
     - name: Lista de la CA (API pública, solo lectura)
       ansible.builtin.uri:
-        url: "{{ faceops_ca_url }}/ca/rest/certs?size=1000"
+        url: "{{ faceops_ca_url }}/ca/rest/certs?maxResults=1000&size=1000"   # sin maxResults la CA corta en 20 y los más nuevos no aparecen
         headers: {Accept: application/json}
         validate_certs: false
         return_content: true

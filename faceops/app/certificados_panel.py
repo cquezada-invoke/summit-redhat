@@ -201,7 +201,7 @@ def leer(cliente, equipos):
     activos = [f for f in filas if f["estado"] not in ("reemplazado", "revocado")]
     serv = [f for f in activos if f["tipo"] == "servidor"]
     r = {"filas": sorted(filas, key=lambda f: (f["estado"] in ("reemplazado", "revocado"), f["dias"] if f["dias"] is not None else 99999)),
-         "errores": errores, "programada": prog, "aap": aap_url, "ca_publica": CA_PUBLICA, "umbral": int(inv.get("umbral") or UMBRAL),
+         "errores": errores, "programada": prog, "en_uso": uso, "aap": aap_url, "ca_publica": CA_PUBLICA, "umbral": int(inv.get("umbral") or UMBRAL),
          "leido": inv.get("leido"), "job_inv": jb["id"] if jb else None, "jt_inv": jt["id"] if jt else None,
          "por_vencer_eda": inv.get("por_vencer") or [],
          "kpi": {"servidores": len(serv), "por_vencer": sum(1 for f in serv if f["estado"] == "por vencer"),
