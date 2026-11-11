@@ -103,7 +103,6 @@ for _f in os.listdir(AQUI):  # Migraciones · sistema operativo (playbook, sus t
     if _f.startswith("migrar-so"):
         shutil.copy(f"{AQUI}/{_f}", f"{tmp}/playbooks/{_f}")
 shutil.copy(f"{AQUI}/certificados-inventario.yml", f"{tmp}/playbooks/certificados-inventario.yml")
-shutil.copy(f"{AQUI}/certificados-limpiar.yml", f"{tmp}/playbooks/certificados-limpiar.yml")
 os.makedirs(f"{tmp}/rulebooks", exist_ok=True)
 shutil.copy(f"{AQUI}/rulebooks/certificados.yml", f"{tmp}/rulebooks/certificados.yml")
 shutil.copy(f"{AQUI}/rulebooks/openshift.yml", f"{tmp}/rulebooks/openshift.yml")
@@ -748,17 +747,6 @@ for nombre_c, acc_c, desc_c in (
         "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
         "extra_vars": json.dumps({"cert_accion": acc_c}), "description": desc_c})
     paso(f"Plantilla «{nombre_c}» (id {jc['id']})")
-# Certificados · Limpiar certificados sobrantes: revoca en la CA los que no están en uso y retira servicios falsos (con aprobación)
-j_lc = asegurar("job_templates", "Certificados · Limpiar certificados sobrantes", {
-    "organization": org["id"], "project": proy, "playbook": "playbooks/certificados-limpiar.yml", "inventory": inv["id"],
-    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
-    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
-    "extra_vars": json.dumps({"cert_limpiar_modo": "revisar"}),
-    "description": "Revoca en la CA interna los certificados de la máquina que no están en uso y retira servicios falsos de intentos fallidos; el certificado en uso no se toca"})
-c_ca_lc = uno("credentials", name="FaceOps · CA interna")
-if c_ca_lc and c_ca_lc["id"] not in {c["id"] for c in aap("GET", f"job_templates/{j_lc['id']}/credentials/")["results"]}:
-    aap("POST", f"job_templates/{j_lc['id']}/credentials/", {"id": c_ca_lc["id"]})
-paso(f"Plantilla «Certificados · Limpiar certificados sobrantes» (id {j_lc['id']})")
 
 # Storage emulado: preparar el emulador (skill) y operarlo (una plantilla por acción)
 for nombre_st, pb_st, desc_st in (

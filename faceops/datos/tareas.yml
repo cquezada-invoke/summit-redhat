@@ -66,7 +66,6 @@ tareas:
   cert-inventario:       {nombre: "Inventariar certificados en uso", manual: 15, auto: 0.2}
   cert-emitir:           {nombre: "Emitir un certificado en la CA interna", manual: 20, auto: 0.3}
   cert-instalar:         {nombre: "Instalar el certificado y recargar el servicio", manual: 15, auto: 0.3}
-  cert-revocar:          {nombre: "Revocar certificados sin uso y retirar sus archivos", manual: 20, auto: 0.3}
   # ---- Aplicaciones
   jboss-instalar:        {nombre: "Instalar JBoss EAP", manual: 45, auto: 3}
   jboss-configurar:      {nombre: "Configurar JBoss (datasources, módulos, propiedades)", manual: 25, auto: 1}
@@ -170,7 +169,6 @@ automatizaciones:
   "Certificados · Renovar (EDA)":                 [cert-emitir, cert-instalar, validar-servicio]
   "Certificados · Emitir para servicio":          [cert-emitir, cert-instalar, validar-servicio]
   "Certificados · Renovar por vencer":            [cert-inventario, cert-emitir, cert-instalar]
-  "Certificados · Limpiar certificados sobrantes": [cert-inventario, cert-revocar, validar-servicio]
   "FaceOps · Incorporar máquinas":                [verificar-acceso, dar-acceso, recolectar-estado]
   "Migración · Evaluar sistema operativo":        [recolectar-estado, so-evaluar]
   "Migración · RHEL a versión soportada":         [so-evaluar, respaldo-previo, so-actualizar-menor, so-salto-mayor, reinicio-equipo, validar-servicio]
