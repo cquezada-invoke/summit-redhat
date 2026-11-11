@@ -1,0 +1,114 @@
+# Ficha de la máquina › botón «Habilidades» (a la altura de la campana de alertas, extremo derecho): ventana centrada con
+# las habilidades que FaceOps puede ejecutar en ESA máquina. Primero las migraciones y lo que diferencia; luego los quick wins.
+#   tipo: diferenciador | quick win
+#   valor: una línea con lo que gana el cliente
+#   nombre_aap: automatización(es) del catálogo, en orden de preferencia (la primera que exista y aplique a la máquina)
+#   so: regex sobre el sistema operativo de la máquina (opcional; si no calza, la habilidad no se muestra)
+#   ui: replica | mover → abre el flotante propio de la ficha (elige destino) en vez de lanzar directo
+# Una habilidad se muestra si su automatización aplica a la máquina (misma regla de la ficha: sistema, plataformas
+# instaladas, inventario de AAP; ámbito en datos/skills-ambito.yml). Si aplica pero no está certificada (regla de prueba,
+# app/pruebas.py) se muestra deshabilitada con su motivo. Todo se ejecuta vía AAP con ticket y aprobación.
+habilidades:
+  # ── Migraciones (diferenciadores)
+  - id: centos-rhel
+    tipo: diferenciador
+    grupo: Migraciones
+    nombre: CentOS / Rocky / Alma a RHEL
+    valor: Convierte el sistema a RHEL en el lugar, sin reinstalar, y lo deja con soporte de Red Hat.
+    nombre_aap: ["Migración · CentOS a RHEL", "Satellite · Convertir a RHEL"]
+    so: "(?i)centos|rocky|alma|oracle"
+  - id: rhel-soportada
+    tipo: diferenciador
+    grupo: Migraciones
+    nombre: RHEL a versión soportada
+    valor: Actualiza RHEL en el lugar (Leapp) a la versión con soporte vigente, con respaldo previo y vuelta atrás.
+    nombre_aap: ["Migración · RHEL a versión soportada"]
+    so: "(?i)red ?hat|rhel"
+  - id: jboss-eap8
+    tipo: diferenciador
+    grupo: Migraciones
+    nombre: JBoss a EAP 8
+    valor: Lleva el servidor de aplicaciones y sus despliegues a JBoss EAP 8 (Jakarta EE 10) con la configuración migrada.
+    nombre_aap: ["Migración · JBoss a EAP 8"]
+  - id: weblogic-ocp
+    tipo: diferenciador
+    grupo: Migraciones
+    nombre: WebLogic a OpenShift
+    valor: Saca la aplicación de WebLogic y la deja corriendo en OpenShift, sin licencias de Oracle.
+    nombre_aap: ["Migración · WebLogic a OpenShift"]
+  - id: iis-ocp
+    tipo: diferenciador
+    grupo: Migraciones
+    nombre: IIS a OpenShift
+    valor: Lleva la aplicación .NET de IIS a contenedores en OpenShift.
+    nombre_aap: ["Migración · IIS a OpenShift"]
+  - id: mover
+    tipo: diferenciador
+    grupo: Migraciones
+    nombre: Mover a otra infraestructura
+    valor: Traslada la máquina a otro hipervisor o centro de datos; la de origen queda de respaldo.
+    nombre_aap: ["Infra · Mover máquina entre centros de datos"]
+    ui: mover
+  - id: replicar
+    tipo: diferenciador
+    grupo: Migraciones
+    nombre: Replicar máquina
+    valor: Levanta una máquina paralela desde la imagen base con el mismo rol, en el balanceo y verificada.
+    nombre_aap: ["Infra · Replicar máquina"]
+    ui: replica
+  # ── Quick wins: evaluaciones y mejoras rápidas
+  - id: evaluar-so
+    tipo: quick win
+    grupo: Evaluaciones
+    nombre: Evaluar sistema operativo
+    valor: Informe de ciclo de vida y bloqueos para migrar, sin tocar nada (solo lectura).
+    nombre_aap: ["Migración · Evaluar sistema operativo"]
+  - id: evaluar-destino
+    tipo: quick win
+    grupo: Evaluaciones
+    nombre: Evaluar destino de ciclo de vida
+    valor: Recomienda a qué versión o plataforma llevar la máquina y cuánto cuesta el salto.
+    nombre_aap: ["Ciclo de vida · Evaluar destino"]
+  - id: weblogic-evaluar
+    tipo: quick win
+    grupo: Evaluaciones
+    nombre: Evaluar WebLogic para OpenShift
+    valor: Mide qué tan lista está la aplicación para salir de WebLogic (solo lectura).
+    nombre_aap: ["Migración · WebLogic a OpenShift · Evaluar"]
+  - id: homologacion
+    tipo: quick win
+    grupo: Evaluaciones
+    nombre: Relevar entorno para homologar
+    valor: Releva versiones y configuración y las contrasta con el estándar del cliente.
+    nombre_aap: ["Homologación · Relevar entorno"]
+  - id: parches
+    tipo: quick win
+    grupo: Seguridad y continuidad
+    nombre: Aplicar parches de seguridad
+    valor: Cierra las CVE pendientes del sistema con los parches de Red Hat.
+    nombre_aap: ["Seguridad · Aplicar parches de seguridad"]
+  - id: escaneo
+    tipo: quick win
+    grupo: Seguridad y continuidad
+    nombre: Escaneo de seguridad
+    valor: Escanea la máquina y deja sus hallazgos priorizados en FaceOps.
+    nombre_aap: ["Seguridad · Escaneo de servidores"]
+  - id: certificados
+    tipo: quick win
+    grupo: Seguridad y continuidad
+    nombre: Renovar certificados por vencer
+    valor: Renueva los certificados próximos a vencer antes de que corten el servicio.
+    nombre_aap: ["Certificados · Renovar por vencer"]
+  - id: respaldo
+    tipo: quick win
+    grupo: Seguridad y continuidad
+    nombre: Respaldar datos
+    valor: Respalda los volúmenes de datos en S3 con restic, cifrado y versionado.
+    nombre_aap: ["Recuperación · Respaldar volúmenes con restic"]
+  - id: registrar-rh
+    tipo: quick win
+    grupo: Seguridad y continuidad
+    nombre: Registrar en Red Hat
+    valor: Registra la suscripción para recibir parches y aparecer en Insights.
+    nombre_aap: ["Sistema · Registrar en Red Hat"]
+    so: "(?i)red ?hat|rhel"

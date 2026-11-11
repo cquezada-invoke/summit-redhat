@@ -1,0 +1,166 @@
+"""Ficha de la máquina › botón «Habilidades» (a la altura de la campana de alertas, en el extremo derecho): ventana
+centrada con las habilidades que FaceOps puede ejecutar en ESA máquina, cada una marcada «Quick win» o «Diferenciador»
+(datos/habilidades.yml). Primero las migraciones y lo que diferencia.
+
+Una habilidad se muestra si su acción del catálogo aplica a la máquina (operacion.motivo_no_aplica: sistema, plataformas
+instaladas, inventario de AAP; ámbito de plataforma en datos/skills-ambito.yml). Si aplica pero no está certificada (regla
+de prueba, app/pruebas.py) queda deshabilitada con su motivo. FaceOps nunca toca la máquina: cada habilidad crea un
+ticket que pasa por la aprobación de AAP; el botón queda «En curso · número» (también al recargar) y al terminar
+«Aplicada · número», sin cerrar la ventana."""
+import os
+import re
+
+import yaml
+from flask import g, request, session, url_for
+
+from .bd import j, q, q1
+from .vistas import bp, equipos_visibles
+from . import requiere_login
+
+RUTA = os.path.join(os.path.dirname(__file__), "..", "datos", "habilidades.yml")
+MARCA = "Habilidad · "   # prefijo del motivo de los tickets creados desde la ventana
+ABIERTOS = ("pendiente_aprobacion", "en_cola", "en_ejecucion", "en curso", "ejecutando", "esperando")
+_cache = {}
+
+
+def mapa():
+    try:
+        mt = os.path.getmtime(RUTA)
+    except OSError:
+        return []
+    if _cache.get("mt") != mt:
+        with open(RUTA, encoding="utf-8") as f_:
+            _cache.update(mt=mt, h=(yaml.safe_load(f_) or {}).get("habilidades") or [])
+    return _cache["h"]
+
+
+def _motivo_prueba(a):
+    from .pruebas import estado, exceptuada
+    if exceptuada(a["nombre_aap"]):
+        return None
+    ep = estado(dict(a, cliente_id=g.cliente["id"]))["estado"]
+    if ep == "certificada":
+        return None
+    return {"cambiada": "cambió desde su última prueba; debe probarse de nuevo",
+            "fallida": "su última prueba falló"}.get(ep, "sin plan de prueba aprobado")
+
+
+def _en_ambito(a, e):
+    """Si la acción es de una plataforma (skills-ambito.yml), la máquina debe tenerla instalada."""
+    from .skills_maquina import ambito
+    from .inventario import skills_de
+    from .vistas import familia
+    amb = ambito(a["nombre_aap"])
+    return amb == "so" or bool({familia(s) for s in skills_de(e)} & set(amb))
+
+
+def _auto(e, h):
+    """(automatización, motivo de bloqueo) de la primera acción de la habilidad que aplica a la máquina; (None, None) si ninguna."""
+    from .operacion import motivo_no_aplica
+    elegida, bloqueo = None, None
+    for n_ in h.get("nombre_aap") or []:
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], n_)
+        if not a:
+            continue
+        a = dict(a)
+        if not _en_ambito(a, e):
+            continue
+        if not h.get("ui") and motivo_no_aplica(g.usuario, g.cliente["id"], a, e):
+            continue
+        b = _motivo_prueba(a)
+        if not b:
+            return a, None
+        if not elegida:
+            elegida, bloqueo = a, b
+    return elegida, bloqueo
+
+
+def _ticket(e, aid):
+    """Último ticket de la acción sobre la máquina: abierto (por cualquier vía) o exitoso pedido desde la ventana."""
+    for t in q("SELECT id, numero, estado, limite, motivo FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 40",
+               g.cliente["id"], aid):
+        desde_aqui = (t["motivo"] or "").startswith(MARCA) and (t["motivo"] or "").endswith(f" en {e['nombre']}")
+        if e["nombre"] not in (t["limite"] or "").split(":") and not desde_aqui:
+            continue
+        if t["estado"] in ABIERTOS:
+            return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": True}
+        if t["estado"] == "exitoso" and desde_aqui:
+            return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": False}
+        if desde_aqui:
+            return None   # el último pedido desde aquí falló o se canceló: se puede volver a pedir
+    return None
+
+
+def _faltan_datos(a):
+    return [c["etiqueta"] for c in j(a.get("campos"), []) if c.get("requerido") and c.get("tipo") not in ("equipo", "equipos")
+            and c.get("defecto") in (None, "")]
+
+
+@bp.app_template_global("habilidades_maquina")
+def habilidades_maquina(e, rep=None):
+    """[{id, tipo, grupo, nombre, valor, auto, aid, ui, bloqueo, ticket, url}] de la máquina, diferenciadores primero."""
+    escritura = getattr(g, "perfil", None) and g.perfil["modo"] == "escritura"
+    so = e.get("so") or ""
+    out = []
+    for h in mapa():
+        if h.get("so") and not re.search(h["so"], so):
+            continue
+        a, bloqueo = _auto(e, h)
+        if not a:
+            continue
+        x = {"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"],
+             "valor": h.get("valor") or "", "auto": a["nombre"], "aid": a["id"], "ui": h.get("ui") or "", "bloqueo": bloqueo or "",
+             "ticket": None, "escritura": bool(escritura), "url": url_for("consola.habilidad_ejecutar", eid=e["id"])}
+        if x["ui"] == "replica":   # su flotante propio decide si se puede (instancias, balanceo, regla de prueba)
+            if not rep or not rep.get("posible"):
+                continue
+            x["bloqueo"] = x["bloqueo"] or (rep.get("bloqueo") or "")
+            x["en_curso"] = rep.get("en_curso")
+        elif not x["ui"]:
+            if not bloqueo:
+                f_ = _faltan_datos(a)
+                if f_:
+                    x["bloqueo"] = "pide datos (" + ", ".join(f_[:2]) + "): lánzala desde Acciones"
+            x["ticket"] = _ticket(e, a["id"])
+        out.append(x)
+    out.sort(key=lambda x: (x["tipo"] != "diferenciador", bool(x["bloqueo"])))
+    return out
+
+
+@bp.route("/inventario/<int:eid>/habilidad", methods=["POST"])
+@requiere_login
+def habilidad_ejecutar(eid):
+    """Crea el ticket (con aprobación en AAP) de la habilidad; si ya hay uno abierto de esa acción para la máquina, devuelve ese."""
+    from .aap import ErrorAAP
+    from .operacion import solicitar_en_equipo
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    h = next((x for x in mapa() if x.get("id") == request.form.get("hid")), None)
+    if not e or not h or h.get("ui"):
+        return {"error": "Habilidad o máquina no válidas"}, 400
+    if h.get("so") and not re.search(h["so"], e.get("so") or ""):
+        return {"error": "Esta habilidad no aplica al sistema de la máquina"}, 400
+    a, bloqueo = _auto(e, h)
+    if not a:
+        return {"error": "Ninguna acción de esta habilidad aplica a la máquina"}, 400
+    if bloqueo:
+        return {"error": f"«{a['nombre']}» está bloqueada: {bloqueo}"}, 400
+    if _faltan_datos(a):
+        return {"error": f"«{a['nombre']}» pide datos: lánzala desde Acciones"}, 400
+    t0 = _ticket(e, a["id"])
+    if t0 and t0["abierto"]:
+        return dict(t0, url=url_for("consola.ticket", tid=t0["id"]), existente=True)
+    params = {}
+    for c in j(a.get("campos"), []):
+        if c.get("tipo") == "equipo":
+            params[c["var"]] = e["nombre"]
+        elif c.get("tipo") == "equipos":
+            params[c["var"]] = [e["nombre"]]
+        elif c.get("defecto") not in (None, ""):
+            params[c["var"]] = int(c["defecto"]) if c.get("tipo") == "integer" else c["defecto"]
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, f"{MARCA}{h['nombre']} en {e['nombre']}")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"]}
