@@ -1,0 +1,16 @@
+commit: fcf5b40f420ae736a5455332f7c147a885df91e6
+inicio: 2026-11-11T18:34:41-03:00
+---
+  File "/opt/faceops/app/aap.py", line 167, in nodos_trabajo_workflow
+    return [((n.get("summary_fields") or {}).get("job") or {}) for n in self.todos(f"workflow_jobs/{id_}/workflow_nodes/")]
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 51, in todos
+    datos = self.get(ruta, **params)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET workflow_jobs/24631/workflow_nodes/ → 503: no healthy upstream
+--- fin: 2026-11-11T18:34:57-03:00 · código: 0

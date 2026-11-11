@@ -1,10 +1,16 @@
-commit: 798306e7ee9f86e5341ddffaa4071088d86c45a2
-inicio: 2026-11-11T18:33:27-03:00
+commit: fcf5b40f420ae736a5455332f7c147a885df91e6
+inicio: 2026-11-11T18:34:41-03:00
 ---
-rc=0
-276 /tmp/res.txt
-1
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-RES {"caso": "x", "auto": "OpenShift · Evaluar imágenes (uso y antigüedad)", "ticket": "FO-LAB-01874", "estado": "exitoso", "stats": {}, "detalle": "", "fallos": [], "resultado": "AAP terminó (successful): ejecución 11 s, espera de aprobación 32 s"}
---- fin: 2026-11-11T18:33:55-03:00 · código: 0
+  File "/opt/faceops/app/aap.py", line 167, in nodos_trabajo_workflow
+    return [((n.get("summary_fields") or {}).get("job") or {}) for n in self.todos(f"workflow_jobs/{id_}/workflow_nodes/")]
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 51, in todos
+    datos = self.get(ruta, **params)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET workflow_jobs/24631/workflow_nodes/ → 503: no healthy upstream
+--- fin: 2026-11-11T18:34:57-03:00 · código: 0
