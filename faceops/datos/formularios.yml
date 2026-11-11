@@ -198,6 +198,8 @@
     - {var: sql_ag, etiqueta: "Grupo de disponibilidad", tipo: text, defecto: ag_pagos}
     - {var: sql_modo_final, etiqueta: "Modo de replicación después de conmutar", tipo: multiplechoice, opciones: [sincrono, asincrono], defecto: sincrono}
 "Sistema · Quitar agente":
+  por_inventario: true   # corre con el inventario y la credencial de la máquina (no como root)
+  usa_limite: true
   campos:
     - {var: qa_agente, etiqueta: "Agente", tipo: multiplechoice, opciones: ["respaldo-git", "node-exporter", "windows-exporter"], requerido: true}
 "Plataforma · Controlar servicio":

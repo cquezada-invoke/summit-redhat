@@ -1,6 +1,7 @@
 # Plan «Sistema · Quitar agente» (C1–C3) sobre una máquina de prueba: respaldo continuo, node_exporter y agente desconocido
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="Sistema · Quitar agente"; CASOS='[]'; TKS='[]'
+sincronizar   # el catálogo y el formulario (por_inventario) deben regir en FaceOps y AAP
 # máquina de prueba: nodo-jboss-qa (nunca nodo-jboss, la principal de la demo); se enciende por FaceOps y al final queda apagada
 M=""; for c_ in nodo-jboss-qa; do existe $c_ && [ -n "$(ip_de $c_)" ] && { M=$c_; break; }; done
 [ -z "$M" ] && { echo "CASO C0 falla · nodo-jboss-qa no disponible"; exit 0; }
@@ -18,8 +19,8 @@ Q
 }
 O_RES=$(sk respaldo-git); O_MON=$(sk node-exporter); echo "prep originales respaldo=$O_RES monitoreo=$O_MON"
 # preparación: la máquina de prueba con ambos agentes (si ya los tiene, FaceOps no relanza)
-caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-respaldo\"}" >/dev/null; echo "prep respaldo: $(estado) $(ticket)"
-caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-monitoreo\"}" >/dev/null; echo "prep monitoreo: $(estado) $(ticket)"
+caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-respaldo\"}" >/dev/null; echo "prep respaldo: $(estado) $(ticket) $(jq_ "(r.get('error') or r.get('detalle') or '')[:200]")"
+caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-monitoreo\"}" >/dev/null; echo "prep monitoreo: $(estado) $(ticket) $(jq_ "(r.get('error') or r.get('detalle') or '')[:200]")"
 R0=$(en $IP 'systemctl is-active faceops-respaldo.timer node_exporter' | tr '\n' ' '); echo "antes: $R0"
 # C1 · quitar el respaldo continuo
 caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"params\":{\"qa_agente\":\"respaldo-git\"},\"min\":10,\"caso\":\"C1\"}" >/dev/null; E1=$(estado)
