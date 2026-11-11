@@ -1,43 +1,30 @@
-commit: 6127135cb73eb7c0e8fd17c687501e43edf8171b
-inicio: 2026-11-11T14:43:20-03:00
+commit: e9ce4d8942a4dd4c7b46bc1102e624e96790e06f
+inicio: 2026-11-11T14:47:15-03:00
 ---
-C8 RED-02 v 2 aplicar en nodo-jboss
-RES FO-LAB-01756 exitoso job=24005
-    Política RED-02 v2 (aplicar): nodo-jboss: al día (F=/etc/sysctl.d/90-faceops-politicas.conf;...)
-   estado RED-02 en nodo-jboss: al_dia v2 modo=aplicar ticket=FO-LAB-01756 detalle=["F=/etc/sysctl.d/90-faceops-politicas.conf;..."]
-== chequeos
-APP http://192.168.122.11/app-jboss/: 200
-APP https://192.168.122.11/app-jboss/: 200
-JBOSS 8080 directo: 200  9990 desde host: 302  RedisInsight 5540: 404
-CONSOLA jboss por FaceOps: HTTP 302 447 bytes 
-CONSOLA redis por FaceOps: HTTP 409 86141 bytes 
-PROMETHEUS [('servidores', '192.168.122.15:9100', '1')]
-SSH ok nodo-jboss.demo.local
-HORA: yes chronyd=active
-FIREWALLD: inactive / Failed to get unit file state for firewalld.service: No such file or directory
-APP02: tabla-ok
-CONTAINERS: ls: cannot access '/etc/containers/containers.conf.d/': No such file or directory  redisinsight Up About an hour;keycloak Up 11 minutes; pids="PidsLimit": 2048
-TMOUT login no interactivo: [900] interactivo: [900]
-SESION no interactiva sobrevive (sleep 3) rc=0
-C1 RED-01 v 2 aplicar en nodo-jboss
-RES FO-LAB-01758 exitoso job=24010
-    Política RED-01 v2 (aplicar): nodo-jboss: al día (firewall: firewalld instalado)
-   estado RED-01 en nodo-jboss: al_dia v2 modo=aplicar ticket=FO-LAB-01758 detalle=["firewall: firewalld instalado"]
-== chequeos
-APP http://192.168.122.11/app-jboss/: 200
-APP https://192.168.122.11/app-jboss/: 200
-JBOSS 8080 directo: 200  9990 desde host: 302  RedisInsight 5540: 404
-CONSOLA jboss por FaceOps: HTTP 302 447 bytes 
-CONSOLA redis por FaceOps: HTTP 409 86141 bytes 
-PROMETHEUS [('servidores', '192.168.122.15:9100', '1')]
-SSH ok nodo-jboss.demo.local
-HORA: yes chronyd=active
-FIREWALLD: active / enabled
-  zona public: puertos [22/tcp 5540/tcp 6379/tcp 8080/tcp 8180/tcp 8443/tcp 9100/tcp] servicios [cockpit dhcpv6-client ssh]
-  rich: rule family="ipv4" source address="192.168.122.1" port port="9990" protocol="tcp" accept
-  trusted: 10.88.0.0/16
-APP02: tabla-ok
-CONTAINERS: ls: cannot access '/etc/containers/containers.conf.d/': No such file or directory  redisinsight Up About an hour;keycloak Up 14 minutes; pids="PidsLimit": 2048
-TMOUT login no interactivo: [900] interactivo: [900]
-SESION no interactiva sobrevive (sleep 3) rc=0
---- fin: 2026-11-11T14:46:46-03:00 · código: 0
+ff5a35d Eval
+200
+== Acceso de FaceOps
+    encender | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    reiniciar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    apagar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    estado | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    actualizar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+    quitar | Usuario de servicio, no un proceso: no se enciende, reinicia ni quita desde aquí (por él AAP opera la máquina) | disabled
+   desc: Usuario de servicio con llave propia por el que AAP opera la máquina
+== Respaldo continuo en Git
+    encender | Ya está encendido | disabled
+    reiniciar | Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para det | disabled
+    apagar | Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para det | disabled
+    estado | Corre con temporizadores de systemd (cada minuto), no como servicio: su estado es el último respaldo; para det | disabled
+    actualizar btn-agc | Actualizar Respaldo continuo en Git (ticket con aprobación) | on
+    quitar | «Quitar agente» aún no pasa su plan de prueba (regla de prueba) | disabled
+   desc: Guarda cada minuto la configuración de la máquina en Git
+== Monitoreo (métricas)
+    encender | Ya está encendido | disabled
+    reiniciar | «Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba (regla de prueba) | disabled
+    apagar | «Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba (regla de prueba) | disabled
+    estado | «Encender, apagar o reiniciar plataforma» aún no pasa su plan de prueba (regla de prueba) | disabled
+    actualizar | «Agente de monitoreo (Linux)» aún no pasa su plan de prueba (regla de prueba) | disabled
+    quitar | «Quitar agente» aún no pasa su plan de prueba (regla de prueba) | disabled
+   desc: Expone métricas de CPU, memoria, disco y red para el monitoreo
+--- fin: 2026-11-11T14:48:13-03:00 · código: 0
