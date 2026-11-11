@@ -1,12 +1,14 @@
-{# Flotante de salud › «Para llegar al 100 %»: por sugerencia, la acción de FaceOps que la resuelve (datos/salud-acciones.yml, app/salud_acciones.py).
-   Botón de automatización: ticket con aprobación; queda «En curso» con su número (también al recargar) y al terminar «Aplicada · número». #}
-{% set sa_ = salud_acciones(e, p) %}{% if sa_ %}<div class="pd-tit sa-tit">Para llegar al 100 %</div><ul class="pd-falta sa-lista">{% for it in sa_ %}<li class="sa-it">
-<div class="sa-t">{{ it.texto }}{% if it.sube %} <span class="chip s-ok sa-sube">+{{ it.sube }} %</span>{% endif %}</div>
-{% if it.acciones %}<div class="sa-acc">{% for ac in it.acciones %}
+{# Flotante de salud › «Para llegar al 100 %» (la misma lista de siempre, solo con lo que resta puntos): cada tema con su
+   acción de FaceOps (datos/salud-acciones.yml, app/salud_acciones.py). Botón de automatización: ticket con aprobación en
+   segundo plano; queda «En curso» con su número (también al recargar) y al terminar «Aplicada · número». #}
+{% set sa_ = salud_acciones(e, p) %}{% if sa_ %}<div class="pd-tit sa-tit">Para llegar al 100 %</div><ul class="pd-falta sa-lista">{% for it in sa_ %}<li class="sa-it">{{ it.texto }}
+<span class="sa-acc">{% for ac in it.acciones %}
 {% if ac.tipo == 'ui' %}{% if ac.ui == 'replica' %}{% if rep_maq and rep_maq.en_curso %}<button type="button" class="btn chico" disabled>En curso</button> <span class="ult-t e-en_cola">{{ rep_maq.en_curso }}</span>{% elif rep_maq and rep_maq.bloqueo %}<button type="button" class="btn chico" disabled title="Regla de prueba">{{ ac.boton }}</button> <span class="sub sa-motivo">bloqueada: {{ rep_maq.bloqueo }}</span>{% elif rep_maq and not rep_maq.posible %}<button type="button" class="btn chico" disabled>{{ ac.boton }}</button> <span class="sub sa-motivo">{{ rep_maq.por_que }}</span>{% elif rep_maq and rep_maq.escritura %}<button type="button" class="btn chico" data-sa-ui="replica">{{ 'Solicitar réplica adicional' if rep_maq.instancias > 1 else ac.boton }}</button>{% endif %}
 {% elif ac.ui != 'inventario_diario' or perfil_actual.modo == 'escritura' %}<button type="button" class="btn chico gris" data-sa-ui="{{ ac.ui }}">{{ ac.boton }}</button>{% endif %}
 {% elif ac.ticket and ac.ticket.abierto %}<button type="button" class="btn chico" disabled title="{{ ac.auto }} · {{ ac.ticket.estado|replace('_', ' ') }}">En curso</button> <a class="ult-t e-{{ ac.ticket.estado }}" href="{{ url_for('consola.ticket', tid=ac.ticket.id) }}" data-sa-poll="{{ ac.ticket.id }}">{{ ac.ticket.numero }}</a>
 {% elif ac.ticket %}<span class="chip e-exitoso" title="{{ ac.auto }}">Aplicada · <a href="{{ url_for('consola.ticket', tid=ac.ticket.id) }}">{{ ac.ticket.numero }}</a></span>
 {% elif ac.bloqueo %}<button type="button" class="btn chico" disabled title="Regla de prueba: {{ ac.bloqueo }}">{{ ac.boton }}</button> <span class="sub sa-motivo">«{{ ac.auto }}» bloqueada: {{ ac.bloqueo }}</span>
-{% elif ac.escritura %}<button type="button" class="btn chico" data-sa-url="{{ ac.url }}" data-sa-sid="{{ ac.sid }}" data-sa-aid="{{ ac.aid }}" title="«{{ ac.auto }}»: ticket con aprobación">{{ ac.boton }}</button>{% endif %}
-{% endfor %}</div>{% endif %}</li>{% endfor %}</ul>{% endif %}
+{% elif ac.escritura %}<button type="button" class="btn chico" data-sa-url="{{ ac.url }}" data-sa-sid="{{ ac.sid }}" data-sa-aid="{{ ac.aid }}" data-sa-n="{{ ac.n }}" title="«{{ ac.auto }}»: ticket con aprobación">{{ ac.boton }}</button>{% endif %}
+{% else %}<span class="sub sa-motivo">sin acción automática aún</span>{% endfor %}</span></li>{% endfor %}</ul>{% endif %}
+<style>.sa-it .sa-acc{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;margin:3px 0 2px 6px;vertical-align:middle}.sa-motivo{font-size:11.5px}
+.pil-nada{font-size:12.5px;padding:4px 0}</style>

@@ -10,7 +10,7 @@ const vigilar=(a,ini)=>{const id=a.dataset.saPoll;const tick=()=>fetch(EST.repla
   const b=a.previousElementSibling&&a.previousElementSibling.tagName==='BUTTON'?a.previousElementSibling:null;
   if(t.estado==='exitoso'){const s=document.createElement('span');s.className='chip e-exitoso';s.innerHTML='Aplicada · <a href="'+a.href+'">'+t.numero+'</a>';if(b)b.remove();a.replaceWith(s);}
   else if(b){b.disabled=false;b.textContent=ini||b.dataset.ini||'Reintentar';a.textContent=t.numero+' · '+(t.estado||'').replace(/_/g,' ');}}).catch(()=>setTimeout(tick,15000));tick();};
-document.querySelectorAll('[data-sa-poll]').forEach(a=>vigilar(a));
+document.querySelectorAll('[data-sa-poll]').forEach(a=>vigilar(a));window.fxSaVigilar=vigilar;
 document.addEventListener('click',ev=>{const u=ev.target.closest('button[data-sa-ui]');
  if(u){ev.preventDefault();const k=u.dataset.saUi;
   if(k==='cpu'||k==='ram')window.fxAbrirRecursos&&fxAbrirRecursos(k);
@@ -21,7 +21,7 @@ document.addEventListener('click',ev=>{const u=ev.target.closest('button[data-sa
   return;}
  const b=ev.target.closest('button[data-sa-url]');if(!b||b.disabled)return;ev.preventDefault();
  const ini=b.textContent;b.dataset.ini=ini;b.disabled=true;b.textContent='En curso';
- const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('sid',b.dataset.saSid);fd.append('aid',b.dataset.saAid);
+ const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('sid',b.dataset.saSid);fd.append('aid',b.dataset.saAid);if(b.dataset.saN)fd.append('n',b.dataset.saN);
  fetch(b.dataset.saUrl,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.text().then(x=>{try{return JSON.parse(x);}catch(_){return {error:'No se pudo crear el ticket (error '+r.status+')'};}})).then(t=>{
   if(t.error){b.disabled=false;b.textContent=ini;(window.fxAviso||alert)(t.error,'error');return;}
   const a=document.createElement('a');a.className='ult-t e-'+(t.estado||'pendiente_aprobacion');a.href=t.url||TK.replace(/0$/,t.id);a.textContent=t.numero;a.dataset.saPoll=t.id;

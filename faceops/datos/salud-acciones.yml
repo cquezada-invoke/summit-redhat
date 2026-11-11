@@ -4,10 +4,13 @@
 #   tipo: automatizacion → ticket con aprobación de la primera automatización del catálogo que exista y sea compatible
 #         con la máquina («nombre_aap» en orden de preferencia; «buscar» = regex sobre el nombre en AAP como respaldo).
 #         Si la regla de prueba (app/pruebas.py) la bloquea, se muestra deshabilitada con el motivo.
-#   tipo: ui → abre un flotante de la ficha (alertas, cpu, ram, disco, replica, inventario_diario).
+#         «recurso: cpu|ram»: «Infra · Ajustar recursos de máquinas» con el valor propuesto (uso medio al 60 % dentro de lo que
+#         permite el anfitrión; botón «Bajar/Subir a N»); corre en el anfitrión, por eso «compat: false».
+#   tipo: ui → abre un flotante de la ficha (alertas, cpu, ram, disco, replica, inventario_diario); con «respaldo: true» solo
+#         se ofrece cuando la sugerencia no tiene automatización disponible.
+# Sin ninguna acción disponible la sugerencia se muestra con «sin acción automática aún».
 # «sube»: cuánto sube el pilar. Si el texto trae «(+N %)» se usa ese; si no, el valor fijo o un cálculo con nombre
 # (frescura, rendimiento, replica) que hace app/salud_acciones.py.
-# Sin acciones (o sin ninguna disponible) la sugerencia se muestra como texto, sin botón.
 sugerencias:
   - id: disp_encender
     pilar: Disponibilidad
@@ -30,13 +33,15 @@ sugerencias:
     patron: "^CPU al"
     sube: rendimiento
     acciones:
-      - {tipo: ui, ui: cpu, boton: "Ajustar CPU"}
+      - {tipo: automatizacion, nombre_aap: ["Infra · Ajustar recursos de máquinas"], recurso: cpu, compat: false, boton: "Ajustar CPU"}
+      - {tipo: ui, ui: cpu, boton: "Ajustar CPU", respaldo: true}
   - id: rend_ram
     pilar: Rendimiento
     patron: "^Memoria al"
     sube: rendimiento
     acciones:
-      - {tipo: ui, ui: ram, boton: "Ajustar memoria"}
+      - {tipo: automatizacion, nombre_aap: ["Infra · Ajustar recursos de máquinas"], recurso: ram, compat: false, boton: "Ajustar memoria"}
+      - {tipo: ui, ui: ram, boton: "Ajustar memoria", respaldo: true}
   - id: rend_disco
     pilar: Rendimiento
     patron: "^Disco"

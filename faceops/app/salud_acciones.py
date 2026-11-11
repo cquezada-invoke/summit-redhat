@@ -54,7 +54,7 @@ def _auto(cliente_id, e, ac):
     for a in cands:
         a = dict(a)
         try:
-            ok, _ = compatible(a, e)
+            ok = True if ac.get("compat") is False else compatible(a, e)[0]
         except Exception:  # noqa: BLE001
             ok = False
         if not ok:
@@ -69,11 +69,15 @@ def _auto(cliente_id, e, ac):
     return elegida, bloqueo
 
 
-def _ticket(cliente_id, e, aid):
-    """Último ticket de esa automatización sobre la máquina pedido desde el flotante (o abierto por cualquier vía)."""
-    for t in q("SELECT id, numero, estado, limite, motivo, fin FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 40",
+def _ticket(cliente_id, e, aid, por_param=None):
+    """Último ticket de esa automatización sobre la máquina pedido desde el flotante (o abierto por cualquier vía).
+    por_param: parámetro que nombra la máquina cuando la automatización no corre en ella (p. ej. ir_maquinas en recursos)."""
+    for t in q("SELECT id, numero, estado, limite, motivo, fin, parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 40",
                cliente_id, aid):
-        if e["nombre"] not in (t["limite"] or "").split(":"):
+        if por_param:
+            if not str((j(t["parametros"], {}) or {}).get(por_param) or "").startswith(e["nombre"] + ":"):
+                continue
+        elif e["nombre"] not in (t["limite"] or "").split(":"):
             continue
         if t["estado"] in ABIERTOS:
             return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": True}
@@ -82,6 +86,38 @@ def _ticket(cliente_id, e, aid):
         if (t["motivo"] or "").startswith(MARCA):
             return None   # el último pedido desde aquí falló o se canceló: se puede volver a pedir
     return None
+
+
+def _recurso(e, ac, texto=None, n=None):
+    """CPU o memoria (sugerencia de Rendimiento): a cuánto dejarla y los parámetros de «Infra · Ajustar recursos de máquinas».
+    Con «texto» propone el valor (uso medio al 60 %, dentro de lo que permite el anfitrión); con «n» valida el pedido."""
+    from .vistas import _limites_recursos
+    if (e.get("forma") or "") != "virtual":
+        return None
+    lim = _limites_recursos(e)
+    if not lim:
+        return None
+    k = ac["recurso"]
+    cur = int(e.get("cpu") or 0) if k == "cpu" else round((e.get("ram_mb") or 0) / 1024)
+    ops = lim["cpus"] if k == "cpu" else lim["rams"]
+    if n is None:
+        m = re.search(r"al (\d+(?:[.,]\d+)?) ?%", texto or "")
+        if not m or not cur:
+            return None
+        u = float(m.group(1).replace(",", "."))
+        ideal = u * cur / 60
+        if u < 15:
+            c_ = [x for x in ops if x < cur and x >= ideal]
+            n = min(c_) if c_ else None
+        else:
+            c_ = [x for x in ops if x > cur]
+            n = min([x for x in c_ if x >= ideal] or [max(c_)] if c_ else [None])
+    if not n or n == cur or not (1 <= n <= (lim["max_cpu"] if k == "cpu" else lim["max_ram"])):
+        return None
+    cpu, ram = (n, round((e.get("ram_mb") or 0) / 1024) or 1) if k == "cpu" else (int(e.get("cpu") or 1), n)
+    u_ = "vCPU" if k == "cpu" else "GB"
+    return {"n": n, "boton": f"{'Bajar' if n < cur else 'Subir'} a {n} {u_}", "parametros": {"ir_maquinas": f"{e['nombre']}:{cpu}:{ram * 1024}"},
+            "motivo": f"Ajustar {e['nombre']} a {cpu} vCPU y {ram} GB"}
 
 
 def _sube(s, texto, p, pilar_falta):
@@ -116,12 +152,18 @@ def salud_acciones(e, pilar):
             if ac["tipo"] == "ui":
                 accs.append({"tipo": "ui", "ui": ac["ui"], "boton": ac["boton"]})
                 continue
+            rc = _recurso(e, ac, texto=texto) if ac.get("recurso") else None
+            if ac.get("recurso") and not rc:
+                continue
             a, bloqueo = _auto(g.cliente["id"], e, ac)
             if not a:
                 continue
-            accs.append({"tipo": "auto", "boton": ac.get("boton") or a["nombre"], "auto": a["nombre"], "aid": a["id"], "bloqueo": bloqueo,
-                         "escritura": escritura, "ticket": _ticket(g.cliente["id"], e, a["id"]),
+            accs.append({"tipo": "auto", "boton": (rc or {}).get("boton") or ac.get("boton") or a["nombre"], "auto": a["nombre"], "aid": a["id"],
+                         "bloqueo": bloqueo, "escritura": escritura, "n": (rc or {}).get("n") or "",
+                         "ticket": _ticket(g.cliente["id"], e, a["id"], "ir_maquinas" if rc else None),
                          "url": url_for("consola.salud_accion", eid=e["id"]), "sid": s["id"]})
+        if accs and any(x["tipo"] == "auto" for x in accs):   # «respaldo: true» (abrir un flotante) solo cuando no hay automatización
+            accs = [x for x in accs if x["tipo"] == "auto" or not next((ac for ac in s.get("acciones") or [] if ac.get("ui") == x["ui"] and ac.get("respaldo")), None)]
         out.append({"texto": texto, "sube": _sube(s, texto, pilar, pilar.get("falta")), "id": (s or {}).get("id"), "acciones": accs})
     return out
 
@@ -148,13 +190,21 @@ def salud_accion(eid):
     a, bloqueo = _auto(g.cliente["id"], e, ac)
     if bloqueo:
         return {"error": f"«{a['nombre']}» está bloqueada: {bloqueo}"}, 400
-    t0 = _ticket(g.cliente["id"], e, a["id"])
+    rc = None
+    if ac.get("recurso"):
+        rc = _recurso(e, ac, n=int(request.form.get("n") or 0))
+        if not rc:
+            return {"error": "Ese valor no se puede asignar a la máquina en su anfitrión"}, 400
+    t0 = _ticket(g.cliente["id"], e, a["id"], "ir_maquinas" if rc else None)
     if t0 and t0["abierto"]:
         return dict(t0, url=url_for("consola.ticket", tid=t0["id"]), existente=True)
     try:
-        t = solicitar(g.usuario, g.cliente, a, None, dict(ac.get("parametros") or {}),
-                      f"{MARCA}{a['nombre']} en {e['nombre']}", None,
-                      {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
+        if rc:   # corre en el anfitrión KVM (como el flotante de CPU/memoria): la máquina va en el parámetro, no en el límite
+            t = solicitar(g.usuario, g.cliente, a, None, rc["parametros"], f"{MARCA}{rc['motivo']}")
+        else:
+            t = solicitar(g.usuario, g.cliente, a, None, dict(ac.get("parametros") or {}),
+                          f"{MARCA}{a['nombre']} en {e['nombre']}", None,
+                          {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]),
