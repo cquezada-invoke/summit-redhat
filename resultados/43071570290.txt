@@ -1,0 +1,67 @@
+commit: 1978766c58b3e6cb98010be65fd2c1f8c8517646
+inicio: 2026-11-11T14:53:17-03:00
+---
+C2 RED-01 v 2 aplicar en nodo-jboss
+RES FO-LAB-01766 exitoso job=24051
+    Política RED-01 v2 (aplicar): nodo-jboss: al día
+   estado RED-01 en nodo-jboss: al_dia v2 modo=aplicar ticket=FO-LAB-01766 detalle=[]
+C3 RED-01 v 2 verificar en nodo-jboss
+RES FO-LAB-01768 exitoso job=24058
+    Política RED-01 v2 (verificar): nodo-jboss: al día
+   estado RED-01 en nodo-jboss: al_dia v2 modo=verificar ticket=FO-LAB-01766 detalle=[]
+C4 CON-02 v 2 aplicar en nodo-jboss
+RES FO-LAB-01770 exitoso job=24065
+    Política CON-02 v2 (aplicar): nodo-jboss: al día (! command -v podman >/dev/null || { grep -qsx...)
+   estado CON-02 en nodo-jboss: al_dia v2 modo=aplicar ticket=FO-LAB-01770 detalle=["! command -v podman >/dev/null || { grep -qsx..."]
+== chequeos
+APP http://192.168.122.11/app-jboss/: 200
+APP https://192.168.122.11/app-jboss/: 200
+KEYCLOAK 8180 desde host: 302
+JBOSS 8080 directo: 200  9990 desde host: 302  RedisInsight 5540: 404
+CONSOLA jboss por FaceOps: HTTP 302 447 bytes  Redirecting... /lab/inventario/6/consola-web/jboss/console/index.html?connect=http%3A%2F%2Flocalhost%2Flab%2Finventario%2F6%2Fconsola-web%2Fjboss
+CONSOLA redis por FaceOps: HTTP 409 86141 bytes  Redis Insight con la ruta antigua · FaceOps 
+PROMETHEUS [('servidores', '192.168.122.15:9100', '1'), ('faceops-equipos', '192.168.122.15:9100', '1')]
+SSH ok nodo-jboss.demo.local
+HORA: yes chronyd=active
+FIREWALLD: active / enabled
+  zona public: puertos [22/tcp 5540/tcp 6379/tcp 8080/tcp 8180/tcp 8443/tcp 9100/tcp] servicios [cockpit dhcpv6-client ssh]
+  rich: rule family="ipv4" source address="192.168.122.1" port port="9990" protocol="tcp" accept
+  trusted: 10.88.0.0/16
+APP02: tabla-ok
+CONTAINERS: 50-faceops.conf  redisinsight Up 2 hours;keycloak Up 25 minutes; pids="PidsLimit": 2048
+TMOUT login no interactivo: [900] interactivo: [900]
+SESION no interactiva sobrevive (sleep 3) rc=0
+C5 CON-02 v 2 verificar en nodo-postgres
+RES FO-LAB-01773 exitoso job=24076
+    Política CON-02 v2 (verificar): nodo-postgres: al día
+   estado CON-02 en nodo-postgres: al_dia v2 modo=verificar ticket=FO-LAB-01773 detalle=[]
+C6 PRB-FW v 1 aplicar en nodo-jboss
+RES FO-LAB-01775 fallido job=24085
+    Falló en la tarea «Firewall (puertos de su rol, consolas y flujos declarados en FaceOps)» de nodo-jboss: non-zero return code
+    fatal: [nodo-jboss]: FAILED! => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python3"}, "changed": false, "cmd": "set -u\n# 1) validar los puertos antes de tocar nada\nfor x in $FW_ABRIR $FW_RESTRINGIR; do p=${x%@*}; n=${p%/*}\n  echo \"$p\" | grep -Eq '^[0-9]{1,5}/(tcp|udp)$' && [ \"$n\" -ge 1 ] && [ \"$n\" -le 65535 ] || { echo \"ERROR puerto inválido: $x (no se cambió nada)\"; 
+    nodo-jboss                 : ok=1    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0   
+    Política PRB-FW v1 (aplicar): nodo-jboss: falló
+   fila PRB-FW quitada
+C7 SO-03 v 1 verificar en nodo-jboss
+RES FO-LAB-01777 exitoso job=24092
+    Política SO-03 v1 (verificar): nodo-jboss: al día
+   estado SO-03 en nodo-jboss: al_dia v1 modo=verificar ticket=FO-LAB-01689 detalle=[]
+== chequeos
+APP http://192.168.122.11/app-jboss/: 200
+APP https://192.168.122.11/app-jboss/: 200
+KEYCLOAK 8180 desde host: 302
+JBOSS 8080 directo: 200  9990 desde host: 302  RedisInsight 5540: 404
+CONSOLA jboss por FaceOps: HTTP 302 447 bytes  Redirecting... /lab/inventario/6/consola-web/jboss/console/index.html?connect=http%3A%2F%2Flocalhost%2Flab%2Finventario%2F6%2Fconsola-web%2Fjboss
+CONSOLA redis por FaceOps: HTTP 409 86141 bytes  Redis Insight con la ruta antigua · FaceOps 
+PROMETHEUS [('servidores', '192.168.122.15:9100', '1'), ('faceops-equipos', '192.168.122.15:9100', '1')]
+SSH ok nodo-jboss.demo.local
+HORA: yes chronyd=active
+FIREWALLD: active / enabled
+  zona public: puertos [22/tcp 5540/tcp 6379/tcp 8080/tcp 8180/tcp 8443/tcp 9100/tcp] servicios [cockpit dhcpv6-client ssh]
+  rich: rule family="ipv4" source address="192.168.122.1" port port="9990" protocol="tcp" accept
+  trusted: 10.88.0.0/16
+APP02: tabla-ok
+CONTAINERS: 50-faceops.conf  redisinsight Up 2 hours;keycloak Up 34 minutes; pids="PidsLimit": 2048
+TMOUT login no interactivo: [900] interactivo: [900]
+SESION no interactiva sobrevive (sleep 3) rc=0
+--- fin: 2026-11-11T15:07:24-03:00 · código: 0
