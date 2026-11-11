@@ -1,14 +1,12 @@
-commit: 9984411113dea379d4d421b83e19803e55e3159e
-inicio: 2026-11-11T14:04:10-03:00
+commit: ecd23fb72c08b20bd65c1511bd81155aa13f3e7e
+inicio: 2026-11-11T14:04:41-03:00
 ---
-running
-
-FO-LAB-01719 exitoso AAP terminó (successful): ejecución 46 s, espera de aprobación 28 s | Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-mig-rocky-01 · 192.168.122.231
-{'id': 129, 'nombre': 'srv-mig-rocky-01', 'estado': 'sin datos', 'so': ''}
-['srv-mig-rocky-01'] 46
-{'deleted_instances': 34, 'reactivated_instances': 2, 'current_instances': 46, 'automated_instances': 50, 'free_instances': 0}
-CRED OpenShift · clúster (token)
-CRED OpenShift · Pull secret
-CRED OpenShift · SNO (despliegue)
-CRED OpenShift · SNO (lectura)
---- fin: 2026-11-11T14:04:26-03:00 · código: 0
+net.ipv4.ip_forward = 0
+net.ipv4.conf.all.forwarding = 0
+net.ipv4.conf.eth0.forwarding = 0
+net.ipv4.conf.podman0.forwarding = 0
+/etc/sysctl.d/90-faceops-politicas.conf:net.ipv4.ip_forward=0
+por IP propia 192.168.122.15:5540 -> 404
+contenedor 10.88.0.2:5540 -> 404
+desde host -> 000
+--- fin: 2026-11-11T14:04:47-03:00 · código: 0
