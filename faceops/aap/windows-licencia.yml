@@ -1,0 +1,59 @@
+---
+# Windows · Activar licencia: instala la clave de producto (o la GVLK) y activa Windows, en línea o contra el servidor KMS
+# indicado. La clave la entrega quien pide el ticket desde la skill «Registrar licencia» (campo oculto: enmascarada en
+# FaceOps, solo viaja a AAP). Nunca se imprime: las tareas que la usan van con no_log.
+- name: Windows · Activar licencia
+  hosts: all
+  gather_facts: false
+  become: false
+  vars:
+    clave_: "{{ win_clave | default('') }}"
+    kms_: "{{ win_kms | default('') }}"
+  tasks:
+    - name: Hay clave de producto
+      ansible.builtin.assert:
+        that: [clave_ | length > 0]
+        fail_msg: "Falta la clave de producto de Windows"
+        quiet: true
+      no_log: true
+
+    - name: Estado de la licencia antes
+      ansible.windows.win_powershell:
+        script: |
+          $Ansible.Changed = $false
+          (Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" |
+            Select-Object -First 1).LicenseStatus
+      register: r_antes
+
+    - name: Instalar la clave y activar
+      ansible.windows.win_powershell:
+        parameters:
+          Clave: "{{ clave_ }}"
+          Kms: "{{ kms_ }}"
+        script: |
+          param([string]$Clave, [string]$Kms)
+          $ErrorActionPreference = 'Stop'
+          $s = "$env:SystemRoot\System32\slmgr.vbs"
+          cscript //nologo $s /ipk $Clave | Out-Null
+          if ($Kms) { cscript //nologo $s /skms $Kms | Out-Null }
+          $r = cscript //nologo $s /ato
+          if ($LASTEXITCODE -ne 0) { throw "La activación no se completó" }
+      when: (r_antes.output | first | default(0) | int) != 1
+      no_log: true
+
+    - name: Estado de la licencia después
+      ansible.windows.win_powershell:
+        script: |
+          $Ansible.Changed = $false
+          (Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" |
+            Select-Object -First 1).LicenseStatus
+      register: r_despues
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_licencia: "{{ {inventory_hostname: {'licenciado': (r_despues.output | first | default(0) | int) == 1}} }}"
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ 'licencia activada' if (r_despues.output | first | default(0) | int) == 1 else 'sin activar (revisar la clave o el KMS)' }}"

@@ -144,6 +144,7 @@ shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
 shutil.copy(f"{AQUI}/desinstalar-plataforma.yml", f"{tmp}/playbooks/desinstalar-plataforma.yml")
 shutil.copy(f"{AQUI}/windows-escritorio-remoto.yml", f"{tmp}/playbooks/windows-escritorio-remoto.yml")
+shutil.copy(f"{AQUI}/windows-licencia.yml", f"{tmp}/playbooks/windows-licencia.yml")
 shutil.copy(f"{AQUI}/paquetes-registro.yml", f"{tmp}/playbooks/paquetes-registro.yml")
 shutil.copy(f"{AQUI}/inventariar-maquina.yml", f"{tmp}/playbooks/inventariar-maquina.yml")
 shutil.copy(f"{AQUI}/origen-maquinas.yml", f"{tmp}/playbooks/origen-maquinas.yml")
@@ -672,6 +673,12 @@ jrdp = asegurar("job_templates", "Windows · Habilitar escritorio remoto", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True,
     "description": "Activa RDP (con NLA), abre el 3389 en el firewall de Windows y deja el servicio en automático"})
 paso(f"Plantilla «Windows · Habilitar escritorio remoto» (id {jrdp['id']})")
+jwl = asegurar("job_templates", "Windows · Activar licencia", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/windows-licencia.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True,
+    "description": "Instala la clave de producto y activa Windows (en línea o contra KMS); la clave nunca se imprime"})
+paso(f"Plantilla «Windows · Activar licencia» (id {jwl['id']})")
 # Vincular máquinas a la bóveda: tipo de credencial que inyecta la dirección y un token de escritura acotado a maquinas/*
 ct_bov = asegurar("credential_types", "FaceOps · Bóveda (escritura)", {
     "kind": "cloud", "description": "Dirección y token de HashiCorp Vault con escritura solo en faceops/data/maquinas/*",

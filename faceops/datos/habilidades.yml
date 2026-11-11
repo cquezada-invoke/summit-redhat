@@ -5,6 +5,9 @@
 #   nombre_aap: automatización(es) del catálogo, en orden de preferencia (la primera que exista y aplique a la máquina)
 #   so: regex sobre el sistema operativo de la máquina (opcional; si no calza, la habilidad no se muestra)
 #   origen: parámetro que lleva la máquina cuando la acción la elige en su formulario (no usa límite), p. ej. mj_origen
+#   sin_limite: true → la acción no corre «sobre» la máquina (elige su origen en el formulario): se lanza sin límite
+#   categoria: regex sobre el tipo de equipo (p. ej. «clúster openshift»); ambito: texto de la columna Ámbito (fija el ámbito)
+#   parametros: valores fijos que se envían (p. ej. el modo de la acción); campos: datos que pide la skill antes de lanzar
 #   ui: replica | mover → abre el flotante propio de la ficha (elige destino) en vez de lanzar directo
 # Una habilidad se muestra si su automatización aplica a la máquina (misma regla de la ficha: sistema, plataformas
 # instaladas, inventario de AAP; ámbito en datos/skills-ambito.yml). Si aplica pero no está certificada (regla de prueba,
@@ -58,6 +61,81 @@ habilidades:
     valor: Levanta una máquina paralela desde la imagen base con el mismo rol, en el balanceo y verificada.
     nombre_aap: ["Infra · Replicar máquina"]
     ui: replica
+  # ── OpenShift (clústeres): ámbito «OpenShift»
+  - id: ocp-eus-actualizar
+    tipo: diferenciador
+    categoria: "clúster openshift"
+    ambito: OpenShift
+    nombre: Actualizar a la siguiente EUS
+    valor: Lleva el clúster a la siguiente versión EUS con respaldo de etcd previo y operadores sanos.
+    nombre_aap: ["OpenShift · Versión del clúster"]
+    parametros: {ov_modo: actualizar}
+    campos:
+      - {var: ov_version, etiqueta: "Versión de destino", tipo: text, requerido: true, ayuda: "una de las que muestra «Evaluar salto a la siguiente EUS», p. ej. 4.20.12"}
+      - {var: ov_confirmar, etiqueta: "Confirmación", tipo: text, requerido: true, ayuda: "escribe ACTUALIZAR (exige respaldo de etcd de menos de 24 h)"}
+  - id: ocp-quay
+    tipo: diferenciador
+    categoria: "clúster openshift"
+    ambito: OpenShift
+    nombre: Mover imágenes a Quay
+    valor: Saca del registry interno las imágenes sin uso y las deja en Quay, verificadas.
+    nombre_aap: ["OpenShift · Mover imágenes a Quay"]
+    campos:
+      - {var: mq_quay, etiqueta: "Host de Quay", tipo: text, requerido: true}
+      - {var: mq_seleccion, etiqueta: "Imágenes a mover", tipo: text, requerido: true, ayuda: "«todas» las candidatas o ns/imagestream:tag separados por coma"}
+  - id: ocp-k8s
+    tipo: diferenciador
+    categoria: "clúster openshift"
+    ambito: OpenShift
+    nombre: Migrar cargas desde K8s u otro clúster
+    valor: Evalúa el clúster de origen y prepara la migración de sus aplicaciones a este OpenShift.
+    nombre_aap: ["Migración K8s → OpenShift · Evaluar origen"]
+    sin_limite: true
+  - id: ocp-virt
+    tipo: diferenciador
+    categoria: "clúster openshift"
+    ambito: OpenShift
+    nombre: Habilitar OpenShift Virtualization
+    valor: Deja el clúster listo para correr máquinas virtuales junto a los contenedores.
+    nombre_aap: ["OpenShift · Habilitar OpenShift Virtualization"]
+    parametros: {ocpv_modo: instalar}
+  - id: ocp-acs
+    tipo: diferenciador
+    categoria: "clúster openshift"
+    ambito: OpenShift
+    nombre: Escaneo de seguridad con ACS
+    valor: Conecta el clúster a Advanced Cluster Security para escanear imágenes y despliegues.
+    nombre_aap: ["OpenShift · Informe de seguridad del clúster", "OpenShift · Agente de ACS"]
+    parametros: {acs_modo: conectar}
+  - id: ocp-eus-evaluar
+    tipo: quick win
+    categoria: "clúster openshift"
+    ambito: OpenShift
+    nombre: Evaluar salto a la siguiente EUS
+    valor: Muestra versiones disponibles, APIs retiradas y bloqueos para actualizar (solo lectura).
+    nombre_aap: ["OpenShift · Versión del clúster"]
+    parametros: {ov_modo: evaluar}
+  - id: ocp-imagenes
+    tipo: quick win
+    categoria: "clúster openshift"
+    ambito: OpenShift
+    nombre: Evaluar uso y antigüedad de imágenes
+    valor: Plan de imágenes sin uso por rango de meses, candidatas a Quay (solo lectura).
+    nombre_aap: ["OpenShift · Evaluar imágenes (uso y antigüedad)", "OpenShift · Relevamiento de imágenes"]
+  - id: ocp-respaldo
+    tipo: quick win
+    categoria: "clúster openshift"
+    ambito: OpenShift
+    nombre: Respaldo del clúster (OADP / etcd)
+    valor: Deja el respaldo diario del clúster programado y verificado fuera del nodo.
+    nombre_aap: ["OpenShift · Respaldo con OADP", "OpenShift · Respaldo de etcd"]
+  - id: ocp-optimizar
+    tipo: quick win
+    categoria: "clúster openshift"
+    ambito: OpenShift
+    nombre: Optimizar recursos y limpiar
+    valor: "Libera capacidad: recursos huérfanos, réplicas sobredimensionadas y volúmenes sueltos."
+    nombre_aap: ["OpenShift · Optimizar recursos y limpiar"]
   # ── Quick wins: evaluaciones y mejoras rápidas
   - id: evaluar-so
     tipo: quick win
@@ -107,10 +185,20 @@ habilidades:
     nombre: Respaldar datos
     valor: Respalda los volúmenes de datos en S3 con restic, cifrado y versionado.
     nombre_aap: ["Recuperación · Respaldar volúmenes con restic"]
-  - id: registrar-rh
+  - id: registrar-licencia
     tipo: quick win
     grupo: Seguridad y continuidad
-    nombre: Registrar en Red Hat
-    valor: Registra la suscripción para recibir parches y aparecer en Insights.
-    nombre_aap: ["Sistema · Registrar en Red Hat"]
-    so: "(?i)red ?hat|rhel"
+    nombre: Registrar licencia
+    valor: Registra la suscripción o activa la licencia del fabricante para recibir parches y soporte.
+    solo_sin_registro: true   # solo si FaceOps sabe que la máquina NO está registrada o licenciada (datos.registrado / datos.licenciado = false)
+    por_so:                   # la acción y los datos según el sistema; las claves van como secreto: enmascaradas en FaceOps, solo viajan a AAP
+      - so: "(?i)red ?hat|rhel"
+        nombre_aap: ["Sistema · Registrar en Red Hat"]
+        campos:
+          - {var: rh_org, etiqueta: "Organización", tipo: text, ayuda: "vacía = la de la llave guardada"}
+          - {var: rh_llave, etiqueta: "Clave de activación", tipo: password, ayuda: "vacía = llave guardada de la organización"}
+      - so: "(?i)windows"
+        nombre_aap: ["Windows · Activar licencia"]
+        campos:
+          - {var: win_clave, etiqueta: "Clave de producto (o GVLK para KMS)", tipo: password}
+          - {var: win_kms, etiqueta: "Servidor KMS (opcional)", tipo: text, ayuda: "host o host:puerto"}
