@@ -1,0 +1,75 @@
+commit: 344020a57d80f1b9f576c5fe8f3c9f69253d6dbb
+inicio: 2026-11-11T14:51:27-03:00
+---
+NAME                                     IMAGE REPOSITORY                                                                        TAGS    UPDATED
+imagestream.image.openshift.io/cero      default-route-openshift-image-registry.apps.sno.invoke.lab/faceops-prueba-mov/cero      v1      About a minute ago
+imagestream.image.openshift.io/enuso     default-route-openshift-image-registry.apps.sno.invoke.lab/faceops-prueba-mov/enuso     v1      About a minute ago
+imagestream.image.openshift.io/rollout   default-route-openshift-image-registry.apps.sno.invoke.lab/faceops-prueba-mov/rollout   v2,v1   About a minute ago
+imagestream.image.openshift.io/sinuso    default-route-openshift-image-registry.apps.sno.invoke.lab/faceops-prueba-mov/sinuso    v1      About a minute ago
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/cero-7bf6cfd7c       0         0         0       81s
+replicaset.apps/enuso-56bd48b7f6     1         1         1       81s
+replicaset.apps/rollout-559f6f7b98   1         1         1       40s
+replicaset.apps/rollout-74888d67f    0         0         0       81s
+
+NAME                           READY   STATUS    RESTARTS   AGE
+pod/enuso-56bd48b7f6-bqd7h     1/1     Running   0          81s
+pod/rollout-559f6f7b98-8lh5j   1/1     Running   0          40s
+rev 49 cand 3 mb 1232 capas 3 sin token
+[{'rango': 'en uso', 'revisiones': 11, 'mb': 3811}, {'rango': 'referenciada', 'revisiones': 4, 'mb': 1272}, {'rango': 'sin uso 0–1 meses', 'revisiones': 31, 'mb': 13181}, {'rango': 'huérfana', 'revisiones': 3, 'mb': 1232}]
+[{'namespace': '(huérfanas)', 'candidatas': 3, 'mb': 1232}]
+{'id': 'huérfana@a2ed7803e1a1', 'rev': 0, 'digest': 'sha256:a2ed7803e1a1', 'ola': 1, 'riesgo': 'bajo', 'meses': 0.0, 'base': 'creación en el registro', 'mb': 411, 'accion': 'podar (sin ImageStream: el registro ya no la sirve)', 'destino': '—', 'referencias': 'ninguna (no está en uso)'}
+{'id': 'huérfana@0d191d0e6af9', 'rev': 0, 'digest': 'sha256:0d191d0e6af9', 'ola': 1, 'riesgo': 'bajo', 'meses': 0.0, 'base': 'creación en el registro', 'mb': 411, 'accion': 'podar (sin ImageStream: el registro ya no la sirve)', 'destino': '—', 'referencias': 'ninguna (no está en uso)'}
+{'id': 'huérfana@5bc032f12475', 'rev': 0, 'digest': 'sha256:5bc032f12475', 'ola': 1, 'riesgo': 'bajo', 'meses': 0.0, 'base': 'creación en el registro', 'mb': 411, 'accion': 'podar (sin ImageStream: el registro ya no la sirve)', 'destino': '—', 'referencias': 'ninguna (no está en uso)'}
+['oc adm prune images --keep-tag-revisions=1 --keep-younger-than=4383h --confirm   # revisiones antiguas y huérfanas, después de verificar la copia en Quay']
+rev 49 cand 34 mb 14413 capas 72 sin token
+[{'rango': 'en uso', 'revisiones': 11, 'mb': 3811}, {'rango': 'referenciada', 'revisiones': 4, 'mb': 1272}, {'rango': 'sin uso 0–1 meses', 'revisiones': 31, 'mb': 13181}, {'rango': 'huérfana', 'revisiones': 3, 'mb': 1232}]
+[{'namespace': 'demo-fiscalia', 'candidatas': 7, 'mb': 4515}, {'namespace': 'fabrica-codigo', 'candidatas': 8, 'mb': 3070}, {'namespace': 'demo-javia', 'candidatas': 3, 'mb': 1666}, {'namespace': '(huérfanas)', 'candidatas': 3, 'mb': 1232}, {'namespace': 'demo-datalake', 'candidatas': 3, 'mb': 1150}, {'namespace': 'amdocs-bss', 'candidatas': 2, 'mb': 760}, {'namespace': 'catocp-prod', 'candidatas': 2, 'mb': 752}, {'namespace': 'wl-proto', 'candidatas': 1, 'mb': 411}, {'namespace': 'portal-claro', 'candidatas': 1, 'mb': 396}, {'namespace': 'fabrica-dev', 'candidatas': 2, 'mb': 389}, {'namespace': 'faceops-prueba-mov', 'candidatas': 2, 'mb': 75}]
+{'id': 'huérfana@a2ed7803e1a1', 'rev': 0, 'digest': 'sha256:a2ed7803e1a1', 'ola': 1, 'riesgo': 'bajo', 'meses': 0.0, 'base': 'creación en el registro', 'mb': 411, 'accion': 'podar (sin ImageStream: el registro ya no la sirve)', 'destino': '—', 'referencias': 'ninguna (no está en uso)'}
+{'id': 'huérfana@0d191d0e6af9', 'rev': 0, 'digest': 'sha256:0d191d0e6af9', 'ola': 1, 'riesgo': 'bajo', 'meses': 0.0, 'base': 'creación en el registro', 'mb': 411, 'accion': 'podar (sin ImageStream: el registro ya no la sirve)', 'destino': '—', 'referencias': 'ninguna (no está en uso)'}
+{'id': 'huérfana@5bc032f12475', 'rev': 0, 'digest': 'sha256:5bc032f12475', 'ola': 1, 'riesgo': 'bajo', 'meses': 0.0, 'base': 'creación en el registro', 'mb': 411, 'accion': 'podar (sin ImageStream: el registro ya no la sirve)', 'destino': '—', 'referencias': 'ninguna (no está en uso)'}
+{'id': 'faceops-prueba-mov/sinuso:v1', 'rev': 0, 'digest': 'sha256:f5d2c6a1e0c8', 'ola': 2, 'riesgo': 'bajo', 'meses': 0.0, 'base': 'push al registro (sin uso registrado)', 'mb': 37, 'accion': 'copiar a Quay', 'destino': 'quay.lab.local/faceops-prueba-mov/sinuso:v1', 'referencias': 'ninguna (no está en uso)'}
+{'id': 'demo-fiscalia/denuncias:latest', 'rev': 1, 'digest': 'sha256:0f8c601e099b', 'ola': 2, 'riesgo': 'medio', 'meses': 0.1, 'base': 'último uso', 'mb': 645, 'accion': 'copiar a Quay', 'destino': 'quay.lab.local/demo-fiscalia/denuncias:latest-0f8c601e099b', 'referencias': 'rollback de demo-fiscalia/inteligencia (ReplicaSet inteligencia-555cf77445), demo-fiscalia/inteligencia (ReplicaSet inteligencia-fdb7f6fbc), demo-fiscalia/registro (ReplicaSet registro-6565df68b), demo-fiscalia/registro (ReplicaSet registro-98485cf6b) apuntaría a la imagen retirada: actualizar a Quay o aceptar'}
+{'id': 'demo-fiscalia/denuncias:latest', 'rev': 2, 'digest': 'sha256:8aa25b140f7e', 'ola': 2, 'riesgo': 'medio', 'meses': 0.1, 'base': 'último uso', 'mb': 645, 'accion': 'copiar a Quay', 'destino': 'quay.lab.local/demo-fiscalia/denuncias:latest-8aa25b140f7e', 'referencias': 'rollback de demo-fiscalia/inteligencia (ReplicaSet inteligencia-76768d9cb4), demo-fiscalia/registro (ReplicaSet registro-654dfd4fd9) apuntaría a la imagen retirada: actualizar a Quay o aceptar'}
+{'id': 'demo-fiscalia/denuncias:latest', 'rev': 3, 'digest': 'sha256:a404d7a41f6c', 'ola': 2, 'riesgo': 'medio', 'meses': 0.1, 'base': 'último uso', 'mb': 645, 'accion': 'copiar a Quay', 'destino': 'quay.lab.local/demo-fiscalia/denuncias:latest-a404d7a41f6c', 'referencias': 'rollback de demo-fiscalia/inteligencia (ReplicaSet inteligencia-7489c7b558), demo-fiscalia/registro (ReplicaSet registro-575989fdc) apuntaría a la imagen retirada: actualizar a Quay o aceptar'}
+{'id': 'demo-fiscalia/denuncias:latest', 'rev': 7, 'digest': 'sha256:b7d6c7674f2e', 'ola': 2, 'riesgo': 'medio', 'meses': 0.1, 'base': 'último uso', 'mb': 645, 'accion': 'copiar a Quay', 'destino': 'quay.lab.local/demo-fiscalia/denuncias:latest-b7d6c7674f2e', 'referencias': 'rollback de demo-fiscalia/inteligencia (ReplicaSet inteligencia-5dd679c555), demo-fiscalia/registro (ReplicaSet registro-cff6ff6d9) apuntaría a la imagen retirada: actualizar a Quay o aceptar'}
+{'id': 'demo-fiscalia/denuncias:latest', 'rev': 4, 'digest': 'sha256:c60bb745a92a', 'ola': 2, 'riesgo': 'medio', 'meses': 0.1, 'base': 'último uso', 'mb': 645, 'accion': 'copiar a Quay', 'destino': 'quay.lab.local/demo-fiscalia/denuncias:latest-c60bb745a92a', 'referencias': 'rollback de demo-fiscalia/inteligencia (ReplicaSet inteligencia-6688559665), demo-fiscalia/inteligencia (ReplicaSet inteligencia-66bf4bb966), demo-fiscalia/inteligencia (ReplicaSet inteligencia-677bfc8b75), demo-fiscalia/registro (ReplicaSet registro-5456d7c549), demo-fiscalia/registro (ReplicaSet registro-5469cc84c), demo-fiscalia/registro (ReplicaSet registro-bd5b7c494) apuntaría a la imagen retirada: actualizar a Quay o aceptar'}
+{'id': 'demo-fiscalia/denuncias:latest', 'rev': 6, 'digest': 'sha256:63a1c4abea00', 'ola': 2, 'riesgo': 'medio', 'meses': 0.1, 'base': 'último uso', 'mb': 645, 'accion': 'copiar a Quay', 'destino': 'quay.lab.local/demo-fiscalia/denuncias:latest-63a1c4abea00', 'referencias': 'rollback de demo-fiscalia/inteligencia (ReplicaSet inteligencia-7879b65dd5), demo-fiscalia/registro (ReplicaSet registro-5b8596f79f) apuntaría a la imagen retirada: actualizar a Quay o aceptar'}
+['oc tag -d faceops-prueba-mov/rollout:v1', 'oc tag -d faceops-prueba-mov/sinuso:v1', 'oc adm prune images --keep-tag-revisions=1 --keep-younger-than=0h --confirm   # revisiones antiguas y huérfanas, después de verificar la copia en Quay']
+faceops-prueba-mov,cero,v1,0,sha256:c55b3d2c48728e4a4ebc3f63a716e5ba135a5f44097667eaea8ccd3f8404fa66,referenciada,,,2026-11-11T17:51:38+00:00,Deployment faceops-prueba-mov/cero,2026-11-11T17:51:33+00:00,2026-11-05T08:26:15+00:00
+faceops-prueba-mov,enuso,v1,0,sha256:f8700bef6b1c99d806c13e43542ce9f2534b137914ade791e4ced7283221147b,en uso,,,2026-11-11T17:53:01+00:00,pod faceops-prueba-mov/enuso-56bd48b7f6-bqd7h,2026-11-11T17:51:32+00:00,2026-11-04T22:05:32+00:00
+faceops-prueba-mov,rollout,v1,0,sha256:865c6a875328a1174ff7f17599574412edd327aa47812951b9bead902806dc53,sin uso 0–1 meses,0.0,último uso,2026-11-11T17:52:19+00:00,ReplicaSet histórico faceops-prueba-mov/rollout-74888d67f,2026-11-11T17:51:35+00:00,2025-05-13T04:42:26+00:00
+faceops-prueba-mov,rollout,v2,0,sha256:d1bad2a2790eac1651e57e78159a81b72ddfa7b836936b26cf51e09744bf1c2d,en uso,,,2026-11-11T17:53:01+00:00,pod faceops-prueba-mov/rollout-559f6f7b98-8lh5j,2026-11-11T17:51:36+00:00,2025-10-15T08:06:35+00:00
+faceops-prueba-mov,sinuso,v1,0,sha256:f5d2c6a1e0c86e4234ea601552dbabb4ced0e013a1efcbfb439f1f6a7a9275b0,sin uso 0–1 meses,0.0,push al registro (sin uso registrado),,,2026-11-11T17:51:31+00:00,2024-09-18T21:29:45+00:00
+# Imágenes de OpenShift: uso, antigüedad y movilidad a Quay · ocp-sno
+
+- Medido: 2026-11-11T17:53:01+00:00 · umbral: sin uso hace 0 meses o más · rangos: 1, 2 meses
+- Namespaces: todos los de aplicaciones (excluidos: openshift, openshift-*, kube-*, default, faceops-movilidad)
+- Revisiones evaluadas: 49 · candidatas a Quay: 34 (14.413 MB; capas que se liberan solo con ellas: 72)
+- Destino: quay.lab.local · organización: (una por namespace)
+
+## Por rango
+
+| Rango | Revisiones | Tamaño |
+|---|---:|---:|
+| en uso | 11 | 3.811 MB |
+| referenciada | 4 | 1.272 MB |
+| sin uso 0–1 meses | 31 | 13.181 MB |
+| huérfana | 3 | 1.232 MB |
+
+## Candidatas por namespace
+
+| Namespace | Candidatas | Tamaño |
+|---|---:|---:|
+| demo-fiscalia | 7 | 4.515 MB |
+| fabrica-codigo | 8 | 3.070 MB |
+| demo-javia | 3 | 1.666 MB |
+| (huérfanas) | 3 | 1.232 MB |
+| demo-datalake | 3 | 1.150 MB |
+| amdocs-bss | 2 | 760 MB |
+| catocp-prod | 2 | 752 MB |
+| wl-proto | 1 | 411 MB |
+| portal-claro | 1 | 396 MB |
+| fabrica-dev | 2 | 389 MB |
+--- fin: 2026-11-11T14:53:01-03:00 · código: 0
