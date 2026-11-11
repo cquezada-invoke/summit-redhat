@@ -1,0 +1,51 @@
+commit: 22057138eacca4b666ce8d588ba57fd6480fe6d7
+inicio: 2026-11-11T00:57:18-03:00
+---
+== Responder C1/C2: encender nodo-jboss-qa y nodo-jboss3 (máquinas de prueba apagadas)
+CASO prep·nodo-jboss-qa FO-LAB-01617 exitoso :: AAP terminó (successful): ejecución 8 s, espera de aprobación 50 s
+CASO prep·nodo-jboss3 FO-LAB-01618 exitoso :: AAP terminó (successful): ejecución 8 s, espera de aprobación 47 s
+REFLEJO nodo-jboss-qa: 0 alertas · FO-LAB-01613 · []
+REFLEJO nodo-jboss3: 0 alertas · FO-LAB-01614 · []
+agentes qa:200 jboss3:200
+CASO R prep·nodo-jboss-qa FO-LAB-01619 exitoso :: AAP terminó (successful): ejecución 13 s, espera de aprobación 50 s
+CASO R prep·nodo-jboss3 FO-LAB-01620 exitoso :: AAP terminó (successful): ejecución 15 s, espera de aprobación 47 s
+REFLEJO nodo-jboss-qa: 1 alertas · FO-LAB-01619 · ['D01 Sin respuesta (critico) → encender']
+REFLEJO nodo-jboss3: 1 alertas · FO-LAB-01620 · ['D01 Sin respuesta (critico) → encender']
+REGLA nodo-jboss-qa FaceOpsSinRespuestaD01 for 120 | p{faceops_equipo="nodo-jboss-qa",job="faceops-equipos"} == 0 | encender Infra · Encender o apagar equipo   | estado: inactive
+OBJETIVO nodo-jboss-qa [('faceops-equipos', '192.168.122.20:9100', 'up')]
+CASO R apagar·nodo-jboss-qa FO-LAB-01621 exitoso :: AAP terminó (successful): ejecución 23 s, espera de aprobación 26 s
+CASO R apagar·nodo-jboss3 FO-LAB-01622 exitoso :: AAP terminó (successful): ejecución 23 s, espera de aprobación 23 s
+REFLEJO nodo-jboss-qa: 1 alertas · FO-LAB-01619 · ['D01 Sin respuesta (critico) → encender']
+REFLEJO nodo-jboss3: 1 alertas · FO-LAB-01620 · ['D01 Sin respuesta (critico) → encender']
+qa: shut off · jboss3: shut off
+D01 en Alertmanager a los 100 s
+PROM-ALERTAS nodo-jboss-qa [('FaceOpsSinRespuestaD01', 'critical', 'firing')]
+ALERTMANAGER nodo-jboss-qa [('FaceOpsSinRespuestaD01', 'active', ['faceops-objetos'])]
+PROM-ALERTAS nodo-jboss3 [('FaceOpsSinRespuestaD01', 'critical', 'firing')]
+ALERTMANAGER nodo-jboss3 [('FaceOpsSinRespuestaD01', 'active', ['faceops-objetos'])]
+APROBACIONES {'nodo-jboss-qa': 'FaceOps · Alerta › Infra · Encender o apagar equipo', 'nodo-jboss3': 'FaceOps · Alerta › Infra · Encender o apagar equipo'}
+WORKFLOW nodo-jboss-qa approve 23144 successful [('¿Aprueba la respuesta automática a la alerta?', 'successful'), ('Infra · Encender o apagar equipo', 'successful')]
+WORKFLOW nodo-jboss3 deny 23151 failed [('¿Aprueba la respuesta automática a la alerta?', 'failed'), (None, None)]
+EDA-AUDIT 2026-11-11T04:09:38 Alerta de objeto · acción con aprobación successful FaceOps · Alertas de objetos
+EDA-AUDIT 2026-11-11T04:08:15 Alerta de objeto · acción con aprobación successful FaceOps · Alertas de objetos
+RESPONDER 23146 2026-11-11T04:09:39 successful | "msg": "nodo-jboss3 · Sin respuesta → «Infra · Encender o apagar equipo» pedido (workflow 23151), esperando aprobación"
+RESPONDER 23142 2026-11-11T04:08:16 successful | "msg": "nodo-jboss-qa · Sin respuesta → «Infra · Encender o apagar equipo» pedido (workflow 23144), esperando aprobación"
+WORKFLOW 23151 FaceOps · Alerta › Infra · Encender o apagar equipo failed 2026-11-11T04:10:57
+WORKFLOW 23144 FaceOps · Alerta › Infra · Encender o apagar equipo successful 2026-11-11T04:09:36
+qa: running · jboss3: shut off
+PROM-ALERTAS nodo-jboss-qa []
+ALERTMANAGER nodo-jboss-qa []
+PROM-ALERTAS nodo-jboss3 [('FaceOpsSinRespuestaD01', 'critical', 'firing')]
+ALERTMANAGER nodo-jboss3 [('FaceOpsSinRespuestaD01', 'active', ['faceops-objetos'])]
+== limpieza: retirar alertas y dejar ambas apagadas como estaban
+CASO R retirar·nodo-jboss-qa FO-LAB-01624 exitoso :: AAP terminó (successful): ejecución 14 s, espera de aprobación 38 s
+CASO R retirar·nodo-jboss3 FO-LAB-01625 exitoso :: AAP terminó (successful): ejecución 12 s, espera de aprobación 35 s
+REFLEJO nodo-jboss-qa: 0 alertas · FO-LAB-01624 · []
+REFLEJO nodo-jboss3: 0 alertas · FO-LAB-01625 · []
+CASO R limpieza·nodo-jboss-qa FO-LAB-01626 exitoso :: AAP terminó (successful): ejecución 10 s, espera de aprobación 26 s
+CASO R limpieza·nodo-jboss3 FO-LAB-01627 exitoso :: AAP terminó (successful): ejecución 8 s, espera de aprobación 23 s
+REFLEJO nodo-jboss-qa: 0 alertas · FO-LAB-01624 · []
+REFLEJO nodo-jboss3: 0 alertas · FO-LAB-01625 · []
+qa: shut off · jboss3: shut off
+nodo-jboss.yml
+--- fin: 2026-11-11T01:19:24-03:00 · código: 0
