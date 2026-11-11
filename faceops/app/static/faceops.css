@@ -1326,3 +1326,7 @@ td.sl-a .sa-acc{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;alig
 .barra i.c-med,.ocp-bar i.c-med,.mini i.c-med,.barra-u i.c-med,.kp-barra i.c-med{background:var(--warn)}
 .barra i.c-mal,.ocp-bar i.c-mal,.mini i.c-mal,.barra-u i.c-mal,.kp-barra i.c-mal{background:var(--bad)}
 .t-ok{color:var(--ok)}.t-med{color:var(--warn)}.t-mal{color:var(--bad)}
+/* fila de salud: la acción no se aprieta (el botón y el +X % en una línea; el motivo de bloqueo debajo, con ancho propio) */
+table.sl-tab td.sl-s,table.sl-tab td.sl-a{width:1%;white-space:nowrap!important}table.sl-tab .sl-s .chip,table.sl-tab .sl-a .btn,table.sl-tab .sl-a .chip{white-space:nowrap;display:inline-block;writing-mode:horizontal-tb}
+table.sl-tab td.sl-a .sa-acc{display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:none;white-space:nowrap}
+table.sl-tab td.sl-a .sa-motivo{display:block;white-space:normal;width:230px;text-align:right}
