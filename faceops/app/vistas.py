@@ -604,14 +604,39 @@ def __met(a):
 
 
 def _cves_equipo(e):
-    from .cves import por_equipo
-    return por_equipo(g.cliente["id"], [e]).get(e["id"])
+    """CVE de la máquina; a cada pendiente le agrega su ticket de parche abierto («en_curso») o el exitoso posterior a la
+    última revisión («aplicado»: el CVE sale de pendientes cuando la revisión automática lo confirma)."""
+    from .cves import PARCHAR, por_equipo
+    cv = por_equipo(g.cliente["id"], [e]).get(e["id"])
+    if not cv or not cv.get("todos"):
+        return cv
+    import re as re_
+    abiertos, ok_ = {}, {}
+    for t in q("SELECT t.id, t.numero, t.estado, t.limite, t.parametros, t.fin FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+               "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion','en curso','ejecutando','exitoso') "
+               "ORDER BY t.id", g.cliente["id"], PARCHAR):
+        if e["nombre"] not in (t["limite"] or "").split(":"):
+            continue
+        x = {"id": t["id"], "numero": t["numero"], "estado": t["estado"]}
+        for c_ in re_.findall(r"CVE-\d+-\d+", str(j(t["parametros"], {}).get("cves") or "")):
+            if t["estado"] != "exitoso":
+                abiertos[c_] = x
+            elif not cv.get("cuando") or (t["fin"] or "") > cv["cuando"]:
+                ok_[c_] = x
+    for x in cv["todos"]:
+        x["en_curso"], x["aplicado"] = abiertos.get(x["cve"]), ok_.get(x["cve"])
+    return cv
 
 
 def _politicas_equipo(e):
     from .politicas_seg import tablero
     _, por = tablero(g.cliente["id"], [e])
-    return por.get(e["id"], [])
+    ps = por.get(e["id"], [])
+    ids_ = [x["ticket_id"] for x in ps if x.get("ticket_id")]
+    nums = {r["id"]: r for r in q(f"SELECT id, numero FROM tickets WHERE id IN ({','.join('?' * len(ids_))})", *ids_)} if ids_ else {}
+    for x in ps:   # el ticket que la dejó al día
+        x["resuelto"] = nums.get(x.get("ticket_id")) if x.get("estado") == "al_dia" else None
+    return ps
 
 
 def _autos_compatibles(e):
@@ -6540,6 +6565,42 @@ def cves_solicitar():
     except (PermissionError, ErrorAAP) as x:
         flash(str(x), "error")
     return redirect(request.referrer or url_for("consola.cves"))
+
+
+@bp.route("/inventario/<int:eid>/cve/parche", methods=["POST"])
+@requiere_login
+def equipo_cve_parche(eid):
+    """«Aplicar parche» de un CVE pendiente de la máquina: un ticket de «Aplicar parches de seguridad» limitado a ese CVE
+    (dnf upgrade --security --cve=…), con aprobación en AAP. Al terminar bien, FaceOps vuelve a revisar sus CVE."""
+    import re as re_
+    from .compatibilidad import compatible
+    from .cves import PARCHAR, solicitar as solicitar_cve
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    cve = (request.form.get("cve") or "").strip().upper()
+    if not e or not re_.fullmatch(r"CVE-\d{4}-\d{4,7}", cve):
+        return {"error": "CVE o máquina no válidos"}, 400
+    if not q1("SELECT 1 FROM cves_equipo WHERE cliente_id=? AND equipo_id=? AND cve=? AND estado='pendiente'", g.cliente["id"], e["id"], cve):
+        return {"error": f"{cve} no está pendiente en {e['nombre']}"}, 400
+    x = next((c_ for c_ in (_cves_equipo(e) or {}).get("todos") or [] if c_["cve"] == cve and c_.get("en_curso")), None)
+    if x:
+        t = x["en_curso"]
+        return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "existente": True}
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], PARCHAR)
+    if not a:
+        return {"error": f"Falta «{PARCHAR}» en el catálogo (sincroniza con AAP)"}, 400
+    ok, por_que = compatible(a, e)
+    if not ok:
+        return {"error": f"{e['nombre']}: {por_que}"}, 400
+    try:
+        ts = solicitar_cve(g.usuario, g.cliente, PARCHAR, [e], {"cves": cve}, f"Aplicar parche de {cve} en {e['nombre']}")
+    except (PermissionError, ErrorAAP) as x_:
+        return {"error": str(x_)}, 400
+    if not ts:
+        return {"error": f"{e['nombre']} no tiene credencial en AAP para aplicar el parche"}, 400
+    t = ts[0]
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
 
 
 # ------------------------------------------------------------------ facturación: créditos del plan, consumo y tabla de créditos

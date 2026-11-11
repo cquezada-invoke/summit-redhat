@@ -1303,6 +1303,18 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error al registrar CVE", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "Seguridad · Aplicar parches de seguridad":
+                try:   # el parche quedó instalado: se vuelven a revisar los CVE de esos equipos (lectura) para sacarlos de pendientes
+                    from .cves import REVISAR, solicitar as solicitar_cves
+                    u_ = q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"])
+                    es_ = [x for n_ in (t["limite"] or "").split(":") if n_
+                           for x in [q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", c["id"], n_)] if x]
+                    if u_ and es_:
+                        for x in solicitar_cves(u_, c, REVISAR, [dict(x) for x in es_], {}, f"Revisar CVE tras {t['numero']}"):
+                            res += f"\nRevisión de CVE lanzada: {x['numero']}"
+                        ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error al revisar CVE tras parche", t["numero"], {"error": str(x)[:300]})
             if a and a["nombre_aap"] == "FaceOps · Aplicar política de seguridad":
                 try:
                     from .politicas_seg import registrar as registrar_politica

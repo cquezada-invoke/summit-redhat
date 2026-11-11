@@ -1,0 +1,10 @@
+<script>/* «Aplicar parche» (CVE) y «Aplicar» (políticas) en el flotante de salud: el botón queda «En curso» con el ticket al lado; sin salir del flotante */
+document.addEventListener('click',ev=>{const b=ev.target.closest('button[data-seg-aplicar]');if(!b||b.disabled)return;ev.preventDefault();
+ const ini=b.textContent;b.disabled=true;b.textContent='En curso';const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});
+ ['cve','modo','alcance'].forEach(k=>{if(b.dataset[k])fd.append(k,b.dataset[k]);});
+ fetch(b.dataset.segAplicar,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch','X-Inline':'1'}}).then(r=>r.text().then(x=>{try{return JSON.parse(x);}catch(_){return {error:'No se pudo crear el ticket (error '+r.status+')'};}})).then(t=>{
+  if(t.error){b.disabled=false;b.textContent=ini;(window.fxAviso||alert)(t.error,'error');return;}
+  const tk=(t.tickets&&t.tickets[0])||t,a=document.createElement('a');a.className='ult-t e-'+(tk.estado||'pendiente_aprobacion');a.href=tk.url;a.textContent=tk.numero;
+  b.title='Ticket '+tk.numero+': '+(tk.estado||'').replace(/_/g,' ');b.after(' ',a);
+  window.fxAviso&&fxAviso(tk.numero+(t.existente?' ya estaba en curso':' creado')+(b.dataset.cve?': parche de '+b.dataset.cve:'')+(tk.estado==='pendiente_aprobacion'?' (espera aprobación)':''),'ok');
+ }).catch(()=>{b.disabled=false;b.textContent=ini;(window.fxAviso||alert)('No se pudo crear el ticket','error');});});</script>
