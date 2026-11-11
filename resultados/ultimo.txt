@@ -1,29 +1,11 @@
-commit: 3082a68842b391456d1b403b2d19bc3dfffc039e
-inicio: 2026-11-11T00:26:12-03:00
+commit: b55525cfca305d1968c90179b88299feb133888e
+inicio: 2026-11-11T00:29:08-03:00
 ---
-FO-LAB-01583 en_ejecucion 
-== nodo-jboss 6
- página: 200 /faceops/lab/inventario/6/consola-web/redis/ título: Redis databases
- api/databases: 200 1
- conectar: 200 overview: 200 {"version":"6.2.24","serverName":null,"totalKeys":0,"usedMemory":897088,"connectedClients":2,"opsPerSecond":2,"networkInKbps":0,"networkOutK
- navegador de claves: 3 Databases / nodo-jboss (Redis local) 0.11 % 0 876 KB 0 2 Browse Search Workbench Analyze Pub/Sub Bulk actions Add key All Key Types < 1 min Columns Let's start working Load sample data Add key manually Here's a good starting point Explore the amazing world o
- texto: 3 Redis Databases Redis Data Integration Create free Cloud database Connect existing database Columns Database Alias Host:Port Connection Type Capabilities Last connection Tags Actions nodo-jboss (Redis local) 192.168.122.15:6379 Standalone less than a minute ago
- >=400/fallas: ['FALLA /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=k4qfchrs&sid=BOoievPdIVfZ8NtG net::ERR_ABORTED', '404 GET /faceops/lab/inventario/6/consola-web/redis/api/databases/470d9e5b-3bea-4828-9b64-10897f62be5c/settings', 'FALLA /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=k50tjjhh&sid=1AgpWBt9NWSkKKWQ net::ERR_ABORTED']
- socket.io: ['200 /faceops/lab/inventario/6/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '200 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '200 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js', '200 /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=k4q5lo2q', '200 /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=k4q7d5kw&', '200 /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=k4q7eld0&']
- errores js: []
-== nodo-nginx 8
- página: 200 /faceops/lab/inventario/8/consola-web/redis/ título: Redis databases
- api/databases: 200 0
- alta conexión: 500 {"message":"Unsupported encryption strategy","name":"UnsupportedEncryptionStrategy","statusCode":500,"errorCode":11807}
- texto: 3 EULA and Privacy settings Use recommended settings Select to activate all listed options. Privacy settings To optimize your experience, Redis Insight uses third-party tools. Usage Data Help improve Redis Insight by sharing anonymous usage data. This helps us understand feature usage and make the a
- >=400/fallas: ['500 POST /faceops/lab/inventario/8/consola-web/redis/api/databases', 'FALLA /faceops/lab/inventario/8/consola-web/redis/socket.io/?EIO=4&transport=polling&t=k5pvetke&sid=IPsK38zYxWtObyKb net::ERR_ABORTED']
- socket.io: ['200 /faceops/lab/inventario/8/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '200 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '200 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js', '200 /faceops/lab/inventario/8/consola-web/redis/socket.io/?EIO=4&transport=polling&t=k5pd6xlp', '200 /faceops/lab/inventario/8/consola-web/redis/socket.io/?EIO=4&transport=polling&t=k5pergg5&', '200 /faceops/lab/inventario/8/consola-web/redis/socket.io/?EIO=4&transport=polling&t=k5pes9k1&']
- errores js: []
-== nodo-tomcat 10
- página: 502 /faceops/lab/inventario/10/consola-web/redis/ título: nodo-tomcat no responde · FaceOps
- api/databases: 502 0
- texto: ☰ FaceOps Managed Service · Invoke v1.0.1522 Clientes Gobierno ES Móvil Panel Banco del Pacífico Sur (demo) Clínica Santa Lucía (demo) Invoke Lab Minera Los Andes (demo) ＋ Agregar cliente… Infraestructura Servidores Redes Storage Sistemas operativos Bases de datos Plataformas Contenedores Estaciones
- >=400/fallas: ['502 GET /faceops/lab/inventario/10/consola-web/redis/', '502 GET /faceops/lab/inventario/10/consola-web/redis/api/databases', '502 GET /faceops/lab/inventario/10/consola-web/redis/']
- socket.io: []
- errores js: []
---- fin: 2026-11-11T00:28:33-03:00 · código: 0
+version 1.0.6
+analytics False False False
+notifications False False False
+encryption False True False
+eula True False False
+settings agreements: None
+jboss agreements: {'analytics': True, 'notifications': True, 'encryption': False, 'eula': True, 'version': '1.0.6'}
+--- fin: 2026-11-11T00:29:08-03:00 · código: 0
