@@ -1,0 +1,37 @@
+commit: 8d0c08ce92e731752935ed11fdd0b3b50c9f507b
+inicio: 2026-11-11T00:05:42-03:00
+---
+pendiente previo: FO-LAB-01579 en_ejecucion
+  -> exitoso
+nodo-jboss ruta vigente antes: 200
+nodo-nginx ruta vigente antes: 200
+nodo-tomcat ruta vigente antes: 404
+  aviso: ['Reinstalando Redis Insight en nodo-tomcat (FO-LAB-01583): al terminar, el icono de Redis abre su consola']
+   FO-LAB-01583 ri_ruta: /faceops/lab/inventario/10/consola-web/redis
+   FO-LAB-01583 en_ejecucion | 
+  ruta vigente después: ReadTimeout
+== nodo-jboss 6
+ página: 200 /faceops/lab/inventario/6/consola-web/redis/ título: Redis Insight
+ api/databases: 200 0
+ alta conexión: 201 
+ conectar: 200 overview: 200 {"version":"6.2.24","serverName":null,"totalKeys":0,"usedMemory":875936,"connectedClients":1,"opsPerSecond":11,"networkInKbps":0,"networkOut
+ texto: 
+ >=400/fallas: ['503 GET /faceops/lab/inventario/6/consola-web/redis/assets/redux-thunk-mZs2rUNu.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/redux-thunk-mZs2rUNu.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/6/consola-web/redis/assets/@reduxjs-B6mEhL_u.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/@reduxjs-B6mEhL_u.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/6/consola-web/redis/assets/lodash-es-C_yls3rA.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/lodash-es-C_yls3rA.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/6/consola-web/redis/assets/date-fns-DDMf5MkQ.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/date-fns-DDMf5MkQ.js net::ERR_ABORTED']
+ socket.io: ['503 /faceops/lab/inventario/6/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '503 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '503 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js']
+ errores js: []
+== nodo-nginx 8
+ página: 200 /faceops/lab/inventario/8/consola-web/redis/ título: Redis Insight
+ api/databases: 200 0
+ alta conexión: 500 {"message":"Unsupported encryption strategy","name":"UnsupportedEncryptionStrategy","statusCode":500,"errorCode":11807}
+ texto: 
+ >=400/fallas: ['503 GET /faceops/lab/inventario/8/consola-web/redis/assets/redux-thunk-mZs2rUNu.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/redux-thunk-mZs2rUNu.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/8/consola-web/redis/assets/@reduxjs-B6mEhL_u.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/@reduxjs-B6mEhL_u.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/8/consola-web/redis/assets/lodash-es-C_yls3rA.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/lodash-es-C_yls3rA.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/8/consola-web/redis/assets/date-fns-DDMf5MkQ.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/date-fns-DDMf5MkQ.js net::ERR_ABORTED']
+ socket.io: ['503 /faceops/lab/inventario/8/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '503 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '503 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js']
+ errores js: []
+== nodo-tomcat 10
+ página: 502 /faceops/lab/inventario/10/consola-web/redis/ título: nodo-tomcat no responde · FaceOps
+ api/databases: 502 0
+ texto: ☰ FaceOps Managed Service · Invoke v1.0.1522 Clientes Gobierno ES Móvil Panel Banco del Pacífico Sur (demo) Clínica Santa Lucía (demo) Invoke Lab Minera Los Andes (demo) ＋ Agregar cliente… Infraestructura Servidores Redes Storage Sistemas operativos Bases de datos Plataformas Contenedores Estaciones
+ >=400/fallas: ['502 GET /faceops/lab/inventario/10/consola-web/redis/', '502 GET /faceops/lab/inventario/10/consola-web/redis/api/databases', '502 GET /faceops/lab/inventario/10/consola-web/redis/']
+ socket.io: []
+ errores js: []
+--- fin: 2026-11-11T00:20:16-03:00 · código: 0
