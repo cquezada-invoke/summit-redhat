@@ -5,7 +5,7 @@
 planes:
   "JBoss · Desplegar app":
     casos:
-      - {id: C1, caso: "Desplegar en producción una versión publicada anterior (vuelta atrás a 1.0.43) con un nodo del grupo apagado (nodo-jboss3)", verificar: "aprobación de producción respondida; ticket exitoso con límite solo en los nodos activos (nodo-jboss, nodo-jboss2); el apagado queda fuera del límite (FaceOps no lanza sobre apagados) y no se toca; el balanceador https://192.168.122.11/app-jboss/salud responde 1.0.43 en todas las consultas"}
+      - {id: C1, caso: "Desplegar en producción una versión publicada anterior (vuelta atrás a 1.0.43) con un nodo del grupo apagado (nodo-jboss2: se apaga antes del caso y se enciende al terminar)", verificar: "aprobación de producción respondida; ticket exitoso con límite solo en el nodo activo (nodo-jboss); el apagado queda fuera del límite (FaceOps no lanza sobre apagados) y no se toca; el balanceador https://192.168.122.11/app-jboss/salud responde 1.0.43 en todas las consultas"}
       - {id: C2, caso: "Desplegar en producción la última versión publicada (1.0.44)", verificar: "ticket exitoso; set_stats version_desplegada=1.0.44; cada nodo activo y el balanceador responden 1.0.44; el manifiesto de producción registra la versión"}
       - {id: C3, caso: "Repetir el despliegue de la misma versión", tipo: Idempotencia, verificar: "ticket exitoso; nada se rompe: el balanceador sigue en 1.0.44 sin cortes"}
       - {id: C4, caso: "Versión inexistente (9.9.999)", tipo: Error controlado, verificar: "ticket fallido con el motivo (la versión no está publicada); ningún nodo cambia: la versión anterior queda en servicio (vuelta atrás) y el balanceador sigue en 1.0.44"}
@@ -21,7 +21,7 @@ planes:
       - {id: C7, caso: "Equipo que no responde (borde, laboratorio detenido)", verificar: "FaceOps no lanza nada y avisa que el equipo está apagado; no se toca el equipo y su ficha anterior se conserva"}
   "Políticas de desarrollo · Evaluar aplicaciones":
     casos:
-      - {id: C1, caso: "Evaluar todo el parque (con máquinas apagadas)", verificar: "ticket exitoso; las apagadas quedan fuera; aparecen las aplicaciones de JBoss (srv-legado-jboss7-01, nodo-jboss-dev) y de IIS (srv-pn-win-01) con su plataforma y producto"}
+      - {id: C1, caso: "Evaluar todo el parque (con máquinas apagadas)", verificar: "ticket exitoso; las apagadas quedan fuera; aparecen las aplicaciones de JBoss (nodo-jboss, nodo-jboss-dev) y de IIS (srv-pn-win-01) con su plataforma y producto"}
       - {id: C2, caso: "Cumplimiento por aplicación", verificar: "cada aplicación tiene sus políticas según «aplica a» con cumple / no cumple / revisión y evidencia; ninguna evidencia muestra valores de configuración"}
       - {id: C3, caso: "Repetir la evaluación", verificar: "solo lectura e idempotente: mismas aplicaciones y mismos resultados, sin duplicar filas"}
   "Data lake · Derivar segmento":
@@ -251,7 +251,7 @@ planes:
     casos:
       - {id: C1, caso: "Evaluar el dominio WebLogic emulado de nodo-jboss-dev (ventas_domain)", verificar: "informe en Git con dominio, datasource Oracle, cola JMS y JVM; ventas migrable a EAP 8 (EAR + JMS, javax → jakarta) y legado bloqueada por APIs weblogic.* y t3; las copias no llevan claves; no cambia nada"}
       - {id: C2, caso: "Repetir la evaluación", verificar: "solo lectura e idempotente: mismo resultado"}
-      - {id: C3, caso: "Equipo sin dominio WebLogic (nodo-so)", verificar: "falla controlada: no se encontró un dominio"}
+      - {id: C3, caso: "Equipo sin dominio WebLogic (nodo-postgres)", verificar: "falla controlada: no se encontró un dominio"}
   "Migración · WebLogic a OpenShift":
     casos:
       - {id: C1, caso: "emular-origen en nodo-jboss-dev", verificar: "dominio ventas_domain y las dos aplicaciones de ejemplo en /u01, con su marca de emulado; la evaluación que sigue las encuentra"}
@@ -357,7 +357,7 @@ planes:
       - {id: C1, caso: "RHEL 9 sin repositorio propio (srv-prueba-rhel9-01)", verificar: "crea repositorio/maquina-<nombre> rama master con archivos/ (etc, cron) y meta/ (paquetes, servicios, SELinux, usuarios, permisos, sistema); sin secretos (shadow, llaves)"}
       - {id: C2, caso: "Repetir sin cambios", verificar: "no hace commit (CAMBIOS=0)"}
       - {id: C3, caso: "Cambiar un archivo de /etc y repetir", verificar: "un commit con solo ese archivo en el mensaje; aparece en «4 · Configuración» del punto nuevo"}
-      - {id: C4, caso: "Máquina con JBoss EAP 8 por RPM y con JBoss desde zip en /opt (nodo-jboss, srv-legado-jboss7-01)", verificar: "standalone/configuration y deployments en archivos/; data, tmp y log excluidos; archivos sobre 25 MB en meta/omitidos.txt con su huella"}
+      - {id: C4, caso: "Máquina con JBoss EAP 8 por RPM y con JBoss desde zip en /opt (nodo-jboss y una máquina de prueba con el zip en /opt)", verificar: "standalone/configuration y deployments en archivos/; data, tmp y log excluidos; archivos sobre 25 MB en meta/omitidos.txt con su huella"}
       - {id: C5, caso: "RHEL 5 o 6 (Python antiguo)", verificar: "la instantánea llega por la salida estándar (base64) y queda igual que en RHEL 9"}
       - {id: C6, caso: "Windows con IIS (srv-pn-win-01)", verificar: "applicationHost.config, sitios y pools, programas instalados, características, servicios y tareas en el repositorio"}
       - {id: C7, caso: "Datos del sistema y paquetes (partes 1 y 2)", verificar: "sin cambios respecto de antes: facts, paquetes con su fuente y respaldo de RPM"}

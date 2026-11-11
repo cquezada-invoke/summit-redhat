@@ -143,7 +143,8 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
     "arquitecturas": {"ticket_id": "INTEGER", "decision": "TEXT DEFAULT '{}'", "original": "TEXT DEFAULT ''"},
     "equipos": {"descripcion": "TEXT DEFAULT ''", "skills_habilitadas": "TEXT DEFAULT '{}'", "categoria": "TEXT DEFAULT ''", "forma": "TEXT DEFAULT ''",
                 "segmentos_fijos": "TEXT DEFAULT '[]'", "energia": "TEXT DEFAULT ''", "energia_visto": "TEXT DEFAULT ''", "energia_cambio": "TEXT DEFAULT ''", "energia_origen": "TEXT DEFAULT ''",
-                "codigo": "TEXT DEFAULT ''", "codigo_visto": "TEXT DEFAULT ''"},
+                "codigo": "TEXT DEFAULT ''", "codigo_visto": "TEXT DEFAULT ''",
+                "infra_lab": "INTEGER DEFAULT 0"},   # infraestructura del laboratorio: oculta en la lista de servidores (sigue operativa)
     "skills": {"automatizacion": "TEXT DEFAULT ''"},
     "segmentos": {"sistema": "TEXT DEFAULT ''", "ficha": "TEXT DEFAULT '{}'", "grupo": "TEXT DEFAULT ''", "area": "TEXT DEFAULT ''"},
     "flujos": {"latencia_ms": "REAL", "latencia_en": "TEXT DEFAULT ''", "tls": "TEXT DEFAULT ''"},

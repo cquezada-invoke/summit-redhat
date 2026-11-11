@@ -2242,6 +2242,12 @@ def inventario(seccion="inventario"):
     f_forma = request.args.get("forma", "")
     if f_forma in ("fisico", "virtual"):   # servidores físicos o virtuales
         eqs = [e for e in eqs if ((e.get("forma") or "") == "virtual") == (f_forma == "virtual")]
+    # infraestructura del laboratorio (plataforma y entornos de demo): oculta por defecto en la lista de servidores; sigue
+    # operativa en el mapa, los segmentos, AAP y la salud. Una búsqueda por texto la encuentra igual.
+    ver_infra = request.args.get("mostrar") == "infra"
+    n_infra = sum(1 for e in eqs if e.get("infra_lab")) if seccion == "inventario" else 0
+    if n_infra and not ver_infra and not texto:
+        eqs = [e for e in eqs if not e.get("infra_lab")]
     cajas_marca, marca_sel = [], request.args.get("marca", "")
     if f_forma == "fisico":   # servidores físicos: primero por marca; al entrar a una, sus nodos
         from .hardware_fisico import agrupar, marca_de
@@ -2351,7 +2357,7 @@ def inventario(seccion="inventario"):
     auto_crear = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
     topo_red = __import__("app.mod_redes", fromlist=["_topologia"])._topologia(False) if seccion == "redes" else None   # diagrama compacto bajo la lista
-    return render_template("inventario.html", topo_red=topo_red, cajas_marca=cajas_marca, marca_sel=marca_sel, radar_sec=radar_sec, cajas_so=cajas_so, so_sel=request.args.get("so", ""), auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
+    return render_template("inventario.html", n_infra=n_infra, ver_infra=ver_infra, topo_red=topo_red, cajas_marca=cajas_marca, marca_sel=marca_sel, radar_sec=radar_sec, cajas_so=cajas_so, so_sel=request.args.get("so", ""), auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
                            clases=CLASES, seccion=seccion, ep_inv=ep_inv, alta=(__import__("app.alta_manual", fromlist=["catalogo"]).catalogo(seccion) if seccion in ("redes", "storage", "inventario", "estaciones") else None),
                            ubicaciones_alta=sorted({x["centro"] for x in infras if x.get("centro")}), portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(_infras_con_salud(lista_infra(g.cliente["id"], equipos_visibles())) if seccion in ("nubes", "hipervisores") else []),
                            cajas_eq=(todos if seccion == "storage" else []),
@@ -8258,6 +8264,22 @@ def equipo_descripcion(eid):
     d = (request.form.get("descripcion") or "").strip()[:120]
     ej("UPDATE equipos SET descripcion=? WHERE id=?", d, eid)
     auditar(g.usuario["usuario"], g.cliente["id"], "descripción del equipo", e["nombre"], {"descripcion": d})
+    return redirect(url_for("consola.equipo", eid=eid))
+
+
+@bp.route("/inventario/<int:eid>/infra-lab", methods=["POST"])
+@requiere_login
+def equipo_infra_lab(eid):
+    """Marca o desmarca la máquina como infraestructura del laboratorio: sale de la lista de servidores por defecto
+    («Mostrar infraestructura» la trae de vuelta). No toca la máquina: sigue en el mapa, los segmentos, AAP y la salud."""
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    v = 1 if request.form.get("marcar") == "1" else 0
+    ej("UPDATE equipos SET infra_lab=? WHERE id=?", v, eid)
+    auditar(g.usuario["usuario"], g.cliente["id"], "marcar infraestructura del laboratorio" if v else "desmarcar infraestructura del laboratorio",
+            e["nombre"], {"infra_lab": v})
     return redirect(url_for("consola.equipo", eid=eid))
 
 
