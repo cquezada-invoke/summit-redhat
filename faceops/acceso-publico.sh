@@ -22,6 +22,7 @@ escribir_conf() {  # $1: con o sin TLS
 sudo tee $D/conf/faceops.conf >/dev/null <<C
 limit_req_zone \$binary_remote_addr zone=login:10m rate=10r/m;
 limit_req_zone \$binary_remote_addr zone=general:10m rate=20r/s;
+limit_req_zone \$binary_remote_addr zone=consolas:10m rate=200r/s;
 server_tokens off;
 server {
     listen 80;
@@ -58,6 +59,14 @@ server {
         proxy_set_header X-Forwarded-Prefix /maqueta;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$remote_addr;
+    }
+    location ~ ^/faceops/((?:[a-z0-9_-]+/)?inventario/\\d+/(consola-web|web)/.*)\$ {   # consolas web (Redis Insight…, con o sin código de cliente): SPA que pide cientos de módulos a la vez
+        limit_req zone=consolas burst=800 nodelay;
+        proxy_pass http://192.168.122.1:8110/\$1\$is_args\$args;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        include /etc/nginx/conf.d/faceops-cabeceras.inc;
     }
     location /faceops/ {
         limit_req zone=general burst=60 nodelay;
