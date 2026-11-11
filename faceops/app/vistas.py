@@ -4306,7 +4306,8 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
             agregar("web", "Consola web", web_eq["abrir"], f"{web_eq['producto']} · " + ("se abre a través de FaceOps" if por_proxy else "se abre directo"))
     if redis_eq and g.perfil["modo"] == "escritura" and _web_b(e["nombre"], "redis") and puerto_abierto(e["ip"], 6379):
         c_r = next((c for c in componentes if not c.get("so") and familia(c["codigo"]) == "redis"), None)
-        plat.append({"t": "Consola Redis", "url": redis_eq, "title": "Consola de Redis en FaceOps (entra con la credencial de la bóveda)", "c": c_r})
+        if not any(x.get("c") is c_r for x in plat if c_r is not None):   # una sola consola en Redis: Redis Insight si responde; si no, la de FaceOps
+            plat.append({"t": "Consola Redis", "url": redis_eq, "title": "Consola de Redis en FaceOps (entra con la credencial de la bóveda)", "c": c_r})
     for x in plat:   # consolas de plataforma: en la tarjeta de su plataforma (si no se sabe de cuál, quedan con los accesos de la máquina)
         if x.get("c") is not None:
             cs_ = x["c"].setdefault("consolas", [])
