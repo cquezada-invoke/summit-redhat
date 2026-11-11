@@ -1,0 +1,13 @@
+commit: 5ff5b0fcc27f8783752eca7dede882dd4b6fd747
+inicio: 2026-11-11T15:56:10-03:00
+---
+FO-LAB-01776 fallido Certificados · Emitir para servicio 2026-11-11T18:01:15+00:00
+params: {'cert_bits': 2048, 'cert_vigencia_dias': 5, 'cert_nombre': 'nodo-jboss', 'cert_formato': 'pem', 'cert_recargar': 'systemctl restart nodo-jboss', 'cert_san': 'nodo-jboss.demo.local', 'cert_cn': 'nodo-jboss.demo.local', 'cert_propietario': 'root', 'cert_puerto': 443, 'cert_revocar_serie': '712b447484972e16f0a76957e9e0cfc6'}
+resultado : rr": "Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found.", "stderr_lines": ["Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found."], "stdout": "", "stdout_lines": []}
+
+TASK [Volver al certificado anterior] ******************************************
+failed: [nodo-jboss] (item=nodo-jboss) => {"ansible_loop_var": "item", "changed": true, "cmd": "cd /etc/pki/faceops/nodo-jboss || exit 0\nrm -f nuevo.*\n[ -f .reemplazando ] || exit 0            # aún no se había tocado el certificado en uso\nif ls anterior/servidor.crt >/dev/null 2>&1; then cp -p anterior/* . && cat servidor.crt ca.crt > cadena.crt; fi\nrm -f .reemplazando\nsystemctl restart nodo-jboss\n", "delta": "0:00:00.031646", "end": "2026-11-11 13:03:11.922458", "item": {"cn": "nodo-jboss.demo.local", "dns": ["nodo-jboss.demo.local", "nodo-jboss"], "formato": "pem", "ips": ["192.168.122.15"], "nombre": "nodo-jboss", "propietario": "root", "puerto": "443", "recargar": "systemctl restart nodo-jboss"}, "msg": "non-zero return code", "rc": 5, "start": "2026-11-11 13:03:11.890812", "stderr": "Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found.", "stderr_lines": ["Failed to restart nodo-jboss.service: Unit nodo-jboss.service not found."], "stdout": "", "stdout_lines": []}
+
+PLAY RECAP *********************************************************************
+nodo-jboss                 : ok=18   changed=4    unreachable=0    failed=1    skipped=1    rescued=1    ignored=0   
+--- fin: 2026-11-11T15:56:16-03:00 · código: 0
