@@ -14,10 +14,39 @@ UMBRAL_DEFECTO = 80
 ACTIVO = {"critica": 50, "alta": 35, "media": 20, "baja": 10}
 
 
+# Regla única de color en toda la consola (Cristian): SALUD rojo < 50 %, amarillo 50–84 %, verde ≥ 85 %.
+# USO (CPU, memoria, disco, temperatura: lo ocupado) usa los mismos cortes en sentido inverso: verde < 50 %,
+# amarillo 50–84 %, rojo ≥ 85 %. Las plantillas los usan con tono_salud / tono_uso / semaforo_salud (globales de Jinja).
+SALUD_VERDE, SALUD_AMARILLO = 85, 50
+
+
+def tono_salud(p):
+    """'ok' | 'med' | 'mal' | 'nd' para un % de salud (más es mejor). Clases CSS: c-ok, c-med, c-mal."""
+    if p is None or p == "":
+        return "nd"
+    p = float(p)
+    return "ok" if p >= SALUD_VERDE else ("med" if p >= SALUD_AMARILLO else "mal")
+
+
+def tono_uso(p):
+    """'ok' | 'med' | 'mal' | 'nd' para un % de uso (más es peor): los mismos cortes, invertidos."""
+    if p is None or p == "":
+        return "nd"
+    p = float(p)
+    return "mal" if p >= SALUD_VERDE else ("med" if p >= SALUD_AMARILLO else "ok")
+
+
+def semaforo_salud(p):
+    """'verde' | 'amarillo' | 'rojo' | 'gris' (clases s-verde… de .salud-barra)."""
+    return {"ok": "verde", "med": "amarillo", "mal": "rojo"}.get(tono_salud(p), "gris")
+
+
 def nivel(p, umbral=UMBRAL_DEFECTO):
+    """Nivel de color de una salud: sigue la regla única (85/50). El umbral de cada plataforma queda solo como marca
+    «mínimo aceptable» sobre la barra; ya no corre los colores."""
     if p is None:
         return "sin datos"
-    return "saludable" if p >= umbral else ("atención" if p >= umbral - 25 else "crítico")
+    return {"ok": "saludable", "med": "atención"}.get(tono_salud(p), "crítico")
 
 
 def encendido(e):

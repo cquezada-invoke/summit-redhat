@@ -4288,7 +4288,7 @@ def _resumen_ns(n, ocp):
     atencion = mal + [p for p in sueltos if p not in mal]
     return {"cargas": cargas, "sueltos": sueltos, "atencion": atencion, "reinicios": reinicios, "mal": mal, "req_cpu": round(req_cpu, 2), "req_mem": round(req_mem, 2),
             "cuota": cuota, "gitops": gitops, "motivos": motivos, "salud": salud,
-            "nivel": "verde" if salud >= 85 else ("amarillo" if salud >= 60 else "rojo")}
+            "nivel": __import__("app.salud", fromlist=["x"]).semaforo_salud(salud)}
 
 
 @bp.route("/inventario/<int:eid>/puntos/<cod>")
@@ -4798,7 +4798,7 @@ def equipo(eid):
             ok_ = [x for x in req_ if x in sv_]
             if sv_:
                 c["salud"] = round(100 * len(ok_) / len(req_))
-                c["nivel"] = "verde" if c["salud"] >= 85 else ("amarillo" if c["salud"] >= 60 else "rojo")
+                c["nivel"] = __import__("app.salud", fromlist=["x"]).semaforo_salud(c["salud"])
                 c["motivos"] = [f"servicio {x} detenido" for x in req_ if x not in ok_]
     comp_alias = []   # para clasificar cada cambio del historial: sistema operativo o la plataforma a la que pertenece
     try:

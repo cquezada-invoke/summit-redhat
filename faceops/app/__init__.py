@@ -97,6 +97,8 @@ def create_app():
 
     maqueta = os.environ.get("FACEOPS_MAQUETA") == "1"   # demo cáscara: login simple (sin doble factor), datos emulados, acciones simuladas
     app.jinja_env.globals["MAQUETA"] = maqueta
+    from .salud import tono_salud, tono_uso, semaforo_salud   # regla única de color: salud 85/50, uso inverso
+    app.jinja_env.globals.update(tono_salud=tono_salud, tono_uso=tono_uso, semaforo_salud=semaforo_salud)
 
     @app.before_request
     def cargar_usuario():

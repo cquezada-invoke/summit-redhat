@@ -1321,3 +1321,8 @@ td.sl-a .sa-acc{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;alig
    pilar; sin barras (la barra queda en la ficha) */
 .cajon-sal .pil-total,.cajon-sal .kp-barra,.cajon-sal .barra-u,.cajon-sal .sec-pct .mini,.cajon-sal .pd-fila .mini{display:none!important}
 .cajon-sal .sec-pct{width:auto}
+/* Regla única de color de barras (salud.tono_salud / tono_uso): salud rojo < 50 %, amarillo 50–84 %, verde ≥ 85 %; uso al revés (verde < 50 %, rojo ≥ 85 %) */
+.barra i.c-ok,.ocp-bar i.c-ok,.mini i.c-ok,.barra-u i.c-ok,.kp-barra i.c-ok{background:var(--ok)}
+.barra i.c-med,.ocp-bar i.c-med,.mini i.c-med,.barra-u i.c-med,.kp-barra i.c-med{background:var(--warn)}
+.barra i.c-mal,.ocp-bar i.c-mal,.mini i.c-mal,.barra-u i.c-mal,.kp-barra i.c-mal{background:var(--bad)}
+.t-ok{color:var(--ok)}.t-med{color:var(--warn)}.t-mal{color:var(--bad)}

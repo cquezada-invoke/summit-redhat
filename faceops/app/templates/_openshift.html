@@ -14,10 +14,10 @@
   <div class="card kpi ocp-kpi"><div class="n" style="color:{{ 'var(--ok)' if listos == nodos|length else 'var(--bad)' }}">{{ listos }}<span class="sub" style="font-size:16px"> / {{ nodos|length }}</span></div><div class="l">nodos listos · {{ nodos|map(attribute='roles')|sum(start=[])|unique|join(', ') }}</div></div>
   <div class="card kpi ocp-kpi">{% set pc = ((rec.cpu_uso|float) / (rec.cpu_asignable|float) * 100)|round|int if rec.cpu_uso not in (none, '', 'None') and rec.cpu_asignable|float > 0 else none %}
     <div class="n">{{ rec.cpu_uso if pc is not none else '—' }}<span class="sub" style="font-size:16px"> / {{ rec.cpu_total }} cores</span></div>
-    {% if pc is not none %}<div class="ocp-bar"><i style="width:{{ pc }}%;{{ 'background:var(--bad)' if pc >= 85 else ('background:var(--warn)' if pc >= 70 else '') }}"></i></div>{% endif %}<div class="l">CPU en uso{{ ' · ' ~ pc ~ ' % de lo asignable' if pc is not none }}</div></div>
+    {% if pc is not none %}<div class="ocp-bar"><i class="c-{{ tono_uso(pc) }}" style="width:{{ pc }}%"></i></div>{% endif %}<div class="l">CPU en uso{{ ' · ' ~ pc ~ ' % de lo asignable' if pc is not none }}</div></div>
   <div class="card kpi ocp-kpi">{% set pm = ((rec.memoria_uso_gb|float) / (rec.memoria_asignable_gb|float) * 100)|round|int if rec.memoria_uso_gb not in (none, '', 'None') and rec.memoria_asignable_gb|float > 0 else none %}
     <div class="n">{{ rec.memoria_uso_gb if pm is not none else '—' }}<span class="sub" style="font-size:16px"> / {{ rec.memoria_total_gb }} GB</span></div>
-    {% if pm is not none %}<div class="ocp-bar"><i style="width:{{ pm }}%;{{ 'background:var(--bad)' if pm >= 85 else ('background:var(--warn)' if pm >= 70 else '') }}"></i></div>{% endif %}<div class="l">memoria en uso{{ ' · ' ~ pm ~ ' % de lo asignable' if pm is not none }}</div></div>
+    {% if pm is not none %}<div class="ocp-bar"><i class="c-{{ tono_uso(pm) }}" style="width:{{ pm }}%"></i></div>{% endif %}<div class="l">memoria en uso{{ ' · ' ~ pm ~ ' % de lo asignable' if pm is not none }}</div></div>
 </div>
 
 <div class="grid g2" style="margin-top:14px">

@@ -55,7 +55,7 @@
 <dt>IPs públicas</dt><dd>{{ publicas|length }}</dd>
 <dt>Clúster OpenShift</dt><dd>{% for c_ in clusters %}<span class="chip">{{ c_ }} · {{ clusters[c_]|length }} nodos</span> {% endfor %}{% for e in ocp %}<a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a> {% endfor %}{% if not clusters and not ocp %}—{% endif %}</dd>
 <dt>Costo este mes</dt><dd>{% if con_costo %}≈ CLP {{ '{:,.0f}'.format(costo_total).replace(',', '.') }} <span class="sub">(estimado con las horas encendidas)</span>{% else %}—{% endif %}</dd>
-<dt>Salud consolidada</dt><dd>{% if res and res.salud is not none %}{% set sv_ = res.salud|int %}<span class="salud-barra s-{{ 'verde' if sv_ >= 80 else ('amarillo' if sv_ >= 50 else 'rojo') }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span>{% else %}—{% endif %}</dd>
+<dt>Salud consolidada</dt><dd>{% if res and res.salud is not none %}{% set sv_ = res.salud|int %}<span class="salud-barra s-{{ semaforo_salud(sv_) }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span>{% else %}—{% endif %}</dd>
 </dl></div>
 </div>
 {% set sin_ = 'Sin datos: ' ~ ('AAP no tiene credencial para leer esta nube; cárgala con «Conectar» y luego «Probar acceso» sincroniza su inventario dinámico.' if not con.cred else ('la fuente dinámica aún no trae máquinas; usa «Probar acceso».' if not ok_ else 'la nube no informa elementos de este tipo.')) %}

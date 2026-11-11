@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block titulo %}Salud · {{ segmento }}{% endblock %}
 {% block cuerpo %}
-{% macro col(p) %}{{ '#3e8635' if p >= 85 else ('#f0ab00' if p >= 60 else '#c9190b') }}{% endmacro %}
+{% macro col(p) %}{{ {'verde': '#3e8635', 'amarillo': '#f0ab00'}.get(semaforo_salud(p), '#c9190b') }}{% endmacro %}
 <p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ volver }}">‹ {{ segmento }}</a></p>
 <h1 style="margin:2px 0 6px">Salud del segmento · {{ dict(ambientes)[ambiente] if ambiente in dict(ambientes) else ambiente }}</h1>
 <div class="tabs-pf">{% for a, n in ambientes %}<a class="{{ 'on' if a == ambiente }}" href="?segmento={{ segmento|urlencode }}&ambiente={{ a }}">{{ n }}</a>{% endfor %}</div>
