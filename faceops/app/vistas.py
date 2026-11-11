@@ -1266,6 +1266,13 @@ def _instancias(e):
     from .inventario import SOPORTE
     neg = lambda x: set(x.get("skills") or []) - SOPORTE
     base = lambda n: re.sub(r"[-_]?\d+$", "", (n or "").split(".")[0])
+    try:   # según la topología: instancias del mismo componente y ambiente en cada segmento; manda el segmento más débil
+        from .replicar_maquina import instancias_segmentos
+        peor, _segs = instancias_segmentos(g.cliente, e, equipos_visibles())
+        if peor:
+            return [dict(x, segmento=len(_segs) > 1) for x in sorted(peor, key=lambda x: not x["esta"])]
+    except Exception as x_:  # noqa: BLE001
+        current_app.logger.warning("instancias por segmento: %s", x_)
     sk, segs = neg(e), set(e.get("segmentos") or [])
     from .replicar_maquina import relacionadas
     rel = relacionadas(g.cliente["id"], e["nombre"])   # réplicas hechas con «Replicar máquina» (y su origen)

@@ -72,7 +72,10 @@ def segmentos_maquina(cliente, e, eqs):
                     continue
                 c = comps[cid]
                 d = {"nombre": seg, "codigo": m.get("codigo", ""), "componente": c.get("nombre", cid), "comp_id": cid, "ambiente": amb,
-                     "arquitectura": True, "balanceadores": [], "entradas": [], "destinos": [], "url": ""}
+                     "arquitectura": True, "balanceadores": [], "entradas": [], "destinos": [], "url": "",
+                     # instancias que sirven lo mismo en este segmento: las máquinas del mismo componente y ambiente (incluye las réplicas)
+                     "miembros": [{"id": x.get("id"), "nombre": x["nombre"], "ip": x.get("ip"), "energia": x.get("energia"),
+                                   "esta": x["nombre"] == e["nombre"]} for x in xs]}
                 ent = m.get("entrada") or {}
                 for f in m["flujos"]:
                     if f["hacia"] == cid:
@@ -97,8 +100,22 @@ def segmentos_maquina(cliente, e, eqs):
     for s in segs_e:
         if s not in vistos:   # segmento sin arquitectura vigente: se muestra, pero no aporta balanceo ni puertos
             out.append({"nombre": s, "codigo": "", "componente": "", "comp_id": "", "ambiente": e.get("ambiente") or "", "arquitectura": False,
-                        "balanceadores": [], "entradas": [], "destinos": [], "url": ""})
+                        "balanceadores": [], "entradas": [], "destinos": [], "url": "", "miembros": []})
     return out
+
+
+def vivas(miembros):
+    return [x for x in miembros if (x.get("energia") or "encendido") not in ("apagado", "suspendido")]
+
+
+def instancias_segmentos(cliente, e, eqs):
+    """Disponibilidad de la máquina según la topología: por cada segmento (con arquitectura) donde ocupa un componente, las
+    instancias de ese componente en su ambiente. Devuelve (instancias del segmento más débil, [segmentos con sus miembros])."""
+    segs = [s for s in segmentos_maquina(cliente, e, eqs) if s["arquitectura"] and s["miembros"]]
+    if not segs:
+        return None, []
+    peor = min(segs, key=lambda s: (len(vivas(s["miembros"])), len(s["miembros"])))
+    return peor["miembros"], segs
 
 
 def siguiente_nombre(cliente_id, nombre):
@@ -179,7 +196,7 @@ def plan(cliente, e, eqs):
     return {"posible": not por_que, "por_que": por_que, "producto": prod, "puerto": PRODUCTOS.get(prod), "so": so,
             "segmentos": segs, "balanceadores": bals, "destinos": list(destinos.values()), "entradas": entradas,
             "nombre": siguiente_nombre(cliente["id"], e["nombre"]), "recursos": rec, "politica": _politicas(cliente["id"], e),
-            "instancias": 1 + len(relacionadas(cliente["id"], e["nombre"]))}
+            "instancias": min([len(vivas(s["miembros"])) for s in segs if s["miembros"]] or [1 + len(relacionadas(cliente["id"], e["nombre"]))])}
 
 
 def _ruta(e, segs):
