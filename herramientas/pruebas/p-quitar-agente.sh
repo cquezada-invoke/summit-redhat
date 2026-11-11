@@ -5,6 +5,7 @@ N="Sistema · Quitar agente"; CASOS='[]'; TKS='[]'
 M=""; for c_ in nodo-jboss-qa; do existe $c_ && [ -n "$(ip_de $c_)" ] && { M=$c_; break; }; done
 [ -z "$M" ] && { echo "CASO C0 falla · nodo-jboss-qa no disponible"; exit 0; }
 energia $M encender; IP=$(ip_de $M); echo "maquina $M"
+[ "$(estado)" = exitoso ] || { echo "CASO C0 falla · no se pudo encender $M ($(ticket))"; exit 0; }
 sk() { sudo podman exec -i faceops python3 - "$M" "$1" 2>/dev/null <<'Q' | tail -1
 import sys, json
 from app import create_app
@@ -31,7 +32,7 @@ A2=$(en $IP 'systemctl is-active node_exporter; test -e /usr/local/bin/node_expo
 H0=$(en $IP 'ls /etc/systemd/system | md5sum | cut -c1-10')
 caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"params\":{\"qa_agente\":\"agente-inexistente\"},\"min\":10,\"caso\":\"C3\"}" >/dev/null; E3=$(estado)
 H1=$(en $IP 'ls /etc/systemd/system | md5sum | cut -c1-10')
-{ [ "$E3" = fallido ] || { [ "$E3" = "rechazado al solicitar" ] && echo "$RES" | grep -qiE 'agente|opci|v[aá]lid'; }; } && [ "$H0" = "$H1" ] && anotar C3 "Agente desconocido" ok "$E3 ($(jq_ "(r.get('detalle') or r.get('error') or '')[:140]")); la máquina no cambia (huella $H0)" || anotar C3 "Agente desconocido" falla "$E3 $H0→$H1"
+{ [ "$E3" = fallido ] || { [ "$E3" = "rechazado al solicitar" ] && [ -n "$(jq_ "r.get('error','') if __import__('re').search(r'(?i)agente desconocido|qa_agente|opci[oó]n|no v[aá]lid', r.get('error','')) else ''")" ]; }; } && [ "$H0" = "$H1" ] && anotar C3 "Agente desconocido" ok "$E3 ($(jq_ "(r.get('detalle') or r.get('error') or '')[:140]")); la máquina no cambia (huella $H0)" || anotar C3 "Agente desconocido" falla "$E3 $H0→$H1"
 echo "EVIDENCIA $CASOS"
 certificar "$N" "Plan quitar agente · C1–C3 (planes-prueba.yml)"
 # deja la máquina de prueba como estaba (solo reinstala los agentes que tenía antes del plan)
