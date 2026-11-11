@@ -1,0 +1,18 @@
+commit: e06d80e0c2cef9c33bc9fb05a075c02b77140a82
+inicio: 2026-11-11T13:55:56-03:00
+---
+== chequeos
+APP http://192.168.122.11/app-jboss/: 200
+APP https://192.168.122.11/app-jboss/: 200
+JBOSS 8080 directo: 200  9990 desde host: 302  RedisInsight 5540: 000
+CONSOLA jboss por FaceOps: HTTP 302 447 bytes 
+CONSOLA redis por FaceOps: HTTP 502 86009 bytes 
+PROMETHEUS [('servidores', '192.168.122.15:9100', '1')]
+SSH ok nodo-jboss.demo.local
+HORA: yes chronyd=active
+FIREWALLD: inactive / Failed to get unit file state for firewalld.service: No such file or directory
+APP02: tabla-ok
+CONTAINERS: ls: cannot access '/etc/containers/containers.conf.d/': No such file or directory  redisinsight Up 29 minutes; pids="PidsLimit": 2048
+TMOUT login no interactivo: [900] interactivo: [900]
+SESION no interactiva sobrevive (sleep 3) rc=0
+--- fin: 2026-11-11T13:56:28-03:00 · código: 0
