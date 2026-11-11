@@ -1,0 +1,97 @@
+---
+# OpenShift · Mover imágenes a Quay (escritura, con aprobación, sin IA). Vuelve a evaluar el uso: solo mueve las seleccionadas que
+# siguen siendo candidatas. Copia con un Job de skopeo dentro del clúster (digest preservado y verificado en Quay); credencial de Quay
+# desde la bóveda (web/<equipo Quay>/quay). Con mq_retirar quita del registro interno solo las etiquetas copiadas y verificadas.
+- name: OpenShift · Mover imágenes a Quay
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    seleccion: "{{ mq_seleccion | default('') | string | regex_replace('\\s', '') }}"
+    quay: "{{ mq_quay | default('') | string | trim }}"
+    quay_equipo: "{{ mq_quay_equipo | default(quay.split('.')[0], true) }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - api is match('^https://')
+          - seleccion | length > 0 and seleccion is match('^[a-z0-9./:_,-]+$')
+          - seleccion != 'all'
+          - quay is match('^[A-Za-z0-9.-]+(:[0-9]+)?$')
+          - (mq_quay_org | default('')) is match('^[a-z0-9._-]*$')
+          - (mq_meses | default(6) | string) is match('^[0-9]+$')
+        fail_msg: "Indica qué mover (ns/imagestream:tag, ns/imagestream o «todas», separado por coma), el host de Quay y el umbral en meses"
+        quiet: true
+
+    - name: Credencial de la bóveda presente (lectura de la cuenta de Quay)
+      ansible.builtin.assert:
+        that: [faceops_vault_role_id is defined]
+        fail_msg: "Falta la credencial «FaceOps · Bóveda (lectura Quay)» en la plantilla: sin ella no hay cuenta de Quay y no se copia nada"
+        quiet: true
+
+    - name: Cuenta de Quay desde la bóveda
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_addr }}/v1/auth/approle/login"
+        method: POST
+        body_format: json
+        body: {role_id: "{{ faceops_vault_role_id }}", secret_id: "{{ faceops_vault_secret_id }}"}
+      register: r_login
+      no_log: true
+
+    - name: Leer web/{{ quay_equipo }}/quay
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_addr }}/v1/faceops/data/web/{{ quay_equipo }}/quay"
+        headers: {X-Vault-Token: "{{ r_login.json.auth.client_token }}"}
+        status_code: [200, 404]
+      register: r_quay
+      no_log: true
+
+    - name: Hay cuenta de Quay
+      ansible.builtin.assert:
+        that: [r_quay.status == 200, (r_quay.json.data.data.usuario | default('')) | length > 0]
+        fail_msg: "La bóveda no tiene la cuenta de Quay en web/{{ quay_equipo }}/quay (usuario y clave de un robot con escritura): no se copia nada"
+        quiet: true
+
+    - name: Copiar a Quay, verificar digest y (si se pidió) retirar del registro interno
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/ocp_imagenes_movilidad.py", mover, "{{ api }}", "/tmp/faceops-imagenes/{{ inventory_hostname }}"]
+      environment:
+        IM_MESES: "{{ mq_meses | default(6) }}"
+        IM_INCLUIR: "{{ mq_incluir | default('') }}"
+        IM_EXCLUIR: "{{ mq_excluir | default('') }}"
+        IM_QUAY: "{{ quay }}"
+        IM_QUAY_ORG: "{{ mq_quay_org | default('') }}"
+        IM_CLUSTER: "{{ inventory_hostname }}"
+        MQ_SELECCION: "{{ seleccion }}"
+        MQ_RETIRAR: "{{ '1' if mq_retirar | default(false) | bool else '0' }}"
+        MQ_TLS: "{{ '0' if mq_tls_inseguro | default(false) | bool else '1' }}"
+        MQ_IMAGEN: "{{ mq_imagen_skopeo | default('registry.redhat.io/rhel9/skopeo:latest', true) }}"
+        QUAY_USUARIO: "{{ r_quay.json.data.data.usuario }}"
+        QUAY_CLAVE: "{{ r_quay.json.data.data.clave }}"
+      register: r_mv
+      changed_when: (r_mv.stdout | from_json).copiadas | default([]) | length > 0
+      failed_when: false
+      no_log: true
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        mv: "{{ r_mv.stdout | default('{}') | from_json }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_imagenes_quay: "{{ mv | combine({'ticket': faceops_ticket | default('')}) }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ ['Quay ' ~ quay ~ ' · copiadas y verificadas: ' ~ (mv.copiadas | default([]) | length) ~ ' · fallidas: ' ~ (mv.fallidas | default([]) | length)
+               ~ ' · retiradas del registro interno: ' ~ (mv.retiradas | default([]) | length)
+               ~ ((' · omitidas (ya no son candidatas): ' ~ mv.omitidas_no_candidatas | join(', ')) if mv.omitidas_no_candidatas | default([]) else '')]
+             + (mv.copiadas | default([]) | map(attribute='destino') | list) + (mv.retiro_pendiente | default([])) }}
+
+    - name: Falla controlada (nada se retira del origen si la copia no se verificó)
+      ansible.builtin.fail:
+        msg: "{{ mv.error | default((mv.fallidas | default([]) | map(attribute='id') | zip(mv.fallidas | default([]) | map(attribute='motivo')) | map('join', ': ') | join(' · '))) }}"
+      when: r_mv.rc != 0

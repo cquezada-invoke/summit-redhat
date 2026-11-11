@@ -1,0 +1,62 @@
+---
+# OpenShift · Evaluar imágenes (uso y antigüedad) · solo lectura por la API del clúster, sin IA. Clasifica cada revisión de los
+# ImageStreams por último uso (en uso, referenciada, sin uso por rangos de meses, huérfanas) y arma el plan de movilidad a Quay
+# (destino, comando skopeo con digest, olas, referencias y poda). Informe plan.md/csv/json en Git (openshift-manifiestos/imagenes-movilidad).
+- name: OpenShift · Evaluar imágenes (uso y antigüedad)
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    meses: "{{ im_meses | default(6) if (im_meses | default('') | string | length) else 6 }}"
+    rangos: "{{ im_rangos | default('3,6,12', true) | string | regex_replace('\\s', '') }}"
+    salida: "/tmp/faceops-imagenes/{{ inventory_hostname }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - api is match('^https://')
+          - meses | string is match('^[0-9]+$') and (meses | int) <= 60
+          - rangos is match('^[0-9]+(,[0-9]+)*$') and (rangos | split(',') | map('int') | min) >= 1
+          - (im_incluir | default('')) is match('^[a-z0-9*?, .-]*$')
+          - (im_excluir | default('')) is match('^[a-z0-9*?, .-]*$')
+          - (im_quay | default('')) is match('^[A-Za-z0-9.:-]*$')
+          - (im_quay_org | default('')) is match('^[a-z0-9._-]*$')
+        fail_msg: "Falta el API del clúster o hay datos no válidos: meses 0–60 (0 = toda imagen sin uso), rangos en meses separados por coma (3,6,12), namespaces con comodines, host y organización de Quay"
+        quiet: true
+
+    - name: Evaluar imágenes y armar el plan de movilidad
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/ocp_imagenes_movilidad.py", evaluar, "{{ api }}", "{{ salida }}"]
+      environment:
+        IM_MESES: "{{ meses }}"
+        IM_RANGOS: "{{ rangos }}"
+        IM_INCLUIR: "{{ im_incluir | default('') }}"
+        IM_EXCLUIR: "{{ im_excluir | default('') }}"
+        IM_QUAY: "{{ im_quay | default('') }}"
+        IM_QUAY_ORG: "{{ im_quay_org | default('') }}"
+        IM_CLUSTER: "{{ inventory_hostname }}"
+        G: "{{ gitea }}"
+        T: "{{ faceops_respaldo_token | default('') }}"
+        MSG: "{{ inventory_hostname }}: imágenes y plan de movilidad a Quay ({{ faceops_ticket | default('manual') }})"
+      register: r_ev
+      changed_when: false
+      failed_when: r_ev.rc != 0 or (r_ev.stdout | from_json).error is defined
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        ev: "{{ r_ev.stdout | from_json }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_imagenes_movilidad: "{{ ev | combine({'ticket': faceops_ticket | default('')}) }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ ['Clúster ' ~ inventory_hostname ~ ' · ' ~ ev.revisiones ~ ' revisiones evaluadas · ' ~ ev.candidatas ~ ' candidatas a Quay (sin uso hace '
+               ~ ev.meses_umbral ~ ' meses o más, o huérfanas) · ' ~ ev.mb_candidatas ~ ' MB · informe '
+               ~ (('en Git: ' ~ gitea ~ '/' ~ ev.git) if ev.informe_git else 'local (' ~ ev.git ~ '): ' ~ salida ~ '/plan.md')]
+             + (ev.rangos | map(attribute='rango') | zip(ev.rangos | map(attribute='revisiones'), ev.rangos | map(attribute='mb')) | map('join', ' · ') | map('regex_replace', '$', ' MB') | list) }}

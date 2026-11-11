@@ -1222,6 +1222,17 @@ def actualizar_tickets():
                         ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error informe de imágenes", t["numero"], {"error": str(x)[:300]})
+            if est in ("exitoso", "fallido") and a and a["nombre_aap"] in ("OpenShift · Evaluar imágenes (uso y antigüedad)", "OpenShift · Mover imágenes a Quay"):
+                try:   # plan de movilidad a Quay y su ejecución: quedan en la ficha del clúster
+                    art_ = artefactos_ticket(aap, t) or {}
+                    clave_, dato_ = ("imagenes_movilidad", art_.get("faceops_imagenes_movilidad")) if "Evaluar" in a["nombre_aap"] else ("imagenes_quay", art_.get("faceops_imagenes_quay"))
+                    e_ = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", c["id"], (dato_ or {}).get("cluster") or (t["limite"] or ""))
+                    if e_ and dato_ and not dato_.get("error"):
+                        d_ = j(e_["datos"], {})
+                        d_[clave_] = dict(dato_, ticket=t["numero"], estado_ticket=est, fecha=ahora())
+                        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error movilidad de imágenes", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "Infra · Mover máquina entre centros de datos":
                 try:   # la máquina queda en su centro de datos nuevo: IP y ubicación en AAP y en FaceOps
                     mv_ = (artefactos_ticket(aap, t) or {}).get("faceops_traslado") or {}
