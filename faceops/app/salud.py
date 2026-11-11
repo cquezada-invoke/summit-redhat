@@ -43,6 +43,15 @@ def _seccion(clave, nombre, motivos, base=100):
     return {"clave": clave, "nombre": nombre, "salud": pts, "motivos": sorted(motivos, key=lambda m: -m["d"])}
 
 
+def _seccion_cves(cv):
+    """CVE proporcional por severidad (criterio en cves.CRITERIO): con 1 decimal para que cada parche se note."""
+    from .cves import descuentos
+    ms = [{"t": t, "d": d, "nivel": n} for t, d, n in descuentos(cv)]
+    s = _seccion("cves", "CVEs", ms)
+    s["salud"] = round(max(0.0, 100 - sum(m["d"] for m in ms)), 1)
+    return s
+
+
 def _m(t, d, nivel_="amarillo"):
     return {"t": t, "d": int(round(d)), "nivel": nivel_}
 
@@ -119,15 +128,7 @@ def componentes(e, riesgo, productos, extras=None):
                                      [_m(f"{ev['plan'].get('origen', '')}: {ev['plan'].get('soporte', '')} · semáforo {sem}", d, "rojo" if d >= 60 else "amarillo")] if d else []))
             cv = extras.get("cves")
             if cv and cv.get("revisado") and cv.get("repos"):
-                ms = []
-                if cv.get("criticos"):
-                    ms.append(_m(f"{cv['criticos']} CVE críticos pendientes", min(70, 35 * cv["criticos"]), "rojo"))
-                if cv.get("importantes"):
-                    ms.append(_m(f"{cv['importantes']} CVE importantes pendientes", min(40, 8 * cv["importantes"])))
-                otros = (cv.get("pendientes") or 0) - (cv.get("criticos") or 0) - (cv.get("importantes") or 0)
-                if otros > 0:
-                    ms.append(_m(f"{otros} CVE moderados o bajos pendientes", min(15, otros), "info"))
-                secs.append(_seccion("cves", "CVEs", ms))
+                secs.append(_seccion_cves(cv))
             pols = extras.get("politicas")
             if pols:
                 ms = []
@@ -193,12 +194,7 @@ def componente_sistema(e, extras=None, nombre=None):
     secs.append(_seccion("remediaciones", "Remediaciones preventivas", []))
     cv = extras.get("cves")
     if cv and cv.get("revisado") and cv.get("repos"):
-        ms = []
-        if cv.get("criticos"):
-            ms.append(_m(f"{cv['criticos']} CVE críticos pendientes", min(70, 35 * cv["criticos"]), "rojo"))
-        if cv.get("importantes"):
-            ms.append(_m(f"{cv['importantes']} CVE importantes pendientes", min(40, 8 * cv["importantes"])))
-        secs.append(_seccion("cves", "CVEs", ms))
+        secs.append(_seccion_cves(cv))
     pols = extras.get("politicas")
     if pols:
         ms = [_m(f"{x.get('codigo')} {x.get('estado').replace('_', ' ')}", {"no_cumple": 30, "fallida": 25, "desactualizada": 12, "pendiente": 6}[x["estado"]],

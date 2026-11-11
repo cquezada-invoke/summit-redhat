@@ -231,7 +231,10 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
         vals = [(c.get("nombre"), s.get("titulo") or s.get("clave"), s.get("salud"), s.get("motivos") or []) for c in componentes or []
                 for s in (c.get("secciones") or []) if s.get("clave") in ("cves", "politicas") and s.get("salud") is not None]
         if vals:
-            sg["pct"] = round(sum(v for _, _, v, _ in vals) / len(vals))
+            sg["pct"] = round(sum(v for _, _, v, _ in vals) / len(vals), 1)   # 1 decimal: cada CVE corregido se nota
+            if any(t == "cves" for _, t, _, _ in vals):
+                from .cves import CRITERIO
+                sg["criterio_cve"] = CRITERIO
             for n, t, v, mot in vals:
                 sg["detalle"].append({"t": f"{'CVE' if t == 'cves' else ('Políticas de seguridad' if t == 'politicas' else t)} · {n}", "v": v})
 

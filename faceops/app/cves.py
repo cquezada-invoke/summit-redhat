@@ -63,10 +63,46 @@ def por_equipo(cliente_id, eqs):
         out[e["id"]] = {"revisado": bool(r), "repos": bool(r and r["repos"]), "pendientes": len(ps), "cubiertos": r["cubiertos"] if r else 0,
                         "criticos": len([x for x in ps if x["severidad"] == "crítica"]), "importantes": len([x for x in ps if x["severidad"] == "importante"]),
                         "cuando": r["cuando"] if r else None, "top": ps[:8],
+                        # por severidad: CVE distintos pendientes y detectados (pendientes + corregidos), para el puntaje proporcional
+                        "sev": _por_sev(pend.get(e["id"], {}), cub.get(e["id"], {})), "criterio": CRITERIO,
                         # todos los CVE reportados para su sistema: pendientes primero (por severidad) y los resueltos marcados ok
                         "todos": [dict(x, ok=False) for x in ps] + [dict(x, ok=True) for x in sorted(
                             (v for k, v in cub.get(e["id"], {}).items() if k not in pend.get(e["id"], {})),
                             key=lambda x: (ORDEN.get(x["severidad"], 9), x["cve"]))]}
+    return out
+
+
+def _por_sev(pend, cub):
+    out = {}
+    for k, x in list(pend.items()) + [(k, v) for k, v in cub.items() if k not in pend]:
+        sv = x["severidad"] if x["severidad"] in ("crítica", "importante", "moderada") else "baja"
+        d = out.setdefault(sv, {"p": 0, "t": 0})
+        d["t"] += 1
+        d["p"] += k in pend
+    return out
+
+
+# Puntaje de la sección CVE (pilar Seguridad): cada severidad descuenta su peso × (pendientes ÷ detectados) de esa severidad,
+# sin tope por cantidad, así que cada CVE corregido suma; las críticas pesan más y cada crítica pendiente descuenta al menos 10.
+PESOS = {"crítica": 50, "importante": 35, "moderada": 10, "baja": 5}
+CRITERIO = ("Puntaje CVE: cada severidad descuenta su peso × (pendientes ÷ detectados) — críticas 50 (mínimo 10 por crítica "
+            "pendiente, hasta 50), importantes 35, moderadas 10, bajas 5. Cada parche aplicado suma.")
+
+
+def descuentos(cv):
+    """[(texto, descuento con 1 decimal, nivel)] de la sección CVE."""
+    out = []
+    for sv, peso in PESOS.items():
+        d = (cv.get("sev") or {}).get(sv) or {}
+        p, t = d.get("p", 0), d.get("t", 0)
+        if not p or not t:
+            continue
+        x = peso * p / t
+        if sv == "crítica":
+            x = max(x, min(peso, 10 * p))
+        out.append((f"{p} de {t} CVE {sv}s pendientes ({peso} × {100 * p / t:.0f} %)".replace("críticas", "críticos").replace("crítica", "crítico")
+                    .replace("importantes", "importantes").replace("moderadas", "moderados").replace("bajas", "bajos"),
+                    round(x, 1), "rojo" if sv == "crítica" else ("amarillo" if sv == "importante" else "info")))
     return out
 
 
