@@ -1,25 +1,101 @@
-commit: 2ab38a9f8448e0074efca7ac9c7cc0281a1cd62f
-inicio: 2026-11-11T20:52:16-03:00
+commit: 35fd44b5b393eecd92a1acd2f0eb5300469dd0f9
+inicio: 2026-11-11T20:55:47-03:00
 ---
-6187f99
-== EDA
-reiniciada: ServiceNow · Solicitudes de nube
-reiniciada: Monitoreo · Alertas de Prometheus
-reiniciada: Seguridad · Bloqueo de IP
-reiniciada: Remediación · Eventos de JBoss
-reiniciada: Red · Drift por eventos
-activación FaceOps · Alertas de objetos error
-activación ServiceNow · Solicitudes de red error
-activación Claro PR · Eventos (Odoo y Grafana) error
-activación Amdocs · Órdenes de servicio error
-activación FaceOps · OpenShift error
-activación FaceOps · Certificados error
-activación JBoss · Configuración desde Git error
-activación ServiceNow · Solicitudes de nube error
-activación Monitoreo · Alertas de Prometheus error
-activación Seguridad · Bloqueo de IP error
-activación Remediación · Eventos de JBoss error
-activación Red · Drift por eventos error
-== Grafana de OpenShift (un caso)
-RES {"caso": "diag", "auto": "Monitoreo · Grafana de OpenShift", "ticket": "FO-LAB-01971", "estado": "fallido", "stats": {}, "detalle": "Grafana (en el anfitrión) llega al Thanos Querier con ese token y solo puede leer ·  · ", "fallos": ["Grafana (en el anfitrión) llega al Thanos Querier con ese token y solo puede leer · "], "resultado": "anfitrion-kvm -> localhost]\n\nTASK [Ruta del Thanos Querier] *************************************************\nok: [anfitrion-kvm -> localhost]\n\nTASK [Datos de conexión] *******************************************************\nok: [anfitrion-kvm]\n\nTASK [Grafana (en el anfitrión) llega al Thanos Querier con ese token y solo puede leer] ***\nfatal: [anfitrion-kvm]: FAILED! => {\"censored\": \"the output has been hidden due to the fact that 'no_log: true' was specified for this result\", \"changed\": false}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=6    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   "}
---- fin: 2026-11-11T20:55:30-03:00 · código: 0
+== FaceAdmin
+faceadmin Up 24 minutes
+local 200
+ 23:55:48 up 25 min,  0 users,  load average: 0.00, 0.00, 0.01
+               total        used        free      shared  buff/cache   available
+Mem:               7           0           6           0           0           6
+/dev/sda2        20G   11G  9.3G  53% /
+PRETTY_NAME="Red Hat Enterprise Linux 9.8 (Plow)"
+/usr/bin/gcloud
+/usr/bin/python3
+/usr/bin/jq
+faceadmin-demos@master-ia-320218.iam.gserviceaccount.com
+https://www.googleapis.com/auth/cloud-platform
+
+== instancias
+cliente-banco-austral TERMINATED n2-standard-8 {'uso': 'faceops-cliente-demo'}
+cliente-inversiones-apolo TERMINATED e2-standard-4 {}
+cliente-retail-pacifico TERMINATED n2-standard-8 {'uso': 'faceops-cliente-demo'}
+demo-ansible-summit RUNNING n2-standard-32 {}
+faceadmin RUNNING e2-standard-2 {}
+== firewalls
+aap-https-cristian default ['181.42.211.130/32', '200.113.135.25/32', '200.113.133.254/32', '186.11.8.148/32', '187.229.33.46/32', '152.230.191.137/32', '187.229.33.101/32', '162.120.186.109/32', '181.42.210.90/32', '45.167.201.213/32', '45.167.201.80/32', '72.14.201.212/32', '38.49.136.202/32', '162.120.185.224/32', '200.68.168.22/32', '200.68.168.149/32'] None [('tcp', ['443', '8088', '8025', '9443', '8090', '3000', '30097', '8200'])]
+default-allow-icmp default ['0.0.0.0/0'] None [('icmp', None)]
+default-allow-internal default ['10.128.0.0/9'] None [('tcp', ['0-65535']), ('udp', ['0-65535']), ('icmp', None)]
+default-allow-rdp default ['0.0.0.0/0'] None [('tcp', ['3389'])]
+default-allow-ssh default ['0.0.0.0/0'] None [('tcp', ['22'])]
+fabrica-gpu-interno default ['10.194.0.0/20'] ['fabrica-gpu'] [('tcp', ['8000'])]
+fabrica-gpu-vllm default ['10.128.0.0/9'] ['fabrica-gpu'] [('tcp', ['8000'])]
+faceops-acceso-publico default ['0.0.0.0/0'] None [('tcp', ['80', '443', '8843'])]
+portal-claro default ['0.0.0.0/0'] ['portal-claro'] [('tcp', ['8120'])]
+== addresses
+demo-summit-ip 34.176.42.56 IN_USE
+faceadmin-ip 34.176.114.77 IN_USE
+== imagenes faceops-demo
+The resource 'projects/master-ia-320218/global/images/family/faceops-demo' was not found
+== permisos
+{
+  "error": {
+    "code": 403,
+    "message": "Cloud Resource Manager API has not been used in project 867442985439 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=867442985439 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.",
+    "status": "PERMISSION_DENIED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "SERVICE_DISABLED",
+        "domain": "googleapis.com",
+        "metadata": {
+          "consumer": "projects/867442985439",
+          "containerInfo": "867442985439",
+          "activationUrl": "https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=867442985439",
+          "serviceTitle": "Cloud Resource Manager API",
+          "service": "cloudresourcemanager.googleapis.com"
+        }
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+        "locale": "en-US",
+        "message": "Cloud Resource Manager API has not been used in project 867442985439 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=867442985439 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.Help",
+        "links": [
+          {
+            "description": "Google developers console API activation",
+            "url": "https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=867442985439"
+          }
+        ]
+      }
+    ]
+  }
+}
+== rocky
+rocky-linux-9-optimized-gcp-v20261110 20
+== cuota región
+CPUS 2 200
+DISKS_TOTAL_GB 600 4096
+STATIC_ADDRESSES 2 8
+IN_USE_ADDRESSES 2 8
+SSD_TOTAL_GB 300 500
+N2_CPUS 32 200
+FACEADMIN_ADMIN_USUARIO
+FACEADMIN_ADMIN_NOMBRE
+FACEADMIN_CLIENTES
+/etc/faceadmin/tls.crt:/etc/faceadmin/tls.crt /etc/faceadmin/tls.key:/etc/faceadmin/tls.key /var/lib/faceadmin:/var/lib/faceadmin 
+#!/bin/bash
+set -u
+R=/home/cquezada/faceops-repo; REPO=$(cat /etc/faceadmin/repo 2>/dev/null)
+[ -d "$R/.git" ] || sudo -u cquezada git clone -q "$REPO" "$R"
+antes=$(sudo -u cquezada git -C "$R" rev-parse HEAD 2>/dev/null)
+sudo -u cquezada git -C "$R" checkout -q -- faceadmin/fabrica.json 2>/dev/null
+for i in 1 2 3 4 5; do sudo -u cquezada git -C "$R" pull -q --ff-only && break; sleep 15; done
+ahora=$(sudo -u cquezada git -C "$R" rev-parse HEAD)
+if [ "$antes" != "$ahora" ] || ! podman image exists localhost/faceadmin:latest; then
+  sudo -u cquezada bash "$R/faceadmin/version.sh"
+  podman build -q -t localhost/faceadmin:latest -f "$R/faceadmin/Containerfile" "$R/faceadmin" >/dev/null && echo "FaceAdmin actualizado a $(git -C "$R" rev-parse --short HEAD)"
+  systemctl try-restart faceadmin
+fi
+--- fin: 2026-11-11T20:55:50-03:00 · código: 0
