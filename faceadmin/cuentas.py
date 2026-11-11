@@ -58,13 +58,15 @@ def cuenta(cid):
         f = request.form
         acc = f.get("accion")
         if acc == "contacto":
-            nom = (f.get("nombre") or "").strip()
-            if not nom:
-                flash("El contacto necesita un nombre", "error")
+            from contactos import completo
+            pila, ape = (f.get("nombre") or "").strip()[:60], (f.get("apellido") or "").strip()[:60]
+            nom = completo(pila, ape)
+            if not pila or not ape:
+                flash("El contacto necesita nombre y apellido", "error")
             else:
                 if f.get("principal"):
                     ej("UPDATE contactos SET principal=0 WHERE cliente_id=?", cid)
-                kid_ = ej("INSERT INTO contactos (cliente_id, nombre, cargo, correo, telefono, rol, principal, notas, creado, por) VALUES (?,?,?,?,?,?,?,?,?,?)", cid, nom[:120],
+                kid_ = ej("INSERT INTO contactos (cliente_id, nombre, nombre_pila, apellido, cargo, correo, telefono, rol, principal, notas, creado, por) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", cid, nom[:120], pila, ape,
                    (f.get("cargo") or "")[:120], (f.get("correo") or "").strip()[:160], (f.get("telefono") or "")[:40], f.get("rol") if f.get("rol") in ROLES else "",
                    1 if f.get("principal") else 0, (f.get("notas") or "")[:1000], ahora(), g.usuario["usuario"])
                 if f.get("principal"):
@@ -76,6 +78,7 @@ def cuenta(cid):
                    g.usuario["usuario"])
                 bitacora("contacto agregado", c["codigo"], {"nombre": nom})
                 flash(f"Contacto {nom} agregado", "ok")
+                return redirect(url_for("cuenta", cid=cid, ct=1))
         elif acc == "principal" and (f.get("id") or "").isdigit():
             x = q1("SELECT * FROM contactos WHERE id=? AND cliente_id=?", int(f["id"]), cid) or abort(404)
             ej("UPDATE contactos SET principal=(id=?) WHERE cliente_id=?", x["id"], cid)

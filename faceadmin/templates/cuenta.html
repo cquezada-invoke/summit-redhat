@@ -1,16 +1,13 @@
 {% extends "base.html" %}{% block titulo %}{{ c.nombre }}{% endblock %}{% block cuerpo %}
 <p class="sub" style="margin:0"><a href="{{ url_for('cuentas') }}">Cuentas</a> ›</p>
 <div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">{{ c.nombre }}</h1><span class="chip {{ 'ok' if est[0] == 'cliente' else ('med' if est[0] in ('demo', 'prospecto') else '') }}">{{ est[1] }}</span>
-<span class="der fila" style="gap:8px">{% if est[0] == 'cliente' %}<a class="btn gris" href="{{ url_for('cliente', cid=c.id) }}">Ver como cliente →</a>{% endif %}<a class="btn" href="{{ url_for('oportunidad_nueva', empresa_id=c.id) }}">+ Oportunidad</a></span></div>
-<div class="grid g2" style="margin-top:10px">
+<span class="der fila" style="gap:8px">{% if est[0] == 'cliente' %}<a class="btn gris" href="{{ url_for('cliente', cid=c.id) }}">Ver como cliente →</a>{% endif %}<button type="button" class="btn gris" onclick="ctPanel(true)">+ Agregar contacto</button><a class="btn" href="{{ url_for('oportunidad_nueva', empresa_id=c.id) }}">+ Oportunidad</a></span></div>
+<div style="margin-top:10px">
 <div class="card"><h2>Datos de la cuenta</h2><form method="post" class="rejilla"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="datos">
 <label>Razón social<input name="razon_social" value="{{ c.razon_social or '' }}"></label><label>RUT / identificador<input name="rut" value="{{ c.rut or '' }}"></label>
 <label>País<select name="pais">{% for p in paises %}<option {{ 'selected' if (c.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label>{% from "_industria.html" import sel_industria with context %}<label>Industria{{ sel_industria(c.industria or '') }}</label>
 <div><button class="btn gris">Guardar</button></div></form></div>
-<div class="card"><h2>Agregar contacto</h2><form method="post" class="rejilla"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="contacto">
-<label>Nombre *<input name="nombre" required></label><label>Cargo<input name="cargo"></label><label>Correo<input name="correo" type="email"></label><label>Teléfono<input name="telefono"></label>
-<label>Rol<select name="rol">{% for r in roles %}<option>{{ r }}</option>{% endfor %}</select></label><label style="display:flex;gap:6px;align-items:center;margin-top:18px"><input type="checkbox" name="principal" value="1"> Contacto principal</label>
-<div><button class="btn">Agregar</button></div></form></div></div>
+</div>
 <div class="card tabla-scroll"><h2>Contactos</h2><table><tr><th>Nombre</th><th>Cargo</th><th>Rol</th><th>Correo</th><th>Teléfono</th><th></th></tr>
 {% for x in contactos %}<tr><td><a href="{{ url_for('contacto', kid=x.id) }}">{{ x.nombre }}</a>{% if x.principal %} <span class="chip ok" style="font-size:11px">principal</span>{% endif %}</td><td>{{ x.cargo or '—' }}</td><td>{{ x.rol or '—' }}</td>
 <td>{% if x.correo %}<a href="mailto:{{ x.correo }}">{{ x.correo }}</a>{% else %}—{% endif %}</td><td>{{ x.telefono or '—' }}</td>
@@ -24,4 +21,17 @@
 <div class="card tabla-scroll"><h2>Contratos</h2><table><tr><th>Contrato</th><th>Estado</th></tr>
 {% for k in ks %}<tr><td class="mono">{% if k.estado != 'demo' %}<a href="{{ url_for('contrato_ficha', kid=k.id) }}">{{ k.numero }}</a>{% else %}{{ k.numero }}{% endif %}</td><td><span class="chip {{ 'ok' if k.estado == 'firmado' else 'med' }}">{{ k.estado }}</span></td></tr>
 {% else %}<tr><td colspan="2" class="sub">Sin contratos.</td></tr>{% endfor %}</table></div></div>
+<style>#ct-panel[hidden]{display:none!important}</style>
+<div id="ct-fondo" onclick="ctPanel(false)" style="position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:90" hidden></div>
+<aside id="ct-panel" hidden style="position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);background:var(--fondo,#fff);box-shadow:-8px 0 30px rgba(0,0,0,.2);z-index:91;display:flex;flex-direction:column">
+<div class="fila" style="align-items:center;padding:14px 16px;border-bottom:1px solid var(--borde,#d2d2d2)"><h2 style="margin:0">Agregar contacto · {{ c.nombre }}</h2><button type="button" class="btn chico gris der" onclick="ctPanel(false)" title="Cerrar">×</button></div>
+<form method="post" style="padding:12px 16px;display:grid;gap:8px;border-bottom:1px solid var(--borde,#d2d2d2)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="contacto">
+<label>Nombre *<input name="nombre" required></label><label>Apellido *<input name="apellido" required></label><label>Cargo<input name="cargo"></label><label>Correo<input name="correo" type="email"></label><label>Teléfono<input name="telefono"></label>
+<label>Rol<select name="rol">{% for r in roles %}<option>{{ r }}</option>{% endfor %}</select></label><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="principal" value="1" style="width:auto"> Contacto principal</label>
+<div><button class="btn">Agregar</button></div></form>
+<div style="padding:12px 16px;overflow:auto;flex:1"><b style="font-size:13.5px">Contactos de la cuenta ({{ contactos|length }})</b>
+{% for x in contactos %}<div style="border-left:3px solid var(--borde,#d2d2d2);padding:2px 0 6px 10px;margin:6px 0;font-size:13.5px"><b>{{ x.nombre }}</b>{% if x.principal %} <span class="chip ok" style="font-size:11px">principal</span>{% endif %}<br><span class="sub" style="font-size:12.5px">{{ x.cargo or '—' }} · {{ x.correo or 'sin correo' }}</span></div>
+{% else %}<p class="sub">Sin contactos.</p>{% endfor %}</div></aside>
+<script>function ctPanel(v){document.getElementById('ct-panel').hidden=!v;document.getElementById('ct-fondo').hidden=!v;if(v)document.querySelector('#ct-panel [name=nombre]').focus()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')ctPanel(false)});{% if request.args.get('ct') %}ctPanel(true);{% endif %}</script>
 {% endblock %}
