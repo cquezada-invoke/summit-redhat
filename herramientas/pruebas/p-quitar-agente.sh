@@ -1,9 +1,9 @@
 # Plan «Sistema · Quitar agente» (C1–C3) sobre una máquina de prueba: respaldo continuo, node_exporter y agente desconocido
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="Sistema · Quitar agente"; CASOS='[]'; TKS='[]'
-# máquina de prueba: nodo-jboss-qa o nodo-jboss3 (nunca nodo-jboss, la principal de la demo); se enciende por FaceOps y al final queda apagada
-M=""; for c_ in nodo-jboss-qa nodo-jboss3; do existe $c_ && [ -n "$(ip_de $c_)" ] && { M=$c_; break; }; done
-[ -z "$M" ] && { echo "CASO C0 falla · ni nodo-jboss-qa ni nodo-jboss3 disponibles"; exit 0; }
+# máquina de prueba: nodo-jboss-qa (nunca nodo-jboss, la principal de la demo); se enciende por FaceOps y al final queda apagada
+M=""; for c_ in nodo-jboss-qa; do existe $c_ && [ -n "$(ip_de $c_)" ] && { M=$c_; break; }; done
+[ -z "$M" ] && { echo "CASO C0 falla · nodo-jboss-qa no disponible"; exit 0; }
 energia $M encender; IP=$(ip_de $M); echo "maquina $M"
 sk() { sudo podman exec -i faceops python3 - "$M" "$1" 2>/dev/null <<'Q' | tail -1
 import sys, json
