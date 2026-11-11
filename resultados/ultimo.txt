@@ -1,29 +1,14 @@
-commit: 90eeede7d0b7517f329ac875f6214a06b9ff2704
-inicio: 2026-11-11T16:13:15-03:00
+commit: 2f185b7747aeb8ba236ad13b4796f2e659d856ad
+inicio: 2026-11-11T16:13:38-03:00
 ---
-FO-LAB-01806 fallido rhbk"], "sp_accion": "deshabilitar", "sp_plataforma": "Keycloak"} | fatal: [nodo-jboss]: FAILED! => {"changed": false, "cmd": "set -e\nu=keycloak.service; q=\"/etc/containers/systemd/$u.container\"; d=\"/var/lib/$u/deshabilitado\"\n[ -e \"$q\" ] || { echo \"sin quadlet en $q: no es una plataforma en contenedor\" >&2; exit 3; }\nmkdir -p \"$d\"; mv -f \"$q\" \"$d/$u.
-× keycloak.service - Keycloak (SSO) del data center
-     Loaded: loaded (/etc/containers/systemd/keycloak.container; generated)
-     Active: failed (Result: exit-code) since Wed 2026-11-11 13:41:08 EST; 32min ago
-   Duration: 1h 8min 29.398s
-   Main PID: 107025 (code=exited, status=143)
-        CPU: 53.775s
-2026-11-11 14:33:26,477 WARN  [org.keycloak.quarkus.runtime.KeycloakMain] (main) Running the server in development mode. DO NOT use this configuration in production.
-
-2026-11-11 15:39:42,234 WARN  [org.keycloak.cookie.DefaultCookieProvider] (executor-thread-1) Non-secure context detected; cookies are not secured, and will not be available in cross-origin POST requests
-
-Stopping Keycloak (SSO) del data center...
-2026-11-11 15:41:06,866 INFO  [com.arjuna.ats.jbossatx] (main) ARJUNA032014: Stopping transaction recovery manager
-
-2026-11-11 15:41:06,911 INFO  [io.quarkus] (main) Keycloak stopped in 0.131s
-
-2026-11-11 13:41:07.208276946 -0500 EST m=+0.795921493 container died 5c0e95ac89a044e8d7859b9029537e2cf4655d33b6926e195916278692ff7c92 (image=quay.io/keycloak/keycloak:26.0.7, name=keycloak, org.opencontainers.image.desc
-2026-11-11 13:41:08.410875132 -0500 EST m=+1.998519693 container remove 5c0e95ac89a044e8d7859b9029537e2cf4655d33b6926e195916278692ff7c92 (image=quay.io/keycloak/keycloak:26.0.7, name=keycloak, io.k8s.display-name=Keycloa
-keycloak
-keycloak.service: Main process exited, code=exited, status=143/n/a
-keycloak.service: Failed with result 'exit-code'.
-Stopped Keycloak (SSO) del data center.
-keycloak.service: Consumed 53.775s CPU time, 699.2M memory peak.
-37163fc
-12
---- fin: 2026-11-11T16:13:22-03:00 · código: 0
+INV job 24297 2026-11-11T19:05:26.935931Z emitidos 20 leido 2026-11-11T19:05:25.978106Z
+EN_USO nodo-jboss [{'servicio': 'jboss-https', 'cn': 'nodo-jboss.demo.local', 'formato': 'pkcs12', 'puerto': 8443, 'serie': '27d3173dc3d24e02bf48364f9bbc2642', 'vence': 'Oct 30 20:28:47 2028 GMT', 'puerto_serie': '27d3173dc3d24e02bf48364f9bbc2642', 'entrega': True}, {'servicio': 'nodo-jboss', 'cn': 'nodo-jboss.demo.local', 'formato': 'pem', 'puerto': 443, 'serie': 'a85bf9b53dfdea483009765228fac9ce', 'vence': 'Oct 31 17:52:17 2028 GMT', 'puerto_serie': '', 'entrega': None}]
+TK 1411 job 21777 successful art {"nodo-jboss": {"renovados": {"jboss-https": {"serie": "0x27d3173dc3d24e02bf48364f9bbc2642", "vence": "Mon Oct 30 17:28:47 CLST 2028"}}, "estado_previo": {"jboss-https": "vigente|Oct 30 20:18:54 2028 GMT|BA53C0407F3C33F5984C855094F6D141"}}}
+   serie 0x27d3173dc3d24e02bf48364f9bbc2642 en CA list: False
+TK 517 job 9696 successful art {"nodo-jboss": {"renovados": {"jboss-https": {"serie": "0x6fda6dc34142129ea390ba73c13a6163", "vence": "Sun Oct 22 04:20:57 CLST 2028"}}, "estado_previo": {"jboss-https": "vigente|Oct 22 07:03:21 2028 GMT|4C957DAE00CE2FC7368240ABD8F17A82"}}}
+   serie 0x6fda6dc34142129ea390ba73c13a6163 en CA list: True
+TK 1763 job 24041 failed art null
+TK 1776 job 24091 failed art null
+CA ids sample first/last ['0x11c536a8e3a0c91a8c32d11a8d85fbc9', '0x3436c06154cc383ec78ff58fd410c38d'] ['0xd44a3fc89844943a88f756733644e54d', '0xebab5677743c464a6a00c8b6f5d87582']
+ultimos emitidos [('1793407096000', 'b5e522d3de36c460c045971da9b44a4c', 'O=INVOKE,CN=nodo-nginx.demo.local'), ('1793603001000', '4c957dae00ce2fc7368240abd8f17a82', 'O=INVOKE,CN=nodo-jboss.demo.local'), ('1793604057000', '6fda6dc34142129ea390ba73c13a6163', 'O=INVOKE,CN=nodo-jboss.demo.local'), ('1793637233000', 'ebab5677743c464a6a00c8b6f5d87582', 'O=INVOKE,CN=*.apps.sno.invoke.lab'), ('1794339729000', '98c604d79e3c0ed7c69d59d43066a75a', 'O=INVOKE,CN=nodo-jboss.demo.local'), ('1794340732000', '712b447484972e16f0a76957e9e0cfc6', 'O=INVOKE,CN=nodo-jboss.demo.local')]
+--- fin: 2026-11-11T16:13:46-03:00 · código: 0
