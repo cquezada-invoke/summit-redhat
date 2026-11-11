@@ -124,6 +124,8 @@ shutil.copy(f"{AQUI}/files/alertamiento-ocp.yml", f"{tmp}/playbooks/files/alerta
 for f_ in ("alertas-objetos.yml", "alertas_objeto.py"):   # Monitoreo · Configurar alertas del equipo (catálogo compartido con FaceOps)
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/monitoreo-alertas.yml", f"{tmp}/playbooks/monitoreo-alertas.yml")
+shutil.copy(f"{AQUI}/monitoreo-grafana-ocp.yml", f"{tmp}/playbooks/monitoreo-grafana-ocp.yml")   # Monitoreo · Grafana de OpenShift
+shutil.copy(f"{AQUI}/files/tablero_ocp.py", f"{tmp}/playbooks/files/tablero_ocp.py")
 shutil.copy(f"{AQUI}/identidad-fuente.yml", f"{tmp}/playbooks/identidad-fuente.yml")   # Identidad · Fuente de usuarios de FaceOps
 shutil.copy(f"{AQUI}/files/identidad_fuente.py", f"{tmp}/playbooks/files/identidad_fuente.py")
 shutil.copy(f"{AQUI}/inventario-archivos.yml", f"{tmp}/playbooks/inventario-archivos.yml")
@@ -1119,9 +1121,19 @@ chown -R aap-kvm: {_mon}/prometheus/faceops
 mkdir -p {_mon}/grafana/dashboards/faceops && chown aap-kvm: {_mon}/grafana/dashboards/faceops && chmod 0755 {_mon}/grafana/dashboards/faceops
 setfacl -m u:aap-kvm:rwx {_mon}/prometheus {_mon}/alertmanager
 setfacl -m u:aap-kvm:rw {_mon}/prometheus/prometheus.yml {_mon}/alertmanager/alertmanager.yml
-echo 'aap-kvm ALL=(root) NOPASSWD: /usr/bin/podman exec summit-prometheus promtool check config /etc/prometheus/prometheus.yml' > /etc/sudoers.d/aap-kvm-monitoreo
+setfacl -m u:aap-kvm:rwx {_mon}/grafana/provisioning/datasources
+printf '%s\n' 'aap-kvm ALL=(root) NOPASSWD: /usr/bin/podman exec summit-prometheus promtool check config /etc/prometheus/prometheus.yml' 'aap-kvm ALL=(root) NOPASSWD: /usr/bin/systemctl restart summit-grafana' > /etc/sudoers.d/aap-kvm-monitoreo
 chmod 0440 /etc/sudoers.d/aap-kvm-monitoreo
 visudo -cq"""], capture_output=True, text=True)
+# Monitoreo · Grafana de OpenShift: datasource del Thanos Querier del clúster (cuenta de solo lectura) y tablero de sus alertas
+jgo = asegurar("job_templates", "Monitoreo · Grafana de OpenShift", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/monitoreo-grafana-ocp.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Conecta la Grafana del lab al monitoreo del clúster OpenShift (solo lectura) y deja el tablero de sus alertas"})
+for c_ in (c_kvm, uno("credentials", name="OpenShift · SNO (despliegue)"), uno("credentials", name="FaceOps · Bóveda (escritura)")):
+    if c_ and c_["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jgo['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{jgo['id']}/credentials/", {"id": c_["id"]})
+paso(f"Plantilla «Monitoreo · Grafana de OpenShift» (id {jgo['id']})")
 paso("Monitoreo: aap-kvm escribe la configuración de FaceOps en Prometheus y Alertmanager" if _r.returncode == 0 else f"Monitoreo: no se pudo preparar el acceso de aap-kvm ({_r.stderr.strip()[:160]})")
 jrs = asegurar("job_templates", "Monitoreo · Responder alerta", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/monitoreo-responder.yml", "inventory": inv_inf["id"],
