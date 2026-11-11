@@ -3450,14 +3450,18 @@ def _git_ficha(e, agentes_eq):
     from .codigo import conf as conf_codigo
     base = (conf_codigo().get("gitea") or "http://192.168.122.1:3000").rstrip("/")
 
+    def _pub(url):   # Gitea alcanzable por el usuario (FACEOPS_GIT_PUBLICA o, sin ella, el puerto 3000 publicado de la VM)
+        u = git_publico(url)
+        return re.sub(r"^https?://(192\.168\.122\.1|127\.0\.0\.1|localhost|x)(:\d+)?(/git(?=/))?", "http://34.176.42.56:3000", u) if u == url else u
+
     def _url_repo(repo, rama=""):
-        return git_publico(f"{base}/{repo}" + (f"/src/branch/{rama}" if rama else ""))
+        return _pub(f"{base}/{repo}" + (f"/src/branch/{rama}" if rama else ""))
     capas = [{"capa": c.get("capa"), "repo": c.get("repo"), "rama": c.get("rama") or "", "sha": (c.get("sha") or "")[:7],
               "url": _url_repo(c["repo"], c.get("rama") or "") if c.get("repo") else ""} for c in cod]
     out = {"capas": capas, "repo": "", "nombre": "", "url": "", "rama": "", "commit": "", "habilitar": None}
     if gm.get("repo"):
         out.update(repo=gm["repo"], rama=gm.get("rama") or "master", commit=gm.get("commit") or "",
-                   url=git_publico(gm["url"]) if gm.get("url") else _url_repo(gm["repo"]))
+                   url=_pub(gm["url"]) if gm.get("url") else _url_repo(gm["repo"]))
     else:   # sin repositorio propio: el de la capa de la máquina, si no el del respaldo continuo, si no la primera capa
         pref = ("repositorio/maquina-", "repositorio/respaldo-servidores")
         c_ = next((c for p in pref for c in capas if (c["repo"] or "").startswith(p)), capas[0] if capas else None)
