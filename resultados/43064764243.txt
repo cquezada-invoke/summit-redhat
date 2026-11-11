@@ -1,0 +1,18 @@
+commit: d826157f4cc87c09bcc2adc1be056b2394f16d1e
+inicio: 2026-11-11T14:05:51-03:00
+---
+inventariar srv-mig-rocky-01: sin respuesta del arnés 
+IP srv-mig-rocky-01  · 
+  C1 srv-mig-rocky-01: sin respuesta del arnés  · None → None · None · None · análisis None 
+CASO C1 falla · Rocky 9 política mínimo
+  C2 srv-mig-rocky-01: rechazado al solicitar  · None → None · None · None · análisis None 
+CASO C2 falla · Rocky 9 con convert2rhel analyze
+  C4 nodo-jboss-dev: exitoso FO-LAB-01733 · RHEL 9.8 → RHEL 9 · sin acción · amarillo · análisis None 
+CASO C4 ok · RHEL 9 al día (nodo-jboss-dev)
+  C5 srv-mig-rocky-01: exitoso FO-LAB-01735 · Rocky Linux 9.8 → RHEL 9 · convertir · rojo · análisis None 
+CASO C5 ok · Destino no válido (99)
+  C6 srv-mig-rocky-01: exitoso FO-LAB-01737 · Rocky Linux 9.8 → RHEL 9 · convertir · verde · análisis None 
+CASO C6 falla · Repetir C1
+CASO C7 ok · Equipo apagado (nodo-jboss-qa)
+EVALUAR fase rocky: [{"id": "C1", "caso": "Rocky 9 política mínimo", "resultado": "falla", "evidencia": "sin respuesta del arnés {} / /"}, {"id": "C2", "caso": "Rocky 9 con convert2rhel analyze", "resultado": "falla", "evidencia": "rechazado al solicitar None  None"}, {"id": "C4", "caso": "RHEL 9 al día (nodo-jboss-dev)", "resultado": "ok", "evidencia": "RHEL 9.8 · sin acción · amarillo"}, {"id": "C5", "caso": "Destino no válido (99)", "resultado": "ok", "evidencia": "semáforo rojo: Versión de destino 99 no válida para Rocky Linux 9.8: use una versión mayor de RHEL entre 9 y 10"}, {"id": "C6",
+--- fin: 2026-11-11T14:15:50-03:00 · código: 0
