@@ -1,0 +1,84 @@
+# Flotante de salud de la máquina › «Para llegar al 100 %»: qué acción de FaceOps resuelve cada sugerencia del radar.
+# Cada sugerencia (texto que arma app/radar.py y app/puntos.py) se reconoce por «patron» (regex sobre el texto) y se le
+# asocian una o más acciones:
+#   tipo: automatizacion → ticket con aprobación de la primera automatización del catálogo que exista y sea compatible
+#         con la máquina («nombre_aap» en orden de preferencia; «buscar» = regex sobre el nombre en AAP como respaldo).
+#         Si la regla de prueba (app/pruebas.py) la bloquea, se muestra deshabilitada con el motivo.
+#   tipo: ui → abre un flotante de la ficha (alertas, cpu, ram, disco, replica, inventario_diario).
+# «sube»: cuánto sube el pilar. Si el texto trae «(+N %)» se usa ese; si no, el valor fijo o un cálculo con nombre
+# (frescura, rendimiento, replica) que hace app/salud_acciones.py.
+# Sin acciones (o sin ninguna disponible) la sugerencia se muestra como texto, sin botón.
+sugerencias:
+  - id: disp_encender
+    pilar: Disponibilidad
+    patron: "^Encender la máquina"
+    acciones: []
+  - id: disp_replica
+    pilar: Disponibilidad
+    patron: "réplica|tercera instancia"
+    sube: replica
+    acciones:
+      - {tipo: ui, ui: replica, boton: "Replicar máquina", nombre_aap: "Infra · Replicar máquina"}
+  - id: disp_alerta
+    pilar: Disponibilidad
+    patron: "^Configurar la alerta de disponibilidad"
+    sube: 10
+    acciones:
+      - {tipo: ui, ui: alertas, boton: "Configurar alerta"}
+  - id: rend_cpu
+    pilar: Rendimiento
+    patron: "^CPU al"
+    sube: rendimiento
+    acciones:
+      - {tipo: ui, ui: cpu, boton: "Ajustar CPU"}
+  - id: rend_ram
+    pilar: Rendimiento
+    patron: "^Memoria al"
+    sube: rendimiento
+    acciones:
+      - {tipo: ui, ui: ram, boton: "Ajustar memoria"}
+  - id: rend_disco
+    pilar: Rendimiento
+    patron: "^Disco"
+    sube: rendimiento
+    acciones:
+      - {tipo: ui, ui: disco, boton: "Ajustar disco"}
+  - id: rec_volumenes
+    pilar: Recuperación
+    patron: "^Volúmenes de datos con respaldo|sin mecanismo de respaldo|sin respaldo de datos"
+    acciones:
+      - tipo: automatizacion
+        nombre_aap: ["Storage · Respaldo de datos (restic)", "Respaldo · Datos con restic", "Storage · Snapshot de volumen"]
+        buscar: "(?i)respaldo.*(restic|datos)|restic|snapshot"
+        boton: "Respaldar datos"
+  - id: rec_imagen
+    pilar: Recuperación
+    patron: "^Imagen de nacimiento|^Imagen del sistema"
+    acciones:
+      - {tipo: automatizacion, nombre_aap: ["Infra · Cargar imágenes base al registro"], boton: "Cargar imagen base"}
+  - id: rec_paquetes
+    pilar: Recuperación
+    patron: "^Paquetes exactos|^Paquetes"
+    acciones:
+      - {tipo: automatizacion, nombre_aap: ["Sistema · Paquetes · inventario y respaldo", "Sistema · Inventariar máquina"], boton: "Respaldar paquetes", parametros: {pq_respaldar: "si"}}
+  - id: rec_configuracion
+    pilar: Recuperación
+    patron: "^Configuración en Git"
+    acciones:
+      - {tipo: automatizacion, nombre_aap: ["FaceOps · Respaldo continuo en Git"], boton: "Habilitar respaldo en Git"}
+  - id: rec_plataformas
+    pilar: Recuperación
+    patron: "^Plataformas con su fuente"
+    acciones: []
+  - id: rec_registro
+    pilar: Recuperación
+    patron: "^No se pudo subir al registro|^Archivos de más de 25 MB|^Registrar un punto de restauración"
+    acciones:
+      - {tipo: automatizacion, nombre_aap: ["Sistema · Inventariar máquina"], boton: "Inventariar", parametros: {pq_respaldar: "si"}}
+  - id: rec_inventario
+    pilar: Recuperación
+    patron: "^El último inventario tiene"
+    sube: frescura
+    acciones:
+      - {tipo: automatizacion, nombre_aap: ["Sistema · Inventariar máquina"], boton: "Inventariar ahora", parametros: {pq_respaldar: "si"}}
+      - {tipo: ui, ui: inventario_diario, boton: "Programar inventario diario"}

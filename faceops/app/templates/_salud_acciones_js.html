@@ -1,0 +1,31 @@
+<style>.sa-lista{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:8px}.sa-it{padding:8px 10px;border:1px solid var(--borde,#ddd);border-radius:8px}
+.sa-t{font-size:12.5px}.sa-sube{font-size:10.5px;margin-left:4px}.sa-acc{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}.sa-motivo{font-size:11.5px}
+.pil-nada{font-size:12.5px;padding:4px 0}</style>
+<script>/* Flotante de salud › «Para llegar al 100 %»: acciones que suben el pilar. Ticket con aprobación sin salir del flotante:
+   el botón queda «En curso» con su número y, al terminar bien, «Aplicada · número». */
+(()=>{const EST={{ url_for('consola.ticket_estado', tid=0)|tojson }},TK={{ url_for('consola.ticket', tid=0)|tojson }};
+const ABIERTO=['pendiente_aprobacion','en_cola','en_ejecucion','en curso','ejecutando','esperando'];
+const vigilar=(a,ini)=>{const id=a.dataset.saPoll;const tick=()=>fetch(EST.replace(/0$/,id)).then(r=>r.json()).then(t=>{
+  a.className='ult-t e-'+t.estado;if(ABIERTO.includes(t.estado)){setTimeout(tick,8000);return;}
+  const b=a.previousElementSibling&&a.previousElementSibling.tagName==='BUTTON'?a.previousElementSibling:null;
+  if(t.estado==='exitoso'){const s=document.createElement('span');s.className='chip e-exitoso';s.innerHTML='Aplicada · <a href="'+a.href+'">'+t.numero+'</a>';if(b)b.remove();a.replaceWith(s);}
+  else if(b){b.disabled=false;b.textContent=ini||b.dataset.ini||'Reintentar';a.textContent=t.numero+' · '+(t.estado||'').replace(/_/g,' ');}}).catch(()=>setTimeout(tick,15000));tick();};
+document.querySelectorAll('[data-sa-poll]').forEach(a=>vigilar(a));
+document.addEventListener('click',ev=>{const u=ev.target.closest('button[data-sa-ui]');
+ if(u){ev.preventDefault();const k=u.dataset.saUi;
+  if(k==='cpu'||k==='ram')window.fxAbrirRecursos&&fxAbrirRecursos(k);
+  else if(k==='disco')window.fxAbrirDiscos&&fxAbrirDiscos();
+  else if(k==='replica')window.fxReplicar&&fxReplicar();
+  else if(k==='alertas'){const d_=document.getElementById('al-dlg');if(d_)d_.showModal();}
+  else if(k==='inventario_diario'){const b_=document.getElementById('pr-conf');if(b_)b_.click();}
+  return;}
+ const b=ev.target.closest('button[data-sa-url]');if(!b||b.disabled)return;ev.preventDefault();
+ const ini=b.textContent;b.dataset.ini=ini;b.disabled=true;b.textContent='En curso';
+ const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('sid',b.dataset.saSid);fd.append('aid',b.dataset.saAid);
+ fetch(b.dataset.saUrl,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.text().then(x=>{try{return JSON.parse(x);}catch(_){return {error:'No se pudo crear el ticket (error '+r.status+')'};}})).then(t=>{
+  if(t.error){b.disabled=false;b.textContent=ini;(window.fxAviso||alert)(t.error,'error');return;}
+  const a=document.createElement('a');a.className='ult-t e-'+(t.estado||'pendiente_aprobacion');a.href=t.url||TK.replace(/0$/,t.id);a.textContent=t.numero;a.dataset.saPoll=t.id;
+  b.title='Ticket '+t.numero+': '+(t.estado||'').replace(/_/g,' ');b.after(' ',a);vigilar(a,ini);
+  window.fxAviso&&fxAviso(t.numero+(t.existente?' ya estaba en curso':' creado')+(t.estado==='pendiente_aprobacion'?' (espera aprobación)':''),'ok');
+ }).catch(()=>{b.disabled=false;b.textContent=ini;(window.fxAviso||alert)('No se pudo crear el ticket','error');});});
+})();</script>

@@ -330,6 +330,7 @@ def create_app():
     from . import demo_datos   # noqa: F401  (datos de demostración marcados, se quitan con un clic)
     from . import recuperar   # noqa: F401  (recuperar clave desde el login)
     from . import multicliente   # noqa: F401  (FaceOps centralizado · demo: registra /clientes en la consola)
+    from . import salud_acciones   # noqa: F401  (flotante de salud: acciones para llegar al 100 %)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo
     app.jinja_env.globals["es_demo"] = multicliente.es_demo
