@@ -1,44 +1,10 @@
-commit: 3469fcfc8e5002dbfe076f15c4eb53f603c0421a
-inicio: 2026-11-11T13:35:32-03:00
+commit: eefde24e5f02fe3bb45c5dc42490b1af50f72bd3
+inicio: 2026-11-11T13:37:12-03:00
 ---
-== nodo-jboss 192.168.122.15
-LISTEN 0      50            0.0.0.0:9990      0.0.0.0:*   
-LISTEN 0      4096          0.0.0.0:8080      0.0.0.0:*   
-inactive inactive inactive 
--bmanagement=0.0.0.0
--bmanagement=0.0.0.0
-		iifname "lo" tcp dport 9990 accept
-		ip saddr 192.168.122.1 tcp dport 9990 accept
-		tcp dport 9990 drop
-		ip saddr 10.88.0.0/16 tcp dport 5540 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
-		ip saddr 127.0.0.1 tcp dport 5540 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
-aplicaciones.d certificados git-credentials respaldo.conf respaldo.excluir 
-Mem:            2647         977        1018           8         890        1669
- 11:35:57 up 9 min,  0 users,  load average: 0.05, 0.17, 0.13
-== nodo-jboss2 192.168.122.18
-LISTEN 0      4096         0.0.0.0:8080      0.0.0.0:*   
-LISTEN 0      50           0.0.0.0:9990      0.0.0.0:*   
-inactive inactive inactive 
--bmanagement=0.0.0.0
--bmanagement=0.0.0.0
-		iifname "lo" tcp dport 9990 accept
-		ip saddr 192.168.122.1 tcp dport 9990 accept
-		tcp dport 9990 drop
-aplicaciones.d git-credentials respaldo.conf respaldo.excluir 
-Mem:            1707         930         434           4         493         776
- 11:36:21 up 18 min,  0 users,  load average: 0.07, 0.10, 0.09
-== nodo-jboss-dev 192.168.122.21
-LISTEN 0      50           0.0.0.0:9990      0.0.0.0:*   
-LISTEN 0      4096         0.0.0.0:8080      0.0.0.0:*   
-inactive inactive inactive 
--bmanagement=0.0.0.0
--bmanagement=0.0.0.0
-		iifname "lo" tcp dport 9990 accept
-		ip saddr 192.168.122.1 tcp dport 9990 accept
-		tcp dport 9990 drop
-aplicaciones.d certificados git-credentials respaldo.conf respaldo.excluir 
-Mem:            1707         931         473           6         455         775
- 11:36:35 up 48 min,  0 users,  load average: 0.26, 0.14, 0.10
-FAILED 23658 Desplegar en JBoss con jboss-cli nodo-jboss rc None  
-FAILED 23658 Volver a la versión anterior nodo-jboss rc None  
---- fin: 2026-11-11T13:36:56-03:00 · código: 0
+host: demo-ansible-summit
+gcloud: si
+cuentas activas: 0
+to select an already authenticated account to use.
+ssh: si
+salida 22: (sin respuesta a host de prueba)
+--- fin: 2026-11-11T13:37:19-03:00 · código: 0
