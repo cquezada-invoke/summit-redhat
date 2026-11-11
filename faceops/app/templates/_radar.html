@@ -29,9 +29,9 @@
 {{ dlg_salud(r, nombre, est_, t_) }}{% endif %}{% endmacro %}
 
 {# Barra transversal de salud del objeto: los 6 pilares; al hacer clic abre el detalle de sus puntos #}
-{% macro barra_salud(r, nombre) %}{% if r %}{% set t_ = r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 90 else ('med' if t_ is not none and t_ >= 70 else ('mal' if t_ is not none else 'nd')) %}
+{% macro barra_salud(r, nombre) %}{% if r %}{% set t_ = r.mix.pct if r.mix else r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 90 else ('med' if t_ is not none and t_ >= 70 else ('mal' if t_ is not none else 'nd')) %}
 <button type="button" class="sl-barra sl-{{ est_ }}" onclick="window.fxAbrirSalud ? fxAbrirSalud() : document.getElementById('sl-dlg').showModal()" title="Ver los puntos de salud de {{ nombre }}">
   <span class="slb-tot"><small>Salud</small><b>{{ t_ if t_ is not none else '—' }} %</b></span>
-  <span class="slb-linea" title="{% for p in r.principios %}{{ p.nombre }} {{ p.pct if p.pct is not none else '—' }} %{{ ' · ' if not loop.last }}{% endfor %}"><span class="kp-barra"><i class="{{ col(t_) }}" style="width:{{ t_ or 0 }}%"></i></span></span>
+  <span class="slb-linea" title="{% if r.mix %}{{ r.mix.texto }} ({{ r.mix.criterio }}){% else %}{% for p in r.principios %}{{ p.nombre }} {{ p.pct if p.pct is not none else '—' }} %{{ ' · ' if not loop.last }}{% endfor %}{% endif %}"><span class="kp-barra"><i class="{{ col(t_) }}" style="width:{{ t_ or 0 }}%"></i></span></span>
   <span class="slb-ver">Ver detalle ›</span>
-</button>{{ dlg_salud(r, nombre, est_, t_) }}{% endif %}{% endmacro %}
+</button>{% if r.mix %}<div class="sub slb-mix" title="{{ r.mix.criterio }}">{{ r.mix.texto }} · {{ r.mix.criterio|lower }}</div>{% endif %}{{ dlg_salud(r, nombre, est_, t_) }}{% endif %}{% endmacro %}

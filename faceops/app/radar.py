@@ -235,8 +235,15 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
             if any(t == "cves" for _, t, _, _ in vals):
                 from .cves import CRITERIO
                 sg["criterio_cve"] = CRITERIO
+            if any(t == "politicas" for _, t, _, _ in vals):
+                from .salud import CRITERIO_POL
+                sg["criterio_pol"] = CRITERIO_POL
+            sg["criterio_pilar"] = (f"Seguridad = promedio simple de sus {len(vals)} subítems medidos (CVE y políticas de seguridad "
+                                    "del sistema y de cada plataforma; cada uno pesa lo mismo).")
             for n, t, v, mot in vals:
-                sg["detalle"].append({"t": f"{'CVE' if t == 'cves' else ('Políticas de seguridad' if t == 'politicas' else t)} · {n}", "v": v})
+                cnt = next((f" ({s['al_dia']} de {s['aplicables']} al día)" for c in componentes or [] if c.get("nombre") == n
+                            for s in c.get("secciones") or [] if t == "politicas" and s.get("clave") == "politicas" and s.get("aplicables")), "")
+                sg["detalle"].append({"t": f"{'CVE' if t == 'cves' else ('Políticas de seguridad' if t == 'politicas' else t)} · {n}{cnt}", "v": v})
 
     # Rendimiento: uso medio frente a lo asignado
     r = pri.get("Rendimiento")
