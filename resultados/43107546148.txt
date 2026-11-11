@@ -1,0 +1,13 @@
+commit: dac914e123f6a8991c4689044907b7a61e304d4e
+inicio: 2026-11-11T19:30:38-03:00
+---
+9aadf85
+== plan agente
+CASO C1 ok · Instalar
+CASO C2 ok · Repetir
+CASO C3 ok · SSH fallidos
+CASO C4 falla · Equipo apagado
+EVIDENCIA [{"id": "C1", "caso": "Instalar", "resultado": "ok", "evidencia": "node_exporter y temporizador activos; 9 métricas faceops_seg_*: faceops_seg_archivo_huella faceops_seg_cuentas_bloqueadas faceops_seg_root_login_5m faceops_seg_selinux_modo faceops_seg_ssh_fallidos_5m "}, {"id": "C2", "caso": "Repetir", "resultado": "ok", "evidencia": "sin reiniciar el agente (PID 853), un temporizador, métricas presentes"}, {"id": "C3", "caso": "SSH fallidos", "resultado": "ok", "evidencia": "faceops_seg_ssh_fallidos_5m=6 tras 6 intentos"}, {"id": "C4", "caso": "Equipo apagado", "resultado": "falla", "evidencia": "srv-prueba-rocky-01: rechazado al solicitar PermissionError: Esta acción no aplica a srv-prueba-rocky-01: el equipo está retirado"}]
+CERT FaceOps · Agente de monitoreo (Linux) → cambiada
+FIN-AGENTE
+--- fin: 2026-11-11T19:41:17-03:00 · código: 0

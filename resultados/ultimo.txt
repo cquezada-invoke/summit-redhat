@@ -1,18 +1,13 @@
-commit: ce2255b3a04bf04be2c99dfa2b5fca13b990d54d
-inicio: 2026-11-11T19:24:11-03:00
+commit: dac914e123f6a8991c4689044907b7a61e304d4e
+inicio: 2026-11-11T19:30:38-03:00
 ---
-59f66fe Se retira «Certificados · Limpiar certificados sobrantes» (a pedido de Cristian: la limpieza de nodo-jboss se hace puntual, sin automatización)
-active
-LISTO
-T1708 exitoso creado 2026-11-11T16:33:42+00:00 fin 2026-11-11T18:16:24+00:00 limite nodo-jboss | resultado: AAP terminó (successful): ejecución 19 s, espera de aprobación 6044 s / Revisión de CVE lanzada: FO-LAB-01787
-T1651 {'numero': 'FO-LAB-01651', 'estado': 'exitoso', 'creado': '2026-11-11T14:59:36+00:00', 'fin': '2026-11-11T15:38:10+00:00', 'motivo': 'Revisar CVE tras FO-LAB-01648'}
-POST {'numero': 'FO-LAB-01785', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-11T18:16:24+00:00', 'fin': None, 'motivo': 'Revisar CVE tras FO-LAB-01708'}
-POST {'numero': 'FO-LAB-01786', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-11T18:16:24+00:00', 'fin': None, 'motivo': 'Revisar CVE tras FO-LAB-01708'}
-POST {'numero': 'FO-LAB-01787', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-11T18:16:25+00:00', 'fin': None, 'motivo': 'Revisar CVE tras FO-LAB-01708'}
-USR cquezada
-REV FO-LAB-01906 en_ejecucion
-REVFIN FO-LAB-01906 exitoso AAP terminó (successful): ejecución 34 s, espera de aprobación 32 s / CVE: nodo-jboss: 0 pendientes · 32146 cubiertos
-REVDB {'cliente_id': 1, 'equipo_id': 6, 'repos': 1, 'pendientes': 0, 'cubiertos': 4844, 'cuando': '2026-11-11T22:30:19+00:00', 'ticket_id': 1906, 'kernel_ej': '5.14.0-741.20.1.el9_9.x86_64', 'kernel_inst': '5.14.0-741.20.1.el9_9.x86_64'}
-PEND 0
-ACT None | REINICIO None | pend 0
---- fin: 2026-11-11T19:30:20-03:00 · código: 0
+9aadf85
+== plan agente
+CASO C1 ok · Instalar
+CASO C2 ok · Repetir
+CASO C3 ok · SSH fallidos
+CASO C4 falla · Equipo apagado
+EVIDENCIA [{"id": "C1", "caso": "Instalar", "resultado": "ok", "evidencia": "node_exporter y temporizador activos; 9 métricas faceops_seg_*: faceops_seg_archivo_huella faceops_seg_cuentas_bloqueadas faceops_seg_root_login_5m faceops_seg_selinux_modo faceops_seg_ssh_fallidos_5m "}, {"id": "C2", "caso": "Repetir", "resultado": "ok", "evidencia": "sin reiniciar el agente (PID 853), un temporizador, métricas presentes"}, {"id": "C3", "caso": "SSH fallidos", "resultado": "ok", "evidencia": "faceops_seg_ssh_fallidos_5m=6 tras 6 intentos"}, {"id": "C4", "caso": "Equipo apagado", "resultado": "falla", "evidencia": "srv-prueba-rocky-01: rechazado al solicitar PermissionError: Esta acción no aplica a srv-prueba-rocky-01: el equipo está retirado"}]
+CERT FaceOps · Agente de monitoreo (Linux) → cambiada
+FIN-AGENTE
+--- fin: 2026-11-11T19:41:17-03:00 · código: 0
