@@ -1,33 +1,25 @@
-commit: 2f476809da5b1bd911d9d99f7237965e6bfc411b
-inicio: 2026-11-11T16:18:15-03:00
+commit: 6aa97e29b2fedd44756b7299bea7b3868216a4ea
+inicio: 2026-11-11T16:40:14-03:00
 ---
-IP nodo-jboss-dev 192.168.122.21 · nodo-jboss-qa 192.168.122.20 (shut off)
-  (arnés cortado en "caso":"C1"; reanudo FO-LAB-01818)
-  (arnés cortado en "caso":"C1"; reanudo sin ticket)
-  C1: exitoso FO-LAB-01818 · {"origen": "nodo-jboss-dev", "jboss": "5.1.0.GA", "aplicaciones": ["catalogo-legacy.war"], "puntos": "4", "destino": "", "migradas": [], "fallidas": []} 
-CASO C1 falla · Evaluar JBoss 5.1
-  C2: exitoso FO-LAB-01819 · {"origen": "nodo-jboss-dev", "emulado": "/opt/jboss-eap-7.4", "estado": "emulado"} 
-  (arnés cortado en "caso":"C2b"; reanudo FO-LAB-01820)
-  C2b: exitoso FO-LAB-01820 · {"origen": "nodo-jboss-dev", "emulado": "/opt/jboss-eap-7.4", "estado": "ya emulado"} 
-CASO C2 ok · emular-origen EAP 7.4
-  C3: exitoso FO-LAB-01822 · {"origen": "nodo-jboss-dev", "jboss": "Red Hat JBoss Enterprise Application Platform - Version 7.4.0.GA", "aplicaciones": ["app-rota.war", "inventario-eap7.war"], "puntos": "0", "destino": "", "migradas": [], "fallidas": []} 
-CASO C3 ok · Evaluar EAP 7.4
-energía nodo-jboss-qa encender: exitoso FO-LAB-01823
-  (arnés cortado en "caso":"C4"; reanudo FO-LAB-01825)
-  C4: fallido FO-LAB-01825 · {"origen": "nodo-jboss-dev", "jboss": "5.1.0.GA", "aplicaciones": ["catalogo-legacy.war"], "puntos": "4", "destino": "nodo-jboss-qa", "migradas": [], "fallidas": ["catalogo-legacy.war"]} La migración dejó todas las aplicaciones respondiendo · catalogo-legacy.war no respondió en EAP 8 y se retiró; el origen sigue intacto. Detalle del despliegue: {"WFLYCTL0062: Composite operation failed and was rolled back. Steps that failed:" => {"Operation step-2" => {"WFLYCTL0412: Required service
-CASO C4 falla · Migrar catalogo-legacy
-  C5: fallido FO-LAB-01826 · {"origen": "nodo-jboss-dev", "jboss": "Red Hat JBoss Enterprise Application Platform - Version 7.4.0.GA", "aplicaciones": ["inventario-eap7.war"], "puntos": "0", "destino": "nodo-jboss-qa", "migradas": [], "fallidas": ["inventario-eap7.war"]} La migración dejó todas las aplicaciones respondiendo · inventario-eap7.war no respondió en EAP 8 y se retiró; el origen sigue intacto. Detalle del despliegue:  · 
-CASO C5 falla · Migrar inventario-eap7
-  C6: fallido FO-LAB-01829 · {"origen": "nodo-jboss-dev", "jboss": "5.1.0.GA", "aplicaciones": ["catalogo-legacy.war"], "puntos": "4", "destino": "nodo-jboss-qa", "migradas": [], "fallidas": ["catalogo-legacy.war"]} La migración dejó todas las aplicaciones respondiendo · catalogo-legacy.war no respondió en EAP 8 y se retiró; el origen sigue intacto. Detalle del despliegue: {"WFLYCTL0062: Composite operation failed and was rolled back. Steps that failed:" => {"Operation step-2" => {"WFLYCTL0412: Required service
-CASO C6 falla · Repetir C4
-  (arnés cortado en "caso":"C7"; reanudo FO-LAB-01830)
-  C7: fallido FO-LAB-01830 · {"origen": "nodo-jboss-dev", "jboss": "Red Hat JBoss Enterprise Application Platform - Version 7.4.0.GA", "aplicaciones": ["app-rota.war"], "puntos": "0", "destino": "nodo-jboss-qa", "migradas": [], "fallidas": ["app-rota.war"]} La migración dejó todas las aplicaciones respondiendo · app-rota.war no respondió en EAP 8 y se retiró; el origen sigue intacto. Detalle del despliegue: {"WFLYCTL0062: Composite operation failed and was rolled back. Steps that failed:" => {"Operation step-2" => {"WFLYCTL0080: Failed services" => {"j
-CASO C7 falla · Migrar app-rota
-  C8: fallido FO-LAB-01832 · {} JBoss encontrado · No se encontró una instalación de JBoss AS 5/6 o EAP 6/7 en nodo-postgres (indícala en mj_jboss_home) · 
-CASO C8 ok · Origen sin JBoss
-  C9: fallido FO-LAB-01835 · {} Datos · Modo evaluar o migrar; para migrar indica el equipo de destino con JBoss EAP 8 · 
-CASO C9 ok · Migrar sin destino
-JBOSS: [{"id": "C1", "caso": "Evaluar JBoss 5.1", "resultado": "falla", "evidencia": "exitoso git=nodo-jboss-dev: evaluación de migración a EAP 8 (FO-LAB-00452) huella c1d715e51e21/c1d715e51e21 "}, {"id": "C2", "caso": "emular-origen EAP 7.4", "resultado": "ok", "evidencia": "Red Hat JBoss Enterprise Application Platform - Version 7.4.0.GA app-rota.war inventario-eap7.war marca 1 · repetir: \"ya emulado\", sin cambios (5e76e89d8fca)"}, {"id": "C3", "caso": "Evaluar EAP 7.4", "resultado": "ok", "evidencia": "JBoss \"Red Hat JBoss Enterprise Application Platform - Version 7.4.0.GA\" · apps [\"app-rota.war\", \"inventario-eap7.war\"] · datasource InventarioDS desde standalone.xml, sin contraseña en el informe"}, {"id": "C4", "caso": "Migrar catalogo-legacy", "resultado": "falla", "evidencia": "fallido http=404 ds=\"ExampleDS\"  La migración dejó todas las aplicaciones respondiendo · catalog
-energía nodo-jboss-qa apagar: exitoso FO-LAB-01837
-FIN-JBOSS nodo-jboss-qa: shut off
---- fin: 2026-11-11T16:49:11-03:00 · código: 0
+caf04dc
+1
+remote: . Processing 1 references        
+remote: Processed 1 references in total        
+gitea 7f2f5d7
+faceops actualizado
+project update successful
+CA total: 25
+estado previo cambiada
+TICKET FO-LAB-01831
+C1 exitoso limite nodo-jboss alcance ['nodo-jboss'] completo False emitidos 25 CA 25 nuevo True
+  panel nuevo ('vigente', 'jboss-https') huérfano reemplazado
+C2 panel otros con en uso ['nodo-nginx', 'nodo-tomcat', 'nodo-jboss2', 'nodo-jboss-qa', 'dc1-sso01', 'nodo-vault', 'dc1-idm01']
+C2 en_uso [('jboss-https', 8443, True, '27d3173d'), ('nodo-jboss', 443, None, 'a85bf9b5')]
+TICKET FO-LAB-01834
+C3 exitoso changed 0 mismos True
+nodo-jboss3 energia apagado
+TICKET FO-LAB-01838
+C4 exitoso limite nodo-jboss en_uso ['nodo-jboss'] jboss3 apagado
+CASOS [{"id": "C1", "caso": "lista completa de la CA", "resultado": "ok", "evidencia": "FO-LAB-01831: 25/25 emitidos; nuevo vigente; huérfano reemplazado"}, {"id": "C2", "caso": "en uso en nodo-jboss", "resultado": "ok", "evidencia": "FO-LAB-01831: jboss-https :8443 entrega=True"}, {"id": "C3", "caso": "repetir la lectura", "resultado": "ok", "evidencia": "FO-LAB-01834: changed=0, mismos emitidos"}, {"id": "C4", "caso": "máquina apagada en el pedido", "resultado": "ok", "evidencia": "FO-LAB-01838: límite nodo-jboss; nodo-jboss3 sigue apagado"}]
+CERTIFICADA certificada
+--- fin: 2026-11-11T16:49:58-03:00 · código: 0
