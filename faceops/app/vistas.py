@@ -3325,6 +3325,74 @@ def _agentes_de(e, d_=None):
     return out
 
 
+AGENTE_QUITABLE = {"respaldo-git", "node-exporter", "windows-exporter"}   # los que retira «Sistema · Quitar agente» (aap/quitar-agente.yml)
+
+
+def _agente_control(cliente_id):
+    """Qué botones de un agente se pueden usar (encender/reiniciar/apagar y quitar) y, si no, por qué (title del botón)."""
+    cache = {}
+
+    def _cert(nom):
+        if nom not in cache:
+            a_ = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, nom)
+            cache[nom] = "" if a_ and _certificada(a_) else (f"Falta «{nom}» en el catálogo" if not a_ else f"«{a_['nombre']}» aún no pasa su plan de prueba")
+        return cache[nom]
+
+    def f(a):
+        out = {"servicio": False, "no_servicio": "", "quitar": False, "no_quitar": ""}
+        if a.get("skill") == "acceso":
+            out["no_servicio"] = "El acceso de FaceOps es un usuario de servicio, no un proceso: no se enciende ni se apaga"
+            out["no_quitar"] = "El acceso de FaceOps no se quita desde aquí: por él AAP opera la máquina"
+            return out
+        if not a.get("unidades"):
+            out["no_servicio"] = "Este agente no tiene un servicio que controlar"
+        elif any(not u.endswith(".service") and "." in u for u in a["unidades"]):
+            out["no_servicio"] = "Corre con temporizadores de systemd (cada minuto): aún no se controla por separado; para detenerlo, quítalo"
+        else:
+            out["no_servicio"] = _cert("Plataforma · Controlar servicio")
+            out["servicio"] = not out["no_servicio"]
+        if a.get("skill") not in AGENTE_QUITABLE:
+            out["no_quitar"] = "Este agente no se puede quitar desde FaceOps"
+        else:
+            out["no_quitar"] = _cert("Sistema · Quitar agente")
+            out["quitar"] = not out["no_quitar"]
+        return out
+    return f
+
+
+def _git_ficha(e, agentes_eq):
+    """«Código en Git» de la ficha: el repositorio de la máquina (nombre y link público de Gitea), su rama, el último commit y
+    las demás capas; sin repositorio, cómo habilitar el respaldo continuo (agente respaldo-git)."""
+    d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    gm, cod = d_.get("git") or {}, j(e.get("codigo"), [])
+    from .codigo import conf as conf_codigo
+    base = (conf_codigo().get("gitea") or "http://192.168.122.1:3000").rstrip("/")
+
+    def _url_repo(repo, rama=""):
+        return git_publico(f"{base}/{repo}" + (f"/src/branch/{rama}" if rama else ""))
+    capas = [{"capa": c.get("capa"), "repo": c.get("repo"), "rama": c.get("rama") or "", "sha": (c.get("sha") or "")[:7],
+              "url": _url_repo(c["repo"], c.get("rama") or "") if c.get("repo") else ""} for c in cod]
+    out = {"capas": capas, "repo": "", "nombre": "", "url": "", "rama": "", "commit": "", "habilitar": None}
+    if gm.get("repo"):
+        out.update(repo=gm["repo"], rama=gm.get("rama") or "master", commit=gm.get("commit") or "",
+                   url=git_publico(gm["url"]) if gm.get("url") else _url_repo(gm["repo"]))
+    else:   # sin repositorio propio: el de la capa de la máquina, si no el del respaldo continuo, si no la primera capa
+        pref = ("repositorio/maquina-", "repositorio/respaldo-servidores")
+        c_ = next((c for p in pref for c in capas if (c["repo"] or "").startswith(p)), capas[0] if capas else None)
+        if c_:
+            out.update(repo=c_["repo"], rama=c_["rama"], url=c_["url"])
+    if out["repo"]:
+        out["nombre"] = out["repo"].split("/")[-1] + (f" · {out['rama']}" if out["repo"].endswith("respaldo-servidores") and out["rama"] else "")
+        out["capas"] = [c for c in capas if not (c["repo"] == out["repo"] and (c["rama"] or out["rama"]) == out["rama"])]
+    else:
+        ag = next((a for a in agentes_eq or [] if a.get("skill") == "respaldo-git"), None)
+        if ag and not ag.get("instalado"):
+            out["habilitar"] = {"aid": ag.get("aid"), "nombre": ag["nombre"], "pendiente": ag.get("pendiente"),
+                                "motivo": ag.get("limite") or ("" if ag.get("aid") and ag.get("probada") else
+                                                               ("Falta su automatización en el catálogo" if not ag.get("aid") else "Falta su plan de prueba aprobado"))}
+    return out
+
+
 def _salud_agente(e, ag):
     """Cómo está un agente instalado: encendido o no según el último inventario y, el de respaldo, según su último commit."""
     d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
@@ -4369,7 +4437,7 @@ def equipo(eid):
         horas_eq = _uso_energia(e, j(e["datos"], {}))
     except Exception:  # noqa: BLE001 - sin historial la ficha sigue
         horas_eq = None
-    return render_template("equipo.html", eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"]), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
