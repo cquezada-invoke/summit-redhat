@@ -64,15 +64,15 @@ EVIDENCIA = {   # práctica de madurez → de dónde sale la evidencia (lo que _
 PROPAGACION = {
     "Disponibilidad": {
         "maquina": "Apagada = 0. Encendida: 1 instancia 60 %, 2 instancias 85 %, 3 o más 100 %; −10 si no tiene la alerta «sin respuesta».",
-        "componente": "El peor entre la máquina y el servicio de la plataforma.",
+        "componente": "El peor entre la máquina y el servicio de la plataforma (criterio bloqueante: si el servicio cae, la plataforma no está disponible; es el único pilar que usa el mínimo).",
         "segmento": ["todo el segmento apagado → pilar a 0", "máquinas apagadas −6", "componente con una sola máquina en producción −6 (OpenShift no cuenta)"]},
     "Rendimiento": {
         "maquina": "Uso de CPU, memoria y disco más lleno frente a lo asignado: 15-70 % = 100; sobre 70 % baja 2 por punto; sobre 85 % cae a 70 − 4,6 por punto; bajo 15 % = 85 (sobredimensionado). Promedio de los tres.",
         "componente": "El de la máquina que la aloja (comparte sus métricas).",
         "segmento": ["flujos cerrados entre componentes −15", "latencia de flujos sobre el umbral del cliente −6"]},
     "Seguridad": {
-        "maquina": "El peor entre los criterios del equipo y lo medido de CVE y políticas en su sistema y plataformas.",
-        "componente": "El peor entre la máquina y los CVE y políticas de la plataforma.",
+        "maquina": "Promedio de lo medido de CVE y políticas en su sistema y plataformas (cada uno es un subítem); si no hay nada medido, el promedio de sus criterios.",
+        "componente": "Promedio entre el pilar de la máquina y los CVE y políticas de la plataforma.",
         "segmento": ["flujos sin TLS −6 (los CVE y políticas llegan como hallazgos, en Excelencia operativa)"]},
     "Recuperación": {
         "maquina": "Cobertura del último punto de restauración × frescura del inventario (≤26 h ×1; ≤7 días ×0,8; más ×0,5). Sin punto = 0.",
@@ -83,7 +83,7 @@ PROPAGACION = {
         "componente": "El de la máquina que la aloja.",
         "segmento": ["hoy no hay criterios de costo en el segmento: queda en 100 %"]},
     "Excelencia operativa": {
-        "maquina": "El peor de las remediaciones preventivas de su sistema y plataformas; si no hay, el promedio de sus criterios.",
+        "maquina": "Promedio de las remediaciones preventivas de su sistema y plataformas; si no hay, el promedio de sus criterios.",
         "componente": "Las remediaciones preventivas de la plataforma.",
         "segmento": ["hallazgos de sus máquinas (hasta 8 grupos): alta −15, media o baja −6"]},
 }

@@ -301,7 +301,7 @@ const PIL=['Disponibilidad','Rendimiento','Seguridad','Recuperación','Costo','E
 /* Flotante «Salud» (barra de salud): por cada principio, sus puntos y los temas de salud de la máquina.
    El flotante del sistema operativo queda solo con lo del sistema: detalle, servicios, actualización, logs y paquetes. */
 const pSal=document.createElement('section');pSal.className='cajon-p';pSal.dataset.comp='__salud';pSal.hidden=true;
-pSal.innerHTML='<div class="fila" style="gap:10px"><div><div class="sub" style="font-size:12px">{{ cod_eq(e) }} · salud</div><h2 style="margin:2px 0 0">Salud de la máquina</h2></div></div><p class="sub" style="margin:6px 0 10px;font-size:12.5px">Los seis pilares del radar de salud. Cada caja se abre para ver sus puntos y los temas que los afectan.</p>';
+pSal.innerHTML='<div class="fila" style="gap:10px"><div><div class="sub" style="font-size:12px">{{ cod_eq(e) }} · salud</div><h2 style="margin:2px 0 0">Salud de la máquina</h2></div></div><p class="sub" style="margin:6px 0 10px;font-size:12.5px">Los seis pilares del radar de salud. Cada caja se abre para ver sus puntos y los temas que los afectan. El % de cada pilar es el promedio de sus subítems; la única excepción es Disponibilidad de una plataforma, que toma el peor entre la máquina y su servicio (criterio bloqueante: si el servicio cae, no está disponible).</p>';
 caj.appendChild(pSal);
 const SALUD_SO={'Excelencia operativa':1,'Seguridad':1,'Recuperación':1};
 const pSO=caj.querySelector('.cajon-p[data-so]');

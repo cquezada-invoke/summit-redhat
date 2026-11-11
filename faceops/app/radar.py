@@ -155,15 +155,18 @@ def radar_componente(r_maq, c):
         return None
     secs = {s.get("clave"): s.get("salud") for s in (c.get("secciones") or [])}
     pri = copy.deepcopy(r_maq["principios"])
-    def fijar(nombre, *claves, base=True):
+    def fijar(nombre, *claves, base=True, peor=False):
+        # Promedio: lo medido para la plataforma (cada sección es un subítem) junto con el pilar de la máquina (base=True).
+        # peor=True = criterio bloqueante: el pilar es el peor de todos (solo Disponibilidad: si el servicio cae, no está disponible).
         vals = [secs[k] for k in claves if secs.get(k) is not None]
         for p in pri:
             if p["nombre"] == nombre and vals:
-                v = min(vals)
-                p["pct"] = min(p["pct"], v) if (base and p["pct"] is not None) else v
+                v = min(vals) if peor else round(sum(vals) / len(vals))
+                todos = vals + ([p["pct"]] if (base and p["pct"] is not None) else [])
+                p["pct"] = min(todos) if peor else round(sum(todos) / len(todos))
                 p["criterios"] = p["criterios"] + [{"id": "PL", "nombre": f"{c.get('nombre')}: " + ", ".join(k for k in claves if secs.get(k) is not None),
                                                     "pct": v, "explica": "medido para esta plataforma", "principio": nombre}]
-    fijar("Disponibilidad", "servicio")
+    fijar("Disponibilidad", "servicio", peor=True)
     fijar("Excelencia operativa", "remediaciones", base=False)
     fijar("Seguridad", "cves", "politicas")
     vals = [p["pct"] for p in pri if p["pct"] is not None]
@@ -217,17 +220,18 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
         vals = [(c.get("nombre"), s.get("salud"), s.get("motivos") or []) for c in componentes or [] for s in (c.get("secciones") or [])
                 if s.get("clave") == "remediaciones" and s.get("salud") is not None]
         if vals:
-            h["pct"] = min(v for _, v, _ in vals)
+            h["pct"] = round(sum(v for _, v, _ in vals) / len(vals))
             for n, v, mot in vals:
                 h["detalle"].append({"t": f"Remediaciones preventivas · {n}", "v": v})
 
-    # Seguridad: lo medido en el sistema y sus plataformas (CVE y políticas), el peor manda
+    # Seguridad: lo medido en el sistema y sus plataformas (CVE y políticas); el pilar es el promedio de esos subítems
+    # (los criterios sí/no S1/S2 solo cuentan cuando no hay nada medido)
     sg = pri.get("Seguridad")
     if sg is not None:
         vals = [(c.get("nombre"), s.get("titulo") or s.get("clave"), s.get("salud"), s.get("motivos") or []) for c in componentes or []
                 for s in (c.get("secciones") or []) if s.get("clave") in ("cves", "politicas") and s.get("salud") is not None]
         if vals:
-            sg["pct"] = min([v for _, _, v, _ in vals] + ([sg["pct"]] if sg["pct"] is not None else []))
+            sg["pct"] = round(sum(v for _, _, v, _ in vals) / len(vals))
             for n, t, v, mot in vals:
                 sg["detalle"].append({"t": f"{'CVE' if t == 'cves' else ('Políticas de seguridad' if t == 'politicas' else t)} · {n}", "v": v})
 
