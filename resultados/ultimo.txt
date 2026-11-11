@@ -1,25 +1,16 @@
-commit: 580535f8cb44b0d8e7e43aa2efc447606201095d
-inicio: 2026-11-10T21:39:26-03:00
+commit: 46cbd6cea48593fc4aff9c82a162e720dff2c399
+inicio: 2026-11-10T21:35:50-03:00
 ---
-Nov 10 21:22:39 demo-ansible-summit podman[843180]: 2026-11-10 21:22:39.235040858 -0300 -03 m=+0.102788279 container create fa01e526ee5c8dc90cbc8c08fae4063c73fcf4b48f45451cf5e8d7be664c36f2 (image=loca
-Nov 10 21:22:39 demo-ansible-summit podman[843180]: 2026-11-10 21:22:39.285858659 -0300 -03 m=+0.153606075 container init fa01e526ee5c8dc90cbc8c08fae4063c73fcf4b48f45451cf5e8d7be664c36f2 (image=localh
-Nov 10 21:22:39 demo-ansible-summit podman[843180]: 2026-11-10 21:22:39.290216713 -0300 -03 m=+0.157964131 container start fa01e526ee5c8dc90cbc8c08fae4063c73fcf4b48f45451cf5e8d7be664c36f2 (image=local
-Nov 10 21:22:39 demo-ansible-summit systemd[1]: Started FaceOps · consola del Managed Service.
-Nov 10 21:22:39 demo-ansible-summit faceops[843180]: fa01e526ee5c8dc90cbc8c08fae4063c73fcf4b48f45451cf5e8d7be664c36f2
-Nov 10 21:22:39 demo-ansible-summit podman[843180]: 2026-11-10 21:22:39.214665828 -0300 -03 m=+0.082413272 image pull 05c20995d2c21d3c9035132c64ff5a228a92a9adb1e9811e76a42de9e3bae081 localhost/faceops
-Nov 10 21:22:39 demo-ansible-summit faceops[843230]: [2026-11-10 21:22:39 -0300] [1] [INFO] Starting gunicorn 23.0.0
-Nov 10 21:22:39 demo-ansible-summit faceops[843230]: [2026-11-10 21:22:39 -0300] [1] [INFO] Listening at: http://192.168.122.1:8110 (1)
-Nov 10 21:22:39 demo-ansible-summit faceops[843230]: [2026-11-10 21:22:39 -0300] [1] [INFO] Using worker: gthread
-Nov 10 21:22:39 demo-ansible-summit faceops[843230]: [2026-11-10 21:22:39 -0300] [2] [INFO] Booting worker with pid: 2
-Nov 10 21:22:39 demo-ansible-summit faceops[843230]: /opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normal
-Nov 10 21:22:39 demo-ansible-summit faceops[843230]:   warnings.warn(
-Nov 10 21:21:40 demo-ansible-summit systemd[1]: Stopping FaceOps · consola del Managed Service...
-Nov 10 21:21:50 demo-ansible-summit systemd[1]: Started FaceOps · consola del Managed Service.
-Nov 10 21:22:35 demo-ansible-summit sudo[842106]: cquezada : PWD=/home/cquezada/summit-redhat ; USER=root ; COMMAND=/bin/podman build -q -t localhost/faceops:latest -f faceops/Containerfile faceops
-Nov 10 21:22:37 demo-ansible-summit sudo[843002]: cquezada : PWD=/home/cquezada/summit-redhat ; USER=root ; COMMAND=/bin/systemctl restart faceops
-Nov 10 21:22:37 demo-ansible-summit systemd[1]: Stopping FaceOps · consola del Managed Service...
-Nov 10 21:22:39 demo-ansible-summit systemd[1]: Started FaceOps · consola del Managed Service.
---- ramas
-19
-[('2026-11-07T04:01', 'srv-test-ubuntu-01'), ('2026-11-07T12:49', 'nodo-jboss-qa'), ('2026-11-07T22:45', 'nodo-vault'), ('2026-11-09T12:05', 'nodo-postgres'), ('2026-11-09T15:52', 'nodo-nginx'), ('2026-11-09T20:01', 'nodo-tomcat'), ('2026-11-10T18:49', 'nodo-jboss-dev'), ('2026-11-10T19:28', 'nodo-jboss')]
---- fin: 2026-11-10T21:39:28-03:00 · código: 0
+AAP hosts antes: 95 | ya existe: None
+ticket FO-LAB-01481 exitoso AAP terminó (successful): ejecución 49 s, espera de aprobación 62 s
+equipo: {'id': 127, 'nombre': 'srv-mover-01', 'ip': '192.168.122.35', 'ubicacion': 'Centro de datos Santiago', 'estado': 'sin datos', 'cpu': None, 'ram_mb': None, 'inventario': 'Servidores habilitados', 'forma': 'virtual', 'categoria': 'servidor', 'ambiente': 'desarrollo'}
+AAP hosts después: 96
+State:          running
+CPU(s):         1
+Max memory:     2097152 KiB
+ Type   Device   Target   Source
+---------------------------------------------------------------------------------
+ file   disk     vda      /var/lib/libvirt/images/faceops/srv-mover-01.qcow2
+ file   cdrom    sda      /var/lib/libvirt/boot/virtinst-i13dr35t-cloudinit.iso
+
+--- fin: 2026-11-10T21:39:40-03:00 · código: 0
