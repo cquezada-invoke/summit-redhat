@@ -1,0 +1,31 @@
+commit: 51f2ea096072dd6b3282cb5cfc1a5f2f13fecc48
+inicio: 2026-11-11T00:52:35-03:00
+---
+FO-LAB-01583 fallido FaceOps detuvo la ejecución: sin avance durante más de 20 min en la tarea «Podman» de nodo-tomcat. El equipo puede estar colgado o sin respuesta; revisa y vuelve a solicitar.
+== nodo-jboss 6
+ página: 200 /faceops/lab/inventario/6/consola-web/redis/ título: Redis databases
+ api/databases: 200 1
+ conectar: 200 overview: 200 {"version":"6.2.24","serverName":null,"totalKeys":0,"usedMemory":897088,"connectedClients":2,"opsPerSecond":1,"networkInKbps":0,"networkOutK
+ navegador de claves: 3 Databases / nodo-jboss (Redis local) 0.12 % 0 876 KB 0 2 Browse Search Workbench Analyze Pub/Sub Bulk actions Add key All Key Types < 1 min Columns Let's start working Load sample data Add key manually Here's a good starting point Explore the amazing world o
+ texto: 3 Redis Databases Redis Data Integration Create free Cloud database Connect existing database Columns Database Alias Host:Port Connection Type Capabilities Last connection Tags Actions nodo-jboss (Redis local) 192.168.122.15:6379 Standalone less than a minute ago
+ >=400/fallas: ['FALLA /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l2oiapgk&sid=JayYnTeXuzEZmkS7 net::ERR_ABORTED', '404 GET /faceops/lab/inventario/6/consola-web/redis/api/databases/470d9e5b-3bea-4828-9b64-10897f62be5c/settings', 'FALLA /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l2zfg8ny&sid=B3FUdcwZrharoKQZ net::ERR_ABORTED']
+ socket.io: ['200 /faceops/lab/inventario/6/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '200 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '200 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js', '200 /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l2o988vz', '200 /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l2oao74j&', '200 /faceops/lab/inventario/6/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l2oaqha3&']
+ errores js: []
+== nodo-nginx 8
+ página: 200 /faceops/lab/inventario/8/consola-web/redis/ título: Redis databases
+ api/databases: 200 1
+ conectar: 200 overview: 200 {"version":"6.2.24","serverName":null,"totalKeys":0,"usedMemory":875936,"connectedClients":1,"opsPerSecond":2,"networkInKbps":0,"networkOutK
+ navegador de claves: 3 Databases / nodo-nginx (Redis local) 0.11 % 0 876 KB 0 2 Browse Search Workbench Analyze Pub/Sub Bulk actions Add key All Key Types < 1 min Columns Let's start working Load sample data Add key manually Here's a good starting point Explore the amazing world o
+ texto: 3 Redis Databases Redis Data Integration Create free Cloud database Connect existing database Columns Database Alias Host:Port Connection Type Capabilities Last connection Tags Actions nodo-nginx (Redis local) 192.168.122.11:6379 Standalone less than a minute ago
+ >=400/fallas: ['FALLA /faceops/lab/inventario/8/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l3o3u1p5&sid=zrx2fuBctIjso1oS net::ERR_ABORTED', '404 GET /faceops/lab/inventario/8/consola-web/redis/api/databases/d4cdb2b4-6d07-480c-8e1d-8cdd80c6dc42/settings', 'FALLA /faceops/lab/inventario/8/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l3yqp46i&sid=HThPAo-SFx8FPMrN net::ERR_ABORTED']
+ socket.io: ['200 /faceops/lab/inventario/8/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '200 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '200 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js', '200 /faceops/lab/inventario/8/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l3nun5fb', '200 /faceops/lab/inventario/8/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l3nwa3mb&', '200 /faceops/lab/inventario/8/consola-web/redis/socket.io/?EIO=4&transport=polling&t=l3nwcya1&']
+ errores js: []
+== nodo-tomcat 10
+ página: 409 /faceops/lab/inventario/10/consola-web/redis/ título: Redis Insight con la ruta antigua · FaceOps
+ api/databases: 404 0
+ texto: ☰ FaceOps Managed Service · Invoke v1.0.1525 Clientes Gobierno ES Móvil Panel Banco del Pacífico Sur (demo) Clínica Santa Lucía (demo) Invoke Lab Minera Los Andes (demo) ＋ Agregar cliente… Infraestructura Servidores Redes Storage Sistemas operativos Bases de datos Plataformas Contenedores Estaciones
+ >=400/fallas: ['409 GET /faceops/lab/inventario/10/consola-web/redis/', '404 GET /faceops/lab/inventario/10/consola-web/redis/api/databases', '409 GET /faceops/lab/inventario/10/consola-web/redis/']
+ socket.io: []
+ errores js: []
+estado: certificada
+--- fin: 2026-11-11T00:54:40-03:00 · código: 0
