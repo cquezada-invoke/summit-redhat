@@ -1,0 +1,19 @@
+commit: 9120e0e51fcf368ffe1af998f01de2bb4b4e4878
+inicio: 2026-11-10T21:15:06-03:00
+---
+tecnico: {"playbook": "playbooks/energia.yml", "proyecto": "FaceOps · automatizaciones", "repositorio": "http://192.168.122.1:3000/invoke/faceops-automatizaciones.git", "rama": "main", "commit": "36337bb1", "inventario": "FaceOps · Infraestructura", "organizacion": "FaceOps", "credenciales": ["FaceOps · anfitrión KVM (ssh)"], "descripcion_aap": "Enciende, apaga (ordenado) o reinicia una máquina virtual del anfitrión KVM"}
+archivos: ['energia.yml']
+CERT {'id': 64, 'huella': 'a8e38d679d00', 'resultado': 'aprobada', 'por': 'Claude (regla de Cristian)', 'fecha': '2026-11-05T18:09:36+00:00', 'plan': 'Certificación inicial: ejecuciones exitosas previas a la regla de prueba', 'tickets': '["FO-LAB-00893", "FO-LAB-00828", "FO-LAB-00761"]', 'nota': ''}
+ficha: {"nombre": "Encender o apagar equipo", "descripcion": "Enciende, apaga de forma ordenada o reinicia una máquina virtual (se lanza desde el inventario o el detalle del equipo); en producción pide aprobación", "categoria": "Operación y remediación", "tipo": "escritura", "usa_limite": 0, "requiere_apro
+form: {'usa_limite': False, 'aprobacion_ambientes': ['produccion']}
+huella: a8e38d679d00
+Traceback (most recent call last):
+  File "/tmp/m_en.py", line 15, in <module>
+    for r in q("SELECT ts, accion, detalle FROM auditoria WHERE objeto='Infra · Encender o apagar equipo' ORDER BY rowid DESC LIMIT 8") if q1("SELECT name FROM sqlite_master WHERE name='auditoria'") else []:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 178, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: ts
+8462356 2026-11-10 21:13:29 -0300
+--- fin: 2026-11-10T21:15:13-03:00 · código: 0
