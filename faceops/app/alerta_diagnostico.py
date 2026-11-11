@@ -3,7 +3,7 @@
 Cuando una alerta se dispara con una acción que produce un diagnóstico (p. ej. «Diagnóstico automático»), Event-Driven
 Ansible lanza el workflow «FaceOps · Alerta › <automatización>» en AAP; las acciones que necesitan un dato quedan como
 propuesta en «Monitoreo · Responder alerta». Cuando ese trabajo termina en AAP, FaceOps (vigía) envía su resultado al
-responsable de la máquina (dueño de la ficha); si no tiene, al correo de alertas (FACEOPS_CORREO_ALERTAS).
+grupo dueño de la sección responsable de la máquina (su correo de grupo; si no tiene, el de pruebas del laboratorio).
 Cada trabajo se avisa una sola vez (tabla alerta_correos). FaceOps solo lee AAP: no toca las máquinas."""
 import json
 import os
@@ -35,14 +35,23 @@ def acciones_con_informe():
     return {k for k, v in acc.items() if "diagn" in k or "Verificar error conocido" in (v.get("auto") or "") or v.get("pide_datos")}
 
 
+SECCION_DE = {"almacenamiento": "storage", "router": "redes", "switch": "redes", "firewall": "redes", "balanceador": "redes",
+              "clúster openshift": "contenedores"}   # categoría → sección dueña (la misma «Área responsable» de la ficha)
+
+
 def destino(cliente_id, e):
-    """(correo, quién) del responsable de la máquina; si no tiene, el correo de alertas configurado."""
-    from .duenos import de as dueno_de
-    d = dueno_de(cliente_id, "equipo", e["id"]) if e else None
-    if d and d.get("correo"):
-        return d["correo"], d.get("nombre") or d["correo"]
-    gen = os.environ.get("FACEOPS_CORREO_ALERTAS", "").strip()
-    return (gen, "correo de alertas") if gen else ("", "")
+    """(correo, quién): el correo del GRUPO dueño de la sección responsable de la máquina (Servidores, Contenedores…); si el
+    grupo no tiene correo, el correo de pruebas del laboratorio (FACEOPS_CORREO_PRUEBAS) y, si no, el de alertas."""
+    from .grupos_dueno import grupo
+    sec = SECCION_DE.get(((e or {}).get("categoria") or "servidor").lower(), "servidores")
+    g = grupo(cliente_id, sec) or {}
+    if g.get("correo"):
+        return g["correo"], g.get("nombre") or sec
+    for var, quien in (("FACEOPS_CORREO_PRUEBAS", "correo de pruebas del laboratorio"), ("FACEOPS_CORREO_ALERTAS", "correo de alertas")):
+        v = os.environ.get(var, "").strip()
+        if v:
+            return v, f"{g.get('nombre') or sec} (sin correo de grupo: {quien})"
+    return "", g.get("nombre") or sec
 
 
 def _resumen_trabajo(aap, job_id, n=12):
@@ -112,7 +121,7 @@ def notificar(cliente, aap, trabajo, para=None):
               f"Resumen:\n{cuerpo_t}\n\n"
               f"Ficha de la máquina: {_url_ficha(cliente, e)}\n"
               f"Ticket / trabajo en AAP: {_url_aap(aap, trabajo.get('type'), trabajo['id'])}\n\n"
-              f"Lo envía FaceOps al responsable de la máquina ({quien or 'sin responsable'}).")
+              f"Lo envía FaceOps al grupo responsable de la máquina ({quien or 'sin grupo'}).")
     res = enviar(para, asunto, cuerpo)
     _tabla()
     ej("INSERT OR REPLACE INTO alerta_correos(cliente_id, trabajo, equipo, alerta, para, resultado, fecha) VALUES (?,?,?,?,?,?,?)",
