@@ -1,0 +1,26 @@
+commit: 27bd492353ff8599efb5a520451aed8f7388e9e0
+inicio: 2026-11-10T21:24:10-03:00
+---
+== antes
+192.168.122.15 salud: 200
+192.168.122.18 salud: 200
+POST 200 {"auto":"Encender o apagar equipo","estado":"en_ejecucion","id":1479,"nombre_aap":"Infra \u00b7 Encender o apagar equipo","numero":"FO-LAB-01479","url":"/faceops/lab/tickets/1479"}
+
+avisos:  | errores: []
+ticket id: 1479
+aprobado FO-LAB-01479 21:25:27
+TICKET FO-LAB-01479 exitoso 21:27:09
+AAP terminó (successful): ejecución 7 s, espera de aprobación 55 s
+energia FaceOps: encendido
+== después
+nodo-jboss salud: 200 21:27:18
+keycloak en .15:8080 /realms/master: 404
+raíz .15:8080: HTTP/1.1 200 OK  
+uptime-ish ping: ok
+HTTP/1.1 200 OK  X-Servidor-JBoss: 192.168.122.15:8080  
+HTTP/1.1 200 OK  X-Servidor-JBoss: 192.168.122.18:8080  
+HTTP/1.1 200 OK  X-Servidor-JBoss: 192.168.122.15:8080  
+HTTP/1.1 200 OK  X-Servidor-JBoss: 192.168.122.18:8080  
+HTTP/1.1 200 OK  X-Servidor-JBoss: 192.168.122.15:8080  
+HTTP/1.1 200 OK  X-Servidor-JBoss: 192.168.122.18:8080  
+--- fin: 2026-11-10T21:27:18-03:00 · código: 0
