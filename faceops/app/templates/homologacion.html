@@ -7,7 +7,7 @@
 .c-distinto,.c-falta,.c-mayor-que-producción{background:#fdecea}.c-tamaño-distinto{background:#fff8e1}.c-sin-huella{color:var(--muted)}
 .sev{font-size:11px;padding:1px 6px;border-radius:8px}.sev-alta{background:#fdecea;color:#b1291f}.sev-media{background:#fff3cd;color:#8a6100}.sev-baja{background:var(--soft)}
 .ho-cat{background:var(--soft);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}</style>
-{% macro color(i) %}{{ 'ho-ok' if i is not none and i >= 90 else ('ho-med' if i is not none and i >= 70 else 'ho-mal') }}{% endmacro %}
+{% macro color(i) %}{{ 'ho-ok' if i is not none and i >= 85 else ('ho-med' if i is not none and i >= 50 else 'ho-mal') }}{% endmacro %}
 
 {% if not sel %}
 <div class="fila"><div><h1>Homologación de ambientes</h1><p class="sub">La misma pieza debe ser igual en desarrollo, QA y producción. Por ejemplo, el JBoss de un segmento: versión, parches, Java, JVM, módulos, drivers, datasources, aplicaciones y condiciones del entorno. Solo el tamaño puede variar. La referencia es producción.</p></div>

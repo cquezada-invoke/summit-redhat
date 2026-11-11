@@ -1,5 +1,5 @@
 {# Radar de salud en cualquier vista: los mismos 6 pilares en miniatura (sin la gráfica). r = radar.radar_equipos(...) #}
-{% macro col(p) %}{{ 'c-ok' if p is not none and p >= 90 else ('c-med' if p is not none and p >= 70 else ('c-mal' if p is not none else '')) }}{% endmacro %}
+{% macro col(p) %}{{ 'c-ok' if p is not none and p >= 85 else ('c-med' if p is not none and p >= 50 else ('c-mal' if p is not none else '')) }}{% endmacro %}
 {% macro radar_mini(r, enlace=True) %}{% if r %}<a class="rmini" href="{{ url_for('consola.radar_salud') }}" title="Radar de salud: {% for p in r.principios %}{{ p.nombre }} {{ p.pct if p.pct is not none else '—' }} %{{ ' · ' if not loop.last }}{% endfor %}">{% for p in r.principios %}<span><i class="{{ col(p.pct) }}"></i>{{ p.nombre[:4] }}</span>{% endfor %}<span style="width:auto;font-size:12px;color:var(--ink);font-weight:700">{{ r.pct if r.pct is not none else '—' }} %</span></a>{% endif %}{% endmacro %}
 {% macro radar_franja(r, titulo, vacio=False) %}{% if r %}<div class="card rd-franja" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px">
 <a href="{{ url_for('consola.radar_salud') }}" style="font-weight:700;color:inherit">Radar de salud</a><span class="sub" style="font-size:12px">{{ titulo }} · {{ r.n }} objeto{{ 's' if r.n != 1 }}</span>
@@ -21,7 +21,7 @@
 <div class="al-pie"><span class="sub">Para subir la salud: activa sus alertas (botón Alertas), corrige sus hallazgos y aplica las acciones del detalle del sistema, ordenado por estos mismos principios.</span>
 <div class="al-btns"><a class="btn gris" href="{{ url_for('consola.radar_salud') }}">Radar de salud del parque ›</a><button type="button" class="btn" onclick="this.closest('dialog').close()">Cerrar</button></div></div>
 </dialog>{% endmacro %}
-{% macro boton_salud(r, nombre) %}{% if r %}{% set t_ = r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 90 else ('med' if t_ is not none and t_ >= 70 else ('mal' if t_ is not none else 'nd')) %}
+{% macro boton_salud(r, nombre) %}{% if r %}{% set t_ = r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 85 else ('med' if t_ is not none and t_ >= 50 else ('mal' if t_ is not none else 'nd')) %}
 <button type="button" class="sl-btn sl-{{ est_ }}" onclick="document.getElementById('sl-dlg').showModal()" title="Radar de salud de {{ nombre }}: clic para ver sus puntos de salud">
   <span class="sl-tx"><b>Salud</b><small>{{ t_ if t_ is not none else '—' }} %</small></span>
   <span class="sl-barras">{% for p in r.principios %}<span title="{{ p.nombre }} {{ p.pct if p.pct is not none else '—' }} %"><i class="{{ col(p.pct) }}" style="height:{{ [p.pct or 0, 8]|max }}%"></i><em>{{ p.nombre[:4] }}</em></span>{% endfor %}</span>
@@ -29,7 +29,7 @@
 {{ dlg_salud(r, nombre, est_, t_) }}{% endif %}{% endmacro %}
 
 {# Barra transversal de salud del objeto: los 6 pilares; al hacer clic abre el detalle de sus puntos #}
-{% macro barra_salud(r, nombre) %}{% if r %}{% set t_ = r.mix.pct if r.mix else r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 90 else ('med' if t_ is not none and t_ >= 70 else ('mal' if t_ is not none else 'nd')) %}
+{% macro barra_salud(r, nombre) %}{% if r %}{% set t_ = r.mix.pct if r.mix else r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 85 else ('med' if t_ is not none and t_ >= 50 else ('mal' if t_ is not none else 'nd')) %}
 <button type="button" class="sl-barra sl-{{ est_ }}" onclick="window.fxAbrirSalud ? fxAbrirSalud() : document.getElementById('sl-dlg').showModal()" title="Ver los puntos de salud de {{ nombre }}">
   <span class="slb-tot"><small>Salud</small><b>{{ t_ if t_ is not none else '—' }} %</b></span>
   <span class="slb-linea" title="{% if r.mix %}{{ r.mix.texto }} ({{ r.mix.criterio }}){% else %}{% for p in r.principios %}{{ p.nombre }} {{ p.pct if p.pct is not none else '—' }} %{{ ' · ' if not loop.last }}{% endfor %}{% endif %}"><span class="kp-barra"><i class="{{ col(t_) }}" style="width:{{ t_ or 0 }}%"></i></span></span>
