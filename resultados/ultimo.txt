@@ -1,21 +1,47 @@
-commit: ba790b06dc83b72767c8878c92f680c458711e05
-inicio: 2026-11-10T23:00:27-03:00
+commit: 7172609534640581d575bdbd78f788d53b230a18
+inicio: 2026-11-10T23:06:24-03:00
 ---
-RES {"estado":"sin respuesta del arnés"}
-CASO C1 falla · Activar espejo App de pagos
-CASO C2 falla · Flujos y datos en el lake
-RES {"caso": "C3", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01523", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "AAP terminó (failed): ejecución 0 s, espera de aprobación 29 s\n"}
-CASO C3 falla · Desactivar
-RES {"estado":"sin respuesta del arnés"}
-RES {"estado":"sin respuesta del arnés"}
-CASO C4 falla · Repetir la activación
-RES {"caso": "C5", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01524", "estado": "exitoso", "stats": {"faceops_datalake": {"banca-core-bancario": {"accion": "activar", "modo": "declarada", "equipo": "nodo-nginx", "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "enviado_lake": 7768}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 20 s, espera de aprobación 29 s"}
-CASO C5 falla · Declarada: activar Core bancario
-RES {"estado":"sin respuesta del arnés"}
-CASO C6 falla · Declarada: repetir
-RES {"estado":"sin respuesta del arnés"}
-CASO C7 falla · Declarada: desactivar
-Traceback (most recent call last):
-RES {"estado":"sin respuesta del arnés"}
-CASO C8 falla · Declarada: URL inválida
---- fin: 2026-11-10T23:06:45-03:00 · código: 0
+28e23fe
+faceops actualizado
+6 200 · 8 200 · 10 200 · 12 200 · 14 200 · 
+SIN AMBITO (quedan en el SO): ['Portal · Telco · Red del servicio (VLAN y BGP) (plantilla)']
+puerto: 
+BASE https://faceops.34.176.42.56.sslip.io:8843/faceops/lab
+
+[6] nodo-jboss.demo.local · Skills 40x40 r8px vs Encender 0x0 r8px · mini 26x22 r6px vs vecino 26x22 r6px
+  encabezado: ['Consola web'] · terminal en caja: [('SSH', 'Consola SSH en el navegador')]
+  consolas en tarjetas: ['Redis Insight']
+  botones por tarjeta: [['Skills de Red Hat JBoss EAP · versión 8.0.12 (9 disponibles)'], ['Skills de Redis (4 disponibles)'], ['Skills de Keycloak (4 disponibles)']]
+  caja de estado: ['Skills · RedHat 9.8 (19 disponibles)', 'Mover a otra infraestructura']
+   Skills · RedHat 9.8 → ['Energía 3', 'Inventario y diagnóstico 4', 'Recursos y movimiento 9', 'Seguridad 7', 'Respaldo y recuperación 3', 'Ciclo de vida 11']
+      ['Encender', 'Reiniciar', 'Apagar', 'Diagnosticar la aplicación', 'Verificar error conocido', 'Inventariar', 'Relevar entorno para homologar ambientes', 'Ampliar un disco', 'Evaluar destino de versión', 'Cambiar CPU (vCPU)', 'Cambiar memoria', 'Incorporar un disco', 'Mover a otra infraestructura', 'Ampliar disco en la máquina', 'CentOS a RHEL', 'RHEL a versión soportada', 'Aplicar parches de seguridad', 'Emitir certificado para un servicio', 'Escaneo de seguridad de servidores', 'Inventario', 'Vincular máquina a la bóveda', 'Renovar (EDA)', 'Renovar certificados por vencer', 'Puntos de restauración', 'Recuperar desde un punto', 'Paquetes · inventario y respaldo', 'Eliminar máquina', 'Cambio de hora del país', 'Registrar en Red Hat', 'Uso por segmento', 'Derivar el segmento al data lake', 'Evaluar migración de sistema operativo', 'Preparar la plataforma de la app', 'Preparar red OpenShift', 'Quitar agente', 'Rendimiento del canal', 'Telco · Red del servicio (VLAN y BGP) (plantilla)']
+  Apagar → diálogo: True · ¿Apagar nodo-jboss? Es producción: pasa por aprobación en AAP. · (cancelado)
+  buscar «inventar»: ['Diagnosticar la aplicación', 'Verificar error conocido', 'Inventariar', 'Relevar entorno para homologar ambientes', 'Inventario', 'Paquetes · inventario y respaldo']
+   Skills · Red Hat JBoss EAP · versión 8.0.12 → ['Encender Red Hat JBoss EAP · versión 8.0.12', 'Reiniciar Red Hat JBoss EAP · versión 8.0.12', 'Apagar Red Hat JBoss EAP · versión 8.0.12', 'Reiniciar JBoss', 'Liberar disco (limpiar logs)', 'Desinstalar Red Hat JBoss EAP · versión 8.0.12', 'Aplicar configuración de JBoss desde Git', 'Restablecer JBoss a una versión', 'Volver a la versión validada', 'Redesplegar una versión publicada']
+   Skills · Redis → ['Encender Redis', 'Reiniciar Redis', 'Apagar Redis', 'Desinstalar Redis']
+   Skills · Keycloak → ['Encender Keycloak', 'Reiniciar Keycloak', 'Apagar Keycloak', 'Desinstalar Keycloak']
+  errores JS: []
+
+[12] NODO-WINDOWS · Skills 40x40 r8px vs Encender 0x0 r8px · mini 26x22 r6px vs vecino 26x22 r6px
+  encabezado: ['Consola web'] · terminal en caja: [('Escritorio remoto', 'Escritorio remoto (RDP) en el navegador')]
+  consolas en tarjetas: []
+  botones por tarjeta: [['Skills de Microsoft IIS (7 disponibles)']]
+  caja de estado: ['Skills · Windows Server 2022 (13 disponibles)', 'Mover a otra infraestructura']
+   Skills · Windows Server 2022 → ['Energía 3', 'Inventario y diagnóstico 3', 'Recursos y movimiento 5', 'Seguridad 2', 'Respaldo y recuperación 3', 'Ciclo de vida 3']
+      ['Encender', 'Reiniciar', 'Apagar', 'Verificar error conocido', 'Inventariar', 'Relevar entorno para homologar ambientes', 'Evaluar destino de versión', 'Cambiar CPU (vCPU)', 'Cambiar memoria', 'Incorporar un disco', 'Mover a otra infraestructura', 'Escaneo de seguridad de servidores', 'Vincular máquina a la bóveda', 'Puntos de restauración', 'Recuperar desde un punto', 'Paquetes · inventario y respaldo', 'Eliminar máquina', 'Habilitar escritorio remoto', 'Registrar en Red Hat']
+  Apagar → diálogo: True · ¿Apagar nodo-windows? Es producción: pasa por aprobación en AAP. · (cancelado)
+  buscar «inventar»: ['Verificar error conocido', 'Inventariar', 'Relevar entorno para homologar ambientes', 'Paquetes · inventario y respaldo']
+   Skills · Microsoft IIS → ['Encender Microsoft IIS', 'Reiniciar Microsoft IIS', 'Apagar Microsoft IIS', 'IIS a OpenShift', 'Desinstalar Microsoft IIS', 'Levantar IIS en Windows', 'Prueba: provocar caída de IIS']
+  errores JS: []
+
+[14] fw · Skills 40x40 r8px vs Encender None · mini 26x22 r6px vs vecino None
+  encabezado: [] · terminal en caja: [('SSH', 'Consola SSH en el navegador')]
+  consolas en tarjetas: []
+  botones por tarjeta: [['Skills de Firewall VyOS (4 disponibles)']]
+  caja de estado: ['Skills · VyOS (6 disponibles)']
+   Skills · VyOS → ['Inventario y diagnóstico 1', 'Recursos y movimiento 2', 'Ciclo de vida 6']
+      ['Inventariar', 'Cambiar CPU (vCPU)', 'Cambiar memoria', 'Aplicar configuración de red desde Git', 'Configurar VLAN', 'Revocar acceso', 'Revocar accesos vencidos', 'Solicitar acceso', 'Actualizar firmware']
+  buscar «inventar»: ['Inventariar']
+   Skills · Firewall VyOS → ['Encender Firewall VyOS', 'Reiniciar Firewall VyOS', 'Apagar Firewall VyOS', 'Desinstalar Firewall VyOS']
+  errores JS: []
+--- fin: 2026-11-10T23:07:44-03:00 · código: 0
