@@ -1,5 +1,118 @@
-{% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}KPI y OKR{% endblock %}
+{% extends "base.html" %}{% block titulo %}KPI y OKR{% endblock %}
+{% macro fmt(x, u) %}{% if x is none %}<span class="sub">sin datos</span>{% else %}{{ ('%.2f'|format(x)).rstrip('0').rstrip('.').replace('.', ',') }}{{ '' if not u else (u if u == '%' else ' ' ~ u) }}{% endif %}{% endmacro %}
+{% macro barra(av, s) %}<span class="ko-barra"><i class="s-{{ s }}" style="width:{{ av or 0 }}%"></i></span>{% endmacro %}
+{% macro spark(h) %}{% set vs = h|map(attribute=1)|reject('none')|list %}{% if vs|length >= 2 %}{% set mn = vs|min %}{% set mx = vs|max %}{% set rg = (mx - mn) or 1 %}
+<svg class="ko-spark" viewBox="0 0 60 18" width="60" height="18" aria-hidden="true"><polyline fill="none" stroke="currentColor" stroke-width="1.5" points="{% for x in vs %}{{ (loop.index0 * 60 / (vs|length - 1))|round(1) }},{{ (16 - (x - mn) * 14 / rg)|round(1) }} {% endfor %}"/></svg>{% endif %}{% endmacro %}
 {% block cuerpo %}
-<div class="fila"><div><h1>KPI y OKR de Monitoreo</h1><p class="sub">Cada opción de Monitoreo con sus indicadores medidos por FaceOps y sus objetivos y resultados clave, para empezar a trabajarlos. Las definiciones están en <span class="mono">datos/kpi-okr.yml</span>.</p></div></div>
-{% for k in bloques %}{{ kpi_panel(k, True) }}{% endfor %}
+<style>
+.ko-barra{display:inline-block;width:90px;height:7px;border-radius:4px;background:var(--soft);border:1px solid var(--line);vertical-align:middle;overflow:hidden}
+.ko-barra i{display:block;height:100%;background:#c7c7c7}.ko-barra i.s-verde{background:var(--ok)}.ko-barra i.s-amarillo{background:#f0ab00}.ko-barra i.s-rojo{background:var(--bad)}
+.ko-t td{vertical-align:middle}.ko-t .ko-n b{display:block}.ko-t .ko-n small{color:var(--muted)}.ko-inact td{opacity:.55}
+.ko-tend{font-size:12px;white-space:nowrap}.ko-tend.bien{color:var(--ok)}.ko-tend.mal{color:var(--bad)}.ko-spark{color:var(--muted);vertical-align:middle;margin-right:4px}
+.ko-acc{white-space:nowrap;text-align:right}.ko-okr{margin:0 0 12px}.ko-okr h3{margin:0;font-size:15px}.ko-okr .ko-cab{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ko-okr table{margin-top:8px}.ko-dlg form{padding:16px 18px;display:grid;gap:4px}.ko-dlg h2{margin:0 0 6px}.ko-dlg .rej{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.ko-dlg label{display:block;font-weight:600;font-size:13px;margin:8px 0 3px}.ko-dlg input,.ko-dlg select,.ko-dlg textarea{width:100%;box-sizing:border-box}
+.ko-kr{display:grid;grid-template-columns:2fr 1fr 1.6fr .8fr .8fr .6fr auto;gap:6px;align-items:end;margin:6px 0;padding:6px;border:1px solid var(--line);border-radius:6px}
+.ko-kr label{margin:0 0 2px;font-size:11.5px}.ko-pref{font-size:11px}
+@media (max-width:720px){.ko-dlg .rej{grid-template-columns:1fr}.ko-kr{grid-template-columns:1fr 1fr}}
+</style>
+<div class="fila"><div><h1>KPI y OKR</h1><p class="sub">Los indicadores y objetivos de {{ cliente.nombre }}. Los <span class="chip ko-pref">predefinido</span> los mide FaceOps y se pueden editar o eliminar; agrega los propios con una métrica de FaceOps o con valor manual.</p></div>
+{% if escribe %}<div class="der fila"><button type="button" class="btn" data-nuevo="kpi">Agregar KPI</button><button type="button" class="btn gris" data-nuevo="okr">Agregar OKR</button></div>{% endif %}</div>
+
+<h2>KPI <span class="sub" style="font-size:14px;font-weight:400">· {{ kpis|selectattr('semaforo', 'equalto', 'verde')|list|length }} de {{ kpis|selectattr('activo')|list|length }} activos en meta</span></h2>
+<div class="card" style="padding:0;overflow-x:auto"><table class="ko-t">
+<tr><th></th><th>KPI</th><th>Área</th><th>Fuente</th><th class="num">Actual</th><th class="num">Meta</th><th>Avance</th><th>Tendencia</th><th>Frecuencia · responsable</th>{% if escribe %}<th></th>{% endif %}</tr>
+{% for k in kpis %}<tr id="ko-{{ k.id }}" class="{{ '' if k.activo else 'ko-inact' }}">
+<td><span class="semaforo s-{{ k.semaforo }}" title="{{ {'verde': 'En meta', 'amarillo': 'Bajo la meta, dentro del umbral de alerta', 'rojo': 'Fuera del umbral de alerta', 'gris': 'Sin datos o sin meta'}[k.semaforo] }}"></span></td>
+<td class="ko-n"><b>{{ k.nombre }}</b>{% if k.descripcion %}<small>{{ k.descripcion }}</small>{% endif %}{% if k.formula %}<small class="mono">{{ k.formula }}</small>{% endif %}
+ {% if k.predefinido %}<span class="chip ko-pref">predefinido</span>{% endif %}{% if not k.activo %}<span class="chip ko-pref">inactivo</span>{% endif %}</td>
+<td>{{ k.pilar or '—' }}</td>
+<td>{% if k.fuente == 'metrica' %}<span class="chip" title="{{ k.metrica }}">métrica FaceOps</span>{% else %}<span class="chip">manual</span>{% endif %}</td>
+<td class="num"><b>{{ fmt(k.actual, k.unidad) }}</b></td>
+<td class="num">{% if k.meta is not none %}{{ '≤' if k.mejor == 'bajo' else '≥' }} {{ fmt(k.meta, k.unidad) }}{% if k.umbral is not none %}<br><small class="sub">alerta {{ fmt(k.umbral, k.unidad) }}</small>{% endif %}{% else %}—{% endif %}</td>
+<td>{% if k.meta is not none %}{{ barra(k.avance, k.semaforo) }} <small>{{ k.avance if k.avance is not none else '—' }}{{ ' %' if k.avance is not none }}</small>{% endif %}</td>
+<td>{% if k.tendencia %}{{ spark(k.historial) }}<span class="ko-tend {{ 'bien' if k.tendencia.mejora else ('mal' if k.tendencia.dir != 'igual' else '') }}" title="contra {{ k.tendencia.desde }}">{{ {'sube': '▲', 'baja': '▼', 'igual': '＝'}[k.tendencia.dir] }} {{ fmt(k.tendencia.delta|abs, k.unidad) if k.tendencia.dir != 'igual' else '' }}</span>{% else %}<small class="sub">sin historial</small>{% endif %}</td>
+<td><small>{{ k.frecuencia }}{% if k.responsable %} · {{ k.responsable }}{% endif %}</small></td>
+{% if escribe %}<td class="ko-acc"><button type="button" class="btn chico gris" data-editar="{{ k.id }}">Editar</button> <button type="button" class="btn chico gris" data-eliminar="{{ k.id }}">Eliminar</button></td>{% endif %}
+</tr>{% else %}<tr><td colspan="10" class="sub">No hay KPI. {% if escribe %}Agrega el primero con «Agregar KPI».{% endif %}</td></tr>{% endfor %}
+</table></div>
+
+<h2 style="margin-top:24px">OKR</h2>
+{% for o in okrs %}<div class="card ko-okr{{ '' if o.activo else ' ko-inact' }}" id="ko-{{ o.id }}">
+<div class="ko-cab"><span class="semaforo s-{{ o.semaforo }}"></span><h3>O · {{ o.nombre }}</h3>{% if o.predefinido %}<span class="chip ko-pref">predefinido</span>{% endif %}{% if not o.activo %}<span class="chip ko-pref">inactivo</span>{% endif %}
+{{ barra(o.avance, o.semaforo) }} <small>{{ o.avance if o.avance is not none else '—' }}{{ ' %' if o.avance is not none }}</small>
+<small class="sub" style="margin:0">{{ o.pilar or '' }}{{ ' · ' if o.pilar }}{{ o.frecuencia }}{% if o.responsable %} · {{ o.responsable }}{% endif %}</small>
+{% if escribe %}<span class="der"><button type="button" class="btn chico gris" data-editar="{{ o.id }}">Editar</button> <button type="button" class="btn chico gris" data-eliminar="{{ o.id }}">Eliminar</button></span>{% endif %}</div>
+{% if o.descripcion %}<p class="sub" style="margin:6px 0 0">{{ o.descripcion }}</p>{% endif %}
+<table class="ko-t"><tr><th></th><th>Resultado clave</th><th>Fuente</th><th class="num">Actual</th><th class="num">Meta</th><th>Avance</th></tr>
+{% for r in o.resultados %}<tr><td><span class="semaforo s-{{ r.semaforo }}"></span></td><td>KR{{ loop.index }} · {{ r.kr }}</td>
+<td>{% if r.fuente == 'metrica' %}<span class="chip" title="{{ r.metrica }}">{{ r.metrica_nombre }}</span>{% else %}<span class="chip">manual</span>{% endif %}</td>
+<td class="num"><b>{{ fmt(r.actual, r.unidad) }}</b></td><td class="num">{% if r.meta is not none %}{{ '≤' if r.mejor == 'bajo' else '≥' }} {{ fmt(r.meta, r.unidad) }}{% else %}—{% endif %}</td>
+<td>{{ barra(r.avance_pct, r.semaforo) }} <small>{{ r.avance_pct if r.avance_pct is not none else '—' }}{{ ' %' if r.avance_pct is not none }}</small></td></tr>{% endfor %}
+</table></div>{% else %}<p class="sub">No hay OKR. {% if escribe %}Agrega el primero con «Agregar OKR».{% endif %}</p>{% endfor %}
+
+{% if escribe %}
+<dialog id="ko-dlg" class="al-dlg ko-dlg" style="width:min(760px,96vw)"><form method="post" id="ko-f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tipo"><input type="hidden" name="resultados">
+<h2 id="ko-tit">KPI</h2>
+<label><span data-t="kpi">Nombre del KPI</span><span data-t="okr">Objetivo</span><input name="nombre" required maxlength="200"></label>
+<label>Descripción<textarea name="descripcion" rows="2" maxlength="1000"></textarea></label>
+<div data-t="kpi"><div class="rej">
+ <label>Fuente<select name="fuente"><option value="metrica">Métrica FaceOps</option><option value="manual">Manual (registro el valor)</option></select></label>
+ <label data-f="metrica">Métrica<select name="metrica"><option value="">— elige —</option>{% for g_, ms in metricas|groupby('grupo') %}<optgroup label="{{ g_ }}">{% for m in ms %}<option value="{{ m.clave }}" data-u="{{ m.unidad }}" data-m="{{ m.mejor }}">{{ m.nombre }}</option>{% endfor %}</optgroup>{% endfor %}</select></label>
+ <label data-f="manual">Valor actual<input name="valor_manual" inputmode="decimal"></label>
+</div>
+<label>Fórmula o fuente del dato<input name="formula" maxlength="500" placeholder="Cómo se calcula o de dónde sale"></label>
+<div class="rej"><label>Unidad<input name="unidad" maxlength="20" placeholder="%, h, min…"></label>
+<label>Mejora hacia<select name="mejor"><option value="alto">Más alto es mejor</option><option value="bajo">Más bajo es mejor</option></select></label>
+<label>Meta<input name="meta" inputmode="decimal"></label><label>Umbral de alerta<input name="umbral" inputmode="decimal" placeholder="Bajo la meta: amarillo hasta aquí"></label></div></div>
+<div data-t="okr"><label>Resultados clave</label><div id="ko-krs"></div><button type="button" class="btn chico gris" id="ko-kr-mas">+ Resultado clave</button></div>
+<div class="rej"><label>Pilar o área<input name="pilar" list="ko-pilares" maxlength="80"></label>
+<label>Frecuencia<select name="frecuencia">{% for x in frecuencias %}<option>{{ x }}</option>{% endfor %}</select></label>
+<label>Responsable<input name="responsable" maxlength="120"></label>
+<label>Estado<select name="activo"><option value="1">Activo</option><option value="0">Inactivo</option></select></label></div>
+<datalist id="ko-pilares">{% for x in pilares %}<option value="{{ x }}">{% endfor %}</datalist>
+<div class="fila" style="margin-top:12px"><button class="btn">Guardar</button><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button></div>
+</form></dialog>
+<dialog id="ko-del" class="al-dlg ko-dlg" style="width:min(480px,96vw)"><form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<h2>Eliminar <span id="ko-del-t"></span></h2><p>Se eliminará «<b id="ko-del-n"></b>» y su historial de valores. <span id="ko-del-p"></span>Queda registrado en la auditoría.</p>
+<div class="fila"><button class="btn" style="background:var(--bad)">Eliminar</button><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button></div></form></dialog>
+<template id="ko-kr-tpl"><div class="ko-kr">
+ <label>Resultado clave<input data-k="kr" maxlength="200" required></label>
+ <label>Fuente<select data-k="fuente"><option value="metrica">Métrica</option><option value="manual">Manual</option></select></label>
+ <label data-kf="metrica">Métrica<select data-k="metrica"><option value="">— elige —</option>{% for g_, ms in metricas|groupby('grupo') %}<optgroup label="{{ g_ }}">{% for m in ms %}<option value="{{ m.clave }}" data-u="{{ m.unidad }}" data-m="{{ m.mejor }}">{{ m.nombre }}</option>{% endfor %}</optgroup>{% endfor %}</select></label>
+ <label data-kf="manual">Avance actual<input data-k="avance" inputmode="decimal"></label>
+ <label>Meta<input data-k="meta" inputmode="decimal"></label><label>Unidad<input data-k="unidad" maxlength="20"></label>
+ <input type="hidden" data-k="mejor" value="alto"><button type="button" class="btn chico gris" title="Quitar" data-quitar>✕</button></div></template>
+<script>(()=>{
+const KO={ {% for x in kpis + okrs %}"{{ x.id }}":{{ {'id': x.id, 'tipo': x.tipo, 'nombre': x.nombre, 'descripcion': x.descripcion, 'fuente': x.fuente, 'metrica': x.metrica, 'formula': x.formula, 'unidad': x.unidad, 'mejor': x.mejor, 'meta': x.meta, 'umbral': x.umbral, 'valor_manual': x.valor_manual, 'frecuencia': x.frecuencia, 'responsable': x.responsable, 'pilar': x.pilar, 'activo': x.activo, 'predefinido': x.predefinido, 'resultados': x.resultados}|tojson }},{% endfor %} };
+const base={{ url_for('consola.kpi_okr')|tojson }}, d=document.getElementById('ko-dlg'), f=document.getElementById('ko-f'), krs=document.getElementById('ko-krs'), tpl=document.getElementById('ko-kr-tpl');
+const num=x=>x===null||x===undefined?'':String(x).replace('.',',');
+function vistaFuente(){const m=f.fuente.value;f.querySelectorAll('[data-f]').forEach(e=>e.hidden=e.dataset.f!==m);f.metrica.required=f.tipo.value==='kpi'&&m==='metrica';}
+function krVista(r){const m=r.querySelector('[data-k=fuente]').value;r.querySelectorAll('[data-kf]').forEach(e=>e.hidden=e.dataset.kf!==m);r.querySelector('[data-k=metrica]').required=m==='metrica';}
+function agregaKr(x){x=x||{fuente:'metrica'};const r=tpl.content.firstElementChild.cloneNode(true);
+  r.querySelectorAll('[data-k]').forEach(e=>{const v=x[e.dataset.k];e.value=(e.dataset.k==='meta'||e.dataset.k==='avance')?num(v):(v??e.value);});
+  r.querySelector('[data-k=fuente]').addEventListener('change',()=>krVista(r));
+  r.querySelector('[data-k=metrica]').addEventListener('change',e=>{const o=e.target.selectedOptions[0];if(o&&o.value){r.querySelector('[data-k=unidad]').value=o.dataset.u;r.querySelector('[data-k=mejor]').value=o.dataset.m;}});
+  r.querySelector('[data-quitar]').addEventListener('click',()=>r.remove());krVista(r);krs.appendChild(r);}
+function abrir(tipo,x){x=x||{};f.reset();f.tipo.value=tipo;krs.innerHTML='';
+  d.querySelectorAll('[data-t]').forEach(e=>e.hidden=e.dataset.t!==tipo);
+  document.getElementById('ko-tit').textContent=(x.id?'Editar ':'Agregar ')+tipo.toUpperCase()+(x.predefinido?' (predefinido)':'');
+  f.action=x.id?base+'/'+x.id+'/guardar':base+'/guardar';
+  ['nombre','descripcion','formula','unidad','responsable','pilar'].forEach(k=>f[k].value=x[k]||'');
+  ['meta','umbral','valor_manual'].forEach(k=>f[k].value=num(x[k]));
+  f.fuente.value=x.fuente||'metrica';f.metrica.value=x.metrica||'';f.mejor.value=x.mejor||'alto';f.frecuencia.value=x.frecuencia||(tipo==='okr'?'trimestral':'mensual');f.activo.value=x.activo===0?'0':'1';
+  if(tipo==='okr'){(x.resultados&&x.resultados.length?x.resultados:[{fuente:'metrica'}]).forEach(agregaKr);}
+  vistaFuente();d.showModal();}
+f.fuente.addEventListener('change',vistaFuente);
+f.metrica.addEventListener('change',e=>{const o=e.target.selectedOptions[0];if(o&&o.value){if(!f.unidad.value)f.unidad.value=o.dataset.u;f.mejor.value=o.dataset.m;if(!f.nombre.value)f.nombre.value=o.textContent;}});
+document.getElementById('ko-kr-mas').addEventListener('click',()=>agregaKr());
+f.addEventListener('submit',e=>{if(f.tipo.value==='okr'){f.resultados.value=JSON.stringify([...krs.children].map(r=>Object.fromEntries([...r.querySelectorAll('[data-k]')].map(i=>[i.dataset.k,i.value]))));}});
+document.querySelectorAll('[data-nuevo]').forEach(b=>b.addEventListener('click',()=>abrir(b.dataset.nuevo)));
+document.querySelectorAll('[data-editar]').forEach(b=>b.addEventListener('click',()=>{const x=KO[b.dataset.editar];abrir(x.tipo,x);}));
+const dd=document.getElementById('ko-del');
+document.querySelectorAll('[data-eliminar]').forEach(b=>b.addEventListener('click',()=>{const x=KO[b.dataset.eliminar];
+  dd.querySelector('form').action=base+'/'+x.id+'/eliminar';document.getElementById('ko-del-t').textContent=x.tipo.toUpperCase();
+  document.getElementById('ko-del-n').textContent=x.nombre;document.getElementById('ko-del-p').textContent=x.predefinido?'Es un predefinido: no se vuelve a sembrar. ':'';dd.showModal();}));
+})();</script>
+{% endif %}
 {% endblock %}

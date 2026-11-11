@@ -6555,13 +6555,83 @@ def arquitectura_modular():
     return render_template("arquitectura_modular.html", nucleo=nucleo, mods=mods, sin=sin, total={k: len(v) for k, v in disp.items()})
 
 
+_cache_kpi_ext = {}
+
+
+def _kpi_valores():
+    """Indicadores de FaceOps + las métricas de TLS, NIST y MTTR (caché de 2 minutos por cliente y usuario)."""
+    import time
+    from . import kpi_okr as KO
+    v = dict(_indicadores()["v"])
+    k = (g.cliente["id"], g.usuario["id"])
+    c = _cache_kpi_ext.get(k)
+    if not c or time.time() - c[0] > 120:
+        eqs = equipos_visibles()
+        c = (time.time(), KO.extras(g.cliente, eqs, hallazgos_visibles(eqs), v))
+        _cache_kpi_ext[k] = c
+    v.update(c[1])
+    return v
+
+
 @bp.route("/monitoreo/kpi-okr")
 @requiere_login
 def kpi_okr():
-    ind = _indicadores()
-    import yaml
-    claves = list((yaml.safe_load(open(os.path.join(RAIZ_DATOS, "kpi-okr.yml"), encoding="utf-8")) or {}).keys())
-    return render_template("kpi_okr.html", bloques=[_kpi_de(k, ind["v"]) for k in claves])
+    """Monitoreo › KPI y OKR: la lista propia del cliente (predefinidos sembrados una vez + los que agregue el usuario),
+    con su valor actual, meta, semáforo y tendencia."""
+    from . import kpi_okr as KO
+    cid = g.cliente["id"]
+    KO.sembrar(cid, g.usuario["usuario"])
+    items = KO.lista(cid, _kpi_valores())
+    cat = KO.metricas()
+    return render_template("kpi_okr.html", kpis=[x for x in items if x["tipo"] == "kpi"], okrs=[x for x in items if x["tipo"] == "okr"],
+                           metricas=[{"clave": k, "nombre": m[0], "unidad": m[1], "mejor": m[2], "grupo": m[3]} for k, m in cat.items()],
+                           frecuencias=KO.FRECUENCIAS, pilares=KO.PILARES, escribe=g.perfil["modo"] == "escritura")
+
+
+@bp.route("/monitoreo/kpi-okr/lista.json")
+@requiere_login
+def kpi_okr_json():
+    from . import kpi_okr as KO
+    KO.sembrar(g.cliente["id"], g.usuario["usuario"])
+    return {"items": KO.lista(g.cliente["id"], _kpi_valores(), guardar_historial=False)}
+
+
+@bp.route("/monitoreo/kpi-okr/guardar", methods=["POST"])
+@bp.route("/monitoreo/kpi-okr/<int:kid>/guardar", methods=["POST"])
+@requiere_login
+def kpi_okr_guardar(kid=None):
+    """Agregar o editar un KPI u OKR (solo perfiles con escritura); cada cambio queda en la auditoría."""
+    from . import kpi_okr as KO
+    _escritura()
+    cid = g.cliente["id"]
+    try:
+        d = KO.normalizar(request.form)
+        nid, antes = KO.guardar(cid, d, g.usuario["usuario"], kid)
+    except ValueError as x:
+        flash(str(x), "error")
+        return redirect(url_for("consola.kpi_okr"))
+    except LookupError:
+        abort(404)
+    cambios = {k: d[k] for k in d if not antes or antes.get(k) != d[k]}
+    auditar(g.usuario["usuario"], cid, ("editar " if antes else "crear ") + d["tipo"].upper(), d["nombre"], dict(cambios, id=nid))
+    _cache_kpi_ext.pop((cid, g.usuario["id"]), None)
+    flash(f"{d['tipo'].upper()} «{d['nombre']}» {'actualizado' if antes else 'agregado'}", "ok")
+    return redirect(url_for("consola.kpi_okr") + f"#ko-{nid}")
+
+
+@bp.route("/monitoreo/kpi-okr/<int:kid>/eliminar", methods=["POST"])
+@requiere_login
+def kpi_okr_eliminar(kid):
+    from . import kpi_okr as KO
+    _escritura()
+    try:
+        antes = KO.eliminar(g.cliente["id"], kid)
+    except LookupError:
+        abort(404)
+    auditar(g.usuario["usuario"], g.cliente["id"], "eliminar " + antes["tipo"].upper(), antes["nombre"],
+            {"id": kid, "predefinido": bool(antes["predefinido"]), "metrica": antes.get("metrica"), "meta": antes.get("meta")})
+    flash(f"{antes['tipo'].upper()} «{antes['nombre']}» eliminado", "ok")
+    return redirect(url_for("consola.kpi_okr"))
 
 
 @bp.route("/monitoreo/itil")
@@ -7519,6 +7589,7 @@ def menu_nav():
 
 
 EP_MENU = {}   # endpoint → títulos del menú donde aparece (para cerrar el acceso directo por URL)
+EP_ALIAS = {"consola.kpi_okr_json": "consola.kpi_okr", "consola.kpi_okr_guardar": "consola.kpi_okr", "consola.kpi_okr_eliminar": "consola.kpi_okr"}   # sub-rutas con el permiso de su pantalla
 
 
 def _menu_permitido(t, acc):
@@ -7540,7 +7611,7 @@ def _guardia_espacios():
     acc = g.get("acceso")
     if acc is None or acc.get("admin_total") or not request.endpoint:
         return None
-    ts = EP_MENU.get(request.endpoint)
+    ts = EP_MENU.get(request.endpoint) or EP_MENU.get(EP_ALIAS.get(request.endpoint))
     if request.endpoint.startswith("consola.configuracion") and not acc["gobierno"]:
         abort(403)
     if ts and not any(_menu_permitido(t, acc) for t in ts):
