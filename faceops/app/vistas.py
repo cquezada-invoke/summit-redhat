@@ -4527,6 +4527,10 @@ def equipo(eid):
         if familia(c["codigo"]) == "jboss" and not c["acciones"] and e.get("ip") and jboss_solo_local(e):
             c["nota_consola"] = ("La consola de administración de JBoss (9990) no responde desde FaceOps (APP-02 aplicada en una versión "
                                  "anterior la deja solo local): re-aplica APP-02 vigente o adminístrala con jboss-cli desde la consola SSH.")
+        elif familia(c["codigo"]) in CONSOLAS and not c.get("so") and not c["acciones"] and servicio_estado(e, c["codigo"]) == "detenido":
+            # plataforma CON interfaz web (Keycloak, Vault, Jenkins…) que está detenida: no es «sin interfaz», es «detenida»
+            c["consola_detenida"] = True
+            c["nota_consola"] = f"{c['nombre']} está detenido: su consola web ({CONSOLAS[familia(c['codigo'])][3]}) se habilita cuando la plataforma esté encendida."
     for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
         ent = None
         if c["so"] or (c["codigo"] == "windows" and consola_tipo):
@@ -8384,7 +8388,7 @@ def equipo_alertas(eid):
         a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ao.AUTO)
         n_ = len(par["al_alertas"])
         t = solicitar(g.usuario, g.cliente, a, "", par,
-                      request.form.get("motivo") or (f"Alertas de {e['nombre']}: {n_} activa{'s' if n_ != 1 else ''}" if n_ else f"Retirar las alertas de {e['nombre']}"))
+                      request.form.get("motivo") or (f"Alertas de {e['nombre']}: {n_} activa{'s' if n_ != 1 else ''}, {len(par['al_retiradas'])} apagada{'s' if len(par['al_retiradas']) != 1 else ''}" if n_ else f"Retirar las alertas de {e['nombre']}"))
     except (ValueError, PermissionError) as x:
         flash(str(x), "error")
         return redirect(vuelta)
