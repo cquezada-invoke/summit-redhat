@@ -1,6 +1,100 @@
-commit: 70ada254a38a0f9865edabe2471074463955dc30
-inicio: 2026-11-11T12:56:13-03:00
+commit: dff60f7d02ad590b47478c120b1dd4749f095015
+inicio: 2026-11-11T12:56:41-03:00
 ---
-{"f":"function","caj":true,"cabs":true,"sal":true,"barra":1,"cp":5}
-errores []
---- fin: 2026-11-11T12:56:25-03:00 · código: 0
+== virsh
+ 1    srv-prueba-rhel8-01          running
+ 4    srv-prueba-resp-01           running
+ 6    srv-prueba-rhel9-01          running
+ 19   sno                          running
+ 21   nodo-jboss2                  running
+ 24   nodo-nginx                   running
+ 25   nodo-jboss                   running
+ 27   srv-mover-01                 running
+ 29   nodo-jboss4                  running
+ 31   nodo-jboss-dev               running
+ 32   nodo-jboss5                  running
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss3                  shut off
+ -    srv-legado-jboss5-01         shut off
+ -    srv-prueba-rocky-01          shut off
+ -    srv-rocky-prueba-01          shut off
+== free
+               total        used        free      shared  buff/cache   available
+Mem:             125         101           0           3          27          24
+TK FO-LAB-01485 exitoso 2026-11-11T00:43 Infra · Mover máquina entre centros de datos  Prueba C1: evaluar srv-mover-01 → Valparaíso
+TK FO-LAB-01486 exitoso 2026-11-11T00:45 Infra · Mover máquina entre centros de datos  Mover srv-mover-01 de KVM · Santiago a KVM · Valparaíso
+TK FO-LAB-01487 exitoso 2026-11-11T00:47 Infra · Mover máquina entre centros de datos  Revertir el traslado de srv-mover-01: vuelve a su infraestructura de origen
+TK FO-LAB-01488 exitoso 2026-11-11T00:48 Migración · WebLogic a OpenShift nodo-jboss-dev Plan de prueba WebLogic wl6 · M-C6 revertir
+TK FO-LAB-01489 exitoso 2026-11-11T00:49 Infra · Mover máquina entre centros de datos  Mover srv-mover-01 de KVM · Santiago a KVM · Valparaíso
+TK FO-LAB-01490 exitoso 2026-11-11T00:51 Infra · Mover máquina entre centros de datos  Confirmar el traslado de srv-mover-01 a KVM · Valparaíso (retira la copia de ori
+TK FO-LAB-01491 exitoso 2026-11-11T00:52 JBoss · Desplegar app nodo-jboss:nodo-jboss2 Plan de prueba C1: desplegar 1.0.43 en produccion
+TK FO-LAB-01492 exitoso 2026-11-11T00:54 JBoss · Desplegar app nodo-jboss:nodo-jboss2 Plan de prueba C2: desplegar 1.0.44 en produccion
+TK FO-LAB-01493 exitoso 2026-11-11T00:57 FaceOps · Eliminar servidor  Eliminar srv-legado-jboss6-01 (192.168.122.165)
+TK FO-LAB-01494 exitoso 2026-11-11T00:59 FaceOps · Eliminar servidor  Eliminar srv-legado-jboss7-01 (192.168.122.85)
+TK FO-LAB-01495 exitoso 2026-11-11T01:01 Migración · WebLogic a OpenShift nodo-jboss-dev Plan de prueba WebLogic wl7 · M-C1 emular-origen
+TK FO-LAB-01496 exitoso 2026-11-11T01:04 Migración · WebLogic a OpenShift · Evaluar nodo-jboss-dev Plan de prueba WebLogic wl7 · E-C1 evaluar
+TK FO-LAB-01497 exitoso 2026-11-11T01:06 FaceOps · Eliminar servidor  Eliminar srv-prueba-rocky-01 (192.168.122.216)
+TK FO-LAB-01498 exitoso 2026-11-11T01:06 Migración · WebLogic a OpenShift · Evaluar nodo-jboss-dev Plan de prueba WebLogic wl7 · E-C2 repetir
+TK FO-LAB-01499 fallido 2026-11-11T01:07 Migración · WebLogic a OpenShift · Evaluar nodo-so Plan de prueba WebLogic wl7 · E-C3 sin dominio
+TK FO-LAB-01500 exitoso 2026-11-11T01:09 JBoss · Desplegar app nodo-jboss:nodo-jboss2 Plan de prueba C1: desplegar 1.0.43 en produccion
+TK FO-LAB-01503 exitoso 2026-11-11T01:10 Migración · WebLogic a OpenShift nodo-jboss-dev Plan de prueba WebLogic wl7 · M-C2 migrar ventas
+TK FO-LAB-01504 exitoso 2026-11-11T01:11 JBoss · Desplegar app nodo-jboss:nodo-jboss2 Plan de prueba C2: desplegar 1.0.44 en produccion
+TK FO-LAB-01505 exitoso 2026-11-11T01:12 JBoss · Desplegar app nodo-jboss:nodo-jboss2 Plan de prueba C3: desplegar 1.0.44 en produccion
+TK FO-LAB-01506 fallido 2026-11-11T01:14 JBoss · Desplegar app nodo-jboss:nodo-jboss2 Plan de prueba C4: desplegar 9.9.999 en produccion
+TK FO-LAB-01507 exitoso 2026-11-11T01:15 JBoss · Desplegar app nodo-jboss-dev Plan de prueba C5: desplegar 1.0.44 en desarrollo
+TK FO-LAB-01508 exitoso 2026-11-11T01:18 Migración · WebLogic a OpenShift nodo-jboss-dev Plan de prueba WebLogic wl7 · M-C3 migrar ventas de nuevo
+TK FO-LAB-01510 fallido 2026-11-11T01:20 Migración · WebLogic a OpenShift nodo-jboss-dev Plan de prueba WebLogic wl7 · M-C4 migrar legado
+TK FO-LAB-01512 fallido 2026-11-11T01:23 Migración · WebLogic a OpenShift nodo-jboss-dev Plan de prueba WebLogic wl7 · M-C5 salud falla y vuelta atras
+TK FO-LAB-01516 exitoso 2026-11-11T01:29 Infra · Mover máquina entre centros de datos  Mover srv-mover-01 de KVM · Valparaíso a KVM · Santiago
+TK FO-LAB-01517 exitoso 2026-11-11T01:32 Migración · WebLogic a OpenShift nodo-jboss-dev Plan de prueba WebLogic wl7 · M-C6 revertir
+TK FO-LAB-01518 exitoso 2026-11-11T01:32 Infra · Mover máquina entre centros de datos  Confirmar el traslado de srv-mover-01 a KVM · Santiago (retira la copia de orige
+TK FO-LAB-01519 fallido 2026-11-11T01:34 Infra · Mover máquina entre centros de datos  Prueba C6: destino donde ya está
+TK FO-LAB-01520 fallido 2026-11-11T01:36 Infra · Mover máquina entre centros de datos  Prueba C6: nodo-vault no se mueve
+TK FO-LAB-01521 fallido 2026-11-11T01:37 Infra · Mover máquina entre centros de datos  Prueba C7: no responde en el destino → vuelta atrás
+VIRTUALES no retirados: 38
+   anfitrion-stand visible encendido Centro de datos Santiago
+   dc1-ad01 OCULTO apagado Centro de datos Santiago
+   dc1-ds01 OCULTO apagado Centro de datos Santiago
+   dc1-idm01 OCULTO apagado Centro de datos Santiago
+   dc1-iga01 OCULTO apagado Centro de datos Santiago
+   dc1-sat01 OCULTO apagado Centro de datos Santiago
+   dc1-sql01 visible apagado Centro de datos Santiago
+   dc1-sso01 OCULTO apagado Centro de datos Santiago
+   dc1-vpn01 visible apagado Centro de datos Santiago
+   dc2-sql01 visible apagado Centro de datos Santiago
+   fw visible encendido Centro de datos Santiago
+   fw-sede-01 visible encendido Sede Providencia · Sala de comunicaciones
+   lb-sede-01 visible encendido Sede Providencia · Sala de comunicaciones
+   nodo-jboss visible encendido Centro de datos Santiago
+   nodo-jboss-dev visible encendido Centro de datos Santiago
+   nodo-jboss-qa OCULTO apagado Centro de datos Santiago
+   nodo-jboss2 visible encendido Centro de datos Santiago
+   nodo-jboss3 visible apagado Centro de datos Santiago
+   nodo-jboss4 visible encendido Centro de datos Santiago
+   nodo-nginx visible encendido Centro de datos Santiago
+   nodo-postgres visible encendido Centro de datos Santiago
+   nodo-so visible encendido Centro de datos Santiago
+   nodo-storage visible encendido Centro de datos Santiago
+   nodo-tomcat visible encendido Centro de datos Santiago
+   nodo-vault OCULTO encendido Centro de datos Santiago
+   nodo-windows OCULTO encendido Centro de datos Santiago
+   ocp-sno visible encendido Centro de datos Santiago
+   pc-usuario visible encendido Centro de datos Santiago
+   rtr visible encendido Centro de datos Santiago
+   rtr-wan-01 visible encendido Sede Providencia · Sala de comunicaciones
+   sno OCULTO encendido Centro de datos Santiago
+   srv-legado-jboss7-01 visible apagado Centro de datos Santiago
+   srv-mover-01 visible encendido Centro de datos Santiago
+   suc1 visible encendido Centro de datos Santiago
+   suc2 visible encendido Centro de datos Santiago
+   suc3 visible encendido Centro de datos Santiago
+   sw-acc-01 visible encendido Sede Providencia · Sala de comunicaciones
+   sw-core-01 visible encendido Sede Providencia · Sala de comunicaciones
+LISTA visible: ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss2', 'nodo-jboss4', 'nodo-postgres', 'nodo-so', 'nodo-tomcat', 'srv-mover-01', 'dc1-sql01', 'dc1-vpn01', 'dc2-sql01', 'nodo-jboss3', 'srv-legado-jboss7-01']
+== LB
+      6 ok 1.0.44
+   .15: ok 1.0.44
+   .18: ok 1.0.44
+NAME   STATUS   ROLES                         AGE   VERSION
+sno    Ready    control-plane,master,worker   12d   v1.32.13
+--- fin: 2026-11-11T12:56:50-03:00 · código: 0
