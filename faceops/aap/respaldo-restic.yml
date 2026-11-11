@@ -153,7 +153,18 @@
           changed_when: "'cambio=1' in r_cred.stdout"
           no_log: true
 
-        - name: Clave en la bóveda (FaceOps la usa para restaurar sin mostrarla)
+        - name: Repositorio de la máquina (se crea si no existe)
+          ansible.builtin.shell: |
+            {{ renv }}
+            install -d -m 700 {{ var_dir }}/cache
+            if timeout 90 restic cat config >/dev/null 2>&1; then echo existente; exit 0; fi
+            timeout 120 restic init 2>&1 | grep -v -i password | tail -3
+            timeout 90 restic cat config >/dev/null 2>&1 && echo creado
+          register: r_repo
+          changed_when: "'creado' in r_repo.stdout"
+          failed_when: "'existente' not in r_repo.stdout and 'creado' not in r_repo.stdout"
+
+        - name: Clave en la bóveda (con el repositorio ya accesible; FaceOps la usa para restaurar sin mostrarla)
           ansible.builtin.shell: |
             python3 - <<'P'
             import hashlib, json, os, urllib.request
@@ -180,17 +191,6 @@
           register: r_boveda
           changed_when: "'guardada' in r_boveda.stdout"
           no_log: true
-
-        - name: Repositorio de la máquina (se crea si no existe)
-          ansible.builtin.shell: |
-            {{ renv }}
-            install -d -m 700 {{ var_dir }}/cache
-            if timeout 90 restic cat config >/dev/null 2>&1; then echo existente; exit 0; fi
-            timeout 120 restic init 2>&1 | grep -v -i password | tail -3
-            timeout 90 restic cat config >/dev/null 2>&1 && echo creado
-          register: r_repo
-          changed_when: "'creado' in r_repo.stdout"
-          failed_when: "'existente' not in r_repo.stdout and 'creado' not in r_repo.stdout"
 
         - name: Script de respaldo (canario, respaldo, retención y registro para FaceOps)
           ansible.builtin.copy:
