@@ -1,0 +1,14 @@
+commit: d630bf59d76d1bb9263c9a8eeedd4d9d00e661cb
+inicio: 2026-11-10T21:27:12-03:00
+---
+e62d772
+faceops actualizado
+configurar: 0
+   · Ejecución simultánea activada en 0 workflows
+LISTO
+GET traslado: 200 origen: {'centro': 'Centro de datos Santiago', 'id': 1, 'nombre': 'KVM · Santiago', 'red': '192.168.122.0/24', 'red_libvirt': 'default'} bloqueo:  pend: None auto: {'estado': 'cambiada', 'nombre': 'Mover máquina entre centros de datos'}
+  DST KVM · Valparaíso | Hipervisor KVM | Centro de datos Valparaíso | red 192.168.150.0/24 | elegible True | libres 16 46 121 2026-11-05 | emul: sí: comparte el anfitrión con Santiago (red y pool propios) | motivos: []
+  DST VMware · Santiago | VMware vSphere | Centro de datos Santiago | red Santiago | elegible False | libres None None None  | emul: vCenter emulado (vcsim): inventario simulado, no aloja disco | motivos: ['la automatización no convierte máquinas KVM a VMware vSphere']
+ficha6: btn-mover 1 dlg 1 eq-energia-acc 1
+estado auto: cambiada
+--- fin: 2026-11-10T21:32:07-03:00 · código: 0
