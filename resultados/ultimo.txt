@@ -1,4 +1,75 @@
-commit: a1278777e8c03330e5eb95546688796c9a4be167
-inicio: 2026-11-11T12:00:48-03:00
+commit: 7a3eb4cd896d13b6c6ebecf9da0174221057c21c
+inicio: 2026-11-11T12:01:10-03:00
 ---
---- fin: 2026-11-11T12:01:23-03:00 · código: 0
+3123874 Ficha › salud › Seguridad: CVE solo pendientes con buscador y paginador de 10; «Aplicar parche» por CVE (ticket de «Aplicar parches de seguridad» limitado a ese CVE, con aprobación) y en Políticas «Aplicar» sin recargar: el botón queda «En curso» con su ticket al lado (también al recargar) y al terminar «Aplicada · ticket»; tras un parche exitoso FaceOps relanza «Revisar CVEs» para sacarlo de pendientes y subir Seguridad
+EQUIPO None
+REPLICAS []
+VINCULACION []
+COMPONENTE app {'produccion': ['nodo-jboss', 'nodo-jboss2'], 'qa': ['nodo-jboss-qa'], 'desarrollo': ['nodo-jboss-dev']}
+FICHA 6 data-pil="Disponibilidad"> Disponibilidad 85 % Instancias (2) nodo-jboss esta máquina 192.168.122.15 nodo-jboss2 réplica 192.168.122.18 Segmentos que usan esta máquina (1) App de pagos JBoss EAP (app-jboss) · produccion · balanceo en nodo-nginx · puertos 8080 2 instancias : nodo-jboss, nodo-jboss2 Solicitar réplica · falta su prueba Para llegar al 100 % Una tercera instancia lleva la disponibilidad al 100 % Rendimiento 95 % CPU · 11 % de 2 vCPU 85 % Memoria · 55 % de 2 GB 100 % Disco (volumen más lleno) · 22 % de su capacidad 100 % Para llegar al 100 % CPU al 11 %: sobredimensionado, se puede bajar y liberar el anfitrión Seguridad 20 % CVE · Red Hat Enterprise Linux 0 % P
+  dialogo False True
+TICKET AAP terminó (successful): ejecución 408 s, espera de aprobación 54 s
+== origen antes
+[adhoc 23292 successful]
+nodo-jboss | CHANGED | rc=0 >>
+machine_id=de9c057e5bc345b0af02c1279799e227
+host=nodo-jboss.demo.local
+ip=192.168.122.15 10.88.0.1
+conf=efda0869843f
+svc=active
+marca=ninguna
+salud=ok 1.0.44
+== origen después
+[adhoc 23400 successful]
+nodo-jboss | CHANGED | rc=0 >>
+machine_id=de9c057e5bc345b0af02c1279799e227
+host=nodo-jboss.demo.local
+ip=192.168.122.15 10.88.0.1
+conf=efda0869843f
+svc=active
+marca=ninguna
+salud=ok 1.0.44
+== réplica
+[adhoc 23401 successful]
+nodo-jboss4 | CHANGED | rc=0 >>
+machine_id=4c17e0bed7ea48d2ab546ed48b3808f5
+host=nodo-jboss4
+ip=192.168.122.105
+conf=efda0869843f
+svc=active
+marca=nodo-jboss
+salud=ok 1.0.44
+uuid=4c17e0be-d7ea-48d2-ab54-6ed48b3808f5
+llaves=SHA256:PWqx3/HUv+1DYLDEIbVz+0+C/JmhlgM9AFNWygegYeI,SHA256:JPuN7dC5NPCTYT8GvihvFva+JmEN9dS7of6L3rkZTbs,SHA256:plyMp3H+37NoZclPS9wa9fSY0iFMicpw9g27pHD4gso
+rhsm=49ae81a0-bab7-4eb0-b91c-920a931015b7
+node_exporter=active
+fw=0
+version=eap8-wildfly-8.0.12-5.GA_redhat_00008.1.el9eap.noarch
+== origen identidad
+== balanceador
+[adhoc 23403 successful]
+Identity added: /runner/artifacts/23403/ssh_key_data (cquezada@demo-ansible-summit)
+nodo-nginx | CHANGED | rc=0 >>
+3:    server 192.168.122.15:8080 max_fails=2 fail_timeout=10s;
+4:    server 192.168.122.105:8080 max_fails=2 fail_timeout=10s;  # réplica HA · FaceOps FO-LAB-01642
+5:    server 192.168.122.18:8080 max_fails=2 fail_timeout=10s;
+== destinos
+[adhoc 23404 successful]
+Identity added: /runner/artifacts/23404/ssh_key_data (cquezada@demo-ansible-summit)
+nodo-tomcat | CHANGED | rc=0 >>
+nodo-postgres | CHANGED | rc=0 >>
+rule family="ipv4" source address="192.168.122.15/32" port port="5432" protocol="tcp" accept
+== por el balanceador
+HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.15:8080
+ok 1.0.44
+HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.105:8080
+ok 1.0.44
+HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.18:8080
+ok 1.0.44
+HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.15:8080
+ok 1.0.44
+HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.105:8080
+ok 1.0.44
+HTTP/1.1 200 OK X-Servidor-JBoss: 192.168.122.18:8080
+ok 1.0.44
+--- fin: 2026-11-11T12:02:34-03:00 · código: 0
