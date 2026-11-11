@@ -1,0 +1,138 @@
+commit: 3eba86495613a3d3167e89200eb04fb30b7e729e
+inicio: 2026-11-11T18:46:29-03:00
+---
+  warnings.warn(
+EQ nodo-jboss | so: RedHat 9.8 | inv: Servidores de aplicación | datos-keys: ['alertas', 'alertas_plat', 'carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'puertos_web', 'ram_disponible_mb', 'ram_libre_mb', 'ram_so_mb', 'recolectado', 'red', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'versiones', 'virtual', 'virtual_rol']
+ datos kernel = 5.14.0-687.5.3.el9_8.x86_64
+REV {'cliente_id': 1, 'equipo_id': 6, 'repos': 1, 'pendientes': 543, 'cubiertos': 4843, 'cuando': '2026-11-11T15:51:48+00:00', 'ticket_id': 1651}
+PEND-DB 543 cves; ['kernel-5.14.0-687.10.1.el9_8.x86_64', 'kernel-5.14.0-687.12.1.el9_8.x86_64', 'kernel-5.14.0-687.13.1.el9_8.x86_64', 'kernel-5.14.0-687.15.1.el9_8.x86_64', 'kernel-5.14.0-687.17.1.el9_8.x86_64', 'kernel-5.14.0-687.19.1.el9_8.x86_64', 'kernel-5.14.0-687.20.1.el9_8.x86_64', 'kernel-5.14.0-687.22.1.el9_8.x86_64', 'kernel-5.14.0-687.23.1.el9_8.x86_64', 'kernel-5.14.0-687.24.1.el9_8.x86_64', 'kernel-5.14.0-687.25.1.el9_8.x86_64', 'kernel-5.14.0-687.26.1.el9_8.x86_64', 'kernel-5.14.0-687.29.1.el9_8.x86_64', 'kernel-5.14.0-687.30.1.el9_8.x86_64', 'kernel-5.14.0-687.31.1.el9_8.x86_64', 'kernel-5.14.0-687.33.1.el9_8.x86_64', 'kernel-5.14.0-687.34.1.el9_8.x86_64', 'kernel-5.14.0-687.36.1.el9_8.x86_64', 'kernel-5.14.0-687.38.1.el9_8.x86_64', 'kernel-5.14.0-687.39.1.el9_8.x86_64', 'kernel-5.14.0-687.41.1.el9_8.x86_64', 'kernel-5.14.0-687.42.1.el9_8.x86_64', 'kernel-5.14.0-687.44.1.el9_8.x86_64', 'kernel-5.14.0-687.45.1.el9_8.x86_64', 'kernel-5.14.0-687.46.1.el9_8.x86_64', 'kernel-5.14.0-687.47.1.el9_8.x86_64', 'kernel-5.14.0-687.48.1.el9_8.x86_64', 'kernel-5.14.0-687.49.1.el9_8.x86_64', 'kernel-5.14.0-687.50.1.el9_8.x86_64', 'kernel-5.14.0-687.51.1.el9_8.x86_64', 'kernel-5.14.0-687.52.1.el9_8.x86_64', 'kernel-5.14.0-687.53.1.el9_8.x86_64', 'kernel-5.14.0-687.54.1.el9_8.x86_64', 'kernel-5.14.0-687.55.1.el9_8.x86_64', 'kernel-5.14.0-687.56.1.el9_8.x86_64', 'kernel-5.14.0-687.57.1.el9_8.x86_64', 'kernel-5.14.0-687.58.1.el9_8.x86_64', 'kernel-5.14.0-687.59.1.el9_8.x86_64', 'kernel-5.14.0-687.60.1.el9_8.x86_64', 'kernel-5.14.0-687.61.1.el9_8.x86_64', 'kernel-5.14.0-687.64.1.el9_8.x86_64', 'kernel-5.14.0-687.65.1.el9_8.x86_64', 'kernel-5.14.0-687.66.1.el9_8.x86_64', 'kernel-5.14.0-741.14.1.el9_9.x86_64', 'kernel-5.14.0-741.20.1.el9_9.x86_64']
+TK {'id': 1887, 'numero': 'FO-LAB-01887', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-11T21:05:57+00:00', 'fin': None, 'limite': 'nodo-jboss', 'parametros': '{"sp_unidades": ["eap8-standalone", "eap7-standalone", "jboss-eap", "wildfly", "jboss"], "sp_accion": "estado", "sp_plataforma": "JBoss"}', 'motivo': 'Plan de prueba C7 de «Plataforma · Controlar servicio» (regla de prueba)', 'nombre_aap': 'Plataforma · Controlar servicio', 'aap_job_id': 24696, 'aap_job_tipo': 'workflow', 'r': ''}
+TK {'id': 1885, 'numero': 'FO-LAB-01885', 'estado': 'exitoso', 'creado': '2026-11-11T21:03:47+00:00', 'fin': '2026-11-11T21:05:40+00:00', 'limite': 'nodo-jboss', 'parametros': '{}', 'motivo': 'Plan de prueba C2 de «FaceOps · Agente de monitoreo (Linux)» (regla de prueba)', 'nombre_aap': 'FaceOps · Agente de monitoreo (Linux)', 'aap_job_id': 24682, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 20 s, espera de aprobación 31 s'}
+TK {'id': 1884, 'numero': 'FO-LAB-01884', 'estado': 'exitoso', 'creado': '2026-11-11T21:02:49+00:00', 'fin': '2026-11-11T21:05:37+00:00', 'limite': 'nodo-jboss', 'parametros': '{"sp_unidades": ["keycloak", "rhbk"], "sp_plataforma": "Keycloak", "sp_puerto": 8180, "sp_url_consola": "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6/consola-web/keycloak", "sp_accion": "encender"}', 'motivo': 'Plan de prueba C6 de «Plataforma · Controlar servicio» (regla de prueba)', 'nombre_aap': 'Plataforma · Controlar servicio', 'aap_job_id': 24678, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 14 s, espera de aprobación 31 s'}
+TK {'id': 1883, 'numero': 'FO-LAB-01883', 'estado': 'exitoso', 'creado': '2026-11-11T21:00:45+00:00', 'fin': '2026-11-11T21:02:32+00:00', 'limite': 'nodo-jboss', 'parametros': '{"sp_unidades": ["keycloak", "rhbk"], "sp_accion": "apagar", "sp_plataforma": "Keycloak"}', 'motivo': 'Plan de prueba C5 de «Plataforma · Controlar servicio» (regla de prueba)', 'nombre_aap': 'Plataforma · Controlar servicio', 'aap_job_id': 24675, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 15 s, espera de aprobación 31 s'}
+TK {'id': 1882, 'numero': 'FO-LAB-01882', 'estado': 'exitoso', 'creado': '2026-11-11T20:59:51+00:00', 'fin': '2026-11-11T21:02:29+00:00', 'limite': 'nodo-jboss', 'parametros': '{}', 'motivo': 'Plan de prueba C1 de «FaceOps · Agente de monitoreo (Linux)» (regla de prueba)', 'nombre_aap': 'FaceOps · Agente de monitoreo (Linux)', 'aap_job_id': 24669, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 20 s, espera de aprobación 36 s'}
+TK {'id': 1881, 'numero': 'FO-LAB-01881', 'estado': 'exitoso', 'creado': '2026-11-11T20:58:13+00:00', 'fin': '2026-11-11T21:00:30+00:00', 'limite': 'nodo-jboss', 'parametros': '{"sp_unidades": ["keycloak", "rhbk"], "sp_plataforma": "Keycloak", "sp_puerto": 8180, "sp_url_consola": "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6/consola-web/keycloak", "sp_accion": "reiniciar"}', 'motivo': 'Plan de prueba C4 de «Plataforma · Controlar servicio» (regla de prueba)', 'nombre_aap': 'Plataforma · Controlar servicio', 'aap_job_id': 24665, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 23 s, espera de aprobación 40 s'}
+TK {'id': 1879, 'numero': 'FO-LAB-01879', 'estado': 'exitoso', 'creado': '2026-11-11T20:56:18+00:00', 'fin': '2026-11-11T20:58:21+00:00', 'limite': 'nodo-jboss', 'parametros': '{"sp_unidades": ["keycloak", "rhbk"], "sp_plataforma": "Keycloak", "sp_puerto": 8180, "sp_url_consola": "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6/consola-web/keycloak", "sp_accion": "encender"}', 'motivo': 'Plan de prueba C3 de «Plataforma · Controlar servicio» (regla de prueba)', 'nombre_aap': 'Plataforma · Controlar servicio', 'aap_job_id': 24657, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 17 s, espera de aprobación 11 s'}
+TK {'id': 1877, 'numero': 'FO-LAB-01877', 'estado': 'exitoso', 'creado': '2026-11-11T20:52:39+00:00', 'fin': '2026-11-11T20:54:43+00:00', 'limite': 'nodo-jboss', 'parametros': '{"sp_unidades": ["keycloak", "rhbk"], "sp_plataforma": "Keycloak", "sp_puerto": 8180, "sp_url_consola": "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6/consola-web/keycloak", "sp_accion": "encender"}', 'motivo': 'Plan de prueba C2 de «Plataforma · Controlar servicio» (regla de prueba)', 'nombre_aap': 'Plataforma · Controlar servicio', 'aap_job_id': 24651, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 15 s, espera de aprobación 30 s'}
+TK {'id': 1875, 'numero': 'FO-LAB-01875', 'estado': 'exitoso', 'creado': '2026-11-11T20:50:44+00:00', 'fin': '2026-11-11T20:52:21+00:00', 'limite': 'nodo-jboss', 'parametros': '{"sp_unidades": ["keycloak", "rhbk"], "sp_accion": "deshabilitar", "sp_plataforma": "Keycloak"}', 'motivo': 'Plan de prueba C1 de «Plataforma · Controlar servicio» (regla de prueba)', 'nombre_aap': 'Plataforma · Controlar servicio', 'aap_job_id': 24637, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 27 s, espera de aprobación 30 s'}
+TK {'id': 1862, 'numero': 'FO-LAB-01862', 'estado': 'exitoso', 'creado': '2026-11-11T20:24:43+00:00', 'fin': '2026-11-11T20:26:45+00:00', 'limite': 'nodo-jboss', 'parametros': '{}', 'motivo': 'Plan de prueba C2 de «FaceOps · Agente de monitoreo (Linux)» (regla de prueba)', 'nombre_aap': 'FaceOps · Agente de monitoreo (Linux)', 'aap_job_id': 24575, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 19 s, espera de aprobación 34 s'}
+TK {'id': 1860, 'numero': 'FO-LAB-01860', 'estado': 'exitoso', 'creado': '2026-11-11T20:21:27+00:00', 'fin': '2026-11-11T20:23:07+00:00', 'limite': 'nodo-jboss', 'parametros': '{}', 'motivo': 'Plan de prueba C1 de «FaceOps · Agente de monitoreo (Linux)» (regla de prueba)', 'nombre_aap': 'FaceOps · Agente de monitoreo (Linux)', 'aap_job_id': 24566, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (successful): ejecución 18 s, espera de aprobación 32 s'}
+TK {'id': 1847, 'numero': 'FO-LAB-01847', 'estado': 'fallido', 'creado': '2026-11-11T19:57:46+00:00', 'fin': '2026-11-11T19:59:21+00:00', 'limite': 'nodo-jboss:nodo-jboss2', 'parametros': '{"app_version": "9.9.999", "app_commit": ""}', 'motivo': 'Plan de prueba C4: desplegar 9.9.999 en produccion', 'nombre_aap': 'JBoss · Desplegar app', 'aap_job_id': 24502, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (failed): ejecución 7 s, espera de aprobación 49 s\nFalló en la tarea «Descargar versión 9.9.999 publicada por el pipeline» de nodo-jboss: Request failed\nok: [nodo-jboss]\n\nTASK [Versión en producción] ***************************************************\nok: [nodo-jboss]\n\nTASK [Descargar versión 9.9.999 publicada por el pipeline] *********************\nfatal: [nodo-jboss]: FAILED! => {"changed": false, "dest": "/var/lib/app-jboss/nueva.war", "elapsed": 0, "gid": 0, "group": "root", "mode": "0640", "msg": "Request failed", "owner": "root", "response": "HTTP Error 404: Not Found", "secon'}
+JOB 24137 Seguridad · Aplicar parches de seguridad
+  EV Repositorios habilitados | 3 | 
+  EV Hay de dónde traer los parches | All assertions passed | 
+  EV Parches de seguridad |  | 
+  EV ¿Necesita reiniciar? | no | 
+  EV Resultado | nodo-jboss: parches aplicados · reinicio pendiente: no | 
+ADHOC 24711 successful
+== release
+Red Hat Enterprise Linux release 9.8 (Plow)
+redhat-release-9.8-1.0.el9.x86_64
+== kernel
+5.14.0-741.20.1.el9_9.x86_64
+kernel-5.14.0-687.5.3.el9_8.x86_64
+kernel-5.14.0-741.20.1.el9_9.x86_64
+kernel-core-5.14.0-687.5.3.el9_8.x86_64
+kernel-core-5.14.0-741.20.1.el9_9.x86_64
+== needs-restarting
+Updating Subscription Management repositories.
+No core libraries or services have been updated since boot-up.
+Reboot should not be necessary.
+== sm release
+Release not set
+== repos
+repo id                           repo name
+jb-eap-8.0-for-rhel-9-x86_64-rpms JBoss Enterprise Application Platform 8.0 (RHEL 9 x86_64) (RPMs)
+rhel-9-for-x86_64-appstream-rpms  Red Hat Enterprise Linux 9 for x86_64 - AppStream (RPMs)
+rhel-9-for-x86_64-baseos-rpms     Red Hat Enterprise Linux 9 for x86_64 - BaseOS (RPMs)
+== history
+Updating Subscription Management repositories.
+ID     | Command line             | Date and time    | Action(s)      | Altered
+-------------------------------------------------------------------------------
+     6 | -y -q install firewalld  | 2026-11-11 12:46 | Install        |    7 EE
+     5 | -y -q upgrade --security | 2026-11-11 09:55 | I, O, U        |  167 EE
+     4 |                          | 2026-11-01 00:48 | Install        |   23   
+     3 | -y -q install redis      | 2026-11-01 00:46 | Install        |    1   
+     2 | -y -q install git-core   | 2026-10-30 01:55 | Install        |    1   
+== history last info
+Updating Subscription Management repositories.
+Transaction ID : 6
+Begin time     : Wed Nov 11 12:46:11 2026
+Begin rpmdb    : ea839d8fea70b7bda09ce29c61ffc816f9cc4b9e82835961b668accc84b36163
+End time       : Wed Nov 11 12:46:13 2026 (2 seconds)
+End rpmdb      : 2b6f18000b51f0ccc349c58da53568280a1b2a3ffa21525d292f3ffef25ba1cc
+User           :  <ansible>
+Return-Code    : Success
+Releasever     : 9
+Command Line   : -y -q install firewalld
+Persistence    : Persist
+Comment        : 
+Packages Altered:
+    Install libcap-ng-python3-0.8.2-7.el9.x86_64       @rhel-9-for-x86_64-appstream-rpms
+    Install ipset-7.11-11.el9_5.x86_64                 @rhel-9-for-x86_64-baseos-rpms
+    Install ipset-libs-7.11-11.el9_5.x86_64            @rhel-9-for-x86_64-baseos-rpms
+    Install firewalld-1.3.4-20.el9_8.noarch            @rhel-9-for-x86_64-baseos-rpms
+    Install firewalld-filesystem-1.3.4-20.el9_8.noarch @rhel-9-for-x86_64-baseos-rpms
+    Install python3-firewall-1.3.4-20.el9_8.noarch     @rhel-9-for-x86_64-baseos-rpms
+    Install python3-nftables-1:1.0.9-9.el9_8.x86_64    @rhel-9-for-x86_64-baseos-rpms
+Scriptlet output:
+   1 Created symlink /etc/systemd/system/dbus-org.fedoraproject.FirewallD1.service → /usr/lib/systemd/system/firewalld.service.
+   2 Created symlink /etc/systemd/system/multi-user.target.wants/firewalld.service → /usr/lib/systemd/system/firewalld.service.
+== makecache
+== redhat-release disponibles
+redhat-release.x86_64         9.7-0.6.el9          rhel-9-for-x86_64-baseos-rpms
+redhat-release.x86_64         9.7-0.7.el9          rhel-9-for-x86_64-baseos-rpms
+redhat-release.x86_64         9.7-0.10.el9         rhel-9-for-x86_64-baseos-rpms
+redhat-release.x86_64         9.8-1.0.el9          rhel-9-for-x86_64-baseos-rpms
+redhat-release.x86_64         9.9-1.0.el9          rhel-9-for-x86_64-baseos-rpms
+== upgrades
+Available Upgrades
+aardvark-dns.x86_64                       3:1.17.1-1.el9                 rhel-9-for-x86_64-appstream-rpms
+alsa-lib.x86_64                           1.2.16.1-1.el9                 rhel-9-for-x86_64-appstream-rpms
+audit.x86_64                              3.1.5-9.el9                    rhel-9-for-x86_64-baseos-rpms   
+audit-libs.x86_64                         3.1.5-9.el9                    rhel-9-for-x86_64-baseos-rpms   
+authselect.x86_64                         1.2.7-1.el9                    rhel-9-for-x86_64-baseos-rpms   
+authselect-compat.x86_64                  1.2.7-1.el9                    rhel-9-for-x86_64-appstream-rpms
+authselect-libs.x86_64                    1.2.7-1.el9                    rhel-9-for-x86_64-baseos-rpms   
+avahi-libs.x86_64                         0.8-24.el9                     rhel-9-for-x86_64-baseos-rpms   
+bluez.x86_64                              5.87+1.git30db66dc971b-1.el9_8 rhel-9-for-x86_64-baseos-rpms   
+cloud-init.noarch                         24.4-8.el9_8.1                 rhel-9-for-x86_64-appstream-rpms
+container-selinux.noarch                  4:2.250.0-1.el9                rhel-9-for-x86_64-appstream-rpms
+containers-common.x86_64                  5:5.8-2.el9                    rhel-9-for-x86_64-appstream-rpms
+criu.x86_64                               3.19-6.el9                     rhel-9-for-x86_64-appstream-rpms
+criu-libs.x86_64                          3.19-6.el9                     rhel-9-for-x86_64-appstream-rpms
+crypto-policies.noarch                    20260714-1.git65b74f7.el9      rhel-9-for-x86_64-baseos-rpms   
+crypto-policies-scripts.noarch            20260714-1.git65b74f7.el9      rhel-9-for-x86_64-baseos-rpms   
+cryptsetup-libs.x86_64                    2.8.6-2.el9                    rhel-9-for-x86_64-baseos-rpms   
+dbus.x86_64                               1:1.12.20-10.el9               rhel-9-for-x86_64-baseos-rpms   
+dbus-common.noarch                        1:1.12.20-10.el9               rhel-9-for-x86_64-baseos-rpms   
+dbus-libs.x86_64                          1:1.12.20-10.el9               rhel-9-for-x86_64-baseos-rpms   
+dbus-tools.x86_64                         1:1.12.20-10.el9               rhel-9-for-x86_64-baseos-rpms   
+device-mapper.x86_64                      9:1.02.207-6.el9               rhel-9-for-x86_64-baseos-rpms   
+device-mapper-libs.x86_64                 9:1.02.207-6.el9               rhel-9-for-x86_64-baseos-rpms   
+dnf.noarch                                4.14.0-37.el9                  rhel-9-for-x86_64-baseos-rpms   
+dnf-data.noarch                           4.14.0-37.el9                  rhel-9-for-x86_64-baseos-rpms   
+dnf-plugins-core.noarch                   4.3.0-27.el9                   rhel-9-for-x86_64-baseos-rpms   
+elfutils-debuginfod-client.x86_64         0.195-1.el9                    rhel-9-for-x86_64-baseos-rpms   
+elfutils-default-yama-scope.noarch        0.195-1.el9                    rhel-9-for-x86_64-baseos-rpms   
+elfutils-libelf.x86_64                    0.195-1.el9                    rhel-9-for-x86_64-baseos-rpms   
+elfutils-libs.x86_64                      0.195-1.el9                    rhel-9-for-x86_64-baseos-rpms   
+ethtool.x86_64                            2:6.19-1.el9                   rhel-9-for-x86_64-baseos-rpms   
+file.x86_64                               5.39-19.el9                    rhel-9-for-x86_64-baseos-rpms   
+file-libs.x86_64                          5.39-19.el9                    rhel-9-for-x86_64-baseos-rpms   
+fuse-overlayfs.x86_64                     1.17-1.el9                     rhel-9-for-x86_64-appstream-rpms
+fwupd.x86_64                              2.1.6-1.el9                    rhel-9-for-x86_64-baseos-rpms   
+hwdata.noarch                             0.348-9.24.el9                 rhel-9-for-x86_64-baseos-rpms   
+ima-evm-utils.x86_64                      1.6.2-4.el9                    rhel-9-for-x86_64-baseos-rpms   
+initscripts-rename-device.x86_64          10.11.9-2.el9                  rhel-9-for-x86_64-baseos-rpms   
+initscripts-service.noarch                10.11.9-2.el9                  rhel-9-for-x86_64-baseos-rpms   
+== updateinfo summary
+Updates Information Summary: available
+    93 Bugfix notice(s)
+== sec pend
+== sec cves
+0
+== check-update --security
+== modules
+STDERR 
+--- fin: 2026-11-11T18:49:33-03:00 · código: 0
