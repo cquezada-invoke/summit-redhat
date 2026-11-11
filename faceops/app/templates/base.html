@@ -233,7 +233,7 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 .solo-chat .as-mic,.solo-chat .as-voz{width:44px;height:44px;flex-basis:44px}
 .as-pie{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}.as-pie input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px}</style>
 <button type="button" class="as-btn" id="as-btn" title="Asistente: pídele un ticket" aria-label="Abrir el asistente"><img src="{{ url_for('static', filename='asistente.webp') }}" alt=""></button>
-<section class="as-panel" id="as-panel" hidden aria-label="Asistente de FaceOps"><div class="as-cab"><img src="{{ url_for('static', filename='asistente.webp') }}" alt="">Asistente FaceOps<button type="button" id="as-limpiar" class="as-limpiar" title="Limpiar conversación">Limpiar</button><button type="button" id="as-x" aria-label="Cerrar">×</button></div>
+<section class="as-panel" id="as-panel" hidden aria-label="Asistente de FaceOps"><div class="as-cab"><img src="{{ url_for('static', filename='asistente.webp') }}" alt="">Asistente FaceOps{{ ia_badge('agente') }}<button type="button" id="as-limpiar" class="as-limpiar" title="Limpiar conversación">Limpiar</button><button type="button" id="as-x" aria-label="Cerrar">×</button></div>
 <div class="as-log" id="as-log"><div class="as-hola">
 <img class="as-bot" src="{{ url_for('static', filename='asistente.webp') }}" alt="">
 <b>¡Hola, {{ usuario.nombre.split(' ')[0] }}!</b>

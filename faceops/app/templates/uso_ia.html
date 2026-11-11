@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block titulo %}Uso de IA{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Uso de IA</h1><p class="sub"><a href="{{ url_for('consola.configuracion') }}">Administración</a> › Dónde interviene la IA en FaceOps, con qué modelo y qué datos recibe.</p></div></div>
+<div class="card" style="border-left:4px solid #6d28d9"><b>Regla</b><p style="margin:4px 0 0">{{ regla }}</p></div>
+<div class="card" style="overflow-x:auto;margin-top:12px">
+<table style="font-size:13px;min-width:900px"><tr><th>Dónde</th><th>Qué hace la IA</th><th>Modelo / proveedor</th><th>Datos que envía</th><th>Nunca envía</th><th>Decide o sugiere</th><th>Estado</th><th>Llamadas (30 días)</th></tr>
+{% for u in filas %}<tr id="ia-{{ u.id }}">
+<td>{% if u.url %}<a href="{{ u.url }}">{{ u.donde }}</a>{% else %}{{ u.donde }}{% endif %}</td>
+<td>{{ u.que_hace }}</td><td>{{ u.modelo }}<br><span class="sub" style="font-size:12px">{{ u.proveedor }}</span></td>
+<td>{{ u.envia }}</td><td>{{ u.nunca }}</td><td>{{ u.decide }}</td>
+<td>{% if u.esta_activo %}<span class="chip ok">activa</span>{% elif u.esta_activo is none %}<span class="chip">—</span>{% else %}<span class="chip">inactiva (sin clave)</span>{% endif %}</td>
+<td style="text-align:right">{{ u.llamadas if u.llamadas is not none else '—' }}</td></tr>{% endfor %}
+</table>
+<p class="sub" style="font-size:12px;margin:8px 0 0">«—» en llamadas: no se registra en FaceOps (la Fábrica lleva su propio registro). Las claves viven en la bóveda y nunca se muestran.</p></div>
+{% if no_ia %}<div class="card" style="margin-top:12px"><b>Sin IA</b><ul style="margin:6px 0 0">{% for x in no_ia %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
+{% if otros %}<div class="card" style="margin-top:12px"><b>Otros sistemas con IA</b><ul style="margin:6px 0 0">{% for o in otros %}<li><b>{{ o.nombre }}</b>: {{ o.detalle }}</li>{% endfor %}</ul></div>{% endif %}
+{% endblock %}

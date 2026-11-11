@@ -336,6 +336,7 @@ def create_app():
     from . import recuperar   # noqa: F401  (recuperar clave desde el login)
     from . import multicliente   # noqa: F401  (FaceOps centralizado · demo: registra /clientes en la consola)
     from . import salud_acciones   # noqa: F401  (flotante de salud: acciones para llegar al 100 %)
+    from . import ia_usos   # noqa: F401  (Administración › Uso de IA y distintivo «IA»)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo
     app.jinja_env.globals["es_demo"] = multicliente.es_demo
@@ -352,6 +353,12 @@ def create_app():
         vigia()
         from .paquetes import precargar
         precargar()   # registro de paquetes en memoria antes de la primera ficha de servidor
+        try:   # diagnósticos y propuestas de las alertas por correo al responsable de la máquina
+            from .alerta_diagnostico import iniciar as _correo_alertas
+            with app.app_context():
+                _correo_alertas()
+        except Exception as e_:  # noqa: BLE001
+            app.logger.warning("correo de alertas: %s", e_)
     from .bloqueo_admin import iniciar_latido
     iniciar_latido()   # FaceOps informa a FaceAdmin (solo de adentro hacia afuera)
     return app

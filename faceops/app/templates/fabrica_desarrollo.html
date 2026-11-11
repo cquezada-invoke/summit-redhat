@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block titulo %}Desarrollo{% endblock %}
 {% block cuerpo %}
-<div class="fila" style="align-items:flex-start;gap:10px"><div><h1 style="margin:0">Desarrollo</h1>
+<div class="fila" style="align-items:flex-start;gap:10px"><div><h1 style="margin:0">Desarrollo{{ ia_badge('fabrica') }}</h1>
 <p class="sub" style="margin:4px 0 0">Describe en el chat lo que necesitas: el agente genera el desarrollo para OpenShift cumpliendo las <a href="{{ url_for('consola.politicas_desarrollo') }}">políticas de software</a>, crea el repositorio y la rama, y lo lanza al pipeline (revisión y despliegue, con aprobación).</p></div>
 {% if fabrica_url %}<div class="der"><a class="btn sec" href="{{ url_for('consola.fabrica_abrir') }}" target="_blank" rel="noopener">Abrir en otra pestaña</a></div>{% endif %}</div>
 {% if fabrica_url %}<iframe src="{{ fabrica_url }}" title="Fábrica de software" style="width:100%;height:calc(100vh - 260px);min-height:480px;border:1px solid var(--line);border-radius:8px;margin-top:12px;background:#fff" allow="clipboard-write"></iframe>

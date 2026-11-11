@@ -1,0 +1,58 @@
+# Uso de IA en FaceOps: cada punto donde interviene un modelo de IA. Fuente única de Administración › Uso de IA y de los
+# distintivos «IA» de las pantallas. Al agregar o cambiar un uso de IA en el código, se actualiza aquí.
+#   id        clave del distintivo (ia_badge('<id>')) y ancla de la página
+#   donde     pantalla o acción;  enlace: endpoint de Flask (o URL) para llegar
+#   activo    cómo se sabe si está activa: agente (clave de Anthropic en la bóveda) | fabrica (Fábrica conectada)
+#   conteo    cómo se cuentan las llamadas recientes: auditoria:<accion> (últimos 30 días) | vacío = no se registra en FaceOps
+regla: >-
+  La IA de FaceOps nunca actúa sobre máquinas: toda acción es una automatización que pasa por un ticket con la aprobación que
+  corresponda. La IA busca, resume, prepara formularios o genera código; la decisión y la ejecución siempre las aprueba una persona.
+usos:
+  - id: agente
+    donde: Asistente FaceOps (botón flotante, texto libre)
+    enlace: consola.inicio
+    que_hace: >-
+      Conversa en lenguaje natural y responde con los mismos datos que ve el usuario (inventario, tickets, salud, automatizaciones,
+      segmentos). Para actuar prepara el formulario de la automatización; el usuario lo revisa y presiona «Ejecutar».
+    modelo: Claude (claude-sonnet-5-5, variable FACEOPS_AGENTE_MODELO)
+    proveedor: Anthropic · API de mensajes
+    envia: Texto del usuario, últimos 16 mensajes y los resultados de las consultas que pide el modelo (solo equipos y automatizaciones visibles para ese usuario).
+    nunca: Claves, credenciales ni contenido de la bóveda; datos de otros clientes o de segmentos que el usuario no ve.
+    decide: Sugiere y prepara; no crea tickets ni toca máquinas
+    activo: agente
+    conteo: auditoria:agente
+  - id: agente-movil
+    donde: FaceOps móvil (chat a pantalla completa)
+    enlace: consola.movil
+    que_hace: El mismo agente del asistente, en el teléfono.
+    modelo: Claude (claude-sonnet-5-5)
+    proveedor: Anthropic · API de mensajes
+    envia: Lo mismo que el asistente.
+    nunca: Lo mismo que el asistente.
+    decide: Sugiere y prepara; no crea tickets ni toca máquinas
+    activo: agente
+    conteo: ""
+  - id: fabrica
+    donde: Gobierno › Fábrica de software › Desarrollo
+    enlace: consola.fabrica_desarrollo
+    que_hace: >-
+      Planifica y genera el código de una aplicación para OpenShift según las políticas de software, lo revisa como lo haría el
+      compilador y lo deja en un repositorio y rama propios. El despliegue va por el pipeline con ticket y aprobación en FaceOps.
+    modelo: Claude (claude-sonnet-5-5) o, a elección, Qwen2.5-Coder 14B en vLLM con GPU propia (modelo abierto)
+    proveedor: Anthropic · API de mensajes / vLLM en la infraestructura de Invoke
+    envia: Lo que el usuario describe en el chat de la Fábrica y las políticas de software del cliente.
+    nunca: Inventario, credenciales, datos de máquinas ni tickets.
+    decide: Genera código; el despliegue requiere ticket y aprobación
+    activo: fabrica
+    conteo: ""
+no_ia:
+  - Los botones y pasos guiados del asistente (listas, detalle, formularios, confirmar) se resuelven con reglas, sin IA.
+  - «Aplicación e IA» en el mapa y en la salud de un segmento muestra métricas que publican las aplicaciones del cliente (p. ej. tiempos de su modelo); FaceOps no llama a ese modelo.
+  - Las automatizaciones, la salud, el cumplimiento y las alertas se calculan con reglas y datos de AAP; no usan IA.
+otros_sistemas:
+  - nombre: JavIA (demo-javia)
+    detalle: Catálogo de agentes por aplicación sobre el data lake; modelos de ML clásicos y un modelo abierto (Granite en Ollama) en OpenShift.
+  - nombre: IA analítica y Fiscalía (demo-ia-analitica, demo-fiscalia)
+    detalle: Demos con modelo abierto Granite (Ollama) dentro de OpenShift; no comparten datos con FaceOps.
+  - nombre: FaceAdmin
+    detalle: Análisis de alcance de oportunidades y agente que completa datos de empresas (Claude); ver «Uso de IA» en FaceAdmin.
