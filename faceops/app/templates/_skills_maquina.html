@@ -1,0 +1,86 @@
+{# Ficha de la máquina · botón «Skills» en la caja de estado y panel lateral con todas las habilidades de la máquina, agrupadas
+   por contexto. Cada skill crea un ticket (con aprobación si su automatización la pide); las que piden datos abren su formulario
+   y las que tienen flotante propio en la ficha (mover, recursos, discos, puntos) lo abren. Datos: g.skills_maq (skills_maquina.armar). #}
+{% set skm = g.skills_maq or {'grupos': [], 'total': 0, 'bloqueadas': 0} %}
+{% if skm.total %}<div class="eq-energia-acc"><button type="button" class="btn-energ sk-abrir" id="sk-btn" aria-haspopup="dialog" aria-controls="sk-cajon" title="Skills de {{ e.nombre }}: encender, apagar, inventariar, mover, recursos, seguridad, respaldo… (cada una crea su ticket)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><span>Skills</span><b class="sk-n">{{ skm.total - skm.bloqueadas }}</b></button></div>
+<style>
+#btn-mover{display:none!important}
+.btn-energ.sk-abrir{color:var(--acc);border-color:var(--acc);width:auto!important;padding:0 14px!important}.btn-energ.sk-abrir:hover{background:var(--acc);color:#fff}
+.sk-abrir .sk-n{font-size:11px;background:var(--soft);color:var(--ink);border-radius:9px;padding:0 6px;font-weight:600}
+#sk-cajon .sk-tit{display:flex;flex-direction:column;margin:2px 0 8px}#sk-cajon .sk-tit h2{margin:2px 0 0}
+#sk-cajon .sk-busca{flex:1;min-width:120px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:13px}
+#sk-cajon .sk-grupo{border-top:1px solid var(--line);padding:6px 0}
+#sk-cajon .sk-grupo>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px;padding:6px 0}
+#sk-cajon .sk-grupo>summary::-webkit-details-marker{display:none}
+#sk-cajon .sk-grupo>summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-right:2px}
+#sk-cajon .sk-grupo[open]>summary::before{transform:rotate(45deg)}
+#sk-cajon .sk-grupo>summary .sub{font-weight:400;font-size:12px}
+#sk-cajon .sk-item{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;margin:0 0 6px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+#sk-cajon .sk-item.bloq{background:var(--soft);opacity:.75}
+#sk-cajon .sk-item b{font-size:13.5px}#sk-cajon .sk-que{grid-column:1;font-size:12px;color:var(--muted)}
+#sk-cajon .sk-chips{grid-column:1;display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}#sk-cajon .sk-chips .chip{font-size:10.5px;padding:0 6px}
+#sk-cajon .sk-acc{grid-column:2;grid-row:1/span 3;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px}
+#sk-cajon .sk-acc .btn{white-space:nowrap}#sk-cajon .sk-acc .btn.peligro{background:var(--bad);border-color:var(--bad)}
+#sk-cajon .sk-tk{font-size:12px;text-align:right}#sk-cajon .sk-tk a{font-weight:600}
+#sk-cajon .sk-form{grid-column:1/-1;margin-top:6px}#sk-cajon .sk-form .fila{justify-content:flex-end;gap:6px;margin-top:6px}
+#sk-cajon .sk-vacio{font-size:12.5px;color:var(--muted);margin:10px 0}
+#sk-dlg .sk-d-txt{font-size:13.5px;margin:6px 0 10px}#sk-dlg .sk-d-pie{display:flex;justify-content:flex-end;gap:8px}
+</style>
+<div id="sk-velo" class="cajon-velo" hidden></div>
+<aside id="sk-cajon" class="cajon" hidden aria-label="Skills de la máquina"><div class="cajon-barra"><input type="search" class="sk-busca" placeholder="Buscar skill ({{ skm.total }})…" aria-label="Buscar skill"><button type="button" class="btn chico gris" data-sk-todo="abrir">Expandir</button><button type="button" class="btn chico gris" data-sk-todo="cerrar">Contraer</button><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
+<div class="sk-tit"><span class="sub" style="font-size:12px">{{ cod_eq(e) }} · skills</span><h2>Skills de la máquina</h2>
+<span class="sub" style="font-size:12.5px;margin-top:4px">Cada skill es una automatización del catálogo con contexto propio sobre {{ e.nombre }}: crea su ticket{% if skm.bloqueadas %} · {{ skm.bloqueadas }} bloqueada{{ 's' if skm.bloqueadas != 1 }} por la regla de prueba{% endif %}.</span></div>
+{% for gr in skm.grupos %}<details class="sk-grupo" data-g="{{ gr.clave }}" open><summary>{{ gr.nombre }} <span class="sub">{{ gr.skills|length }}</span></summary>
+{% for s in gr.skills %}{% set dis = s.bloqueo or s.deshab %}<div class="sk-item{{ ' bloq' if s.bloqueo }}" data-sk="{{ s.id }}" data-q="{{ (s.nombre ~ ' ' ~ s.que ~ ' ' ~ s.aap ~ ' ' ~ gr.nombre)|lower }}"{% if dis %} title="{{ dis }}"{% endif %}>
+<b>{{ s.nombre }}</b><span class="sk-que">{{ s.que or '—' }}</span>
+<span class="sk-chips">{% if s.aprob %}<span class="chip s-media" title="El ticket espera la aprobación de su área antes de ejecutarse">con aprobación</span>{% else %}<span class="chip" title="Se ejecuta al crear el ticket">sin aprobación</span>{% endif %}{% if s.lectura %}<span class="chip s-ok" title="Solo lee: no cambia la máquina">solo lectura</span>{% endif %}{% if s.bloqueo %}<span class="chip s-alta">bloqueada · falta su prueba</span>{% elif s.aid %}<span class="chip" title="Pasó su plan de prueba (regla de prueba)">certificada</span>{% endif %}{% if s.tipo == 'form' %}<span class="chip" title="Pide datos antes de crear el ticket">pide datos</span>{% endif %}</span>
+<span class="sk-acc"><button type="button" class="btn chico{{ ' peligro' if s.destructiva and not dis }}{{ ' gris' if s.tipo == 'abrir' }}" data-sk-ir="{{ s.id }}" {{ 'disabled' if dis }}{% if dis %} title="{{ dis }}"{% endif %}>{{ 'Abrir' if s.tipo == 'abrir' else ('Completar datos' if s.tipo == 'form' else 'Ejecutar') }}</button><span class="sk-tk"></span></span>
+</div>{% endfor %}</details>{% endfor %}
+<p class="sk-vacio" hidden>Ninguna skill coincide con la búsqueda.</p>
+</aside>
+<dialog id="sk-dlg" class="dlg" aria-labelledby="sk-d-tit"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
+<h3 id="sk-d-tit" style="margin:0 0 4px"></h3><p class="sk-d-txt"></p><p class="sub sk-d-aprob" style="font-size:12.5px;margin:0 0 12px"></p>
+<div class="sk-d-pie"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button type="button" class="btn sk-d-ok">Crear ticket</button></div></dialog>
+<script>(()=>{const SK=Object.fromEntries({{ skm.grupos|map(attribute='skills')|sum(start=[])|tojson }}.map(s=>[s.id,s]));
+const c=document.getElementById('sk-cajon'),v=document.getElementById('sk-velo'),dlg=document.getElementById('sk-dlg'),bq=c.querySelector('.sk-busca'),CSRF={{ csrf|tojson }},MAQ={{ e.nombre|tojson }};
+const ETQ={exitoso:'exitoso',fallido:'fallido',rechazado:'rechazado',vencido:'aprobación vencida',pendiente_aprobacion:'espera aprobación',en_ejecucion:'en ejecución',en_cola:'en cola',cancelado:'cancelado'};
+const abrir=window.fxAbrirSkills=()=>{c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'));setTimeout(()=>bq.focus(),60);};
+const cerrar=()=>{c.classList.remove('abierto');v.hidden=true;setTimeout(()=>c.hidden=true,180);};
+document.getElementById('sk-btn').onclick=abrir;v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!c.hidden&&!dlg.open)cerrar();});
+c.querySelectorAll('[data-sk-todo]').forEach(b=>b.onclick=()=>c.querySelectorAll('.sk-grupo').forEach(d=>d.open=b.dataset.skTodo==='abrir'));
+bq.oninput=()=>{const t=bq.value.trim().toLowerCase();let n=0;c.querySelectorAll('.sk-grupo').forEach(gr=>{let k=0;gr.querySelectorAll('.sk-item').forEach(it=>{const ok=!t||it.dataset.q.includes(t);it.hidden=!ok;if(ok)k++;});gr.hidden=!k;if(t&&k)gr.open=true;n+=k;});c.querySelector('.sk-vacio').hidden=!!n;};
+const tk=(it,t)=>{const x=it.querySelector('.sk-tk');x.textContent='';const a=document.createElement('a');a.href=t.url;a.textContent=t.numero;a.title='Abrir el ticket';x.append(a,' · '+(ETQ[t.estado]||String(t.estado||'').replace(/_/g,' ')));};
+function crear(s,it,extra){const b=it.querySelector('[data-sk-ir]');b.disabled=true;const x=it.querySelector('.sk-tk');x.textContent='creando…';
+ const fd=new FormData();fd.append('_csrf',CSRF);fd.append('motivo',s.nombre+' en '+MAQ+' (skill desde su ficha)');Object.entries(s.datos||{}).forEach(([k,v_])=>fd.append(k,v_));
+ if(extra)for(const [k,v_] of extra.entries())fd.append(k,v_);
+ fetch(s.url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.text().then(z=>{try{return JSON.parse(z);}catch(_){const m=(z.match(/<p>([^<]*)<\/p>/)||[])[1];return {error:m||('No se pudo crear el ticket (error '+r.status+')')};}}))
+ .then(t=>{b.disabled=false;if(t.error){x.textContent='';fxAviso(t.error,'error');return;}tk(it,t);const f=it.querySelector('.sk-form');if(f)f.hidden=true;
+  fxAviso(t.numero+' creado: '+s.nombre+(t.estado==='pendiente_aprobacion'?' espera aprobación':''),'ok');window.fxNuevoTicket&&window.fxNuevoTicket(Object.assign({auto:s.nombre,nombre_aap:s.aap},t));})
+ .catch(()=>{b.disabled=false;x.textContent='';fxAviso('No se pudo crear el ticket','error');});}
+function confirmar(s,it){dlg.querySelector('#sk-d-tit').textContent=s.nombre+' · '+MAQ;dlg.querySelector('.sk-d-txt').textContent=s.confirmar||('¿'+s.nombre+' en '+MAQ+'? '+(s.que||''));
+ dlg.querySelector('.sk-d-aprob').textContent=s.aprob?'Se crea un ticket que espera la aprobación de su área antes de ejecutarse.':'Se crea el ticket y se ejecuta de inmediato.';
+ const ok=dlg.querySelector('.sk-d-ok');ok.textContent=s.destructiva?s.nombre:'Crear ticket';ok.classList.toggle('peligro',!!s.destructiva);ok.style.background=s.destructiva?'var(--bad)':'';ok.style.borderColor=s.destructiva?'var(--bad)':'';
+ ok.onclick=()=>{dlg.close();crear(s,it);};dlg.showModal();}
+function formulario(s,it){let f=it.querySelector('.sk-form');if(f){f.hidden=!f.hidden;return;}
+ f=document.createElement('form');f.className='sk-form as-form';f.noValidate=true;
+ (s.campos||[]).forEach(cp=>{const l=document.createElement('label');l.textContent=(cp.etiqueta||cp.var)+(cp.requerido?' *':'');let el;const df=cp.defecto,nm='v_'+cp.var;
+  if((cp.tipo==='multiplechoice'||cp.tipo==='select')&&cp.opciones){el=document.createElement('select');el.name=nm;if(!cp.requerido||df==null)el.appendChild(new Option('—',''));cp.opciones.forEach(o=>el.appendChild(new Option(String(o),String(o))));if(df!=null)el.value=String(df);}
+  else if(cp.tipo==='multiselect'&&cp.opciones){el=document.createElement('div');el.className='as-chk';cp.opciones.forEach(o=>{const lb=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';cb.name=nm;cb.value=String(o);cb.checked=Array.isArray(df)&&df.map(String).includes(String(o));lb.append(cb,' '+o);el.appendChild(lb);});}
+  else if(cp.tipo==='textarea'){el=document.createElement('textarea');el.name=nm;el.rows=3;if(df!=null)el.value=df;}
+  else{el=document.createElement('input');el.name=nm;el.type=cp.tipo==='integer'?'number':(cp.tipo==='fecha'?'date':(cp.tipo==='password'?'password':'text'));if(cp.tipo==='password')el.autocomplete='new-password';if(df!=null&&cp.tipo!=='password')el.value=Array.isArray(df)?df.join(', '):df;}
+  el.dataset.req=cp.requerido?'1':'';el.dataset.et=cp.etiqueta||cp.var;f.append(l,el);if(cp.ayuda){const h=document.createElement('small');h.textContent=cp.ayuda;f.appendChild(h);}});
+ const pie=document.createElement('div');pie.className='fila';const no=document.createElement('button');no.type='button';no.className='btn chico gris';no.textContent='Cancelar';no.onclick=()=>f.hidden=true;
+ const si=document.createElement('button');si.className='btn chico';si.textContent=s.aprob?'Crear ticket (con aprobación)':'Crear ticket';pie.append(no,si);f.appendChild(pie);
+ f.onsubmit=ev=>{ev.preventDefault();const falta=[...f.querySelectorAll('[data-req="1"]')].filter(x=>x.className==='as-chk'?!x.querySelector('input:checked'):!String(x.value||'').trim()).map(x=>x.dataset.et);
+  if(falta.length){fxAviso('Falta completar: '+falta.join(', '),'error');return;}crear(s,it,new FormData(f));};
+ it.appendChild(f);const p=f.querySelector('input,select,textarea');if(p)p.focus();}
+const ABRIR={recursos:()=>window.fxAbrirRecursos&&fxAbrirRecursos('cpu'),mover:()=>{const b=document.getElementById('btn-mover');if(b)b.click();},
+ 'disco-nuevo':()=>{const d=document.querySelector('.disco-clic[data-disco]');if(d){d.click();const n=document.querySelector('.dk-tab[data-dk="nuevo"]');if(n)n.click();}},
+ disco:()=>{const d=document.querySelector('.disco-clic[data-disco]');if(d)d.click();},
+ puntos:()=>{const b=document.getElementById('pr-conf');if(b)b.click();},
+ recuperar:()=>{const p=document.getElementById('puntos');if(p){p.scrollIntoView({behavior:'smooth',block:'start'});p.classList.add('resalta');setTimeout(()=>p.classList.remove('resalta'),2500);}}};
+c.querySelectorAll('[data-sk-ir]').forEach(b=>b.addEventListener('click',()=>{const s=SK[b.dataset.skIr],it=b.closest('.sk-item');if(!s||b.disabled)return;
+ if(s.tipo==='abrir'){cerrar();setTimeout(()=>(ABRIR[s.abrir]||(()=>{}))(),200);return;}
+ if(s.tipo==='form'){formulario(s,it);return;}confirmar(s,it);}));
+if(location.hash==='#skills')abrir();})();</script>{% endif %}
