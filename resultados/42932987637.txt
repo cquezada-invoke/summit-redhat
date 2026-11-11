@@ -1,0 +1,29 @@
+commit: 79e2f2eced7c27e6fd58b26cba66068a9e686589
+inicio: 2026-11-10T21:39:10-03:00
+---
+http://localhost:9090
+192.168.122.15:9100 2026-11-10 21:26:58
+192.168.122.18:9100 2026-11-10 18:28:57
+node_exporter .15: 200
+boot .15: 2026-11-10 21:26:58
+boot .18: 2026-11-10 18:28:57
+job: 22341
+tipo: workflow_job successful
+TASK [Datos válidos] ***********************************************************
+ok: [anfitrion-kvm] => {
+    "changed": false,
+TASK [Estado antes] ************************************************************
+ok: [anfitrion-kvm]
+TASK [Encender] ****************************************************************
+skipping: [anfitrion-kvm]
+TASK [Apagar (ordenado)] *******************************************************
+skipping: [anfitrion-kvm]
+TASK [Reiniciar (ordenado)] ****************************************************
+changed: [anfitrion-kvm]
+TASK [Esperar el nuevo estado] *************************************************
+ok: [anfitrion-kvm]
+TASK [Resultado para FaceOps] **************************************************
+ok: [anfitrion-kvm]
+PLAY RECAP *********************************************************************
+anfitrion-kvm              : ok=5    changed=1    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+--- fin: 2026-11-10T21:39:12-03:00 · código: 0
