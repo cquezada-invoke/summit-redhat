@@ -4260,7 +4260,7 @@ def consola_equipo(eid):
 
 def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
     """Botones de acceso de la MÁQUINA en el encabezado de la ficha, siempre en el mismo orden: Aplicación · Consola web ·
-    SSH/Escritorio · Monitoreo. Las consolas de PLATAFORMA (JBoss, Redis Insight, Consola Redis, Keycloak, Vault, Jenkins, IdM…)
+    Monitoreo (SSH/Escritorio remoto va en la caja de estado). Las consolas de PLATAFORMA (JBoss, Redis Insight, Consola Redis, Keycloak, Vault, Jenkins, IdM…)
     van en la tarjeta de su plataforma (c["consolas"]). Solo las que aplican y responden (plataforma detenida o consola
     restringida no se ofrecen)."""
     from urllib.parse import urlsplit
@@ -4315,9 +4315,7 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
                 cs_.append({"t": x["t"], "url": x["url"], "title": x["title"]})
         else:
             agregar("plataforma", x["t"], x["url"], x["title"])
-    if consola_tipo:
-        agregar(consola_tipo, "SSH" if consola_tipo == "ssh" else "Escritorio remoto", url_for("consola.consola_equipo", eid=e["id"]),
-                "Consola SSH en el navegador" if consola_tipo == "ssh" else "Escritorio remoto (RDP) en el navegador")
+    # SSH / Escritorio remoto: va en la caja de estado «Encendido» (esquina superior derecha), no en el encabezado
     if monit:
         agregar("monitoreo", monit["nombre"].capitalize(), monit["url"], f"La máquina en {monit['nombre']}")
     return out
