@@ -4,6 +4,7 @@
 - Cualquier conjunto de equipos (servidores, storage, redes, sistemas operativos, plataformas, bases de datos…): criterios
   por máquina; cada criterio es un «caso» con su barra de cumplimiento (% de equipos que lo cumplen) y el principio es el
   promedio de sus criterios. Lo que no aplica a un equipo no lo castiga."""
+import math
 import re
 
 from .bd import j
@@ -234,6 +235,27 @@ def salud_combinada(r_mso, plats):
             "criterio": ("Máquina y SO pesan 50 % y el otro 50 % se reparte por igual entre sus plataformas" if ps else "Sin plataformas: es la salud de la máquina y su SO")}
 
 
+ESCALA = {"cpu": (1, 2, 4, 6, 8, 12, 16, 24, 32), "ram": (1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96)}   # lo que ofrece «Ajustar CPU/Memoria»
+
+
+def sugerido(k, cur, u, ops=None):
+    """Valor aplicable (vCPU o GB enteros) al que dejar CPU o memoria para que el uso medio quede cerca del 60 %:
+    redondeo hacia arriba, mínimo 1 y siempre uno de los valores del selector (ops; por defecto la escala estándar).
+    Bajo 15 % propone el menor valor de la escala bajo el actual que cubra ese uso; sobre 70 %, el menor sobre el actual
+    que lo cubra (o el mayor posible). None si no hay un valor aplicable distinto del actual (p. ej. 1 vCPU ya es el mínimo)."""
+    if u is None or not cur:
+        return None
+    ops = sorted({int(x) for x in (ops or ESCALA[k]) if int(x) >= 1})
+    ideal = max(1, math.ceil(float(u) * cur / 60 - 1e-9))
+    if u < 15:
+        c_ = [x for x in ops if ideal <= x < cur]
+        return min(c_) if c_ else None
+    if u > 70:
+        c_ = [x for x in ops if x > cur]
+        return min([x for x in c_ if x >= ideal] or [max(c_)]) if c_ else None
+    return None
+
+
 def _pct_uso(u):
     """Salud de un recurso según su uso frente a lo asignado: 15–70 % es lo sano; sobre 70 % baja; bajo 15 % está sobredimensionado."""
     if u is None:
@@ -312,19 +334,23 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
         dk = max([x.get("uso") for x in (uso.get("discos") or []) if x.get("uso") is not None] or [None]) if uso.get("discos") else None
         partes = [("CPU", uso.get("cpu_u"), f"{e.get('cpu') or '—'} vCPU"), ("Memoria", uso.get("ram_u"), f"{round((e.get('ram_mb') or 0) / 1024, 1):g} GB"),
                   ("Disco (volumen más lleno)", dk, "su capacidad")]
+        cur_ = {"CPU": ("cpu", int(e.get("cpu") or 0)), "Memoria": ("ram", round((e.get("ram_mb") or 0) / 1024))}
         sc = []
         for n, u, asig in partes:
             s_ = _pct_uso(u)
             if s_ is None:
                 continue
+            if u < 15 and (n not in cur_ or sugerido(*cur_[n], u) is None):
+                s_ = 100   # no hay a qué bajar: el disco solo se amplía y CPU/memoria ya están en el mínimo aplicable (p. ej. 1 vCPU)
             sc.append(s_)
             r["detalle"].append({"t": n, "uso": u, "asignado": asig, "v": s_})
             if u > 85:
                 r["falta"].append(f"{n} al {u} %: subir lo asignado ({asig}) o reducir la carga")
             elif u > 70:
                 r["falta"].append(f"{n} al {u} %: conviene ampliar antes de llegar al 85 %")
-            elif u < 15:
-                r["falta"].append(f"{n} al {u} %: sobredimensionado, se puede bajar y liberar el anfitrión")
+            elif u < 15 and s_ < 100:
+                k_, c_ = cur_[n]
+                r["falta"].append(f"{n} al {u} %: sobredimensionado, se puede bajar a {sugerido(k_, c_, u)} {'vCPU' if k_ == 'cpu' else 'GB'} y liberar el anfitrión")
         if sc:
             r["pct"] = round(sum(sc) / len(sc))
     # Recuperación: efectividad real de recuperarla

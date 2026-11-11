@@ -102,17 +102,11 @@ def _recurso(e, ac, texto=None, n=None):
     cur = int(e.get("cpu") or 0) if k == "cpu" else round((e.get("ram_mb") or 0) / 1024)
     ops = lim["cpus"] if k == "cpu" else lim["rams"]
     if n is None:
+        from .radar import sugerido
         m = re.search(r"al (\d+(?:[.,]\d+)?) ?%", texto or "")
         if not m or not cur:
             return None
-        u = float(m.group(1).replace(",", "."))
-        ideal = u * cur / 60
-        if u < 15:
-            c_ = [x for x in ops if x < cur and x >= ideal]
-            n = min(c_) if c_ else None
-        else:
-            c_ = [x for x in ops if x > cur]
-            n = min([x for x in c_ if x >= ideal] or [max(c_)] if c_ else [None])
+        n = sugerido(k, cur, float(m.group(1).replace(",", ".")), ops)   # entero aplicable, dentro del selector del anfitrión
     if not n or n == cur or not (1 <= n <= (lim["max_cpu"] if k == "cpu" else lim["max_ram"])):
         return None
     cpu, ram = (n, round((e.get("ram_mb") or 0) / 1024) or 1) if k == "cpu" else (int(e.get("cpu") or 1), n)
@@ -210,3 +204,13 @@ def salud_accion(eid):
         return {"error": str(x)}, 400
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]),
             "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
+
+
+@bp.app_template_global("rec_sugerido")
+def rec_sugerido(k, cur, u, ops=None):
+    """Valor sugerido para el selector de «Ajustar CPU/Memoria» (el mismo cálculo que la sugerencia de Rendimiento)."""
+    from .radar import sugerido
+    try:
+        return sugerido(k, int(cur or 0), u, ops)
+    except (TypeError, ValueError):
+        return None
