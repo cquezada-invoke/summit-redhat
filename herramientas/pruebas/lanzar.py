@@ -98,7 +98,7 @@ with app.app_context():
                 from app.operacion import solicitar_apagado
                 t = solicitar_apagado(u, cl, dict(e), motivo, prueba=True)
             else:
-                t = solicitar_en_equipo(u, cl, a, dict(e), dict(params), motivo, secretos, prueba=True)
+                t = solicitar_en_equipo(u, cl, a, dict(e), dict(params), motivo, secretos, prueba=True, reinstalar=bool(caso.get("reinstalar")))
         else:
             t = solicitar(u, cl, a, caso.get("segmento", ""), dict(params), motivo, secretos, prueba=True)
     except Exception as x:  # noqa: BLE001
