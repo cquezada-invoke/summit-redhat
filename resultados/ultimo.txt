@@ -1,13 +1,10 @@
-commit: 2a0dba87155764e7c55e316985497473948d10f8
-inicio: 2026-11-11T16:49:27-03:00
+commit: d9062b7ab063f258b8f4f3179d152594054cb628
+inicio: 2026-11-11T17:01:03-03:00
 ---
-energía nodo-jboss encender: exitoso FO-LAB-01840
-nodo-jboss con IP
-CASO C1 ok · Instalar
-CASO C2 ok · Repetir
-CASO C3 ok · SSH fallidos
-CASO C4 falla · Equipo apagado
-EVIDENCIA [{"id": "C1", "caso": "Instalar", "resultado": "ok", "evidencia": "node_exporter y temporizador activos; 9 métricas faceops_seg_*: faceops_seg_archivo_huella faceops_seg_cuentas_bloqueadas faceops_seg_root_login_5m faceops_seg_selinux_modo faceops_seg_ssh_fallidos_5m "}, {"id": "C2", "caso": "Repetir", "resultado": "ok", "evidencia": "sin reiniciar el agente (PID 254330), un temporizador, métricas presentes"}, {"id": "C3", "caso": "SSH fallidos", "resultado": "ok", "evidencia": "faceop
-CERT FaceOps · Agente de monitoreo (Linux) → cambiada
-FIN-AGENTE
---- fin: 2026-11-11T17:03:38-03:00 · código: 0
+inventariar srv-mig-rhel8-01: en_ejecucion FO-LAB-01850
+IP srv-mig-rhel8-01 192.168.122.233 · Red Hat Enterprise Linux release 8.10 (Ootpa)
+  C3 srv-mig-rhel8-01: rechazado al solicitar  · None → None · None · None · análisis None 
+CASO C3 falla · RHEL 8 → 9 con Leapp preupgrade
+EVALUAR: [{"id": "C1", "caso": "Rocky 9 política mínimo", "resultado": "ok", "evidencia": "Rocky Linux 9.8 → RHEL 9 · convertir · verde · camino [\"Convertir Rocky Linux 9.8 → RHEL 9 (Convert2RHEL)\"] · paquetes 7969f069f54d=7969f069f54d"}, {"id": "C2", "caso": "Rocky 9 con convert2rhel analyze", "resultado": "ok", "evidencia": "análisis {\"herramienta\": \"convert2rhel analyze\", \"codigo\": \"2\", \"bloqueos\": [\"Invalid kernel version detected\"], \"advertencias\": [\"Outdated packages detected\"], \"error\": \"\"} · Rocky Linux release 9.8 (Blue Onyx) sin-llave"}, {"id": "C4", "caso": "RHEL 9 al día (nodo-jboss-dev)", "resultado": "ok", "evidencia": "RHEL 9.8 · sin acción · amarillo"}, {"id": "C5", "caso": "Destino no válido (99)", "resultado": "ok", "evidencia": "semáforo rojo: Versión de destino 99 no válida para Rocky Linux 9.8: use una versión mayor de RHEL entre 9 y 10"}, {"id"
+EVALUAR sin certificar (casos incompletos o con falla)
+--- fin: 2026-11-11T17:28:41-03:00 · código: 0
