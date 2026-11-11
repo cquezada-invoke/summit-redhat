@@ -150,7 +150,7 @@ def tablero(cat):
             "timezone": "browser", "refresh": "1m", "schemaVersion": 39, "time": {"from": "now-24h", "to": "now"},
             "description": "Generado por Ansible («Monitoreo · Configurar alertas del equipo») desde el catálogo de alertas de FaceOps: no editar a mano",
             "templating": {"list": [{"name": "equipo", "label": "Equipo", "type": "query", "datasource": DS, "refresh": 2, "sort": 1,
-                                     "definition": "label_values(faceops_equipo)", "query": {"qryType": 1, "query": "label_values(faceops_equipo)", "refId": "equipo"}}]},
+                                     "definition": "label_values(faceops_equipo)", "query": "label_values(faceops_equipo)"}]},
             "annotations": {"list": anot}, "panels": paneles}
 
 
