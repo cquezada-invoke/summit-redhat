@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% block titulo %}Demo en GCP{% endblock %}{% block cuerpo %}
+<p class="sub" style="margin:0"><a href="{{ url_for('demos', tipo='demo') }}">Demos y PoC</a> ›</p>
+<h1 style="margin:4px 0">Demo instantánea en GCP</h1>
+<p class="sub" style="margin:0 0 12px">FaceAdmin crea la VM de cada Demo desde la imagen dorada, la enciende solo en horario hábil, la apaga sin uso y la elimina a los 7 días como máximo.</p>
+<div class="grid g2">
+<div class="card"><h2>Cuenta de servicio</h2>
+{% if sa %}<p>Cargada: <b class="mono">{{ sa.correo or '—' }}</b> · proyecto <span class="mono">{{ sa.proyecto or '—' }}</span>{% if sa.id_clave %} · clave {{ sa.id_clave }}…{% endif %}{% if sa.error %} <span class="chip mal">{{ sa.error }}</span>{% endif %}</p>{% else %}<p><span class="chip med">sin cargar</span></p>{% endif %}
+<form method="post" enctype="multipart/form-data" style="display:grid;gap:8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="clave">
+<label>Archivo JSON de la clave<input type="file" name="sa" accept=".json,application/json"></label>
+<p class="sub" style="margin:0;font-size:12px">Se guarda cifrada en un archivo solo legible por FaceAdmin (permisos 600), nunca en la base de datos, el repositorio ni los registros, y no se vuelve a mostrar.
+Permisos mínimos: rol personalizado con compute.instances.{create,get,list,start,stop,delete,setMetadata,setLabels}, compute.disks.create, compute.addresses.{create,get,delete,use}, compute.subnetworks.{use,useExternalIp}, compute.images.useReadOnly, compute.zoneOperations.get, compute.regionOperations.get y compute.zones.get, con condición IAM por nombre «demo-» (ver herramientas/demo-gcp/README.md).</p>
+<div class="fila" style="gap:6px"><button class="btn">Guardar clave</button></div></form>
+<div class="fila" style="gap:6px;margin-top:8px">{% if sa %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="probar"><button class="btn gris">Probar conexión</button></form>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="borrar_clave"><button class="btn gris" onclick="return confirm('¿Eliminar la clave de FaceAdmin?')">Eliminar clave</button></form>{% endif %}</div></div>
+<div class="card"><h2>Máquina y ciclo de vida</h2>
+<form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="config">
+<label>Proyecto<input name="proyecto" value="{{ cfg.proyecto }}"></label><label>Zona<input name="zona" value="{{ cfg.zona }}"></label>
+<label style="grid-column:span 2">Imagen dorada<input name="imagen" value="{{ cfg.imagen }}" title="familia:NOMBRE, nombre de imagen o projects/…/global/images/…"></label>
+<label>Tipo de máquina<input name="tipo" value="{{ cfg.tipo }}" title="Intel (N2/N1/C3): la virtualización anidada no corre en E2"></label><label>Disco (GB)<input type="number" name="disco_gb" min="30" max="500" value="{{ cfg.disco_gb }}"></label>
+<label>Red<input name="red" value="{{ cfg.red }}"></label><label>Prefijo de nombres<input name="prefijo" value="{{ cfg.prefijo }}"></label>
+<label style="grid-column:span 2">URL pública de FaceAdmin (latido de la VM)<input name="faceadmin_url" value="{{ cfg.faceadmin_url }}" placeholder="https://faceadmin.34.176.114.77.sslip.io:8843"></label>
+<label>Duración máx. (días)<input type="number" name="dias_max" min="1" max="7" value="{{ cfg.dias_max }}"></label><label>Aviso previo (h)<input type="number" name="aviso_horas" min="1" max="72" value="{{ cfg.aviso_horas }}"></label>
+<label>Sin uso (min)<input type="number" name="inactividad_min" min="10" max="240" value="{{ cfg.inactividad_min }}"></label><label>Zona horaria<input name="tz" value="{{ cfg.tz }}"></label>
+<label>Días hábiles<input name="dias_habiles" value="{{ cfg.dias_habiles }}"></label><label>Desde<input type="number" name="hora_ini" min="0" max="23" value="{{ cfg.hora_ini }}"></label><label>Hasta<input type="number" name="hora_fin" min="1" max="24" value="{{ cfg.hora_fin }}"></label>
+<label class="fila" style="gap:6px;align-items:center"><input type="checkbox" name="arranque_programado" style="width:auto" {{ 'checked' if cfg.arranque_programado }}> Encender al inicio del horario</label>
+<button class="btn">Guardar</button></form></div></div>
+<div class="card tabla-scroll"><h2>VMs de demo</h2>{% if filas %}<table style="font-size:13px"><tr><th>Demo</th><th>VM</th><th>Estado</th><th>Vence</th><th>Horas</th></tr>
+{% for r in filas %}<tr><td class="mono"><a href="{{ url_for('demo_nube', did=r.demo_id) }}#gcp">{{ r.numero }}</a></td><td class="mono">{{ r.instancia }}{% if r.ip %}<br><span class="sub">{{ r.ip }}</span>{% endif %}</td>
+<td><span class="chip {{ r.est_t[1] }}">{{ r.est_t[0] }}</span></td><td class="mono">{{ r.expira_txt }}</td><td>{{ '%.1f'|format(r.horas_uso or 0) }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Aún no hay demos instantáneas.</p>{% endif %}</div>
+{% endblock %}

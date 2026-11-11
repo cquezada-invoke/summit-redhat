@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block titulo %}Tu demo{% endblock %}{% block cuerpo %}
+<div style="max-width:560px;margin:24px auto">
+<h1 style="margin:0">Demo de FaceOps · {{ c.nombre }}</h1><p class="sub" style="margin:2px 0 14px">{{ d.numero }} · entorno de Invoke en Google Cloud</p>
+<div class="card"><table>
+<tr><td class="sub">Estado</td><td><span class="chip {{ r.est_t[1] }}">{{ r.est_t[0] }}</span></td></tr>
+<tr><td class="sub">Horario</td><td>{{ r.horario }}</td></tr>
+<tr><td class="sub">Disponible hasta</td><td><b>{{ r.expira_txt }}</b> (luego se elimina por completo)</td></tr>
+{% if r.url %}<tr><td class="sub">Acceso</td><td><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.url }}</a></td></tr>{% endif %}
+</table>
+{% if r.estado == 'apagada' %}<form method="post" style="margin-top:12px"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn" {{ 'disabled' if not r.en_horario }}>Encender mi demo</button>
+{% if not r.en_horario %}<p class="sub">Fuera del horario hábil: la demo se puede encender {{ r.horario }}.</p>{% else %}<p class="sub">Queda lista en 2–4 minutos. Se apaga sola después de {{ r.inactividad_min }} minutos sin uso.</p>{% endif %}</form>
+{% elif r.estado == 'activa' %}<p class="sub" style="margin-top:10px">La demo está encendida. Se apaga sola tras {{ r.inactividad_min }} minutos sin uso y fuera del horario hábil.</p>
+{% elif r.estado == 'creando' %}<p class="sub" style="margin-top:10px">Estamos preparando tu demo: vuelve en unos minutos.</p>{% endif %}
+</div></div>{% endblock %}

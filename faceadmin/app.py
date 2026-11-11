@@ -240,7 +240,7 @@ def _antes():
     g.usuario = q1("SELECT id, usuario, nombre, tenant_id FROM usuarios WHERE id=?", session["uid"]) if session.get("uid") else None
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
-    if request.method == "POST" and request.endpoint not in ("ingresar", "recuperar", "api_registro", "api_uso", "api_activar", "api_inst_evento", "api_pedido", "api_recuperar", "api_pulsos") and request.form.get("_csrf") != session["csrf"]:
+    if request.method == "POST" and request.endpoint not in ("ingresar", "recuperar", "api_registro", "api_uso", "api_activar", "api_inst_evento", "api_pedido", "api_recuperar", "api_pulsos", "api_demo_gcp_uso") and request.form.get("_csrf") != session["csrf"]:
         abort(403)
 
 
@@ -978,6 +978,7 @@ import contactos  # noqa: E402,F401  (contactos independientes de las cuentas, c
 import alcance  # noqa: E402,F401  (costo fijo por alcance: análisis con IA y confirmación del especialista de negocio)
 import enriquecer  # noqa: E402,F401  (agente de IA con búsqueda web que completa los datos de las empresas)
 import pulsos  # noqa: E402,F401  (pulsos de uso de FaceOps: ingesta al data lake y vista «Uso de FaceOps»)
+import demo_gcp  # noqa: E402,F401  (Demo instantánea en GCP: VM desde imagen dorada, horario hábil, inactividad y eliminación a los 7 días)
 
 
 def validar_smtp(cfg):

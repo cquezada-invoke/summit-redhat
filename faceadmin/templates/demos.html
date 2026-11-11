@@ -2,7 +2,8 @@
 <div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Demos y PoC</h1><p class="sub" style="margin:2px 0 12px"><b>Demo</b>: un entorno de Invoke ya preparado en la nube para que el cliente pruebe la plataforma por unos días, sin instalar nada.
 <b>PoC</b> (prueba de concepto): la instalación de FaceOps en las dependencias del cliente, por semanas. Ambas se piden desde la oportunidad y vencen solas al llegar a su fecha máxima.</p></div></div>
 <div class="fila" style="gap:6px;margin:0 0 10px;flex-wrap:wrap">{% for k, t in (('', 'Todas'), ('demo', 'Demos (nube Invoke)'), ('poc', 'PoC (en el cliente)')) %}<a class="btn chico {{ '' if tipo == k else 'gris' }}" href="{{ url_for('demos', tipo=k) if k else url_for('demos') }}">{{ t }}</a>{% endfor %}
-<details style="margin-left:auto"><summary class="sub" style="cursor:pointer">Duración máxima: Demo {{ dur.demo_dias }} días · PoC {{ dur.poc_semanas }} semanas</summary>
+<a class="btn chico gris" style="margin-left:auto" href="{{ url_for('demo_gcp_config') }}">Demo instantánea en GCP</a>
+<details><summary class="sub" style="cursor:pointer">Duración máxima: Demo {{ dur.demo_dias }} días · PoC {{ dur.poc_semanas }} semanas</summary>
 <form method="post" action="{{ url_for('demos_duraciones') }}" class="fila" style="gap:8px;align-items:end;margin-top:6px"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <label>Demo (días)<input type="number" name="demo_dias" min="1" max="90" value="{{ dur.demo_dias }}" style="width:90px"></label><label>PoC (semanas)<input type="number" name="poc_semanas" min="1" max="26" value="{{ dur.poc_semanas }}" style="width:90px"></label>
 <button class="btn chico">Guardar</button></form></details></div>

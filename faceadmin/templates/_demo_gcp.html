@@ -1,0 +1,44 @@
+{# Demo instantánea en GCP: se incluye en demo_nube.html #}{% set gx = demo_gcp_de(d.id) %}
+<div class="card" id="gcp"><h2>Demo instantánea en GCP</h2>
+{% if not gx %}{% if d.est in ('pedida', 'preparada', 'activa') %}
+{% if demo_gcp_listo() %}<p class="sub" style="margin-top:0">FaceAdmin crea una VM desde la imagen dorada (AWX + EDA comunitarios, FaceOps, Gitea, Vault, MinIO, Grafana y 2–3 VMs anidadas) en minutos.
+Dura como máximo 7 días y luego se elimina por completo; solo se enciende en horario hábil y se apaga sola si no se usa.</p>
+<form method="post" action="{{ url_for('demo_gcp_accion', did=d.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:end">
+<input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="crear">
+<label>Zona horaria del cliente<input name="tz" value="America/Santiago" maxlength="40"></label>
+<label>Días hábiles<input name="dias_habiles" value="1-5" title="1 = lunes … 7 = domingo; ej. 1-5 o 1,3,5" maxlength="20"></label>
+<label>Desde (hora)<input type="number" name="hora_ini" min="0" max="23" value="8"></label><label>Hasta (hora)<input type="number" name="hora_fin" min="1" max="24" value="19"></label>
+<label>Apagar sin uso (min)<input type="number" name="inactividad_min" min="10" max="240" value="30"></label>
+<label>Usuario del cliente<input name="usuario_cliente" value="cliente" maxlength="32"></label>
+<label style="grid-column:span 2">Aviso de vencimiento a<input type="email" name="correo_aviso" value="{{ c.contacto_correo or '' }}" placeholder="correo del contacto"></label>
+<label class="fila" style="gap:6px;align-items:center"><input type="checkbox" name="arranque_programado" style="width:auto"> Encender al inicio del horario</label>
+<button class="btn">Crear demo instantánea</button></form>
+{% else %}<p class="sub">Para crear demos instantáneas falta cargar la cuenta de servicio y el proyecto de GCP en <a href="{{ url_for('demo_gcp_config') }}">Configuración de la Demo en GCP</a>.</p>{% endif %}
+{% else %}<p class="sub">La Demo está {{ d.est }}.</p>{% endif %}
+{% else %}
+<div class="fila" style="gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="chip {{ gx.est_t[1] }}">{{ gx.est_t[0] }}</span>
+<span class="chip {{ 'ok' if gx.en_horario else '' }}">{{ 'En horario hábil' if gx.en_horario else 'Fuera de horario' }}</span>
+{% if gx.estado not in ('eliminada',) %}<span class="sub">vence el <b>{{ gx.expira_txt }}</b> · quedan {{ gx.quedan_h }} h</span>{% endif %}</div>
+{% if gx.error %}<p class="chip mal" style="display:block;white-space:normal">{{ gx.error }}</p>{% endif %}
+<table style="font-size:13.5px">
+<tr><td class="sub">VM</td><td class="mono">{{ gx.instancia }} · {{ gx.tipo }} · {{ gx.zona }}{% if gx.ip %} · {{ gx.ip }}{% endif %}</td></tr>
+<tr><td class="sub">Acceso</td><td>{% if gx.url %}<a href="{{ gx.url }}" target="_blank" rel="noopener">{{ gx.url }}</a>{% else %}se asigna al crear la VM{% endif %}</td></tr>
+<tr><td class="sub">Horario</td><td>{{ gx.horario }}{{ ' · se enciende sola al inicio' if gx.arranque_programado }} · se apaga tras {{ gx.inactividad_min }} min sin uso</td></tr>
+<tr><td class="sub">Uso</td><td>{% if gx.encendida_txt %}encendida desde {{ gx.encendida_txt }} · {% endif %}{{ gx.horas }} h encendida en total{% if gx.ultimo_uso_txt %} · último uso {{ gx.ultimo_uso_txt }}{% endif %}{% if gx.latido_txt %} · agente {{ gx.latido_txt }}{% endif %}{% if gx.motivo_apagado and gx.estado == 'apagada' %}<br><span class="sub">Apagada: {{ gx.motivo_apagado }}</span>{% endif %}</td></tr>
+{% if gx.enlace %}<tr><td class="sub">Enlace del cliente</td><td><input readonly value="{{ gx.enlace }}" onclick="this.select()" style="width:100%;font-family:var(--mono,monospace);font-size:12px"><span class="sub" style="font-size:12px">«Encender mi demo»: entrégalo al cliente; enciende la VM solo en horario hábil.</span></td></tr>{% endif %}
+<tr><td class="sub">Credenciales</td><td>usuario <b>{{ gx.usuario_cliente }}</b> · {{ 'creadas en la VM' if gx.clave_entregada else 'la VM las toma en su primer arranque' }}</td></tr>
+</table>
+{% if gx.estado not in ('eliminada', 'eliminando', 'vencida') %}<div class="fila" style="gap:6px;flex-wrap:wrap;margin-top:8px">
+{% for acc, t, cls in (('encender', 'Encender', ''), ('apagar', 'Apagar', 'gris'), ('sincronizar', 'Consultar estado', 'gris'), ('clave', 'Ver credenciales', 'gris')) %}
+{% if (acc != 'encender' or gx.estado == 'apagada') and (acc != 'apagar' or gx.estado == 'activa') %}<form method="post" action="{{ url_for('demo_gcp_accion', did=d.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="{{ acc }}"><button class="btn chico {{ cls }}"{% if acc == 'encender' and not gx.en_horario %} disabled title="Solo en horario hábil"{% endif %}>{{ t }}</button></form>{% endif %}{% endfor %}
+<form method="post" action="{{ url_for('demo_gcp_accion', did=d.id) }}" style="margin-left:auto"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="eliminar"><button class="btn chico gris" onclick="return confirm('Se elimina la VM {{ gx.instancia }}, sus discos y su IP. No se puede deshacer. ¿Continuar?')">Eliminar ahora</button></form></div>
+<details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Cambiar horario, inactividad o aviso</summary>
+<form method="post" action="{{ url_for('demo_gcp_accion', did=d.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;align-items:end;margin-top:6px">
+<input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="horario">
+<label>Zona horaria<input name="tz" value="{{ gx.tz }}"></label><label>Días<input name="dias_habiles" value="{{ gx.dias_habiles }}"></label>
+<label>Desde<input type="number" name="hora_ini" min="0" max="23" value="{{ gx.hora_ini }}"></label><label>Hasta<input type="number" name="hora_fin" min="1" max="24" value="{{ gx.hora_fin }}"></label>
+<label>Sin uso (min)<input type="number" name="inactividad_min" min="10" max="240" value="{{ gx.inactividad_min }}"></label>
+<label>Aviso a<input type="email" name="correo_aviso" value="{{ gx.correo_aviso }}"></label>
+<label class="fila" style="gap:6px;align-items:center"><input type="checkbox" name="arranque_programado" style="width:auto" {{ 'checked' if gx.arranque_programado }}> Encender al inicio</label>
+<button class="btn chico">Guardar</button></form></details>{% elif gx.estado == 'eliminada' %}<p class="sub">Eliminada (VM, discos e IP) · {{ gx.horas }} h de uso.</p>{% endif %}
+{% endif %}</div>

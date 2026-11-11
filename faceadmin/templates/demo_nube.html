@@ -24,6 +24,7 @@
 <p class="sub" style="margin:0;font-size:12px">Las credenciales no se guardan en FaceAdmin: solo la nota de cómo se entregaron.</p>
 <div class="fila"><button class="btn">Guardar entorno</button></div></form>
 {% else %}<p class="sub">La Demo está {{ d.est }}: el entorno ya no se modifica. Verifica que el acceso del cliente quedó retirado.</p>{% endif %}</div></div>
+{% include "_demo_gcp.html" %}
 <div class="grid g2">
 <div class="card"><h2>Extender o cerrar</h2>{% set libres = max_dias - (d.dias or 0) %}
 {% if d.est != 'cerrada' and libres > 0 %}<form method="post" class="fila" style="gap:8px;align-items:end;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="extender">
