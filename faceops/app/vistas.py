@@ -8794,6 +8794,37 @@ def equipo_alertas(eid):
     return redirect(vuelta)
 
 
+@bp.route("/inventario/<int:eid>/alertas/probar", methods=["POST"])
+@requiere_login
+def equipo_alerta_probar(eid):
+    """Botón «Probar» de una alerta activa: alerta sintética por la cadena real (Alertmanager → EDA → acción), sin tocar la máquina."""
+    from . import alertas_objeto as ao
+    from .alerta_prueba import lanzar
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or not ao.tipo_de(e):
+        abort(404)
+    amb = (request.form.get("ambito") or "maquina").strip()
+    if amb != "maquina" and not ao.ambito_de_plataforma(amb.split(":", 1)[-1]):
+        abort(400)
+    try:
+        pid = lanzar(current_app._get_current_object(), g.cliente, e, amb, (request.form.get("aid") or "").strip(), g.usuario)
+    except ValueError as x:
+        return {"error": str(x)}, 400
+    return {"id": pid, "url": url_for("consola.equipo_alerta_prueba", eid=eid, pid=pid)}
+
+
+@bp.route("/inventario/<int:eid>/alertas/prueba/<int:pid>")
+@requiere_login
+def equipo_alerta_prueba(eid, pid):
+    from .alerta_prueba import leer
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    p_ = leer(pid)
+    if not e or not p_ or p_["cliente_id"] != g.cliente["id"] or p_["equipo"] != e["nombre"]:
+        abort(404)
+    return {"estado": p_["estado"], "pasos": p_["pasos"], "inicio": p_["inicio"]}
+
+
 @bp.route("/inventario/<int:eid>/alertas/regla")
 @requiere_login
 def equipo_alerta_regla(eid):

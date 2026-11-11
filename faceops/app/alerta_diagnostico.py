@@ -108,6 +108,8 @@ def notificar(cliente, aap, trabajo, para=None):
             return None
         tipo_inf, accion = "Propuesta", acc.get("auto", "")
         cuerpo_t = _resumen_trabajo(aap, trabajo["id"])
+    prueba = "-prueba-" in (alerta or "")   # alerta sintética del botón «Probar»
+    alerta = (alerta or "").split("-prueba-")[0]
     e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente["id"], eq) if eq else None
     a_cat = next((a for a in _catalogo().get("alertas") or [] if a["id"] == alerta), {})
     if para is None:
@@ -115,7 +117,7 @@ def notificar(cliente, aap, trabajo, para=None):
     else:
         quien = para
     estado = {"successful": "terminó bien", "failed": "falló", "error": "falló", "canceled": "se canceló"}.get(trabajo.get("status"), trabajo.get("status"))
-    asunto = f"[FaceOps] {tipo_inf} · alerta {a_cat.get('nombre', alerta)} ({alerta}, {sev or 'sin severidad'}) en {eq or 'equipo desconocido'}"
+    asunto = f"[FaceOps{' · PRUEBA' if prueba else ''}] {tipo_inf} · alerta {a_cat.get('nombre', alerta)} ({alerta}, {sev or 'sin severidad'}) en {eq or 'equipo desconocido'}"
     cuerpo = (f"{tipo_inf} automático de la alerta «{a_cat.get('nombre', alerta)}» ({alerta}, severidad {sev or '—'}) en {eq}.\n"
               f"Acción: {accion} · el trabajo en AAP {estado} ({trabajo.get('finished') or ''}).\n\n"
               f"Resumen:\n{cuerpo_t}\n\n"

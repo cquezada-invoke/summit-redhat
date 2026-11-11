@@ -4,7 +4,9 @@
    en su tarjeta: {{ boton_alertas(alertas_plat(c.codigo, c.nombre), url, c.nombre ~ ' en ' ~ e.nombre, true) }} #}
 {% macro campana(s=20) %}<svg viewBox="0 0 24 24" width="{{ s }}" height="{{ s }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>{% endmacro %}
 {% macro estado_mon(al, a) %}{% if a.mon %}<small class="al-ver"><span class="chip {{ 's-alta' if a.mon.estado == 'firing' else ('s-media' if a.mon.estado == 'pending' else 's-ok') }}" style="font-size:10px">{{ {'firing': 'disparada', 'pending': 'por dispararse', 'inactive': 'activa en el monitoreo'}.get(a.mon.estado, a.mon.estado) }}</span>{% if a.mon.salud != 'ok' %} <span class="chip s-alta" style="font-size:10px">regla con error</span>{% endif %}
-  · <a href="{{ url_for('consola.equipo_alerta_regla', eid=al.eid, aid=a.id, ambito=al.ambito or 'maquina') }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Regla en el monitoreo ↗</a></small>{% elif al.monitoreo and a.en_reflejo %}<small class="al-ver"><span class="chip s-alta" style="font-size:10px">no está cargada en el monitoreo</span></small>{% endif %}{% endmacro %}
+  · <a href="{{ url_for('consola.equipo_alerta_regla', eid=al.eid, aid=a.id, ambito=al.ambito or 'maquina') }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Regla en el monitoreo ↗</a>
+  {% if al.puede %}· <button type="button" class="btn chico gris al-probar" data-url="{{ url_for('consola.equipo_alerta_probar', eid=al.eid) }}" data-aid="{{ a.id }}" data-ambito="{{ al.ambito or 'maquina' }}" onclick="event.preventDefault();event.stopPropagation();fxAlProbar(this)" title="Dispara una alerta de prueba por la cadena real (Alertmanager → EDA → acción) sin tocar la máquina">Probar</button>{% endif %}</small>
+  <small class="al-prueba" {{ 'hidden' if not a.prueba }}>{% if a.prueba %}Prueba {{ a.prueba.inicio|fecha }} · {{ a.prueba.estado }}: {{ (a.prueba.pasos or [])[-1] if a.prueba.pasos else '' }}{% endif %}</small>{% elif al.monitoreo and a.en_reflejo %}<small class="al-ver"><span class="chip s-alta" style="font-size:10px">no está cargada en el monitoreo</span></small>{% endif %}{% endmacro %}
 {% macro boton_alertas(al, accion, nombre, chico=false) %}{% if al %}{% set sx_ = al.sufijo or '' %}
 {% set est_ = 'curso' if al.en_curso else ('on' if al.n else 'off') %}
 <button type="button" id="alertas{{ sx_ }}" class="al-btn al-solo al-{{ est_ }}{{ ' al-chica' if chico }}" aria-label="Alertas{{ ' de ' ~ nombre if chico }}" onclick="event.stopPropagation();document.getElementById('al-dlg{{ sx_ }}').showModal()"
@@ -60,6 +62,13 @@
 </form></dialog>
 <script>
 // «Generar ticket»: un solo ticket con todas las alertas del flotante; se cierra y el ticket aparece al final de la ficha
+window.fxAlProbar=window.fxAlProbar||function(b){ const out=b.closest('.al-def').querySelector('.al-prueba'); b.disabled=true; out.hidden=false; out.textContent='enviando la alerta de prueba…';
+  const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('aid',b.dataset.aid); fd.append('ambito',b.dataset.ambito);
+  fetch(b.dataset.url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(x=>{
+    if(x.error){out.textContent='falló: '+x.error;b.disabled=false;return;}
+    const ver=()=>fetch(x.url,{headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(p=>{out.textContent=(p.pasos||[]).join(' → ')||'en curso…';
+      if(p.estado==='en curso'){setTimeout(ver,5000);}else{out.textContent=(p.estado==='ok'?'✓ ':'✗ ')+out.textContent;b.disabled=false;}});
+    ver();}).catch(()=>{out.textContent='falló: no se pudo enviar';b.disabled=false;});};
 window.fxAlTicket=window.fxAlTicket||function(ev, f){ if(!window.fxNuevoTicket) return true; ev.preventDefault();
   const b=f.querySelector('.al-btns .btn'); b.disabled=true;
   fetch(f.action,{method:'POST',body:new FormData(f),headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{b.disabled=false;

@@ -195,6 +195,14 @@ def _informe(cliente_id, e):
         return {"acciones": [], "para": "", "quien": ""}
 
 
+def _ult_prueba(cliente_id, e, ambito, aid):
+    try:
+        from .alerta_prueba import ultima
+        return ultima(cliente_id, e["nombre"], ambito, aid)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     """Todo lo que el botón y el flotante necesitan. ambito: maquina (campana de la ficha: la máquina y su SO) o
     plataforma:<familia> (campana de la tarjeta de esa plataforma)."""
@@ -215,11 +223,11 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
                 accs_ = [(cat.get("acciones") or {}).get(k, {}).get("texto", k) for k in (a.get("acciones") or ["avisar"])]
                 grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=False, acciones_l=[], pendiente=a.get("pendiente") or "",
                                                                             en_prueba=False, en_revision=t == "openshift",
-                                                                            acciones_txt=accs_, mon=(prom or {}).get(a["id"]), grafana_ocp=(f"{g_ocp}?" + urlencode({"orgId": 1, "from": "now-24h", "to": "now", "viewPanel": panel_id(a["id"])})) if g_ocp else "", expr_txt=(a.get("expr") or "").replace('{faceops_equipo="__EQ__"}', "").replace('faceops_equipo="__EQ__",', "")))
+                                                                            acciones_txt=accs_, mon=(prom or {}).get(a["id"]), prueba=_ult_prueba(cliente_id, e, ambito, a["id"]) if prom and a["id"] in prom else None, grafana_ocp=(f"{g_ocp}?" + urlencode({"orgId": 1, "from": "now-24h", "to": "now", "viewPanel": panel_id(a["id"])})) if g_ocp else "", expr_txt=(a.get("expr") or "").replace('{faceops_equipo="__EQ__"}', "").replace('faceops_equipo="__EQ__",', "")))
                 continue
             accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k), bloqueo_accion(cliente_id, cat, k)) for k in (a.get("acciones") or ["avisar"])]
             grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x) if prom is None else a["id"] in prom, mon=(prom or {}).get(a["id"]),
-                                                                         en_reflejo=bool(x), acciones_l=accs, grafana=url_grafana(e["nombre"], a["id"], ambito),
+                                                                         en_reflejo=bool(x), acciones_l=accs, prueba=_ult_prueba(cliente_id, e, ambito, a["id"]) if prom and a["id"] in prom else None, grafana=url_grafana(e["nombre"], a["id"], ambito),
                                                                          regla=nombre_regla(a), valor_accion=(x or {}).get("accion", "avisar"),
                                                                          valor_aviso=(x or {}).get("aviso", a.get("aviso")),
                                                                          valor_critico=(x or {}).get("critico", a.get("critico")),
