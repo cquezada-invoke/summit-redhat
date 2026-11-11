@@ -1,124 +1,95 @@
-commit: 5728dd1454f2ff277ea846756779d235c1782560
-inicio: 2026-11-10T21:19:01-03:00
+commit: 26b07440f956cb90115c21fa4f185f2a0aa364a7
+inicio: 2026-11-10T21:19:45-03:00
 ---
-20 nodo-jboss3 | servidor | RedHat 9.8 | apagado | cli 1
-21 nodo-jboss-dev | servidor | RedHat 9.8 | encendido | cli 1
-22 nodo-jboss-qa | servidor | RedHat 9.8 | apagado | cli 1
-24 anfitrion-stand | servidor | RedHat 9.8 | encendido | cli 1
-26 nodo-vault | servidor | RedHat 9.8 | encendido | cli 1
-27 nodo-storage | almacenamiento | RedHat 9.8 | encendido | cli 1
-29 ocp-sno | clúster openshift | OpenShift 4.19.51 | encendido | cli 1
-41 sno | servidor | Red Hat Enterprise Linux CoreO | encendido | cli 1
-75 dc1-sql01 | servidor | RedHat 9.6 | apagado | cli 1
-76 dc2-sql01 | servidor | RedHat 9.6 | apagado | cli 1
-77 dc1-sat01 | servidor | RedHat 9.6 | apagado | cli 1
-79 dc1-vpn01 | servidor | RedHat 9.6 | apagado | cli 1
-83 srv-legado-jboss6-01 | servidor | RedHat 7.9 | apagado | cli 1
-84 srv-legado-jboss7-01 | servidor | RedHat 9.6 | apagado | cli 1
-85 srv-cisco-c240-01 | servidor | RedHat 9.6 | encendido | cli 1
-86 srv-dell-r760-01 | servidor | RedHat 9.6 | encendido | cli 1
-87 srv-hpe-dl380-01 | servidor | RedHat 9.6 | encendido | cli 1
-88 srv-lenovo-sr650-01 | servidor | RedHat 9.6 | encendido | cli 1
-89 srv-supermicro-01 | servidor | RedHat 9.6 | encendido | cli 1
-90 srv-prueba-rocky-01 | servidor | RedHat 9.8 | encendido | cli 1
-93 srv-dell-r660xs-01 | servidor | RedHat 9.6 | encendido | cli 1
-94 srv-fujitsu-rx2540-01 | servidor | RedHat 9.6 | encendido | cli 1
-95 srv-hpe-dl360-01 | servidor | RedHat 9.6 | encendido | cli 1
-96 srv-lenovo-sr630-01 | servidor | RedHat 9.6 | encendido | cli 1
-97 srv-xfusion-2288h-01 | servidor | RedHat 9.6 | encendido | cli 1
-98 demo-mla-erp-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 2
-99 demo-mla-erp-02 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 2
-100 demo-mla-scada-01 | servidor | Windows Server 2019 | apagado | cli 2
-101 demo-mla-db-01 | servidor | Red Hat Enterprise Linux 8 | apagado | cli 2
-102 demo-mla-ocp-01 | plataforma | Red Hat OpenShift 4.16 | apagado | cli 2
-103 demo-mla-dev-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 2
-104 demo-mla-fw-01 | red | FortiOS 7.4 | apagado | cli 2
-105 demo-mla-sw-01 | red | Cisco IOS XE 17 | apagado | cli 2
-106 demo-bps-core-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
-107 demo-bps-core-02 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
-108 demo-bps-db-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
-109 demo-bps-db-02 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
-110 demo-bps-ocp-01 | plataforma | Red Hat OpenShift 4.17 | apagado | cli 3
-111 demo-bps-ocp-qa | plataforma | Red Hat OpenShift 4.17 | apagado | cli 3
-112 demo-bps-ad-01 | servidor | Windows Server 2022 | apagado | cli 3
-113 demo-bps-fw-01 | red | PAN-OS 11.1 | apagado | cli 3
-114 demo-bps-lb-01 | red | F5 BIG-IP 17 | apagado | cli 3
-115 demo-bps-qa-01 | servidor | Red Hat Enterprise Linux 9 | apagado | cli 3
-116 demo-csl-his-01 | servidor | Red Hat Enterprise Linux 8 | apagado | cli 4
-117 demo-csl-his-02 | servidor | CentOS 7 | apagado | cli 4
-118 demo-csl-pacs-01 | servidor | Windows Server 2016 | apagado | cli 4
-119 demo-csl-db-01 | servidor | Red Hat Enterprise Linux 8 | apagado | cli 4
-120 demo-csl-fw-01 | red | FortiOS 7.2 | apagado | cli 4
-121 fw-sede-01 | firewall | VyOS 2026.10.23-0026-rolling | encendido | cli 1
-122 lb-sede-01 | balanceador | HAProxy 2.8.22-a6a7eb6dd | encendido | cli 1
-123 rtr-wan-01 | router | FRRouting 10.2.1_git | encendido | cli 1
-124 sw-acc-01 | switch | FRRouting 10.2.1_git | encendido | cli 1
-125 sw-core-01 | switch | FRRouting 10.2.1_git | encendido | cli 1
-AUTO 100 1 Plataforma · Controlar servicio certificada
-AUTO 168 1 Sistema · Quitar agente sin probar
-AUTO 61 1 FaceOps · Agente de monitoreo (Linux) certificada
-AUTO 26 1 Monitoreo · Exportador en Windows sin probar
-AUTO 66 1 FaceOps · Respaldo continuo en Git certificada
-EQ 1 dc1-ad01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 2 dc1-ds01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 2 dc1-ds01 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 3 dc1-idm01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 3 dc1-idm01 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 3 dc1-idm01 ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 4 dc1-iga01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 4 dc1-iga01 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 5 dc1-sso01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 5 dc1-sso01 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 6 nodo-jboss ['Acceso de FaceOps'] ['Instalado'] []
-EQ 6 nodo-jboss ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 6 nodo-jboss ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 7 nodo-jboss2 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 7 nodo-jboss2 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 7 nodo-jboss2 ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 8 nodo-nginx ['Acceso de FaceOps'] ['Instalado'] []
-EQ 8 nodo-nginx ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 8 nodo-nginx ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 9 nodo-postgres ['Acceso de FaceOps'] ['Instalado'] []
-EQ 9 nodo-postgres ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 9 nodo-postgres ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 10 nodo-tomcat ['Acceso de FaceOps'] ['Instalado'] []
-EQ 10 nodo-tomcat ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 10 nodo-tomcat ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 11 nodo-so ['Acceso de FaceOps'] ['Instalado'] []
-EQ 11 nodo-so ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 11 nodo-so ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 12 nodo-windows ['Acceso de FaceOps'] ['Instalado'] []
-EQ 12 nodo-windows ['Monitoreo (métricas)'] ['Sin dato'] ['reiniciar', 'quitar', 'salud']
-EQ 14 fw 200 sin agentes
-EQ 15 pc-usuario ['Acceso de FaceOps'] ['Instalado'] []
-EQ 16 rtr 200 sin agentes
-EQ 17 suc1 200 sin agentes
-EQ 18 suc2 200 sin agentes
-EQ 19 suc3 200 sin agentes
-EQ 20 nodo-jboss3 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 20 nodo-jboss3 ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 20 nodo-jboss3 ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 21 nodo-jboss-dev ['Acceso de FaceOps'] ['Instalado'] []
-EQ 21 nodo-jboss-dev ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 21 nodo-jboss-dev ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 22 nodo-jboss-qa ['Acceso de FaceOps'] ['Instalado'] []
-EQ 22 nodo-jboss-qa ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 22 nodo-jboss-qa ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 26 nodo-vault ['Acceso de FaceOps'] ['Instalado'] []
-EQ 26 nodo-vault ['Respaldo continuo en Git'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 26 nodo-vault ['Monitoreo (métricas)'] ['Encendido'] ['apagar', 'reiniciar', 'quitar', 'salud']
-EQ 27 nodo-storage 200 sin agentes
-EQ 29 ocp-sno 200 sin agentes
-EQ 75 dc1-sql01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 76 dc2-sql01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 77 dc1-sat01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 79 dc1-vpn01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 83 srv-legado-jboss6-01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 84 srv-legado-jboss7-01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 90 srv-prueba-rocky-01 ['Acceso de FaceOps'] ['Instalado'] []
-EQ 121 fw-sede-01 200 sin agentes
-EQ 122 lb-sede-01 200 sin agentes
-EQ 123 rtr-wan-01 200 sin agentes
-EQ 124 sw-acc-01 200 sin agentes
-EQ 125 sw-core-01 200 sin agentes
---- fin: 2026-11-10T21:19:30-03:00 · código: 0
+INF 2 Cloud GCP · invoke-summit-cloud | gcp | Cloud GCP | Cloud GCP | sin credencial | Nube GCP | {"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"}
+INF 5 Dell · Centro de datos Santiago | fisico | Dell · Centro de datos Santiago | Centro de datos Santiago | ok |  | {"fabricante": "Dell", "emulado": true, "bmc_tipo": "iDRAC (emulado sobre KVM)", "equipos": 1, "servidores": [{"nombre": "srv-servidor-de-ejemplo-01", "ip": "192.168.122.198", "bmc": "", "modelo": "PowerEdge R650"}]}
+INF 1 KVM · Santiago | kvm | Centro de datos Santiago | Centro de datos Santiago | conectada | FaceOps · Infraestructura | {"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.122.0/24", "hipervisor": "KVM / libvirt", "capacidad": {"cores": 16, "ram_gb": 125, "ram_disp_gb": 46, "disco_gb": 500, "disco_disp_gb": 121, "medido": "2026-11-05T23:53:19+00:00"}}
+INF 6 KVM · Valparaíso | kvm | Centro de datos Valparaíso | Centro de datos Valparaíso | conectada | FaceOps · Infraestructura | {"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.150.0/24", "red_libvirt": "dc-valpo", "pool": "/var/lib/libvirt/dc-valpo", "hipervisor": "KVM / libvirt", "emulado": "sí: comparte el anfitrión con Santiago (red y pool propios)"}
+INF 3 OpenShift · SNO | openshift | OpenShift · SNO | Centro de datos Santiago | conectada | OpenShift · clústeres | {"api": "https://192.168.122.50:6443", "consola": "https://console.sno.34.176.42.56.sslip.io", "version": "4.19.51", "topología": "un nodo (SNO) sobre KVM", "cluster": "sno"}
+INF 4 VMware · Santiago | vmware | VMware · Santiago | Centro de datos Santiago | conectada | Infra · VMware · Santiago | {"host": "192.168.122.1:8989", "usuario": "faceops", "datacenter": "Santiago", "carpeta": "/Santiago/vm", "tls": "no", "acceso a máquinas": "pendiente: «Incorporar máquinas a FaceOps»"}
+EQ6 {'id': 6, 'cliente_id': 1, 'nombre': 'nodo-jboss', 'aap_host_id': 6, 'inventario': 'Servidores de aplicación', 'inventarios': '["Servidores de aplicaci\\u00f3n", "Nodos demo", "Red \\u00b7 laboratorio", "Drift \\u00b7 Servidores"]', 'grupos': '["jboss", "keycloak"]', 'so': 'RedHat 9.8', 'so_familia': 'RedHat', 'so_version': '9', 'ip': '192.168.122.15', 'cpu': 1, 'ram_mb': 1707, 'discos': '[{"dev": "vda", "punto": "/dev/vda", "gb": 20.0, "uso": 22, "tipo": "virtio (disco virtual)", "rotacional": true, "modelo": "0x1af4", "sectores": "41943040", "tam_sector": "512", "particiones": [{"nombre": "vda1", "gb": 0.0, "lvm": "", "montajes": []}, {"nombre": "vda2", "gb": 0.2, "lvm": "", "montajes": [{"punto": "/boot/efi", "fs": "vfat", "dev": "/dev/vda2", "gb": 0.2, "uso": 4}, {"punto": "/efi", "fs": "vfat", "dev": "/dev/vda2", "gb": 0.2, "uso": 4}]}, {"nombre": "vda3", "gb": 1.0, "lvm": "", "montajes": [{"punto": "/boot", "fs": "xfs", "dev": "/dev/vda3", "gb": 0.9, "uso": 35}]}, {"nombre": "vda4", "gb": 18.8, "lvm": "", "montajes": [{"punto": "/", "fs": "xfs", "dev": "/dev/vda4", "gb": 18.7, "uso": 22}]}]}, {"dev": "vdb", "punto": "/dev/vdb", "gb": 20.0, "uso": 1, "tipo": "virtio (disco virtual)", "rotacional": true, "modelo": "0x1af4", "sectores": "41943040", "tam_sector": "512", "particiones": [{"nombre": "vdb1", "gb": 20.0, "lvm": "", "montajes": [{"punto": "/datos", "fs": "xfs", "dev": "/dev/vdb1", "gb": 19.9, "uso": 1}]}]}]', 'servicios': '["NetworkManager", "auditd", "chronyd", "crond", "dbus-broker", "eap8-standalone", "getty@tty1", "gssproxy", "keycloak", "node_exporter", "polkit", "qemu-guest-agent", "redis", "redisinsight", "rhsmcertd", "rpcbind", "rsyslog", "serial-getty@ttyS0", "sshd", "systemd-journald", "systemd-logind", "systemd-udevd", "tuned", "user@1000", "vigia", "vigia-jboss"]', 'proveedor': 'kvm', 'ubicacion': 'Centro de datos Santiago', 'ambiente': 'produccion', 'skills_auto': '["jboss", "keycloak", "node-exporter", "redis", "redisinsight"]', 'skills_manual': '[]', 'estado': 'con datos', 'ultima_recoleccion': '2026-11-10T06:03:31.592092Z', 'visto': '2026-11-10T23:33:22+00:00', 'skills_habilitadas': '{"respaldo-git": {"ticket": "FO-LAB-00026", "cuando": "2026-10-30T05:56:18+00:00"}, "redis": {"ticket": "FO-LAB-00312", "cuando": "2026-11-01T04:46:41+00:00"}, "redisinsight": {"ticket": "FO-LAB-00315", "cuando": "2026-11-01T04:49:41+00:00"}}', 'categoria': 'servidor', 'forma': 'virtual', 'segmentos_fijos': '[]', 'energia': 'encendido', 'energia_visto': '2026-11-11T00:19:16+00:00', 'codigo': '[{"sha": "531e5f8fd46698bb86fbf2676b74faa4ffdbf3a7", "fecha": "2026-10-29T02:26:35Z", "autor": "registro-estado", "mensaje": "Foto de estado pedida desde FaceOps", "url": "https://faceops.34.176.42.56.sslip.io:8843/git/invoke/estado-servidores/commit/531e5f8fd46698bb86fbf2676b74faa4ffdbf3a7", "ver": "https://faceops.34.176.42.56.sslip.io:8843/git/invoke/estado-servidores/src/commit/531e5f8fd46698bb86fbf2676b74faa4ffdbf3a7/nodo-jboss", "capa": "Sistema operativo (estado aprobado)", "repo": "invoke/estado-servidores", "ruta": "nodo-jboss", "rama": ""}, {"sha": "3f587499eda6362de8df700e1153b6faf1a4201c", "fecha": "2026-10-26T17:24:30-03:00", "autor": "Cristian Quezada", "mensaje": "jboss-config: actualización desde summit-redhat", "url": "https://faceops.34.176.42.56.sslip.io:8843/git/invoke/jboss-config/commit/3f587499eda6362de8df700e1153b6faf1a4201c", "ver": "https://faceops.34.176.42.56.sslip.io:8843/git/invoke/jboss-config/src/commit/3f587499eda6362de8df700e1153b6faf1a4201c/nodos/nodo-jboss.yml", "capa": "Configuración JBoss", "repo": "invoke/jboss-config", "ruta": "nodos/nodo-jboss.yml", "rama": ""}, {"sha": "b432cadcb0a32d7a53e1d9edfde796155cb43182", "fecha": "2026-11-04T13:55:27Z", "autor": "Plataforma Invoke", "mensaje": "plataforma: ajuste operativo con las automatizaciones del cliente (AUT-nnn)", "url": "https://faceops.34.176.42.56.sslip.io:8843/git/invoke/app-jboss/commit/b432cadcb0a32d7a53e1d9edfde796155cb43182", "ver": "https://faceops.34.176.42.56.sslip.io:8843/git/invoke/app-jboss/src/commit/b432cadcb0a32d7a53e1d9edfde796155cb43182/plataforma.yml", "capa": "Plataforma de la aplicación", "repo": "invoke/app-jboss", "ruta": "plataforma.yml", "rama": ""}, {"sha": "38de02324f99e91d1d81e8d9bc6cbf760d47bcdf", "fecha": "2026-11-08T04:37:36Z", "autor": "FaceOps inventario", "mensaje": "Inventario diario · 2026-11-08 04:36 · 698 archivos (parte 10 de 10)", "url": "https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-nodo-jboss/commit/38de02324f99e91d1d81e8d9bc6cbf760d47bcdf", "ver": "https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-nodo-jboss/src/commit/38de02324f99e91d1d81e8d9bc6cbf760d47bcdf/meta/sistema.txt", "capa": "Repositorio de la máquina (inventario diario)", "repo": "repositorio/maquina-nodo-jboss", "ruta": "meta/sistema.txt", "rama": "master"}, {"sha": "84d5412e854fa5516e7148522f20cde25b75e241", "fecha": "2026-11-10T12:01:06-05:00", "autor": "FaceOps respaldo", "mensaje": "nodo-jboss: 1 archivo(s) cambiado(s)", "url": "https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/respaldo-servidores/commit/84d5412e854fa5516e7148522f20cde25b75e241", "ver": "https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/respaldo-servidores/src/commit/84d5412e854fa5516e7148522f20cde25b75e241/meta/sistema.txt", "capa": "Respaldo continuo (configuración y paquetes)", "repo": "repositorio/respaldo-servidores", "ruta": "meta/sistema.txt", "rama": "nodo-jboss"}]', 'codigo_visto': '2026-11-11T00:14:57+00:00', 'descripcion': '', 'energia_origen': 'sondeo', 'energia_cambio': '2026-11-10T21:31:01+00:00'}
+EQ6 datos keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos', 'versiones']
+AUT 156 Infra · Mover máquina entre centros de datos certificada 31de7887fe74 2026-11-07T06:57:40+00:00
+EQUIPOS por ubicacion: [{'ubicacion': 'Centro de datos Santiago', 'n': 43}, {'ubicacion': 'Sede Providencia · Sala de comunicaciones', 'n': 5}]
+AAP hosts: 95
+ Name             State    Autostart   Persistent
+---------------------------------------------------
+ dc-valpo         active   yes         yes
+ dc1-dmz          active   yes         yes
+ dc1-gestion      active   yes         yes
+ dc1-servidores   active   yes         yes
+ dc1-usuarios     active   yes         yes
+ default          active   yes         yes
+
+ Name        State    Autostart
+---------------------------------
+ base        active   yes
+ boot        active   yes
+ dc-valpo    active   yes
+ descargas   active   yes
+ faceops     active   yes
+ images      active   yes
+ windows     active   yes
+
+ Id   Name                         State
+---------------------------------------------
+ 1    srv-no-existe-99             running
+ 2    nodo-vault                   running
+ 3    srv-prueba-rocky-01          running
+ 4    srv-prueba-resp-01           running
+ 5    srv-prueba-rhel9-01          running
+ 6    srv-prueba-rhel8-01          running
+ 7    nodo-windows                 running
+ 8    nodo-storage                 running
+ 9    srv-dell-r660xs-01           running
+ 10   srv-hpe-dl360-01             running
+ 11   srv-lenovo-sr630-01          running
+ 12   srv-fujitsu-rx2540-01        running
+ 13   srv-xfusion-2288h-01         running
+ 14   srv-dell-r760-01             running
+ 15   srv-hpe-dl380-01             running
+ 16   srv-lenovo-sr650-01          running
+ 17   srv-cisco-c240-01            running
+ 18   srv-supermicro-01            running
+ 19   sno                          running
+ 20   nodo-so                      running
+ 21   nodo-jboss-dev               running
+ 22   nodo-jboss2                  running
+ 23   nodo-tomcat                  running
+ 24   nodo-postgres                running
+ 25   nodo-nginx                   running
+ 26   nodo-jboss                   running
+ -    dc1-ad01                     shut off
+ -    dc1-ds01                     shut off
+ -    dc1-idm01                    shut off
+ -    dc1-iga01                    shut off
+ -    dc1-sat01                    shut off
+ -    dc1-sql01                    shut off
+ -    dc1-sso01                    shut off
+ -    dc1-vpn01                    shut off
+ -    dc2-sql01                    shut off
+ -    ee-centro-datos-prod         shut off
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss3                  shut off
+ -    pc-oficina-01                shut off
+ -    pc-oficina-02                shut off
+ -    srv-jenkins-01               shut off
+ -    srv-legado-jboss5-01         shut off
+ -    srv-legado-jboss6-01         shut off
+ -    srv-legado-jboss7-01         shut off
+ -    srv-odoo-demo-01             shut off
+ -    srv-pagos-app-01             shut off
+ -    srv-pn8-rhel6-01             shut off
+ -    srv-rocky-demo-01            shut off
+ -    srv-rocky-prueba-01          shut off
+ -    srv-servidor-de-ejemplo-01   shut off
+ -    srv-test-ubuntu-01           shut off
+ -    srv-test-vinculacion-01      shut off
+
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda2       500G  435G   66G  87% /
+/dev/sda2       500G  435G   66G  87% /
+               total        used        free      shared  buff/cache   available
+Mem:             125          94           3           2          31          31
+32
+--- fin: 2026-11-10T21:19:54-03:00 · código: 0
