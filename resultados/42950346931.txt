@@ -1,0 +1,39 @@
+commit: 5b156d22cca311c35a09ee0f0c6546c6b0ddb224
+inicio: 2026-11-11T00:10:45-03:00
+---
+ticket Banca · Core bancario FO-LAB-01587
+ticket Banca · CRM y contact center FO-LAB-01588
+ticket Banca · Originación de créditos FO-LAB-01589
+ticket Banca · Banca digital FO-LAB-01590
+ticket Banca · Tarjetas FO-LAB-01591
+ticket Telco · Mi cuenta y atención FO-LAB-01592
+ticket Telco · BSS · facturación y planes FO-LAB-01593
+ticket Telco · Uso de red (CDR) FO-LAB-01594
+ticket Telco · OSS · calidad de red FO-LAB-01595
+ticket Telco · Ventas y recargas FO-LAB-01597
+RES Banca · Core bancario FO-LAB-01587 exitoso
+RES Banca · CRM y contact center FO-LAB-01588 exitoso
+RES Banca · Originación de créditos FO-LAB-01589 exitoso
+RES Banca · Banca digital FO-LAB-01590 exitoso
+RES Banca · Tarjetas FO-LAB-01591 exitoso
+RES Telco · Mi cuenta y atención FO-LAB-01592 exitoso
+RES Telco · BSS · facturación y planes FO-LAB-01593 exitoso
+RES Telco · Uso de red (CDR) FO-LAB-01594 exitoso
+RES Telco · OSS · calidad de red FO-LAB-01595 exitoso
+RES Telco · Ventas y recargas FO-LAB-01597 exitoso
+CHK Banca · Core bancario | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_core/operaciones_vivo/ por=FO-LAB-01587 en=2026-11-11T03:13 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10127, "rps": 0.75}
+CHK Banca · CRM y contact center | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_contacto/operaciones_vivo/ por=FO-LAB-01588 en=2026-11-11T03:13 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_contacto/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10120, "rps": 0.5}
+CHK Banca · Originación de créditos | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_creditos/operaciones_vivo/ por=FO-LAB-01589 en=2026-11-11T03:13 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_creditos/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10116, "rps": 0.75}
+CHK Banca · Banca digital | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_digital/operaciones_vivo/ por=FO-LAB-01590 en=2026-11-11T03:14 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_digital/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10038, "rps": 0.25}
+CHK Banca · Tarjetas | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_tarjetas/operaciones_vivo/ por=FO-LAB-01591 en=2026-11-11T03:14 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_tarjetas/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10148, "rps": 0.74}
+CHK Telco · Mi cuenta y atención | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_atencion/operaciones_vivo/ por=FO-LAB-01592 en=2026-11-11T03:15 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_atencion/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9934, "rps": 1.0}
+CHK Telco · BSS · facturación y planes | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_bss/operaciones_vivo/ por=FO-LAB-01593 en=2026-11-11T03:15 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_bss/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9951, "rps": 0.75}
+CHK Telco · Uso de red (CDR) | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_cdr/operaciones_vivo/ por=FO-LAB-01594 en=2026-11-11T03:17 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_cdr/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9916, "rps": 0.25}
+CHK Telco · OSS · calidad de red | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_oss/operaciones_vivo/ por=FO-LAB-01595 en=2026-11-11T03:17 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_oss/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9960, "rps": 0.49}
+CHK Telco · Ventas y recargas | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_ventas/operaciones_vivo/ por=FO-LAB-01597 en=2026-11-11T03:17 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_ventas/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10050, "rps": 0.25}
+ARCH Servicios en la nube | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+ARCH Catálogo en línea | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+ARCH Ventas en línea | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+ARCH Servidores corporativos | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+ARCH Base de datos de pagos | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
+--- fin: 2026-11-11T00:18:34-03:00 · código: 0
