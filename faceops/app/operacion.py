@@ -991,6 +991,15 @@ def actualizar_tickets():
             res = f"AAP terminó ({r['status']}): ejecución {d_ejec} s" + (f", espera de aprobación {d_aprob} s" if d_aprob else "") + {"rechazado": " · la aprobación fue rechazada"}.get(negado or "", "")
             if est == "fallido":
                 res += _motivo_falla(aap, t["aap_job_tipo"], t["aap_job_id"])
+            if est == "exitoso":
+                try:   # «Replicar máquina»: con vuelta atrás el workflow termina bien en AAP aunque la réplica se haya deshecho
+                    from .replicar_maquina import vuelta_atras
+                    va_ = vuelta_atras(aap, t)
+                except Exception as x:  # noqa: BLE001
+                    va_ = None
+                    print("Replicar máquina (vuelta atrás):", str(x)[:200])
+                if va_:
+                    est, res = "fallido", res + va_
             ej("UPDATE tickets SET estado=?, fin=?, duracion_s=?, dur_ejecucion_s=?, dur_aprobacion_s=?, resultado=? WHERE id=?",
                est, fin, dur, d_ejec, d_aprob, res, t["id"])
             from .deuda import cerrar_ticket as cerrar_deuda
@@ -1136,10 +1145,13 @@ def actualizar_tickets():
                     verificar_flujos(c, eqs, "FaceOps")
                 except ErrorAAP:
                     pass
-            if est == "exitoso" and a and a["nombre_aap"] in (HABILITAR, REPLICAR, "Satellite · Instalar servidor", "VPN · Preparar servidor"):
+            if est == "exitoso" and a and a["nombre_aap"] in (HABILITAR, REPLICAR, "Satellite · Instalar servidor", "VPN · Preparar servidor", "Infra · Replicar máquina"):
                 try:
                     alta_ = registrar_servidores(aap, c, t)
                     res += "\n" + alta_
+                    if a["nombre_aap"] == "Infra · Replicar máquina":   # relación origen → réplica, inventario del origen y políticas
+                        from .replicar_maquina import registrar as registrar_replica
+                        res += "\n" + registrar_replica(aap, c, t)
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                     vincular_creados(c, t, alta_)   # los servidores que crea FaceOps quedan vinculados a la bóveda sin otro paso
                     if a["nombre_aap"] == "Satellite · Instalar servidor":   # la plataforma queda marcada en el servidor creado

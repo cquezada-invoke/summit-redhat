@@ -91,6 +91,7 @@ shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.y
 shutil.copy(f"{AQUI}/rendimiento-canal.yml", f"{tmp}/playbooks/rendimiento-canal.yml")
 shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado.yml")
 shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
+shutil.copy(f"{AQUI}/replicar-maquina.yml", f"{tmp}/playbooks/replicar-maquina.yml")   # Infra · Replicar máquina
 shutil.copy(f"{AQUI}/aplicar-politica.yml", f"{tmp}/playbooks/aplicar-politica.yml")
 shutil.copy(f"{AQUI}/vault-servidor.yml", f"{tmp}/playbooks/vault-servidor.yml")
 shutil.copy(f"{AQUI}/redis-servidor.yml", f"{tmp}/playbooks/redis-servidor.yml")
@@ -953,6 +954,40 @@ if not aap("GET", f"workflow_job_templates/{wfe['id']}/workflow_nodes/")["result
     aap("POST", f"workflow_job_template_nodes/{e1['id']}/success_nodes/", {"id": e2["id"]})
     aap("POST", f"workflow_job_template_nodes/{e2['id']}/success_nodes/", {"id": e3["id"]})
 paso(f"Workflow «FaceOps · Eliminar servidor» (id {wfe['id']}): aprobación → retirar del balanceo → eliminar la VM")
+
+# Infra · Replicar máquina (desde el flotante de salud de la ficha): aprobación → Habilitar servidor (VM nueva desde la imagen base,
+# nunca un clon del disco) → configurar la réplica (identidad, agente, políticas, plataforma, balanceo y firewall de cada segmento,
+# verificación HTTP 200). Si la configuración falla: retirar la réplica del balanceo → eliminar la VM nueva (vuelta atrás).
+inv_vacio = asegurar("inventories", "FaceOps · Sin hosts", {"organization": org["id"],
+                     "description": "Vacío a propósito: los playbooks que lo usan agregan en memoria solo las máquinas que tocan"})
+jrm = asegurar("job_templates", "Infra · Replicar máquina · configurar", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/replicar-maquina.yml", "inventory": inv_vacio["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "timeout": 3600,
+    "description": "Paso del workflow «Infra · Replicar máquina»: identidad propia, agente, políticas, plataforma igual al origen, balanceo y firewall de sus segmentos"})
+if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jrm['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jrm['id']}/credentials/", {"id": cred["id"]})
+wrm = asegurar("workflow_job_templates", "Infra · Replicar máquina", {
+    "organization": org["id"], "ask_variables_on_launch": True,
+    "description": "Crea una máquina paralela (nueva, no clon) con el rol del origen y la suma al balanceo y firewall de todos sus segmentos; con vuelta atrás"})
+nodos_rm = aap("GET", f"workflow_job_templates/{wrm['id']}/workflow_nodes/")["results"]
+if len(nodos_rm) != 6:
+    for n_ in nodos_rm:
+        aap("DELETE", f"workflow_job_template_nodes/{n_['id']}/")
+    m1 = aap("POST", f"workflow_job_templates/{wrm['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{m1['id']}/create_approval_template/",
+        {"name": "¿Aprueba crear la máquina paralela y sumarla al balanceo de sus segmentos?", "timeout": 72 * 3600,
+         "description": "Crea una máquina nueva (con costo y un nodo de la licencia de AAP) y cambia balanceadores y firewall de sus segmentos"})
+    m2 = aap("POST", f"workflow_job_templates/{wrm['id']}/workflow_nodes/", {"unified_job_template": jh["id"], "identifier": "crear"})
+    m3 = aap("POST", f"workflow_job_templates/{wrm['id']}/workflow_nodes/", {"unified_job_template": jrm["id"], "identifier": "configurar"})
+    m4 = aap("POST", f"workflow_job_templates/{wrm['id']}/workflow_nodes/", {"unified_job_template": jrb["id"], "identifier": "revertir-balanceo"})
+    m5 = aap("POST", f"workflow_job_templates/{wrm['id']}/workflow_nodes/", {"unified_job_template": jev["id"], "identifier": "revertir-vm"})
+    m6 = aap("POST", f"workflow_job_templates/{wrm['id']}/workflow_nodes/", {"unified_job_template": jev["id"], "identifier": "revertir-vm-creada"})
+    aap("POST", f"workflow_job_template_nodes/{m1['id']}/success_nodes/", {"id": m2["id"]})
+    aap("POST", f"workflow_job_template_nodes/{m2['id']}/success_nodes/", {"id": m3["id"]})
+    aap("POST", f"workflow_job_template_nodes/{m2['id']}/failure_nodes/", {"id": m6["id"]})
+    aap("POST", f"workflow_job_template_nodes/{m3['id']}/failure_nodes/", {"id": m4["id"]})
+    aap("POST", f"workflow_job_template_nodes/{m4['id']}/always_nodes/", {"id": m5["id"]})
+paso(f"Workflow «Infra · Replicar máquina» (id {wrm['id']}): aprobación → Habilitar servidor → configurar · si falla: retirar del balanceo → eliminar la VM")
 
 # Agregar disco: aprobación → crear y conectar el volumen en el anfitrión KVM → registrarlo en la SAN (si viene del storage) y prepararlo en la máquina
 jda = asegurar("job_templates", "Infra · Agregar disco (anfitrión)", {

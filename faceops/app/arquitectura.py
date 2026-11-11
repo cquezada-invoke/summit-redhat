@@ -247,6 +247,11 @@ def _familia(e):
 def asignacion(m, eqs):
     """{componente: {ambiente: [equipos]}} — los declarados en «equipos» más los creados por FaceOps (srv-<codigo>-<id>-NN)."""
     por_nombre = {e["nombre"]: e for e in eqs}
+    try:   # réplicas de una máquina declarada («Replicar máquina»): ocupan el mismo componente que su origen
+        from .replicar_maquina import replicas
+        rep_de = replicas(eqs[0]["cliente_id"]) if eqs and eqs[0].get("cliente_id") else {}
+    except Exception:  # noqa: BLE001
+        rep_de = {}
     out = {}
     for c in m["componentes"]:
         if c.get("plataforma") == "openshift":
@@ -255,6 +260,7 @@ def asignacion(m, eqs):
         prefijo = f"srv-{m['codigo']}-{c['id']}-"
         lista = [por_nombre[n] for n in c["equipos"] if n in por_nombre] + \
                 [e for e in eqs if e["nombre"].startswith(prefijo) and e["nombre"] not in c["equipos"]]
+        lista += [e for e in eqs if rep_de.get(e["nombre"]) in c["equipos"] and e not in lista]
         if c["tipo"] != "servidor" and not c.get("sistema"):
             # un appliance de red (firewall, WAF…) atiende a todos los ambientes que lo declaran, no tiene ambiente propio
             out[c["id"]] = {a: list(lista) for a, n in c["replicas"].items() if n} if lista else {}

@@ -1,0 +1,336 @@
+---
+# Infra · Replicar máquina · configurar. Corre dentro del workflow «Infra · Replicar máquina»:
+#   aprobación → «FaceOps · Habilitar servidor» (VM NUEVA desde la imagen base: cloud-init con machine-id, llaves SSH de host,
+#   hostname, UUID, MAC e IP propios y registro propio en Red Hat) → este playbook → (si falla) «Retirar del balanceo» → «Eliminar VM».
+# No clona el disco del origen: la réplica nace limpia y recibe lo que hace al rol, en este orden:
+#   1. identidad: verifica que la máquina nueva no comparte ningún identificador con el origen ni existía antes con otro contenido
+#   2. agente de monitoreo (FaceOps · Agente de monitoreo) y las políticas de seguridad que el origen tiene al día (Aplicar política)
+#   3. plataforma, configuración y despliegues iguales al origen + balanceo del primer segmento (FaceOps · Replicar y balancear)
+#   4. balanceo en los demás segmentos, firewall de los puertos del segmento (entrada en la réplica; salida en los destinos que
+#      filtran por la IP del origen) y verificación HTTP 200 por cada balanceador con ambas instancias en servicio
+# Variables (las arma FaceOps desde la ficha de la máquina y la arquitectura de sus segmentos):
+#   rep_origen / rep_origen_ip       máquina que se replica           rep_nombre: nombre de la réplica (= hab_nombre_exacto)
+#   rep_producto: jboss | nginx      rep_puerto: puerto del servicio   rep_entradas: puertos que recibe (flujos hacia su componente)
+#   rep_balanceadores: [{segmento, nombre, ip, url}]   (url: la entrada del segmento, para la verificación por el balanceador)
+#   rep_destinos: [{nombre, ip, puertos: [..]}]        (componentes a los que el origen se conecta)
+#   rep_politica: política combinada (reglas de las que el origen tiene al día) · rep_ruta: ruta de verificación (p. ej. /app-jboss/salud)
+#   faceops_creados: ["nombre|ip"] — lo entrega «Habilitar servidor» (set_stats)
+# Resultado (set_stats): el_ip (para la vuelta atrás) y faceops_replica (identidad, balanceadores, verificación).
+- name: Replicar máquina · plan
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    creados: "{{ faceops_creados | default([]) | map('split', '|') | selectattr('1', 'defined') | selectattr('1', 'match', '^[0-9.]+$') | list }}"
+    nueva: "{{ creados | selectattr('0', 'equalto', rep_nombre | default('')) | list }}"
+    bals: "{{ rep_balanceadores | default([]) }}"
+  tasks:
+    - name: Validar
+      ansible.builtin.assert:
+        that:
+          - rep_producto | default('') in ['jboss', 'nginx']
+          - rep_origen | default('') is match('^[a-zA-Z0-9][a-zA-Z0-9._-]*$')
+          - rep_origen_ip | default('') is match('^[0-9.]+$')
+          - rep_nombre | default('') is match('^[a-z][a-z0-9-]{2,40}$')
+          - rep_nombre != rep_origen
+          - nueva | length == 1
+          - nueva[0][1] != rep_origen_ip
+          - bals | length > 0 or (ha_nuevo_ip | default('')) is match('^[0-9.]+$')
+        fail_msg: >-
+          Solicitud incompleta: producto (jboss o nginx), origen con IP, réplica creada con IP propia y al menos un balanceador.
+          Recibido: {{ faceops_creados | default([]) }}
+        quiet: true
+
+    - name: Para la vuelta atrás (si algo falla, el workflow retira la réplica del balanceo y elimina la VM)
+      ansible.builtin.set_stats:
+        data: {el_equipo: "{{ rep_nombre }}", el_ip: "{{ nueva[0][1] }}"}
+
+    - name: Réplica (solo ella en el inventario de esta ejecución hasta el paso 3)
+      ansible.builtin.add_host:
+        name: "{{ rep_nombre }}"
+        groups: [replica_nueva]
+        ansible_host: "{{ nueva[0][1] }}"
+        politica: "{{ rep_politica if (rep_politica | default({})) is mapping and (rep_politica | default({})).reglas is defined
+                      else {'id': 'sin-politicas', 'version': 0, 'nombre': 'el origen no tiene políticas al día', 'reglas': []} }}"
+        politica_modo: aplicar
+
+    - name: Lo que usa «Replicar y balancear» (paso 3) y el resto del plan
+      ansible.builtin.set_fact:
+        rep_ip: "{{ nueva[0][1] }}"
+        ha_origen: "{{ rep_origen }}"
+        ha_origen_ip: "{{ rep_origen_ip }}"
+        ha_producto: "{{ rep_producto }}"
+        ha_puerto: "{{ rep_puerto | default(8080 if rep_producto == 'jboss' else 80) | int }}"
+        ha_balanceador: "{{ bals[0].nombre if bals else '' }}"
+        ha_balanceador_ip: "{{ bals[0].ip if bals else '' }}"
+        ha_ruta: "{{ rep_ruta | default('/') }}"
+
+    - name: Lo que se hará
+      ansible.builtin.debug:
+        msg:
+          - "Réplica {{ rep_nombre }} ({{ rep_ip }}) de {{ rep_origen }} ({{ rep_origen_ip }}) · {{ rep_producto }}"
+          - "Balanceo: {{ bals | map(attribute='nombre') | join(', ') or ('nuevo en ' ~ ha_nuevo) }} · entradas {{ rep_entradas | default([]) }}"
+          - "Destinos que filtran por IP: {{ rep_destinos | default([]) | map(attribute='nombre') | join(', ') or 'ninguno' }}"
+
+# ------------------------------------------------------------------ 1. identidad: máquina nueva, nada copiado del origen
+- name: Replicar máquina · identidad propia
+  hosts: replica_nueva
+  become: true
+  gather_facts: false
+  vars:
+    leer: |
+      echo "machine_id=$(cat /etc/machine-id 2>/dev/null)"
+      echo "hostname=$(hostname -s)"
+      echo "uuid=$(cat /sys/class/dmi/id/product_uuid 2>/dev/null)"
+      echo "llaves=$(for k in /etc/ssh/ssh_host_*_key.pub; do ssh-keygen -lf $k | awk '{print $2}'; done | sort | paste -sd,)"
+      echo "rhsm=$(subscription-manager identity 2>/dev/null | awk -F': ' '/system identity/ {print $2}')"
+      echo "insights=$(cat /etc/insights-client/machine-id 2>/dev/null)"
+      echo "marca=$(cat /etc/faceops-replica 2>/dev/null)"
+      echo "producto=$(rpm -qa 'eap8-wildfly*' nginx 2>/dev/null | head -1)"
+  tasks:
+    - name: Esperar la réplica
+      ansible.builtin.wait_for_connection: {timeout: 300}
+
+    - name: Identificadores de la réplica
+      ansible.builtin.shell: "{{ leer }}"
+      register: r_id_rep
+      changed_when: false
+
+    - name: Identificadores del origen (solo lectura)
+      ansible.builtin.shell: "{{ leer }}"
+      register: r_id_ori
+      changed_when: false
+      delegate_to: "{{ hostvars.localhost.rep_origen_ip }}"
+
+    - name: Comparar
+      ansible.builtin.set_fact:
+        id_rep: "{{ dict(r_id_rep.stdout_lines | select('search', '=') | map('split', '=', 1)) }}"
+        id_ori: "{{ dict(r_id_ori.stdout_lines | select('search', '=') | map('split', '=', 1)) }}"
+
+    - name: Ningún identificador compartido (machine-id, hostname, UUID, llaves SSH de host, registro en Red Hat e Insights)
+      ansible.builtin.assert:
+        that:
+          - id_rep.machine_id | length > 0
+          - id_rep.machine_id != id_ori.machine_id
+          - id_rep.uuid != id_ori.uuid or id_rep.uuid == ''
+          - id_rep.llaves != id_ori.llaves
+          - id_rep.hostname != id_ori.hostname
+          - id_rep.rhsm == '' or id_rep.rhsm != id_ori.rhsm
+          - id_rep.insights == '' or id_rep.insights != id_ori.insights
+        fail_msg: "La máquina nueva comparte identificadores con {{ hostvars.localhost.rep_origen }}: {{ id_rep }}"
+        quiet: true
+
+    - name: La máquina es nueva (o es esta misma réplica de una ejecución anterior), no otra que ya existía
+      ansible.builtin.assert:
+        that: id_rep.marca == hostvars.localhost.rep_origen or (id_rep.marca == '' and id_rep.producto == '')
+        fail_msg: >-
+          {{ inventory_hostname }} ya existía con otro contenido ({{ id_rep.producto or id_rep.marca }}): no se sobrescribe.
+          Elige otro nombre para la réplica.
+        quiet: true
+
+    - name: Identidad (para el ticket)
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: machine-id …{{ id_rep.machine_id[-6:] }} · UUID …{{ id_rep.uuid[-6:] }} · registro Red Hat {{ 'propio' if id_rep.rhsm else 'sin registro' }} (origen …{{ id_ori.machine_id[-6:] }})"
+
+# ------------------------------------------------------------------ 2. agente de monitoreo y políticas de seguridad del origen
+- name: Replicar máquina · agente de monitoreo
+  ansible.builtin.import_playbook: agente-monitoreo.yml
+
+- name: Replicar máquina · políticas de seguridad que el origen tiene al día
+  ansible.builtin.import_playbook: aplicar-politica.yml
+
+# ------------------------------------------------------------------ 3. plataforma igual al origen y balanceo del primer segmento
+- name: Replicar máquina · plataforma, configuración, despliegues y balanceo
+  ansible.builtin.import_playbook: replicar-ha.yml
+
+# ------------------------------------------------------------------ 4. demás segmentos, firewall y verificación
+- name: Replicar máquina · balanceadores de los demás segmentos
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Balanceadores 2..n
+      ansible.builtin.add_host: {name: "{{ item.nombre }}", groups: [balanceadores_extra], ansible_host: "{{ item.ip }}"}
+      loop: "{{ (rep_balanceadores | default([]))[1:] | unique(attribute='ip') | rejectattr('ip', 'equalto', ha_balanceador_ip) | list }}"
+      loop_control: {label: "{{ item.segmento | default('') }} · {{ item.nombre }}"}
+
+    - name: Destinos del origen
+      ansible.builtin.add_host: {name: "{{ item.nombre }}", groups: [destinos], ansible_host: "{{ item.ip }}", puertos: "{{ item.puertos }}"}
+      loop: "{{ rep_destinos | default([]) }}"
+      loop_control: {label: "{{ item.nombre }} {{ item.puertos }}"}
+
+- name: Replicar máquina · sumar la réplica al upstream de los demás balanceadores
+  hosts: balanceadores_extra
+  become: true
+  gather_facts: false
+  vars:
+    ori: "{{ hostvars.localhost.rep_origen_ip }}"
+    rep: "{{ hostvars.localhost.rep_ip }}"
+    puerto: "{{ hostvars.localhost.ha_puerto }}"
+  tasks:
+    - name: Upstream que balancea al origen
+      ansible.builtin.shell: grep -rlE "server[[:space:]]+{{ ori | regex_escape }}:{{ puerto }}\b" /etc/nginx/ || true
+      register: r_up
+      changed_when: false
+
+    - name: Sin upstream del origen en este balanceador
+      ansible.builtin.fail: {msg: "{{ inventory_hostname }} no balancea a {{ hostvars.localhost.rep_origen }} ({{ ori }}:{{ puerto }})"}
+      when: r_up.stdout_lines | length == 0
+
+    - name: Sumar la réplica (junto al origen)
+      ansible.builtin.lineinfile:
+        path: "{{ item }}"
+        insertafter: "server[ \t]+{{ ori | regex_escape }}:{{ puerto }}"
+        regexp: "server[ \t]+{{ rep | regex_escape }}:{{ puerto }}"
+        line: "    server {{ rep }}:{{ puerto }} max_fails=2 fail_timeout=10s;  # réplica · FaceOps {{ faceops_ticket | default('') }}"
+      loop: "{{ r_up.stdout_lines }}"
+      notify: Recargar nginx
+
+    - name: Configuración válida
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+  handlers:
+    - name: Recargar nginx
+      ansible.builtin.systemd_service: {name: nginx, state: reloaded}
+
+- name: Replicar máquina · firewall de entrada en la réplica (puertos del segmento)
+  hosts: replica_nueva
+  become: true
+  gather_facts: false
+  tasks:
+    - name: ¿firewalld activo?
+      ansible.builtin.command: systemctl is-active firewalld
+      register: r_fw
+      changed_when: false
+      failed_when: false
+
+    - name: Abrir los puertos que recibe su componente
+      ansible.posix.firewalld: {port: "{{ item }}/tcp", permanent: true, immediate: true, state: enabled}
+      loop: "{{ (hostvars.localhost.rep_entradas | default([hostvars.localhost.ha_puerto])) | map('int') | unique | list }}"
+      when: r_fw.stdout == 'active'
+
+    - name: Marca de réplica (identifica de qué máquina es réplica; no copia nada del origen)
+      ansible.builtin.copy:
+        dest: /etc/faceops-replica
+        content: "{{ hostvars.localhost.rep_origen }}"
+        mode: "0644"
+
+- name: Replicar máquina · firewall de salida (destinos que filtran por la IP del origen)
+  hosts: destinos
+  become: true
+  gather_facts: false
+  vars:
+    ori: "{{ hostvars.localhost.rep_origen_ip }}"
+    rep: "{{ hostvars.localhost.rep_ip }}"
+  tasks:
+    - name: Reglas de firewalld que nombran al origen
+      ansible.builtin.shell: |
+        systemctl is-active -q firewalld || exit 0
+        for z in $(firewall-cmd --get-active-zones | grep -v '^ '); do
+          firewall-cmd --zone=$z --list-rich-rules | grep -F "\"{{ ori }}\"" | grep -vF "\"{{ rep }}\"" | sed "s/^/$z|/"
+          firewall-cmd --zone=$z --list-rich-rules | grep -F "\"{{ ori }}/32\"" | sed "s/^/$z|/"
+          firewall-cmd --zone=$z --list-sources | tr ' ' '\n' | grep -xE "{{ ori | regex_escape }}(/32)?" | sed "s/^/$z|fuente|/"
+        done
+      register: r_rr
+      changed_when: false
+
+    - name: Las mismas reglas para la réplica
+      ansible.builtin.shell: |
+        z="$FO_ZONA"; r="$FO_REGLA"
+        if [ "${r%%|*}" = fuente ]; then
+          firewall-cmd -q --permanent --zone=$z --query-source={{ rep }} && exit 0
+          firewall-cmd -q --permanent --zone=$z --add-source={{ rep }} && firewall-cmd -q --zone=$z --add-source={{ rep }} && echo agregada
+        else
+          n=$(printf '%s' "$r" | sed -e 's|"{{ ori }}/32"|"{{ rep }}/32"|g' -e 's|"{{ ori }}"|"{{ rep }}"|g')
+          firewall-cmd -q --permanent --zone=$z --query-rich-rule="$n" && exit 0
+          firewall-cmd -q --permanent --zone=$z --add-rich-rule="$n" && firewall-cmd -q --zone=$z --add-rich-rule="$n" && echo agregada
+        fi
+      environment: {FO_ZONA: "{{ item.split('|')[0] }}", FO_REGLA: "{{ item.split('|', 1)[1] }}"}
+      loop: "{{ r_rr.stdout_lines | unique }}"
+      register: r_add
+      changed_when: "'agregada' in r_add.stdout"
+
+    - name: PostgreSQL · accesos (pg_hba) que nombran al origen
+      ansible.builtin.shell: |
+        f=$(ls /var/lib/pgsql/data/pg_hba.conf /var/lib/pgsql/*/data/pg_hba.conf 2>/dev/null | head -1)
+        [ -n "$f" ] || exit 0
+        grep -qE "[[:space:]]{{ rep | regex_escape }}(/32)?[[:space:]]" "$f" && exit 0
+        l=$(grep -E "^[^#].*[[:space:]]{{ ori | regex_escape }}(/32)?[[:space:]]" "$f") || exit 0
+        printf '%s\n' "$l" | sed -E 's#([[:space:]]){{ ori | regex_escape }}(/32)?([[:space:]])#\1{{ rep }}/32\3#' | sed 's/$/  # réplica · FaceOps/' >> "$f"
+        echo agregada
+      register: r_hba
+      changed_when: "'agregada' in r_hba.stdout"
+      when: 5432 in (puertos | map('int') | list)
+
+    - name: Recargar PostgreSQL
+      ansible.builtin.shell: systemctl reload postgresql 2>/dev/null || systemctl reload 'postgresql*'
+      when: r_hba is changed
+
+- name: Replicar máquina · verificación por el balanceador (HTTP 200 con ambas instancias)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    puerto: "{{ ha_puerto }}"
+    ruta: "{{ rep_ruta | default('/') }}"
+    bals: "{{ rep_balanceadores | default([]) }}"
+  tasks:
+    - name: La réplica responde directo
+      ansible.builtin.uri: {url: "http://{{ rep_ip }}:{{ puerto }}{{ ruta }}", status_code: 200, timeout: 15, return_content: true}
+      register: r_dir
+      retries: 12
+      delay: 10
+      until: r_dir.status == 200
+
+    - name: El origen sigue respondiendo
+      ansible.builtin.uri: {url: "http://{{ rep_origen_ip }}:{{ puerto }}{{ ruta }}", status_code: 200, timeout: 15, return_content: true}
+      register: r_ori
+
+    - name: 8 pedidos por cada balanceador (todas con 200)
+      ansible.builtin.uri:
+        url: "{{ item.0.url | default('http://' ~ item.0.ip ~ ruta, true) }}"
+        status_code: 200
+        timeout: 15
+        validate_certs: false
+        return_content: false
+      loop: "{{ bals | product(range(8)) | list }}"
+      loop_control: {label: "{{ item.0.nombre }} #{{ item.1 }}"}
+      register: r_bal
+
+    - name: Quién respondió por el balanceador
+      ansible.builtin.set_fact:
+        repartos: "{{ repartos | default({}) | combine({item.item.0.nombre: (repartos | default({}))[item.item.0.nombre] | default([]) + [item.x_servidor_jboss | default(item.x_servidor | default('?'))]}) }}"
+      loop: "{{ r_bal.results }}"
+      loop_control: {label: "{{ item.item.0.nombre }}"}
+
+    - name: Misma versión que el origen y la réplica recibe tráfico por cada balanceador
+      ansible.builtin.assert:
+        that:
+          - (r_dir.content | default('') | length > 200) or (r_dir.content | default('') | trim) == (r_ori.content | default('') | trim)
+          - (item.value | reject('equalto', '?') | list | length == 0) or ((rep_ip ~ ':' ~ puerto) in item.value)
+        fail_msg: "Réplica «{{ r_dir.content | default('') | trim | truncate(60) }}» vs origen «{{ r_ori.content | default('') | trim | truncate(60) }}» · {{ item.key }} → {{ item.value }}"
+        quiet: true
+      loop: "{{ (repartos | default({'-': []})) | dict2items }}"
+      loop_control: {label: "{{ item.key }}"}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_replica:
+            ok: true
+            origen: "{{ rep_origen }}"
+            replica: "{{ rep_nombre }}"
+            ip: "{{ rep_ip }}"
+            producto: "{{ rep_producto }}"
+            balanceadores: "{{ bals | map(attribute='nombre') | list }}"
+            segmentos: "{{ bals | map(attribute='segmento') | list }}"
+            directo: "{{ r_dir.status }}"
+            version: "{{ r_dir.content | default('') | trim | truncate(80) }}"
+            origen_responde: "{{ r_ori.status }}"
+            repartos: "{{ repartos | default({}) }}"
+            politica: "{{ rep_politica.codigos | default([]) if rep_politica is mapping else [] }}"
+
+    - name: Verificación
+      ansible.builtin.debug:
+        msg: "{{ rep_nombre }} {{ r_dir.status }} directo · origen {{ r_ori.status }} · por balanceador: {{ repartos | default({}) }}"

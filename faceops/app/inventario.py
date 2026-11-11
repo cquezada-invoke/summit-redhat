@@ -443,7 +443,8 @@ def sincronizar(cliente, usuario="sistema"):
                 "proveedor": a["proveedor"], "ubicacion": a["ubicacion"], "ambiente": a["ambiente"],
                 "estado": estado, "ultima_recoleccion": a["facts_fecha"], "visto": ahora(),
                 "categoria": categoria, "forma": forma,
-                "segmentos_fijos": json.dumps([x for x in [a["hv"].get("faceops_segmento")] if x], ensure_ascii=False)}
+                "segmentos_fijos": json.dumps([x for x in (a["hv"].get("faceops_segmento") if isinstance(a["hv"].get("faceops_segmento"), list)
+                                                           else [a["hv"].get("faceops_segmento")]) if x], ensure_ascii=False)}
         if isinstance(a["hv"].get("faceops_skills"), list):  # productos declarados en AAP (servicios que no se recolectan)
             fila["skills_manual"] = json.dumps(sorted(set(a["hv"]["faceops_skills"])))
         elif isinstance(a["over"].get("skills"), list):     # o en la clasificación del cliente (p. ej. el software de un router)

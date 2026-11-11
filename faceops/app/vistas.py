@@ -1267,14 +1267,46 @@ def _instancias(e):
     neg = lambda x: set(x.get("skills") or []) - SOPORTE
     base = lambda n: re.sub(r"[-_]?\d+$", "", (n or "").split(".")[0])
     sk, segs = neg(e), set(e.get("segmentos") or [])
+    from .replicar_maquina import relacionadas
+    rel = relacionadas(g.cliente["id"], e["nombre"])   # réplicas hechas con «Replicar máquina» (y su origen)
     out = [{"id": e["id"], "nombre": e["nombre"], "energia": e.get("energia"), "ip": e.get("ip"), "esta": True}]
     for x in equipos_visibles():
         if x["id"] == e["id"] or x.get("estado") == "retirado" or (x.get("ambiente") or "") != (e.get("ambiente") or ""):
             continue
-        mismo = (sk and neg(x) == sk and (not segs or segs & set(x.get("segmentos") or []))) or (not sk and base(x["nombre"]) == base(e["nombre"]) and base(e["nombre"]) != e["nombre"])
+        mismo = x["nombre"] in rel or (sk and neg(x) == sk and (not segs or segs & set(x.get("segmentos") or []))) or (not sk and base(x["nombre"]) == base(e["nombre"]) and base(e["nombre"]) != e["nombre"])
         if mismo:
             out.append({"id": x["id"], "nombre": x["nombre"], "energia": x.get("energia"), "ip": x.get("ip"), "esta": False})
     return out
+
+
+def _rep_maq(e):
+    """Flotante de salud › Disponibilidad: segmentos que usan la máquina y «Replicar máquina» (ticket con aprobación)."""
+    try:
+        from .replicar_maquina import contexto
+        return contexto(g.cliente, e, equipos_visibles(), g.perfil["modo"] == "escritura")
+    except Exception as x:  # noqa: BLE001 - la ficha se muestra igual
+        current_app.logger.warning("replicar máquina: %s", x)
+        return None
+
+
+@bp.route("/inventario/<int:eid>/replicar", methods=["POST"])
+@requiere_login
+def equipo_replicar(eid):
+    """Replicar máquina: UNA máquina paralela (nueva desde la imagen base, no clon) con el rol del origen, sumada al balanceo
+    y al firewall de todos sus segmentos. Un ticket con aprobación en AAP; si la verificación falla, vuelta atrás."""
+    from .replicar_maquina import solicitar_replica
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(400)
+    eqs = equipos_visibles()
+    e = next((x for x in eqs if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    try:
+        t = solicitar_replica(g.usuario, g.cliente, e, eqs, request.form)
+    except (PermissionError, ValueError, ErrorAAP) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]),
+            "auto": "Replicar máquina", "nombre_aap": "Infra · Replicar máquina"}
 
 
 def _radar_maquina(e, componentes, puntos_r):
@@ -4720,7 +4752,7 @@ def equipo(eid):
                                  energia_ok=energia_posible(e) and _esc_, puede_eliminar=eliminable(e) and _esc_, recursos_ok=recursos_ok,
                                  mover_ok=_esc_ and e.get("forma") == "virtual" and bool(_hipervisor(e)) and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo"),
                                  escritura=_esc_, lim_rec=lim_rec, componentes=componentes, desinstalando=desinstalando)
-    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"]), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"]), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
