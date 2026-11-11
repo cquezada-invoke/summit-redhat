@@ -1,38 +1,97 @@
-commit: b5ec8924fcbf78dba00dd88e6d9a3f90e306dfc5
-inicio: 2026-11-11T12:34:04-03:00
+commit: cbb8ca55169e04394e917ae026ff786f5fcbf98e
+inicio: 2026-11-11T12:34:27-03:00
 ---
-               total        used        free      shared  buff/cache   available
-Mem:          128386      101391        2971        3012       28116       26995
-srv-cisco-c240-01 1024
-srv-dell-r660xs-01 1024
-srv-dell-r760-01 1024
-srv-fujitsu-rx2540-01 1024
-srv-hpe-dl360-01 1024
-srv-hpe-dl380-01 1024
-srv-lenovo-sr630-01 1024
-srv-lenovo-sr650-01 1024
-srv-supermicro-01 1024
-srv-xfusion-2288h-01 1024
-nodo-jboss 2048
-nodo-jboss2 2048
-nodo-jboss4 2048
-nodo-jboss-dev 2048
-nodo-nginx 2048
-nodo-postgres 2048
-nodo-so 2048
-nodo-storage 2048
-nodo-tomcat 2048
-nodo-vault 2048
-nodo-windows 2048
-srv-mover-01 2048
-srv-no-existe-99 2048
-srv-prueba-resp-01 2048
-srv-prueba-rhel8-01 2048
-srv-prueba-rhel9-01 2048
-sno 24576
-TOTAL_VMS_MB 67584
-==== FO-LAB-01644 exitoso
-AAP terminó (successful): ejecución 14 s, espera de aprobación 54 s
-==== FO-LAB-01646 exitoso
-AAP terminó (successful): ejecución 19 s, espera de aprobación 49 s
---- fin: 2026-11-11T12:34:12-03:00 · código: 0
+dbd6198f-f3a9-4a03-8 ¿Aprueba crear la máquina paralela y sumarla al balanceo de sus segmentos? successful 23338
+crear FaceOps · Habilitar servidor successful 23351
+configurar Infra · Replicar máquina · configurar successful 23358
+máquina es réplica; no copia nada del origen)] ***
+changed: [nodo-jboss4]
+
+PLAY [Replicar máquina · firewall de salida (destinos que filtran por la IP del origen)] ***
+
+TASK [Reglas de firewalld que nombran al origen] *******************************
+ok: [nodo-tomcat]
+ok: [nodo-postgres]
+
+TASK [Las mismas reglas para la réplica] ***************************************
+skipping: [nodo-tomcat]
+changed: [nodo-postgres] => (item=public|rule family="ipv4" source address="192.168.122.15/32" port port="5432" protocol="tcp" accept)
+
+TASK [PostgreSQL · accesos (pg_hba) que nombran al origen] *********************
+skipping: [nodo-tomcat]
+ok: [nodo-postgres]
+
+TASK [Recargar PostgreSQL] *****************************************************
+skipping: [nodo-postgres]
+skipping: [nodo-tomcat]
+
+PLAY [Replicar máquina · verificación por el balanceador (HTTP 200 con ambas instancias)] ***
+
+TASK [La réplica responde directo] *********************************************
+ok: [localhost]
+
+TASK [El origen sigue respondiendo] ********************************************
+ok: [localhost]
+
+TASK [8 pedidos por cada balanceador (todas con 200)] **************************
+ok: [localhost] => (item=nodo-nginx #0)
+ok: [localhost] => (item=nodo-nginx #1)
+ok: [localhost] => (item=nodo-nginx #2)
+ok: [localhost] => (item=nodo-nginx #3)
+ok: [localhost] => (item=nodo-nginx #4)
+ok: [localhost] => (item=nodo-nginx #5)
+ok: [localhost] => (item=nodo-nginx #6)
+ok: [localhost] => (item=nodo-nginx #7)
+
+TASK [Quién respondió por el balanceador] **************************************
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+
+TASK [Misma versión que el origen y la réplica recibe tráfico por cada balanceador] ***
+ok: [localhost] => (item=nodo-nginx)
+
+TASK [Resultado para FaceOps] **************************************************
+ok: [localhost]
+
+TASK [Verificación] ************************************************************
+ok: [localhost] => {
+    "msg": "nodo-jboss4 200 directo · origen 200 · por balanceador: {'nodo-nginx': ['192.168.122.105:8080', '192.168.122.18:8080', '192.168.122.15:8080', '192.168.122.105:8080', '192.168.122.18:8080', '192.168.122.15:8080', '192.168.122.105:8080', '192.168.122.18:8080']}"
+}
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=23   changed=5    unreacha
+ [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+ok: [localhost] => (item=nodo-nginx)
+
+TASK [Misma versión que el origen y la réplica recibe tráfico por cada balanceador] ***
+ok: [localhost] => (item=nodo-nginx)
+
+TASK [Resultado para FaceOps] **************************************************
+ok: [localhost]
+
+TASK [Verificación] ************************************************************
+ok: [localhost] => {
+    "msg": "nodo-jboss4 200 directo · origen 200 · por balanceador: {'nodo-nginx': ['192.168.122.105:8080', '192.168.122.18:8080', '192.168.122.15:8080', '192.168.122.105:8080', '192.168.122.18:8080', '192.168.122.15:8080', '192.168.122.105:8080', '192.168.122.18:8080']}"
+}
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=23   changed=5    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-jboss                 : ok=10   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss4                : ok=40   changed=18   unreachable=0    failed=0    skipped=6    rescued=0    ignored=0   
+nodo-nginx                 : ok=7    changed=2    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0   
+nodo-postgres              : ok=3    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-tomcat                : ok=1    changed=0    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0   
+
+ART {"el_equipo": "nodo-jboss4", "el_ip": "192.168.122.105", "faceops_politica": {"nodo-jboss4": {"cumple": true, "incumplia": ["PermitRootLogin no", "PasswordAuthentication no", "MaxAuthTries 4", "X11Forwarding no", "ClientAliveInterval 300", "/etc/sysconfig/faceops-app02.nft", "/etc/systemd/system/faceops-app02-fw.service", "/usr/local/sbin/faceops-app02-nft", "systemctl -q is-enabled faceops-app02-fw && nft list..."], "modo": "aplicar"}}, "faceops_ha": {"origen": "nodo-jboss", "balanceador": "nodo-nginx", "nuevo": false, "url": "http://192.168.122.11/app-jboss/salud", "miembros": ["192.168.122.15", "192.168.122.105"], "respondieron": ["192.168.122.15:8080", "192.168.122.105:8080", "192.168.122.18:8080", "192.168.122.15:8080", "192.168.122.105:8080", "192.168.122.18:8080"]}, "faceops_replica": {"ok": true, "origen": "nodo-jboss", "replica": "nodo-jboss4", "ip": "192.168.122.105", "producto": "jboss", "balanceadores": ["nodo-nginx"], "segmentos": ["App de pagos"], "directo": "200", "version": "ok 1.0.44", "origen_responde": "200", "repartos": {"nodo-nginx": ["192.168.122.105:8080", "192.168.122.18:8080", "192.168.122.15:8080", "192.168.122.105:8080", "192.168.122.18:8080", "192.168.122.15:8080", "192.168.122.105:8080", "192.168.122.18:8080"]}, "politica": ["APP-02", "DAT-01", "SO-01"]}}
+revertir-balanceo None None None
+revertir-vm None None None
+revertir-vm-creada None None None
+Error: container has already been removed
+--- fin: 2026-11-11T12:34:34-03:00 · código: 0
