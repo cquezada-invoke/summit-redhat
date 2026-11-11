@@ -1,0 +1,12 @@
+commit: f1aa9f1198a33ba3075e8dc5ffa08c8cd032f078
+inicio: 2026-11-11T13:11:28-03:00
+---
+Traceback (most recent call last):
+  File "/tmp/pol.py", line 4, in <module>
+    rows=q("SELECT t.numero,t.estado,t.creado,t.autor,a.nombre_aap,t.parametros,t.resultado FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.creado>='2026-11-11T15:30' ORDER BY t.id DESC LIMIT 40")
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 179, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: t.autor
+--- fin: 2026-11-11T13:11:34-03:00 · código: 0
