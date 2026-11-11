@@ -109,6 +109,21 @@ def en_curso(cliente_id, e, ambito="maquina"):
     return None
 
 
+AUTO_GRAFANA_OCP = "Monitoreo · Grafana de OpenShift"
+
+
+def grafana_ocp(cliente_id, e):
+    """URL base del tablero «Alertas de OpenShift · <clúster>» si «Monitoreo · Grafana de OpenShift» ya lo dejó (último ticket
+    exitoso para este clúster); si no, None."""
+    a = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, AUTO_GRAFANA_OCP)
+    if not a:
+        return None
+    for t in q("SELECT parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? AND estado='exitoso' ORDER BY id DESC LIMIT 20", cliente_id, a["id"]):
+        if (j(t["parametros"], {}) or {}).get("go_cluster") == e["nombre"]:
+            return f"{GRAFANA}/d/" + f"faceops-ocp-{e['nombre']}"[:40]
+    return None
+
+
 def bloqueo_accion(cliente_id, cat, k, _memo={}):
     """Por qué no se puede elegir una acción ("" si se puede): su automatización no está publicada o no pasó su plan de
     prueba (regla de prueba, app/pruebas.py). «Solo avisar» no lanza nada y siempre se puede."""
@@ -143,6 +158,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     act = {x["id"]: x for x in ap.get("alertas") or []}
     grupos = {}
     datos = j(e.get("datos"), {}) or {}
+    g_ocp = grafana_ocp(cliente_id, e) if t == "openshift" else None
     for a in cat["alertas"]:
         if t in a["tipos"] and a.get("ambito", "maquina") == ambito and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
@@ -150,7 +166,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
                 accs_ = [(cat.get("acciones") or {}).get(k, {}).get("texto", k) for k in (a.get("acciones") or ["avisar"])]
                 grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=False, acciones_l=[], pendiente=a.get("pendiente") or "",
                                                                             en_prueba=a.get("estado") == "en_prueba", en_revision=a.get("estado") == "en_revision",
-                                                                            acciones_txt=accs_, expr_txt=(a.get("expr") or "").replace('{faceops_equipo="__EQ__"}', "").replace('faceops_equipo="__EQ__",', "")))
+                                                                            acciones_txt=accs_, grafana_ocp=(f"{g_ocp}?" + urlencode({"orgId": 1, "from": "now-24h", "to": "now", "viewPanel": panel_id(a["id"])})) if g_ocp else "", expr_txt=(a.get("expr") or "").replace('{faceops_equipo="__EQ__"}', "").replace('faceops_equipo="__EQ__",', "")))
                 continue
             accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k), bloqueo_accion(cliente_id, cat, k)) for k in (a.get("acciones") or ["avisar"])]
             grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, grafana=url_grafana(e["nombre"], a["id"], ambito),
@@ -175,7 +191,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
             "n": sum(1 for k in act if any(a["id"] == k and a.get("ambito", "maquina") == ambito for a in cat["alertas"])) if ambito != "maquina" else len(act),
             "aplicado": ap.get("actualizado"), "ticket": ap.get("ticket"), "resumen": ap.get("resumen") or [],
             "grafana": url_grafana(e["nombre"], None, ambito), "archivo": f"{REGLAS}/{e['nombre']}{sufijo(ambito)}.yml", "grupo_prom": f"faceops-{e['nombre']}{sufijo(ambito)}",
-            "informe": _informe(cliente_id, e),
+            "informe": _informe(cliente_id, e), "grafana_ocp": (g_ocp + "?orgId=1&from=now-24h&to=now") if g_ocp else "",
             "puede": puede_escribir, "en_curso": en_curso(cliente_id, e, ambito), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values()),
             "activables": sum(1 for v in grupos.values() for x in v if not (x.get("pendiente") or x.get("en_prueba") or x.get("en_revision")))}
 

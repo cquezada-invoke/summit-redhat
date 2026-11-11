@@ -134,7 +134,7 @@ shutil.copy(f"{AQUI}/mongodb-servidor.yml", f"{tmp}/playbooks/mongodb-servidor.y
 shutil.copy(f"{AQUI}/files/inventario-a-git.py", f"{tmp}/playbooks/files/inventario-a-git.py")
 shutil.copytree(f"{AQUI}/files/lib", f"{tmp}/playbooks/files/lib", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
-           "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
+           "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "openshift-imagenes-evaluar.yml", "openshift-imagenes-quay.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
            "fiscalia-aviso-complemento.yml", "storage-lake-s3.yml", "respaldo-restic.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
@@ -198,7 +198,7 @@ for f_ in ("weblogic-ocp-evaluar.yml", "weblogic-ocp-migrar.yml"):   # Migració
 for f_ in ("weblogic_analizar.py", "weblogic_ocp_preparar.py", "weblogic_git.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copytree(f"{AQUI}/files/weblogic-ejemplo", f"{tmp}/playbooks/files/weblogic-ejemplo", dirs_exist_ok=True, ignore=shutil.ignore_patterns("fuentes"))
-for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py", "ocp_diagnostico.py", "ocp_alertamiento.py", "ocp_imagenes.py"):
+for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py", "ocp_diagnostico.py", "ocp_alertamiento.py", "ocp_imagenes.py", "ocp_imagenes_movilidad.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
@@ -834,6 +834,22 @@ for nombre_o, pb_o, desc_o in (("OpenShift · Modelo de alertamiento", "openshif
     paso(f"Plantilla «{nombre_o}» (id {jo_['id']})")
     if nombre_o == "OpenShift · Remediar alerta":
         jrem = jo_
+# Imágenes: uso y antigüedad con plan de movilidad a Quay (lectura, informe en Git) y la copia a Quay (escritura, cuenta de Quay desde la bóveda)
+for nombre_o, pb_o, desc_o, to_o, creds_o in (
+        ("OpenShift · Evaluar imágenes (uso y antigüedad)", "openshift-imagenes-evaluar.yml",
+         "Imágenes por último uso y rangos de meses sin uso, candidatas a Quay y plan de movilidad (skopeo con digest, olas, poda); informe en Git (solo lectura)", 1800,
+         ("FaceOps · Gitea respaldo",)),
+        ("OpenShift · Mover imágenes a Quay", "openshift-imagenes-quay.yml",
+         "Copia a Quay las imágenes candidatas seleccionadas con un Job de skopeo en el clúster, verifica el digest y, si se pide, las retira del registro interno", 3600,
+         ("FaceOps · Bóveda (lectura Quay)",))):
+    jo_ = asegurar("job_templates", nombre_o, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_o}", "inventory": inv_ocp, "execution_environment": ee["id"],
+        "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_credential_on_launch": True, "timeout": to_o, "description": desc_o})
+    ya = {c["id"] for c in aap("GET", f"job_templates/{jo_['id']}/credentials/")["results"]}
+    for c_ in [c_ocp_w] + [uno("credentials", name=n_) for n_ in creds_o]:
+        if c_ and c_["id"] not in ya:
+            aap("POST", f"job_templates/{jo_['id']}/credentials/", {"id": c_["id"]})
+    paso(f"Plantilla «{nombre_o}» (id {jo_['id']})")
 wrem = asegurar("workflow_job_templates", "OpenShift · Remediar alerta (con aprobación)", {
     "organization": org["id"], "ask_variables_on_launch": True, "ask_limit_on_launch": True,
     "description": "Umbral crítico del modelo de alertamiento: aprobación y luego la remediación"})

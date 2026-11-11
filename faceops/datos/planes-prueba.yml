@@ -157,6 +157,22 @@ planes:
       - {id: C2, caso: "Imagen sin uso conocida (ImageStream de prueba sin despliegue)", verificar: "aparece como sin uso en el registro"}
       - {id: C3, caso: "Umbral corto (30 días) y 1 revisión", verificar: "más antiguas y más ImageStreams con exceso de revisiones; no cambia nada en el clúster"}
       - {id: C4, caso: "Umbral no válido (10 días)", verificar: "se rechaza"}
+  "OpenShift · Evaluar imágenes (uso y antigüedad)":
+    casos:
+      - {id: C1, caso: "Valores por defecto sobre ocp-sno con un namespace de prueba (ImageStream en uso por un Deployment, uno escalado a cero, uno con dos rollouts y uno sin despliegue)", verificar: "ticket exitoso; en uso / referenciada / sin uso 0–3 meses según corresponda; ninguna candidata (push reciente < 6 meses); tamaño por rango; los namespaces openshift-*, kube-* no aparecen"}
+      - {id: C2, caso: "Umbral 0 meses, rangos 1,2 y host de Quay", verificar: "candidatas: la sin despliegue (riesgo bajo, referencias ninguna) y la revisión antigua del rollout (riesgo medio, historial del Deployment); nunca la en uso ni la referenciada; destino quay/<ns>/<is>:<tag> y skopeo copy con @sha256 del digest; poda con oc tag -d y prune"}
+      - {id: C3, caso: "Solo el namespace de prueba (im_incluir) y organización de Quay fija", verificar: "solo filas de ese namespace; destino <org>/<ns>-<is>"}
+      - {id: C4, caso: "Informe publicado", verificar: "plan.md, plan.csv y plan.json en repositorio/openshift-manifiestos/imagenes-movilidad/ocp-sno; la ficha del clúster muestra la sección «Movilidad de imágenes a Quay» con el ticket"}
+      - {id: C5, caso: "Repetir", tipo: Idempotencia, verificar: "mismo resultado; ImageStreams, ReplicaSets y pods del clúster sin cambios (solo lectura)"}
+      - {id: C6, caso: "Datos no válidos (rangos «a,b»)", tipo: Error controlado, verificar: "ticket fallido en «Datos»; no se consulta el clúster"}
+  "OpenShift · Mover imágenes a Quay":
+    casos:
+      - {id: C1, caso: "Mover una candidata (ns/is:tag) a un Quay de laboratorio", verificar: "ticket aprobado y exitoso; Job de skopeo en faceops-movilidad; skopeo inspect en Quay da el mismo digest; el origen sigue intacto; el Secret con la cuenta de Quay ya no existe"}
+      - {id: C2, caso: "Mover con «retirar del registro interno»", verificar: "solo se quita la etiqueta cuyas revisiones se copiaron y verificaron; las revisiones antiguas quedan para el pruner"}
+      - {id: C3, caso: "Seleccionar una imagen en uso", verificar: "omitida (ya no es candidata); no se copia ni se retira nada"}
+      - {id: C4, caso: "Quay inalcanzable o robot sin permiso de escritura", tipo: Error controlado, verificar: "ticket fallido con el motivo por imagen; nada se retira del origen; el Secret se borra"}
+      - {id: C5, caso: "Repetir la misma copia", tipo: Idempotencia, verificar: "exitoso; mismo digest en Quay"}
+      - {id: C6, caso: "Sin cuenta de Quay en la bóveda", tipo: Error controlado, verificar: "ticket fallido en «Hay cuenta de Quay»; no se crea nada en el clúster"}
   "Homologación · Relevar entorno":
     casos:
       - {id: C1, caso: "Relevar las máquinas JBoss de desarrollo, QA y producción de un mismo segmento", verificar: "cada una con su huella: sistema, entorno, Java y JBoss (versión, JVM, módulos, drivers, datasources, deployments, huella de configuración)"}
@@ -467,6 +483,12 @@ planes:
       - {id: C2, caso: "Repetir la instalación", tipo: Idempotencia, verificar: "termina bien sin reiniciar el agente ni duplicar el temporizador; las métricas siguen"}
       - {id: C3, caso: "6 ingresos SSH fallidos desde el anfitrión", tipo: Funcional, verificar: "faceops_seg_ssh_fallidos_5m sube a 6 o más en menos de 2 minutos"}
       - {id: C4, caso: "Equipo apagado o inalcanzable", tipo: Error controlado, verificar: "el ticket falla sin dejar nada a medias"}
+  "Monitoreo · Grafana de OpenShift":
+    casos:
+      - {id: C1, caso: "Conectar ocp-sno (encendido)", tipo: Funcional, verificar: "cuenta faceops-grafana con cluster-monitoring-view; datasource del Thanos Querier en Grafana que responde consultas; tablero «Alertas de OpenShift · ocp-sno» con un panel por alerta del catálogo y datos reales"}
+      - {id: C2, caso: "Repetir", tipo: Idempotencia, verificar: "termina bien sin reiniciar Grafana; mismo datasource y mismo tablero"}
+      - {id: C3, caso: "Solo lectura", tipo: Seguridad, verificar: "la cuenta faceops-grafana no puede crear ni borrar objetos en el clúster (SelfSubjectAccessReview: create pods = no)"}
+      - {id: C4, caso: "Nombre de clúster inválido", tipo: Error controlado, verificar: "falla en la validación y no cambia Grafana (si el API no responde, falla pidiendo encender el clúster)"}
   "Monitoreo · Configurar alertas del equipo":
     casos:
       - {id: C1, caso: "Activar en un servidor Linux con agente (nodo-jboss): sin respuesta, CPU, memoria y disco con umbrales", tipo: Funcional, verificar: "reglas faceops-<equipo> cargadas en Prometheus (api/v1/rules), objetivo con up=1 y la ficha muestra el botón con 4 alertas"}

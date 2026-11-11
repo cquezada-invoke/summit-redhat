@@ -1,0 +1,169 @@
+---
+# Monitoreo · Grafana de OpenShift. Conecta la Grafana del monitoreo del lab al monitoreo del propio clúster (Thanos Querier
+# de openshift-monitoring) con una cuenta de servicio de SOLO LECTURA (faceops-grafana, rol cluster-monitoring-view), guarda su
+# token en la bóveda y deja el tablero «Alertas de OpenShift · <clúster>» con las alertas del catálogo de tipo openshift
+# como visualización (expresión, umbrales e historia). No crea reglas ni acciones de EDA. Si el clúster está apagado, falla
+# sin tocar nada: hay que encenderlo antes.
+#   go_cluster: nombre del clúster en FaceOps (p. ej. ocp-sno)
+#   Credenciales: «OpenShift · <clúster> (despliegue)» (API del clúster), «FaceOps · Bóveda (escritura)» y la del anfitrión
+#   (aap-kvm: escribe solo el datasource y el tablero de FaceOps en Grafana y reinicia Grafana por un sudo acotado)
+- name: Monitoreo · Grafana de OpenShift
+  hosts: anfitrion_kvm
+  become: false
+  gather_facts: false
+  vars:
+    cl: "{{ go_cluster | default('') }}"
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json, Content-Type: application/json}
+    bov_addr: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_ADDR') }}"
+    bov_token: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_TOKEN') }}"
+    g: /opt/summit-monitoreo/grafana
+    ds_uid: "faceops-{{ cl }}"
+    sa: faceops-grafana
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - cl is match('^[a-z0-9][a-z0-9.-]{0,40}$')
+          - api is match('^https://')
+          - bov_addr | length > 0
+        fail_msg: "Indica el clúster (go_cluster) y asocia las credenciales «OpenShift · <clúster> (despliegue)» y «FaceOps · Bóveda (escritura)»"
+        quiet: true
+
+    - name: El clúster responde (si está apagado, enciéndelo antes; aquí no se enciende)
+      ansible.builtin.uri:
+        url: "{{ api }}/version"
+        headers: "{{ h }}"
+        validate_certs: false
+        timeout: 15
+      delegate_to: localhost
+      register: r_ver
+      failed_when: false
+
+    - name: Clúster no disponible
+      ansible.builtin.fail:
+        msg: "El API de {{ cl }} no responde ({{ r_ver.status | default('sin respuesta') }}): enciende el clúster y vuelve a pedirlo. No se cambió nada."
+      when: r_ver.status | default(0) != 200
+
+    - name: Cuenta de servicio de solo lectura del monitoreo (faceops-grafana → cluster-monitoring-view)
+      ansible.builtin.uri:
+        url: "{{ api }}{{ item.ruta }}"
+        method: POST
+        headers: "{{ h }}"
+        body_format: json
+        body: "{{ item.cuerpo }}"
+        validate_certs: false
+        status_code: [200, 201, 409]
+      loop:
+        - {ruta: /api/v1/namespaces, cuerpo: {apiVersion: v1, kind: Namespace, metadata: {name: faceops, labels: {faceops.invoke.cl/gestionado: "true"}}}}
+        - {ruta: /api/v1/namespaces/faceops/serviceaccounts, cuerpo: {apiVersion: v1, kind: ServiceAccount, metadata: {name: "{{ sa }}"}}}
+        - {ruta: /apis/rbac.authorization.k8s.io/v1/clusterrolebindings, cuerpo: {apiVersion: rbac.authorization.k8s.io/v1, kind: ClusterRoleBinding,
+           metadata: {name: "faceops-grafana-monitoreo"}, roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: cluster-monitoring-view},
+           subjects: [{kind: ServiceAccount, name: "{{ sa }}", namespace: faceops}]}}
+        - {ruta: /api/v1/namespaces/faceops/secrets, cuerpo: {apiVersion: v1, kind: Secret, type: kubernetes.io/service-account-token,
+           metadata: {name: "{{ sa }}-token", annotations: {kubernetes.io/service-account.name: "{{ sa }}"}}}}
+      loop_control:
+        label: "{{ item.ruta }}"
+      delegate_to: localhost
+      register: r_obj
+      changed_when: r_obj.status in [200, 201]
+
+    - name: Token de la cuenta de servicio
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/faceops/secrets/{{ sa }}-token"
+        headers: "{{ h }}"
+        validate_certs: false
+      delegate_to: localhost
+      register: r_sec
+      until: (r_sec.json.data | default({})).token is defined
+      retries: 12
+      delay: 5
+      no_log: true
+
+    - name: Ruta del Thanos Querier
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/route.openshift.io/v1/namespaces/openshift-monitoring/routes/thanos-querier"
+        headers: "{{ h }}"
+        validate_certs: false
+      delegate_to: localhost
+      register: r_ruta
+
+    - name: Datos de conexión
+      ansible.builtin.set_fact:
+        thanos: "https://{{ r_ruta.json.spec.host }}"
+        tok: "{{ r_sec.json.data.token | b64decode }}"
+      no_log: true
+
+    - name: Grafana (en el anfitrión) llega al Thanos Querier con ese token y solo puede leer
+      ansible.builtin.uri:
+        url: "{{ thanos }}/api/v1/query?query=up"
+        headers: {Authorization: "Bearer {{ tok }}"}
+        validate_certs: false
+        timeout: 20
+      register: r_q
+      no_log: true
+
+    - name: Token en la bóveda (maquinas/<clúster>/grafana-monitoreo)
+      ansible.builtin.uri:
+        url: "{{ bov_addr }}/v1/faceops/data/maquinas/{{ cl }}/grafana-monitoreo"
+        method: POST
+        headers: {X-Vault-Token: "{{ bov_token }}"}
+        body_format: json
+        body: {data: {usuario: "system:serviceaccount:faceops:{{ sa }}", token: "{{ tok }}", url: "{{ thanos }}", rol: cluster-monitoring-view}}
+        status_code: [200, 204]
+      delegate_to: localhost
+      no_log: true
+
+    - name: Datasource del clúster en Grafana (solo lectura; el token queda cifrado en Grafana)
+      ansible.builtin.copy:
+        dest: "{{ g }}/provisioning/datasources/faceops-{{ cl }}.yml"
+        mode: "0600"
+        content: |
+          apiVersion: 1
+          datasources:
+            - name: "OpenShift · {{ cl }}"
+              uid: "{{ ds_uid }}"
+              type: prometheus
+              access: proxy
+              url: "{{ thanos }}"
+              editable: false
+              jsonData: {httpHeaderName1: Authorization, tlsSkipVerify: true, timeInterval: 30s, httpMethod: GET}
+              secureJsonData: {httpHeaderValue1: "Bearer {{ tok }}"}
+      register: r_ds
+      no_log: true
+
+    - name: Grafana (uid 472) puede leer el datasource
+      ansible.builtin.command: setfacl -m u:472:r "{{ g }}/provisioning/datasources/faceops-{{ cl }}.yml"
+      changed_when: false
+
+    - name: Armar el tablero «Alertas de OpenShift · {{ cl }}»
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/tablero_ocp.py", "{{ playbook_dir }}/files/alertas-objetos.yml", "{{ cl }}", "{{ ds_uid }}"]
+      delegate_to: localhost
+      register: r_tab
+      changed_when: false
+
+    - name: Tablero en la carpeta de Grafana (Grafana lo relee solo)
+      ansible.builtin.copy:
+        dest: "{{ g }}/dashboards/faceops/{{ (r_tab.stdout | from_json).uid }}.json"
+        content: "{{ r_tab.stdout }}\n"
+        mode: "0644"
+
+    - name: Grafana toma el datasource nuevo (reinicio solo si cambió)
+      ansible.builtin.command: sudo -n /usr/bin/systemctl restart summit-grafana
+      when: r_ds is changed
+
+    - name: Grafana responde
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3001/grafana/api/health
+      register: r_gh
+      until: r_gh.status == 200
+      retries: 20
+      delay: 3
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_grafana_ocp: {cluster: "{{ cl }}", tablero: "{{ (r_tab.stdout | from_json).uid }}", datasource: "{{ ds_uid }}",
+                                series_up: "{{ r_q.json.data.result | length }}", reiniciado: "{{ r_ds is changed }}"}
+        per_host: false

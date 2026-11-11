@@ -568,6 +568,10 @@
   campos:
     - {var: fu_nombre, etiqueta: "Fuente", tipo: text, requerido: true}
     - {var: fu_modo, etiqueta: "Modo (probar, conectar, sincronizar, retirar)", tipo: text, requerido: true}
+"Monitoreo · Grafana de OpenShift":
+  usa_limite: false   # corre en el anfitrión (Grafana) y habla con el API del clúster
+  campos:
+    - {var: go_cluster, etiqueta: "Clúster", tipo: text, defecto: ocp-sno, requerido: true}
 "Monitoreo · Configurar alertas del equipo":
   usa_limite: false   # se pide desde el botón «Alertas» de cada objeto; corre en el Prometheus del anfitrión
   campos:
@@ -641,6 +645,25 @@
   campos:
     - {var: im_dias, etiqueta: "Antigua desde (días)", tipo: integer, defecto: 180}
     - {var: im_max_revisiones, etiqueta: "Revisiones máximas por ImageStream", tipo: integer, defecto: 5}
+"OpenShift · Evaluar imágenes (uso y antigüedad)":
+  usa_limite: true
+  campos:
+    - {var: im_meses, etiqueta: "Candidata a Quay si no se usa hace (meses)", tipo: integer, defecto: 6, ayuda: "0 = toda imagen sin uso"}
+    - {var: im_rangos, etiqueta: "Rangos de meses sin uso", tipo: text, defecto: "3,6,12", ayuda: "límites en meses separados por coma: 3,6,12 da 0–3, 3–6, 6–12 y más de 12"}
+    - {var: im_incluir, etiqueta: "Solo estos namespaces", tipo: text, ayuda: "coma, admite comodines (app-*); vacío = todos los de aplicaciones"}
+    - {var: im_excluir, etiqueta: "Excluir namespaces", tipo: text, ayuda: "además de openshift-*, kube-* y default, que nunca se evalúan"}
+    - {var: im_quay, etiqueta: "Host de Quay (para el plan)", tipo: text, ayuda: "p. ej. quay.empresa.cl; vacío deja <quay> en el plan"}
+    - {var: im_quay_org, etiqueta: "Organización en Quay", tipo: text, ayuda: "vacío = una organización por namespace"}
+"OpenShift · Mover imágenes a Quay":
+  usa_limite: true
+  campos:
+    - {var: mq_seleccion, etiqueta: "Imágenes a mover", tipo: text, requerido: true, ayuda: "del plan de «Evaluar imágenes»: ns/imagestream:tag o ns/imagestream separados por coma, o «todas» las candidatas"}
+    - {var: mq_quay, etiqueta: "Host de Quay", tipo: text, requerido: true}
+    - {var: mq_quay_equipo, etiqueta: "Equipo Quay en la bóveda", tipo: text, ayuda: "su cuenta (robot) está en web/<equipo>/quay; vacío = primera parte del host"}
+    - {var: mq_quay_org, etiqueta: "Organización en Quay", tipo: text, ayuda: "vacío = una por namespace (la misma que el plan)"}
+    - {var: mq_meses, etiqueta: "Umbral (meses sin uso)", tipo: integer, defecto: 6, ayuda: "se vuelve a evaluar: lo que ya no es candidata no se mueve"}
+    - {var: mq_retirar, etiqueta: "Retirar del registro interno las etiquetas copiadas y verificadas", tipo: checkbox}
+    - {var: mq_tls_inseguro, etiqueta: "Quay con certificado no confiable (laboratorio)", tipo: checkbox}
 "OpenShift · Modelo de alertamiento":
   usa_limite: true
   campos:
