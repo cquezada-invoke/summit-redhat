@@ -40,8 +40,8 @@ Q
 }
 NG=192.168.122.11; CO=http://192.168.122.50:30480
 # ---- C1 activar espejo en App de pagos
-P=$(params "App de pagos" nodo-nginx activar)
-caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C1\"}"
+PR=$(params "App de pagos" nodo-nginx activar)
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$PR,\"min\":15,\"caso\":\"C1\"}"
 T=$(en $NG 'sudo nginx -t 2>&1 | tail -1'); B=$(bif "App de pagos")
 [ "$(estado)" = exitoso ] && echo "$T" | grep -q successful && [ "${B%%|*}" = 1 ] && anotar C1 "Activar espejo App de pagos" ok "$(ticket) · $T · bif $B" || anotar C1 "Activar espejo App de pagos" falla "$(estado) · $T · $B"
 # ---- C2 datos en el lake
@@ -49,32 +49,32 @@ sleep 20; E=$(curl -s $CO/estado/app-de-pagos); D=$(curl -s -o /tmp/d.txt -w '%{
 echo "$E" | python3 -c 'import json,sys;x=json.load(sys.stdin);sys.exit(0 if x.get("en_s3_archivos",0)>0 and x.get("recibidos",0)>0 else 1)' && [ "$D" = 200 ] && [ "$CK" = 0 ] \
   && anotar C2 "Flujos y datos en el lake" ok "estado ${E:0:200} · datos $D sin cookies" || anotar C2 "Flujos y datos en el lake" falla "${E:0:200} · $D · cookies $CK"
 # ---- C3 desactivar
-P=$(params "App de pagos" nodo-nginx desactivar)
-caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C3\"}"
+PR=$(params "App de pagos" nodo-nginx desactivar)
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$PR,\"min\":15,\"caso\":\"C3\"}"
 F=$(en $NG 'ls /etc/nginx/default.d/fo-lake-app-de-pagos.conf 2>/dev/null | wc -l'); H=$(curl -sk -o /dev/null -w '%{http_code}' https://$NG/app-jboss/); B=$(bif "App de pagos")
 [ "$(estado)" = exitoso ] && [ "$F" = 0 ] && [ "$H" = 200 ] && [ "${B%%|*}" = 0 ] && anotar C3 "Desactivar" ok "$(ticket) · sin archivo · app $H · bif $B" || anotar C3 "Desactivar" falla "$(estado) · archivo $F · app $H · $B"
 # ---- C4 repetir la activación (dos veces): sin duplicar
-P=$(params "App de pagos" nodo-nginx activar)
-caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C4a\"}"; T1=$(ticket)
-caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C4\"}"
+PR=$(params "App de pagos" nodo-nginx activar)
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$PR,\"min\":15,\"caso\":\"C4a\"}"; T1=$(ticket)
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$PR,\"min\":15,\"caso\":\"C4\"}"
 N=$(en $NG 'sudo nginx -T 2>/dev/null | grep -c "mirror /fo_lake_app_de_pagos;"'); B=$(bif "App de pagos")
 [ "$(estado)" = exitoso ] && [ "$N" = 1 ] && [ "${B%%|*}" = 1 ] && anotar C4 "Repetir la activación" ok "$T1 + $(ticket) · 1 mirror · bif $B" || anotar C4 "Repetir la activación" falla "$(estado) · mirrors $N · $B"
 # ---- C5 modo declarada: activar Banca · Core bancario
 S="Banca · Core bancario"
-P=$(params "$S" nodo-nginx activar)
-caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C5\"}"
+PR=$(params "$S" nodo-nginx activar)
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$PR,\"min\":15,\"caso\":\"C5\"}"
 B=$(bif "$S"); M=$(mapa "$S"); echo "  $M"
 [ "$(estado)" = exitoso ] && [ "${B%%|*}" = 1 ] && echo "$B" | grep -q "apps/banca_core" && echo "$M" | grep -q "lakes=1 bif=1" && echo "$M" | grep -q '"directa": true' \
   && anotar C5 "Declarada: activar Core bancario" ok "$(ticket) · bif $B · $M" || anotar C5 "Declarada: activar Core bancario" falla "$(estado) · $B · $M · $(jq_ 'r.get(\"detalle\",\"\")')"
 # ---- C6 repetir
-caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C6\"}"; B=$(bif "$S")
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$PR,\"min\":15,\"caso\":\"C6\"}"; B=$(bif "$S")
 [ "$(estado)" = exitoso ] && [ "${B%%|*}" = 1 ] && [ "${B##*|}" = 1 ] && anotar C6 "Declarada: repetir" ok "$(ticket) · bif $B" || anotar C6 "Declarada: repetir" falla "$(estado) · $B"
 # ---- C7 desactivar
-P=$(params "$S" nodo-nginx desactivar)
-caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C7\"}"; B=$(bif "$S"); M=$(mapa "$S"); H=$(curl -sk -o /dev/null -w '%{http_code}' https://banca.sno.34.176.42.56.sslip.io/salud)
+PR=$(params "$S" nodo-nginx desactivar)
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$PR,\"min\":15,\"caso\":\"C7\"}"; B=$(bif "$S"); M=$(mapa "$S"); H=$(curl -sk -o /dev/null -w '%{http_code}' https://banca.sno.34.176.42.56.sslip.io/salud)
 [ "$(estado)" = exitoso ] && [ "${B%%|*}" = 0 ] && echo "$M" | grep -q "lakes=0 bif=0" && [ "$H" = 200 ] && anotar C7 "Declarada: desactivar" ok "$(ticket) · bif $B · $M · app $H" || anotar C7 "Declarada: desactivar" falla "$(estado) · $B · $M · $H"
 # ---- C8 URL de medición inválida
-P=$(params "$S" nodo-nginx activar | python3 -c 'import json,sys;p=json.load(sys.stdin);p["dl_medicion_url"]="http://no-valida";print(json.dumps(p,ensure_ascii=False))')
-caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$P,\"min\":15,\"caso\":\"C8\"}"; B=$(bif "$S")
+PR=$(params "$S" nodo-nginx activar | python3 -c 'import json,sys;p=json.load(sys.stdin);p["dl_medicion_url"]="http://no-valida";print(json.dumps(p,ensure_ascii=False))')
+caso "{\"auto\":\"$A\",\"equipo\":\"nodo-nginx\",\"params\":$PR,\"min\":15,\"caso\":\"C8\"}"; B=$(bif "$S")
 [ "$(estado)" = fallido ] && [ "${B%%|*}" = 0 ] && anotar C8 "Declarada: URL inválida" ok "$(ticket) · falla controlada · bif $B" || anotar C8 "Declarada: URL inválida" falla "$(estado) · $B"
 certificar "$A" "C1–C8: espejo en App de pagos (activar, datos, desactivar, repetir) y modo declarada en Banca · Core bancario (activar, repetir, desactivar, URL inválida)"
