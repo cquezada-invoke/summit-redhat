@@ -1,0 +1,26 @@
+commit: 35d812455095baa8b8bf3269dd2ce398af2fe6d9
+inicio: 2026-11-11T19:19:33-03:00
+---
+== antes: 8443 ==
+serial=27D3173DC3D24E02BF48364F9BBC2642
+AAP plantilla borrada 1189 204
+FaceOps fila 236 borrada
+AAP comando puntual 24821 successful
+Identity added: /runner/artifacts/24821/ssh_key_data (cquezada@demo-ansible-summit)
+nodo-jboss | CHANGED | rc=0 >>
+retirado registro y archivos del servicio falso nodo-jboss
+sin unidad ni drop-in nodo-jboss
+registro: jboss-https.json
+pki: jboss-https
+jboss-https: serial=27D3173DC3D24E02BF48364F9BBC2642
+	at com.netscape.certsrv.client.PKIClient.handleErrorResponse(PKIClient.java:254)
+	at com.netscape.certsrv.client.PKIClient.handleErrorResponse(PKIClient.java:254)
+Inventario job 24824 successful
+FICHA nodo-jboss: 2 certificado(s) [('0x27d3173dc3d24e02bf48364f9bbc2642', 'jboss-https', 'vigente'), ('0xf78d099a8ce11db890114c54dea701db', '', 'vigente')]
+   0x27d3173dc3d24e02bf48364f9bbc2642 VALID vigente
+   0xf78d099a8ce11db890114c54dea701db VALID vigente
+   0xa85bf9b53dfdea483009765228fac9ce VALID reemplazado
+== después: 8443 ==
+serial=27D3173DC3D24E02BF48364F9BBC2642
+app de pagos por el balanceador: HTTP 200
+--- fin: 2026-11-11T19:21:16-03:00 · código: 0
