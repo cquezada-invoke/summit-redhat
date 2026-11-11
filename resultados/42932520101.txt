@@ -1,0 +1,52 @@
+commit: fb4effdec5717ac667a21556c3a7b76ea803468a
+inicio: 2026-11-10T21:51:35-03:00
+---
+WF FaceOps · Aprobar › Infra · Ajustar recursos de máquinas [Hipervisores] successful
+ nodo 21311 workflow_approval successful Etapa 1/1 · Hipervisores · ¿Ejecutar «Ajustar recursos de máquinas (vCPU y memoria)»?
+ nodo 21312 job successful Infra · Ajustar recursos de máquinas
+Identity added: /runner/artifacts/21312/ssh_key_data (aap-kvm (FaceOps))
+
+PLAY [Infra · Ajustar recursos de máquinas] ************************************
+
+TASK [Datos válidos] ***********************************************************
+ok: [anfitrion-kvm]
+
+TASK [Ajustar cada máquina] ****************************************************
+changed: [anfitrion-kvm] => (item=nodo-jboss)
+
+TASK [Resultado para FaceOps] **************************************************
+ok: [anfitrion-kvm]
+
+PLAY RECAP *********************************************************************
+anfitrion-kvm              : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+22434 2026-11-11T00:50:27 successful shell 
+22433 2026-11-11T00:50:19 successful Infra · Mover máquina entre centros de datos {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22, "faceops_ticket": "FO-LAB-
+22432 2026-11-11T00:50:01 successful Red · Verificar drift {}
+22431 2026-11-11T00:49:44 successful FaceOps · automatizaciones 
+22430 2026-11-11T00:49:44 successful Migración · WebLogic a OpenShift {"wl_modo": "revertir", "wl_app": "ventas", "wl_namespace": "wl-ventas", "faceops_ticket": "FO-LAB-01488", "faceops_soli
+22427 2026-11-11T00:49:21 successful FaceOps · Aprobar › Infra · Mover máquina entre centros de datos [Infraestructura] {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22, "faceops_ticket": "FO-LAB-
+22426 2026-11-11T00:49:03 successful FaceOps · Aprobar › Migración · WebLogic a OpenShift · Nodos demo · credencial 3 [Contenedores] {"wl_modo": "revertir", "wl_app": "ventas", "wl_namespace": "wl-ventas", "faceops_ticket": "FO-LAB-01488", "faceops_soli
+22425 2026-11-11T00:48:02 successful FaceOps · automatizaciones 
+22424 2026-11-11T00:48:02 successful Infra · Mover máquina entre centros de datos {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "revertir", "mv_puerto": 22, "faceops_ticket": "FO-L
+22422 2026-11-11T00:47:29 successful FaceOps · Aprobar › Infra · Mover máquina entre centros de datos [Infraestructura] {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "revertir", "mv_puerto": 22, "faceops_ticket": "FO-L
+22421 2026-11-11T00:45:45 successful Infra · Mover máquina entre centros de datos {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22, "faceops_ticket": "FO-LAB-
+22419 2026-11-11T00:45:13 successful FaceOps · Aprobar › Infra · Mover máquina entre centros de datos [Infraestructura] {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22, "faceops_ticket": "FO-LAB-
+22418 2026-11-11T00:45:01 successful FaceOps · automatizaciones 
+22417 2026-11-11T00:45:01 successful OpenShift · Recolectar clúster {}
+22416 2026-11-11T00:44:02 successful FaceOps · automatizaciones 
+22415 2026-11-11T00:44:02 successful Infra · Mover máquina entre centros de datos {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "evaluar", "mv_puerto": 22, "faceops_ticket": "FO-LA
+22413 2026-11-11T00:43:20 successful FaceOps · Aprobar › Infra · Mover máquina entre centros de datos [Infraestructura] {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "evaluar", "mv_puerto": 22, "faceops_ticket": "FO-LA
+22412 2026-11-11T00:40:55 failed FaceOps · Uso por segmento {"uso_desde": 1794357406, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357406, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357406, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357406, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357406, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357406, "faceops_autorizacion": "<REDACTADO>"vm_usuario": "faceops", "vm_tipo": "linux", "faceops_ticket": "FO-LAB-01484", "faceops_solicitante": "cquezada", "soli
+22405 2026-11-11T00:40:09 successful FaceOps · automatizaciones 
+22404 2026-11-11T00:40:09 failed Migración · WebLogic a OpenShift {"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/no-existe", "wl_cpu": "
+22403 2026-11-11T00:40:01 successful Red · Verificar drift {}
+22401 2026-11-11T00:39:31 successful FaceOps · Aprobar › FaceOps · Vincular máquina a la bóveda · Servidores habilitados · credencial 3 [Seguridad] {"vm_usuario": "faceops", "vm_tipo": "linux", "faceops_ticket": "FO-LAB-01484", "faceops_solicitante": "cquezada", "soli
+22399 2026-11-11T00:39:18 failed FaceOps · Aprobar › Migración · WebLogic a OpenShift · Nodos demo · credencial 3 [Contenedores] {"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/no-existe", "wl_cpu": "
+22398 2026-11-11T00:38:29 successful shell 
+22397 2026-11-11T00:37:08 failed Migración · WebLogic a OpenShift {"wl_modo": "migrar", "wl_app": "legado", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+22396 2026-11-11T00:37:05 successful FaceOps · automatizaciones 
+22395 2026-11-11T00:37:05 successful FaceOps · Habilitar servidor {"hab_so": "rocky9", "hab_infraestructura": "KVM \u00b7 Santiago", "hab_destino": "onpremise", "hab_nombre": "mover", "h
+22393 2026-11-11T00:36:27 failed FaceOps · Aprobar › Migración · WebLogic a OpenShift · Nodos demo · credencial 3 [Contenedores] {"wl_modo": "migrar", "wl_app": "legado", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+22391 2026-11-11T00:36:00 successful FaceOps · Aprobar › FaceOps · Habilitar servidor [Servidores] {"hab_so": "rocky9", "hab_infraestructura": "KVM \u00b7 Santiago", "hab_destino": "onpremise", "hab_nombre": "mover", "h
+22390 2026-11-11T00:35:40 failed FaceOps · Uso por segmento {"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>
