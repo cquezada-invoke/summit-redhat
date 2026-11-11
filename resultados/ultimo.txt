@@ -1,28 +1,7 @@
-commit: c58d39712ecd9ee48ed1e82cd2ae5c227b3fe71c
-inicio: 2026-11-11T14:02:47-03:00
+commit: 7590810a5f6d907cddab41943e6c04368af94292
+inicio: 2026-11-11T14:02:38-03:00
 ---
-local 5540: 404
-redisinsight Up 35 minutes 0.0.0.0:5540->5540/tcp
-Nov 11 11:26:56 nodo-jboss.demo.local systemd[1]: Starting Redis Insight (consola web de Redis, instalada por FaceOps)...
-Nov 11 11:26:57 nodo-jboss.demo.local podman[835]: 2026-11-11 11:26:57.131206627 -0500 EST m=+0.277469123 system refresh
-Nov 11 11:26:57 nodo-jboss.demo.local systemd[1]: Started Redis Insight (consola web de Redis, instalada por FaceOps).
-Nov 11 11:26:57 nodo-jboss.demo.local podman[1041]: 2026-11-11 11:26:57.277691068 -0500 EST m=+0.089537687 image pull 3e9a2017a4d4dfc36bec418245a88180970f09785c08ce840117b3518a850c86 docker.io/redis/r
-Nov 11 11:26:57 nodo-jboss.demo.local podman[1041]: 2026-11-11 11:26:57.506318318 -0500 EST m=+0.318164929 container create c1b1af2d41c2eb1956b1f4dc327ecc21dc75d5af04d7353579f697fd8fbb8bec (image=dock
-Nov 11 11:26:58 nodo-jboss.demo.local podman[1041]: 2026-11-11 11:26:58.481781828 -0500 EST m=+1.293628443 container init c1b1af2d41c2eb1956b1f4dc327ecc21dc75d5af04d7353579f697fd8fbb8bec (image=docker
-Nov 11 11:26:58 nodo-jboss.demo.local podman[1041]: 2026-11-11 11:26:58.489574687 -0500 EST m=+1.301421301 container start c1b1af2d41c2eb1956b1f4dc327ecc21dc75d5af04d7353579f697fd8fbb8bec (image=docke
-Nov 11 11:26:58 nodo-jboss.demo.local podman[1041]: 2026-11-11 11:26:58.581600076 -0500 EST m=+1.393446723 container attach c1b1af2d41c2eb1956b1f4dc327ecc21dc75d5af04d7353579f697fd8fbb8bec (image=dock
-Nov 11 11:26:58 nodo-jboss.demo.local redisinsight[1711]: Running docker-entry.sh
-Nov 11 11:26:58 nodo-jboss.demo.local podman[1041]: Running docker-entry.sh
-               total        used        free      shared  buff/cache   available
-Mem:            2647        1014         983           8         899        1633
- 12:02:48 up 36 min,  0 users,  load average: 0.15, 0.09, 0.09
-# Warning: table ip nat is managed by iptables-nft, do not touch!
-# Warning: table ip filter is managed by iptables-nft, do not touch!
-30:		ip saddr 10.88.0.0/16 tcp dport 5540 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
-31:		ip saddr 127.0.0.1 tcp dport 5540 counter packets 1 bytes 60 jump NETAVARK-HOSTPORT-SETMARK
-32:		tcp dport 5540 counter packets 39 bytes 2340 dnat to 10.88.0.2:5540
-35:	chain NETAVARK-HOSTPORT-DNAT {
-36:		tcp dport 5540  counter packets 39 bytes 2340 jump NETAVARK-DN-1D8721804F16F
-41:		fib daddr type local counter packets 588 bytes 35280 jump NETAVARK-HOSTPORT-DNAT
-46:		fib daddr type local counter packets 412 bytes 24720 jump NETAVARK-HOSTPORT-DNAT
---- fin: 2026-11-11T14:02:48-03:00 · código: 0
+FaceAdmin actualizado a 9c145992
+faceadmin Up 8 seconds
+local 200
+--- fin: 2026-11-11T14:03:20-03:00 · código: 0
