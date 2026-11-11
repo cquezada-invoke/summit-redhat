@@ -1,7 +1,43 @@
-commit: 6128e4cd3feca39a2cf155fb9084e207ea49f34f
-inicio: 2026-11-11T10:40:00-03:00
+commit: 7126803a4585b293e0c3bb69a5e7ec61af12f279
+inicio: 2026-11-11T10:56:17-03:00
 ---
-FaceAdmin actualizado a 50c54515
-faceadmin Up 8 seconds
-local 200
---- fin: 2026-11-11T10:40:26-03:00 · código: 0
+faceops-guacd 4822/tcp faceops-guac
+faceops-vcsim 8989/tcp 
+faceops-validador 8080/tcp 
+faceops-maqueta 8080/tcp, 8110/tcp 
+summit-prometheus 9090/tcp 
+faceops-sni 80/tcp 
+faceops-kb 5432/tcp 
+summit-alertmanager 9093/tcp 
+faceops-guacamole 192.168.122.1:8111->8080/tcp faceops-guac
+faceops-publico 80/tcp 
+faceops 8080/tcp, 8110/tcp 
+== summit-prometheus
+host ["--config.file=/etc/prometheus/prometheus.yml","--storage.tsdb.path=/prometheus","--storage.tsdb.retention.time=7d","--web.listen-address=127.0.0.1:9090","--web.enable-lifecycle"] ["--config.file=/etc/prometheus/prometheus.yml","--storage.tsdb.path=/prometheus","--storage.tsdb.retention.time=7d","--web.listen-address=127.0.0.1:9090","--web.enable-lifecycle"]
+== summit-alertmanager
+host ["--config.file=/etc/alertmanager/alertmanager.yml","--storage.path=/alertmanager","--web.listen-address=127.0.0.1:9093","--cluster.listen-address="] ["--config.file=/etc/alertmanager/alertmanager.yml","--storage.path=/alertmanager","--web.listen-address=127.0.0.1:9093","--cluster.listen-address="]
+host
+Wants=network-online.target
+After=network-online.target
+After=network-online.target libvirtd.service
+Network=host
+Exec=gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8110 --access-logfile - wsgi:app
+ExecStop=/usr/bin/podman rm -v -f -i faceops
+ExecStopPost=-/usr/bin/podman rm -v -f -i faceops
+ExecStart=/usr/bin/podman run --name faceops --replace --rm --cgroups=split --network host --sdnotify=conmon -d -v /var/lib/faceops:/var/lib/faceops:Z --env TZ=America/Santiago --env-file /etc/faceops.env localhost/faceops:latest gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8110 --access-logfile - wsgi:app
+alertmanager
+am-data
+artemis_exporter.py
+blackbox
+grafana
+prom-data
+prometheus
+nodo-jboss.yml
+LISTEN 0      4096                127.0.0.1:9090       0.0.0.0:*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+LISTEN 0      4096                127.0.0.1:9093       0.0.0.0:*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+LISTEN 0      511                   0.0.0.0:8843       0.0.0.0:*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+200
+200
+{'web.config.file': '', 'web.console.libraries': 'console_libraries', 'web.console.templates': 'consoles', 'web.cors.origin': '.*', 'web.enable-admin-api': 'false', 'web.enable-lifecycle': 'true', 'web.enable-remote-write-receiver': 'false', 'web.external-url': '', 'web.listen-address': '127.0.0.1:9090', 'web.max-connections': '512', 'web.page-title': 'Prometheus Time Series Collection and Processing Server', 'web.read-timeout': '5m', 'web.remote-write-receiver.accepted-protobuf-messages': 'prometheus.WriteRequest,io.prometheus.write.v2.Request', 'web.route-prefix': '/', 'web.user-assets': ''}
+{'branch': 'HEAD', 'buildDate': '20240228-11:51:20', 'buildUser': 'root@22cd11f671e9', 'goVersion': 'go1.21.7', 'revision': '0aa3c2aad14cff039931923ab16b26b7481783b5', 'version': '0.27.0'}
+--- fin: 2026-11-11T10:56:18-03:00 · código: 0
