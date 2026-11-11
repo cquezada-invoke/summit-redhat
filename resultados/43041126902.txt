@@ -1,0 +1,29 @@
+commit: 12bdbaca8ae731898d6222ab315de5180b0186af
+inicio: 2026-11-11T11:42:55-03:00
+---
+EQ nodo-jboss 192.168.122.15 energia encendido ram_mb 2048 skills None ult_recol 2026-11-10T06:03:31.592092Z
+SERV_KC ['eap8-standalone', 'keycloak', 'vigia-jboss']
+PUERTOS_WEB {'keycloak': 8180}
+FICHA 200
+  CARD comp-cab" style="gap:6px"><b title="Red Hat JBoss EAP · versión 8.0 Update 12.0">Red Hat JBoss EAP · versión 8.0 Update 12.0</b><span class="chip s-alta" style="font-size:10.5px" title="Existe la versión 8.1">antigua</span><span class="der pt">94<small>%</small></span><a class="comp-entrar" href="/lab/inventario/6/consola-web/jboss-eap/" target="_blank" rel="noopener" title="Consola de administración de JBoss · Consola de Red Hat JBoss EAP · versión 8.0 Update 12.0 · se abre a través de FaceOps" aria-label="Consola de administración de JBoss" onclick="event.stopPropagation()"></a></div>
+  CARD comp-cab" style="gap:6px"><b title="Keycloak">Keycloak</b><span class="comp-entrar sin-web" style="width:auto;padding:0 6px" tabindex="0" data-tip="Keycloak está detenido (su consola web no responde): la consola (Keycloak) se habilita sola cuando la plataforma esté encendida." aria-label="Consola de Keycloak: detenido" onclick="event.stopPropagation()"><small style="font-size:10.5px;margin-left:3px">detenido</small></span></div>
+  LINK /lab/inventario/6/consola-web/jboss-eap/
+  LINK /lab/inventario/6/consola-web/redis/
+  TXT span class="comp-entrar sin-web" style="width:auto;padding:0 6px" tabindex="0" data-tip="Keycloak está detenido (su consola web no responde): la consola (Keycloak) se habilita sola cuando la plataforma esté encendida." aria-label="Consola de Keycloak: detenido" onclick=
+  TXT Keycloak está detenido (su consola web no responde): la consola (Keycloak) se habilita sola cuando la plataforma esté encendida.
+CONSOLA_KC 302 /lab/inventario/6/consola-web/keycloak/admin/  Redirecting... Redirecting... You should be redirected automatically to the target URL: /lab/inventario/6/consola-web/keycloak/admin/ . If not, click the link. 
+SERV_ESTADO en ejecución PUERTO 8180 CONSOLA_NOVERIF {'url': 'http://192.168.122.15:8180/admin/', 'producto': 'Keycloak', 'transparente': False} CONSOLA_VERIF None
+WEB_DE None
+TICKET FO-LAB-01644
+ESTADO FO-LAB-01644 exitoso job 23348
+Traceback (most recent call last):
+  File "/tmp/kc.py", line 59, in <module>
+    art = AAP.de_cliente(cl).get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {}
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET jobs/23348/ → 404: {"detail":"No Job matches the given query."}
+--- fin: 2026-11-11T11:44:53-03:00 · código: 0
