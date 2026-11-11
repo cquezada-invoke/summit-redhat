@@ -1,7 +1,28 @@
-commit: f1124a7564221e5fda5d57b53009f12a73832c38
-inicio: 2026-11-11T15:12:40-03:00
+commit: b44477924d12167dc1d9113b138e8da015fdb7df
+inicio: 2026-11-11T15:09:08-03:00
 ---
-2c5d02a
-   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
-ya estaba desplegado
---- fin: 2026-11-11T15:15:52-03:00 · código: 0
+IP nodo-jboss-dev 192.168.122.21 · nodo-jboss-qa 192.168.122.20 (shut off)
+  C1: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-jboss-dev: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+CASO C1 falla · Evaluar JBoss 5.1
+  C2: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-jboss-dev: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+  C2b: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-jboss-dev: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+CASO C2 falla · emular-origen EAP 7.4
+  C3: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-jboss-dev: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+CASO C3 falla · Evaluar EAP 7.4
+energía nodo-jboss-qa encender: exitoso FO-LAB-01781
+  C4: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-jboss-dev: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+CASO C4 falla · Migrar catalogo-legacy
+  C5: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-jboss-dev: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+CASO C5 falla · Migrar inventario-eap7
+  C6: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-jboss-dev: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+CASO C6 falla · Repetir C4
+  C7: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-jboss-dev: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+CASO C7 falla · Migrar app-rota
+  C8: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-postgres: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+CASO C8 falla · Origen sin JBoss
+  C9: rechazado al solicitar  · {} PermissionError: Esta acción no aplica a nodo-jboss-dev: esta acción elige sus equipos en el formulario, no se lanza desde un equipo
+CASO C9 ok · Migrar sin destino
+JBOSS: [{"id": "C1", "caso": "Evaluar JBoss 5.1", "resultado": "falla", "evidencia": "rechazado al solicitar git=nodo-jboss-dev: evaluación de migración a EAP 8 (FO-LAB-00452) huella c1d715e51e21/c1d715e51e21 None"}, {"id": "C2", "caso": "emular-origen EAP 7.4", "resultado": "falla", "evidencia": "rechazado al solicitar  · null"}, {"id": "C3", "caso": "Evaluar EAP 7.4", "resultado": "falla", "evidencia": "rechazado al solicitar null # Evaluación de migración a JBoss EAP 8 · nodo-jboss-dev\n\n- Origen: JBoss 5.1.0.GA (as5-6) en `/opt/jboss-5.1.0.GA`\n- JVM: -Xms1303m -Xmx1303m · openjdk version \"17.0.20.1\" 2026-08-18 LTS\n- Destino: JBoss EAP 8 (Jakarta EE 10, Java 17/21)\n\n## catalogo-legacy.war · complej"}, {"id": "C4", "caso": "Migrar catalogo-legacy", "resultado": "falla", "evidencia": "rechazado al solicitar http=404 ds=\"ExampleDS\"  None"}, {"id": "C5", "caso": "Migrar inventari
+energía nodo-jboss-qa apagar: exitoso FO-LAB-01783
+FIN-JBOSS nodo-jboss-qa: shut off
+--- fin: 2026-11-11T15:16:31-03:00 · código: 0
