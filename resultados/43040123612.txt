@@ -1,0 +1,17 @@
+commit: 06e9c536caad12754bb249b30b8885c4f54f1b35
+inicio: 2026-11-11T11:36:44-03:00
+---
+WF 23293 running
+dbd6198f-f3a9-4a03-8 ¿Aprueba crear la máquina paralela y sumarla al balanceo de sus segmentos? successful 23294
+crear FaceOps · Habilitar servidor successful 23299
+configurar Infra · Replicar máquina · configurar failed 23303
+    runner_on_start Abrir el puerto del servicio nodo-jboss4 
+    runner_on_skipped Abrir el puerto del servicio nodo-jboss4 [0;36mskipping: [nodo-jboss4][0m
+    playbook_on_task_start Servicio arriba y al iniciar   TASK [Servicio arriba y al iniciar] ********************************************
+    runner_on_start Servicio arriba y al iniciar nodo-jboss4 
+    runner_on_failed Servicio arriba y al iniciar nodo-jboss4 [0;31mfatal: [nodo-jboss4]: FAILED! => {"changed": false, "msg": "Could not find the requested service eap8-standalone: host"}[0m
+    playbook_on_stats    rescued=0    ignored=0    [0;31mnodo-jboss4[0m                : [0;32mok=36  [0m [0;33mchanged=15  [0m unreachable=0    [0;31mfailed=1   [0m [0;36mskipped=5   [0m rescued=0    ignored=0   
+revertir-balanceo FaceOps · Retirar del balanceo pending 23318
+revertir-vm None None None
+revertir-vm-creada None None None
+--- fin: 2026-11-11T11:36:44-03:00 · código: 0
