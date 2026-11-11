@@ -1,6 +1,7 @@
 ---
 # FaceOps · Agente de monitoreo (Linux) — skill «monitoreo». Instala node_exporter (métricas del equipo para Prometheus y Grafana).
 # FaceOps la lanza sobre los equipos elegidos con el inventario y la credencial de cada uno. Basada en Demo 5 (exportadores-linux.yml).
+# Deja además las métricas de seguridad (faceops-seguridad.prom, temporizador de cada minuto) para las alertas de Seguridad.
 - name: FaceOps · Agente de monitoreo (Linux)
   hosts: all
   become: true
@@ -50,6 +51,57 @@
         state: directory
         owner: root
         mode: "0755"
+
+    - name: Métricas de seguridad (textfile faceops-seguridad.prom, cada minuto · alertas de Seguridad del botón «Alertas»)
+      ansible.builtin.copy:
+        dest: /usr/local/libexec/faceops-seguridad.sh
+        mode: "0755"
+        content: |
+          #!/bin/bash
+          # FaceOps · métricas de seguridad para node_exporter (solo lectura): SSH fallidos y root en 5 min, cuentas bloqueadas
+          # por faillock, modo de SELinux y huella de los archivos críticos. Lo corre faceops-seguridad.timer cada minuto.
+          D=/var/lib/node_exporter/textfile; T=$(mktemp "$D/.seg.XXXXXX")
+          j=$(journalctl -q --since "-5min" -t sshd -t sshd-session -o cat 2>/dev/null)
+          f=$(printf '%s\n' "$j" | grep -cE "Failed (password|publickey)|Invalid user|authentication failure")
+          r=$(printf '%s\n' "$j" | grep -cE "Accepted [a-z-]+ for root ")
+          deny=$(sed -n 's/^[[:space:]]*deny[[:space:]]*=[[:space:]]*\([0-9]\+\).*/\1/p' /etc/security/faillock.conf 2>/dev/null | tail -1)
+          b=0; for u in $(ls /var/run/faillock 2>/dev/null); do
+            n=$(faillock --user "$u" 2>/dev/null | awk '$NF=="V"' | wc -l); [ "$n" -ge "${deny:-3}" ] && b=$((b+1)); done
+          case "$(getenforce 2>/dev/null)" in Enforcing) s=2;; Permissive) s=1;; *) s=0;; esac
+          {
+            echo "# HELP faceops_seg_ssh_fallidos_5m Ingresos SSH fallidos en los últimos 5 minutos"; echo "# TYPE faceops_seg_ssh_fallidos_5m gauge"
+            echo "faceops_seg_ssh_fallidos_5m $f"
+            echo "# HELP faceops_seg_root_login_5m Ingresos SSH aceptados como root en los últimos 5 minutos"; echo "# TYPE faceops_seg_root_login_5m gauge"
+            echo "faceops_seg_root_login_5m $r"
+            echo "# HELP faceops_seg_cuentas_bloqueadas Cuentas bloqueadas por faillock"; echo "# TYPE faceops_seg_cuentas_bloqueadas gauge"
+            echo "faceops_seg_cuentas_bloqueadas $b"
+            echo "# HELP faceops_seg_selinux_modo Modo de SELinux: 2 Enforcing, 1 Permissive, 0 Disabled"; echo "# TYPE faceops_seg_selinux_modo gauge"
+            echo "faceops_seg_selinux_modo $s"
+            echo "# HELP faceops_seg_archivo_huella Huella (sha256 truncado) de cada archivo crítico; cambia si el archivo cambia"; echo "# TYPE faceops_seg_archivo_huella gauge"
+            for a in /etc/passwd /etc/shadow /etc/group /etc/sudoers /etc/sudoers.d; do
+              [ -e "$a" ] || continue
+              h=$( (if [ -d "$a" ]; then cat "$a"/* 2>/dev/null; else cat "$a"; fi) | sha256sum | cut -c1-7)
+              echo "faceops_seg_archivo_huella{archivo=\"$a\"} $((16#$h))"
+            done
+          } > "$T" && chmod 0644 "$T" && mv -f "$T" "$D/faceops-seguridad.prom"
+
+    - name: Temporizador de las métricas de seguridad (cada minuto)
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ item.n }}"
+        mode: "0644"
+        content: "{{ item.c }}"
+      loop:
+        - {n: faceops-seguridad.service, c: "[Unit]\nDescription=FaceOps · métricas de seguridad (node_exporter textfile)\n[Service]\nType=oneshot\nExecStart=/usr/local/libexec/faceops-seguridad.sh\n"}
+        - {n: faceops-seguridad.timer, c: "[Unit]\nDescription=FaceOps · métricas de seguridad cada minuto\n[Timer]\nOnBootSec=30\nOnUnitActiveSec=60\nAccuracySec=5\n[Install]\nWantedBy=timers.target\n"}
+      loop_control:
+        label: "{{ item.n }}"
+
+    - name: Temporizador activo
+      ansible.builtin.systemd:
+        name: faceops-seguridad.timer
+        enabled: true
+        state: started
+        daemon_reload: true
 
     - name: Servicio systemd
       ansible.builtin.copy:

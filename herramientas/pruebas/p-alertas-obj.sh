@@ -1,12 +1,12 @@
-# Plan «Monitoreo · Configurar alertas del equipo» (C1–C9 y C11)
+# Plan «Monitoreo · Configurar alertas del equipo» (C1–C9 y C11–C14; C13 requiere el agente con métricas de seguridad)
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="Monitoreo · Configurar alertas del equipo"; CASOS='[]'; TKS='[]'
 PM=http://127.0.0.1:9090
 reglas() { curl -s $PM/api/v1/rules?type=alert | python3 -c "import json,sys;d=json.load(sys.stdin);g=[x for x in d['data']['groups'] if x['name']=='faceops-$1'];print(len(g[0]['rules']) if g else 0)"; }
 reglas_txt() { curl -s $PM/api/v1/rules?type=alert | python3 -c "import json,sys;d=json.load(sys.stdin);g=[x for x in d['data']['groups'] if x['name']=='faceops-$1'];print(json.dumps(sorted((r['name'],r['query'],r['labels'].get('faceops_accion',''),r['labels'].get('faceops_automatizacion','')) for r in (g[0]['rules'] if g else [])), ensure_ascii=False))"; }
 up() { curl -s "$PM/api/v1/query" --data-urlencode "query=up{job=\"faceops-equipos\",faceops_equipo=\"$1\"}" | python3 -c "import json,sys;r=json.load(sys.stdin)['data']['result'];print(r[0]['value'][1] if r else 'sin-serie')"; }
-pedir() {  # pedir <caso> <equipo> <ip> <tipo> '<alertas json>' [min]
-  caso "{\"auto\":\"$N\",\"params\":{\"al_equipo\":\"$2\",\"al_ip\":\"$3\",\"al_tipo\":\"$4\",\"al_alertas\":$5,\"al_retirar\":$( [ "$5" = "[]" ] && echo true || echo false )},\"min\":${6:-20},\"caso\":\"$1\"}"
+pedir() {  # pedir <caso> <equipo> <ip> <tipo> '<alertas json>' [min] [ámbito]
+  caso "{\"auto\":\"$N\",\"params\":{\"al_equipo\":\"$2\",\"al_ip\":\"$3\",\"al_tipo\":\"$4\",\"al_ambito\":\"${7:-maquina}\",\"al_alertas\":$5,\"al_retirar\":$( [ "$5" = "[]" ] && echo true || echo false )},\"min\":${6:-20},\"caso\":\"$1\"}"
 }
 L=nodo-jboss; energia $L encender; IL=$(ip_de $L); echo "$L $IL"
 # C1 · activar en Linux con agente
@@ -74,11 +74,34 @@ Q
 H7a=$(reglas_txt $L | sha256sum | cut -c1-10)
 pedir C7 $L $IL linux '[{"id":"C01","aviso":95,"critico":80,"accion":"avisar"}]' 12; E7=$(estado); sleep 20; H7b=$(reglas_txt $L | sha256sum | cut -c1-10)
 [ "$V7" = rechazo ] && [ "$E7" = fallido ] && [ "$H7a" = "$H7b" ] && anotar C7 "Umbral inválido" ok "FaceOps lo rechaza; el playbook falla y deja las reglas como estaban" || anotar C7 "Umbral inválido" falla "$V7 $E7 $H7a→$H7b"
+# C12 · ámbitos: JBoss (plataforma) aparte de la máquina
+HM0=$(reglas_txt $L | sha256sum | cut -c1-10); RM0=$(reglas $L)
+pedir C12 $L $IL linux '[{"id":"J01","accion":"avisar"}]' 20 plataforma:jboss; E12=$(estado); sleep 30
+RJ=$(reglas "$L--jboss"); HM1=$(reglas_txt $L | sha256sum | cut -c1-10)
+FJ=$(sudo test -f /opt/summit-monitoreo/prometheus/faceops/reglas/$L--jboss.yml && sudo test -f /opt/summit-monitoreo/grafana/dashboards/faceops/faceops-al-$L--jboss.json && echo si)
+pedir C12b $L $IL linux '[]' 20 plataforma:jboss; E12b=$(estado); sleep 30; RJ2=$(reglas "$L--jboss"); RM2=$(reglas $L); U12=$(up $L)
+[ "$E12" = exitoso ] && [ "$RJ" = 1 ] && [ "$HM0" = "$HM1" ] && [ "$FJ" = si ] && [ "$E12b" = exitoso ] && [ "$RJ2" = 0 ] && [ "$RM2" = "$RM0" ] && [ "$U12" = 1 ] \
+  && anotar C12 "Ámbitos máquina / plataforma" ok "faceops-$L--jboss con J01, archivo y tablero propios; máquina sin cambios ($RM0 reglas); al retirar JBoss la máquina sigue ($RM2 reglas, up=1)" \
+  || anotar C12 "Ámbitos máquina / plataforma" falla "$E12/$E12b jboss=$RJ→$RJ2 máquina $HM0→$HM1 $RM0→$RM2 archivos=$FJ up=$U12"
+firing() { curl -s $PM/api/v1/alerts | python3 -c "import json,sys;print(sum(1 for a in json.load(sys.stdin)['data']['alerts'] if a['labels'].get('faceops_equipo')=='$L' and a['labels'].get('faceops_alerta')=='$1' and a['state']=='firing'))"; }
+en_am() { curl -s http://127.0.0.1:9093/api/v2/alerts | python3 -c "import json,sys;print(sum(1 for a in json.load(sys.stdin) if a['labels'].get('faceops_equipo')=='$L' and a['labels'].get('faceops_alerta')=='$1'))"; }
+# C13 · seguridad real: 6 ingresos SSH fallidos (S01, aviso 5)
+pedir C13 $L $IL linux '[{"id":"D01","accion":"avisar"},{"id":"S01","aviso":5,"critico":50,"accion":"avisar"}]'; E13=$(estado); sleep 20
+A=$(mktemp); printf '#!/bin/sh\necho clave-errada\n' > $A; chmod +x $A
+for i in 1 2 3 4 5 6; do SSH_ASKPASS=$A SSH_ASKPASS_REQUIRE=force DISPLAY=:0 timeout 15 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PubkeyAuthentication=no \
+  -o PreferredAuthentications=password,keyboard-interactive -o NumberOfPasswordPrompts=1 -o ConnectTimeout=5 -o LogLevel=ERROR faceops-prueba-inexistente@$IL true </dev/null >/dev/null 2>&1; done; rm -f $A
+F13=0; for i in $(seq 1 18); do sleep 10; F13=$(firing S01); [ "$F13" -ge 1 ] && break; done; A13=$(en_am S01)
+[ "$E13" = exitoso ] && [ "$F13" -ge 1 ] && [ "$A13" -ge 1 ] && anotar C13 "Seguridad real (S01)" ok "6 ingresos SSH fallidos → S01 firing ($F13) y en Alertmanager ($A13)" || anotar C13 "Seguridad real (S01)" falla "$E13 firing=$F13 am=$A13"
+# C14 · bloqueo real: espera de E/S (B02) con umbral mínimo y lectura directa del disco (solo lectura)
+pedir C14 $L $IL linux '[{"id":"D01","accion":"avisar"},{"id":"B02","aviso":0.5,"critico":99,"para":"0m","accion":"avisar"}]'; E14=$(estado)
+en $IL 'D=$(lsblk -dno NAME,TYPE | awk "\$2==\"disk\"{print \$1; exit}"); sudo timeout 90 dd if=/dev/$D of=/dev/null bs=1M iflag=direct status=none' >/dev/null 2>&1 &
+F14=0; for i in $(seq 1 18); do sleep 10; F14=$(firing B02); [ "$F14" -ge 1 ] && break; done; A14=$(en_am B02); wait
+[ "$E14" = exitoso ] && [ "$F14" -ge 1 ] && [ "$A14" -ge 1 ] && anotar C14 "Bloqueo real (B02)" ok "lectura directa del disco → B02 firing ($F14) y en Alertmanager ($A14)" || anotar C14 "Bloqueo real (B02)" falla "$E14 firing=$F14 am=$A14"
 # C8 · retirar todas
 pedir C8 $L $IL linux '[]'; E8=$(estado); sleep 40; R8=$(reglas $L); U8=$(up $L); OK8=$(curl -s -o /dev/null -w '%{http_code}' $PM/-/ready)
 pedir C8b $S $IS storage '[]' >/dev/null; [ -n "$RN" ] && pedir C8c $RN $RI red '[]' >/dev/null
 T8=$(sudo test -f /opt/summit-monitoreo/grafana/dashboards/faceops/faceops-al-$L.json && echo queda || echo sin-tablero)
 [ "$E8" = exitoso ] && [ "$R8" = 0 ] && [ "$U8" = sin-serie ] && [ "$OK8" = 200 ] && [ "$T8" = sin-tablero ] && anotar C8 "Retirar todas" ok "sin reglas, objetivo ni tablero; Prometheus listo" || anotar C8 "Retirar todas" falla "$E8 reglas=$R8 up=$U8 ready=$OK8 tablero=$T8"
 echo "EVIDENCIA $CASOS"
-certificar "$N" "Plan alertas por objeto · C1–C9 y C11 (planes-prueba.yml)"
+certificar "$N" "Plan alertas por objeto · C1–C9 y C11–C14 (planes-prueba.yml)"
 echo FIN-ALERTAS-OBJ

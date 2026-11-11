@@ -1,6 +1,10 @@
 # Catálogo de alertas por objeto (FaceOps · botón «Alertas» de cada equipo). La configuración de cada equipo vive en Ansible:
 # «Monitoreo · Configurar alertas del equipo» la escribe en Prometheus (reglas y objetivos) y Alertmanager la entrega a EDA.
 # FaceOps solo lee este catálogo para ofrecer las alertas que aplican a cada tipo de objeto.
+# ambito: maquina (por defecto: la máquina y su sistema operativo, campana de la ficha) o plataforma:<familia> (jboss, nginx,
+#   redis, keycloak, postgresql…: campana de la tarjeta de esa plataforma). Cada ámbito tiene su propio grupo de reglas en
+#   Prometheus (faceops-<equipo> / faceops-<equipo>--<familia>), su ticket y su tablero de Grafana.
+# pendiente: alerta que aún no se puede medir en el lab (falta su exportador); FaceOps la muestra deshabilitada con el motivo.
 #   __EQ__     → nombre del equipo (etiqueta faceops_equipo de sus métricas)
 #   __UMBRAL__ → umbral de aviso o crítico (una regla por severidad)
 tipos:
@@ -12,7 +16,8 @@ tipos:
 # solo registra el evento en Event-Driven Ansible; las demás piden la automatización indicada, siempre con aprobación.
 acciones:
   avisar: {texto: "Solo avisar (queda en Event-Driven Ansible)"}
-  diagnosticar: {texto: "Diagnóstico automático de solo lectura", auto: "Incidentes · Verificar error conocido", vars: {}}
+  # informe: true → al terminar, FaceOps envía el resultado por correo al responsable de la máquina (app/alerta_diagnostico.py)
+  diagnosticar: {texto: "Diagnóstico automático de solo lectura", auto: "Incidentes · Verificar error conocido", vars: {}, informe: true}
   encender: {texto: "Encender el equipo (con aprobación)", auto: "Infra · Encender o apagar equipo", vars: {en_equipo: __EQ__, en_accion: encender}, sin_limite: true}
   limpiar_logs: {texto: "Limpiar logs antiguos (con aprobación)", auto: "Remediación · Limpiar logs", vars: {}}
   reiniciar_iis: {texto: "Levantar IIS (con aprobación)", auto: "Remediación · IIS en Windows", vars: {}}
@@ -26,15 +31,15 @@ acciones:
   reiniciar_jboss: {texto: "Reiniciar JBoss (con aprobación)", auto: "Plataforma · Controlar servicio", acceso: equipo,
                     vars: {sp_unidades: [eap8-standalone, eap7-standalone, jboss-eap, jboss, wildfly], sp_accion: reiniciar, sp_plataforma: JBoss}}
   hora: {texto: "Corregir la hora (propuesta con aprobación)", auto: "Sistema · Cambio de hora del país", pide_datos: "zona horaria"}
+  # Seguridad
+  escanear: {texto: "Escaneo de seguridad del servidor (solo lectura, con aprobación)", auto: "Seguridad · Escaneo de servidores", acceso: equipo, vars: {}, informe: true}
+  bloquear_ip: {texto: "Bloquear la IP de origen (propuesta con aprobación)", auto: "Red · Bloquear IP", pide_datos: "IP de origen a bloquear"}
 alertas:
   # ───────── Servidores Linux y storage ─────────
   - {id: D01, tipos: [linux, windows, storage], grupo: Disponibilidad, nombre: "Sin respuesta", acciones: [avisar, encender, diagnosticar],
      descripcion: "Prometheus no logra leer las métricas del equipo (apagado, colgado o sin red)",
      expr: 'up{job="faceops-equipos",faceops_equipo="__EQ__"} == 0', umbral: false, severidad: critico, para: 2m}
   # requiere: la alerta se ofrece solo si el inventario de FaceOps detectó esa plataforma en el equipo (datos.<requiere>)
-  - {id: J01, tipos: [linux], requiere: jboss, grupo: Disponibilidad, nombre: "JBoss detenido", acciones: [avisar, reiniciar_jboss, diagnosticar],
-     descripcion: "El servicio systemd de JBoss EAP / WildFly no está activo (la aplicación deja de responder en ese nodo)",
-     expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"(eap|jboss|wildfly).*service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
   - {id: D04, tipos: [linux, storage], grupo: Disponibilidad, nombre: "Reinicio inesperado", acciones: [avisar, diagnosticar],
      descripcion: "El equipo arrancó hace menos de 10 minutos",
      expr: '(time() - node_boot_time_seconds{faceops_equipo="__EQ__"}) < 600', umbral: false, severidad: aviso, para: 0m}
@@ -68,6 +73,75 @@ alertas:
   - {id: O02, tipos: [linux, storage], grupo: Operación, nombre: "Errores de red", unidad: "por s", acciones: [avisar, diagnosticar],
      descripcion: "Errores de recepción o transmisión en alguna interfaz",
      expr: 'max by (faceops_equipo, device) (rate(node_network_receive_errs_total{faceops_equipo="__EQ__"}[5m]) + rate(node_network_transmit_errs_total{faceops_equipo="__EQ__"}[5m])) > __UMBRAL__', aviso: 1, critico: 10, para: 10m}
+  # ───────── Seguridad (Linux) · métricas de seguridad del agente de monitoreo (textfile faceops-seguridad.prom, cada minuto)
+  - {id: S01, tipos: [linux, storage], grupo: Seguridad, nombre: "Fuerza bruta por SSH", unidad: "intentos en 5 min", acciones: [avisar, diagnosticar, escanear, bloquear_ip],
+     descripcion: "Intentos de ingreso por SSH fallidos (clave errada, usuario inexistente) en los últimos 5 minutos",
+     expr: 'faceops_seg_ssh_fallidos_5m{faceops_equipo="__EQ__"} > __UMBRAL__', aviso: 5, critico: 20, para: 0m}
+  - {id: S02, tipos: [linux, storage], grupo: Seguridad, nombre: "Cuenta bloqueada por intentos fallidos", acciones: [avisar, diagnosticar],
+     descripcion: "Alguna cuenta quedó bloqueada por faillock (desbloquearla aún no tiene acción automática: faillock --user <cuenta> --reset)",
+     expr: 'faceops_seg_cuentas_bloqueadas{faceops_equipo="__EQ__"} > 0', umbral: false, severidad: aviso, para: 0m}
+  - {id: S03, tipos: [linux, storage], grupo: Seguridad, nombre: "Ingreso de root por SSH", acciones: [avisar, diagnosticar, escanear],
+     descripcion: "Se aceptó un ingreso SSH directo como root en los últimos 5 minutos",
+     expr: 'faceops_seg_root_login_5m{faceops_equipo="__EQ__"} > 0', umbral: false, severidad: aviso, para: 0m}
+  - {id: S04, tipos: [linux, storage], grupo: Seguridad, nombre: "Archivo crítico modificado", acciones: [avisar, diagnosticar, escanear],
+     descripcion: "Cambió /etc/passwd, /etc/shadow, /etc/group o la configuración de sudo (huella del archivo) en los últimos 10 minutos",
+     expr: 'changes(faceops_seg_archivo_huella{faceops_equipo="__EQ__"}[10m]) > 0', umbral: false, severidad: critico, para: 0m}
+  - {id: S05, tipos: [linux, storage], grupo: Seguridad, nombre: "SELinux no está en modo Enforcing", acciones: [avisar, escanear],
+     descripcion: "SELinux quedó permisivo o deshabilitado (2 = Enforcing, 1 = Permissive, 0 = Disabled)",
+     expr: 'faceops_seg_selinux_modo{faceops_equipo="__EQ__"} < 2', umbral: false, severidad: critico, para: 5m}
+  - {id: S06, tipos: [linux, storage], grupo: Seguridad, nombre: "firewalld detenido", acciones: [avisar, diagnosticar, reiniciar_servicio],
+     descripcion: "El firewall del sistema (firewalld) no está activo",
+     expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name="firewalld.service",state="active"}) == 0', umbral: false, severidad: critico, para: 2m}
+  - {id: S07, tipos: [linux, storage], grupo: Seguridad, nombre: "Auditoría (auditd) detenida", acciones: [avisar, diagnosticar, reiniciar_servicio],
+     descripcion: "El servicio de auditoría del sistema (auditd) no está activo: no quedan registros de auditoría",
+     expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name="auditd.service",state="active"}) == 0', umbral: false, severidad: critico, para: 2m}
+  # ───────── Bloqueos (Linux) · node_exporter
+  - {id: B01, tipos: [linux, storage], grupo: Bloqueos, nombre: "Procesos bloqueados (estado D)", unidad: "procesos", acciones: [avisar, diagnosticar],
+     descripcion: "Procesos esperando E/S sin poder interrumpirse (disco, NFS o almacenamiento lento)",
+     expr: 'node_procs_blocked{faceops_equipo="__EQ__"} > __UMBRAL__', aviso: 5, critico: 20, para: 5m}
+  - {id: B02, tipos: [linux, storage], grupo: Bloqueos, nombre: "Espera de E/S alta (iowait)", unidad: "%", acciones: [avisar, diagnosticar, ampliar_volumen],
+     descripcion: "Tiempo de CPU esperando al almacenamiento, promedio de 5 minutos",
+     expr: '100 * avg by (faceops_equipo) (rate(node_cpu_seconds_total{mode="iowait",faceops_equipo="__EQ__"}[5m])) > __UMBRAL__', aviso: 20, critico: 40, para: 10m}
+  - {id: B03, tipos: [linux, storage], grupo: Bloqueos, nombre: "Sistema de archivos en solo lectura", acciones: [avisar, diagnosticar],
+     descripcion: "Algún sistema de archivos pasó a solo lectura (error de disco o del sistema de archivos)",
+     expr: 'max by (faceops_equipo, mountpoint) (node_filesystem_readonly{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs|iso9660"}) == 1', umbral: false, severidad: critico, para: 1m}
+  - {id: B04, tipos: [linux, storage], grupo: Bloqueos, nombre: "OOM killer activado", acciones: [avisar, diagnosticar, recursos, reiniciar_servicio],
+     descripcion: "El kernel mató procesos por falta de memoria en los últimos 10 minutos",
+     expr: 'increase(node_vmstat_oom_kill{faceops_equipo="__EQ__"}[10m]) > 0', umbral: false, severidad: critico, para: 0m}
+  - {id: B05, tipos: [linux, storage], grupo: Bloqueos, nombre: "Servicio caído (estado failed)", acciones: [avisar, diagnosticar, reiniciar_servicio],
+     descripcion: "Alguna unidad de systemd quedó en estado failed",
+     expr: 'count by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",state="failed"} == 1) > 0', umbral: false, severidad: aviso, para: 2m}
+  # ───────── Plataformas (cada una en su tarjeta de la ficha) ─────────
+  # JBoss EAP / WildFly
+  - {id: J01, tipos: [linux], ambito: "plataforma:jboss", grupo: Disponibilidad, nombre: "JBoss detenido", acciones: [avisar, reiniciar_jboss, diagnosticar],
+     descripcion: "El servicio systemd de JBoss EAP / WildFly no está activo (la aplicación deja de responder en ese nodo)",
+     expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"(eap|jboss|wildfly).*service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
+  - {id: J02, tipos: [linux], ambito: "plataforma:jboss", grupo: Capacidad, nombre: "Heap de JBoss alto", pendiente: "requiere el exportador JMX de JBoss (jmx_exporter) en el equipo"}
+  - {id: J03, tipos: [linux], ambito: "plataforma:jboss", grupo: Bloqueos, nombre: "Hilos bloqueados o deadlock en JBoss", pendiente: "requiere el exportador JMX de JBoss (jmx_exporter) en el equipo"}
+  - {id: J04, tipos: [linux], ambito: "plataforma:jboss", grupo: Operación, nombre: "Errores 5xx de las aplicaciones", pendiente: "requiere las métricas de Undertow (jmx_exporter) o del balanceador"}
+  - {id: J05, tipos: [linux], ambito: "plataforma:jboss", grupo: Capacidad, nombre: "Pool del datasource agotado", pendiente: "requiere el exportador JMX de JBoss (jmx_exporter) en el equipo"}
+  # nginx
+  - {id: N01, tipos: [linux], ambito: "plataforma:nginx", grupo: Disponibilidad, nombre: "nginx detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
+     descripcion: "El servicio nginx no está activo", expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name="nginx.service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
+  - {id: N02, tipos: [linux], ambito: "plataforma:nginx", grupo: Operación, nombre: "Errores 5xx", pendiente: "requiere nginx-prometheus-exporter o el log de acceso como métrica"}
+  - {id: N03, tipos: [linux], ambito: "plataforma:nginx", grupo: Disponibilidad, nombre: "Upstream caído", pendiente: "requiere nginx-prometheus-exporter (NGINX Plus) o sondeo HTTP de cada upstream"}
+  # Redis
+  - {id: R01, tipos: [linux], ambito: "plataforma:redis", grupo: Disponibilidad, nombre: "Redis detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
+     descripcion: "El servicio de Redis no está activo", expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"(redis|valkey).*service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
+  - {id: R02, tipos: [linux], ambito: "plataforma:redis", grupo: Capacidad, nombre: "Memoria de Redis alta", pendiente: "requiere redis_exporter en el equipo"}
+  - {id: R03, tipos: [linux], ambito: "plataforma:redis", grupo: Bloqueos, nombre: "Clientes bloqueados en Redis", pendiente: "requiere redis_exporter en el equipo"}
+  # Keycloak
+  - {id: K01, tipos: [linux], ambito: "plataforma:keycloak", grupo: Disponibilidad, nombre: "Keycloak detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
+     descripcion: "El servicio de Keycloak no está activo", expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"(keycloak|rhbk).*service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
+  - {id: K02, tipos: [linux], ambito: "plataforma:keycloak", grupo: Seguridad, nombre: "Logins fallidos en Keycloak", unidad: "por minuto", acciones: [avisar, diagnosticar, bloquear_ip],
+     descripcion: "Logins fallidos por IP en el último minuto (métrica de archivo keycloak.prom)",
+     expr: 'max by (faceops_equipo) (keycloak_logins_fallidos_ultimo_minuto{faceops_equipo="__EQ__"}) > __UMBRAL__', aviso: 5, critico: 20, para: 0m}
+  # PostgreSQL
+  - {id: P01, tipos: [linux], ambito: "plataforma:postgresql", grupo: Disponibilidad, nombre: "PostgreSQL detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
+     descripcion: "El servicio de PostgreSQL no está activo", expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"postgresql.*service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
+  - {id: P02, tipos: [linux], ambito: "plataforma:postgresql", grupo: Capacidad, nombre: "Conexiones cerca del máximo", pendiente: "requiere postgres_exporter en el equipo"}
+  - {id: P03, tipos: [linux], ambito: "plataforma:postgresql", grupo: Bloqueos, nombre: "Bloqueos (locks) en espera", pendiente: "requiere postgres_exporter en el equipo"}
+  - {id: P04, tipos: [linux], ambito: "plataforma:postgresql", grupo: Disponibilidad, nombre: "Réplica atrasada", pendiente: "requiere postgres_exporter en el equipo"}
   # ───────── Servidores Windows ─────────
   - {id: W01, tipos: [windows], grupo: Capacidad, nombre: "CPU alta", unidad: "%", acciones: [avisar, recursos, diagnosticar],
      descripcion: "Uso de CPU promedio de los últimos 5 minutos",

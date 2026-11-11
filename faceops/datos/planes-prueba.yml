@@ -432,6 +432,12 @@ planes:
     casos:
       - {id: C1, caso: "validar contra un vCenter de laboratorio", verificar: "permisos, red, datastore y cuota con semáforo"}
       - {id: C2, caso: "instalar", verificar: "clúster creado y habilitado en FaceOps"}
+  "FaceOps · Agente de monitoreo (Linux)":
+    casos:
+      - {id: C1, caso: "Instalar en un Linux (nodo-jboss)", tipo: Funcional, verificar: "node_exporter activo en :9100 con las métricas del sistema y las de seguridad (faceops_seg_*: SSH fallidos, root, cuentas bloqueadas, SELinux, huella de archivos críticos) y su temporizador cada minuto"}
+      - {id: C2, caso: "Repetir la instalación", tipo: Idempotencia, verificar: "termina bien sin reiniciar el agente ni duplicar el temporizador; las métricas siguen"}
+      - {id: C3, caso: "6 ingresos SSH fallidos desde el anfitrión", tipo: Funcional, verificar: "faceops_seg_ssh_fallidos_5m sube a 6 o más en menos de 2 minutos"}
+      - {id: C4, caso: "Equipo apagado o inalcanzable", tipo: Error controlado, verificar: "el ticket falla sin dejar nada a medias"}
   "Monitoreo · Configurar alertas del equipo":
     casos:
       - {id: C1, caso: "Activar en un servidor Linux con agente (nodo-jboss): sin respuesta, CPU, memoria y disco con umbrales", tipo: Funcional, verificar: "reglas faceops-<equipo> cargadas en Prometheus (api/v1/rules), objetivo con up=1 y la ficha muestra el botón con 4 alertas"}
@@ -444,6 +450,9 @@ planes:
       - {id: C8, caso: "Retirar todas las alertas del equipo", tipo: Funcional, verificar: "sin reglas ni objetivo del equipo; Prometheus sano; el botón vuelve a «sin alertas»"}
       - {id: C9, caso: "Acción por alerta: «Encender el equipo» en «Sin respuesta» y «Solo avisar» en «Disco lleno»", tipo: Funcional, verificar: "la regla lleva faceops_accion y faceops_automatizacion; Alertmanager enruta a EDA :5022"}
       - {id: C10, caso: "JBoss detenido con «Reiniciar JBoss» (acción que entra a la máquina) y CPU alta con duración de 2 min", tipo: Funcional, verificar: "la regla de JBoss lleva faceops_inventario y faceops_credencial del equipo (plan de recolección); CPU con for: 2m; en un Linux sin JBoss la alerta JBoss no se ofrece"}
+      - {id: C12, caso: "Ámbitos: alertas de la plataforma JBoss (J01) aparte de las de la máquina", tipo: Funcional, verificar: "grupo faceops-<equipo>--jboss con su archivo y tablero propios; el grupo de la máquina no cambia; retirar las de JBoss no quita las de la máquina ni su objetivo"}
+      - {id: C13, caso: "Seguridad real: 6 ingresos SSH fallidos con «Fuerza bruta por SSH» (S01, aviso 5)", tipo: Funcional, verificar: "S01 pasa a firing en Prometheus y llega a Alertmanager"}
+      - {id: C14, caso: "Bloqueo real: «Espera de E/S alta» (B02) con umbral mínimo", tipo: Funcional, verificar: "B02 pasa a firing en Prometheus y llega a Alertmanager"}
       - {id: C11, caso: "Tablero «Alertas de FaceOps» en Grafana", tipo: Funcional, verificar: "el tablero faceops-al-<equipo> queda en Grafana (provisionado por archivo) solo con las alertas activas del equipo y todas sus consultas fijas a él; al retirar todas, el tablero desaparece; la serie faceops_alerta_umbral del equipo trae los umbrales vigentes (CPU aviso 80 / crítico 95)"}
   "Identidad · Fuente de usuarios de FaceOps":
     casos:

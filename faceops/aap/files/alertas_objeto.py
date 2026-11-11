@@ -2,7 +2,7 @@
 
 Uso: alertas_objeto.py <catalogo.yml> <prometheus.yml actual> <pedido.json>
      alertas_objeto.py --tablero <catalogo.yml> <pedido.json>   → JSON del tablero de Grafana del equipo (solo sus alertas activas)
-pedido: {"equipo", "ip", "tipo": linux|windows|storage|red, "alertas": [{"id", "aviso"?, "critico"?, "severidad"?, "para"?}], "retirar": bool,
+pedido: {"equipo", "ip", "tipo": linux|windows|storage|red, "ambito": maquina | plataforma:<familia>, "alertas": [{"id", "aviso"?, "critico"?, "severidad"?, "para"?}], "retirar": bool,
          "inventario"?, "credencial"? (de AAP, para las acciones que entran a la máquina)}
 Salida (JSON): {"prometheus": yaml o "" si no cambia, "reglas": yaml o "", "objetivo": yaml o "", "objetivo_archivo", "resumen": [...]}"""
 import json
@@ -68,12 +68,16 @@ def reglas(cat, ped):
         a = por_id.get(x.get("id"))
         if not a or tipo not in a["tipos"]:
             raise SystemExit(f"La alerta {x.get('id')} no existe o no aplica a un equipo «{tipo}»")
+        if a.get("pendiente"):
+            raise SystemExit(f"La alerta {a['id']} aún no se puede medir: {a['pendiente']}")
+        if a.get("ambito", "maquina") != ambito(ped):
+            raise SystemExit(f"La alerta {a['id']} es del ámbito «{a.get('ambito', 'maquina')}», no de «{ambito(ped)}»")
         base = a["expr"].replace("__EQ__", eq)
         nombre = "FaceOps" + re.sub(r"[^A-Za-z0-9]", "", a["nombre"].title()) + a["id"]
         acc = x.get("accion") or "avisar"
         if acc not in (a.get("acciones") or ["avisar"]):
             raise SystemExit(f"{a['id']}: la acción «{acc}» no corresponde a esta alerta")
-        etiq = {"faceops_equipo": eq, "faceops_alerta": a["id"], "faceops_pilar": a.get("grupo", ""), "faceops_accion": acc,
+        etiq = {"faceops_equipo": eq, "faceops_ambito": ambito(ped), "faceops_alerta": a["id"], "faceops_pilar": a.get("grupo", ""), "faceops_accion": acc,
                 "faceops_automatizacion": (cat.get("acciones") or {}).get(acc, {}).get("auto", "")}
         if (cat.get("acciones") or {}).get(acc, {}).get("acceso") == "equipo":   # la respuesta entra a la máquina
             if not ped.get("inventario") or not ped.get("credencial"):
@@ -111,6 +115,19 @@ UNIDAD = {"%": "percent", "s": "s", "ms": "ms", "por s": "pps", "% de éxito": "
 DS = {"type": "prometheus", "uid": "prometheus"}
 
 
+def ambito(ped):
+    a = ped.get("ambito") or "maquina"
+    if a != "maquina" and not re.fullmatch(r"plataforma:[a-z0-9-]{1,30}", a):
+        raise SystemExit(f"Ámbito inválido: {a}")
+    return a
+
+
+def sufijo(ped):
+    """'' para la máquina; '--jboss' para la plataforma JBoss (grupo, archivo de reglas y tablero propios)."""
+    a = ambito(ped)
+    return "" if a == "maquina" else "--" + a.split(":", 1)[1]
+
+
 def uid_tablero(eq):
     """uid del tablero de un equipo en Grafana (máx. 40): faceops-al-<equipo>, o recortado con huella si es largo."""
     import hashlib
@@ -122,7 +139,7 @@ def tablero(cat, ped):
     """Tablero «Alertas de <equipo>»: SOLO las alertas activas de ese equipo. Por cada una, lo que evalúa su regla (la misma
     expresión, sin la comparación), las líneas de umbral vigentes (faceops_alerta_umbral) y, como anotación, cuándo se disparó
     (ALERTS). Todas las consultas van fijas al equipo: no hay variable ni otras máquinas."""
-    eq = ped["equipo"]
+    eq, suf = ped["equipo"], sufijo(ped)
     por_id = {a["id"]: a for a in cat["alertas"]}
     xs = [por_id[x["id"]] for x in ped.get("alertas") or [] if x.get("id") in por_id]
     q_ = lambda t: t.replace("__EQ__", eq).replace("$equipo", eq)   # noqa: E731
@@ -133,7 +150,7 @@ def tablero(cat, ped):
         por = re.search(r"by \(faceops_equipo, (\w+)\)", base)
         paneles.append({
             "type": "timeseries", "id": pid, "title": f"{a['nombre']} · {a['id']}", "datasource": DS,
-            "description": f"{a.get('descripcion', '')}. Regla en Prometheus (grupo faceops-{eq}): {q_(a['expr'])}",
+            "description": f"{a.get('descripcion', '')}. Regla en Prometheus (grupo faceops-{eq}{suf}): {q_(a['expr'])}",
             "gridPos": {"h": 9, "w": 12, "x": 12 * (k % 2), "y": 9 * (k // 2)},
             "targets": [{"refId": "A", "datasource": DS, "expr": q_(base), "legendFormat": "{{" + por.group(1) + "}}" if por else a["nombre"]},
                         {"refId": "B", "datasource": DS, "expr": f'faceops_alerta_umbral{{faceops_equipo="{eq}",faceops_alerta="{a["id"]}"}}',
@@ -149,7 +166,7 @@ def tablero(cat, ped):
                      "expr": f'ALERTS{{faceops_equipo="{eq}",faceops_alerta="{a["id"]}",alertstate="firing"}}', "step": "60s",
                      "titleFormat": "{{alertname}}", "textFormat": "{{severity}}", "tagKeys": "faceops_alerta,severity",
                      "useValueForTime": False, "filter": {"exclude": False, "ids": [pid]}})
-    return {"uid": uid_tablero(eq), "title": f"Alertas de {eq}", "tags": ["faceops", "alertas", eq], "editable": False,
+    return {"uid": uid_tablero(eq + suf), "title": f"Alertas de {eq}" + (f" · {suf[2:]}" if suf else ""), "tags": ["faceops", "alertas", eq], "editable": False,
             "timezone": "browser", "refresh": "1m", "schemaVersion": 39, "time": {"from": "now-24h", "to": "now"},
             "description": "Generado por Ansible («Monitoreo · Configurar alertas del equipo») con las alertas activas del equipo: no editar a mano",
             "templating": {"list": []}, "annotations": {"list": anot}, "panels": paneles}
@@ -174,7 +191,8 @@ def main():
     obj = [] if retirar else [{"targets": [f"{ped['ip']}:{t['puerto']}"], "labels": {"faceops_equipo": ped["equipo"], "faceops_tipo": ped["tipo"]}}]
     print(json.dumps({
         "prometheus": yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True) if cambio else "",
-        "reglas": "" if retirar else yaml.safe_dump({"groups": [{"name": f"faceops-{ped['equipo']}", "rules": rs}]}, sort_keys=False, allow_unicode=True, width=1000),
+        "reglas": "" if retirar else yaml.safe_dump({"groups": [{"name": f"faceops-{ped['equipo']}{sufijo(ped)}", "rules": rs}]}, sort_keys=False, allow_unicode=True, width=1000),
+        "grupo": f"faceops-{ped['equipo']}{sufijo(ped)}", "reglas_archivo": f"{ped['equipo']}{sufijo(ped)}.yml", "tablero_uid": uid_tablero(ped["equipo"] + sufijo(ped)),
         "objetivo": "" if retirar else yaml.safe_dump(obj, sort_keys=False, allow_unicode=True),
         "objetivo_archivo": f"{pref}-{ped['equipo']}.yml", "resumen": resumen, "n_reglas": sum(1 for r in rs if "alert" in r)}, ensure_ascii=False))
 

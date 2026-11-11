@@ -6,6 +6,8 @@
 # faceops_alerta_umbral y mantiene en Grafana el tablero «Alertas de <equipo>» (solo sus alertas activas: lo que evalúa cada
 # regla, sus umbrales y su historia).
 #   al_equipo: nombre · al_ip: IP · al_tipo: linux | windows | storage | red
+#   al_ambito: maquina (por defecto; la máquina y su SO) | plataforma:<familia> (jboss, nginx…): cada ámbito tiene su grupo
+#              de reglas (faceops-<equipo> / faceops-<equipo>--<familia>), su archivo y su tablero; el objetivo es del equipo
 #   al_alertas: [{id, aviso?, critico?, severidad?, para?}]  (vacía o al_retirar=true → quita todas las del equipo)
 #   al_inventario, al_credencial: de AAP, solo si una acción entra a la máquina (viajan en la regla hasta la respuesta)
 - name: Monitoreo · Configurar alertas del equipo
@@ -21,6 +23,7 @@
         that:
           - al_equipo is defined and al_equipo is match('^[A-Za-z0-9._-]{1,63}$')
           - al_tipo | default('') in ['linux', 'windows', 'storage', 'red']
+          - al_ambito | default('maquina') is match('^(maquina|plataforma:[a-z0-9-]{1,30})$')
           - retirar or (al_ip | default('') is match('^[0-9]{1,3}(\.[0-9]{1,3}){3}$'))
         fail_msg: "Indica el equipo, su IP y su tipo (linux, windows, storage o red)"
         quiet: true
@@ -69,7 +72,7 @@
       delegate_to: localhost
       become: false
       loop:
-        - {n: json, c: "{{ {'equipo': al_equipo, 'ip': al_ip | default(''), 'tipo': al_tipo, 'alertas': al_alertas | default([]), 'retirar': retirar, 'inventario': al_inventario | default(''), 'credencial': al_credencial | default('')} | to_json }}"}
+        - {n: json, c: "{{ {'equipo': al_equipo, 'ip': al_ip | default(''), 'tipo': al_tipo, 'ambito': al_ambito | default('maquina'), 'alertas': al_alertas | default([]), 'retirar': retirar, 'inventario': al_inventario | default(''), 'credencial': al_credencial | default('')} | to_json }}"}
         - {n: prom, c: "{{ r_cfg.content | b64decode }}"}
       loop_control:
         label: "{{ item.n }}"
@@ -86,7 +89,7 @@
     - name: Resultado
       ansible.builtin.set_fact:
         arm: "{{ r_arm.stdout | from_json }}"
-        destino_reglas: "{{ m }}/faceops/reglas/{{ al_equipo }}.yml"
+        destino_reglas: "{{ m }}/faceops/reglas/{{ (r_arm.stdout | from_json).reglas_archivo }}"
 
     - name: Respaldo de lo vigente
       ansible.builtin.shell:
@@ -124,14 +127,13 @@
             mode: "0644"
           when: not retirar
 
-        - name: Retirar reglas y objetivos del equipo
-          ansible.builtin.file:
-            path: "{{ item }}"
-            state: absent
-          loop:
-            - "{{ destino_reglas }}"
-            - "{{ m }}/faceops/objetivos/exp-{{ al_equipo }}.yml"
-            - "{{ m }}/faceops/objetivos/tcp-{{ al_equipo }}.yml"
+        - name: Retirar las reglas de este ámbito (y el objetivo, si el equipo ya no tiene reglas de ningún ámbito)
+          ansible.builtin.shell:
+            cmd: |
+              rm -f {{ destino_reglas }}
+              ls {{ m }}/faceops/reglas/{{ al_equipo }}.yml {{ m }}/faceops/reglas/{{ al_equipo }}--*.yml >/dev/null 2>&1 && exit 0
+              rm -f {{ m }}/faceops/objetivos/exp-{{ al_equipo }}.yml {{ m }}/faceops/objetivos/tcp-{{ al_equipo }}.yml
+          changed_when: true
           when: retirar
 
         - name: Alertmanager entrega las alertas de objetos a EDA (:5022)
@@ -171,7 +173,7 @@
             return_content: true
           register: r_rules
           until: >-
-            (r_rules.json.data.groups | selectattr('name', 'equalto', 'faceops-' ~ al_equipo) | list | length > 0) != (retirar | bool)
+            (r_rules.json.data.groups | selectattr('name', 'equalto', arm.grupo) | list | length > 0) != (retirar | bool)
           retries: 6
           delay: 5
       rescue:
@@ -211,11 +213,9 @@
           when: not retirar
 
         - name: Sin alertas, sin tablero
-          ansible.builtin.shell:
-            cmd: >-
-              grep -l '"title": "Alertas de {{ al_equipo }}",' /opt/summit-monitoreo/grafana/dashboards/faceops/*.json 2>/dev/null
-              | xargs -r rm -f
-          changed_when: false
+          ansible.builtin.file:
+            path: "/opt/summit-monitoreo/grafana/dashboards/faceops/{{ arm.tablero_uid }}.json"
+            state: absent
           when: retirar
 
         - name: Sin el tablero general anterior (ahora va uno por equipo)
@@ -232,6 +232,7 @@
         data:
           faceops_alertas:
             equipo: "{{ al_equipo }}"
+            ambito: "{{ al_ambito | default('maquina') }}"
             tipo: "{{ al_tipo }}"
             alertas: "{{ [] if retirar else al_alertas }}"
             reglas: "{{ 0 if retirar else arm.n_reglas }}"

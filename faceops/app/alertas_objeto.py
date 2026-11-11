@@ -35,12 +35,23 @@ def uid_tablero(eq):
     return u if len(u) <= 40 else f"faceops-al-{eq[:20]}-{hashlib.sha1(eq.encode()).hexdigest()[:8]}"
 
 
-def url_grafana(equipo, aid=None):
-    """Tablero «Alertas de <equipo>» (solo sus alertas activas), últimas 24 h y, si se indica, solo el panel de esa alerta."""
+def sufijo(ambito):
+    """'' para la máquina; '--jboss' para la plataforma JBoss (grupo, archivo de reglas y tablero propios)."""
+    return "" if (ambito or "maquina") == "maquina" else "--" + ambito.split(":", 1)[1]
+
+
+def ambito_de_plataforma(fam):
+    """Familia de la plataforma (jboss, redis…) → ámbito del catálogo, o None si el catálogo no tiene alertas para ella."""
+    a = f"plataforma:{fam}"
+    return a if any(x.get("ambito") == a for x in catalogo()["alertas"]) else None
+
+
+def url_grafana(equipo, aid=None, ambito="maquina"):
+    """Tablero «Alertas de <equipo>» (solo sus alertas activas del ámbito), últimas 24 h y, si se indica, solo el panel de esa alerta."""
     par = {"orgId": 1, "from": "now-24h", "to": "now"}
     if aid:
         par["viewPanel"] = panel_id(aid)
-    return f"{GRAFANA}/d/{uid_tablero(equipo)}?" + urlencode(par)
+    return f"{GRAFANA}/d/{uid_tablero(equipo + sufijo(ambito))}?" + urlencode(par)
 
 
 def nombre_regla(a):
@@ -75,18 +86,23 @@ def tipo_de(e):
     return None
 
 
-def aplicadas(e):
-    """Lo que Ansible dejó configurado para el equipo (reflejo del último ticket exitoso)."""
-    return (j(e.get("datos"), {}) or {}).get("alertas") or {}
+def aplicadas(e, ambito="maquina"):
+    """Lo que Ansible dejó configurado para el equipo en ese ámbito (reflejo del último ticket exitoso). Las alertas que hoy
+    son de una plataforma pero quedaron aplicadas en el grupo de la máquina siguen contando ahí hasta el próximo ticket."""
+    d = j(e.get("datos"), {}) or {}
+    if (ambito or "maquina") == "maquina":
+        return d.get("alertas") or {}
+    return (d.get("alertas_plat") or {}).get(ambito) or {}
 
 
-def en_curso(cliente_id, e):
+def en_curso(cliente_id, e, ambito="maquina"):
     a = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, AUTO)
     if not a:
         return None
     for t in q("SELECT id, numero, estado, parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? "
                "AND estado IN ('pendiente_aprobacion','en_cola','en_ejecucion') ORDER BY id DESC LIMIT 50", cliente_id, a["id"]):
-        if (j(t["parametros"], {}) or {}).get("al_equipo") == e["nombre"]:
+        p_ = j(t["parametros"], {}) or {}
+        if p_.get("al_equipo") == e["nombre"] and (p_.get("al_ambito") or "maquina") == (ambito or "maquina"):
             return t
     return None
 
@@ -104,21 +120,35 @@ def bloqueo_accion(cliente_id, cat, k, _memo={}):
     return "" if estado(dict(a, cliente_id=cliente_id))["estado"] == "certificada" else f"«{auto}» aún no pasa su plan de prueba"
 
 
-def contexto(cliente_id, e, puede_escribir):
-    """Todo lo que el botón y el flotante necesitan."""
+def _informe(cliente_id, e):
+    """A quién llega el diagnóstico/propuesta de una alerta y con qué acciones (app/alerta_diagnostico.py)."""
+    try:
+        from .alerta_diagnostico import acciones_con_informe, destino
+        para, quien = destino(cliente_id, e)
+        return {"acciones": sorted(acciones_con_informe()), "para": para, "quien": quien}
+    except Exception:  # noqa: BLE001
+        return {"acciones": [], "para": "", "quien": ""}
+
+
+def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
+    """Todo lo que el botón y el flotante necesitan. ambito: maquina (campana de la ficha: la máquina y su SO) o
+    plataforma:<familia> (campana de la tarjeta de esa plataforma)."""
     t = tipo_de(e)
     if not t:
         return None
     cat = catalogo()
-    ap = aplicadas(e)
+    ap = aplicadas(e, ambito)
     act = {x["id"]: x for x in ap.get("alertas") or []}
     grupos = {}
     datos = j(e.get("datos"), {}) or {}
     for a in cat["alertas"]:
-        if t in a["tipos"] and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
+        if t in a["tipos"] and a.get("ambito", "maquina") == ambito and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
+            if a.get("pendiente"):
+                grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=False, acciones_l=[], pendiente=a["pendiente"]))
+                continue
             accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k), bloqueo_accion(cliente_id, cat, k)) for k in (a.get("acciones") or ["avisar"])]
-            grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, grafana=url_grafana(e["nombre"], a["id"]),
+            grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, grafana=url_grafana(e["nombre"], a["id"], ambito),
                                                                          regla=nombre_regla(a), valor_accion=(x or {}).get("accion", "avisar"),
                                                                          valor_aviso=(x or {}).get("aviso", a.get("aviso")),
                                                                          valor_critico=(x or {}).get("critico", a.get("critico")),
@@ -136,9 +166,12 @@ def contexto(cliente_id, e, puede_escribir):
     if not e.get("ip"):
         disponible, por_que = False, "El equipo no tiene IP registrada"
     return {"tipo": t, "tipo_nombre": cat["tipos"][t]["nombre"], "fuente": cat["tipos"][t]["fuente"], "grupos": grupos,
-            "n": len(act), "aplicado": ap.get("actualizado"), "ticket": ap.get("ticket"), "resumen": ap.get("resumen") or [],
-            "grafana": url_grafana(e["nombre"]), "archivo": f"{REGLAS}/{e['nombre']}.yml", "grupo_prom": f"faceops-{e['nombre']}",
-            "puede": puede_escribir, "en_curso": en_curso(cliente_id, e), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values())}
+            "ambito": ambito, "sufijo": sufijo(ambito), "nombre_amb": nombre_amb,
+            "n": sum(1 for k in act if any(a["id"] == k and a.get("ambito", "maquina") == ambito for a in cat["alertas"])) if ambito != "maquina" else len(act),
+            "aplicado": ap.get("actualizado"), "ticket": ap.get("ticket"), "resumen": ap.get("resumen") or [],
+            "grafana": url_grafana(e["nombre"], None, ambito), "archivo": f"{REGLAS}/{e['nombre']}{sufijo(ambito)}.yml", "grupo_prom": f"faceops-{e['nombre']}{sufijo(ambito)}",
+            "informe": _informe(cliente_id, e),
+            "puede": puede_escribir, "en_curso": en_curso(cliente_id, e, ambito), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values())}
 
 
 def _minutos(p):
@@ -157,13 +190,20 @@ def requiere_acceso(par):
     return any((acc.get(x.get("accion")) or {}).get("acceso") == "equipo" for x in par.get("al_alertas") or [])
 
 
-def pedido_de_formulario(e, form):
-    """Del flotante → parámetros del ticket (validados contra el catálogo)."""
+def pedido_de_formulario(e, form, ambito="maquina"):
+    """Del flotante → parámetros del ticket (validados contra el catálogo), solo con las alertas de ese ámbito."""
     t = tipo_de(e)
     cat = catalogo()
+    ambito = ambito or "maquina"
+    if ambito != "maquina" and not ambito_de_plataforma(ambito.split(":", 1)[-1]):
+        raise ValueError("Ámbito de alertas desconocido")
     out, fuera = [], []
     for a in cat["alertas"]:
-        if t not in a["tipos"]:
+        if t not in a["tipos"] or a.get("ambito", "maquina") != ambito:
+            continue
+        if a.get("pendiente"):
+            if form.get(f"on_{a['id']}"):
+                raise ValueError(f"«{a['nombre']}» aún no se puede medir: {a['pendiente']}")
             continue
         if not form.get(f"on_{a['id']}"):
             fuera.append(a["id"])
@@ -195,7 +235,7 @@ def pedido_de_formulario(e, form):
                 raise ValueError(f"«{a['nombre']}»: el aviso debe ser {'mayor' if a.get('menor') else 'menor'} que el crítico")
         out.append(x)
     # un solo ticket con el grupo completo: las activas con su configuración y las apagadas (quedan fuera de las reglas)
-    return {"al_equipo": e["nombre"], "al_ip": e.get("ip") or "", "al_tipo": t, "al_alertas": out, "al_retiradas": fuera, "al_retirar": not out}
+    return {"al_equipo": e["nombre"], "al_ip": e.get("ip") or "", "al_tipo": t, "al_ambito": ambito, "al_alertas": out, "al_retiradas": fuera, "al_retirar": not out}
 
 
 def registrar_resultado(cliente_id, art, numero):
@@ -205,7 +245,12 @@ def registrar_resultado(cliente_id, art, numero):
     if not e:
         return
     d = j(e["datos"], {})
-    d["alertas"] = {"tipo": x.get("tipo"), "alertas": x.get("alertas") or [], "resumen": x.get("resumen") or [], "actualizado": ahora(), "ticket": numero}
+    r_ = {"tipo": x.get("tipo"), "alertas": x.get("alertas") or [], "resumen": x.get("resumen") or [], "actualizado": ahora(), "ticket": numero}
+    amb = x.get("ambito") or "maquina"
+    if amb == "maquina":
+        d["alertas"] = r_
+    else:
+        d.setdefault("alertas_plat", {})[amb] = r_
     ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d, ensure_ascii=False), e["id"])
 
 
