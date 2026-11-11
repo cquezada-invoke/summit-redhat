@@ -111,6 +111,10 @@ def web_de(e):
         if clave == "keycloak" and "keycloak" not in sv_ and "rhbk" not in sv_:
             continue   # Keycloak declarado pero sin correr en la máquina: no tiene esa consola
         if clave in pistas:
+            try:   # puerto registrado en FaceOps (datos.puertos_web) si la plataforma no usa el de fábrica, p. ej. Keycloak en 8180
+                puerto = int((d.get("puertos_web") or {}).get(clave) or puerto)
+            except (TypeError, ValueError):
+                pass
             defecto = (esq == "http" and puerto == 80) or (esq == "https" and puerto == 443)
             return {"url": f"{esq}://{ip}{'' if defecto else ':' + str(puerto)}{ruta}", "producto": prod}
     return None

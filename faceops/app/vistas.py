@@ -2536,10 +2536,20 @@ def puerto_abierto(ip, puerto, espera=1.0):
     return ok
 
 
+def puerto_web(e, cod, defecto):
+    """Puerto real de la consola de una plataforma en la máquina: el registrado en FaceOps (datos.puertos_web, p. ej. Keycloak
+    reubicado en 8180 en una máquina donde el 8080 es de JBoss) o el de fábrica."""
+    d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    try:
+        return int((d_.get("puertos_web") or {}).get(familia(cod)) or defecto)
+    except (TypeError, ValueError):
+        return defecto
+
+
 def jboss_solo_local(e):
-    """Consola de administración de JBoss restringida al propio equipo (política APP-02: -bmanagement=127.0.0.1):
-    el puerto 9990 no responde en la IP de la máquina aunque JBoss esté arriba (su puerto 8080 sí)."""
-    return bool(e.get("ip")) and not puerto_abierto(e["ip"], 9990) and puerto_abierto(e["ip"], 8080)
+    """Consola de administración de JBoss que FaceOps no alcanza (APP-02 v1 la dejaba en 127.0.0.1; desde v2 escucha en la
+    máquina con firewall que solo deja entrar a FaceOps/AAP): el 9990 no responde desde FaceOps aunque JBoss esté arriba (su 8080 sí)."""
+    return bool(e.get("ip")) and not puerto_abierto(e["ip"], puerto_web(e, "jboss", 9990)) and puerto_abierto(e["ip"], 8080)
 
 
 def abrir_web(e, w):
@@ -2572,16 +2582,17 @@ def http_responde(url, espera=2.5):
     return ok
 
 
-def keycloak_responde(ip):
-    """¿El 8080 de la máquina es Keycloak? (en una máquina JBoss el 8080 es JBoss aunque Keycloak esté declarado)."""
-    if ip in _KC and time.time() - _KC[ip][0] < 60:
-        return _KC[ip][1]
+def keycloak_responde(ip, puerto=8080):
+    """¿Ese puerto de la máquina es Keycloak? (en una máquina JBoss el 8080 es JBoss aunque Keycloak esté declarado)."""
+    k = (ip, puerto)
+    if k in _KC and time.time() - _KC[k][0] < 60:
+        return _KC[k][1]
     try:
-        r_ = requests.get(f"http://{ip}:8080/", allow_redirects=False, timeout=2)
+        r_ = requests.get(f"http://{ip}:{puerto}/", allow_redirects=False, timeout=2)
         ok = r_.is_redirect or "keycloak" in r_.text[:20000].lower()
     except requests.RequestException:
         ok = False
-    _KC[ip] = (time.time(), ok)
+    _KC[k] = (time.time(), ok)
     return ok
 
 
@@ -2597,6 +2608,7 @@ def consola_plataforma(e, cod, verificar=True):
     if cod == "redis" and "redisinsight" not in (e.get("skills") or []):
         return None
     esq, puerto, ruta, prod = c
+    puerto = puerto_web(e, cod, puerto)   # puerto registrado en FaceOps si la plataforma no usa el de fábrica (Keycloak en 8180…)
     if cod == "jenkins" and "jenkins" not in (e.get("skills") or []):
         return None
     if cod == "keycloak":   # la consola existe solo si Keycloak corre en la máquina (no basta con la skill declarada)
@@ -2605,7 +2617,7 @@ def consola_plataforma(e, cod, verificar=True):
             return None
     if verificar and not http_responde(f"{esq}://{e['ip']}:{puerto}/"):   # plataforma caída, colgada o máquina sin respuesta
         return None
-    if cod == "keycloak" and verificar and not keycloak_responde(e["ip"]):
+    if cod == "keycloak" and verificar and not keycloak_responde(e["ip"], puerto):
         return None
     w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod in ("redis", "jenkins")}
     if cod == "jenkins":   # Jenkins vive bajo su ruta de FaceOps (--prefix) y arma sus enlaces con el Host público
@@ -2631,20 +2643,21 @@ def consola_web_plataforma(eid, cod, sub):
         abort(404)
     if familia(cod) == "jboss" and jboss_solo_local(e):   # enlace guardado o abierto antes de aplicar APP-02: se explica, no se rompe
         return render_template("app_caida.html", segmento=e["nombre"], equipo=e, titulo="Consola de JBoss solo local",
-                               url=w["url"], error="La consola de administración de JBoss (9990) responde solo desde el propio equipo "
-                               "por la política de seguridad APP-02. Se administra con jboss-cli desde la consola SSH de la máquina "
-                               "o con las automatizaciones de JBoss de FaceOps."), 409
+                               url=w["url"], error="La consola de administración de JBoss (9990) no responde desde FaceOps: la política de seguridad APP-02 "
+                               "la deja abierta solo al propio equipo y a FaceOps/AAP; re-aplica APP-02 en la máquina (versión vigente) "
+                               "o adminístrala con jboss-cli desde la consola SSH."), 409
     if not sub and request.method == "GET":
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"plataforma": cod, "url": w["url"]})
     prefijo = url_for("consola.consola_web_plataforma", eid=eid, cod=cod, sub="").rstrip("/")
     if familia(cod) == "keycloak" and not sub and request.method == "GET":   # Keycloak puede vivir en una ruta propia (p. ej. /sso)
+        base_kc = re.match(r"^https?://[^/]+", w["url"]).group(0)   # su puerto real (registrado en FaceOps), no siempre el 8080
         try:
-            loc_ = requests.get(f"http://{e['ip']}:8080/", allow_redirects=False, timeout=5).headers.get("Location", "")
+            loc_ = requests.get(f"{base_kc}/", allow_redirects=False, timeout=5).headers.get("Location", "")
         except requests.RequestException:
             loc_ = ""
         rel_ = re.sub(r"^https?://[^/]+", "", loc_).strip("/")
         try:   # si Keycloak tiene publicado su nombre propio (KC_HOSTNAME), su consola se abre ahí: así la sesión y las redirecciones funcionan
-            loc2_ = requests.get(f"http://{e['ip']}:8080/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/", allow_redirects=False, timeout=5).headers.get("Location", "")
+            loc2_ = requests.get(f"{base_kc}/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/", allow_redirects=False, timeout=5).headers.get("Location", "")
         except requests.RequestException:
             loc2_ = ""
         if loc2_.startswith("http") and e["ip"] not in loc2_:
@@ -4452,8 +4465,8 @@ def equipo(eid):
                             "salud": None, "version": None})
     for c in componentes:   # JBoss con APP-02: su consola de administración existe pero solo responde desde el propio equipo
         if familia(c["codigo"]) == "jboss" and not c["acciones"] and e.get("ip") and jboss_solo_local(e):
-            c["nota_consola"] = ("La consola de administración de JBoss (9990) responde solo desde el propio equipo (política APP-02): "
-                                 "se administra con jboss-cli desde la consola SSH o con las automatizaciones de JBoss.")
+            c["nota_consola"] = ("La consola de administración de JBoss (9990) no responde desde FaceOps (APP-02 aplicada en una versión "
+                                 "anterior la deja solo local): re-aplica APP-02 vigente o adminístrala con jboss-cli desde la consola SSH.")
     for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
         ent = None
         if c["so"] or (c["codigo"] == "windows" and consola_tipo):
