@@ -316,8 +316,8 @@ const caja=(n,xs,det)=>{const m=cabs&&cabs.querySelector('[data-pil="'+n+'"]');i
 const blSO=pSO?[...pSO.querySelectorAll('[data-pilar]')]:[];
 {const tot_=cabs&&cabs.querySelector('#pil-total');if(tot_)pSal.appendChild(tot_.cloneNode(true));}   /* mismo total que la barra de salud (radar de la máquina) */
 PIL.forEach(n=>{const xs=blSO.filter(x=>x.dataset.pilar===n&&SALUD_SO[n]&&!x.classList.contains('log-caja'));const g=caja(n,xs,true);if(!g)return;pSal.appendChild(g);
-  if(n==='Rendimiento'&&(window.fxAbrirRecursos||window.fxAbrirDiscos)){const f_=document.createElement('div');f_.className='fila';f_.style.cssText='gap:6px;flex-wrap:wrap;margin:8px 0 2px';
-    [['CPU',()=>fxAbrirRecursos('cpu'),window.fxAbrirRecursos],['Memoria',()=>fxAbrirRecursos('ram'),window.fxAbrirRecursos],['Disco',()=>fxAbrirDiscos(),window.fxAbrirDiscos]].forEach(([t,fn,ok])=>{if(!ok)return;const b=document.createElement('button');b.type='button';b.className='btn chico gris';b.textContent='Ajustar '+t;b.title='Cambiar '+t.toLowerCase()+' (ticket con aprobación)';b.onclick=fn;f_.appendChild(b);});
+  if(n==='Rendimiento'&&{{ 'true' if (recursos_ok and not g.skills_maq) else 'false' }}){const f_=document.createElement('div');f_.className='fila';f_.style.cssText='gap:6px;flex-wrap:wrap;margin:8px 0 2px';
+    [['CPU',()=>window.fxAbrirRecursos&&fxAbrirRecursos('cpu'),1],['Memoria',()=>window.fxAbrirRecursos&&fxAbrirRecursos('ram'),1],['Disco',()=>window.fxAbrirDiscos&&fxAbrirDiscos(),{{ 'true' if discos else 'false' }}]].forEach(([t,fn,ok])=>{if(!ok)return;const b=document.createElement('button');b.type='button';b.className='btn chico gris';b.textContent='Ajustar '+t;b.title='Cambiar '+t.toLowerCase()+' (ticket con aprobación)';b.onclick=fn;f_.appendChild(b);});
     (g.querySelector('.pil-cuerpo')||g).appendChild(f_);}});
 if(pSO)pSO.querySelectorAll('.grid.g2').forEach(gr=>{if(!gr.children.length)gr.remove()});
 /* plataformas (JBoss, Redis…): su propio detalle agrupado por principio, como antes */
