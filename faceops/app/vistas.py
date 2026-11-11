@@ -736,8 +736,11 @@ def _origen_links(o):
 def git_publico(url):
     """URL de Gitea que abre el navegador del usuario (la interna de la VM se publica por el HTTPS de FaceOps)."""
     pub = os.environ.get("FACEOPS_GIT_PUBLICA", "").rstrip("/")
-    if not pub:
-        return url
+    if not pub:   # sin configurar: Gitea se publica en /git/ del mismo origen por el que el usuario entra a FaceOps
+        try:
+            pub = request.host_url.rstrip("/") + "/git"
+        except RuntimeError:
+            return url
     return re.sub(r"^https?://[^/]+(:\d+)?(/git(?=/))?", pub, url)
 
 
@@ -2433,7 +2436,7 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
         r = requests.request(request.method, destino, params=request.args, data=request.get_data(), headers=cab, cookies=galletas,
                              timeout=60 if socket_io else 10, verify=False, allow_redirects=False, auth=auth)
     except requests.RequestException as x:
-        return render_template("app_caida.html", segmento=e["nombre"], url=destino, error=str(x).split(":")[0][:160]), 502
+        return render_template("app_caida.html", segmento=e["nombre"], equipo=e, url=destino, error=str(x).split(":")[0][:160]), 502
     tipo = r.headers.get("Content-Type", "application/octet-stream")
     cuerpo = r.content
     if not transparente and ("text/html" in tipo or "text/css" in tipo or "javascript" in tipo):
@@ -2509,11 +2512,66 @@ def familia(cod):
     return next((f for k, f in FAMILIAS if k in c), c)
 
 
-def consola_plataforma(e, cod):
-    """{'url', 'producto', 'transparente'} o None. Redis: solo si Redis Insight está instalado en la máquina."""
+_PUERTOS = {}
+
+
+def puerto_abierto(ip, puerto, espera=1.0):
+    """¿Responde ip:puerto desde FaceOps? (se guarda 60 s para no frenar la ficha ni el mapa)."""
+    import socket
+    k = (ip, puerto)
+    if k in _PUERTOS and time.time() - _PUERTOS[k][0] < 60:
+        return _PUERTOS[k][1]
+    try:
+        socket.create_connection(k, espera).close()
+        ok = True
+    except OSError:
+        ok = False
+    _PUERTOS[k] = (time.time(), ok)
+    return ok
+
+
+def jboss_solo_local(e):
+    """Consola de administración de JBoss restringida al propio equipo (política APP-02: -bmanagement=127.0.0.1):
+    el puerto 9990 no responde en la IP de la máquina aunque JBoss esté arriba (su puerto 8080 sí)."""
+    return bool(e.get("ip")) and not puerto_abierto(e["ip"], 9990) and puerto_abierto(e["ip"], 8080)
+
+
+def abrir_web(e, w):
+    """URL con la que se abre la consola web de la máquina (web_de): Redis tiene su consola propia en FaceOps, la consola
+    de OpenShift se abre directa (OAuth propio) y el resto pasa por el proxy de FaceOps."""
+    if w["producto"] == "Redis":
+        return url_for("consola.redis_equipo", eid=e["id"])
+    if w["producto"].startswith("Consola de OpenShift"):
+        return w["url"]
+    if w["producto"] == "Gitea" and "kvm" in (e.get("skills") or []):   # el Gitea de la plataforma vive publicado en /git/ (su ROOT_URL)
+        return git_publico(w["url"])
+    return url_for("consola.web_equipo", eid=e["id"], sub="")
+
+
+_KC = {}
+
+
+def keycloak_responde(ip):
+    """¿El 8080 de la máquina es Keycloak? (en una máquina JBoss el 8080 es JBoss aunque Keycloak esté declarado)."""
+    if ip in _KC and time.time() - _KC[ip][0] < 60:
+        return _KC[ip][1]
+    try:
+        r_ = requests.get(f"http://{ip}:8080/", allow_redirects=False, timeout=2)
+        ok = r_.is_redirect or "keycloak" in r_.text[:20000].lower()
+    except requests.RequestException:
+        ok = False
+    _KC[ip] = (time.time(), ok)
+    return ok
+
+
+def consola_plataforma(e, cod, verificar=True):
+    """{'url', 'producto', 'transparente'} o None. Redis: solo si Redis Insight está instalado en la máquina.
+    JBoss: con verificar, no se ofrece si su consola está restringida al propio equipo (APP-02)."""
     cod = familia(cod)
     c = CONSOLAS.get(cod)
     if not c or not e.get("ip"):
+        return None
+    if cod == "jboss" and verificar and jboss_solo_local(e):
         return None
     if cod == "redis" and "redisinsight" not in (e.get("skills") or []):
         return None
@@ -2524,6 +2582,10 @@ def consola_plataforma(e, cod):
         sv_ = " ".join(j(e.get("servicios"), []) if isinstance(e.get("servicios"), str) else (e.get("servicios") or [])).lower()
         if "keycloak" not in sv_ and "rhbk" not in sv_:
             return None
+    if verificar and not puerto_abierto(e["ip"], puerto):   # plataforma caída o máquina sin respuesta: no se ofrece un enlace roto
+        return None
+    if cod == "keycloak" and verificar and not keycloak_responde(e["ip"]):
+        return None
     w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod in ("redis", "jenkins")}
     if cod == "jenkins":   # Jenkins vive bajo su ruta de FaceOps (--prefix) y arma sus enlaces con el Host público
         w["host_publico"] = True
@@ -2543,9 +2605,14 @@ def consola_plataforma(e, cod):
 @requiere_login
 def consola_web_plataforma(eid, cod, sub):
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
-    w = consola_plataforma(e, cod) if e and g.perfil["modo"] == "escritura" else None
+    w = consola_plataforma(e, cod, verificar=False) if e and g.perfil["modo"] == "escritura" else None
     if not w:
         abort(404)
+    if familia(cod) == "jboss" and jboss_solo_local(e):   # enlace guardado o abierto antes de aplicar APP-02: se explica, no se rompe
+        return render_template("app_caida.html", segmento=e["nombre"], equipo=e, titulo="Consola de JBoss solo local",
+                               url=w["url"], error="La consola de administración de JBoss (9990) responde solo desde el propio equipo "
+                               "por la política de seguridad APP-02. Se administra con jboss-cli desde la consola SSH de la máquina "
+                               "o con las automatizaciones de JBoss de FaceOps."), 409
     if not sub and request.method == "GET":
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"plataforma": cod, "url": w["url"]})
     prefijo = url_for("consola.consola_web_plataforma", eid=eid, cod=cod, sub="").rstrip("/")
@@ -2562,6 +2629,21 @@ def consola_web_plataforma(eid, cod, sub):
         if loc2_.startswith("http") and e["ip"] not in loc2_:
             return redirect(loc2_)
         return redirect(f"{prefijo}/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/")
+    if familia(cod) == "redis" and not sub and request.method == "GET" and request.environ.get("faceops.cliente"):
+        # Redis Insight instalado antes de que las URL llevaran el código del cliente (RI_PROXY_PATH=/faceops/inventario/<id>/…):
+        # solo atiende esa ruta; FaceOps la sigue sirviendo (sin el código, con el cliente de la sesión)
+        base_ = w["url"].rstrip("/")
+        try:
+            nuevo_ = requests.get(base_ + (request.script_root or "/faceops") + request.path, timeout=4, allow_redirects=False).status_code
+        except requests.RequestException:
+            nuevo_ = None
+        if nuevo_ == 404:
+            legado_ = (request.environ.get("faceops.raiz") or os.environ.get("FACEOPS_PREFIJO", "/faceops")) + request.path
+            try:
+                if requests.get(base_ + legado_, timeout=4, allow_redirects=False).status_code < 400:
+                    return redirect(legado_)
+            except requests.RequestException:
+                pass
     if familia(cod) == "vault" and not sub and request.method == "GET":
         # Entrada sin credenciales: FaceOps toma el token de administración de este Vault desde la bóveda central
         # (web/<máquina>/vault), crea un token hijo de 8 h envuelto (válido 2 min, de un solo uso) y la interfaz lo desenvuelve
@@ -4134,6 +4216,58 @@ def consola_equipo(eid):
 }})();</script>"""
 
 
+def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
+    """Botones de acceso de la ficha, juntos y siempre en el mismo orden: Aplicación · Consola web · Consolas de plataforma ·
+    SSH/Escritorio · Monitoreo. Solo los que aplican y responden (plataforma detenida o consola restringida no se ofrecen)."""
+    from urllib.parse import urlsplit
+    out, vistos = [], set()
+
+    def agregar(tipo, t, url, title):
+        if url and url not in vistos:
+            vistos.add(url)
+            out.append({"tipo": tipo, "t": t, "url": url, "title": title})
+    if g.perfil["modo"] == "escritura" and e.get("ip"):   # Aplicación: la entrada de la arquitectura de su segmento vive en esta máquina
+        try:
+            from .arquitectura import vigente
+            for sg_ in e.get("segmentos") or []:
+                en_ = (((vigente(g.cliente["id"], sg_) or {}).get("m") or {}).get("entrada") or {}).get("url") or ""
+                p_ = urlsplit(en_) if en_.startswith("http") else None
+                w_ = urlsplit(web_eq["url"]) if web_eq and web_eq["producto"] != "Redis" and web_eq["abrir"] != web_eq["url"] else None
+                if p_ and w_ and p_.hostname == e["ip"] and (p_.scheme, p_.port or {"http": 80, "https": 443}[p_.scheme]) == (w_.scheme, w_.port or {"http": 80, "https": 443}.get(w_.scheme)):
+                    agregar("app", "Aplicación", url_for("consola.web_equipo", eid=e["id"], sub=(p_.path or "/").lstrip("/")),
+                            f"Aplicación de {sg_} · se abre a través de FaceOps")
+        except Exception:  # noqa: BLE001 - sin arquitectura vigente no hay botón de aplicación
+            pass
+    plat = []
+    for c in componentes:
+        if c.get("so"):
+            continue
+        if not c.get("so") and servicio_estado(e, c["codigo"]) == "detenido":
+            continue   # plataforma detenida: su consola no respondería
+        for a_ in c.get("acciones") or []:
+            if a_.get("url") and a_.get("nueva"):
+                plat.append({"t": a_["t"], "url": a_["url"], "title": f"Consola de {c['nombre']} · se abre a través de FaceOps"})
+        if c["codigo"] == "satellite" and c.get("entrar"):
+            plat.append({"t": "Satellite", "url": c["entrar"]["url"], "title": c["entrar"]["t"]})
+    if web_eq and g.perfil["modo"] == "escritura":   # consola web de la máquina (si no es la misma que la de una plataforma)
+        prod_ = web_eq["producto"].lower()
+        u_ = urlsplit(web_eq["url"])
+        por_proxy = web_eq["abrir"].startswith(request.script_root + "/inventario/")
+        responde = not por_proxy or puerto_abierto(u_.hostname, u_.port or (443 if u_.scheme == "https" else 80))
+        if responde and not any(prod_ in x["t"].lower() or x["t"].lower() in prod_ for x in plat):
+            agregar("web", "Consola web", web_eq["abrir"], f"{web_eq['producto']} · " + ("se abre a través de FaceOps" if por_proxy else "se abre directo"))
+    if redis_eq and g.perfil["modo"] == "escritura":
+        plat.append({"t": "Redis", "url": redis_eq, "title": "Consola de Redis en FaceOps (entra con la credencial de la bóveda)"})
+    for x in plat:
+        agregar("plataforma", x["t"], x["url"], x["title"])
+    if consola_tipo:
+        agregar(consola_tipo, "SSH" if consola_tipo == "ssh" else "Escritorio remoto", url_for("consola.consola_equipo", eid=e["id"]),
+                "Consola SSH en el navegador" if consola_tipo == "ssh" else "Escritorio remoto (RDP) en el navegador")
+    if monit:
+        agregar("monitoreo", monit["nombre"].capitalize(), monit["url"], f"La máquina en {monit['nombre']}")
+    return out
+
+
 @bp.route("/inventario/<int:eid>", methods=["GET", "POST"])
 @requiere_login
 def equipo(eid):
@@ -4186,9 +4320,7 @@ def equipo(eid):
     consola_tipo = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
     from .consola import web_de as _web_de
     _w = _web_de(e)
-    web_eq = dict(_w, abrir=url_for("consola.redis_equipo", eid=e["id"]) if _w["producto"] == "Redis"
-                  else _w["url"] if _w["producto"].startswith("Consola de OpenShift")  # OAuth propio: se abre directo, no por el proxy
-                  else url_for("consola.web_equipo", eid=e["id"], sub="")) if _w else None
+    web_eq = dict(_w, abrir=abrir_web(e, _w)) if _w else None   # Redis: consola propia; OpenShift: directa (OAuth propio)
     from .boveda import web as _web_b, disponible as _boveda_ok
     if web_eq and web_eq["producto"] != "Redis" and g.perfil["modo"] == "escritura" and _boveda_ok() and _web_b(e["nombre"]):
         web_eq["credencial"] = url_for("consola.credencial_web", eid=e["id"])
@@ -4257,6 +4389,10 @@ def equipo(eid):
                             "cluster": dict(cl_) if cl_ else None, "errores": 0, "activos": 0, "prevenidos": 0, "integracion": None, "lista": [],
                             "acciones": [{"t": f"Clúster {cl_['nombre']} en FaceOps", "url": url_for("consola.equipo", eid=cl_["id"]), "ic": "abrir"}] if cl_ else [],
                             "salud": None, "version": None})
+    for c in componentes:   # JBoss con APP-02: su consola de administración existe pero solo responde desde el propio equipo
+        if familia(c["codigo"]) == "jboss" and not c["acciones"] and e.get("ip") and jboss_solo_local(e):
+            c["nota_consola"] = ("La consola de administración de JBoss (9990) responde solo desde el propio equipo (política APP-02): "
+                                 "se administra con jboss-cli desde la consola SSH o con las automatizaciones de JBoss.")
     for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
         ent = None
         if c["so"] or (c["codigo"] == "windows" and consola_tipo):
@@ -4419,6 +4555,7 @@ def equipo(eid):
         except (ValueError, TypeError):
             ult_estado = ""
     monit = _monitoreo_url(e)
+    accesos = _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit)
     recursos_ok = (g.perfil["modo"] == "escritura" and (e.get("forma") or "") == "virtual" and "kvm" not in (e.get("skills") or [])
                    and bool(q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND tipo='kvm' AND ubicacion=?", g.cliente["id"], e.get("ubicacion") or "")))
     lim_rec = _limites_recursos(e) if recursos_ok else None
@@ -4437,7 +4574,7 @@ def equipo(eid):
         horas_eq = _uso_energia(e, j(e["datos"], {}))
     except Exception:  # noqa: BLE001 - sin historial la ficha sigue
         horas_eq = None
-    return render_template("equipo.html", eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"]), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"]), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -5229,7 +5366,7 @@ def _accesos_apps(tarjetas, solo="aplicaciones"):
         for e in sorted(mios, key=lambda e: (e.get("ambiente") != "produccion", e["nombre"])):
             w = web_de(e)
             if w and (e.get("categoria") or "servidor") == "servidor" and len(urls) < 6:
-                agregar(f"{w['producto']} · {e['nombre']}", url_for("consola.web_equipo", eid=e["id"], sub=""))
+                agregar(f"{w['producto']} · {e['nombre']}", abrir_web(e, w))
         comps = m.get("componentes") or []
         ocp = [c for c in comps if c.get("plataforma") == "openshift"]
         ubic = sorted({(e.get("ubicacion") or "").split(" · ")[-1] for e in mios if e.get("ubicacion")} - {""})
@@ -5710,7 +5847,7 @@ def mapa_datos():
             e_ = por_eq_e.get(d["eid"])
             if e_:  # accesos: consola web (vía FaceOps) y SSH o escritorio remoto (vía Guacamole)
                 w = web_de(e_)
-                d["web"] = dict(w, abrir=url_for("consola.web_equipo", eid=e_["id"], sub="")) if w else None
+                d["web"] = dict(w, abrir=abrir_web(e_, w)) if w else None
                 t_ = tipo_consola(e_, sistema_eq(e_)) if consola_ok and g.perfil["modo"] == "escritura" else None
                 from .boveda import acceso as acceso_b, web as web_b, disponible as boveda_ok
                 cred_ = acceso_b(e_["nombre"]) if boveda_ok() else None

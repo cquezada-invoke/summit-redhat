@@ -1,7 +1,8 @@
-{% extends "base.html" %}{% block titulo %}{{ segmento }} no responde{% endblock %}
+{% extends "base.html" %}{% block titulo %}{{ titulo or (segmento ~ ' no responde') }}{% endblock %}
 {% block cuerpo %}
-<div class="miga"><a href="{{ url_for('consola.arquitectura', segmento=segmento) }}">{{ segmento }}</a> › aplicación</div>
-<h1>La aplicación no responde</h1>
+{% if equipo %}<div class="miga"><a href="{{ url_for('consola.equipo', eid=equipo.id) }}">{{ equipo.nombre }}</a> › consola web</div>
+{% else %}<div class="miga"><a href="{{ url_for('consola.arquitectura', segmento=segmento) }}">{{ segmento }}</a> › aplicación</div>{% endif %}
+<h1>{{ titulo or ('La consola web no responde' if equipo else 'La aplicación no responde') }}</h1>
 <p class="sub">{{ url }} · {{ error }}</p>
-<p><a class="btn chico" href="">Reintentar</a></p>
+<p>{% if not titulo %}<a class="btn chico" href="">Reintentar</a> {% endif %}{% if equipo %}<a class="btn chico gris" href="{{ url_for('consola.equipo', eid=equipo.id) }}">Volver a la ficha</a>{% endif %}</p>
 {% endblock %}

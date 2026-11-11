@@ -1294,3 +1294,7 @@ html,body{overscroll-behavior:none}   /* sin rebote al hacer scroll: la barra su
 .perf-fila input{width:76px;box-sizing:border-box;height:28px;padding:3px 6px;font:13px var(--sans);border:1px solid #c7c7c7;border-radius:3px;margin:0}
 .perf-fila>div{display:flex;gap:6px;flex-wrap:wrap}
 .perf-fila .btn.chico{height:28px;box-sizing:border-box;line-height:1}
+/* accesos de la máquina: un solo grupo en la esquina superior derecha de la ficha (Aplicación · Consola web · Plataformas · SSH/Escritorio) */
+.eq-accesos{margin-left:auto;align-self:flex-start;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:60%}
+.eq-accesos .btn{white-space:nowrap}.eq-accesos .btn svg{flex:none}
+@media (max-width:700px){.eq-accesos{margin-left:0;max-width:100%;justify-content:flex-start;width:100%}.eq-accesos .btn span{max-width:140px;overflow:hidden;text-overflow:ellipsis}}
