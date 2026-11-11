@@ -2,7 +2,7 @@
 <div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Contactos</h1><p class="sub">Las personas con las que conversamos. Son independientes de las cuentas: si alguien cambia de empresa, se mueve a la otra cuenta y queda su historial.</p></div>
 <button class="btn der" type="button" onclick="document.getElementById('ct-nuevo').hidden=!document.getElementById('ct-nuevo').hidden">+ Nuevo contacto</button></div>
 <form method="post" class="card" id="ct-nuevo" hidden><input type="hidden" name="_csrf" value="{{ csrf }}"><div class="rejilla">
-<label>Nombre *<input name="nombre" required></label><label>Cuenta actual<select name="cliente_id"><option value="">— sin cuenta —</option>{% for c in cuentas %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}</select></label>
+<label>Nombre *<input name="nombre" required></label><label>Apellido *<input name="apellido" required></label><label>Cuenta actual<select name="cliente_id"><option value="">— sin cuenta —</option>{% for c in cuentas %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}</select></label>
 <label>Cargo<input name="cargo"></label><label>Rol<select name="rol"><option value=""></option>{% for r in roles %}<option>{{ r }}</option>{% endfor %}</select></label>
 <label>Correo<input name="correo" type="email"></label><label>Teléfono<input name="telefono"></label></div>
 <label>Notas<textarea name="notas" rows="2"></textarea></label><div class="fila"><button class="btn">Crear contacto</button></div></form>

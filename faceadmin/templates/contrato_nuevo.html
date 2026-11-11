@@ -15,7 +15,7 @@
 <fieldset style="grid-column:1/-1"><legend>Datos de la empresa</legend><div class="rejilla">
 <label data-nueva>Código *<input name="codigo" maxlength="20" placeholder="ej. bsc" value="{{ f.codigo }}"></label><label data-nueva>Nombre *<input name="nombre" value="{{ f.nombre }}"></label>
 <label>Razón social<input name="razon_social" value="{{ f.razon_social }}"></label><label>RUT<input name="rut" value="{{ f.rut }}"></label>
-<label>País *<select name="pais">{% for p in paises %}<option {{ 'selected' if (f.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label><label>Industria<input name="industria" value="{{ f.industria }}"></label></div>
+<label>País *<select name="pais">{% for p in paises %}<option {{ 'selected' if (f.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label>{% from "_industria.html" import sel_industria with context %}<label>Industria{{ sel_industria(f.industria) }}</label></div>
 <p class="sub" data-existente style="margin:6px 0 0;font-size:12.5px">Lo que completes aquí actualiza los datos de la empresa elegida; lo vacío se mantiene.</p></fieldset>
 <fieldset style="grid-column:1/-1"><legend>Contacto del cliente</legend><div class="rejilla">
 <label>Nombre<input name="contacto_nombre" value="{{ f.contacto_nombre }}"></label><label>Cargo<input name="contacto_cargo" value="{{ f.contacto_cargo }}"></label>

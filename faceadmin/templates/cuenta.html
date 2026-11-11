@@ -5,7 +5,7 @@
 <div class="grid g2" style="margin-top:10px">
 <div class="card"><h2>Datos de la cuenta</h2><form method="post" class="rejilla"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="datos">
 <label>Razón social<input name="razon_social" value="{{ c.razon_social or '' }}"></label><label>RUT / identificador<input name="rut" value="{{ c.rut or '' }}"></label>
-<label>País<select name="pais">{% for p in paises %}<option {{ 'selected' if (c.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label><label>Industria<input name="industria" value="{{ c.industria or '' }}"></label>
+<label>País<select name="pais">{% for p in paises %}<option {{ 'selected' if (c.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label>{% from "_industria.html" import sel_industria with context %}<label>Industria{{ sel_industria(c.industria or '') }}</label>
 <div><button class="btn gris">Guardar</button></div></form></div>
 <div class="card"><h2>Agregar contacto</h2><form method="post" class="rejilla"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="contacto">
 <label>Nombre *<input name="nombre" required></label><label>Cargo<input name="cargo"></label><label>Correo<input name="correo" type="email"></label><label>Teléfono<input name="telefono"></label>

@@ -129,6 +129,7 @@ def codigo_empresa(nom):
 @requiere_login
 def api_empresa():
     """Completa los datos de una empresa nueva a partir de su nombre: código y, con IA, país e industria sugeridos."""
+    from contratos import INDUSTRIAS
     solo_invoke()
     nom = (request.form.get("nombre") or "").strip()[:120]
     d = {"codigo": codigo_empresa(nom)}
@@ -139,7 +140,7 @@ def api_empresa():
                               headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
                               json={"model": MODELO, "max_tokens": 300, "messages": [{"role": "user", "content":
                                     "Empresa latinoamericana: «" + nom + "». Si la conoces con certeza razonable, responde SOLO JSON {\"pais\": str, \"industria\": str, "
-                                    "\"razon_social\": str}; si no, usa cadenas vacías. País en español (Chile, México, Honduras, Perú, Colombia...)."}]})
+                                    "\"razon_social\": str}; si no, usa cadenas vacías. País en español (Chile, México, Honduras, Perú, Colombia...). Industria: exactamente una de: " + "; ".join(INDUSTRIAS) + "."}]})
             txt = "".join(b.get("text", "") for b in r.json().get("content", []))
             d.update({k: str(v)[:80] for k, v in json.loads(txt[txt.index("{"):txt.rindex("}") + 1]).items() if k in ("pais", "industria", "razon_social") and v})
             d["ia"] = True

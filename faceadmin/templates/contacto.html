@@ -3,7 +3,7 @@
 <h1 style="margin:4px 0">{{ x.nombre }}</h1><p class="sub" style="margin:0 0 12px">{{ x.cargo or '' }}{% if cuenta %} · <a href="{{ url_for('cuenta', cid=cuenta.id) }}">{{ cuenta.nombre }}</a>{% else %} · sin cuenta{% endif %}</p>
 <div class="grid g2">
 <form method="post" class="card"><input type="hidden" name="_csrf" value="{{ csrf }}"><h2>Datos</h2><div class="rejilla">
-<label>Nombre *<input name="nombre" value="{{ x.nombre }}" required></label><label>Cargo<input name="cargo" value="{{ x.cargo }}"></label>
+{% set np_ = ct_partes(x) %}<label>Nombre *<input name="nombre" value="{{ np_[0] }}" required></label><label>Apellido *<input name="apellido" value="{{ np_[1] }}" required></label><label>Cargo<input name="cargo" value="{{ x.cargo }}"></label>
 <label>Rol<select name="rol"><option value=""></option>{% for r in roles %}<option {{ 'selected' if x.rol == r }}>{{ r }}</option>{% endfor %}</select></label>
 <label>Correo<input name="correo" type="email" value="{{ x.correo }}"></label><label>Teléfono<input name="telefono" value="{{ x.telefono }}"></label></div>
 <label>Notas<textarea name="notas" rows="3">{{ x.notas }}</textarea></label><div class="fila"><button class="btn">Guardar</button></div></form>

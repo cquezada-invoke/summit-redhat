@@ -5,13 +5,13 @@
 <fieldset><legend>Cliente</legend><div class="rejilla">
 <label>Empresa<select name="empresa_id" onchange="opEmpresa(this)"><option value="">+ Empresa nueva</option>{% for e in existentes %}<option value="{{ e.id }}" data-pais="{{ e.pais or '' }}" data-industria="{{ e.industria or '' }}" data-tel="{{ e.contacto_telefono or '' }}" {{ 'selected' if f.empresa_id == e.id|string }}>{{ e.nombre }}{{ ' (tenant)' if e.tipo == 'tenant' }}</option>{% endfor %}</select></label>
 <label data-nueva>Nombre * <span class="sub" id="op-ia" style="font-size:11.5px"></span><input name="nombre" value="{{ f.nombre }}" autofocus placeholder="escribe el nombre: se completa el resto" oninput="opCod(this)" onchange="opNombre(this)"></label><label data-nueva>Código <span class="sub" style="font-size:11.5px">· automático</span><input name="codigo" maxlength="20" readonly tabindex="-1" placeholder="se genera del nombre" value="{{ f.codigo }}" style="background:var(--fondo2,#f0f0f0);cursor:not-allowed"></label>
-<label>País *<select name="pais">{% for p in paises %}<option {{ 'selected' if (f.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label><label>Industria<input name="industria" value="{{ f.industria }}"></label>
+<label>País *<select name="pais">{% for p in paises %}<option {{ 'selected' if (f.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label>{% from "_industria.html" import sel_industria with context %}<label>Industria{{ sel_industria(f.industria) }}</label>
 </div></fieldset>
 <fieldset><legend>Contactos</legend>
 <p class="sub" style="margin:0 0 6px;font-size:12.5px">Elige un contacto existente o crea uno nuevo. El primero queda como contacto principal; agrega los que necesites.</p>
-<table id="op-cts" style="font-size:13.5px"><tr><th>Contacto</th><th>Nombre</th><th>Cargo</th><th>Correo</th><th>Teléfono</th><th></th></tr>
-<tr data-ct><td><select name="ct_id" onchange="opCt(this)" style="min-width:180px"><option value="">+ Contacto nuevo</option>{% for x in contactos %}<option value="{{ x.id }}" data-cuenta="{{ x.cliente_id or '' }}" data-n="{{ x.nombre }}" data-c="{{ x.cargo }}" data-m="{{ x.correo }}" data-t="{{ x.telefono }}">{{ x.nombre }}{{ ' · ' ~ x.cuenta if x.cuenta else ' · sin cuenta' }}</option>{% endfor %}</select></td>
-<td><input name="ct_nombre" placeholder="nombre *"></td><td><input name="ct_cargo"></td><td><input name="ct_correo" type="email" placeholder="correo *"></td><td><input name="ct_telefono"></td>
+<table id="op-cts" style="font-size:13.5px"><tr><th>Contacto</th><th>Nombre</th><th>Apellido</th><th>Cargo</th><th>Correo</th><th>Teléfono</th><th></th></tr>
+<tr data-ct><td><select name="ct_id" onchange="opCt(this)" style="min-width:180px"><option value="">+ Contacto nuevo</option>{% for x in contactos %}<option value="{{ x.id }}" data-cuenta="{{ x.cliente_id or '' }}" data-n="{{ x.pila }}" data-a="{{ x.ape }}" data-c="{{ x.cargo }}" data-m="{{ x.correo }}" data-t="{{ x.telefono }}">{{ x.nombre }}{{ ' · ' ~ x.cuenta if x.cuenta else ' · sin cuenta' }}</option>{% endfor %}</select></td>
+<td><input name="ct_nombre" placeholder="nombre *"></td><td><input name="ct_apellido" placeholder="apellido *"></td><td><input name="ct_cargo"></td><td><input name="ct_correo" type="email" placeholder="correo *"></td><td><input name="ct_telefono"></td>
 <td><button type="button" class="btn chico gris" onclick="opCtQuitar(this)" title="Quitar">×</button></td></tr></table>
 <p style="margin:6px 0 0"><button type="button" class="btn chico gris" onclick="opCtMas()">+ Agregar otro contacto</button></p></fieldset>
 <fieldset><legend>Oportunidad</legend><div class="rejilla">
@@ -32,27 +32,28 @@
 </div>
 <div id="op-lista" hidden></div>
 {% include "_cobro_js.html" %}
-<script>const DSP={{ despliegues|tojson }};
+<script>function opInd(f,v){if(!v)return;const s=f.industria;if(![...s.options].some(o=>o.value===v))s.add(new Option(v,v));s.value=v}
+const DSP={{ despliegues|tojson }};
 const CSRF={{ csrf|tojson }};
 const CTS_PREV={{ (cts_prev or [])|tojson }};
 function opCod(inp){const STOP=['sa','s','a','spa','ltda','de','del','la','el','y','inc','corp'];const c=inp.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');const p=c.split('-').filter(w=>!STOP.includes(w));inp.form.codigo.value=(p.slice(0,2).join('-')||c).slice(0,16)}
-function opCtPrev(){if(!CTS_PREV.length)return;const t=document.getElementById('op-cts');CTS_PREV.forEach((x,i)=>{if(i>0)opCtMas();const r=t.querySelectorAll('[data-ct]')[i],s=r.querySelector('select');s.value=x.ct_id||'';if(s.value)opCt(s);else{['ct_nombre','ct_cargo','ct_correo','ct_telefono'].forEach(k=>r.querySelector('[name='+k+']').value=x[k]||'')}})}
+function opCtPrev(){if(!CTS_PREV.length)return;const t=document.getElementById('op-cts');CTS_PREV.forEach((x,i)=>{if(i>0)opCtMas();const r=t.querySelectorAll('[data-ct]')[i],s=r.querySelector('select');s.value=x.ct_id||'';if(s.value)opCt(s);else{['ct_nombre','ct_apellido','ct_cargo','ct_correo','ct_telefono'].forEach(k=>r.querySelector('[name='+k+']').value=x[k]||'')}})}
 function opCt(sel){const tr=sel.closest('tr'),o=sel.selectedOptions[0],ex=!!sel.value;
- [['ct_nombre','n'],['ct_cargo','c'],['ct_correo','m'],['ct_telefono','t']].forEach(([k,d])=>{const i=tr.querySelector('[name='+k+']');i.value=ex?(o.dataset[d]||''):'';i.readOnly=ex})}
+ [['ct_nombre','n'],['ct_apellido','a'],['ct_cargo','c'],['ct_correo','m'],['ct_telefono','t']].forEach(([k,d])=>{const i=tr.querySelector('[name='+k+']');i.value=ex?(o.dataset[d]||''):'';i.readOnly=ex})}
 function opCtMas(){const t=document.getElementById('op-cts'),r=t.querySelector('[data-ct]').cloneNode(true);r.querySelectorAll('input').forEach(i=>{i.value='';i.readOnly=false});r.querySelector('select').value='';t.appendChild(r);opCtFiltro()}
 function opCtQuitar(b){const rs=document.querySelectorAll('#op-cts [data-ct]');if(rs.length>1)b.closest('tr').remove();else{const r=rs[0];r.querySelector('select').value='';opCt(r.querySelector('select'))}}
 function opCtFiltro(){const emp=document.querySelector('[name=empresa_id]').value;document.querySelectorAll('#op-cts select[name=ct_id] option[data-cuenta]').forEach(o=>{o.hidden=!!emp&&o.dataset.cuenta&&o.dataset.cuenta!==emp})}
 function opEmpresa(sel){opCtFiltro();const o=sel.selectedOptions[0],f=sel.form;document.querySelectorAll('[data-nueva]').forEach(x=>x.style.display=sel.value?'none':'');
- if(sel.value){if(o.dataset.pais)f.pais.value=o.dataset.pais;f.industria.value=o.dataset.industria||'';
+ if(sel.value){if(o.dataset.pais)f.pais.value=o.dataset.pais;f.industria.value='';opInd(f,o.dataset.industria);
   if(!o.dataset.industria){const fd=new FormData();fd.append('_csrf',CSRF);fd.append('nombre',o.text.replace(/ \(tenant\)$/,''));
-   fetch({{ url_for('api_empresa')|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.industria&&sel.value===o.value&&!f.industria.value)f.industria.value=d.industria}).catch(()=>{})}}}
+   fetch({{ url_for('api_empresa')|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.industria&&sel.value===o.value&&!f.industria.value)opInd(f,d.industria)}).catch(()=>{})}}}
 async function opNombre(inp){const f=inp.form,nom=inp.value.trim();if(nom.length<2)return;
  const ex=[...f.empresa_id.options].find(o=>o.value&&o.text.replace(/ \(tenant\)$/,'').toLowerCase()===nom.toLowerCase());
  if(ex){f.empresa_id.value=ex.value;opEmpresa(f.empresa_id);document.getElementById('op-ia').textContent='· ya existe: se usa esa empresa';return}
  const fd=new FormData();fd.append('_csrf',CSRF);fd.append('nombre',nom);document.getElementById('op-ia').textContent='· completando…';
  try{const d=await (await fetch({{ url_for('api_empresa')|tojson }},{method:'POST',body:fd})).json();
   if(d.codigo)f.codigo.value=d.codigo;
-  if(d.pais&&[...f.pais.options].some(o=>o.text===d.pais))f.pais.value=d.pais;if(d.industria&&!f.industria.value)f.industria.value=d.industria;
+  if(d.pais&&[...f.pais.options].some(o=>o.text===d.pais))f.pais.value=d.pais;if(d.industria&&!f.industria.value)opInd(f,d.industria);
   document.getElementById('op-ia').textContent=d.ia?'· país e industria sugeridos por IA: revísalos':''}catch(e){document.getElementById('op-ia').textContent=''}}
 function opMod(f){const m=(f.querySelector('[name=modalidad]:checked')||{}).value;f.querySelector('[data-alcance]').style.display=m==='alcance'?'':'none'}
 async function opAlcance(f){const est=document.getElementById('op-alc-est'),out=document.getElementById('op-alc');const fd=new FormData();fd.append('_csrf',CSRF);fd.append('texto',f.alcance_texto.value);

@@ -267,4 +267,8 @@ def numero_contrato(c, letra, anio=None):
 
 
 app.jinja_env.globals["paises"] = sorted(PAISES)
+INDUSTRIAS = ["Banca y servicios financieros", "Seguros", "Retail y comercio", "Telecomunicaciones", "Gobierno y sector público", "Salud",
+              "Educación", "Energía y utilities", "Minería", "Manufactura", "Transporte y logística", "Tecnología y software", "Medios y entretenimiento",
+              "Agroindustria", "Construcción e inmobiliaria", "Servicios profesionales", "Otra"]
+app.jinja_env.globals["industrias"] = INDUSTRIAS
 app.jinja_env.globals["despliegues"] = __import__("cobro").DESPLIEGUES

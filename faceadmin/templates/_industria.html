@@ -1,0 +1,1 @@
+{% macro sel_industria(v) %}<select name="industria"><option value="">— elegir —</option>{% for i in industrias %}<option {{ 'selected' if v == i }}>{{ i }}</option>{% endfor %}{% if v and v not in industrias %}<option selected>{{ v }}</option>{% endif %}</select>{% endmacro %}

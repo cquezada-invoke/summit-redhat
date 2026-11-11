@@ -41,13 +41,15 @@ def _contactos_todos():
         x["cargo"] = x.get("cargo") or cargo_cta.get((x["id"], x["cliente_id"])) or (c.get("contacto_cargo") if ppal else "") or ""
         x["telefono"] = x.get("telefono") or (c.get("contacto_telefono") if ppal else "") or ""
         x["correo"] = x.get("correo") or (c.get("contacto_correo") if ppal else "") or ""
+        from contactos import partes
+        x["pila"], x["ape"] = partes(x)
         out.append(dict(x, cuenta=c.get("nombre", "")))
     return out
 
 
 def _cts_prev(f):
     """Filas de contactos tal como se enviaron, para no perderlas si el formulario vuelve con un error."""
-    ks = ("ct_id", "ct_nombre", "ct_cargo", "ct_correo", "ct_telefono")
+    ks = ("ct_id", "ct_nombre", "ct_apellido", "ct_cargo", "ct_correo", "ct_telefono")
     ls = {k: f.getlist(k) for k in ks}
     return [{k: (ls[k][i] if i < len(ls[k]) else "") for k in ks} for i in range(len(ls["ct_id"]))]
 
@@ -63,8 +65,9 @@ def _contactos_form(f):
             x = q1("SELECT * FROM contactos WHERE id=?", int(cid))
             if x:
                 out.append({"id": x["id"], "nombre": x["nombre"], "cargo": x["cargo"] or "", "correo": x["correo"] or "", "telefono": x["telefono"] or ""})
-        elif v("ct_nombre") and v("ct_correo"):
-            out.append({"id": None, "nombre": v("ct_nombre")[:120], "cargo": v("ct_cargo")[:120], "correo": v("ct_correo")[:160], "telefono": v("ct_telefono")[:40]})
+        elif v("ct_nombre") and v("ct_apellido") and v("ct_correo"):
+            from contactos import completo
+            out.append({"id": None, "nombre": completo(v("ct_nombre"), v("ct_apellido")), "pila": v("ct_nombre")[:60], "apellido": v("ct_apellido")[:60], "cargo": v("ct_cargo")[:120], "correo": v("ct_correo")[:160], "telefono": v("ct_telefono")[:40]})
     return out
 
 
@@ -75,8 +78,8 @@ def _vincular_contactos(cts, c):
         kid = x["id"]
         if not kid:
             ya = q1("SELECT id FROM contactos WHERE cliente_id=? AND LOWER(correo)=LOWER(?)", c["id"], x["correo"])
-            kid = ya["id"] if ya else ej("INSERT INTO contactos (cliente_id, nombre, cargo, correo, telefono, rol, principal, notas, creado, por) "
-                                         "VALUES (?,?,?,?,?,?,?,?,?,?)", c["id"], x["nombre"], x["cargo"], x["correo"], x["telefono"], "", 0, "", ahora(), g.usuario["usuario"])
+            kid = ya["id"] if ya else ej("INSERT INTO contactos (cliente_id, nombre, nombre_pila, apellido, cargo, correo, telefono, rol, principal, notas, creado, por) "
+                                         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], x["nombre"], x.get("pila", ""), x.get("apellido", ""), x["cargo"], x["correo"], x["telefono"], "", 0, "", ahora(), g.usuario["usuario"])
             if not ya:
                 ej("INSERT INTO contacto_cuentas (contacto_id, cliente_id, cargo, desde, por) VALUES (?,?,?,?,?)", kid, c["id"], x["cargo"], hoy, g.usuario["usuario"])
         else:
@@ -238,7 +241,7 @@ def oportunidad_nueva():
         flash("En costo fijo por alcance, describe el alcance (lo evalúa el especialista de negocio antes de fijar el precio)", "error")
         return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES, contactos=_contactos_todos(), cts_prev=_cts_prev(f)), 400
     if not cts:
-        flash("Agrega al menos un contacto (nombre y correo)", "error")
+        flash("Agrega al menos un contacto (nombre, apellido y correo)", "error")
         return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT, niveles=NIVELES,
                                contactos=_contactos_todos(), cts_prev=_cts_prev(f)), 400
     num = _numero(c)

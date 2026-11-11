@@ -10,6 +10,10 @@ def iniciar():
     with app.app_context():
         ej("CREATE TABLE IF NOT EXISTS contacto_cuentas (id INTEGER PRIMARY KEY, contacto_id INTEGER NOT NULL, cliente_id INTEGER, cargo TEXT DEFAULT '', "
            "desde TEXT, hasta TEXT DEFAULT '', por TEXT)")
+        cols = {r["name"] for r in q("PRAGMA table_info(contactos)")}
+        for col in ("nombre_pila", "apellido"):   # nombre y apellido por separado; «nombre» guarda el nombre completo
+            if col not in cols:
+                ej(f"ALTER TABLE contactos ADD COLUMN {col} TEXT DEFAULT ''")
         for c in q("SELECT * FROM contactos WHERE id NOT IN (SELECT contacto_id FROM contacto_cuentas) AND COALESCE(cliente_id,0)>0"):
             ej("INSERT INTO contacto_cuentas (contacto_id, cliente_id, cargo, desde, por) VALUES (?,?,?,?,?)", c["id"], c["cliente_id"], c.get("cargo") or "",
                (c.get("creado") or ahora())[:10], c.get("por") or "sistema")
@@ -18,22 +22,37 @@ def iniciar():
 iniciar()
 
 
+def partes(x):
+    """(nombre, apellido) de un contacto: las columnas propias o, en los antiguos, el nombre completo partido en la primera palabra."""
+    if (x.get("nombre_pila") or "").strip() or (x.get("apellido") or "").strip():
+        return (x.get("nombre_pila") or "").strip(), (x.get("apellido") or "").strip()
+    p = (x.get("nombre") or "").strip().split(" ", 1)
+    return p[0], (p[1] if len(p) > 1 else "")
+
+
+def completo(n, a):
+    return " ".join(v for v in ((n or "").strip(), (a or "").strip()) if v)[:120]
+
+
+app.jinja_env.globals["ct_partes"] = partes
+
+
 def _cuentas():
     return [c for c in q("SELECT id, nombre, codigo, pais FROM clientes WHERE activo=1 AND COALESCE(propio,0)=0 ORDER BY nombre") if en_alcance(c)]
 
 
 def _guardar(f, x=None):
-    nom = (f.get("nombre") or "").strip()[:120]
-    if not nom:
-        raise ValueError("El contacto necesita un nombre")
-    d = {"nombre": nom, "cargo": (f.get("cargo") or "").strip()[:120], "correo": (f.get("correo") or "").strip()[:160],
+    pila, ape = (f.get("nombre") or "").strip()[:60], (f.get("apellido") or "").strip()[:60]
+    if not pila or not ape:
+        raise ValueError("El contacto necesita nombre y apellido")
+    d = {"nombre": completo(pila, ape), "nombre_pila": pila, "apellido": ape, "cargo": (f.get("cargo") or "").strip()[:120], "correo": (f.get("correo") or "").strip()[:160],
          "telefono": (f.get("telefono") or "").strip()[:40], "rol": f.get("rol") if f.get("rol") in ROLES else "", "notas": (f.get("notas") or "")[:1000]}
     if x:
         ej("UPDATE contactos SET " + ", ".join(f"{k}=?" for k in d) + " WHERE id=?", *d.values(), x["id"])
         return x["id"]
     cid = int(f["cliente_id"]) if (f.get("cliente_id") or "").isdigit() else 0
-    kid = ej("INSERT INTO contactos (cliente_id, nombre, cargo, correo, telefono, rol, principal, notas, creado, por) VALUES (?,?,?,?,?,?,?,?,?,?)",
-             cid, d["nombre"], d["cargo"], d["correo"], d["telefono"], d["rol"], 0, d["notas"], ahora(), g.usuario["usuario"])
+    kid = ej("INSERT INTO contactos (cliente_id, nombre, nombre_pila, apellido, cargo, correo, telefono, rol, principal, notas, creado, por) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+             cid, d["nombre"], d["nombre_pila"], d["apellido"], d["cargo"], d["correo"], d["telefono"], d["rol"], 0, d["notas"], ahora(), g.usuario["usuario"])
     if cid:
         ej("INSERT INTO contacto_cuentas (contacto_id, cliente_id, cargo, desde, por) VALUES (?,?,?,?,?)", kid, cid, d["cargo"], ahora()[:10], g.usuario["usuario"])
     return kid
