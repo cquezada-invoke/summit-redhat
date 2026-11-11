@@ -1,13 +1,7 @@
-commit: b035653417d6461ee2f80b9d726c54f5e3b65f3e
-inicio: 2026-11-11T19:22:59-03:00
+commit: b90e55783acdee6f141317a19ce1d1d08b2267fd
+inicio: 2026-11-11T19:24:38-03:00
 ---
-certificado de administración listo
-0xa85bf9b53dfdea483009765228fac9ce ERROR 500 {"Attributes":{"Attribute":[]},"ClassName":"com.netscape.certsrv.base.PKIException","Code":500,"Message":"Unable to revoke cert: Record not found: No such object"}
-0xf78d099a8ce11db890114c54dea701db ERROR 500 {"Attributes":{"Attribute":[]},"ClassName":"com.netscape.certsrv.base.PKIException","Code":500,"Message":"Unable to revoke cert: Record not found: No such object"}
-0x27d3… (JBoss) → VALID
-Inventario job 24830 successful
-FICHA nodo-jboss: 2 certificado(s) [('0x27d3173dc3d24e02bf48364f9bbc2642', 'jboss-https', 'vigente'), ('0xf78d099a8ce11db890114c54dea701db', '', 'vigente')]
-UI /equipos/6/certificados 404 0 []
-serial=27D3173DC3D24E02BF48364F9BBC2642
-app de pagos por el balanceador: HTTP 200
---- fin: 2026-11-11T19:24:22-03:00 · código: 0
+{'numero': 'FO-LAB-01902', 'estado': 'fallido', 'nombre_aap': 'Sistema · Quitar agente', 'r': "AAP terminó (failed): ejecución 25 s, espera de aprobación 46 s\nFalló en la tarea «Respaldo continuo · detener y retirar (el historial en Git se conserva)» de nodo-jboss-qa: no se pudo conectar con el equipo (apagado o sin red): Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.20' (ED25519) to the list of known hosts.\r\nroot@192.168.122.20: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\n\nPLAY [Sistema · Quitar agente] ************************************"}
+{'numero': 'FO-LAB-01903', 'estado': 'fallido', 'nombre_aap': 'Sistema · Quitar agente', 'r': "AAP terminó (failed): ejecución 6 s, espera de aprobación 45 s\nFalló en la tarea «Monitoreo (Linux) · detener y retirar node_exporter» de nodo-jboss-qa: no se pudo conectar con el equipo (apagado o sin red): Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.20' (ED25519) to the list of known hosts.\r\nroot@192.168.122.20: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\n\nTASK [Agente válido] ***********************************************************\nok: [no"}
+{'numero': 'FO-LAB-01904', 'estado': 'fallido', 'nombre_aap': 'Sistema · Quitar agente', 'r': 'AAP terminó (failed): ejecución 8 s, espera de aprobación 37 s\nFalló en la tarea «Agente válido» de nodo-jboss-qa: {\n\nPLAY [Sistema · Quitar agente] *************************************************\n\nTASK [Agente válido] ***********************************************************\nfatal: [nodo-jboss-qa]: FAILED! => {\n    "assertion": "agente in [\'respaldo-git\', \'node-exporter\', \'windows-exporter\']",\n    "changed": false,\n    "evaluated_to": false,\n    "msg": "Agente desconocido: agente-inexistent'}
+--- fin: 2026-11-11T19:24:46-03:00 · código: 0
