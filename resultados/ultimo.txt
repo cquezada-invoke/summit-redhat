@@ -1,38 +1,20 @@
-commit: ee0fa775dd65f11604251c6d8bd1ffc241d65458
-inicio: 2026-11-10T21:25:50-03:00
+commit: ccf6b63cb741b4a5dc26974d51a9407130ee16d2
+inicio: 2026-11-10T21:26:15-03:00
 ---
-u 1 1 200 None 125442 filas 35 al dia 0 sin 121 punto 35 vers 0 1.1s
-u 9 1 302 /lab/ingresar?siguiente=/respaldos? 257 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 2 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 3 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 4 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 5 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 6 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 7 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 8 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 10 0 200 None 116751 filas 35 al dia 0 sin 121 punto 35 vers 0 0.1s
-u 11 0 200 None 116752 filas 35 al dia 0 sin 121 punto 35 vers 0 0.1s
-u 12 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 13 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 14 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 15 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 16 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 17 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 18 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 19 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 20 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-u 21 0 403 None 213 filas 0 al dia 0 sin 0 punto 0 vers 0 0.0s
-/lab/inventario/2/puntos/PR-DC1-DS01-0009 200
-/lab/inventario/3/puntos/PR-DC1-IDM01-0015 200
-/lab/inventario/4/puntos/PR-DC1-IGA01-0008 200
-/lab/inventario/5/puntos/PR-DC1-SSO01-0008 200
-/lab/inventario/22/puntos/PR-NODO-JBOSS-QA-0008 200
-/lab/inventario/7/puntos/PR-NODO-JBOSS2-0008 200
- Respaldos y recuperación Primero las herramientas que respaldan; después qué cubre cada tipo de respaldo en el parque. El punto de restauración es la llave que combina todos los tipos: es lo que se restaura. Herramientas de respaldo Git · repositorio de cada máquina (inventario diario) y respaldo continuo (agente) Configuración, paquetes instalados, servicios y aplicaciones como código 13 13 de 35 máquinas · abrir ↗ restic Datos (archivos y bases de datos), incremental y cifrado 0 0 de 35 máquinas Registro propio Imágenes del sistema, paquetes RPM e instaladores de plataformas 27 27 de 35 máquinas · abrir ↗ Snapshots del hipervisor (KVM) Máquina virtual completa (hoy solo antes de cambios: migraciones y actualizaciones) 0 0 de 35 máquinas Puntos de restauración La llave que combina todo: imagen + paquetes + plataformas + configuración + aplicaciones + datos 35 35 de 35 máquinas Evaluación global de respaldo · 37% Configuración Git · respaldo continuo Cobertura 9% 3/35 cubiertas 10 parciales Datos restic Cobertura 0% 0/35 cubiertas Paquetes Registro propio (RPM) Cobertura 37% 13/35 cubiertas Imagen del sistema Registro propio (imágenes) Cobertura 51% 18/35 cubiertas Máquina virtual Snapshots del hipervisor Cobertura 0% 0/25 cubiertas Punto de restauración FaceOps · combinación de todo lo anterior Cobertura 100% 35/35 cubiertas Máquina Configuración Datos Paquetes Imagen del sistema Máquina virtual Punto de restauración Último respaldo en Git dc1-ds01 ◐ ✗ ✓ ✗ ✗ ✓ 2026-11-06 19
-19:22:57 200 31847 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/disponibilidad"
-20:09:27 200 31216 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/"
-20:23:05 200 66089 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6"
-20:23:33 200 66089 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6/puntos/PR-NODO-JBOSS-0016"
-20:28:06 200 28679 "https://faceops.34.176.42.56.sslip.io:8843/faceops/lab/inventario/6/puntos/PR-NODO-JBOSS-0016"
-0
---- fin: 2026-11-10T21:26:01-03:00 · código: 0
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "<stdin>", line 5, in t
+  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
+    return opener.open(url, data, timeout)
+  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
+    response = self.parent.error(
+  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
+    return self._call_chain(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+--- fin: 2026-11-10T21:26:15-03:00 · código: 0
