@@ -4529,11 +4529,10 @@ def equipo(eid):
                                  "anterior la deja solo local): re-aplica APP-02 vigente o adminístrala con jboss-cli desde la consola SSH.")
         elif familia(c["codigo"]) in CONSOLAS and familia(c["codigo"]) not in ("redis", "jenkins") and not c.get("so") and not c["acciones"]:
             # plataforma CON interfaz web propia (Keycloak, Vault, IdM, JBoss) cuya consola no se ofrece porque no corre o no
-            # responde: no es «sin interfaz»; se muestra «detenido» (o «no responde» si su servicio figura en ejecución)
-            st_ = "no responde" if servicio_estado(e, c["codigo"]) == "en ejecución" and e.get("energia") == "encendido" else "detenido"
-            c["consola_detenida"] = st_
-            c["nota_consola"] = (f"{c['nombre']} está detenido: su consola web ({CONSOLAS[familia(c['codigo'])][3]}) se habilita cuando la plataforma esté encendida."
-                                 if st_ == "detenido" else f"La consola web de {c['nombre']} ({CONSOLAS[familia(c['codigo'])][3]}) no responde desde FaceOps.")
+            # responde: no es «sin interfaz»; se muestra «detenido» sin botón activo (la comprobación en vivo manda sobre el inventario)
+            c["consola_detenida"] = "detenido"
+            c["nota_consola"] = (f"{c['nombre']} está detenido (su consola web no responde): la consola ({CONSOLAS[familia(c['codigo'])][3]}) "
+                                 "se habilita sola cuando la plataforma esté encendida.")
     for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
         ent = None
         if c["so"] or (c["codigo"] == "windows" and consola_tipo):
