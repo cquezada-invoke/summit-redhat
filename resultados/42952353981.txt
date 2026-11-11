@@ -1,0 +1,36 @@
+commit: 1a5822b539687f8ccfbc4f4aa647af9de277f4fe
+inicio: 2026-11-11T00:22:51-03:00
+---
+1:limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
+2:limit_req_zone $binary_remote_addr zone=consolas:10m rate=200r/s;
+3:limit_req_zone $binary_remote_addr zone=general:10m rate=20r/s;
+8:    location /.well-known/acme-challenge/ { root /var/www; }
+9:    location / { return 301 https://faceops.34.176.42.56.sslip.io:8843$request_uri; }
+23:    location = / { return 302 /faceops/; }
+24:    location ~ ^/faceops/(ingresar|ingresar/codigo)$ {
+25:        limit_req zone=login burst=5 nodelay;
+31:    location ~ ^/faceops/(inventario/\d+/(consola-web|web)/.*)$ {
+32:        limit_req zone=consolas burst=800 nodelay;
+39:    location /maqueta/ {
+40:        limit_req zone=general burst=60 nodelay;
+48:    location /faceops/ {
+49:        limit_req zone=general burst=60 nodelay;
+54:    location ~ ^/ca/(agent|admin)/ { return 403; }
+55:    location ~ ^/(ca/(ee|rest|ui|css|js|images|fonts|pki)|pki/|ca/ee) {
+63:    location /git/ {
+74:    location /consola/ {
+83:    location / { return 404; }
+ 23   nodo-tomcat                  running
+State:          running
+CPU(s):         1
+CPU time:       36008.6s
+Max memory:     2097152 KiB
+Used memory:    2097152 KiB
+  cpu.time=36012210208000
+  balloon.current=2097152
+  balloon.unused=1445072
+  balloon.available=1748500
+  balloon.rss=2018440
+22 abre
+rtt min/avg/max/mdev = 0.170/0.223/0.277/0.053 ms
+--- fin: 2026-11-11T00:23:01-03:00 · código: 0
