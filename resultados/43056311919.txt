@@ -1,0 +1,36 @@
+commit: d219a211611a77491e76b4dba38380ccc582d5e5
+inicio: 2026-11-11T13:14:42-03:00
+---
+{'numero': 'FO-LAB-01684', 'estado': 'fallido', 'aap_job_id': 23582, 'r': 'AAP terminó (failed): ejecución 68 s, espera de aprobación 55 s\nFalló en la tarea «Archivos» de nodo-jboss: Destination directory /etc/containers/containers.conf.d does not exist\n\nTASK [Parámetros del'}
+{'numero': 'FO-LAB-01686', 'estado': 'fallido', 'aap_job_id': 23588, 'r': 'AAP terminó (failed): ejecución 69 s, espera de aprobación 34 s\nFalló en la tarea «Servicios» de nodo-jboss: Could not find the requested service firewalld: host\nok: [nodo-jboss] => {\n    "msg": "fire'}
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
+    return opener.open(url, data, timeout)
+  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
+    response = self.parent.error(
+  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
+    return self._call_chain(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
+    return opener.open(url, data, timeout)
+  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
+    response = self.parent.error(
+  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
+    return self._call_chain(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+--- fin: 2026-11-11T13:14:50-03:00 · código: 0
