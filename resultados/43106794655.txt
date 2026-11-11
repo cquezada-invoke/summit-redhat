@@ -1,0 +1,22 @@
+commit: 98626f06f98c885a1051378fef5d314f44e55564
+inicio: 2026-11-11T18:52:05-03:00
+---
+leido 2026-11-11T20:09:51.853215Z []
+FILA d3m0a5 nodo-jboss2.demo.local VALID vigente svc= jboss-https inst= [('nodo-jboss2', 'jboss-https', 8443, True)] ini 2026-03-15 00:00:00+00:00 fin 2027-03-15 00:00:00+00:00
+FILA d3m0a7 nodo-jboss-qa.demo.local VALID vigente svc= jboss-https inst= [('nodo-jboss-qa', 'jboss-https', 8443, True)] ini 2026-06-01 00:00:00+00:00 fin 2028-06-01 00:00:00+00:00
+FILA 0x27d3173dc3d24e02bf48364f9bbc2642 nodo-jboss.demo.local VALID vigente svc= jboss-https inst= [('nodo-jboss', 'jboss-https', 8443, True)] ini 2026-11-10 20:28:47+00:00 fin 2028-10-30 20:28:47+00:00
+FILA 0xa85bf9b53dfdea483009765228fac9ce nodo-jboss.demo.local VALID vigente svc= nodo-jboss inst= [('nodo-jboss', 'nodo-jboss', 443, None)] ini 2026-11-11 17:52:17+00:00 fin 2028-10-31 17:52:17+00:00
+FILA 0xf78d099a8ce11db890114c54dea701db nodo-jboss.demo.local VALID vigente svc=  inst= [] ini 2026-11-11 18:03:05+00:00 fin 2028-10-31 18:03:05+00:00
+FILA d3m0a1 nodo-jboss.demo.local VALID reemplazado svc= jboss-https inst= [('nodo-jboss', 'jboss-https', 8443, True)] ini 2024-10-28 00:00:00+00:00 fin 2026-10-28 00:00:00+00:00
+FILA 0x4c957dae00ce2fc7368240abd8f17a82 nodo-jboss.demo.local VALID reemplazado svc=  inst= [] ini 2026-11-02 07:03:21+00:00 fin 2028-10-22 07:03:21+00:00
+FILA 0x6fda6dc34142129ea390ba73c13a6163 nodo-jboss.demo.local REVOKED revocado svc= jboss-https inst= [] ini 2026-11-02 07:20:57+00:00 fin 2028-10-22 07:20:57+00:00
+FILA 0x98c604d79e3c0ed7c69d59d43066a75a nodo-jboss.demo.local VALID reemplazado svc=  inst= [] ini 2026-11-10 19:42:09+00:00 fin 2028-10-30 19:42:09+00:00
+FILA 0x712b447484972e16f0a76957e9e0cfc6 nodo-jboss.demo.local VALID reemplazado svc=  inst= [] ini 2026-11-10 19:58:52+00:00 fin 2028-10-30 19:58:52+00:00
+FILA 0x2c543d17d7d8f619a838e4167af832d2 nodo-jboss.demo.local VALID reemplazado svc=  inst= [] ini 2026-11-10 20:10:28+00:00 fin 2028-10-30 20:10:28+00:00
+FILA 0xba53c0407f3c33f5984c855094f6d141 nodo-jboss.demo.local VALID reemplazado svc=  inst= [] ini 2026-11-10 20:18:54+00:00 fin 2028-10-30 20:18:54+00:00
+EN_USO nodo-jboss [{"servicio": "jboss-https", "cn": "nodo-jboss.demo.local", "formato": "pkcs12", "puerto": 8443, "serie": "27d3173dc3d24e02bf48364f9bbc2642", "vence": "Oct 30 20:28:47 2028 GMT", "puerto_serie": "27d3173dc3d24e02bf48364f9bbc2642", "entrega": true}, {"servicio": "nodo-jboss", "cn": "nodo-jboss.demo.local", "formato": "pem", "puerto": 443, "serie": "a85bf9b53dfdea483009765228fac9ce", "vence": "Oct 31 17:52:17 2028 GMT", "puerto_serie": "", "entrega": null}, {"serie": "d3m0a1", "servicio": "jboss-https", "puerto": 8443, "entrega": true}]
+TK FO-LAB-01406 fallido Certificados · Emitir para servicio {"cert_bits": 2048, "cert_nombre": "jboss-https", "cert_formato": "pkcs12", "cert_recargar": "systemctl restart eap8-standalone", "cert_san": "nodo-jboss.demo.local", "cert_cn": "nodo-jboss.demo.local", "cert_propietario": "root", "cert_puerto": 8443, "cert_revocar_serie": "6fda6dc34142129ea390ba73c13a6163"} | Plan de prueba · reemplazar certificado (nuevo + revocar el anterior)
+TK FO-LAB-01763 fallido Certificados · Emitir para servicio {"cert_bits": 2048, "cert_vigencia_dias": 5, "cert_nombre": "nodo-jboss", "cert_formato": "pem", "cert_recargar": "systemctl restart nodo-jboss", "cert_san": "nodo-jboss.demo.local", "cert_cn": "nodo-jboss.demo.local", "cert_propietario": "root", "cert_puerto": 443, "cert_revocar_serie": "712b447484972e16f0a76957e9e0cfc6"} | Reemplazo del certificado nodo-jboss.demo.local pedido desde su detalle
+TK FO-LAB-01776 fallido Certificados · Emitir para servicio {"cert_bits": 2048, "cert_vigencia_dias": 5, "cert_nombre": "nodo-jboss", "cert_formato": "pem", "cert_recargar": "systemctl restart nodo-jboss", "cert_san": "nodo-jboss.demo.local", "cert_cn": "nodo-jboss.demo.local", "cert_propietario": "root", "cert_puerto": 443, "cert_revocar_serie": "712b447484972e16f0a76957e9e0cfc6"} | Reemplazo del certificado nodo-jboss.demo.local pedido desde su detalle
+EQ {'id': 6, 'nombre': 'nodo-jboss', 'ip': '192.168.122.15', 'estado': 'con datos'}
+--- fin: 2026-11-11T18:52:16-03:00 · código: 0
