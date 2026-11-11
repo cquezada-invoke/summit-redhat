@@ -14,6 +14,7 @@ e = q1("SELECT skills_auto, skills_manual FROM equipos WHERE nombre=? AND estado
 print("si" if e and sys.argv[2] in json.loads(e["skills_auto"] or "[]") + json.loads(e["skills_manual"] or "[]") else "no")
 Q
 }
+O_RES=$(sk respaldo-git); O_MON=$(sk node-exporter); echo "prep originales respaldo=$O_RES monitoreo=$O_MON"
 # preparación: la máquina de prueba con ambos agentes (si ya los tiene, FaceOps no relanza)
 caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-respaldo\"}" >/dev/null; echo "prep respaldo: $(estado) $(ticket)"
 caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-monitoreo\"}" >/dev/null; echo "prep monitoreo: $(estado) $(ticket)"
@@ -33,7 +34,8 @@ H1=$(en $IP 'ls /etc/systemd/system | md5sum | cut -c1-10')
 { [ "$E3" = fallido ] || [ "$E3" = "rechazado al solicitar" ]; } && [ "$H0" = "$H1" ] && anotar C3 "Agente desconocido" ok "$E3 ($(jq_ "(r.get('detalle') or r.get('error') or '')[:140]")); la máquina no cambia (huella $H0)" || anotar C3 "Agente desconocido" falla "$E3 $H0→$H1"
 echo "EVIDENCIA $CASOS"
 certificar "$N" "Plan quitar agente · C1–C3 (planes-prueba.yml)"
-# deja la máquina de prueba como estaba (con monitoreo)
-caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"restaurar\"}" >/dev/null; echo "restaurar monitoreo: $(estado) $(ticket)"
+# deja la máquina de prueba como estaba (solo reinstala los agentes que tenía antes del plan)
+[ "$O_RES" = si ] && { caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"restaurar\"}" >/dev/null; echo "restaurar respaldo: $(estado) $(ticket)"; }
+[ "$O_MON" = si ] && { caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"restaurar\"}" >/dev/null; echo "restaurar monitoreo: $(estado) $(ticket)"; }
 energia $M apagar   # queda apagada, como estaba
 echo FIN-QUITAR
