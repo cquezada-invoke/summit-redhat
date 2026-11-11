@@ -1,0 +1,25 @@
+commit: 76d0881bc92d676aef185e857b3e67d5d6924dfd
+inicio: 2026-11-10T21:51:54-03:00
+---
+EN CURSO: [('FO-LAB-00317', 'en_ejecucion', '2026-11-01T04:48', 'Plataforma · Controlar servicio', 'nodo-jboss'), ('FO-LAB-01490', 'en_ejecucion', '2026-11-11T00:51', 'Infra · Mover máquina entre centros de datos', '')]
+WEBLOGIC ult: [('FO-LAB-01488', 'exitoso', '2026-11-11T00:48', '2026-11-11T00:50', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C6 revertir'), ('FO-LAB-01483', 'fallido', '2026-11-11T00:39', '2026-11-11T00:48', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C5 salud falla y vuelta atra'), ('FO-LAB-01482', 'fallido', '2026-11-11T00:36', '2026-11-11T00:38', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C4 migrar legado'), ('FO-LAB-01480', 'exitoso', '2026-11-11T00:32', '2026-11-11T00:36', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C3 migrar ventas de nuevo'), ('FO-LAB-01478', 'exitoso', '2026-11-11T00:20', '2026-11-11T00:32', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C2 migrar ventas'), ('FO-LAB-01477', 'fallido', '2026-11-11T00:18', '2026-11-11T00:20', 'Migración · WebLogic a OpenShift · Evaluar', 'nodo-so', 'Plan de prueba WebLogic wl6 · E-C3 sin dominio')]
+AUTO FaceOps · Eliminar servidor (78, 'FaceOps · Eliminar servidor', 'certificada', 1)
+AUTO Migración · WebLogic a OpenShift · Evaluar (228, 'Migración · WebLogic a OpenShift · Evaluar', 'bloqueada', 0)
+AUTO JBoss · Desplegar app (23, 'JBoss · Desplegar app', 'bloqueada', 0)
+AUTO Infra · Mover máquina (156, 'Infra · Mover máquina entre centros de datos', 'bloqueada', 1)
+MOVER autos: ['Infra · Mover máquina entre centros de datos']
+MOVER equipo: {'id': 127, 'nombre': 'srv-mover-01', 'estado': 'sin datos', 'energia': 'apagado', 'ip': '192.168.150.130', 'ubicacion': 'Centro de datos Valparaíso', 'inventarios': '["Servidores habilitados"]', 'segmentos_fijos': '[]'}
+MOVER tickets: [('FO-LAB-01490', 'en_ejecucion', '2026-11-11T00:51', '', 'Infra · Mover máquina entre centros de datos', 'Confirmar el traslado de srv-mover-01 a KVM · Valparaíso (retira la co'), ('FO-LAB-01489', 'exitoso', '2026-11-11T00:49', '2026-11-11T00:51', 'Infra · Mover máquina entre centros de datos', 'Mover srv-mover-01 de KVM · Santiago a KVM · Valparaíso'), ('FO-LAB-01487', 'exitoso', '2026-11-11T00:47', '2026-11-11T00:49', 'Infra · Mover máquina entre centros de datos', 'Revertir el traslado de srv-mover-01: vuelve a su infraestructura de o'), ('FO-LAB-01486', 'exitoso', '2026-11-11T00:45', '2026-11-11T00:47', 'Infra · Mover máquina entre centros de datos', 'Mover srv-mover-01 de KVM · Santiago a KVM · Valparaíso'), ('FO-LAB-01485', 'exitoso', '2026-11-11T00:43', '2026-11-11T00:45', 'Infra · Mover máquina entre centros de datos', 'Prueba C1: evaluar srv-mover-01 → Valparaíso'), ('FO-LAB-01484', 'exitoso', '2026-11-11T00:39', '2026-11-11T00:41', 'FaceOps · Vincular máquina a la bóveda', 'Vinculación automática a la bóveda · servidor creado en FO-LAB-01481')]
+MOVER audit: [('2026-11-11T00:51', 'cquezada', 'solicitar', 'FO-LAB-01490'), ('2026-11-11T00:51', 'FaceOps', 'máquina trasladada', 'srv-mover-01'), ('2026-11-11T00:49', 'cquezada', 'solicitar', 'FO-LAB-01489'), ('2026-11-11T00:49', 'FaceOps', 'máquina trasladada', 'srv-mover-01'), ('2026-11-11T00:47', 'cquezada', 'solicitar', 'FO-LAB-01487'), ('2026-11-11T00:47', 'FaceOps', 'máquina trasladada', 'srv-mover-01'), ('2026-11-11T00:45', 'cquezada', 'solicitar', 'FO-LAB-01486'), ('2026-11-11T00:43', 'cquezada', 'solicitar', 'FO-LAB-01485')]
+AAP host 164 Servidores habilitados created 2026-11-11T00:39 modified 2026-11-11T00:51 last_job FaceOps · Uso por segmento 2026-11-11T00:41 successful vars_keys ['ansible_host', 'faceops_ambiente', 'faceops_forma', 'faceops_segmento', 'faceops_so_pedido', 'faceops_ticket', 'faceops_ubicacion']
+AAP job 22433 Infra · Mover máquina entre centros de datos successful 2026-11-11T00:51 
+AAP job 22424 Infra · Mover máquina entre centros de datos successful 2026-11-11T00:48 
+AAP job 22421 Infra · Mover máquina entre centros de datos successful 2026-11-11T00:47 
+AAP job 22415 Infra · Mover máquina entre centros de datos successful 2026-11-11T00:44 
+AAP job 16567 Infra · Mover máquina entre centros de datos failed 2026-11-07T06:57 
+AAP job 16563 Infra · Mover máquina entre centros de datos failed 2026-11-07T06:56 
+AAP job 16559 Infra · Mover máquina entre centros de datos successful 2026-11-07T06:54 
+AAP job 16553 Infra · Mover máquina entre centros de datos successful 2026-11-07T06:53 
+LIC {'instance_count': 50, 'current_instances': 50, 'automated_instances': 50, 'free_instances': 0, 'deleted_instances': 31}
+HM [('nodo-so', False, '2026-11-11T00:41'), ('srv-mover-01', False, '2026-11-11T00:41')]
+--- fin: 2026-11-10T21:52:01-03:00 · código: 0

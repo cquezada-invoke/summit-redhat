@@ -1,104 +1,25 @@
-commit: fb4effdec5717ac667a21556c3a7b76ea803468a
-inicio: 2026-11-10T21:51:35-03:00
+commit: 76d0881bc92d676aef185e857b3e67d5d6924dfd
+inicio: 2026-11-10T21:51:54-03:00
 ---
-WF FaceOps · Aprobar › Infra · Ajustar recursos de máquinas [Hipervisores] successful
- nodo 21311 workflow_approval successful Etapa 1/1 · Hipervisores · ¿Ejecutar «Ajustar recursos de máquinas (vCPU y memoria)»?
- nodo 21312 job successful Infra · Ajustar recursos de máquinas
-Identity added: /runner/artifacts/21312/ssh_key_data (aap-kvm (FaceOps))
-
-PLAY [Infra · Ajustar recursos de máquinas] ************************************
-
-TASK [Datos válidos] ***********************************************************
-ok: [anfitrion-kvm]
-
-TASK [Ajustar cada máquina] ****************************************************
-changed: [anfitrion-kvm] => (item=nodo-jboss)
-
-TASK [Resultado para FaceOps] **************************************************
-ok: [anfitrion-kvm]
-
-PLAY RECAP *********************************************************************
-anfitrion-kvm              : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-
-22434 2026-11-11T00:50:27 successful shell 
-22433 2026-11-11T00:50:19 successful Infra · Mover máquina entre centros de datos {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22, "faceops_ticket": "FO-LAB-
-22432 2026-11-11T00:50:01 successful Red · Verificar drift {}
-22431 2026-11-11T00:49:44 successful FaceOps · automatizaciones 
-22430 2026-11-11T00:49:44 successful Migración · WebLogic a OpenShift {"wl_modo": "revertir", "wl_app": "ventas", "wl_namespace": "wl-ventas", "faceops_ticket": "FO-LAB-01488", "faceops_soli
-22427 2026-11-11T00:49:21 successful FaceOps · Aprobar › Infra · Mover máquina entre centros de datos [Infraestructura] {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22, "faceops_ticket": "FO-LAB-
-22426 2026-11-11T00:49:03 successful FaceOps · Aprobar › Migración · WebLogic a OpenShift · Nodos demo · credencial 3 [Contenedores] {"wl_modo": "revertir", "wl_app": "ventas", "wl_namespace": "wl-ventas", "faceops_ticket": "FO-LAB-01488", "faceops_soli
-22425 2026-11-11T00:48:02 successful FaceOps · automatizaciones 
-22424 2026-11-11T00:48:02 successful Infra · Mover máquina entre centros de datos {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "revertir", "mv_puerto": 22, "faceops_ticket": "FO-L
-22422 2026-11-11T00:47:29 successful FaceOps · Aprobar › Infra · Mover máquina entre centros de datos [Infraestructura] {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "revertir", "mv_puerto": 22, "faceops_ticket": "FO-L
-22421 2026-11-11T00:45:45 successful Infra · Mover máquina entre centros de datos {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22, "faceops_ticket": "FO-LAB-
-22419 2026-11-11T00:45:13 successful FaceOps · Aprobar › Infra · Mover máquina entre centros de datos [Infraestructura] {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22, "faceops_ticket": "FO-LAB-
-22418 2026-11-11T00:45:01 successful FaceOps · automatizaciones 
-22417 2026-11-11T00:45:01 successful OpenShift · Recolectar clúster {}
-22416 2026-11-11T00:44:02 successful FaceOps · automatizaciones 
-22415 2026-11-11T00:44:02 successful Infra · Mover máquina entre centros de datos {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "evaluar", "mv_puerto": 22, "faceops_ticket": "FO-LA
-22413 2026-11-11T00:43:20 successful FaceOps · Aprobar › Infra · Mover máquina entre centros de datos [Infraestructura] {"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "evaluar", "mv_puerto": 22, "faceops_ticket": "FO-LA
-22412 2026-11-11T00:40:55 failed FaceOps · Uso por segmento {"uso_desde": 1794357406, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22411 2026-11-11T00:40:54 successful FaceOps · Uso por segmento {"uso_desde": 1794357406, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22410 2026-11-11T00:40:53 failed FaceOps · Uso por segmento {"uso_desde": 1794357406, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22409 2026-11-11T00:40:53 successful FaceOps · Uso por segmento {"uso_desde": 1794357406, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22408 2026-11-11T00:40:52 failed FaceOps · Uso por segmento {"uso_desde": 1794357406, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22407 2026-11-11T00:40:51 successful FaceOps · Uso por segmento {"uso_desde": 1794357406, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22406 2026-11-11T00:40:28 successful FaceOps · Vincular máquina a la bóveda {"vm_usuario": "faceops", "vm_tipo": "linux", "faceops_ticket": "FO-LAB-01484", "faceops_solicitante": "cquezada", "soli
-22405 2026-11-11T00:40:09 successful FaceOps · automatizaciones 
-22404 2026-11-11T00:40:09 failed Migración · WebLogic a OpenShift {"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/no-existe", "wl_cpu": "
-22403 2026-11-11T00:40:01 successful Red · Verificar drift {}
-22401 2026-11-11T00:39:31 successful FaceOps · Aprobar › FaceOps · Vincular máquina a la bóveda · Servidores habilitados · credencial 3 [Seguridad] {"vm_usuario": "faceops", "vm_tipo": "linux", "faceops_ticket": "FO-LAB-01484", "faceops_solicitante": "cquezada", "soli
-22399 2026-11-11T00:39:18 failed FaceOps · Aprobar › Migración · WebLogic a OpenShift · Nodos demo · credencial 3 [Contenedores] {"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/no-existe", "wl_cpu": "
-22398 2026-11-11T00:38:29 successful shell 
-22397 2026-11-11T00:37:08 failed Migración · WebLogic a OpenShift {"wl_modo": "migrar", "wl_app": "legado", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
-22396 2026-11-11T00:37:05 successful FaceOps · automatizaciones 
-22395 2026-11-11T00:37:05 successful FaceOps · Habilitar servidor {"hab_so": "rocky9", "hab_infraestructura": "KVM \u00b7 Santiago", "hab_destino": "onpremise", "hab_nombre": "mover", "h
-22393 2026-11-11T00:36:27 failed FaceOps · Aprobar › Migración · WebLogic a OpenShift · Nodos demo · credencial 3 [Contenedores] {"wl_modo": "migrar", "wl_app": "legado", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
-22391 2026-11-11T00:36:00 successful FaceOps · Aprobar › FaceOps · Habilitar servidor [Servidores] {"hab_so": "rocky9", "hab_infraestructura": "KVM \u00b7 Santiago", "hab_destino": "onpremise", "hab_nombre": "mover", "h
-22390 2026-11-11T00:35:40 failed FaceOps · Uso por segmento {"uso_desde": 1794357083, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22389 2026-11-11T00:35:39 successful FaceOps · Uso por segmento {"uso_desde": 1794357083, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22388 2026-11-11T00:35:38 failed FaceOps · Uso por segmento {"uso_desde": 1794357083, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22387 2026-11-11T00:35:38 successful FaceOps · Uso por segmento {"uso_desde": 1794357083, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-22386 2026-11-11T00:35:37 failed FaceOps · Uso por segmento {"uso_desde": 1794357083, "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTExMDAiLCJ0eXAiOiJmYWNlb3BzK2F1d
-=== ad hoc 22435 successful
-Identity added: /runner/artifacts/22435/ssh_key_data (aap-kvm (FaceOps))
-anfitrion-kvm | CHANGED | rc=0 >>
-== nodo-jboss
-State:          running
-CPU(s):         2
-Max memory:     2097152 KiB
-Used memory:    2097152 KiB
-Persistent:     yes
-Autostart:      disable
-Autostart Once: disable
-maximum      config         2
-maximum      live           2
-current      config         2
-current      live           2
-
-  <memory unit='KiB'>2097152</memory>
-  <currentMemory unit='KiB'>2097152</currentMemory>
-  <vcpu placement='static'>2</vcpu>
-== nodo-jboss2
-State:          running
-CPU(s):         1
-Max memory:     2097152 KiB
-Used memory:    2097152 KiB
-Persistent:     yes
-Autostart:      disable
-Autostart Once: disable
-maximum      config         1
-maximum      live           1
-current      config         1
-current      live           1
-
-  <memory unit='KiB'>2097152</memory>
-  <currentMemory unit='KiB'>2097152</currentMemory>
-  <vcpu placement='static'>1</vcpu>
- Name   Creation Time   State
--------------------------------
-
-2026-11-10 18:22:11sudo: a *** is required
-sudo: a *** is required
-
---- fin: 2026-11-10T21:51:43-03:00 · código: 0
+EN CURSO: [('FO-LAB-00317', 'en_ejecucion', '2026-11-01T04:48', 'Plataforma · Controlar servicio', 'nodo-jboss'), ('FO-LAB-01490', 'en_ejecucion', '2026-11-11T00:51', 'Infra · Mover máquina entre centros de datos', '')]
+WEBLOGIC ult: [('FO-LAB-01488', 'exitoso', '2026-11-11T00:48', '2026-11-11T00:50', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C6 revertir'), ('FO-LAB-01483', 'fallido', '2026-11-11T00:39', '2026-11-11T00:48', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C5 salud falla y vuelta atra'), ('FO-LAB-01482', 'fallido', '2026-11-11T00:36', '2026-11-11T00:38', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C4 migrar legado'), ('FO-LAB-01480', 'exitoso', '2026-11-11T00:32', '2026-11-11T00:36', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C3 migrar ventas de nuevo'), ('FO-LAB-01478', 'exitoso', '2026-11-11T00:20', '2026-11-11T00:32', 'Migración · WebLogic a OpenShift', 'nodo-jboss-dev', 'Plan de prueba WebLogic wl6 · M-C2 migrar ventas'), ('FO-LAB-01477', 'fallido', '2026-11-11T00:18', '2026-11-11T00:20', 'Migración · WebLogic a OpenShift · Evaluar', 'nodo-so', 'Plan de prueba WebLogic wl6 · E-C3 sin dominio')]
+AUTO FaceOps · Eliminar servidor (78, 'FaceOps · Eliminar servidor', 'certificada', 1)
+AUTO Migración · WebLogic a OpenShift · Evaluar (228, 'Migración · WebLogic a OpenShift · Evaluar', 'bloqueada', 0)
+AUTO JBoss · Desplegar app (23, 'JBoss · Desplegar app', 'bloqueada', 0)
+AUTO Infra · Mover máquina (156, 'Infra · Mover máquina entre centros de datos', 'bloqueada', 1)
+MOVER autos: ['Infra · Mover máquina entre centros de datos']
+MOVER equipo: {'id': 127, 'nombre': 'srv-mover-01', 'estado': 'sin datos', 'energia': 'apagado', 'ip': '192.168.150.130', 'ubicacion': 'Centro de datos Valparaíso', 'inventarios': '["Servidores habilitados"]', 'segmentos_fijos': '[]'}
+MOVER tickets: [('FO-LAB-01490', 'en_ejecucion', '2026-11-11T00:51', '', 'Infra · Mover máquina entre centros de datos', 'Confirmar el traslado de srv-mover-01 a KVM · Valparaíso (retira la co'), ('FO-LAB-01489', 'exitoso', '2026-11-11T00:49', '2026-11-11T00:51', 'Infra · Mover máquina entre centros de datos', 'Mover srv-mover-01 de KVM · Santiago a KVM · Valparaíso'), ('FO-LAB-01487', 'exitoso', '2026-11-11T00:47', '2026-11-11T00:49', 'Infra · Mover máquina entre centros de datos', 'Revertir el traslado de srv-mover-01: vuelve a su infraestructura de o'), ('FO-LAB-01486', 'exitoso', '2026-11-11T00:45', '2026-11-11T00:47', 'Infra · Mover máquina entre centros de datos', 'Mover srv-mover-01 de KVM · Santiago a KVM · Valparaíso'), ('FO-LAB-01485', 'exitoso', '2026-11-11T00:43', '2026-11-11T00:45', 'Infra · Mover máquina entre centros de datos', 'Prueba C1: evaluar srv-mover-01 → Valparaíso'), ('FO-LAB-01484', 'exitoso', '2026-11-11T00:39', '2026-11-11T00:41', 'FaceOps · Vincular máquina a la bóveda', 'Vinculación automática a la bóveda · servidor creado en FO-LAB-01481')]
+MOVER audit: [('2026-11-11T00:51', 'cquezada', 'solicitar', 'FO-LAB-01490'), ('2026-11-11T00:51', 'FaceOps', 'máquina trasladada', 'srv-mover-01'), ('2026-11-11T00:49', 'cquezada', 'solicitar', 'FO-LAB-01489'), ('2026-11-11T00:49', 'FaceOps', 'máquina trasladada', 'srv-mover-01'), ('2026-11-11T00:47', 'cquezada', 'solicitar', 'FO-LAB-01487'), ('2026-11-11T00:47', 'FaceOps', 'máquina trasladada', 'srv-mover-01'), ('2026-11-11T00:45', 'cquezada', 'solicitar', 'FO-LAB-01486'), ('2026-11-11T00:43', 'cquezada', 'solicitar', 'FO-LAB-01485')]
+AAP host 164 Servidores habilitados created 2026-11-11T00:39 modified 2026-11-11T00:51 last_job FaceOps · Uso por segmento 2026-11-11T00:41 successful vars_keys ['ansible_host', 'faceops_ambiente', 'faceops_forma', 'faceops_segmento', 'faceops_so_pedido', 'faceops_ticket', 'faceops_ubicacion']
+AAP job 22433 Infra · Mover máquina entre centros de datos successful 2026-11-11T00:51 
+AAP job 22424 Infra · Mover máquina entre centros de datos successful 2026-11-11T00:48 
+AAP job 22421 Infra · Mover máquina entre centros de datos successful 2026-11-11T00:47 
+AAP job 22415 Infra · Mover máquina entre centros de datos successful 2026-11-11T00:44 
+AAP job 16567 Infra · Mover máquina entre centros de datos failed 2026-11-07T06:57 
+AAP job 16563 Infra · Mover máquina entre centros de datos failed 2026-11-07T06:56 
+AAP job 16559 Infra · Mover máquina entre centros de datos successful 2026-11-07T06:54 
+AAP job 16553 Infra · Mover máquina entre centros de datos successful 2026-11-07T06:53 
+LIC {'instance_count': 50, 'current_instances': 50, 'automated_instances': 50, 'free_instances': 0, 'deleted_instances': 31}
+HM [('nodo-so', False, '2026-11-11T00:41'), ('srv-mover-01', False, '2026-11-11T00:41')]
+--- fin: 2026-11-10T21:52:01-03:00 · código: 0
