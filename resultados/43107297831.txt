@@ -1,0 +1,84 @@
+commit: f05c1432793553d463c56bc0fb6580384c76faa4
+inicio: 2026-11-11T18:58:22-03:00
+---
+1 1 KVM · Santiago conectada 2026-11-05T23:53:19+00:00 1 equipo(s) en su inventario de AAP
+    {'anfitrion': '192.168.122.1', 'usuario': 'aap-kvm', 'red': '192.168.122.0/24', 'hipervisor': 'KVM / libvirt', 'capacidad': {'cores': 16, 'ram_gb': 125, 'ram_disp_gb': 46, 'disco_gb': 500, 'disco_disp_gb': 121, 'medido': '2026-11-05T23:53:19+00:00'}}
+6 1 KVM · Valparaíso conectada None 
+    {'anfitrion': '192.168.122.1', 'usuario': 'aap-kvm', 'red': '192.168.150.0/24', 'red_libvirt': 'dc-valpo', 'pool': '/var/lib/libvirt/dc-valpo', 'hipervisor': 'KVM / libvirt', 'emulado': 'sí: comparte el anfitrión con Santiago (red y pool propios)'}
+7 3 KVM · Santiago conectada None 
+    {'anfitrion': '192.168.122.1', 'usuario': 'aap-kvm', 'red': '192.168.122.0/24', 'hipervisor': 'KVM / libvirt'}
+10 3 KVM · Valparaíso conectada None 
+    {'anfitrion': '192.168.122.1', 'usuario': 'aap-kvm', 'red': '192.168.150.0/24', 'red_libvirt': 'dc-valpo', 'pool': '/var/lib/libvirt/dc-valpo', 'hipervisor': 'KVM / libvirt', 'emulado': 'sí: comparte el anfitrión con Santiago (red y pool propios)'}
+11 4 KVM · Santiago conectada None 
+    {'anfitrion': '192.168.122.1', 'usuario': 'aap-kvm', 'red': '192.168.122.0/24', 'hipervisor': 'KVM / libvirt'}
+14 4 KVM · Valparaíso conectada None 
+    {'anfitrion': '192.168.122.1', 'usuario': 'aap-kvm', 'red': '192.168.150.0/24', 'red_libvirt': 'dc-valpo', 'pool': '/var/lib/libvirt/dc-valpo', 'hipervisor': 'KVM / libvirt', 'emulado': 'sí: comparte el anfitrión con Santiago (red y pool propios)'}
+15 2 KVM · Santiago conectada None 
+    {'anfitrion': '192.168.122.1', 'usuario': 'aap-kvm', 'red': '192.168.122.0/24', 'hipervisor': 'KVM / libvirt'}
+18 2 KVM · Valparaíso conectada None 
+    {'anfitrion': '192.168.122.1', 'usuario': 'aap-kvm', 'red': '192.168.150.0/24', 'red_libvirt': 'dc-valpo', 'pool': '/var/lib/libvirt/dc-valpo', 'hipervisor': 'KVM / libvirt', 'emulado': 'sí: comparte el anfitrión con Santiago (red y pool propios)'}
+--- host
+ 18:58:33 up 29 min,  0 users,  load average: 13.77, 13.90, 22.38
+ Name        State    Autostart
+---------------------------------
+ base        active   yes
+ boot        active   yes
+ dc-valpo    active   yes
+ descargas   active   yes
+ faceops     active   yes
+ images      active   yes
+ windows     active   yes
+
+== base
+State:          running
+Autostart:      yes
+Capacity:       499.74 GiB
+Available:      35.06 GiB
+  <name>base</name>
+    <path>/var/lib/libvirt/images/faceops/base</path>
+== boot
+State:          running
+Autostart:      yes
+Capacity:       499.74 GiB
+Available:      35.06 GiB
+  <name>boot</name>
+    <path>/var/lib/libvirt/boot</path>
+== dc-valpo
+State:          running
+Autostart:      yes
+Capacity:       499.74 GiB
+Available:      35.06 GiB
+  <name>dc-valpo</name>
+    <path>/var/lib/libvirt/dc-valpo</path>
+== descargas
+State:          running
+Autostart:      yes
+Capacity:       499.74 GiB
+Available:      35.06 GiB
+  <name>descargas</name>
+    <path>/var/lib/libvirt/images/faceops/base/descargas</path>
+== faceops
+State:          running
+Autostart:      yes
+Capacity:       499.74 GiB
+Available:      35.06 GiB
+  <name>faceops</name>
+    <path>/var/lib/libvirt/images/faceops</path>
+== images
+State:          running
+Autostart:      yes
+Capacity:       499.74 GiB
+Available:      35.06 GiB
+  <name>images</name>
+    <path>/var/lib/libvirt/images</path>
+== windows
+State:          running
+Autostart:      yes
+Capacity:       499.74 GiB
+Available:      35.06 GiB
+  <name>windows</name>
+    <path>/var/lib/libvirt/images/windows</path>
+Filesystem     1G-blocks  Used Available Use% Mounted on
+/dev/sda2           500G  465G       36G  93% /
+drwx--x--x. 4 root root 4096 Nov 11 15:33 /var/lib/libvirt/images
+--- fin: 2026-11-11T18:58:48-03:00 · código: 0
