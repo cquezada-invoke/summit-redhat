@@ -1,0 +1,17 @@
+commit: b4ae4e082f18e501a16fbfe4a71d46a71041bb07
+inicio: 2026-11-11T00:18:49-03:00
+---
+credencial bóveda nodo-jboss antes: 401
+TICKET FO-LAB-01599 exitoso · usuarios: admin-aap admin
+credencial bóveda nodo-jboss después: 200
+KEYCLOAK consola registrada: http://192.168.122.15:8180/admin/ · web_de: http://192.168.122.15:8180/admin/ · jboss 9990: http://192.168.122.15:9990/console/
+HAL nodo-jboss login: 302 ['Redirecting...'] · /management: 200 "21.0.20.Final-redhat-00001"
+HAL nodo-jboss2 login: 302 ['Redirecting...'] · /management: 200 "21.0.20.Final-redhat-00001"
+HAL nodo-jboss-dev login: 302 ['Redirecting...'] · /management: 200 "21.0.20.Final-redhat-00001"
+VERIFICAR FO-LAB-01600 exitoso Política APP-02 v4 (verificar): nodo-jboss-dev: al día
+ESTADO {'nombre': 'nodo-jboss', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar'}
+ESTADO {'nombre': 'nodo-jboss2', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar'}
+ESTADO {'nombre': 'nodo-jboss-dev', 'version': 4, 'estado': 'al_dia', 'modo': 'verificar'}
+MEM 2 · Mem:            1707        1132         304           9         424         574 ·   RSS COMMAND · 621504 java · 141132 node · 24508 python3 · 22024 podman · inactive · Failed to get unit file state for keycloak.service: No such file or directory · 0.0.0.0:9990 · 0.0.0.0:8080
+app-jboss salud: ok 1.0.44
+--- fin: 2026-11-11T00:21:52-03:00 · código: 0
