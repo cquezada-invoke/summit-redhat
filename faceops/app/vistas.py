@@ -2798,8 +2798,12 @@ def equipo_recursos(eid):
             raise ValueError(f"En {lim['infra']} se puede asignar hasta {lim['max_cpu']} vCPU y {lim['max_ram']} GB a esta máquina")
         t = solicitar(g.usuario, g.cliente, a, None, {"ir_maquinas": f"{e['nombre']}:{cpu}:{ram * 1024}"},
                       f"Ajustar {e['nombre']} a {cpu} vCPU y {ram} GB")
+        if request.headers.get("X-Requested-With") == "fetch":   # panel «Skills» de la ficha
+            return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
         flash(f"{t['numero']}: {e['nombre']} a {cpu} vCPU y {ram} GB (espera su aprobación; si está encendida se reinicia)", "ok")
     except (PermissionError, ErrorAAP, ValueError) as x:
+        if request.headers.get("X-Requested-With") == "fetch":
+            return {"error": str(x)}, 400
         flash(str(x), "error")
         return redirect(url_for("consola.equipo", eid=eid))
     return redirect(url_for("consola.equipo", eid=eid) + "#tickets-maquina")   # el foco va a los tickets de la máquina
@@ -3701,6 +3705,9 @@ def equipo_disco(eid):
     gb = f.get("gb", "20")
     if origen not in ("hipervisor", "storage") or not re.fullmatch(r"[a-z0-9-]{2,30}", nombre) or not gb.isdigit() or not 1 <= int(gb) <= 2000:
         return {"error": "Datos del disco no válidos"}, 400
+    libre_ = (_limites_recursos(e) or {}).get("disco_disp_gb") if origen == "hipervisor" else None
+    if libre_ is not None and int(gb) + 5 > libre_:   # capacidad medida del anfitrión (5 GB de margen)
+        return {"error": f"El anfitrión tiene {libre_} GB libres: un disco de {gb} GB no cabe (se dejan 5 GB de margen)"}, 400
     vm = e["nombre"].split(".")[0]
     params = {"ad_equipo": vm, "ad_gb": gb, "ad_origen": origen, "ad_nombre": nombre, "ad_formatear": bool(f.get("formatear")),
               "ad_serial": f"fo{int(time.time()) % 10**8}"}
@@ -3855,6 +3862,12 @@ def equipo_disco_ampliar(eid):
     try:
         if int(gb) <= float(actual):
             return {"error": f"El tamaño nuevo debe ser mayor que el actual ({actual} GB): los discos no se achican"}, 400
+    except ValueError:
+        pass
+    try:
+        libre_ = (_limites_recursos(e) or {}).get("disco_disp_gb")
+        if libre_ is not None and int(gb) - float(actual) + 5 > libre_:   # capacidad medida del anfitrión (5 GB de margen)
+            return {"error": f"El anfitrión tiene {libre_} GB libres: crecer {int(gb) - float(actual):g} GB no cabe (se dejan 5 GB de margen)"}, 400
     except ValueError:
         pass
     if montaje and not re.fullmatch(r"/[A-Za-z0-9/_.-]{0,60}", montaje):
@@ -4242,8 +4255,10 @@ def consola_equipo(eid):
 
 
 def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
-    """Botones de acceso de la ficha, juntos y siempre en el mismo orden: Aplicación · Consola web · Consolas de plataforma ·
-    SSH/Escritorio · Monitoreo. Solo los que aplican y responden (plataforma detenida o consola restringida no se ofrecen)."""
+    """Botones de acceso de la MÁQUINA en el encabezado de la ficha, siempre en el mismo orden: Aplicación · Consola web ·
+    SSH/Escritorio · Monitoreo. Las consolas de PLATAFORMA (JBoss, Redis Insight, Consola Redis, Keycloak, Vault, Jenkins, IdM…)
+    van en la tarjeta de su plataforma (c["consolas"]). Solo las que aplican y responden (plataforma detenida o consola
+    restringida no se ofrecen)."""
     from urllib.parse import urlsplit
     from .boveda import web as _web_b
     out, vistos = [], set()
@@ -4273,9 +4288,9 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
             continue   # plataforma detenida: su consola no respondería
         for a_ in c.get("acciones") or []:
             if a_.get("url") and a_.get("nueva"):
-                plat.append({"t": a_["t"], "url": a_["url"], "title": f"Consola de {c['nombre']} · se abre a través de FaceOps"})
+                plat.append({"t": a_["t"], "url": a_["url"], "title": f"Consola de {c['nombre']} · se abre a través de FaceOps", "c": c})
         if c["codigo"] == "satellite" and c.get("entrar"):
-            plat.append({"t": "Satellite", "url": c["entrar"]["url"], "title": c["entrar"]["t"]})
+            plat.append({"t": "Satellite", "url": c["entrar"]["url"], "title": c["entrar"]["t"], "c": c})
     if web_eq and g.perfil["modo"] == "escritura":   # consola web de la máquina (si no es la misma que la de una plataforma)
         prod_ = web_eq["producto"].lower()
         u_ = urlsplit(web_eq["url"])
@@ -4286,9 +4301,15 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
         if responde and not any(prod_ in x["t"].lower() or x["t"].lower() in prod_ for x in plat):
             agregar("web", "Consola web", web_eq["abrir"], f"{web_eq['producto']} · " + ("se abre a través de FaceOps" if por_proxy else "se abre directo"))
     if redis_eq and g.perfil["modo"] == "escritura" and _web_b(e["nombre"], "redis") and puerto_abierto(e["ip"], 6379):
-        plat.append({"t": "Consola Redis", "url": redis_eq, "title": "Consola de Redis en FaceOps (entra con la credencial de la bóveda)"})
-    for x in plat:
-        agregar("plataforma", x["t"], x["url"], x["title"])
+        c_r = next((c for c in componentes if not c.get("so") and familia(c["codigo"]) == "redis"), None)
+        plat.append({"t": "Consola Redis", "url": redis_eq, "title": "Consola de Redis en FaceOps (entra con la credencial de la bóveda)", "c": c_r})
+    for x in plat:   # consolas de plataforma: en la tarjeta de su plataforma (si no se sabe de cuál, quedan con los accesos de la máquina)
+        if x.get("c") is not None:
+            cs_ = x["c"].setdefault("consolas", [])
+            if x["url"] not in [y["url"] for y in cs_]:
+                cs_.append({"t": x["t"], "url": x["url"], "title": x["title"]})
+        else:
+            agregar("plataforma", x["t"], x["url"], x["title"])
     if consola_tipo:
         agregar(consola_tipo, "SSH" if consola_tipo == "ssh" else "Escritorio remoto", url_for("consola.consola_equipo", eid=e["id"]),
                 "Consola SSH en el navegador" if consola_tipo == "ssh" else "Escritorio remoto (RDP) en el navegador")
@@ -4608,7 +4629,7 @@ def equipo(eid):
     g.skills_maq = _skills_armar(e, acciones, _de_comp, next((c["codigo"] for c in comp_alias if c["so"]), None),
                                  energia_ok=energia_posible(e) and _esc_, puede_eliminar=eliminable(e) and _esc_, recursos_ok=recursos_ok,
                                  mover_ok=_esc_ and e.get("forma") == "virtual" and bool(_hipervisor(e)) and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo"),
-                                 escritura=_esc_)
+                                 escritura=_esc_, lim_rec=lim_rec)
     return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"]), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
@@ -8336,7 +8357,7 @@ def _limites_recursos(e):
     cpus = [n for n in (1, 2, 4, 6, 8, 12, 16, 24, 32) if n <= max_cpu]
     rams = [n for n in (1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96) if n <= max_ram]
     return {"infra": inf["nombre"], "cores": cores, "ram_gb": ram_tot, "ram_disp_gb": ram_disp, "max_cpu": max_cpu, "max_ram": max_ram,
-            "cpus": cpus or [1], "rams": rams or [1], "medido": cap.get("medido")}
+            "cpus": cpus or [1], "rams": rams or [1], "medido": cap.get("medido"), "disco_disp_gb": cap.get("disco_disp_gb")}
 
 
 def _hipervisor(e):

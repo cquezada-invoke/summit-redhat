@@ -2,7 +2,7 @@
 recursos, respaldo, certificado, parches, eliminar…) que se lanza desde el panel «Skills» de su ficha.
 
 Cada skill es una automatización del catálogo que crea un ticket (con aprobación si la automatización la pide). Las que
-tienen flujo propio en la ficha (energía, inventariar, eliminar, mover a otra infraestructura, recursos, discos) usan sus
+tienen endpoint propio en la ficha (energía, inventariar, eliminar, mover a otra infraestructura, CPU, memoria, discos) usan sus
 mismos endpoints; el resto se lanza con «ejecutar_en_equipo». Qué automatizaciones aplican lo decide la misma regla de la
 ficha (operacion.aplica_a_equipo: sistema, tipo, red, skills instaladas, inventario de AAP y estado). Las que aplican pero
 aún no pasan su plan de prueba (regla de prueba) se muestran deshabilitadas con el motivo."""
@@ -65,12 +65,17 @@ def _que(a):
     return t[:170] + ("…" if len(t) > 170 else "")
 
 
-def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok, mover_ok, escritura):
+def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok, mover_ok, escritura, lim_rec=None):
     """Grupos con sus skills para el panel. acciones: automatizaciones del catálogo que aplican (ya certificadas)."""
-    from .vistas import AGREGAR_DISCO, ELIMINAR, ENERGIA, CATEGORIAS_RED, autos_visibles
+    from .vistas import AGREGAR_DISCO, ELIMINAR, ENERGIA, CATEGORIAS_RED
     from .operacion import aplica_a_equipo
     from .inventariado import AUTOMATIZACION as INVENTARIAR
-    todas = {a["nombre_aap"]: a for a in autos_visibles(todas=True)}
+    from .bd import q
+    from .pruebas import no_certificadas
+    bloq = no_certificadas(g.cliente["id"])
+    # las de flujo propio (energía, eliminar…) pueden no estar publicadas en el catálogo: se buscan entre todas las del cliente
+    todas = {a["nombre_aap"]: dict(a, _bloqueada=a["id"] in bloq) for a in q("SELECT * FROM automatizaciones WHERE cliente_id=?", g.cliente["id"])}
+    visibles = [a for a in todas.values() if a.get("visible")]
     d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
     cat = (e.get("categoria") or "servidor")
     est = e.get("energia") or ""
@@ -117,21 +122,51 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
         s = base("inventariar", "inventario", "Inventariar", "Trae sistema, servicios y paquetes; FaceOps los contrasta con lo que sabe de la máquina.",
                  inv, url=url_for("consola.equipo_inventariar", eid=e["id"]), lectura=True)
         propios.add(inv)
-    # ── Recursos y movimiento: flotantes propios de la ficha (recursos, discos, mover)
-    if recursos_ok:
-        base("recursos", "recursos", "Cambiar vCPU y memoria", "Ajusta los vCPU y la memoria dentro de lo que permite su anfitrión.",
-             "Infra · Ajustar recursos de máquinas", tipo="abrir", abrir="recursos")
+    # ── Recursos y movimiento: CPU, memoria y discos con su formulario (mismos endpoints de la ficha); mover abre su flotante
+    lr = lim_rec or {}
+    libre = lr.get("disco_disp_gb")
+    cap_txt = f" · disco libre en el anfitrión {libre} GB" if libre is not None else ""
+    if recursos_ok and lr:
+        cur_c, cur_r = int(e.get("cpu") or 0), round((e.get("ram_mb") or 0) / 1024)
+        anf = f"{lr.get('infra')}" + (f" ({lr['cores']} cores físicos, {round(lr.get('ram_disp_gb') or 0)} GB libres)" if lr.get("cores") else "")
+        for k, nombre, que, campo, ops, cur, otro, unidad, mx in (
+                ("recursos-cpu", "Cambiar CPU (vCPU)", "Sube o baja los vCPU; si está encendida se apaga ordenadamente, se ajusta y se enciende.",
+                 "cpu", lr.get("cpus") or [], cur_c, {"ram": cur_r}, "vCPU", lr.get("max_cpu")),
+                ("recursos-ram", "Cambiar memoria", "Sube o baja la memoria; si está encendida se apaga ordenadamente, se ajusta y se enciende.",
+                 "ram", lr.get("rams") or [], cur_r, {"cpu": cur_c}, "GB", lr.get("max_ram"))):
+            ops_ = sorted(set(ops) | ({cur} if cur else set()))
+            base(k, "recursos", nombre, que, "Infra · Ajustar recursos de máquinas", tipo="form", crudo=True,
+                 url=url_for("consola.equipo_recursos", eid=e["id"]), datos=otro, actual={campo: str(cur)},
+                 campos=[{"var": campo, "etiqueta": f"Nuevo valor ({unidad})", "tipo": "multiplechoice", "requerido": True, "defecto": str(cur),
+                          "opciones": [str(n) for n in ops_],
+                          "ayuda": f"Actual: {cur} {unidad} · máximo para esta máquina: {mx} {unidad} en {anf}"}])
         propios.add("Infra · Ajustar recursos de máquinas")
     if mover_ok:
         base("mover", "recursos", "Mover a otra infraestructura", "Traslada la máquina a otro hipervisor o centro de datos (la de origen queda de respaldo).",
              "Infra · Mover máquina entre centros de datos", tipo="abrir", abrir="mover")
         propios.add("Infra · Mover máquina entre centros de datos")
     if energia_ok and e.get("ip"):
-        base("disco-nuevo", "recursos", "Incorporar un disco", "Crea un volumen (hipervisor o storage), lo conecta y lo deja montado.",
-             AGREGAR_DISCO, tipo="abrir", abrir="disco-nuevo")
-        if "windows" not in (e.get("so") or "").lower() and any(x.get("dev") for x in j(e.get("discos"), [])):
-            base("disco-ampliar", "recursos", "Ampliar un disco", "Agranda un disco en caliente y crece su partición, LVM y sistema de archivos.",
-                 "FaceOps · Ampliar disco", tipo="abrir", abrir="disco")
+        win = "windows" in (e.get("so") or "").lower()
+        base("disco-nuevo", "recursos", "Incorporar un disco", "Crea un volumen en el pool del hipervisor, lo conecta en caliente y lo deja con formato y montado.",
+             AGREGAR_DISCO, tipo="form", crudo=True, url=url_for("consola.equipo_disco", eid=e["id"]), libre=libre, disco_nuevo=True,
+             datos={"origen": "hipervisor", "pool": "images", "formatear": "1"},
+             campos=[{"var": "gb", "etiqueta": "Tamaño (GB)", "tipo": "multiplechoice", "requerido": True, "defecto": "20",
+                      "opciones": [str(n) for n in (10, 20, 50, 100, 200, 500) if libre is None or n + 5 <= libre], "ayuda": "Pool images del hipervisor" + cap_txt},
+                     {"var": "nombre", "etiqueta": "Nombre del volumen", "tipo": "text", "requerido": True, "defecto": "datos", "ayuda": "minúsculas, números y guiones"},
+                     ({"var": "letra", "etiqueta": "Letra de unidad", "tipo": "multiplechoice", "requerido": True, "defecto": "E", "opciones": list("EFGHIJ")} if win else
+                      {"var": "montaje", "etiqueta": "Punto de montaje", "tipo": "text", "requerido": True, "defecto": "/datos"})])
+        dks = [x for x in j(e.get("discos"), []) if x.get("dev")]
+        if not win and dks:
+            mnts = [m.get("punto") for x in dks for pt in (x.get("particiones") or []) for m in (pt.get("montajes") or []) if m.get("punto")]
+            base("disco-ampliar", "recursos", "Ampliar un disco", "Agranda el disco en caliente en el anfitrión y crece su partición, LVM y sistema de archivos (no se achica).",
+                 "FaceOps · Ampliar disco", tipo="form", crudo=True, url=url_for("consola.equipo_disco_ampliar", eid=e["id"]), libre=libre,
+                 actuales={x["dev"]: x.get("gb") or 0 for x in dks},
+                 campos=[{"var": "disco", "etiqueta": "Disco", "tipo": "multiplechoice", "requerido": True, "defecto": dks[0]["dev"],
+                          "opciones": [x["dev"] for x in dks], "ayuda": "Actual: " + " · ".join(f"{x['dev']} {x.get('gb')} GB" for x in dks) + cap_txt},
+                         {"var": "gb", "etiqueta": "Tamaño nuevo (GB)", "tipo": "integer", "requerido": True,
+                          "defecto": str(int((dks[0].get("gb") or 0) * 2) or 20), "ayuda": "Debe ser mayor que el actual del disco elegido"},
+                         {"var": "montaje", "etiqueta": "Montaje que crece", "tipo": "multiplechoice" if mnts else "text", "requerido": False,
+                          "defecto": "/" if "/" in mnts else (mnts[0] if mnts else ""), "opciones": list(dict.fromkeys(mnts))}])
         propios.update({AGREGAR_DISCO, "FaceOps · Ampliar disco"})
     # ── Respaldo y recuperación: puntos de restauración (sección propia de la ficha)
     if cat not in CATEGORIAS_RED and escritura:
@@ -150,7 +185,7 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
 
     # ── Catálogo: todas las automatizaciones que aplican a la máquina (las bloqueadas por la regla de prueba, deshabilitadas)
     vistos = set(propios)
-    cand = list(acciones) + [a for a in todas.values() if a.get("_bloqueada") and aplica_a_equipo(g.usuario, g.cliente["id"], a, e)]
+    cand = list(acciones) + [a for a in visibles if a.get("_bloqueada") and aplica_a_equipo(g.usuario, g.cliente["id"], a, e)]
     for a in cand:
         if a["nombre_aap"] in vistos or a.get("habilita_skill"):
             continue   # instalar plataformas y agentes: «Incorporar plataforma» y la sección Agentes

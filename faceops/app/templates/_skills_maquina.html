@@ -73,9 +73,15 @@ function confirmar(s,it){dlg.querySelector('#sk-d-tit').textContent=s.nombre+' �
  dlg.querySelector('.sk-d-aprob').textContent=s.aprob?'Se crea un ticket que espera la aprobación de su área antes de ejecutarse.':'Se crea el ticket y se ejecuta de inmediato.';
  const ok=dlg.querySelector('.sk-d-ok');ok.textContent=s.destructiva?s.nombre:'Crear ticket';ok.classList.toggle('peligro',!!s.destructiva);ok.style.background=s.destructiva?'var(--bad)':'';ok.style.borderColor=s.destructiva?'var(--bad)':'';
  ok.onclick=()=>{dlg.close();crear(s,it);};dlg.showModal();}
+/* validación antes del ticket: valor distinto al actual y capacidad medida del anfitrión (el servidor vuelve a validar) */
+function validar(s,fd){for(const [k,v_] of Object.entries(s.actual||{}))if(String(fd.get(k))===String(v_))return 'Elige un valor distinto al actual ('+v_+')';
+ const gb=parseFloat(fd.get('gb'));if(s.actuales){const a=parseFloat(s.actuales[fd.get('disco')]||0);if(!(gb>a))return 'El tamaño nuevo debe ser mayor que el actual ('+a+' GB): los discos no se achican';
+  if(s.libre!=null&&gb-a+5>s.libre)return 'El anfitrión tiene '+s.libre+' GB libres: crecer '+(gb-a)+' GB no cabe (se dejan 5 GB de margen)';}
+ else if(s.disco_nuevo&&s.libre!=null&&gb+5>s.libre)return 'El anfitrión tiene '+s.libre+' GB libres: un disco de '+gb+' GB no cabe';
+ return '';}
 function formulario(s,it){let f=it.querySelector('.sk-form');if(f){f.hidden=!f.hidden;return;}
  f=document.createElement('form');f.className='sk-form as-form';f.noValidate=true;
- (s.campos||[]).forEach(cp=>{const l=document.createElement('label');l.textContent=(cp.etiqueta||cp.var)+(cp.requerido?' *':'');let el;const df=cp.defecto,nm='v_'+cp.var;
+ (s.campos||[]).forEach(cp=>{const l=document.createElement('label');l.textContent=(cp.etiqueta||cp.var)+(cp.requerido?' *':'');let el;const df=cp.defecto,nm=(s.crudo?'':'v_')+cp.var;
   if((cp.tipo==='multiplechoice'||cp.tipo==='select')&&cp.opciones){el=document.createElement('select');el.name=nm;if(!cp.requerido||df==null)el.appendChild(new Option('—',''));cp.opciones.forEach(o=>el.appendChild(new Option(String(o),String(o))));if(df!=null)el.value=String(df);}
   else if(cp.tipo==='multiselect'&&cp.opciones){el=document.createElement('div');el.className='as-chk';cp.opciones.forEach(o=>{const lb=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';cb.name=nm;cb.value=String(o);cb.checked=Array.isArray(df)&&df.map(String).includes(String(o));lb.append(cb,' '+o);el.appendChild(lb);});}
   else if(cp.tipo==='textarea'){el=document.createElement('textarea');el.name=nm;el.rows=3;if(df!=null)el.value=df;}
@@ -84,7 +90,9 @@ function formulario(s,it){let f=it.querySelector('.sk-form');if(f){f.hidden=!f.h
  const pie=document.createElement('div');pie.className='fila';const no=document.createElement('button');no.type='button';no.className='btn chico gris';no.textContent='Cancelar';no.onclick=()=>f.hidden=true;
  const si=document.createElement('button');si.className='btn chico';si.textContent=s.aprob?'Crear ticket (con aprobación)':'Crear ticket';pie.append(no,si);f.appendChild(pie);
  f.onsubmit=ev=>{ev.preventDefault();const falta=[...f.querySelectorAll('[data-req="1"]')].filter(x=>x.className==='as-chk'?!x.querySelector('input:checked'):!String(x.value||'').trim()).map(x=>x.dataset.et);
-  if(falta.length){fxAviso('Falta completar: '+falta.join(', '),'error');return;}crear(s,it,new FormData(f));};
+  if(falta.length){fxAviso('Falta completar: '+falta.join(', '),'error');return;}
+  const fd=new FormData(f),err=validar(s,fd);if(err){fxAviso(err,'error');return;}
+  if(s.actuales)fd.append('actual',String(s.actuales[fd.get('disco')]||0));crear(s,it,fd);};
  it.appendChild(f);const p=f.querySelector('input,select,textarea');if(p)p.focus();}
 const ABRIR={recursos:()=>window.fxAbrirRecursos&&fxAbrirRecursos('cpu'),mover:()=>{const b=document.getElementById('btn-mover');if(b)b.click();},
  'disco-nuevo':()=>{const d=document.querySelector('.disco-clic[data-disco]');if(d){d.click();const n=document.querySelector('.dk-tab[data-dk="nuevo"]');if(n)n.click();}},
