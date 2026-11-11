@@ -1,11 +1,23 @@
-commit: 8eb00774bb5d8f71675ddd6a57e912d06ebf14ea
-inicio: 2026-11-10T23:18:34-03:00
+commit: 5063ac014bacef0af42d1932ef34be2e81a1ee02
+inicio: 2026-11-10T23:07:36-03:00
 ---
-f72a588
-faceops actualizado
-6 Consola de administración de JBoss /lab/inventario/6/consola-web/jboss-eap/ 302 /lab/inventario/6/consola-web/jboss-eap/console/index.html?connect=http%3A%2F%2Flocalhost%2Flab%2Finventario%2F6%2Fconsola-web%2Fjboss-eap ['Redirecting...']
-6 Redis Insight /lab/inventario/6/consola-web/redis/ 302 /faceops/inventario/6/consola-web/redis/ ['Redirecting...']
-10 Consola de Keycloak /lab/inventario/10/consola-web/keycloak/ 302 /lab/inventario/10/consola-web/keycloak/admin/ ['Redirecting...']
-6 encabezado: [] · caja: ['Skills · RHEL 9.8 (19 disponibles)']
-12 encabezado: [] · caja: ['Skills · Windows Server 2022 (13 disponibles)']
---- fin: 2026-11-10T23:19:49-03:00 · código: 0
+RES {"estado":"sin respuesta del arnés"}
+CASO C1 falla · Activar espejo App de pagos
+CASO C2 falla · Flujos y datos en el lake
+RES {"estado":"sin respuesta del arnés"}
+CASO C3 falla · Desactivar
+RES {"caso": "C4a", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01527", "estado": "exitoso", "stats": {"faceops_datalake": {"app-de-pagos": {"accion": "activar", "equipo": "nodo-nginx", "recibidos": 3619, "flujos": true, "colector": 200}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 26 s, espera de aprobación 30 s"}
+RES {"caso": "C4", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01535", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "AAP terminó (failed): ejecución 0 s, espera de aprobación 29 s\n"}
+CASO C4 falla · Repetir la activación
+RES {"caso": "C5", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01536", "estado": "exitoso", "stats": {"faceops_datalake": {"banca-core-bancario": {"accion": "activar", "modo": "declarada", "equipo": "nodo-nginx", "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "enviado_lake": 8289}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 6 s, espera de aprobación 30 s"}
+  http=200 lakes=1 bif=1 puertos=['9000'] uso=200:{"archivos": 250, "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 8318, "rps": 0.5}
+CASO C5 ok · Declarada: activar Core bancario
+RES {"estado":"sin respuesta del arnés"}
+CASO C6 falla · Declarada: repetir
+Traceback (most recent call last):
+RES {"estado":"sin respuesta del arnés"}
+CASO C7 falla · Declarada: desactivar
+RES {"caso": "C8", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01538", "estado": "fallido", "stats": {}, "detalle": "Datos válidos (declarada) · Destino, URL de medición o clave no válidos: no se registra la derivación · ", "resultado": "rtifacts/22764/ssh_key_data (cquezada@demo-ansible-summit)\n\nPLAY [Data lake · Derivar segmento] ********************************************\n\nTASK [Datos válidos (declarada)] ***********************************************\nfatal: [nodo-nginx]:
+CASO C8 falla · Declarada: URL inválida
+CERT Data lake · Derivar segmento → cambiada
+--- fin: 2026-11-10T23:21:09-03:00 · código: 0
