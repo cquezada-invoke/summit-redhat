@@ -162,6 +162,7 @@ if [ "$FASE" = limpiar ]; then for m in $RK $R8; do existe $m && baja $m; done; 
 
 if [ "$FASE" = todo ]; then   # lo que falte, en orden y en un solo runner largo (el laboratorio está muy cargado)
   aap_arriba || { echo "AAP no responde"; exit 0; }
+  while pgrep -f "p-migraciones-so.sh (rocky-cr|rhel8)" >/dev/null; do sleep 30; done   # otra corrida anterior aún en curso
   if [ ! -s $EST/centos.casos ] || grep -q '"falla"' $EST/centos.casos; then
     REL=$(en $(ip_de $RK) 'cat /etc/redhat-release' 2>/dev/null)
     if ! echo "$REL" | grep -q Rocky; then   # quedó a medias: se parte de una Rocky nueva (baja y alta por FaceOps)
