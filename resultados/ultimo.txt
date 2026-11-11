@@ -1,14 +1,56 @@
-commit: 180e3e0a22452c88711fb505ea65a84d1da73878
-inicio: 2026-11-10T21:40:10-03:00
+commit: d2c20a4d856c9ab0c97425c6a65169f133a980d9
+inicio: 2026-11-10T21:41:23-03:00
 ---
-6d940dc
-faceops actualizado
-6d940dc
-fix desplegado: True
-ok reiniciar | post ok: True | tickets simulados en lista: 1 | aviso:  | botones habilitados de nuevo: [True, True]
-ok apagar | post ok: True | tickets simulados en lista: 2 | aviso:  | botones habilitados de nuevo: [True, True]
-err reiniciar | post ok: True | tickets simulados en lista: 2 | aviso: Formulario vencido: recarga la página × | botones habilitados de nuevo: [True, True]
-errores JS []
-192.168.122.15 salud: 200
-192.168.122.18 salud: 200
---- fin: 2026-11-10T21:41:04-03:00 · código: 0
+CLIENTES [(1, 'Invoke Lab'), (2, 'Minera Los Andes (demo)'), (3, 'Banco del Pacífico Sur (demo)'), (4, 'Clínica Santa Lucía (demo)')]
+=== App de pagos | grupo=aplicaciones | arq=v5 | eqs=7 {'produccion/encendido': 5, 'desarrollo/encendido': 1, 'qa/apagado': 1} | ocp=None
+  LAKE activa= 1 punto= nodo-nginx colector= {'enviado_registros': 971, 'rps_1m': 0.4, 'enviado_bytes': 209043, 'err': None}
+  [produccion] page=200 nodos=9 aristas={'entrada': 1, 'flujo': 6, 'montaje': 1, 'bifurcacion': 1} estados={'abierto': 6} rotas=[] huerfanos=[] sin_puerto=[] lakes=['dl:lake'] punto_bif=['e:nodo-nginx']
+  [qa] page=200 nodos=6 aristas={'planificado': 4} estados={} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['v:web:qa']
+  [desarrollo] page=200 nodos=7 aristas={'montaje': 1, 'planificado': 4} estados={} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['v:web:desarrollo']
+=== Portal de clientes | grupo=aplicaciones | arq=v2 | eqs=2 {'produccion/apagado': 1, 'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=4 aristas={'entrada': 1, 'flujo': 1} estados={'sin verificar': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['e:nodo-jboss3']
+=== Autoservicio de desarrollo | grupo=aplicaciones | arq=NO | eqs=2 {'produccion/encendido': 2} | ocp=None
+  [produccion] page=200 nodos=3 aristas={'flujo': 1} estados={'bloqueado': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['e:nodo-nginx']
+=== Sitio web corporativo | grupo=aplicaciones | arq=NO | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=2 aristas={} estados={} rotas=[] huerfanos=['e:nodo-windows'] sin_puerto=[] lakes=[] punto_bif=['e:nodo-windows']
+=== Servidores corporativos | grupo=aplicaciones | arq=NO | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=2 aristas={} estados={} rotas=[] huerfanos=['e:nodo-so'] sin_puerto=[] lakes=[] punto_bif=['e:nodo-so']
+=== Servicios en la nube | grupo=aplicaciones | arq=NO | eqs=0 {} | ocp=None
+  [produccion] page=200 nodos=0 aristas={} estados={} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=[]
+=== Ventas en línea | grupo=aplicaciones | arq=v1 | eqs=4 {'produccion/encendido': 4} | ocp=None
+  [produccion] page=200 nodos=9 aristas={'paso': 2, 'entrada': 1, 'flujo': 4, 'montaje': 1} estados={'abierto': 4} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['e:nodo-nginx']
+=== Catálogo en línea | grupo=aplicaciones | arq=v1 | eqs=0 {} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'planificado': 3} estados={} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['v:ws:produccion']
+=== Base de datos de pagos | grupo=aplicaciones | arq=NO | eqs=2 {'produccion/apagado': 2} | ocp=None
+  [produccion] page=200 nodos=3 aristas={} estados={} rotas=[] huerfanos=['e:dc1-sql01', 'e:dc2-sql01'] sin_puerto=[] lakes=[] punto_bif=['e:dc1-sql01', 'e:dc2-sql01']
+=== Denuncias · Fiscalía (demo) | grupo=aplicaciones | arq=v4 | eqs=1 {'produccion/encendido': 1} | ocp=['produccion:demo-fiscalia']
+  LAKE activa= 1 punto= Route colector= {'enviado_registros': 0, 'rps_1m': 0.0, 'enviado_bytes': 0, 'err': None}
+  [produccion] page=200 nodos=8 aristas={'entrada': 1, 'flujo': 4} estados={'no aplica': 4} rotas=[] huerfanos=[] sin_puerto=[] lakes=['c:lake'] punto_bif=['c:_route']
+=== Banca · CRM y contact center | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Banca · Core bancario | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Banca · Originación de créditos | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Banca · Banca digital | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Banca · Tarjetas | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Telco · Mi cuenta y atención | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Telco · BSS · facturación y planes | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Telco · Uso de red (CDR) | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Telco · OSS · calidad de red | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Telco · Ventas y recargas | grupo=aplicaciones | arq=v2 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=5 aristas={'entrada': 1, 'flujo': 1} estados={'no aplica': 1} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=['c:_route']
+=== Red corporativa | grupo=redes | arq=v1 | eqs=0 {} | ocp=None
+  [produccion] page=200 nodos=14 aristas={'planificado': 15} estados={} rotas=[] huerfanos=['v:proxy:produccion'] sin_puerto=[] lakes=[] punto_bif=[]
+=== Gobierno de identidades | grupo=soluciones | arq=v1 | eqs=4 {'produccion/apagado': 4} | ocp=None
+  [produccion] page=200 nodos=7 aristas={'entrada': 1, 'flujo': 4} estados={'sin verificar': 4} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=[]
+=== Plataforma OpenShift (SNO) | grupo=soluciones | arq=v1 | eqs=1 {'produccion/encendido': 1} | ocp=None
+  [produccion] page=200 nodos=9 aristas={'entrada': 2, 'flujo': 4} estados={'no aplica': 4} rotas=[] huerfanos=[] sin_puerto=[] lakes=[] punto_bif=[]
+KEYS ['elementos', 'miga', 'segmento']
+--- fin: 2026-11-10T21:41:47-03:00 · código: 0
