@@ -196,7 +196,8 @@
         L = [f"# Evaluación de migración a JBoss EAP 8 · {h}", "",
              f"- Origen: JBoss {jb.get('version')} ({jb.get('familia')}) en `{jb.get('home')}`",
              f"- JVM: {os.environ.get('JVM') or '—'} · {os.environ.get('JAVA') or '—'}",
-             f"- Destino: JBoss EAP 8 (Jakarta EE 10, Java 17/21)", ""]
+             f"- Destino: JBoss EAP 8 (Jakarta EE 10, Java 17/21)",
+             f"- Evaluación: {os.environ.get('TK') or 'manual'} · {os.environ.get('FECHA') or ''}", ""]
         for x in a:
             L += [f"## {x['aplicacion']} · complejidad {x['complejidad']} · {x['puntos']} puntos de esfuerzo",
                   f"{'Migrable de forma automática (transformación javax → jakarta).' if x['migrable_automatico'] else 'Requiere cambios de código antes de migrar.'}", "",
@@ -238,6 +239,7 @@
         G: "{{ gitea }}"
         T: "{{ faceops_respaldo_token | default('') }}"
         TK: "{{ faceops_ticket | default('') }}"
+        FECHA: "{{ lookup('pipe', 'date +%Y-%m-%dT%H:%M') }}"
         INF: "{{ mj_informes | default(playbook_dir ~ '/informes') }}"
       register: r_git
       changed_when: "'git ok' in r_git.stdout"
@@ -324,7 +326,10 @@
       ansible.builtin.shell: |
         {{ cli }} --command="/subsystem=datasources/jdbc-driver={{ item.driver }}:read-resource" >/dev/null 2>&1 || { echo "pendiente: falta el driver JDBC {{ item.driver }} en EAP 8"; exit 0; }
         {{ cli }} --command="/subsystem=datasources/data-source={{ item.nombre }}:read-resource" >/dev/null 2>&1 && { echo "ya existe"; exit 0; }
-        {{ cli }} --command="{{ item.cli | regex_replace('--password=\\S+', '--password=$DS_CLAVE') }}" 2>&1 | tail -2 && echo creado
+        # la clave entra desde DS_CLAVE (nunca en la línea del playbook); el ${env.…} del análisis no lo expande el shell
+        c=$(printf '%s' {{ item.cli | quote }} | awk '{for (i = 1; i <= NF; i++) if ($i ~ /^--password=/) $i = "--password=" ENVIRON["DS_CLAVE"]; print}')
+        out=$({{ cli }} --command="$c" 2>&1); rc=$?
+        [ $rc -eq 0 ] && echo creado || { echo "no se pudo crear: $(echo "$out" | tail -2 | sed "s/$DS_CLAVE/***/g")"; exit 1; }
       environment: {DS_CLAVE: "{{ mj_ds_clave | default('cambiar') }}"}
       loop: "{{ src.analisis | map(attribute='datasources') | flatten | unique(attribute='nombre') }}"
       loop_control: {label: "{{ item.jndi_eap8 }}"}
