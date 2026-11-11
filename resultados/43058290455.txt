@@ -1,0 +1,44 @@
+commit: 3dc9e3f90c422f27223743fa62b239bfc2efc6c2
+inicio: 2026-11-11T13:40:29-03:00
+---
+== nodo-jboss 192.168.122.15
+LISTEN 0      50            0.0.0.0:9990      0.0.0.0:*   
+LISTEN 0      4096          0.0.0.0:8080      0.0.0.0:*   
+inactive inactive inactive 
+-bmanagement=0.0.0.0
+-bmanagement=0.0.0.0
+		iifname "lo" tcp dport 9990 accept
+		ip saddr 192.168.122.1 tcp dport 9990 accept
+		tcp dport 9990 drop
+		ip saddr 10.88.0.0/16 tcp dport 5540 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
+		ip saddr 127.0.0.1 tcp dport 5540 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
+aplicaciones.d certificados git-credentials respaldo.conf respaldo.excluir 
+Mem:            2647         941        1054           8         890        1705
+ 11:40:36 up 13 min,  0 users,  load average: 0.07, 0.11, 0.10
+== nodo-jboss2 192.168.122.18
+LISTEN 0      4096         0.0.0.0:8080      0.0.0.0:*   
+LISTEN 0      50           0.0.0.0:9990      0.0.0.0:*   
+inactive inactive inactive 
+-bmanagement=0.0.0.0
+-bmanagement=0.0.0.0
+		iifname "lo" tcp dport 9990 accept
+		ip saddr 192.168.122.1 tcp dport 9990 accept
+		tcp dport 9990 drop
+aplicaciones.d git-credentials respaldo.conf respaldo.excluir 
+Mem:            1707         932         432           4         493         774
+ 11:40:43 up 22 min,  0 users,  load average: 0.12, 0.11, 0.09
+== nodo-jboss-dev 192.168.122.21
+LISTEN 0      50           0.0.0.0:9990      0.0.0.0:*   
+LISTEN 0      4096         0.0.0.0:8080      0.0.0.0:*   
+inactive inactive inactive 
+-bmanagement=0.0.0.0
+-bmanagement=0.0.0.0
+		iifname "lo" tcp dport 9990 accept
+		ip saddr 192.168.122.1 tcp dport 9990 accept
+		tcp dport 9990 drop
+aplicaciones.d certificados git-credentials respaldo.conf respaldo.excluir 
+Mem:            1707         932         472           6         455         774
+ 11:41:07 up 52 min,  0 users,  load average: 0.35, 0.17, 0.11
+FAILED 23658 Desplegar en JBoss con jboss-cli nodo-jboss rc None  
+FAILED 23658 Volver a la versión anterior nodo-jboss rc None  
+--- fin: 2026-11-11T13:41:21-03:00 · código: 0
