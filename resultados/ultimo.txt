@@ -1,33 +1,13 @@
-commit: cb9c7d804ea28c07fbe9951dafec626f7a381ad7
-inicio: 2026-11-11T13:12:52-03:00
+commit: 8a00c6a3ddef5caf06309ba395f5d148da5760ca
+inicio: 2026-11-11T13:13:30-03:00
 ---
-FO-LAB-01693 en_ejecucion 16:10 Monitoreo · Configurar alertas del equipo {'al_equipo': 'fw'}
-FO-LAB-01692 en_ejecucion 16:10 Infra · Encender o apagar equipo {}
-FO-LAB-01691 exitoso 16:08 Monitoreo · Configurar alertas del equipo {'al_equipo': 'nodo-storage'}
-FO-LAB-01690 exitoso 16:05 Monitoreo · Configurar alertas del equipo {'al_equipo': 'nodo-jboss'}
-FO-LAB-01689 exitoso 16:05 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Aviso legal y cierre de sesión inactiva', 'categoria': 'sistema operativo', 'descripcion': 'Avi
-FO-LAB-01688 exitoso 16:05 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Parámetros de kernel seguros', 'categoria': 'sistema operativo', 'descripcion': 'Sin redireccio
-FO-LAB-01687 exitoso 16:03 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Sin reenvío de paquetes en servidores', 'categoria': 'redes', 'descripcion': 'Un servidor no de
-FO-LAB-01686 fallido 16:03 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Firewall del equipo activo', 'categoria': 'redes', 'descripcion': 'firewalld activo y al inicia
-FO-LAB-01685 exitoso 16:03 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Sudo con registro de comandos', 'categoria': 'identidad', 'descripcion': 'Todo lo que se ejecut
-FO-LAB-01684 fallido 16:03 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Límites de recursos por contenedor', 'categoria': 'contenedores', 'descripcion': 'Cada contened
-FO-LAB-01683 exitoso 16:03 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Contenedores solo desde registros confiables', 'categoria': 'contenedores', 'descripcion': 'Pod
-FO-LAB-01682 exitoso 16:03 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Hora sincronizada', 'categoria': 'comunicaciones', 'descripcion': 'chronyd activo; certificados
-FO-LAB-01681 exitoso 16:03 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Criptografía del sistema sin protocolos débiles', 'categoria': 'comunicaciones', 'descripcion':
-FO-LAB-01680 exitoso 16:03 FaceOps · Aplicar política de seguridad {'politica': {'nombre': 'Auditoría del sistema activa', 'categoria': 'auditoria', 'descripcion': 'auditd registra acceso
-FO-LAB-01679 fallido 15:59 Monitoreo · Configurar alertas del equipo {'al_equipo': 'nodo-jboss'}
-FO-LAB-01678 fallido 15:56 Monitoreo · Configurar alertas del equipo {'al_equipo': 'nodo-storage'}
-FO-LAB-01677 exitoso 15:48 Infra · Encender o apagar equipo {}
-FO-LAB-01676 fallido 15:48 Infra · Ajustar recursos de máquinas {}
-FO-LAB-01675 exitoso 15:46 Monitoreo · Configurar alertas del equipo {'al_equipo': 'nodo-jboss'}
-FO-LAB-01674 exitoso 15:46 Infra · Ajustar recursos de máquinas {}
-FO-LAB-01673 exitoso 15:44 Monitoreo · Configurar alertas del equipo {'al_equipo': 'nodo-jboss'}
-FO-LAB-01672 exitoso 15:43 Infra · Ajustar recursos de máquinas {}
-FO-LAB-01671 exitoso 15:42 Monitoreo · Configurar alertas del equipo {'al_equipo': 'nodo-jboss'}
-FO-LAB-01670 exitoso 15:41 Infra · Ajustar recursos de máquinas {}
-FO-LAB-01669 exitoso 15:40 Monitoreo · Configurar alertas del equipo {'al_equipo': 'nodo-jboss'}
-FO-LAB-01668 exitoso 15:38 Infra · Ajustar recursos de máquinas {}
-FO-LAB-01667 fallido 15:38 Infra · Replicar máquina {}
-FO-LAB-01666 exitoso 15:37 Infra · Encender o apagar equipo {}
-FO-LAB-01665 exitoso 15:30 Monitoreo · Configurar alertas del equipo {'al_equipo': 'nodo-storage'}
---- fin: 2026-11-11T13:12:59-03:00 · código: 0
+EQ srv-legado-jboss7-01 ('servidor', 'desarrollo', '') []
+EQ dc1-sql01 ('servidor', 'produccion', '') []
+EQ dc2-sql01 ('servidor', 'produccion', '') []
+EQ dc1-vpn01 ('servidor', 'produccion', '') []
+EQ nodo-jboss3 ('servidor', 'produccion', '') []
+EQ nodo-so ('servidor', 'produccion', '') []
+EQ nodo-jboss4 ('servidor', 'produccion', '') [('FO-LAB-01658', 'exitoso', '15:13', 'Infra · Replicar máquina'), ('FO-LAB-01657', 'exitoso', '15:12', 'FaceOps · Vincular máquina a la bóveda'), ('FO-LAB-01642', 'exitoso', '14:42', 'Infra · Replicar máquina'), ('FO-LAB-01634', 'fallido', '14:25', 'Infra · Replicar máquina')]
+EQ srv-mover-01 ('servidor', 'desarrollo', '') []
+AUD [('2026-11-11T01:09', 'error al dar de baja', 'FO-LAB-01497', '{"error": "AAP DELETE hosts/143/ → 400: {\\"error\\":\\"Delete constructed inventory hosts from input inventory.\\"}"}'), ('2026-11-11T01:06', 'error al dar de baja', 'FO-LAB-01494', '{"error": "AAP DELETE hosts/107/ → 409: {\\"error\\":\\"Resource is being used by running jobs.\\",\\"active_jobs\\":[{\\"id\\":22489,\\"type\\":\\"job\\"},{\\"id\\":22490,\\"type\\":\\"job\\"}]}"}'), ('2026-11-11T01:00', 'aprobar', 'FO-LAB-01494', '{"comentario": "Aprobado por Claude (regla de Cristian)", "etapa": 1, "area": "servidores", "aprobacion_aap": 22471}'), ('2026-11-11T01:00', 'espera aprobación en AAP', 'FO-LAB-01494', '{"aprobacion": "¿Aprueba eliminar el servidor?", "id": 22471}')]
+--- fin: 2026-11-11T13:13:37-03:00 · código: 0
