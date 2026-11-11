@@ -1,18 +1,13 @@
-commit: ee98e8a04bacef6f202df109e87227ea2d173ec0
-inicio: 2026-11-11T19:10:24-03:00
+commit: b035653417d6461ee2f80b9d726c54f5e3b65f3e
+inicio: 2026-11-11T19:22:59-03:00
 ---
-energía nodo-jboss-qa encender: exitoso FO-LAB-01901
-maquina nodo-jboss-qa
-prep originales respaldo=no monitoreo=si
-prep respaldo: rechazado al solicitar 
-prep monitoreo: rechazado al solicitar 
-antes: active active 
-CASO C1 falla · Quitar respaldo continuo
-CASO C2 falla · Quitar node_exporter
-CASO C3 ok · Agente desconocido
-EVIDENCIA [{"id": "C1", "caso": "Quitar respaldo continuo", "resultado": "falla", "evidencia": "sin respuesta del arnés archivos=6 skill=no node=active "}, {"id": "C2", "caso": "Quitar node_exporter", "resultado": "falla", "evidencia": "fallido active bin  http=200 skill=si"}, {"id": "C3", "caso": "Agente desconocido", "resultado": "ok", "evidencia": "fallido (Agente válido · Agente desconocido: agente-inexistente · ); la máquina no cambia (huella 3b57937fd5)"}]
-CERT Sistema · Quitar agente → sin probar
-restaurar monitoreo: rechazado al solicitar 
-energía nodo-jboss-qa apagar: exitoso FO-LAB-01905
-FIN-QUITAR
---- fin: 2026-11-11T19:23:34-03:00 · código: 0
+certificado de administración listo
+0xa85bf9b53dfdea483009765228fac9ce ERROR 500 {"Attributes":{"Attribute":[]},"ClassName":"com.netscape.certsrv.base.PKIException","Code":500,"Message":"Unable to revoke cert: Record not found: No such object"}
+0xf78d099a8ce11db890114c54dea701db ERROR 500 {"Attributes":{"Attribute":[]},"ClassName":"com.netscape.certsrv.base.PKIException","Code":500,"Message":"Unable to revoke cert: Record not found: No such object"}
+0x27d3… (JBoss) → VALID
+Inventario job 24830 successful
+FICHA nodo-jboss: 2 certificado(s) [('0x27d3173dc3d24e02bf48364f9bbc2642', 'jboss-https', 'vigente'), ('0xf78d099a8ce11db890114c54dea701db', '', 'vigente')]
+UI /equipos/6/certificados 404 0 []
+serial=27D3173DC3D24E02BF48364F9BBC2642
+app de pagos por el balanceador: HTTP 200
+--- fin: 2026-11-11T19:24:22-03:00 · código: 0
