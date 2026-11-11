@@ -69,14 +69,16 @@ def contexto(cliente_id, e, puede_escribir):
     ap = aplicadas(e)
     act = {x["id"]: x for x in ap.get("alertas") or []}
     grupos = {}
+    datos = j(e.get("datos"), {}) or {}
     for a in cat["alertas"]:
-        if t in a["tipos"]:
+        if t in a["tipos"] and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
             accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k)) for k in (a.get("acciones") or ["avisar"])]
             grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, valor_accion=(x or {}).get("accion", "avisar"),
                                                                          valor_aviso=(x or {}).get("aviso", a.get("aviso")),
                                                                          valor_critico=(x or {}).get("critico", a.get("critico")),
-                                                                         valor_sev=(x or {}).get("severidad", a.get("severidad", "aviso"))))
+                                                                         valor_sev=(x or {}).get("severidad", a.get("severidad", "aviso")),
+                                                                         valor_para=_minutos((x or {}).get("para") or a.get("para"))))
     auto = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, AUTO)
     disponible, por_que = False, "La automatización «Configurar alertas del equipo» aún no está publicada en AAP"
     if auto:
@@ -93,6 +95,22 @@ def contexto(cliente_id, e, puede_escribir):
             "en_curso": en_curso(cliente_id, e), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values())}
 
 
+def _minutos(p):
+    """«10m» → 10 · «1h» → 60 · «0m»/vacío → 0 (el flotante pide la duración en minutos)."""
+    p = str(p or "0m").strip()
+    try:
+        return int(float(p[:-1]) * (60 if p.endswith("h") else (1 / 60 if p.endswith("s") else 1))) if p[-1:] in "hms" else int(p)
+    except ValueError:
+        return 0
+
+
+def requiere_acceso(par):
+    """¿Alguna alerta del pedido tiene una acción que entra a la máquina (acceso: equipo)? Entonces el ticket lleva el
+    inventario y la credencial de AAP del equipo para que la regla de la alerta los entregue a la respuesta."""
+    acc = catalogo().get("acciones") or {}
+    return any((acc.get(x.get("accion")) or {}).get("acceso") == "equipo" for x in par.get("al_alertas") or [])
+
+
 def pedido_de_formulario(e, form):
     """Del flotante → parámetros del ticket (validados contra el catálogo)."""
     t = tipo_de(e)
@@ -105,6 +123,12 @@ def pedido_de_formulario(e, form):
         if acc not in (a.get("acciones") or ["avisar"]):
             raise ValueError(f"«{a['nombre']}»: elige una acción de la lista")
         x = {"id": a["id"], "accion": acc}
+        pm = (form.get(f"para_{a['id']}") or "").strip()
+        if pm:
+            if not pm.isdigit() or not 0 <= int(pm) <= 240:
+                raise ValueError(f"«{a['nombre']}»: la duración es un número de minutos entre 0 y 240")
+            if int(pm) != _minutos(a.get("para")):
+                x["para"] = f"{int(pm)}m"
         if a.get("umbral", True) is False:
             sev = form.get(f"sev_{a['id']}", a.get("severidad", "aviso"))
             x["severidad"] = sev if sev in ("aviso", "critico") else "aviso"

@@ -5,6 +5,8 @@
 # Las acciones que necesitan un dato (tamaño, servicio, zona) quedan como propuesta en la aprobación: quien aprueba
 # las completa desde FaceOps; aquí no se inventan valores.
 #   ra_accion, ra_equipo, ra_alerta, ra_severidad, ra_resumen (desde la regla de EDA)
+#   ra_inventario, ra_credencial: las acciones que entran a la máquina (acceso: equipo) usan el inventario y la credencial de
+#   AAP del equipo; el workflow se arma con ellos en su nodo (uno por credencial) y se lanza limitado al equipo.
 - name: Monitoreo · Responder alerta
   hosts: localhost
   connection: local
@@ -18,7 +20,8 @@
       url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
       force_basic_auth: true
       validate_certs: false
-    wf_nombre: "FaceOps · Alerta › {{ acc.auto | default('') }}"
+    al_equipo_: "{{ acc.acceso | default('') == 'equipo' }}"
+    wf_nombre: "FaceOps · Alerta › {{ acc.auto | default('') }}{{ (' · ' ~ ra_credencial) if al_equipo_ | bool else '' }}"
   tasks:
     - name: Datos válidos
       ansible.builtin.assert:
@@ -26,7 +29,10 @@
           - ra_equipo | default('') is match('^[A-Za-z0-9._-]{1,63}$')
           - ra_accion | default('') in cat.acciones
           - acc.auto is defined
-        fail_msg: "Acción «{{ ra_accion | default('') }}» desconocida o sin automatización asociada"
+          - not (al_equipo_ | bool) or (ra_inventario | default('') | length > 0 and ra_credencial | default('') | length > 0)
+        fail_msg: >-
+          Acción «{{ ra_accion | default('') }}» desconocida, sin automatización asociada o, si entra a la máquina,
+          sin el inventario y la credencial del equipo (vuelve a aplicar las alertas desde FaceOps)
         quiet: true
 
     - name: Acción que necesita un dato · queda como propuesta
@@ -43,6 +49,22 @@
       register: r_ujt
       when: acc.pide_datos is not defined
       failed_when: r_ujt.json.count | default(0) == 0
+
+    - name: Inventario y credencial del equipo (acciones que entran a la máquina)
+      when: acc.pide_datos is not defined and al_equipo_ | bool
+      block:
+        - name: Inventario
+          ansible.builtin.uri:
+            url: "{{ api }}/inventories/?name={{ ra_inventario | urlencode }}"
+            <<: *auth
+          register: r_inv
+          failed_when: r_inv.json.count | default(0) == 0
+        - name: Credencial
+          ansible.builtin.uri:
+            url: "{{ api }}/credentials/?name={{ ra_credencial | urlencode }}"
+            <<: *auth
+          register: r_cred
+          failed_when: r_cred.json.count | default(0) == 0
 
     - name: Workflow de aprobación de la alerta
       when: acc.pide_datos is not defined
@@ -90,8 +112,18 @@
                 method: POST
                 body_format: json
                 status_code: [201]
-                body: {unified_job_template: "{{ r_ujt.json.results[0].id }}"}
+                body: "{{ {'unified_job_template': r_ujt.json.results[0].id} | combine({'inventory': r_inv.json.results[0].id} if al_equipo_ | bool else {}) }}"
                 <<: *auth
+              register: r_nn
+            - name: Credencial del equipo en el nodo
+              ansible.builtin.uri:
+                url: "{{ api }}/workflow_job_template_nodes/{{ r_nn.json.id }}/credentials/"
+                method: POST
+                body_format: json
+                status_code: [204]
+                body: {id: "{{ r_cred.json.results[0].id }}"}
+                <<: *auth
+              when: al_equipo_ | bool
 
         - name: Workflow vigente
           ansible.builtin.uri:

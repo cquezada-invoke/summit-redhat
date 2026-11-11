@@ -5,6 +5,7 @@
 # Cualquier error deja la configuración anterior (respaldo y vuelta atrás).
 #   al_equipo: nombre · al_ip: IP · al_tipo: linux | windows | storage | red
 #   al_alertas: [{id, aviso?, critico?, severidad?, para?}]  (vacía o al_retirar=true → quita todas las del equipo)
+#   al_inventario, al_credencial: de AAP, solo si una acción entra a la máquina (viajan en la regla hasta la respuesta)
 - name: Monitoreo · Configurar alertas del equipo
   hosts: anfitrion_kvm
   become: true
@@ -66,7 +67,7 @@
       delegate_to: localhost
       become: false
       loop:
-        - {n: json, c: "{{ {'equipo': al_equipo, 'ip': al_ip | default(''), 'tipo': al_tipo, 'alertas': al_alertas | default([]), 'retirar': retirar} | to_json }}"}
+        - {n: json, c: "{{ {'equipo': al_equipo, 'ip': al_ip | default(''), 'tipo': al_tipo, 'alertas': al_alertas | default([]), 'retirar': retirar, 'inventario': al_inventario | default(''), 'credencial': al_credencial | default('')} | to_json }}"}
         - {n: prom, c: "{{ r_cfg.content | b64decode }}"}
       loop_control:
         label: "{{ item.n }}"

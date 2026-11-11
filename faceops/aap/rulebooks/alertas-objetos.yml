@@ -39,3 +39,5 @@
               ra_alerta: "{{ event.alert.labels.faceops_alerta }}"
               ra_severidad: "{{ event.alert.labels.severity }}"
               ra_resumen: "{{ event.alert.annotations.summary | default('') }}"
+              ra_inventario: "{{ event.alert.labels.faceops_inventario | default('') }}"
+              ra_credencial: "{{ event.alert.labels.faceops_credencial | default('') }}"

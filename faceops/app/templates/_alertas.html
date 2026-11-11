@@ -21,7 +21,7 @@
 {% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
 {% for a in xs %}<label class="al-fila{{ ' on' if a.activa }}">
   <span class="al-sw"><input type="checkbox" name="on_{{ a.id }}" {{ 'checked' if a.activa }} {{ 'disabled' if not al.disponible or al.en_curso }} onchange="this.closest('.al-fila').classList.toggle('on', this.checked)"><i></i></span>
-  <span class="al-def"><b>{{ a.nombre }}</b><small>{{ a.descripcion }}{% if a.para and a.para != '0m' %} · durante {{ a.para }}{% endif %}</small></span>
+  <span class="al-def"><b>{{ a.nombre }}</b><small>{{ a.descripcion }}</small></span>
   <span class="al-acc"><small>Acción al dispararse</small><select name="acc_{{ a.id }}" {{ 'disabled' if not al.disponible }} onclick="event.stopPropagation()">{% for k, t in a.acciones_l %}<option value="{{ k }}" {{ 'selected' if a.valor_accion == k }}>{{ t }}</option>{% endfor %}</select></span>
   <span class="al-umb">{% if a.umbral is sameas false %}
     <select name="sev_{{ a.id }}" {{ 'disabled' if not al.disponible }}>{% for k, t in [('aviso', 'Aviso'), ('critico', 'Crítico')] %}<option value="{{ k }}" {{ 'selected' if a.valor_sev == k }}>{{ t }}</option>{% endfor %}</select>
@@ -29,7 +29,8 @@
     <span class="al-u aviso"><small>Aviso</small><input name="aviso_{{ a.id }}" value="{{ a.valor_aviso if a.valor_aviso is not none }}" inputmode="decimal" {{ 'disabled' if not al.disponible }}></span>
     <span class="al-u critico"><small>Crítico</small><input name="critico_{{ a.id }}" value="{{ a.valor_critico if a.valor_critico is not none }}" inputmode="decimal" {{ 'disabled' if not al.disponible }}></span>
     <em>{{ a.unidad or '' }}</em>
-  {% endif %}</span>
+  {% endif %}
+    <span class="al-u" title="Minutos que la condición debe mantenerse antes de disparar la alerta (0 = de inmediato)"><small>Durante (min)</small><input name="para_{{ a.id }}" value="{{ a.valor_para }}" inputmode="numeric" {{ 'disabled' if not al.disponible }}></span></span>
 </label>{% endfor %}{% endfor %}
 </div>
 <footer class="al-pie">

@@ -8224,6 +8224,17 @@ def equipo_alertas(eid):
         return redirect(vuelta)
     try:
         par = ao.pedido_de_formulario(e, request.form)
+        if ao.requiere_acceso(par):   # la respuesta entra a la máquina: con el inventario y la credencial de AAP del equipo
+            from .operacion import acceso_equipo
+            try:
+                aap_ = AAP.de_cliente(g.cliente)
+                _, inv_n, creds_ = acceso_equipo(aap_, g.cliente, e)
+                cr_n = aap_.get(f"credentials/{creds_[0]}/")["name"] if creds_ else ""
+            except ErrorAAP as x:
+                raise ValueError(f"La acción elegida entra a {e['nombre']} y no sé con qué credencial: {x}")
+            if not cr_n:
+                raise ValueError(f"La acción elegida entra a {e['nombre']}: su inventario «{inv_n}» no tiene credencial en el plan de recolección")
+            par.update(al_inventario=inv_n, al_credencial=cr_n)
         a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ao.AUTO)
         n_ = len(par["al_alertas"])
         t = solicitar(g.usuario, g.cliente, a, "", par,

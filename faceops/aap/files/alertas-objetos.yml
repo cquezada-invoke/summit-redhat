@@ -21,18 +21,26 @@ acciones:
   ampliar_disco: {texto: "Ampliar el disco (propuesta con aprobación)", auto: "FaceOps · Ampliar disco", pide_datos: "disco y tamaño nuevo"}
   ampliar_volumen: {texto: "Ampliar el volumen de storage (propuesta con aprobación)", auto: "Storage · Ampliar volumen", pide_datos: "volumen y tamaño nuevo"}
   reiniciar_servicio: {texto: "Reiniciar el servicio afectado (propuesta con aprobación)", auto: "Plataforma · Controlar servicio", pide_datos: "servicio a reiniciar"}
+  # acceso: equipo → la automatización entra a la máquina: el inventario y la credencial de AAP del equipo (los mismos que usa FaceOps)
+  # viajan en la regla de la alerta y el workflow de aprobación se arma con ellos (uno por credencial)
+  reiniciar_jboss: {texto: "Reiniciar JBoss (con aprobación)", auto: "Plataforma · Controlar servicio", acceso: equipo,
+                    vars: {sp_unidades: [eap8-standalone, eap7-standalone, jboss-eap, jboss, wildfly], sp_accion: reiniciar, sp_plataforma: JBoss}}
   hora: {texto: "Corregir la hora (propuesta con aprobación)", auto: "Sistema · Cambio de hora del país", pide_datos: "zona horaria"}
 alertas:
   # ───────── Servidores Linux y storage ─────────
   - {id: D01, tipos: [linux, windows, storage], grupo: Disponibilidad, nombre: "Sin respuesta", acciones: [avisar, encender, diagnosticar],
      descripcion: "Prometheus no logra leer las métricas del equipo (apagado, colgado o sin red)",
      expr: 'up{job="faceops-equipos",faceops_equipo="__EQ__"} == 0', umbral: false, severidad: critico, para: 2m}
+  # requiere: la alerta se ofrece solo si el inventario de FaceOps detectó esa plataforma en el equipo (datos.<requiere>)
+  - {id: J01, tipos: [linux], requiere: jboss, grupo: Disponibilidad, nombre: "JBoss detenido", acciones: [avisar, reiniciar_jboss, diagnosticar],
+     descripcion: "El servicio systemd de JBoss EAP / WildFly no está activo (la aplicación deja de responder en ese nodo)",
+     expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"(eap|jboss|wildfly).*service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
   - {id: D04, tipos: [linux, storage], grupo: Disponibilidad, nombre: "Reinicio inesperado", acciones: [avisar, diagnosticar],
      descripcion: "El equipo arrancó hace menos de 10 minutos",
      expr: '(time() - node_boot_time_seconds{faceops_equipo="__EQ__"}) < 600', umbral: false, severidad: aviso, para: 0m}
   - {id: C01, tipos: [linux, storage], grupo: Capacidad, nombre: "CPU alta", unidad: "%", acciones: [avisar, recursos, diagnosticar],
-     descripcion: "Uso de CPU promedio de los últimos 5 minutos",
-     expr: '100 - avg by (faceops_equipo) (rate(node_cpu_seconds_total{mode="idle",faceops_equipo="__EQ__"}[5m])) * 100 > __UMBRAL__', aviso: 80, critico: 95, para: 10m}
+     descripcion: "Uso de CPU promedio de los últimos 2 minutos",
+     expr: '100 - avg by (faceops_equipo) (rate(node_cpu_seconds_total{mode="idle",faceops_equipo="__EQ__"}[2m])) * 100 > __UMBRAL__', aviso: 80, critico: 95, para: 10m}
   - {id: C02, tipos: [linux, storage], grupo: Capacidad, nombre: "Memoria alta", unidad: "%", acciones: [avisar, recursos, reiniciar_servicio],
      descripcion: "Memoria en uso (descuenta caché y buffers)",
      expr: '100 * (1 - node_memory_MemAvailable_bytes{faceops_equipo="__EQ__"} / node_memory_MemTotal_bytes{faceops_equipo="__EQ__"}) > __UMBRAL__', aviso: 85, critico: 95, para: 10m}

@@ -1,7 +1,8 @@
 """Monitoreo · Configurar alertas del equipo: arma lo que Prometheus necesita para vigilar un equipo con las alertas elegidas.
 
 Uso: alertas_objeto.py <catalogo.yml> <prometheus.yml actual> <pedido.json>
-pedido: {"equipo", "ip", "tipo": linux|windows|storage|red, "alertas": [{"id", "aviso"?, "critico"?, "severidad"?}], "retirar": bool}
+pedido: {"equipo", "ip", "tipo": linux|windows|storage|red, "alertas": [{"id", "aviso"?, "critico"?, "severidad"?, "para"?}], "retirar": bool,
+         "inventario"?, "credencial"? (de AAP, para las acciones que entran a la máquina)}
 Salida (JSON): {"prometheus": yaml o "" si no cambia, "reglas": yaml o "", "objetivo": yaml o "", "objetivo_archivo", "resumen": [...]}"""
 import json
 import re
@@ -57,6 +58,10 @@ def reglas(cat, ped):
             raise SystemExit(f"{a['id']}: la acción «{acc}» no corresponde a esta alerta")
         etiq = {"faceops_equipo": eq, "faceops_alerta": a["id"], "faceops_pilar": a.get("grupo", ""), "faceops_accion": acc,
                 "faceops_automatizacion": (cat.get("acciones") or {}).get(acc, {}).get("auto", "")}
+        if (cat.get("acciones") or {}).get(acc, {}).get("acceso") == "equipo":   # la respuesta entra a la máquina
+            if not ped.get("inventario") or not ped.get("credencial"):
+                raise SystemExit(f"{a['id']}: la acción «{acc}» necesita el inventario y la credencial de AAP del equipo")
+            etiq.update(faceops_inventario=ped["inventario"], faceops_credencial=ped["credencial"])
         ann = {"summary": f"{eq} · {a['nombre']}", "description": a.get("descripcion", "") + (f" (valor: {{{{ $value | humanize }}}} {a.get('unidad', '')})" if a.get("unidad") else "")}
         if a.get("umbral", True) is False:
             sev = x.get("severidad") or a.get("severidad", "aviso")
