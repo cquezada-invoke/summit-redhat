@@ -43,6 +43,7 @@ import json,os,ssl,urllib.request;cx=ssl._create_unverified_context()
 print(json.loads(urllib.request.urlopen(urllib.request.Request(os.environ['FACEOPS_AAP_URL'].rstrip('/')+'/api/controller/v2/config/',headers={'Authorization':'Bearer '+os.environ['FACEOPS_AAP_TOKEN']}),context=cx).read())['license_info']['free_instances'])"; }
 hab() { caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"$1\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"$2\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"20\",\"hab_ambiente\":\"desarrollo\"},\"rhsm\":true,\"min\":40,\"caso\":\"alta $2\"}" >/dev/null; echo "habilitar $2 ($1): $(estado) $(ticket) $(jq_ "r.get('detalle') or ''")"; }
 inv() { caso "{\"auto\":\"Sistema · Inventariar máquina\",\"equipo\":\"$1\",\"params\":{},\"min\":60,\"caso\":\"inventario $1\"}" >/dev/null; echo "inventariar $1: $(estado) $(ticket)"; }
+en_ssh() { local i o; for i in $(seq 1 12); do o=$(en "$1" "$2" 2>/dev/null) && [ -n "$o" ] && { echo "$o"; return; }; sleep 10; done; echo "SIN-SSH"; }   # tras una vuelta atrás
 snaps() { sudo virsh snapshot-list $1 --name 2>/dev/null | grep -c .; }
 guardar() { echo "$CASOS" > $EST/$1.casos; echo "$TKS" > $EST/$1.tks; }
 cargar() { CASOS=$(cat $EST/$1.casos 2>/dev/null || echo '[]'); TKS=$(cat $EST/$1.tks 2>/dev/null || echo '[]'); }
@@ -95,9 +96,9 @@ if [ "$FASE" = rocky-cr ]; then
   S1=$(snaps $RK); R1=$(en $IK 'cat /etc/redhat-release'); D1=$(jq_ "r.get('detalle') or ''")
   no_ && [ "$S0" = "$S1" ] && echo "$R1" | grep -q Rocky && echo "$D1" | grep -q "no válida" && anotar C1 "Destino no válido (99)" ok "rechazado en validaciones: snapshots $S0=$S1, sigue $R1" || anotar C1 "Destino no válido" falla "$(estado) $S0/$S1 $R1 $D1"
   caso "{\"auto\":\"$CR\",\"equipo\":\"$RK\",\"params\":{\"mig_politica\":\"minimo\",\"mig_snapshot\":\"kvm\",\"mig_prueba_falla\":true},\"min\":30,\"caso\":\"C2\"}" >/dev/null
-  D2=$(jq_ "' · '.join(r.get('fallos') or [])"); R2=$(en $IK 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
+  D2=$(jq_ "' · '.join(r.get('fallos') or [])"); R2=$(en_ssh $IK 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
   no_ && echo "$D2" | grep -q "volvió al snapshot" && echo "$R2" | grep -q Rocky && echo "$R2" | grep -q sin-marca \
-    && anotar C2 "Falla tras el snapshot" ok "vuelta atrás: $(echo "$D2" | grep -o 'volvió al snapshot [^ ]*') · $(echo $R2)" || anotar C2 "Falla tras el snapshot" falla "$(estado) $D2 $R2"
+    && anotar C2 "Falla tras el snapshot" ok "vuelta atrás: $(echo "$D2" | grep -o 'volvió al snapshot [^ ]*') · $(echo $R2)" || anotar C2 "Falla tras el snapshot" falla "$(estado) · máquina: $(echo $R2) · $(echo "$D2" | grep -o 'volvió[^·]*' | head -1)"
   S2=$(snaps $RK)
   caso "{\"auto\":\"$CR\",\"equipo\":\"$RK\",\"params\":{\"mig_politica\":\"minimo\",\"mig_snapshot\":\"kvm\"},\"min\":100,\"caso\":\"C3\"}" >/dev/null
   sleep 20; R3=$(en $IK 'cat /etc/redhat-release; sudo subscription-manager identity 2>/dev/null | grep -c "org ID"; sudo test -e /root/.convert2rhel.ini && echo LLAVE-QUEDO || echo sin-llave'); S3=$(snaps $RK)
@@ -155,9 +156,9 @@ if [ "$FASE" = rhel8-rv ]; then   # reanudable: cada corrida del runner dura has
     guardar rhel; }
   hecho C3 || {
     caso "{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_destino\":\"9\",\"mig_snapshot\":\"kvm\",\"mig_prueba_falla\":true},\"min\":30,\"caso\":\"C3\"}" >/dev/null
-    D3=$(jq_ "' · '.join(r.get('fallos') or [])"); R3=$(en $I8 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
+    D3=$(jq_ "' · '.join(r.get('fallos') or [])"); R3=$(en_ssh $I8 'cat /etc/redhat-release; sudo test -e /root/faceops-prueba-falla && echo MARCA || echo sin-marca')
     no_ && echo "$D3" | grep -q "volvió al snapshot" && echo "$R3" | grep -q "release 8" && echo "$R3" | grep -q sin-marca \
-      && anotar C3 "Falla tras el snapshot" ok "vuelta atrás: $(echo "$D3" | grep -o 'volvió al snapshot [^ ]*') · $(echo $R3)" || anotar C3 "Falla tras el snapshot" falla "$(estado) $D3 $R3"
+      && anotar C3 "Falla tras el snapshot" ok "vuelta atrás: $(echo "$D3" | grep -o 'volvió al snapshot [^ ]*') · $(echo $R3)" || anotar C3 "Falla tras el snapshot" falla "$(estado) · máquina: $(echo $R3) · $(echo "$D3" | grep -o 'volvió[^·]*' | head -1)"
     snaps $R8 > $EST/rhel.s3; guardar rhel; }
   hecho C4 || {
     J4="{\"auto\":\"$RV\",\"equipo\":\"$R8\",\"params\":{\"mig_destino\":\"9\",\"mig_snapshot\":\"kvm\"},\"min\":45,\"caso\":\"C4\"}"
@@ -176,6 +177,11 @@ if [ "$FASE" = rhel8-rv ]; then   # reanudable: cada corrida del runner dura has
   echo "RHEL: $CASOS" | cut -c1-1500
   grep -q '"falla"' <<<"$CASOS" || certificar "$RV" "planes-prueba.yml · Migración · RHEL a versión soportada (C1–C5)"
   echo FIN-RHEL8
+fi
+if [ "$FASE" = rocky-nueva ]; then
+  existe $RK && baja $RK; rm -f $EST/centos.casos $EST/centos.tks
+  L=$(libres); echo "licencia AAP libres: $L"; hab rocky9 mig-rocky; inv $RK
+  echo "FIN-ROCKY-NUEVA $(en_ssh $(ip_de $RK) 'cat /etc/redhat-release')"
 fi
 if [ "$FASE" = limpiar ]; then for m in $RK $R8; do existe $m && baja $m; done; echo FIN-LIMPIEZA; fi
 
