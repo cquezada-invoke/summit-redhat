@@ -220,7 +220,9 @@ def evaluar(api, c):
     for im in listar(api, "/apis/image.openshift.io/v1/images"):
         a = (im["metadata"].get("annotations") or {})
         if a.get("openshift.io/image.managed") == "true" and im["metadata"]["name"] not in todos_dig:
-            huerf.append(im)
+            m = re.match(r"^[^/]+/([^/]+)/[^/@]+@", im.get("dockerImageReference") or "")
+            if (m and ns_ok(c, m.group(1))) or (not m and not c["incluir"]):
+                huerf.append(im)
 
     # 7. Tamaño y fecha de construcción de cada revisión (metadatos de la imagen en OpenShift)
     meta = {im["metadata"]["name"]: im for im in huerf}
