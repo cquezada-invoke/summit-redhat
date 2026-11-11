@@ -1,56 +1,18 @@
-commit: a32066f1194674a43bb6bbc3851c8d3c49c0ba34
-inicio: 2026-11-11T11:00:13-03:00
+commit: 0373ff3d20b0bdbc6722491cb76cf07404f3d5ca
+inicio: 2026-11-11T11:01:17-03:00
 ---
--rw-------. cquezada
-visitante 200
-visitante 1 False
-admin Admin
-visitante Viewer
-summit-ecosistema Summit · Ecosistema Summit
-summit-nube Summit · Nube Summit
-summit-operacion Summit · Operación Summit
-summit-servidores Summit · Servidores Summit
-http://34.176.42.56:8090/grafana/ /grafana False
-    add_header X-Frame-Options SAMEORIGIN always;
-    add_header X-Content-Type-Options nosniff always;
-    client_max_body_size 20m;
-    location = / { return 302 /faceops/; }
-    location ~ ^/faceops/(ingresar|ingresar/codigo)$ {
-        limit_req zone=login burst=5 nodelay;
-        limit_req_status 429;
-        proxy_pass http://192.168.122.1:8110/$1;
-        include /etc/nginx/conf.d/faceops-cabeceras.inc;
-    }
-    # consolas web publicadas (Redis Insight, JBoss, Vault…): cargan cientos de módulos a la vez; límite más holgado
-    location ~ ^/faceops/((?:[a-z0-9_-]+/)?inventario/\d+/(consola-web|web)/.*)$ {
-        limit_req zone=consolas burst=800 nodelay;
-        proxy_pass http://192.168.122.1:8110/$1$is_args$args;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $http_connection;
-        include /etc/nginx/conf.d/faceops-cabeceras.inc;
-    }
-    location /maqueta/ {
-        limit_req zone=general burst=60 nodelay;
-        proxy_pass http://192.168.122.1:8112/;
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Forwarded-Prefix /maqueta;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $remote_addr;
-    }
-    location /faceops/ {
-        limit_req zone=general burst=60 nodelay;
-        proxy_pass http://192.168.122.1:8110/;
-        include /etc/nginx/conf.d/faceops-cabeceras.inc;
-    }
-    # portal público de la CA interna (solo lectura), también por esta dirección (redes que bloquean sslip.io)
-    location ~ ^/ca/(agent|admin)/ { return 403; }
-    location ~ ^/(ca/(ee|rest|ui|css|js|images|fonts|pki)|pki/|ca/ee) {
-        limit_except GET HEAD { deny all; }
-        proxy_pass https://127.0.0.1:18443;
-        proxy_ssl_verify off;
-        proxy_set_header Host $host;
-        proxy_redirect https://127.0.0.1:18443/ /;
-cookie None / session
---- fin: 2026-11-11T11:00:22-03:00 · código: 0
+== nodo-jboss id 6 encendido HTTP 200
+  jboss-eap | Red Hat JBoss EAP · versión 8.0 Update 12.0 | consolas: [('/lab/inventario/6/consola-web/jboss-eap/', 'Consola de administración de JBoss')] | sin-web: False
+     -> Consola de administración de JBoss /lab/inventario/6/consola-web/jboss-eap/ 200 1016
+  redis | Redis | consolas: [('/lab/inventario/6/consola-web/redis/', 'Redis Insight')] | sin-web: False
+     -> Redis Insight /lab/inventario/6/consola-web/redis/ 409 85566
+  keycloak | Keycloak | consolas: [] | sin-web: True
+  txt: Keycloak no tiene consola web disponible.
+  txt: class="comp-entrar sin-web" tabindex="0" data-tip="Keycloak no tiene interfaz web propia: se administra con sus acciones" aria-label="Keycloak no tiene interfaz
+== nodo-jboss2 id 7 encendido HTTP 200
+  jboss-eap | Red Hat JBoss EAP · versión 8.0 Update 12.0 | consolas: [('/lab/inventario/7/consola-web/jboss-eap/', 'Consola de administración de JBoss')] | sin-web: False
+     -> Consola de administración de JBoss /lab/inventario/7/consola-web/jboss-eap/ 200 1017
+== nodo-jboss-dev id 21 encendido HTTP 200
+  jboss-eap | Red Hat JBoss EAP · versión 8.0 Update 12.0 | consolas: [('/lab/inventario/21/consola-web/jboss-eap/', 'Consola de administración de JBoss')] | sin-web: False
+     -> Consola de administración de JBoss /lab/inventario/21/consola-web/jboss-eap/ 200 1020
+--- fin: 2026-11-11T11:01:33-03:00 · código: 0
