@@ -1,24 +1,15 @@
-commit: 406d5b7065f78e9a7d2bb16a08fee4b5941d6687
-inicio: 2026-11-11T15:58:29-03:00
+commit: a1ad189ac731f9aaabcc1bb1dba2d21bba6fddfc
+inicio: 2026-11-11T15:51:32-03:00
 ---
-== host nodo-jboss
-cquezada@192.168.122.15: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
-CERT 712b447484972e16f0a76957e9e0cfc6 nodo-jboss.demo.local vigente VALID 2026-11-10 19:58 2028-10-30 19:58 svc=  uso= None gest= None demo False
-CERT d3m0a1 nodo-jboss.demo.local reemplazado VALID 2024-10-28 00:00 2026-10-28 00:00 svc= jboss-https uso= {'serie': 'd3m0a1', 'servicio': 'jboss-https', 'puerto': 8443, 'entrega': True, 'equipo': 'nodo-jboss'} gest= {'equipo': 'nodo-jboss', 'servicio': 'jboss-https', 'cuando': None, 'job': None, 'accion': 'registro'} demo True
-CERT 4c957dae00ce2fc7368240abd8f17a82 nodo-jboss.demo.local reemplazado VALID 2026-11-02 07:03 2028-10-22 07:03 svc=  uso= None gest= None demo False
-CERT 6fda6dc34142129ea390ba73c13a6163 nodo-jboss.demo.local revocado REVOKED 2026-11-02 07:20 2028-10-22 07:20 svc= jboss-https uso= None gest= {'equipo': 'nodo-jboss', 'servicio': 'jboss-https', 'cuando': '2026-11-02T07:21:17.099234Z', 'job': 9696, 'accion': 'emisión'} demo False
-CERT 98c604d79e3c0ed7c69d59d43066a75a nodo-jboss.demo.local reemplazado VALID 2026-11-10 19:42 2028-10-30 19:42 svc=  uso= None gest= None demo False
-TK 1776 FO-LAB-01776 fallido 2026-11-11T18:01 u 1 Certificados · Emitir para servicio {'cert_nombre': 'nodo-jboss', 'cert_recargar': 'systemctl restart nodo-jboss', 'cert_formato': 'pem', 'cert_puerto': 443, 'cert_revocar_serie': '712b447484972e16f0a76957e9e0cfc6'} | AAP terminó (failed): ejecución 24 s, espera de aprobación 17 s / Falló en la tarea «Recargar el servicio» de nodo-jboss: non-zero return code /  / TASK [Respal
-TK 1763 FO-LAB-01763 fallido 2026-11-11T17:50 u 1 Certificados · Emitir para servicio {'cert_nombre': 'nodo-jboss', 'cert_recargar': 'systemctl restart nodo-jboss', 'cert_formato': 'pem', 'cert_puerto': 443, 'cert_revocar_serie': '712b447484972e16f0a76957e9e0cfc6'} | AAP terminó (failed): ejecución 23 s, espera de aprobación 22 s / Falló en la tarea «Recargar el servicio» de nodo-jboss: non-zero return code /  / TASK [Respal
-TK 1411 FO-LAB-01411 exitoso 2026-11-10T20:26 u 1 Certificados · Emitir para servicio {'cert_nombre': 'jboss-https', 'cert_recargar': 'systemctl restart eap8-standalone', 'cert_formato': 'pkcs12', 'cert_puerto': 8443, 'cert_revocar_serie': '6fda6dc34142129ea390ba73c13a6163'} | AAP terminó (successful): ejecución 31 s, espera de aprobación 49 s
-TK 1410 FO-LAB-01410 fallido 2026-11-10T20:17 u 1 Certificados · Emitir para servicio {'cert_nombre': 'jboss-https', 'cert_recargar': 'systemctl restart eap8-standalone', 'cert_formato': 'pkcs12', 'cert_puerto': 8443, 'cert_revocar_serie': '6fda6dc34142129ea390ba73c13a6163'} | AAP terminó (failed): ejecución 31 s, espera de aprobación 39 s / Falló en la tarea «Inhabilitar el certificado reemplazado (se revoca en la CA; solo cuando el 
-TK 1407 FO-LAB-01407 fallido 2026-11-10T20:08 u 1 Certificados · Emitir para servicio {'cert_nombre': 'jboss-https', 'cert_recargar': 'systemctl restart eap8-standalone', 'cert_formato': 'pkcs12', 'cert_puerto': 8443, 'cert_revocar_serie': '6fda6dc34142129ea390ba73c13a6163'} | AAP terminó (failed): ejecución 24 s, espera de aprobación 49 s / Falló en la tarea «JBoss EAP entrega el keystore emitido (Elytron)» de nodo-jboss: non-zero re
-TK 1406 FO-LAB-01406 fallido 2026-11-10T19:57 u 1 Certificados · Emitir para servicio {'cert_nombre': 'jboss-https', 'cert_recargar': 'systemctl restart eap8-standalone', 'cert_formato': 'pkcs12', 'cert_puerto': 8443, 'cert_revocar_serie': '6fda6dc34142129ea390ba73c13a6163'} | AAP terminó (failed): ejecución 23 s, espera de aprobación 39 s / Falló en la tarea «JBoss EAP entrega el keystore emitido (Elytron)» de nodo-jboss:  / TASK [Re
-TK 1403 FO-LAB-01403 fallido 2026-11-10T19:40 u 1 Certificados · Emitir para servicio {'cert_nombre': 'jboss-https', 'cert_recargar': 'systemctl restart eap8-standalone', 'cert_formato': 'pkcs12', 'cert_puerto': 8443, 'cert_revocar_serie': '6fda6dc34142129ea390ba73c13a6163'} | AAP terminó (failed): ejecución 25 s, espera de aprobación 49 s / Falló en la tarea «JBoss EAP entrega el keystore emitido (Elytron)» de nodo-jboss:  / TASK [Re
-TK 1402 FO-LAB-01402 fallido 2026-11-10T19:20 u 1 Certificados · Emitir para servicio {'cert_nombre': 'jboss-https', 'cert_recargar': 'systemctl restart eap8-standalone', 'cert_formato': 'pkcs12', 'cert_puerto': 8443, 'cert_revocar_serie': '6fda6dc34142129ea390ba73c13a6163'} | AAP terminó (failed): ejecución 0 s, espera de aprobación 71 s / 
-TK 1401 FO-LAB-01401 pendiente_aprobacion 2026-11-10T17:14 u 1 Certificados · Renovar por vencer {'cert_nombre': None, 'cert_recargar': None, 'cert_formato': None, 'cert_puerto': None, 'cert_revocar_serie': None} | 
-TK 582 FO-LAB-00582 exitoso 2026-11-02T08:46 u 1 Certificados · Renovar (EDA) {'cert_nombre': None, 'cert_recargar': None, 'cert_formato': None, 'cert_puerto': None, 'cert_revocar_serie': None} | AAP terminó (successful): ejecución 10 s, espera de aprobación 14 s
-TK 517 FO-LAB-00517 exitoso 2026-11-02T07:20 u 1 Certificados · Emitir para servicio {'cert_nombre': 'jboss-https', 'cert_recargar': 'systemctl restart eap8-standalone', 'cert_formato': 'pkcs12', 'cert_puerto': 8443, 'cert_revocar_serie': None} | AAP terminó (successful): ejecución 31 s, espera de aprobación 13 s
-TK 471 FO-LAB-00471 fallido 2026-11-02T07:02 u 1 Certificados · Emitir para servicio {'cert_nombre': 'jboss-https', 'cert_recargar': 'systemctl restart eap8-standalone', 'cert_formato': 'pkcs12', 'cert_puerto': 8443, 'cert_revocar_serie': None} | AAP terminó (failed): ejecución 92 s, espera de aprobación 9 s / Falló en la tarea «Verificar que el servicio entrega el certificado nuevo» de nodo-jboss:  / FA
-USERS [(1, 'cquezada')]
---- fin: 2026-11-11T15:58:39-03:00 · código: 0
+energía srv-prueba-rhel9-01 encender: sin respuesta del arnés 
+prep respaldo: rechazado al solicitar 
+prep monitoreo: rechazado al solicitar 
+antes: inactive inactive 
+CASO C1 falla · Quitar respaldo continuo
+CASO C2 falla · Quitar node_exporter
+CASO C3 ok · Agente desconocido
+EVIDENCIA [{"id": "C1", "caso": "Quitar respaldo continuo", "resultado": "falla", "evidencia": "rechazado al solicitar archivos=0 skill=no node=inactive "}, {"id": "C2", "caso": "Quitar node_exporter", "resultado": "falla", "evidencia": "rechazado al solicitar inactive sinbin  http=000 skill=no"}, {"id": "C3", "caso": "Agente desconocido", "resultado": "ok", "evidencia": "rechazado al solicitar (PermissionError: Esta acción no aplica a srv-prueba-rhel9-01: el equipo está retirado); la máquina no cambia (huella 17703ca692)"}]
+CERT Sistema · Quitar agente → sin probar
+restaurar monitoreo: rechazado al solicitar 
+FIN-QUITAR
+--- fin: 2026-11-11T15:59:03-03:00 · código: 0
