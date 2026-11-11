@@ -2665,19 +2665,18 @@ def consola_web_plataforma(eid, cod, sub):
         return redirect(f"{prefijo}/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/")
     if familia(cod) == "redis" and not sub and request.method == "GET" and request.environ.get("faceops.cliente"):
         # Redis Insight instalado antes de que las URL llevaran el código del cliente (RI_PROXY_PATH=/faceops/inventario/<id>/…):
-        # solo atiende esa ruta; FaceOps la sigue sirviendo (sin el código, con el cliente de la sesión)
+        # solo atiende esa ruta y su HTML no se puede servir desde la vigente (la URL sin el código vuelve a la del cliente y
+        # el navegador quedaba dando vueltas): se explica y se reinstala con «Instalar Redis Insight», que le da la ruta vigente
         base_ = w["url"].rstrip("/")
         try:
             nuevo_ = requests.get(base_ + (request.script_root or "/faceops") + request.path, timeout=4, allow_redirects=False).status_code
         except requests.RequestException:
             nuevo_ = None
         if nuevo_ == 404:
-            legado_ = (request.environ.get("faceops.raiz") or os.environ.get("FACEOPS_PREFIJO", "/faceops")) + request.path
-            try:
-                if requests.get(base_ + legado_, timeout=4, allow_redirects=False).status_code < 400:
-                    return redirect(legado_)
-            except requests.RequestException:
-                pass
+            return render_template("app_caida.html", segmento=e["nombre"], equipo=e, titulo="Redis Insight con la ruta antigua", url=w["url"],
+                                   error="Redis Insight de esta máquina se instaló con la ruta de publicación anterior (sin el código del cliente) "
+                                   "y no atiende la ruta vigente: reinstálalo con la skill «Instalar Redis Insight» (queda con la ruta nueva "
+                                   "y conserva las conexiones guardadas)."), 409
     if familia(cod) == "vault" and not sub and request.method == "GET":
         # Entrada sin credenciales: FaceOps toma el token de administración de este Vault desde la bóveda central
         # (web/<máquina>/vault), crea un token hijo de 8 h envuelto (válido 2 min, de un solo uso) y la interfaz lo desenvuelve
