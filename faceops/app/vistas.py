@@ -2549,6 +2549,19 @@ def abrir_web(e, w):
 
 
 _KC = {}
+_HTTP = {}
+
+
+def http_responde(url, espera=2.5):
+    """¿La consola contesta por HTTP (cualquier respuesta bajo 500) en poco tiempo? Se guarda 60 s."""
+    if url in _HTTP and time.time() - _HTTP[url][0] < 60:
+        return _HTTP[url][1]
+    try:
+        ok = requests.get(url, timeout=espera, verify=False, allow_redirects=False, stream=True).status_code < 500
+    except requests.RequestException:
+        ok = False
+    _HTTP[url] = (time.time(), ok)
+    return ok
 
 
 def keycloak_responde(ip):
@@ -2582,7 +2595,7 @@ def consola_plataforma(e, cod, verificar=True):
         sv_ = " ".join(j(e.get("servicios"), []) if isinstance(e.get("servicios"), str) else (e.get("servicios") or [])).lower()
         if "keycloak" not in sv_ and "rhbk" not in sv_:
             return None
-    if verificar and not puerto_abierto(e["ip"], puerto):   # plataforma caída o máquina sin respuesta: no se ofrece un enlace roto
+    if verificar and not http_responde(f"{esq}://{e['ip']}:{puerto}/"):   # plataforma caída, colgada o máquina sin respuesta
         return None
     if cod == "keycloak" and verificar and not keycloak_responde(e["ip"]):
         return None
@@ -4224,6 +4237,7 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
     """Botones de acceso de la ficha, juntos y siempre en el mismo orden: Aplicación · Consola web · Consolas de plataforma ·
     SSH/Escritorio · Monitoreo. Solo los que aplican y responden (plataforma detenida o consola restringida no se ofrecen)."""
     from urllib.parse import urlsplit
+    from .boveda import web as _web_b
     out, vistos = [], set()
 
     def agregar(tipo, t, url, title):
@@ -4237,7 +4251,8 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
                 en_ = (((vigente(g.cliente["id"], sg_) or {}).get("m") or {}).get("entrada") or {}).get("url") or ""
                 p_ = urlsplit(en_) if en_.startswith("http") else None
                 w_ = urlsplit(web_eq["url"]) if web_eq and web_eq["producto"] != "Redis" and web_eq["abrir"] != web_eq["url"] else None
-                if p_ and w_ and p_.hostname == e["ip"] and (p_.scheme, p_.port or {"http": 80, "https": 443}[p_.scheme]) == (w_.scheme, w_.port or {"http": 80, "https": 443}.get(w_.scheme)):
+                if p_ and w_ and p_.hostname == e["ip"] and (p_.scheme, p_.port or {"http": 80, "https": 443}[p_.scheme]) == (w_.scheme, w_.port or {"http": 80, "https": 443}.get(w_.scheme)) \
+                        and puerto_abierto(e["ip"], p_.port or {"http": 80, "https": 443}[p_.scheme]):
                     agregar("app", "Aplicación", url_for("consola.web_equipo", eid=e["id"], sub=(p_.path or "/").lstrip("/")),
                             f"Aplicación de {sg_} · se abre a través de FaceOps")
         except Exception:  # noqa: BLE001 - sin arquitectura vigente no hay botón de aplicación
@@ -4258,10 +4273,12 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
         u_ = urlsplit(web_eq["url"])
         por_proxy = web_eq["abrir"].startswith(request.script_root + "/inventario/")
         responde = not por_proxy or puerto_abierto(u_.hostname, u_.port or (443 if u_.scheme == "https" else 80))
+        if web_eq["producto"] == "Redis":   # la consola Redis de FaceOps entra con la credencial de la bóveda
+            responde = responde and bool(_web_b(e["nombre"], "redis"))
         if responde and not any(prod_ in x["t"].lower() or x["t"].lower() in prod_ for x in plat):
             agregar("web", "Consola web", web_eq["abrir"], f"{web_eq['producto']} · " + ("se abre a través de FaceOps" if por_proxy else "se abre directo"))
-    if redis_eq and g.perfil["modo"] == "escritura":
-        plat.append({"t": "Redis", "url": redis_eq, "title": "Consola de Redis en FaceOps (entra con la credencial de la bóveda)"})
+    if redis_eq and g.perfil["modo"] == "escritura" and _web_b(e["nombre"], "redis") and puerto_abierto(e["ip"], 6379):
+        plat.append({"t": "Consola Redis", "url": redis_eq, "title": "Consola de Redis en FaceOps (entra con la credencial de la bóveda)"})
     for x in plat:
         agregar("plataforma", x["t"], x["url"], x["title"])
     if consola_tipo:
@@ -5821,8 +5838,18 @@ def mapa_datos():
     RECARGA = {"nginx": "systemctl reload nginx", "httpd": "systemctl reload httpd", "jboss": "systemctl restart jboss", "jboss-eap": "systemctl restart jboss",
                "tomcat": "systemctl restart tomcat", "postgres": "systemctl restart postgresql", "keycloak": "systemctl restart keycloak", "redis": "systemctl restart redis",
                "kafka": "systemctl restart kafka"}
+    por_ip_e = {e["ip"]: e for e in eqs if e.get("ip")}
     for el in els:
         d = el["data"]
+        if (d.get("app_url") or "").startswith("http"):   # la aplicación en una IP interna se abre a través de FaceOps (el navegador no la alcanza)
+            from urllib.parse import urlsplit as _us
+            p_ = _us(d["app_url"])
+            e_ap = por_ip_e.get(p_.hostname)
+            w_ap = web_de(e_ap) if e_ap else None
+            if w_ap and w_ap["producto"] != "Redis" and not w_ap["producto"].startswith("Consola de OpenShift"):
+                q_ = _us(w_ap["url"])
+                if (p_.scheme, p_.port or {"http": 80, "https": 443}[p_.scheme]) == (q_.scheme, q_.port or {"http": 80, "https": 443}.get(q_.scheme)):
+                    d["app_url"] = url_for("consola.web_equipo", eid=e_ap["id"], sub=(p_.path or "/").lstrip("/"))
         if d.get("bif") and g.perfil["modo"] == "escritura":
             d["bif"]["url"] = url_for("consola.mapa_bifurcacion")
         if cert_a and d.get("tipo") == "flujo" and not (d.get("tls") or {}).get("tipo") and por_nom_e.get(d.get("hacia")) and g.perfil["modo"] == "escritura":
