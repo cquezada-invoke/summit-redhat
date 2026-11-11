@@ -7370,8 +7370,8 @@ def menu_nav():
                                                              ("En ejecución", {"_ep": "consola.tickets", "estado": "en_ejecucion", "_sub": True}), ("Exitosos", {"_ep": "consola.tickets", "estado": "exitoso", "_sub": True}),
                                                              ("Fallidos", {"_ep": "consola.tickets", "estado": "fallido", "_sub": True}),
                                                              ("Aprobaciones pendientes", {"_ep": "consola.aprobaciones_pendientes"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}),
-                                                             ("Control de deuda", {"_ep": "consola.deudas"}), ("KPI y OKR", {"_ep": "consola.kpi_okr"}),
-                                                             ("ITIL (temporal)", {"_ep": "consola.itil"})] + ([] if __import__("app.semillas", fromlist=["x"]).limpia() else [("Arquitectura modular", {"_ep": "consola.arquitectura_modular"})])),
+                                                             ("KPI y OKR", {"_ep": "consola.kpi_okr"}),   # «Control de deuda» quitado del menú por ahora
+                                                             ("ITIL (temporal)", {"_ep": "consola.itil"})]),   # «Arquitectura modular» quitada del menú
                  ("consola.cuenta_datos", "Mi perfil", "clientes", [("Mis datos", {}), ("Cerrar sesión", {"_ep": "consola.salir"})])]
     out = []
     for ep, t, ic, hijos in secciones:
