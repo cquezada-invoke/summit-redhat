@@ -124,7 +124,7 @@
         const ev2={}; Object.entries(ev).forEach(([k,x])=>{ if(k==={{ comp.accion|tojson }}) return; const m=(dst.variables||{})[k]; if(m) ev2[m]=x; else if(!Object.values(COMP).some(c=>k in c.variables)) ev2[k]=x; });
         out.textContent='Acción «'+acc+'» → AAP lanza el workflow «'+(dst.automatizacion||'?')+'» (con su aprobación)\n'+JSON.stringify({extra_vars:ev2},null,2);
         {% else %}
-        out.textContent=(aprob && destino ? 'Con aprobación: se lanza el '+destino+'\n' : '')+'POST /api/controller/v2/{{ 'workflow_job_templates' if a.aap_tipo == 'workflow' else 'job_templates' }}/{{ a.aap_id }}/launch/\n'+JSON.stringify(d,null,2);
+        out.textContent=(aprob && destino ? 'Con aprobación: se lanza el '+destino+'\n' : '')+'POST {{ api_aap() }}{{ 'workflow_job_templates' if a.aap_tipo == 'workflow' else 'job_templates' }}/{{ a.aap_id }}/launch/\n'+JSON.stringify(d,null,2);
         {% endif %}
       }
       // segmento compatible con el sistema operativo elegido (Habilitar servidor)

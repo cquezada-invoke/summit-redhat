@@ -292,8 +292,11 @@ def licencia_aap(cliente):
     r = None
     try:
         from .aap import AAP
-        info = (AAP.de_cliente(cliente).get("config/") or {}).get("license_info") or {}
-        if info:
+        info = AAP.de_cliente(cliente).licencia()
+        if info.get("comunitario"):   # AWX: sin suscripción, no vence ni limita nodos
+            r = {"producto": "AWX (comunitario, sin suscripción)", "sku": "", "vence": "", "nodos": None, "usados": None,
+                 "vencida": False, "comunitario": True}
+        elif info:
             from datetime import datetime, timezone
             ts = info.get("license_date")
             r = {"producto": info.get("subscription_name") or "Ansible Automation Platform", "sku": info.get("sku") or "",
@@ -326,7 +329,7 @@ def caducidad(cliente, contratos):
     a = licencia_aap(cliente)
     if a:
         filas.append({"fabricante": "Red Hat", "producto": a["producto"], "sku": a["sku"], "contrato": "", "vence": a["vence"],
-                      "fuente": "suscripción cargada en AAP", "equipos": [], "origen": "plataforma", "cantidad": a["nodos"], "usado": a["usados"]})
+                      "fuente": "AWX comunitario: sin suscripción" if a.get("comunitario") else "suscripción cargada en AAP", "equipos": [], "origen": "plataforma", "cantidad": a["nodos"], "usado": a["usados"]})
     for f in filas:
         try:
             dias = (date.fromisoformat(f["vence"]) - hoy).days if f["vence"] else None

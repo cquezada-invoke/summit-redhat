@@ -71,7 +71,8 @@ def _url_ficha(cliente, e):
 
 
 def _url_aap(aap, tipo, id_):
-    return f"{aap.web.rstrip('/')}/execution/jobs/{'workflow' if tipo == 'workflow_job' else 'playbook'}/{id_}/output"
+    from .aap import ruta_trabajo
+    return aap.web.rstrip("/") + ruta_trabajo(tipo, id_, getattr(aap, "modo", None))
 
 
 def notificar(cliente, aap, trabajo, para=None):

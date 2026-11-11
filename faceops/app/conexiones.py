@@ -141,7 +141,9 @@ def probar(cliente, tipo):
         ca_f = tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False)
         ca_f.write(p["ca"]); ca_f.close()
     t0 = time.time()
-    res = {"fecha": ahora(), "url": base.rstrip("/") + PRUEBA.get(tipo, "/")}
+    from .aap import API, modo
+    ruta = API[modo(cliente)] + "ping/" if tipo == "aap" else PRUEBA.get(tipo, "/")   # AWX: /api/v2/ping/
+    res = {"fecha": ahora(), "url": base.rstrip("/") + ruta}
     try:
         r = requests.get(res["url"], timeout=8, verify=(ca_f.name if ca_f else verificar), allow_redirects=False,
                          auth=(sec.get("usuario") or p.get("usuario"), sec["clave"]) if sec.get("clave") else None)
@@ -171,7 +173,8 @@ def probar(cliente, tipo):
 def _derivadas(cliente):
     """Las que FaceOps ya usa hoy para este cliente (no se registran a mano: salen de su configuración)."""
     conf = j(cliente.get("tickets_conf"), {})
-    out = [{"tipo": "aap", "nombre": "Ansible Automation Platform", "url": os.environ.get("FACEOPS_AAP_PUBLICA", ""),
+    from .aap import modo
+    out = [{"tipo": "aap", "nombre": "AWX (comunitario)" if modo(cliente) == "awx" else "Ansible Automation Platform", "url": os.environ.get("FACEOPS_AAP_PUBLICA", ""),
             "estado": "operativa" if cliente.get("aap_url") else "por conectar", "fija": True}]
     tt = cliente.get("tickets_tipo") or "faceops"
     if tt != "faceops" and tt in TIPOS:

@@ -31,7 +31,7 @@
 {% else %}<p class="sub" style="margin:0 0 8px">{{ 'No detectado instalado en ninguna máquina del inventario.' if f.tipo == 'servidor' else '—' }}</p>{% endif %}
 <dl class="eq-datos" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:10px">
   {% if f.uso and f.uso.ruta %}<div><dt>Ruta</dt><dd class="mono" style="font-size:12.5px">{{ f.uso.ruta }}</dd></div>{% endif %}
-  <div><dt>Gestión</dt><dd>{% if f.gestion %}{{ f.gestion.accion }}{% if f.gestion.cuando %} · {{ f.gestion.cuando|fecha }}{% endif %}{% if r.aap and f.gestion.job %} · <a href="{{ r.aap }}/execution/jobs/playbook/{{ f.gestion.job }}/output" target="_blank" rel="noopener">trabajo {{ f.gestion.job }} ↗</a>{% endif %}{% else %}manual{% endif %}</dd></div>
+  <div><dt>Gestión</dt><dd>{% if f.gestion %}{{ f.gestion.accion }}{% if f.gestion.cuando %} · {{ f.gestion.cuando|fecha }}{% endif %}{% if r.aap and f.gestion.job %} · <a href="{{ r.aap }}{{ ruta_trabajo_aap(f.gestion.job) }}" target="_blank" rel="noopener">trabajo {{ f.gestion.job }} ↗</a>{% endif %}{% else %}manual{% endif %}</dd></div>
   <div><dt>Renovación</dt><dd>{{ 'Automática: Event-Driven Ansible la lanza dentro de la ventana de ' ~ r.umbral ~ ' días' if f.auto else 'Manual: no la gestiona FaceOps' }}</dd></div>
 </dl></div>
 

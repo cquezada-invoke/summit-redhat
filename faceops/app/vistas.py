@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, current_app, flash, g, make_response, redirect, render_template, request, session, url_for
 
 from . import requiere_login
-from .aap import AAP, ErrorAAP
+from .aap import AAP, ErrorAAP, modo as modo_aap, ruta_ui
 from .bd import ahora, auditar, ej, j, q, q1
 from .buscador import buscar
 from .inventario import cumplimiento, normal, politicas_de, recolectar, segmentos_de, sincronizar, skills_de, sistema_de
@@ -693,7 +693,7 @@ def _refs_auto(a):
         from .aap import AAP
         pub = AAP.de_cliente(g.cliente).publica
         if a.get("aap_id") and a["aap_tipo"] in ("job", "workflow"):
-            out["aap"] = f"{pub}/execution/templates/{'job-template' if a['aap_tipo'] == 'job' else 'workflow-job-template'}/{a['aap_id']}/details"
+            out["aap"] = pub + ruta_ui("job_template" if a["aap_tipo"] == "job" else "workflow_template", a["aap_id"], modo_aap(g.cliente))
     except Exception:  # noqa: BLE001
         pass
     out["partes"] = _partes_auto(a, tec)
@@ -716,7 +716,7 @@ def _refs_auto(a):
             cli = AAP.de_cliente(g.cliente)
             r = cli.get("inventories/", name=inv).get("results") or []
             if r:
-                out["inventario"] = f"{cli.publica}/execution/infrastructure/inventories/inventory/{r[0]['id']}/hosts"
+                out["inventario"] = cli.url_ui("inventario_hosts", r[0]["id"])
         except Exception:  # noqa: BLE001
             pass
     return out
@@ -742,7 +742,7 @@ def _partes_auto(a, tec, prof=0):
         b = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], nombre)
         bt = j(b.get("tecnico"), {}) if b else {}
         if b and (bt.get("compuesta") or b["aap_tipo"] == "workflow") and prof < 2:
-            out.append({"nombre": nombre, "url": f"{pub}/execution/templates/workflow-job-template/{b['aap_id']}/details" if pub and b["aap_id"] else None,
+            out.append({"nombre": nombre, "url": pub + ruta_ui("workflow_template", b["aap_id"], modo_aap(g.cliente)) if pub and b["aap_id"] else None,
                         "tipo": "workflow", "auto_id": b["id"], "accion": accion, "nivel": prof})
             out += _partes_auto(b, bt, prof + 1)
             continue
@@ -753,7 +753,7 @@ def _partes_auto(a, tec, prof=0):
             base = git_publico(repo[:-4] if repo.endswith(".git") else repo)
             url_pb = f"{base}/src/{'commit/' + bt['commit'] if bt.get('commit') else 'branch/main'}/{bt['playbook']}"
         out.append({"nombre": nombre, "tipo": "plantilla", "auto_id": b["id"] if b else None, "repo": repo, "accion": accion, "nivel": prof,
-                    "url": f"{pub}/execution/templates/job-template/{pid}/details" if pub and pid else None,
+                    "url": pub + ruta_ui("job_template", pid, modo_aap(g.cliente)) if pub and pid else None,
                     "playbook": bt.get("playbook"), "url_playbook": url_pb})
     return out
 

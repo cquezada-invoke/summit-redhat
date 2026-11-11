@@ -137,8 +137,10 @@ def _cupo_aap(cliente):
     """Nodos libres de la licencia de AAP (cada máquina automatizada cuenta uno)."""
     try:
         from .aap import AAP
-        li = (AAP.de_cliente(cliente).get("config/") or {}).get("license_info") or {}
+        li = AAP.de_cliente(cliente).licencia()
     except Exception:  # noqa: BLE001
+        return None
+    if li.get("comunitario"):   # AWX: sin tope de nodos
         return None
     if li.get("instance_count") is None:
         return None

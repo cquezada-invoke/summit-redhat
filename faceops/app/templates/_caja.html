@@ -8,7 +8,7 @@
     <div><div class="paso-fila"><span class="paso-t">{{ k }}</span></div><div class="paso-v">{{ v }}</div></div></li>{% endfor %}</ol>{% endif %}
 {% if n.tipo == 'tarea' and n.estado == 'falla' and t.resultado %}{% set lin = t.resultado.split('\n') %}<div class="caja-falla"><b>Dónde falló</b>
 <pre class="msg">{{ (lin[1:] if lin|length > 1 else lin)|select|list|join('\n')|truncate(1800) }}</pre>
-{% if jobs and web_aap %}<a class="btn chico" href="{{ web_aap }}/execution/jobs/playbook/{{ jobs[-1] }}/output" target="_blank" rel="noopener">Revisar en AAP (trabajo #{{ jobs[-1] }}) ↗</a>{% endif %}</div>{% endif %}
+{% if jobs and web_aap %}<a class="btn chico" href="{{ web_aap }}{{ ruta_trabajo_aap(jobs[-1]) }}" target="_blank" rel="noopener">Revisar en {{ nombre_aap() }} (trabajo #{{ jobs[-1] }}) ↗</a>{% endif %}</div>{% endif %}
 {% if n.tipo == 'tarea' %}
   {% if pasos %}<ol class="pasos-log">{% for p in pasos %}<li class="paso p-{{ p.estado }}"><span class="ico"></span>
     <div><div class="paso-fila"><span class="paso-t">{{ p.titulo }} <span class="chip c-{{ p.estado }}">{{ ESTS[p.estado] }}</span></span><span class="paso-h">{{ p.hora|fecha }}</span></div>
@@ -17,5 +17,5 @@
   {% elif n.estado == 'espera' %}<p class="vacio">{{ 'Espera la aprobación.' if t.estado == 'pendiente_aprobacion' else 'Aún no empieza: corre cuando terminen las tareas anteriores.' }}</p>
   {% elif n.estado == 'omitido' %}<p class="vacio">No se ejecutó.</p>
   {% else %}<p class="vacio">AAP todavía no reporta pasos de esta tarea.</p>{% endif %}
-  {% if jobs and web_aap %}<p class="sub" style="font-size:12px">{% for jid in jobs %}<a href="{{ web_aap }}/execution/jobs/playbook/{{ jid }}/output" target="_blank" rel="noopener">salida completa en AAP #{{ jid }} ↗</a>{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
+  {% if jobs and web_aap %}<p class="sub" style="font-size:12px">{% for jid in jobs %}<a href="{{ web_aap }}{{ ruta_trabajo_aap(jid) }}" target="_blank" rel="noopener">salida completa en {{ nombre_aap() }} #{{ jid }} ↗</a>{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
 {% endif %}

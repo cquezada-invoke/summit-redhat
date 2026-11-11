@@ -111,7 +111,11 @@ def _nodos():
     if not c:
         return None
     try:
-        lic = (AAP.de_cliente(c).get("config/") or {}).get("license_info") or {}
+        cli = AAP.de_cliente(c)
+        lic = cli.licencia()
+        if lic.get("comunitario"):   # AWX no tiene licencia: se informan los hosts del inventario
+            n = int(cli.get("hosts/", page_size=1).get("count") or 0)
+            return {"nodos": n, "automatizados": n, "fuente": "AWX comunitario · sin suscripción (hosts del inventario)"}
     except ErrorAAP:
         return None
     usados = lic.get("automated_instances")

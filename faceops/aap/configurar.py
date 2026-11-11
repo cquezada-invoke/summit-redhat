@@ -8,9 +8,16 @@ import base64, glob, json, os, re, secrets, shutil, ssl, subprocess, sys, tempfi
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 SEC = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/demo-drift/cicd-secretos.txt")) if "=" in l)
-INV = glob.glob(os.path.expanduser("~/aap/ansible-automation-platform-containerized-setup-bundle*/inventory-demo"))[0]
-CLAVE = re.search(r"^gateway_admin_password=(.*)$", open(INV).read(), re.M).group(1).strip()
-C, G, GITEA = "https://localhost/api/controller/v2", "https://localhost/api/gateway/v1", "http://127.0.0.1:3000/api/v1"
+MODO = os.environ.get("FACEOPS_AAP_MODO", "aap").strip().lower()   # aap (por defecto) | awx (demos instantáneas en GCP)
+if MODO == "awx":   # AWX comunitario: usuarios, organizaciones y tokens viven en la misma API del controller (no hay gateway)
+    _AWX = os.environ.get("FACEOPS_AWX_URL", "http://127.0.0.1:30080").rstrip("/")
+    CLAVE = os.environ["FACEOPS_AWX_ADMIN_CLAVE"]
+    C = G = _AWX + "/api/v2"
+else:
+    INV = glob.glob(os.path.expanduser("~/aap/ansible-automation-platform-containerized-setup-bundle*/inventory-demo"))[0]
+    CLAVE = re.search(r"^gateway_admin_password=(.*)$", open(INV).read(), re.M).group(1).strip()
+    C, G = "https://localhost/api/controller/v2", "https://localhost/api/gateway/v1"
+GITEA = "http://127.0.0.1:3000/api/v1"
 CTX = ssl._create_unverified_context()
 ADMIN = "Basic " + base64.b64encode(f"admin:{CLAVE}".encode()).decode()
 ENV = os.path.expanduser("~/faceops/faceops.env")
@@ -66,7 +73,9 @@ if not token_ok:
     u = gw("PATCH", f"users/{u[0]['id']}/", datos) if u else gw("POST", "users/", datos)
     basic = "Basic " + base64.b64encode(f"faceops:{clave}".encode()).decode()
     tok = gw("POST", "tokens/", {"description": "FaceOps · consola del Managed Service", "scope": "write"}, auth=basic)
-    env.update({"FACEOPS_AAP_TOKEN": tok["token"], "FACEOPS_AAP_URL": "https://127.0.0.1"})
+    env.update({"FACEOPS_AAP_TOKEN": tok["token"], "FACEOPS_AAP_URL": _AWX if MODO == "awx" else "https://127.0.0.1"})
+    if MODO == "awx":
+        env["FACEOPS_AAP_MODO"] = "awx"
     fd = os.open(ENV, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     os.write(fd, "".join(f"{k}={v}\n" for k, v in env.items()).encode())
     os.close(fd)

@@ -1,4 +1,7 @@
-"""Cliente de la API de Ansible Automation Platform (controller vía gateway). Una instancia por cliente de FaceOps."""
+"""Cliente de la API de Ansible Automation Platform (controller vía gateway). Una instancia por cliente de FaceOps.
+
+Modo `aap` (por defecto, el producto): AAP 2.7 con gateway. Modo `awx` (solo demos instantáneas en GCP): AWX + EDA comunitarios.
+El modo sale de `aap_modo` del cliente o de FACEOPS_AAP_MODO; toda diferencia entre ambos vive aquí (rutas, enlaces, licencia, EDA)."""
 import os
 
 import requests
@@ -11,11 +14,49 @@ class ErrorAAP(Exception):
     pass
 
 
+MODOS = ("aap", "awx")
+API = {"aap": "/api/controller/v2/", "awx": "/api/v2/"}
+YO = {"aap": "/api/gateway/v1/me/", "awx": "/api/v2/me/"}   # validar usuario y clave contra la plataforma
+UI = {   # enlaces que abre el navegador del usuario
+    "aap": {"job": "/execution/jobs/playbook/{id}/output", "workflow_job": "/execution/jobs/workflow/{id}/output",
+            "aprobacion": "/execution/workflow-approvals/{id}/details",
+            "job_template": "/execution/templates/job-template/{id}/details",
+            "workflow_template": "/execution/templates/workflow-job-template/{id}/details",
+            "inventario_hosts": "/execution/infrastructure/inventories/inventory/{id}/hosts",
+            "eda_regla": "/eda/rule-audits/{id}/details", "eda_activacion": "/eda/rulebook-activations/{id}/details"},
+    "awx": {"job": "/#/jobs/playbook/{id}/output", "workflow_job": "/#/jobs/workflow/{id}/output",
+            "aprobacion": "/#/workflow_approvals/{id}/details",
+            "job_template": "/#/templates/job_template/{id}/details",
+            "workflow_template": "/#/templates/workflow_job_template/{id}/details",
+            "inventario_hosts": "/#/inventories/inventory/{id}/hosts",
+            "eda_regla": "/eda/rule-audits/{id}/details", "eda_activacion": "/eda/rulebook-activations/{id}/details"}}
+NOMBRE = {"aap": "AAP", "awx": "AWX"}
+
+
+def modo(cliente=None):
+    """«aap» (Ansible Automation Platform, por defecto) o «awx» (AWX/EDA comunitarios de las demos instantáneas)."""
+    m = ((cliente or {}).get("aap_modo") or os.environ.get("FACEOPS_AAP_MODO") or "aap").strip().lower()
+    return m if m in MODOS else "aap"
+
+
+def ruta_ui(clase, id_, m=None):
+    """Ruta (sin la URL base) de un objeto en la interfaz web de la plataforma según el modo."""
+    return UI[m or modo()][clase].format(id=id_)
+
+
+def ruta_trabajo(tipo, id_, m=None):
+    return ruta_ui("workflow_job" if tipo in ("workflow", "workflow_job") else "job", id_, m)
+
+
 class AAP:
-    def __init__(self, url, token, verificar=False):
-        self.base = url.rstrip("/") + "/api/controller/v2/"
+    def __init__(self, url, token, verificar=False, modo_=None):
+        self.modo = modo_ if modo_ in MODOS else modo()
+        self.base = url.rstrip("/") + API[self.modo]
         self.web = url.rstrip("/")
         self.publica = (os.environ.get("FACEOPS_AAP_PUBLICA") or self.web).rstrip("/")  # la que abre el navegador del usuario
+        # EDA: en AAP vive detrás del gateway (misma URL); en AWX es un servicio aparte (eda-server) con su propia URL
+        self.eda_web = (os.environ.get("FACEOPS_EDA_URL") or self.web).rstrip("/")
+        self.eda_publica = (os.environ.get("FACEOPS_EDA_PUBLICA") or (self.publica if self.eda_web == self.web else self.eda_web)).rstrip("/")
         self.s = requests.Session()
         self.s.headers.update({"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
         self.s.verify = bool(verificar)
@@ -24,7 +65,7 @@ class AAP:
     def de_cliente(cls, c):
         if not c or not c.get("aap_url") or not c.get("aap_token"):
             raise ErrorAAP("El cliente no tiene configurada la conexión con AAP")
-        a = cls(c["aap_url"], c["aap_token"], c.get("aap_verificar"))
+        a = cls(c["aap_url"], c["aap_token"], c.get("aap_verificar"), modo(c))
         a.cliente = c
         return a
 
@@ -54,6 +95,39 @@ class AAP:
             datos = self._r("GET", self.web + datos["next"]) if datos["next"].startswith("/") else self._r("GET", datos["next"])
             res += datos.get("results", [])
         return res
+
+    @property
+    def nombre(self):
+        return NOMBRE[self.modo]
+
+    def url_ui(self, clase, id_):
+        return self.publica + ruta_ui(clase, id_, self.modo)
+
+    # --- Event-Driven Ansible (misma API /api/eda/v1/ en ambos modos; cambia la URL base y, en AWX, la autenticación)
+    def eda(self, metodo, ruta, **kw):
+        url = self.eda_web + "/api/eda/v1/" + ruta.lstrip("/")
+        if self.eda_web != self.web:
+            u, c, t = (os.environ.get(k, "") for k in ("FACEOPS_EDA_USUARIO", "FACEOPS_EDA_CLAVE", "FACEOPS_EDA_TOKEN"))
+            try:
+                r = requests.request(metodo, url, timeout=40, verify=self.s.verify, auth=(u, c) if u and c else None,
+                                     headers={"Content-Type": "application/json", **({"Authorization": f"Bearer {t}"} if t and not (u and c) else {})},
+                                     **kw)
+            except requests.RequestException as e:
+                raise ErrorAAP(f"EDA no responde: {e}") from e
+            if r.status_code >= 400:
+                raise ErrorAAP(f"EDA {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+            return r.json() if r.content else {}
+        return self._r(metodo, url, **kw)
+
+    def url_eda(self, clase, id_):
+        return self.eda_publica + ruta_ui(clase, id_, self.modo)
+
+    # --- licencia: AAP la trae en config/ → license_info; AWX no tiene suscripción (no bloquea nada)
+    def licencia(self):
+        """license_info de AAP, o {"comunitario": True} en AWX (sin suscripción ni tope de nodos)."""
+        if self.modo == "awx":
+            return {"comunitario": True}
+        return (self.get("config/") or {}).get("license_info") or {}
 
     # --- consultas usadas por FaceOps
     def ping(self):
@@ -232,4 +306,4 @@ class AAP:
             return ""
 
     def url_trabajo(self, tipo, id_):
-        return f"{self.publica}/execution/jobs/{'playbook' if tipo == 'job' else 'workflow'}/{id_}/output"
+        return self.publica + ruta_trabajo(tipo, id_, self.modo)

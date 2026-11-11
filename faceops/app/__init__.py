@@ -339,6 +339,10 @@ def create_app():
     from . import ia_usos   # noqa: F401  (Administración › Uso de IA y distintivo «IA»)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo
+    from . import aap as aap_
+    app.jinja_env.globals["ruta_trabajo_aap"] = lambda id_, tipo="job": aap_.ruta_trabajo(tipo, id_)   # AAP o AWX según el modo
+    app.jinja_env.globals["api_aap"] = lambda: aap_.API[aap_.modo()]
+    app.jinja_env.globals["nombre_aap"] = lambda: aap_.NOMBRE[aap_.modo()]
     app.jinja_env.globals["es_demo"] = multicliente.es_demo
     app.jinja_env.globals["multicliente_permitido_f"] = multicliente.permitido
     try:

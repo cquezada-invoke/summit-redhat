@@ -4,7 +4,7 @@
     <div class="fila tramo-tit"><span class="paso-n">{{ loop.index }}</span>
       <b>{{ {'aprobacion':'Aprobación','plantilla':'Acción','workflow':'Workflow'}.get(tr.tipo, tr.tipo) }} · {{ tr.titulo }}</b>
       {{ est({'successful':'exitoso','failed':'fallido','error':'fallido','canceled':'cancelado','pending':'pendiente_aprobacion','running':'en_ejecucion','waiting':'en_cola','new':'en_cola'}.get(tr.estado, tr.estado)) }}
-      {% if tr.tipo != 'aprobacion' %}<a class="der sub" href="{{ web_aap }}/execution/jobs/playbook/{{ tr.job_id }}/output" target="_blank">salida completa en AAP #{{ tr.job_id }}</a>{% endif %}</div>
+      {% if tr.tipo != 'aprobacion' %}<a class="der sub" href="{{ web_aap }}{{ ruta_trabajo_aap(tr.job_id) }}" target="_blank">salida completa en {{ nombre_aap() }} #{{ tr.job_id }}</a>{% endif %}</div>
     {% if tr.tipo == 'aprobacion' %}<p class="sub" style="margin:4px 0 0 34px">{{ tr.detalle or '' }}</p>{% endif %}
     {% if tr.pasos %}<ol class="pasos-log">{% for p in tr.pasos %}
       {% if p.tipo == 'play' %}<li class="play">{{ p.titulo }}</li>

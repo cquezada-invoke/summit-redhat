@@ -39,7 +39,7 @@ def _filtrar(cliente_id, res):
 
 
 def _eda(aap, ruta, **params):
-    return aap._r("GET", aap.web + "/api/eda/v1/" + ruta.lstrip("/"), params=params)
+    return aap.eda("GET", ruta, params=params)
 
 
 def leer(cliente, dias=7):
@@ -60,7 +60,7 @@ def leer(cliente, dias=7):
             out.append({"origen": "eda", "nivel": "alta" if not ok else "info", "titulo": r.get("name") or "regla",
                         "detalle": f"Rulebook «{ai.get('name') or r.get('ruleset_name') or '?'}» · regla {r.get('ruleset_name') or ''}".strip(" ·"),
                         "estado": r.get("status") or "", "cuando": r.get("fired_at"),
-                        "url": f"{aap.publica}/eda/rule-audits/{r['id']}/details"})
+                        "url": aap.url_eda("eda_regla", r["id"])})
     except ErrorAAP as e:
         errores.append(f"EDA (reglas): {str(e)[:160]}")
     # 2. Event-Driven Ansible: activaciones con problemas
@@ -70,7 +70,7 @@ def leer(cliente, dias=7):
             if st in MALAS_ACT or (a.get("is_enabled") and st in ("stopped", "completed")):
                 out.append({"origen": "eda-activacion", "nivel": "critica" if st in MALAS_ACT else "media",
                             "titulo": f"Activación «{a['name']}» {st}", "detalle": (a.get("status_message") or "La regla ya no está escuchando eventos")[:240],
-                            "estado": st, "cuando": a.get("modified_at"), "url": f"{aap.publica}/eda/rulebook-activations/{a['id']}/details"})
+                            "estado": st, "cuando": a.get("modified_at"), "url": aap.url_eda("eda_activacion", a["id"])})
     except ErrorAAP as e:
         errores.append(f"EDA (activaciones): {str(e)[:160]}")
     # 3. Trabajos fallidos: una alerta por plantilla (no una por ejecución); si la última ejecución salió bien, queda resuelta
@@ -96,7 +96,7 @@ def leer(cliente, dias=7):
                                     + (f" · {(f.get('job_explanation') or '')[:120]}" if f.get("job_explanation") else "")),
                         "estado": "resuelta" if resuelta else f["status"], "cuando": f.get("finished"), "ticket": t,
                         "limite": (t or {}).get("limite") or f.get("limit") or "",
-                        "url": f"{aap.publica}/execution/jobs/{'workflow' if f['type'] == 'workflow_job' else 'playbook'}/{f['id']}/output"})
+                        "url": aap.url_trabajo(f["type"], f["id"])})
     except ErrorAAP as e:
         errores.append(f"Trabajos: {str(e)[:160]}")
     # 4. Aprobaciones pendientes
@@ -109,7 +109,7 @@ def leer(cliente, dias=7):
             out.append({"origen": "aprobacion", "nivel": "media" if viejo else "info", "titulo": ap.get("name") or "aprobación",
                         "detalle": f"Workflow «{wj.get('name') or '?'}»" + (" · espera hace más de 4 h" if viejo else ""),
                         "estado": "pendiente", "cuando": creado, "ticket": t, "limite": (t or {}).get("limite") or "",
-                        "url": f"{aap.publica}/execution/workflow-approvals/{ap['id']}/details"})
+                        "url": aap.url_ui("aprobacion", ap["id"])})
     except ErrorAAP as e:
         errores.append(f"Aprobaciones: {str(e)[:160]}")
     orden = {"critica": 0, "alta": 1, "media": 2, "info": 3}

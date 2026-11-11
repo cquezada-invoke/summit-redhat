@@ -309,7 +309,8 @@ def _gateway_valida(f, usuario, clave):
     if not c or not c.get("aap_url"):
         return False
     try:
-        r = requests.get(c["aap_url"].rstrip("/") + "/api/gateway/v1/me/", auth=(usuario, clave), timeout=15, verify=bool(c.get("aap_verificar")))
+        from .aap import YO, modo
+        r = requests.get(c["aap_url"].rstrip("/") + YO[modo(c)], auth=(usuario, clave), timeout=15, verify=bool(c.get("aap_verificar")))
     except requests.RequestException:
         return False
     if r.status_code != 200:
