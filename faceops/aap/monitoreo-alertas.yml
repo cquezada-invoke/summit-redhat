@@ -3,7 +3,8 @@
 # no en FaceOps: este playbook escribe en el Prometheus del anfitrión las reglas del equipo (reglas/<equipo>.yml) y su
 # objetivo (objetivos/exp-<equipo>.yml o tcp-<equipo>.yml), valida con promtool y recarga. Alertmanager las entrega a EDA.
 # Cualquier error deja la configuración anterior (respaldo y vuelta atrás). Junto a cada umbral deja la regla de registro
-# faceops_alerta_umbral y mantiene en Grafana el tablero «Alertas de FaceOps» (lo que evalúa cada regla, umbrales e historia).
+# faceops_alerta_umbral y mantiene en Grafana el tablero «Alertas de <equipo>» (solo sus alertas activas: lo que evalúa cada
+# regla, sus umbrales y su historia).
 #   al_equipo: nombre · al_ip: IP · al_tipo: linux | windows | storage | red
 #   al_alertas: [{id, aviso?, critico?, severidad?, para?}]  (vacía o al_retirar=true → quita todas las del equipo)
 #   al_inventario, al_credencial: de AAP, solo si una acción entra a la máquina (viajan en la regla hasta la respuesta)
@@ -189,22 +190,38 @@
           ansible.builtin.fail:
             msg: "No se aplicaron las alertas de {{ al_equipo }}; quedó la configuración anterior. {{ ansible_failed_result.msg | default(ansible_failed_result.stderr | default('')) }}"
 
-    - name: Tablero «Alertas de FaceOps» en Grafana (provisionado por archivo; Grafana lo relee solo)
+    - name: Tablero del equipo en Grafana («Alertas de <equipo>», solo sus alertas activas; Grafana lo relee solo)
       block:
-        - name: Armar el tablero desde el catálogo
+        - name: Armar el tablero del equipo
           ansible.builtin.command:
-            argv: [python3, "{{ playbook_dir }}/files/alertas_objeto.py", --tablero, "{{ playbook_dir }}/files/alertas-objetos.yml"]
+            argv: [python3, "{{ playbook_dir }}/files/alertas_objeto.py", --tablero, "{{ playbook_dir }}/files/alertas-objetos.yml",
+                   "/tmp/faceops-alertas-{{ al_equipo }}.json"]
           delegate_to: localhost
           become: false
           register: r_tab
           changed_when: false
+          when: not retirar
 
-        - name: Dejar el tablero en la carpeta de Grafana
+        - name: Dejar el tablero en la carpeta de Grafana (o quitarlo si el equipo ya no tiene alertas)
           ansible.builtin.copy:
-            dest: /opt/summit-monitoreo/grafana/dashboards/faceops/faceops-alertas.json
+            dest: "/opt/summit-monitoreo/grafana/dashboards/faceops/{{ (r_tab.stdout | from_json).uid }}.json"
             content: "{{ r_tab.stdout }}\n"
             mode: "0644"
           register: r_tab_f
+          when: not retirar
+
+        - name: Sin alertas, sin tablero
+          ansible.builtin.shell:
+            cmd: >-
+              grep -l '"title": "Alertas de {{ al_equipo }}",' /opt/summit-monitoreo/grafana/dashboards/faceops/*.json 2>/dev/null
+              | xargs -r rm -f
+          changed_when: false
+          when: retirar
+
+        - name: Sin el tablero general anterior (ahora va uno por equipo)
+          ansible.builtin.file:
+            path: /opt/summit-monitoreo/grafana/dashboards/faceops/faceops-alertas.json
+            state: absent
       rescue:
         - name: Sin tablero (las alertas sí quedaron aplicadas)
           ansible.builtin.debug:

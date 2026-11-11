@@ -8399,15 +8399,20 @@ def equipo_alertas(eid):
     if not e or not ao.tipo_de(e):
         abort(404)
     vuelta = url_for("consola.equipo", eid=eid) + "#alertas"
+    js = request.headers.get("X-Requested-With") == "fetch"   # el flotante envía por fetch: el ticket aparece al final de la ficha
     ctx = ao.contexto(g.cliente["id"], e, True)
     if not ctx["disponible"]:
+        if js:
+            return {"error": ctx["por_que"]}, 400
         flash(ctx["por_que"], "error")
-        return redirect(vuelta)
-    if ctx["en_curso"]:
-        flash(f"Ya hay un cambio de alertas en curso para {e['nombre']} ({ctx['en_curso']['numero']})", "error")
         return redirect(vuelta)
     try:
         par = ao.pedido_de_formulario(e, request.form)
+        _ya = {x["id"]: x.get("accion") for x in ao.aplicadas(e).get("alertas") or []}
+        for x_ in par["al_alertas"]:   # una acción bloqueada por la regla de prueba no se puede elegir (sí mantener la vigente)
+            bl_ = ao.bloqueo_accion(g.cliente["id"], ao.catalogo(), x_["accion"])
+            if bl_ and _ya.get(x_["id"]) != x_["accion"]:
+                raise ValueError(f"Alerta {x_['id']}: la acción elegida está bloqueada ({bl_})")
         if ao.requiere_acceso(par):   # la respuesta entra a la máquina: con el inventario y la credencial de AAP del equipo
             from .operacion import acceso_equipo
             try:
@@ -8424,8 +8429,12 @@ def equipo_alertas(eid):
         t = solicitar(g.usuario, g.cliente, a, "", par,
                       request.form.get("motivo") or (f"Alertas de {e['nombre']}: {n_} activa{'s' if n_ != 1 else ''}, {len(par['al_retiradas'])} apagada{'s' if len(par['al_retiradas']) != 1 else ''}" if n_ else f"Retirar las alertas de {e['nombre']}"))
     except (ValueError, PermissionError) as x:
+        if js:
+            return {"error": str(x)}, 400
         flash(str(x), "error")
         return redirect(vuelta)
+    if js:
+        return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
     flash(f"Pedido {t['numero']}: Ansible configurará las alertas de {e['nombre']} en Prometheus" + (" (requiere aprobación)" if t["estado"] == "pendiente_aprobacion" else ""), "ok")
     return redirect(vuelta)
 

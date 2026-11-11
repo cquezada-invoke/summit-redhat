@@ -8,13 +8,12 @@
   <span class="al-ic">{{ campana(22) }}{% if al.n %}<b class="al-n">{{ al.n }}</b>{% endif %}</span>
 </button>
 <dialog id="al-dlg" class="al-dlg" onclick="if(event.target===this)this.close()">
-<form method="post" action="{{ accion }}" class="al-form">
+<form method="post" action="{{ accion }}" class="al-form" onsubmit="return fxAlTicket(event, this)">
 <input type="hidden" name="_csrf" value="{{ csrf }}">
 <header class="al-cab"><span class="al-ic grande al-{{ est_ }}">{{ campana(26) }}</span>
   <div><h2>Alertas de {{ nombre }}</h2><p class="sub">{{ al.tipo_nombre }} · métricas de {{ al.fuente }} · {{ al.total }} alertas posibles · la configuración queda en Ansible y Prometheus, no en FaceOps</p></div>
   <button type="button" class="al-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">✕</button></header>
-{% if al.en_curso %}<div class="flash">Hay un cambio en curso ({{ al.en_curso.numero }} · {{ al.en_curso.estado|replace('_', ' ') }}): cuando termine podrás ajustar de nuevo.</div>
-{% elif not al.disponible %}<div class="flash error">{{ al.por_que }}</div>{% endif %}
+{% if not al.disponible %}<div class="flash error">{{ al.por_que }}</div>{% endif %}
 {% if al.aplicado %}<p class="sub al-ult">Configuración vigente en Ansible desde {{ al.aplicado|fecha }}{% if al.ticket %} · {{ al.ticket }}{% endif %}</p>{% endif %}
 {% if al.n %}<p class="sub al-ult al-donde">Reglas en Prometheus: <code>{{ al.archivo }}</code> (grupo <code>{{ al.grupo_prom }}</code>) ·
   <a href="{{ al.grafana }}" target="_blank" rel="noopener">Ver todas en Grafana ↗</a></p>{% endif %}
@@ -22,10 +21,10 @@
 {% if not al.grupos %}<div class="vacio" style="padding:22px 6px;text-align:center"><b>Aún no hay alertas definidas para {{ al.tipo_nombre|lower }}.</b><br><span class="sub">Se agregan al catálogo a medida que se necesitan; cuando exista una, aparecerá aquí para activarla.</span></div>{% endif %}
 {% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
 {% for a in xs %}<label class="al-fila{{ ' on' if a.activa }}">
-  <span class="al-sw"><input type="checkbox" name="on_{{ a.id }}" {{ 'checked' if a.activa }} {{ 'disabled' if not al.disponible or al.en_curso }} onchange="this.closest('.al-fila').classList.toggle('on', this.checked)"><i></i></span>
+  <span class="al-sw"><input type="checkbox" name="on_{{ a.id }}" {{ 'checked' if a.activa }} {{ 'disabled' if not al.disponible }} onchange="this.closest('.al-fila').classList.toggle('on', this.checked)"><i></i></span>
   <span class="al-def"><b>{{ a.nombre }}</b><small>{{ a.descripcion }}</small>
     {% if a.activa %}<small class="al-ver"><a href="{{ a.grafana }}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Lo que evalúa la regla, su umbral y su historia (últimas 24 h)">Ver en Grafana ↗</a> · <code>{{ a.regla }}</code></small>{% endif %}</span>
-  <span class="al-acc"><small>Acción al dispararse</small><select name="acc_{{ a.id }}" {{ 'disabled' if not al.disponible }} onclick="event.stopPropagation()">{% for k, t in a.acciones_l %}<option value="{{ k }}" {{ 'selected' if a.valor_accion == k }}>{{ t }}</option>{% endfor %}</select></span>
+  <span class="al-acc"><small>Acción al dispararse</small><select name="acc_{{ a.id }}" {{ 'disabled' if not al.puede }} onclick="event.stopPropagation()">{% for k, t, bl in a.acciones_l %}<option value="{{ k }}" {{ 'selected' if a.valor_accion == k }} {{ 'disabled' if bl and a.valor_accion != k }} title="{{ bl }}">{{ t }}{{ ' — bloqueada: ' ~ bl if bl }}</option>{% endfor %}</select></span>
   <span class="al-umb">{% if a.umbral is sameas false %}
     <select name="sev_{{ a.id }}" {{ 'disabled' if not al.disponible }}>{% for k, t in [('aviso', 'Aviso'), ('critico', 'Crítico')] %}<option value="{{ k }}" {{ 'selected' if a.valor_sev == k }}>{{ t }}</option>{% endfor %}</select>
   {% else %}
@@ -37,9 +36,19 @@
 </label>{% endfor %}{% endfor %}
 </div>
 <footer class="al-pie">
-  <input type="text" name="motivo" placeholder="Motivo del cambio (opcional)" {{ 'disabled' if not al.disponible or al.en_curso }}>
+  <input type="text" name="motivo" placeholder="Motivo del cambio (opcional)" {{ 'disabled' if not al.disponible }}>
   <span class="sub">Un solo ticket con todas las alertas del flotante: las activas con su umbral, duración y acción, y las apagadas se retiran. Ansible escribe las reglas en Prometheus, las valida y recarga (con vuelta atrás); Alertmanager las entrega a Event-Driven Ansible.</span>
-  <div class="al-btns"><button class="btn" {{ 'disabled' if not al.disponible or al.en_curso or not al.grupos }}>Generar ticket</button></div>
+  <div class="al-btns"><button class="btn" {{ 'disabled' if not al.disponible or not al.grupos }}>Generar ticket</button></div>
 </footer>
 </form></dialog>
+<script>
+// «Generar ticket»: un solo ticket con todas las alertas; se cierra el flotante y el ticket aparece al final de la ficha
+function fxAlTicket(ev, f){ if(!window.fxNuevoTicket) return true; ev.preventDefault();
+  const b=f.querySelector('.al-btns .btn'); b.disabled=true;
+  fetch(f.action,{method:'POST',body:new FormData(f),headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{b.disabled=false;
+    if(t.error){(window.fxAviso||alert)(t.error,'error');return;}
+    f.closest('dialog').close(); window.fxAviso&&fxAviso(t.numero+' creado: alertas de la máquina'+(t.estado==='pendiente_aprobacion'?' (espera aprobación)':''),'ok');
+    fxNuevoTicket(t);}).catch(()=>{b.disabled=false;(window.fxAviso||alert)('No se pudo crear el ticket','error');});
+  return false;}
+</script>
 {% endif %}{% endmacro %}

@@ -17,10 +17,9 @@ AUTO = "Monitoreo · Configurar alertas del equipo"
 RUTA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "aap", "files", "alertas-objetos.yml")
 RED = ("router", "switch", "firewall", "balanceador")
 _cache = {}
-# Grafana del monitoreo: tablero «Alertas de FaceOps» que deja el mismo playbook. Por el acceso público vive en /grafana/
+# Grafana del monitoreo: tablero «Alertas de <equipo>» que deja el mismo playbook (uno por equipo, solo sus alertas activas). Por el acceso público vive en /grafana/
 # detrás de la sesión de FaceOps (proxy con auth_request, solo lectura); FACEOPS_GRAFANA cambia la base si hace falta.
 GRAFANA = os.environ.get("FACEOPS_GRAFANA", "/grafana").rstrip("/")
-TABLERO = "faceops-alertas"
 REGLAS = "/opt/summit-monitoreo/prometheus/faceops/reglas"
 
 
@@ -29,12 +28,19 @@ def panel_id(aid):
     return ord(aid[0].upper()) * 100 + int(re.sub(r"\D", "", aid) or 0)
 
 
+def uid_tablero(eq):
+    """El mismo uid que arma aap/files/alertas_objeto.py para el tablero del equipo (máx. 40 caracteres)."""
+    import hashlib
+    u = f"faceops-al-{eq}"
+    return u if len(u) <= 40 else f"faceops-al-{eq[:20]}-{hashlib.sha1(eq.encode()).hexdigest()[:8]}"
+
+
 def url_grafana(equipo, aid=None):
-    """Tablero «Alertas de FaceOps» con el equipo elegido, últimas 24 h y, si se indica, solo el panel de esa alerta."""
-    par = {"orgId": 1, "var-equipo": equipo, "from": "now-24h", "to": "now"}
+    """Tablero «Alertas de <equipo>» (solo sus alertas activas), últimas 24 h y, si se indica, solo el panel de esa alerta."""
+    par = {"orgId": 1, "from": "now-24h", "to": "now"}
     if aid:
         par["viewPanel"] = panel_id(aid)
-    return f"{GRAFANA}/d/{TABLERO}/alertas-de-faceops?" + urlencode(par)
+    return f"{GRAFANA}/d/{uid_tablero(equipo)}?" + urlencode(par)
 
 
 def nombre_regla(a):
@@ -85,6 +91,19 @@ def en_curso(cliente_id, e):
     return None
 
 
+def bloqueo_accion(cliente_id, cat, k, _memo={}):
+    """Por qué no se puede elegir una acción ("" si se puede): su automatización no está publicada o no pasó su plan de
+    prueba (regla de prueba, app/pruebas.py). «Solo avisar» no lanza nada y siempre se puede."""
+    auto = ((cat.get("acciones") or {}).get(k) or {}).get("auto")
+    if not auto:
+        return ""
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, auto)
+    if not a:
+        return f"«{auto}» no está publicada en AAP"
+    from .pruebas import estado
+    return "" if estado(dict(a, cliente_id=cliente_id))["estado"] == "certificada" else f"«{auto}» aún no pasa su plan de prueba"
+
+
 def contexto(cliente_id, e, puede_escribir):
     """Todo lo que el botón y el flotante necesitan."""
     t = tipo_de(e)
@@ -98,7 +117,7 @@ def contexto(cliente_id, e, puede_escribir):
     for a in cat["alertas"]:
         if t in a["tipos"] and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
-            accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k)) for k in (a.get("acciones") or ["avisar"])]
+            accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k), bloqueo_accion(cliente_id, cat, k)) for k in (a.get("acciones") or ["avisar"])]
             grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, grafana=url_grafana(e["nombre"], a["id"]),
                                                                          regla=nombre_regla(a), valor_accion=(x or {}).get("accion", "avisar"),
                                                                          valor_aviso=(x or {}).get("aviso", a.get("aviso")),
@@ -119,7 +138,7 @@ def contexto(cliente_id, e, puede_escribir):
     return {"tipo": t, "tipo_nombre": cat["tipos"][t]["nombre"], "fuente": cat["tipos"][t]["fuente"], "grupos": grupos,
             "n": len(act), "aplicado": ap.get("actualizado"), "ticket": ap.get("ticket"), "resumen": ap.get("resumen") or [],
             "grafana": url_grafana(e["nombre"]), "archivo": f"{REGLAS}/{e['nombre']}.yml", "grupo_prom": f"faceops-{e['nombre']}",
-            "en_curso": en_curso(cliente_id, e), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values())}
+            "puede": puede_escribir, "en_curso": en_curso(cliente_id, e), "disponible": disponible, "por_que": por_que, "total": sum(len(v) for v in grupos.values())}
 
 
 def _minutos(p):

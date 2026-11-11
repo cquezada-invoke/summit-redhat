@@ -1,7 +1,7 @@
 """Monitoreo · Configurar alertas del equipo: arma lo que Prometheus necesita para vigilar un equipo con las alertas elegidas.
 
 Uso: alertas_objeto.py <catalogo.yml> <prometheus.yml actual> <pedido.json>
-     alertas_objeto.py --tablero <catalogo.yml>   → JSON del tablero «Alertas de FaceOps» de Grafana (uno para todos los equipos)
+     alertas_objeto.py --tablero <catalogo.yml> <pedido.json>   → JSON del tablero de Grafana del equipo (solo sus alertas activas)
 pedido: {"equipo", "ip", "tipo": linux|windows|storage|red, "alertas": [{"id", "aviso"?, "critico"?, "severidad"?, "para"?}], "retirar": bool,
          "inventario"?, "credencial"? (de AAP, para las acciones que entran a la máquina)}
 Salida (JSON): {"prometheus": yaml o "" si no cambia, "reglas": yaml o "", "objetivo": yaml o "", "objetivo_archivo", "resumen": [...]}"""
@@ -108,55 +108,56 @@ def _umbral(eq, aid, sev, u):
 
 
 UNIDAD = {"%": "percent", "s": "s", "ms": "ms", "por s": "pps", "% de éxito": "percent"}
-FILAS = [("linux", "Servidores Linux y storage"), ("windows", "Servidores Windows"), ("red", "Equipos de red")]
 DS = {"type": "prometheus", "uid": "prometheus"}
 
 
-def tablero(cat):
-    """Tablero «Alertas de FaceOps»: por cada alerta del catálogo, lo que evalúa su regla (la misma expresión, sin la comparación),
-    las líneas de umbral vigentes del equipo (faceops_alerta_umbral) y, como anotación, cuándo se disparó (ALERTS)."""
-    paneles, anot, y = [], [{"builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"}, "enable": True, "hide": True,
-                              "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}], 0
-    for i, (tipo, titulo) in enumerate(FILAS):
-        xs = [a for a in cat["alertas"] if a["tipos"][0] == tipo or (tipo == "linux" and a["tipos"][0] == "storage")]
-        if not xs:
-            continue
-        paneles.append({"type": "row", "id": i + 1, "title": titulo, "collapsed": False, "gridPos": {"h": 1, "w": 24, "x": 0, "y": y}, "panels": []})
-        y += 1
-        for k, a in enumerate(xs):
-            pid, (base, _) = panel_id(a["id"]), serie(a["expr"])
-            por = re.search(r"by \(faceops_equipo, (\w+)\)", base)
-            umbral = f'faceops_alerta_umbral{{faceops_equipo="$equipo",faceops_alerta="{a["id"]}"}}'
-            paneles.append({
-                "type": "timeseries", "id": pid, "title": f"{a['nombre']} · {a['id']}", "datasource": DS,
-                "description": f"{a.get('descripcion', '')}. Regla en Prometheus (grupo faceops-<equipo>): {a['expr'].replace('__EQ__', '<equipo>')}",
-                "gridPos": {"h": 8, "w": 12, "x": 12 * (k % 2), "y": y + 8 * (k // 2)},
-                "targets": [{"refId": "A", "datasource": DS, "expr": base.replace("__EQ__", "$equipo"),
-                             "legendFormat": "{{" + por.group(1) + "}}" if por else a["nombre"]},
-                            {"refId": "B", "datasource": DS, "expr": umbral, "legendFormat": "Umbral {{severity}}"}],
-                "fieldConfig": {"defaults": {"unit": UNIDAD.get(a.get("unidad"), "short"), "custom": {"lineWidth": 2, "fillOpacity": 8, "spanNulls": True}},
-                                "overrides": [{"matcher": {"id": "byName", "options": f"Umbral {s_}"},
-                                               "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": c_}},
-                                                              {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 6]}},
-                                                              {"id": "custom.fillOpacity", "value": 0}]}
-                                              for s_, c_ in (("warning", "orange"), ("critical", "red"))]},
-                "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": True}, "tooltip": {"mode": "multi", "sort": "none"}}})
-            anot.append({"name": f"{a['id']} disparada", "datasource": DS, "enable": True, "hide": True, "iconColor": "red",
-                         "expr": f'ALERTS{{faceops_equipo="$equipo",faceops_alerta="{a["id"]}",alertstate="firing"}}', "step": "60s",
-                         "titleFormat": "{{alertname}}", "textFormat": "{{severity}}", "tagKeys": "faceops_alerta,severity",
-                         "useValueForTime": False, "filter": {"exclude": False, "ids": [pid]}})
-        y += 8 * ((len(xs) + 1) // 2)
-    return {"uid": "faceops-alertas", "title": "Alertas de FaceOps", "tags": ["faceops", "alertas"], "editable": False,
+def uid_tablero(eq):
+    """uid del tablero de un equipo en Grafana (máx. 40): faceops-al-<equipo>, o recortado con huella si es largo."""
+    import hashlib
+    u = f"faceops-al-{eq}"
+    return u if len(u) <= 40 else f"faceops-al-{eq[:20]}-{hashlib.sha1(eq.encode()).hexdigest()[:8]}"
+
+
+def tablero(cat, ped):
+    """Tablero «Alertas de <equipo>»: SOLO las alertas activas de ese equipo. Por cada una, lo que evalúa su regla (la misma
+    expresión, sin la comparación), las líneas de umbral vigentes (faceops_alerta_umbral) y, como anotación, cuándo se disparó
+    (ALERTS). Todas las consultas van fijas al equipo: no hay variable ni otras máquinas."""
+    eq = ped["equipo"]
+    por_id = {a["id"]: a for a in cat["alertas"]}
+    xs = [por_id[x["id"]] for x in ped.get("alertas") or [] if x.get("id") in por_id]
+    q_ = lambda t: t.replace("__EQ__", eq).replace("$equipo", eq)   # noqa: E731
+    paneles, anot = [], [{"builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"}, "enable": True, "hide": True,
+                          "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}]
+    for k, a in enumerate(xs):
+        pid, (base, _) = panel_id(a["id"]), serie(a["expr"])
+        por = re.search(r"by \(faceops_equipo, (\w+)\)", base)
+        paneles.append({
+            "type": "timeseries", "id": pid, "title": f"{a['nombre']} · {a['id']}", "datasource": DS,
+            "description": f"{a.get('descripcion', '')}. Regla en Prometheus (grupo faceops-{eq}): {q_(a['expr'])}",
+            "gridPos": {"h": 9, "w": 12, "x": 12 * (k % 2), "y": 9 * (k // 2)},
+            "targets": [{"refId": "A", "datasource": DS, "expr": q_(base), "legendFormat": "{{" + por.group(1) + "}}" if por else a["nombre"]},
+                        {"refId": "B", "datasource": DS, "expr": f'faceops_alerta_umbral{{faceops_equipo="{eq}",faceops_alerta="{a["id"]}"}}',
+                         "legendFormat": "Umbral {{severity}}"}],
+            "fieldConfig": {"defaults": {"unit": UNIDAD.get(a.get("unidad"), "short"), "custom": {"lineWidth": 2, "fillOpacity": 8, "spanNulls": True}},
+                            "overrides": [{"matcher": {"id": "byName", "options": f"Umbral {s_}"},
+                                           "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": c_}},
+                                                          {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 6]}},
+                                                          {"id": "custom.fillOpacity", "value": 0}]}
+                                          for s_, c_ in (("warning", "orange"), ("critical", "red"))]},
+            "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": True}, "tooltip": {"mode": "multi", "sort": "none"}}})
+        anot.append({"name": f"{a['id']} disparada", "datasource": DS, "enable": True, "hide": True, "iconColor": "red",
+                     "expr": f'ALERTS{{faceops_equipo="{eq}",faceops_alerta="{a["id"]}",alertstate="firing"}}', "step": "60s",
+                     "titleFormat": "{{alertname}}", "textFormat": "{{severity}}", "tagKeys": "faceops_alerta,severity",
+                     "useValueForTime": False, "filter": {"exclude": False, "ids": [pid]}})
+    return {"uid": uid_tablero(eq), "title": f"Alertas de {eq}", "tags": ["faceops", "alertas", eq], "editable": False,
             "timezone": "browser", "refresh": "1m", "schemaVersion": 39, "time": {"from": "now-24h", "to": "now"},
-            "description": "Generado por Ansible («Monitoreo · Configurar alertas del equipo») desde el catálogo de alertas de FaceOps: no editar a mano",
-            "templating": {"list": [{"name": "equipo", "label": "Equipo", "type": "query", "datasource": DS, "refresh": 2, "sort": 1,
-                                     "definition": "label_values(faceops_equipo)", "query": "label_values(faceops_equipo)"}]},
-            "annotations": {"list": anot}, "panels": paneles}
+            "description": "Generado por Ansible («Monitoreo · Configurar alertas del equipo») con las alertas activas del equipo: no editar a mano",
+            "templating": {"list": []}, "annotations": {"list": anot}, "panels": paneles}
 
 
 def main():
     if sys.argv[1] == "--tablero":
-        print(json.dumps(tablero(yaml.safe_load(open(sys.argv[2]))), ensure_ascii=False, indent=1))
+        print(json.dumps(tablero(yaml.safe_load(open(sys.argv[2])), json.load(open(sys.argv[3]))), ensure_ascii=False, indent=1))
         return
     cat = yaml.safe_load(open(sys.argv[1]))
     cfg = yaml.safe_load(open(sys.argv[2])) or {}

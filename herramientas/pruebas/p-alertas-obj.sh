@@ -21,9 +21,9 @@ echo "$TX" | grep -q '"encender", "Infra · Encender o apagar equipo"' && echo "
   || anotar C9 "Acción por alerta y ruta a EDA" falla "AM=$AM $(echo $TX | cut -c1-200)"
 # C11 · tablero de Grafana y umbrales como serie (la clave del visitante no se imprime)
 GV=$(sed -n 's/^grafana_visitante_clave=//p' ~/demo-drift/cicd-secretos.txt); sleep 15
-G11=$(curl -s -u "visitante:$GV" http://127.0.0.1:3001/grafana/api/dashboards/uid/faceops-alertas | python3 -c "import json,sys;d=json.load(sys.stdin)['dashboard'];print(sum(1 for p in d['panels'] if p['type']=='timeseries'))" 2>/dev/null)
+G11=$(curl -s -u "visitante:$GV" http://127.0.0.1:3001/grafana/api/dashboards/uid/faceops-al-$L | python3 -c "import json,sys;d=json.load(sys.stdin)['dashboard'];print(','.join(sorted(str(p['id']) for p in d['panels'])), all('$L' in t['expr'] for p in d['panels'] for t in p['targets']))" 2>/dev/null)
 U11=$(curl -s "$PM/api/v1/query" --data-urlencode "query=faceops_alerta_umbral{faceops_equipo=\"$L\",faceops_alerta=\"C01\"}" | python3 -c "import json,sys;print(','.join(sorted(r['metric']['severity']+'='+r['value'][1] for r in json.load(sys.stdin)['data']['result'])))")
-[ "${G11:-0}" -ge 20 ] && [ "$U11" = "critical=95,warning=80" ] && anotar C11 "Tablero en Grafana" ok "faceops-alertas con $G11 paneles; umbrales C01 $U11" || anotar C11 "Tablero en Grafana" falla "paneles=$G11 umbrales=$U11"
+[ "$G11" = "6701,6702,6703,6801 True" ] && [ "$U11" = "critical=95,warning=80" ] && anotar C11 "Tablero en Grafana" ok "faceops-al-$L solo con sus 4 alertas activas y consultas fijas al equipo ($G11); umbrales C01 $U11" || anotar C11 "Tablero en Grafana" falla "paneles=$G11 umbrales=$U11"
 # C2 · disparo real (umbral de disco bajo el uso actual, 30 s)
 pedir C2 $L $IL linux '[{"id":"D01","accion":"encender"},{"id":"C03","aviso":1,"critico":99,"para":"30s","accion":"avisar"}]'
 E2=$(estado); F2=""; for i in $(seq 1 18); do sleep 10; F2=$(curl -s $PM/api/v1/alerts | python3 -c "import json,sys;print(sum(1 for a in json.load(sys.stdin)['data']['alerts'] if a['labels'].get('faceops_equipo')=='$L' and a['labels'].get('faceops_alerta')=='C03' and a['state']=='firing'))"); [ "$F2" -ge 1 ] && break; done
@@ -77,6 +77,7 @@ pedir C7 $L $IL linux '[{"id":"C01","aviso":95,"critico":80,"accion":"avisar"}]'
 # C8 · retirar todas
 pedir C8 $L $IL linux '[]'; E8=$(estado); sleep 40; R8=$(reglas $L); U8=$(up $L); OK8=$(curl -s -o /dev/null -w '%{http_code}' $PM/-/ready)
 pedir C8b $S $IS storage '[]' >/dev/null; [ -n "$RN" ] && pedir C8c $RN $RI red '[]' >/dev/null
-[ "$E8" = exitoso ] && [ "$R8" = 0 ] && [ "$U8" = sin-serie ] && [ "$OK8" = 200 ] && anotar C8 "Retirar todas" ok "sin reglas ni objetivo; Prometheus listo" || anotar C8 "Retirar todas" falla "$E8 reglas=$R8 up=$U8 ready=$OK8"
+T8=$(sudo test -f /opt/summit-monitoreo/grafana/dashboards/faceops/faceops-al-$L.json && echo queda || echo sin-tablero)
+[ "$E8" = exitoso ] && [ "$R8" = 0 ] && [ "$U8" = sin-serie ] && [ "$OK8" = 200 ] && [ "$T8" = sin-tablero ] && anotar C8 "Retirar todas" ok "sin reglas, objetivo ni tablero; Prometheus listo" || anotar C8 "Retirar todas" falla "$E8 reglas=$R8 up=$U8 ready=$OK8 tablero=$T8"
 certificar "$N" "Plan alertas por objeto · C1–C9 y C11 (planes-prueba.yml)"
 echo FIN-ALERTAS-OBJ
