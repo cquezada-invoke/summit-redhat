@@ -1,39 +1,37 @@
-commit: 5b156d22cca311c35a09ee0f0c6546c6b0ddb224
-inicio: 2026-11-11T00:10:45-03:00
+commit: 8d0c08ce92e731752935ed11fdd0b3b50c9f507b
+inicio: 2026-11-11T00:05:42-03:00
 ---
-ticket Banca · Core bancario FO-LAB-01587
-ticket Banca · CRM y contact center FO-LAB-01588
-ticket Banca · Originación de créditos FO-LAB-01589
-ticket Banca · Banca digital FO-LAB-01590
-ticket Banca · Tarjetas FO-LAB-01591
-ticket Telco · Mi cuenta y atención FO-LAB-01592
-ticket Telco · BSS · facturación y planes FO-LAB-01593
-ticket Telco · Uso de red (CDR) FO-LAB-01594
-ticket Telco · OSS · calidad de red FO-LAB-01595
-ticket Telco · Ventas y recargas FO-LAB-01597
-RES Banca · Core bancario FO-LAB-01587 exitoso
-RES Banca · CRM y contact center FO-LAB-01588 exitoso
-RES Banca · Originación de créditos FO-LAB-01589 exitoso
-RES Banca · Banca digital FO-LAB-01590 exitoso
-RES Banca · Tarjetas FO-LAB-01591 exitoso
-RES Telco · Mi cuenta y atención FO-LAB-01592 exitoso
-RES Telco · BSS · facturación y planes FO-LAB-01593 exitoso
-RES Telco · Uso de red (CDR) FO-LAB-01594 exitoso
-RES Telco · OSS · calidad de red FO-LAB-01595 exitoso
-RES Telco · Ventas y recargas FO-LAB-01597 exitoso
-CHK Banca · Core bancario | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_core/operaciones_vivo/ por=FO-LAB-01587 en=2026-11-11T03:13 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10127, "rps": 0.75}
-CHK Banca · CRM y contact center | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_contacto/operaciones_vivo/ por=FO-LAB-01588 en=2026-11-11T03:13 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_contacto/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10120, "rps": 0.5}
-CHK Banca · Originación de créditos | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_creditos/operaciones_vivo/ por=FO-LAB-01589 en=2026-11-11T03:13 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_creditos/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10116, "rps": 0.75}
-CHK Banca · Banca digital | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_digital/operaciones_vivo/ por=FO-LAB-01590 en=2026-11-11T03:14 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_digital/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10038, "rps": 0.25}
-CHK Banca · Tarjetas | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/banca_tarjetas/operaciones_vivo/ por=FO-LAB-01591 en=2026-11-11T03:14 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 310, "destino": "s3://lake/apps/banca_tarjetas/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10148, "rps": 0.74}
-CHK Telco · Mi cuenta y atención | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_atencion/operaciones_vivo/ por=FO-LAB-01592 en=2026-11-11T03:15 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_atencion/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9934, "rps": 1.0}
-CHK Telco · BSS · facturación y planes | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_bss/operaciones_vivo/ por=FO-LAB-01593 en=2026-11-11T03:15 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_bss/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9951, "rps": 0.75}
-CHK Telco · Uso de red (CDR) | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_cdr/operaciones_vivo/ por=FO-LAB-01594 en=2026-11-11T03:17 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_cdr/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9916, "rps": 0.25}
-CHK Telco · OSS · calidad de red | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_oss/operaciones_vivo/ por=FO-LAB-01595 en=2026-11-11T03:17 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_oss/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 9960, "rps": 0.49}
-CHK Telco · Ventas y recargas | page=200 datos=200 | bif activa=1 destino=s3://lake/apps/telco_ventas/operaciones_vivo/ por=FO-LAB-01597 en=2026-11-11T03:17 | lakes=1 aristas_bif=[('c:_route', 'c:lake', '9000')] | flotante medicion=True | uso={"archivos": 305, "destino": "s3://lake/apps/telco_ventas/operaciones_vivo/", "directa": true, "error_app": "", "mb": null, "requests": 10050, "rps": 0.25}
-ARCH Servicios en la nube | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
-ARCH Catálogo en línea | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
-ARCH Ventas en línea | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
-ARCH Servidores corporativos | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
-ARCH Base de datos de pagos | en tabla segmentos=False | enlaces en Segmentos de negocio=0 | en menú=False | en archivados=True
---- fin: 2026-11-11T00:18:34-03:00 · código: 0
+pendiente previo: FO-LAB-01579 en_ejecucion
+  -> exitoso
+nodo-jboss ruta vigente antes: 200
+nodo-nginx ruta vigente antes: 200
+nodo-tomcat ruta vigente antes: 404
+  aviso: ['Reinstalando Redis Insight en nodo-tomcat (FO-LAB-01583): al terminar, el icono de Redis abre su consola']
+   FO-LAB-01583 ri_ruta: /faceops/lab/inventario/10/consola-web/redis
+   FO-LAB-01583 en_ejecucion | 
+  ruta vigente después: ReadTimeout
+== nodo-jboss 6
+ página: 200 /faceops/lab/inventario/6/consola-web/redis/ título: Redis Insight
+ api/databases: 200 0
+ alta conexión: 201 
+ conectar: 200 overview: 200 {"version":"6.2.24","serverName":null,"totalKeys":0,"usedMemory":875936,"connectedClients":1,"opsPerSecond":11,"networkInKbps":0,"networkOut
+ texto: 
+ >=400/fallas: ['503 GET /faceops/lab/inventario/6/consola-web/redis/assets/redux-thunk-mZs2rUNu.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/redux-thunk-mZs2rUNu.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/6/consola-web/redis/assets/@reduxjs-B6mEhL_u.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/@reduxjs-B6mEhL_u.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/6/consola-web/redis/assets/lodash-es-C_yls3rA.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/lodash-es-C_yls3rA.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/6/consola-web/redis/assets/date-fns-DDMf5MkQ.js', 'FALLA /faceops/lab/inventario/6/consola-web/redis/assets/date-fns-DDMf5MkQ.js net::ERR_ABORTED']
+ socket.io: ['503 /faceops/lab/inventario/6/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '503 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '503 /faceops/lab/inventario/6/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js']
+ errores js: []
+== nodo-nginx 8
+ página: 200 /faceops/lab/inventario/8/consola-web/redis/ título: Redis Insight
+ api/databases: 200 0
+ alta conexión: 500 {"message":"Unsupported encryption strategy","name":"UnsupportedEncryptionStrategy","statusCode":500,"errorCode":11807}
+ texto: 
+ >=400/fallas: ['503 GET /faceops/lab/inventario/8/consola-web/redis/assets/redux-thunk-mZs2rUNu.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/redux-thunk-mZs2rUNu.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/8/consola-web/redis/assets/@reduxjs-B6mEhL_u.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/@reduxjs-B6mEhL_u.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/8/consola-web/redis/assets/lodash-es-C_yls3rA.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/lodash-es-C_yls3rA.js net::ERR_ABORTED', '503 GET /faceops/lab/inventario/8/consola-web/redis/assets/date-fns-DDMf5MkQ.js', 'FALLA /faceops/lab/inventario/8/consola-web/redis/assets/date-fns-DDMf5MkQ.js net::ERR_ABORTED']
+ socket.io: ['503 /faceops/lab/inventario/8/consola-web/redis/assets/@socket.io-B4OnlIJK.js', '503 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-client-Ds0j5IrL.js', '503 /faceops/lab/inventario/8/consola-web/redis/assets/socket.io-parser-Dm6hADEX.js']
+ errores js: []
+== nodo-tomcat 10
+ página: 502 /faceops/lab/inventario/10/consola-web/redis/ título: nodo-tomcat no responde · FaceOps
+ api/databases: 502 0
+ texto: ☰ FaceOps Managed Service · Invoke v1.0.1522 Clientes Gobierno ES Móvil Panel Banco del Pacífico Sur (demo) Clínica Santa Lucía (demo) Invoke Lab Minera Los Andes (demo) ＋ Agregar cliente… Infraestructura Servidores Redes Storage Sistemas operativos Bases de datos Plataformas Contenedores Estaciones
+ >=400/fallas: ['502 GET /faceops/lab/inventario/10/consola-web/redis/', '502 GET /faceops/lab/inventario/10/consola-web/redis/api/databases', '502 GET /faceops/lab/inventario/10/consola-web/redis/']
+ socket.io: []
+ errores js: []
+--- fin: 2026-11-11T00:20:16-03:00 · código: 0
