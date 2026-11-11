@@ -1,0 +1,23 @@
+commit: 356954b4a6a028a8ddd95eeda8db2082e4fee766
+inicio: 2026-11-11T00:23:34-03:00
+---
+    location ~ ^/faceops/(inventario/\d+/(consola-web|web)/.*)$ {
+        limit_req zone=consolas burst=800 nodelay;
+        proxy_pass http://192.168.122.1:8110/$1$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $http_connection;
+        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+    }
+    location ~ ^/faceops/((?:[a-z0-9_-]+/)?inventario/\d+/(consola-web|web)/.*)$ {
+        limit_req zone=consolas burst=800 nodelay;
+        proxy_pass http://192.168.122.1:8110/$1$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $http_connection;
+        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+    }
+2026/11/11 03:23:34 [notice] 82#82: signal process started
+nginx recargado
+tomcat cpu % en 10s: 155
+--- fin: 2026-11-11T00:23:44-03:00 · código: 0
