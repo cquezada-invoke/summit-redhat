@@ -4,6 +4,7 @@ set -euo pipefail
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml PATH=$PATH:/usr/local/bin
 P=/root/prueba; umask 077
 NODO=$(hostname -I | awk '{print $1}')
+export HOSTS=${HOSTS:-"nodo-prueba=$NODO"}
 python3 - <<'PY'
 import base64, json, os, time, urllib.request, urllib.error
 P = "/root/prueba"
@@ -36,8 +37,10 @@ ct = [c for c in awx("GET", "credential_types/?namespace=ssh")["results"]][0]
 cred = asegurar("credentials", "Prueba · SSH", {"organization": org["id"], "credential_type": ct["id"],
                 "inputs": {"username": "root", "ssh_key_data": open(f"{P}/id_awx").read()}})
 inv = asegurar("inventories", "Prueba", {"organization": org["id"], "description": "Inventario de la prueba FaceOps-AWX"})
-if not uno(f"inventories/{inv['id']}/hosts", "nodo-prueba"):
-    awx("POST", f"inventories/{inv['id']}/hosts/", {"name": "nodo-prueba", "variables": json.dumps({"ansible_host": NODO, "ambiente": "Producción"})})
+for hv in os.environ["HOSTS"].split():   # nombre=IP (por defecto, esta misma máquina)
+    hn, hip = hv.split("=", 1)
+    if not uno(f"inventories/{inv['id']}/hosts", hn):
+        awx("POST", f"inventories/{inv['id']}/hosts/", {"name": hn, "variables": json.dumps({"ansible_host": hip, "ambiente": "Producción"})})
 pr = asegurar("projects", "Prueba", {"organization": org["id"], "scm_type": "git", "scm_url": open(f"{P}/repo_url").read().strip(),
                                      "scm_branch": "main", "scm_update_on_launch": False})
 for _ in range(60):

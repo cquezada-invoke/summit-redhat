@@ -351,6 +351,22 @@ def oportunidad(oid):
                 flash(f"La PoC dura entre 1 y {max_semanas()} semanas en total (ya usadas: {usadas})", "error")
                 return redirect(url_for("oportunidad", oid=oid))
             _activar_demo(o, c, sem)
+        elif acc == "demo_faceops":
+            # «Demo de FaceOps»: la Demo y su VM en GCP (imagen base con AWX comunitario) en un solo paso; FaceAdmin es el único que la crea
+            import demo_gcp
+            try:
+                did = demos_nube.pedir(o, c, dict(f.items(), desde=""))
+            except ValueError as e:
+                flash(str(e), "error")
+                return redirect(url_for("oportunidad", oid=oid, panel=1))
+            dn = q1("SELECT * FROM demos_nube WHERE id=?", did)
+            try:
+                demo_gcp.pedir(dn, f, g.usuario["usuario"])
+                flash(f"Demo de FaceOps {dn['numero']} pedida: la VM se crea desde la imagen base y queda lista en minutos. "
+                      "Se enciende solo en horario hábil, se apaga sin uso y se elimina al vencer.", "ok")
+            except (ValueError, TypeError) as e:
+                flash(f"Demo {dn['numero']} registrada, pero la VM no se pudo pedir: {e}", "error")
+            return redirect(url_for("demo_nube", did=did) + "#gcp")
         elif acc == "demo_nube":
             try:
                 did = demos_nube.pedir(o, c, f)

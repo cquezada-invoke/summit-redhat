@@ -87,7 +87,7 @@ K
 (cd /opt/prueba/eda && kustomize build . | kubectl apply -f - >/dev/null 2>&1) || (sleep 20; cd /opt/prueba/eda && kustomize build . | kubectl apply -f - >/dev/null)
 
 paso "repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba"
-NODO=$(hostname -I | awk '{print $1}')
+NODO=${NODO:-$(hostname -I | awk '{print $1}')}
 install -d /srv/git && rm -rf /tmp/pr && mkdir -p /tmp/pr/rulebooks
 cat > /tmp/pr/ping.yml <<'Y'
 - name: FaceOps prueba · ping
@@ -123,6 +123,7 @@ systemctl daemon-reload && systemctl enable --now git-http >/dev/null 2>&1
 echo "http://$NODO:8088/prueba.git" > $P/repo_url
 
 paso "acceso SSH de AWX a esta misma máquina (host gestionado)"
+install -d -m 700 /root/.ssh
 [ -f $P/id_awx ] || ssh-keygen -q -t ed25519 -N '' -f $P/id_awx
 grep -qf $P/id_awx.pub /root/.ssh/authorized_keys 2>/dev/null || cat $P/id_awx.pub >> /root/.ssh/authorized_keys
 chmod 600 /root/.ssh/authorized_keys

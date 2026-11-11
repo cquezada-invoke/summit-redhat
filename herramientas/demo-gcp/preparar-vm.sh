@@ -1,148 +1,100 @@
 #!/bin/bash
-# Corre DENTRO de la VM constructora (Rocky Linux 9) y deja todo instalado y detenido listo para la imagen dorada.
-# Versiones fijadas y parametrizables; revisar antes de construir (AWX pausó sus versiones públicas en 24.6.1 / awx-operator 2.19.1).
+# Corre DENTRO de la VM constructora (Rocky Linux 9, como root) y deja la imagen base de la «Demo de FaceOps»:
+#  k3s + AWX 24.6.1 + EDA comunitarios (prueba-awx/instalar.sh), FaceOps en modo awx + validador local (prueba-awx/configurar.sh),
+#  2 VMs Rocky anidadas que FaceOps administra, Caddy (TLS con sslip.io), primer arranque y agente de uso.
+#  Antes de generalizar corre la PRUEBA REAL (prueba-awx/e2e.py): si falla, no hay imagen.
+# Pensada para n2-standard-4 (2 cores físicos, 16 GB). Las claves se generan aquí, viven en archivos 600 y nunca se imprimen.
 set -euo pipefail
-AWX_OP=${AWX_OP:-2.19.1}; EDA_OP=${EDA_OP:-main}   # eda-server-operator: 1.0.2 es el último tag (2024); eda-server solo publica main; K3S=${K3S:-v1.30.6+k3s1}
-FACEOPS_REPO=${FACEOPS_REPO:-https://github.com/cquezada-invoke/summit-redhat.git}
-VMS=${VMS:-"nodo-web nodo-app nodo-db"}          # VMs anidadas (Rocky 9, 1 vCPU, 2 GB) que FaceOps administra en la demo
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+D=$(cd "$(dirname "$0")" && pwd); R=$(cd "$D/../.." && pwd)
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml PATH=$PATH:/usr/local/bin
+paso() { echo "== $(date +%T) $*"; }
+P=/root/prueba; install -d -m 700 $P /etc/demo /var/lib/demo
 
-echo "== paquetes base"
-dnf -y -q install epel-release
-dnf -y -q install podman git jq python3-pip qemu-kvm libvirt virt-install guestfs-tools cloud-utils-growpart tar iproute
-systemctl enable --now libvirtd
+paso "nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)"
+# interfaz ficticia con IP propia: k3s no depende de la IP de GCP, que cambia en cada demo
+nmcli -t -f NAME con show | grep -qx demo0 || nmcli -g UUID con add type dummy ifname demo0 con-name demo0 ipv4.method manual ipv4.addresses 10.254.254.1/32 ipv6.method disabled >/dev/null
+nmcli con up demo0 >/dev/null
+install -d /etc/rancher/k3s
+printf 'node-name: faceops-demo\nnode-ip: 10.254.254.1\nflannel-iface: demo0\ndisable: [metrics-server]\n' > /etc/rancher/k3s/config.yaml
+# AWX entra por SSH como root a esta misma máquina (nodo-prueba) y a las VMs anidadas: solo desde la red interna
+printf 'Match Address 192.168.122.0/24,10.42.0.0/16,10.254.254.1\n    PermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/90-demo-awx.conf
+systemctl reload sshd
+
+paso "KVM/libvirt para las VMs anidadas"
 grep -q vmx /proc/cpuinfo || { echo "sin virtualización anidada (vmx)"; exit 1; }
+dnf -y -q install qemu-kvm libvirt virt-install jq tar git openssl >/dev/null
+systemctl enable --now libvirtd >/dev/null 2>&1
 
-echo "== k3s (sin traefik: Caddy publica todo en 443)"
-curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="$K3S" INSTALL_K3S_EXEC="--disable traefik --write-kubeconfig-mode 600" sh -
-until kubectl get nodes 2>/dev/null | grep -q " Ready"; do sleep 5; done
-dnf -y -q install https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz 2>/dev/null || \
-  (curl -sL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz | tar xz -C /usr/local/bin)
+paso "AWX + EDA comunitarios, validador y FaceOps (rama ${RAMA:-feature/faceops-awx})"
+NODO=10.254.254.1 bash "$D/prueba-awx/instalar.sh"
 
-echo "== AWX (awx-operator $AWX_OP) — upstream comunitario de automation controller"
-mkdir -p /opt/demo/awx && cd /opt/demo/awx
-cat > kustomization.yaml <<K
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: awx
-resources:
-  - github.com/ansible/awx-operator/config/default?ref=$AWX_OP
-  - awx.yaml
-images:
-  - name: quay.io/ansible/awx-operator
-    newTag: $AWX_OP
-K
-cat > awx.yaml <<K
-apiVersion: awx.ansible.com/v1beta1
-kind: AWX
-metadata: {name: awx}
-spec:
-  service_type: NodePort
-  nodeport_port: 30080
-  web_resource_requirements: {requests: {cpu: 250m, memory: 1Gi}}
-  task_resource_requirements: {requests: {cpu: 250m, memory: 1Gi}}
-  ee_resource_requirements: {requests: {cpu: 100m, memory: 256Mi}}
-  postgres_storage_requirements: {requests: {storage: 8Gi}}
-K
-kubectl create ns awx --dry-run=client -o yaml | kubectl apply -f -
-kustomize build . | kubectl apply -f -
-
-echo "== EDA comunitario (eda-server-operator $EDA_OP)"
-mkdir -p /opt/demo/eda && cd /opt/demo/eda
-cat > kustomization.yaml <<K
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: eda
-resources:
-  - github.com/ansible/eda-server-operator/config/default?ref=$EDA_OP
-  - eda.yaml
-images:
-  - name: controller
-    newName: quay.io/ansible/eda-server-operator
-    newTag: $EDA_OP
-K
-cat > eda.yaml <<K
-apiVersion: eda.ansible.com/v1alpha1
-kind: EDA
-metadata: {name: eda}
-spec:
-  service_type: NodePort
-  nodeport_port: 30081   # eda-ui: sirve la interfaz y hace de proxy de /api/eda/v1
-  automation_server_url: http://awx-service.awx.svc.cluster.local
-K
-kubectl create ns eda --dry-run=client -o yaml | kubectl apply -f -
-kustomize build . | kubectl apply -f -
-for i in $(seq 1 120); do kubectl -n awx get awx awx -o jsonpath='{.status.conditions[?(@.type=="Running")].status}' 2>/dev/null | grep -q True && break; sleep 10; done
-
-echo "== servicios en contenedores (podman + quadlet): FaceOps, Gitea, Vault, MinIO, Prometheus, Alertmanager, Grafana, Caddy"
-install -d /etc/containers/systemd /var/lib/demo/{gitea,vault,minio,prometheus,grafana,caddy,faceops}
-git clone -q --depth 1 "$FACEOPS_REPO" /opt/demo/repo
-podman build -q -t localhost/faceops:demo -f /opt/demo/repo/faceops/Containerfile /opt/demo/repo/faceops
-c() { printf '[Container]\nImage=%s\nContainerName=%s\nNetwork=host\n%s\n[Service]\nRestart=always\n[Install]\nWantedBy=multi-user.target\n' "$2" "$1" "$3" > "/etc/containers/systemd/$1.container"; }
-c faceops   localhost/faceops:demo                      "Volume=/var/lib/demo/faceops:/var/lib/faceops:Z
-EnvironmentFile=-/etc/demo/faceops.env"
-c gitea     docker.io/gitea/gitea:1.22                  "Volume=/var/lib/demo/gitea:/data:Z
-Environment=GITEA__server__HTTP_PORT=3000"
-c vault     docker.io/hashicorp/vault:1.17              "Volume=/var/lib/demo/vault:/vault/file:Z
-Environment=VAULT_LOCAL_CONFIG={\"storage\":{\"file\":{\"path\":\"/vault/file\"}},\"listener\":{\"tcp\":{\"address\":\"127.0.0.1:8200\",\"tls_disable\":true}},\"ui\":true}
-Exec=server"
-c minio     quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z "Volume=/var/lib/demo/minio:/data:Z
-EnvironmentFile=-/etc/demo/minio.env
-Exec=server /data --address 127.0.0.1:9000 --console-address 127.0.0.1:9001"
-c prometheus docker.io/prom/prometheus:v2.54.1          "Volume=/var/lib/demo/prometheus:/prometheus:Z"
-c alertmanager docker.io/prom/alertmanager:v0.27.0      ""
-c grafana   docker.io/grafana/grafana:11.2.2            "Volume=/var/lib/demo/grafana:/var/lib/grafana:Z
-EnvironmentFile=-/etc/demo/grafana.env"
-c caddy     docker.io/library/caddy:2.8                 "Volume=/etc/demo/Caddyfile:/etc/caddy/Caddyfile:ro,Z
-Volume=/var/lib/demo/caddy:/data:Z"
-for im in localhost/faceops:demo docker.io/gitea/gitea:1.22 docker.io/hashicorp/vault:1.17 quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z \
-          docker.io/prom/prometheus:v2.54.1 docker.io/prom/alertmanager:v0.27.0 docker.io/grafana/grafana:11.2.2 docker.io/library/caddy:2.8; do
-  podman image exists "$im" || podman pull -q "$im" >/dev/null; done
-
-echo "== VMs anidadas (Rocky 9 GenericCloud, sin licencia): $VMS"
+paso "VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)"
+[ -f $P/id_awx ] || ssh-keygen -q -t ed25519 -N '' -f $P/id_awx
 install -d /var/lib/libvirt/images/base
-curl -sL -o /var/lib/libvirt/images/base/rocky9.qcow2 https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud-Base.latest.x86_64.qcow2
-for n in $VMS; do
-  qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/libvirt/images/base/rocky9.qcow2 "/var/lib/libvirt/images/$n.qcow2" 20G
-  virt-install --name "$n" --memory 2048 --vcpus 1 --import --disk "/var/lib/libvirt/images/$n.qcow2" --os-variant rocky9 \
-    --network network=default --graphics none --noautoconsole --cloud-init root-ssh-key=/root/.ssh/id_demo.pub 2>/dev/null || \
-    { [ -f /root/.ssh/id_demo ] || ssh-keygen -q -t ed25519 -N '' -f /root/.ssh/id_demo; \
-      virt-install --name "$n" --memory 2048 --vcpus 1 --import --disk "/var/lib/libvirt/images/$n.qcow2" --os-variant rocky9 \
-        --network network=default --graphics none --noautoconsole --cloud-init root-ssh-key=/root/.ssh/id_demo.pub; }
-  virsh autostart "$n" >/dev/null
+[ -f /var/lib/libvirt/images/base/rocky9.qcow2 ] || curl -sfL -o /var/lib/libvirt/images/base/rocky9.qcow2 \
+  https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud-Base.latest.x86_64.qcow2
+i=10
+for n in nodo-web nodo-app; do
+  i=$((i+1)); mac=52:54:00:de:00:$i
+  virsh net-update default add ip-dhcp-host "<host mac='$mac' name='$n' ip='192.168.122.$i'/>" --live --config >/dev/null 2>&1 || true
+  if ! virsh dominfo "$n" >/dev/null 2>&1; then
+    qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/libvirt/images/base/rocky9.qcow2 "/var/lib/libvirt/images/$n.qcow2" 15G
+    printf '#cloud-config\nhostname: %s\nusers:\n  - name: root\n    ssh_authorized_keys: ["%s"]\ndisable_root: false\n' "$n" "$(cat $P/id_awx.pub)" > /tmp/ud-$n
+    virt-install -q --name "$n" --memory 1536 --vcpus 1 --import --disk "/var/lib/libvirt/images/$n.qcow2" --os-variant rocky9 \
+      --network network=default,mac=$mac --graphics none --noautoconsole --cloud-init user-data=/tmp/ud-$n
+    virsh autostart "$n" >/dev/null
+  fi
 done
+for i in 11 12; do for t in $(seq 1 40); do
+  ssh -q -i $P/id_awx -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 root@192.168.122.$i true && break; sleep 10; done; done
+paso "VMs anidadas con SSH: $(for i in 11 12; do ssh -q -i $P/id_awx -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 root@192.168.122.$i hostname 2>/dev/null || echo NO; done | xargs)"
 
-echo "== agente de uso y primer arranque"
-install -m 755 /tmp/agente-uso.sh /usr/local/sbin/demo-agente-uso
-install -m 755 /tmp/primer-arranque.sh /usr/local/sbin/demo-primer-arranque
+paso "AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx"
+HOSTS="nodo-prueba=192.168.122.1 nodo-web=192.168.122.11 nodo-app=192.168.122.12" bash "$D/prueba-awx/configurar.sh"
+
+paso "PRUEBA REAL de FaceOps en modo awx (login, inventario, ticket con aprobación, workflow, EDA, licencia)"
+openssl rand -hex 12 > $P/clave_e2e
+WH=$(kubectl -n eda get svc -o json | jq -r '.items[] | select(.spec.ports[]?.port==5000) | .spec.clusterIP' | head -1)
+podman exec -i -e CLAVE_PRUEBA="$(cat $P/clave_e2e)" -e EDA_WEBHOOK="http://$WH:5000/" faceops python3 - < "$D/prueba-awx/e2e.py" | tee $P/e2e.txt
+grep -q "^[0-9]*/[0-9]* verificaciones OK" $P/e2e.txt && ! grep -q "  ✗ " $P/e2e.txt || { echo "PRUEBA REAL FALLIDA"; exit 1; }
+paso "PRUEBA REAL OK: $(grep 'verificaciones OK' $P/e2e.txt)"
+
+paso "Caddy, primer arranque y agente de uso"
+podman pull -q docker.io/library/caddy:2.8 >/dev/null
+install -m 755 "$D/agente-uso.sh" /usr/local/sbin/demo-agente-uso
+install -m 755 "$D/primer-arranque.sh" /usr/local/sbin/demo-primer-arranque
+install -m 600 "$P/faceops.env" /etc/demo/faceops.env
 cat > /etc/systemd/system/demo-primer-arranque.service <<U
 [Unit]
-Description=Demo · primer arranque (credenciales del cliente, URL sslip.io y TLS)
+Description=Demo FaceOps · primer arranque (credenciales del cliente, claves internas nuevas, URL sslip.io y TLS)
 After=network-online.target k3s.service
 Wants=network-online.target
-ConditionPathExists=!/var/lib/demo/credenciales.listo
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/local/sbin/demo-primer-arranque
 [Install]
 WantedBy=multi-user.target
 U
 cat > /etc/systemd/system/demo-agente-uso.service <<U
 [Unit]
-Description=Demo · informa el uso a FaceAdmin y apaga la VM sin uso, fuera de horario o vencida
+Description=Demo FaceOps · informa el uso a FaceAdmin y se apaga sin uso, fuera de horario o vencida
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/demo-agente-uso
 U
 cat > /etc/systemd/system/demo-agente-uso.timer <<U
 [Unit]
-Description=Demo · agente de uso cada 5 minutos
+Description=Demo FaceOps · agente de uso cada 5 minutos
 [Timer]
-OnBootSec=3min
+OnBootSec=4min
 OnUnitActiveSec=5min
 [Install]
 WantedBy=timers.target
 U
+# Los contenedores vuelven solos (podman restart-policy) y los ve systemd
+podman update --restart=always faceops validador >/dev/null 2>&1 || true
+systemctl enable podman-restart.service >/dev/null 2>&1 || true
 systemctl daemon-reload
-systemctl enable demo-primer-arranque.service demo-agente-uso.timer
-echo "Preparación terminada"
+systemctl enable demo-primer-arranque.service demo-agente-uso.timer >/dev/null 2>&1
+paso "Preparación terminada"

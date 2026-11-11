@@ -13,7 +13,7 @@ ssh_=$(who | wc -l)
 jobs=$(k3s kubectl -n awx get pods -l 'ansible-awx-job-id' --no-headers 2>/dev/null | grep -c Running)
 activo=false; { [ "$https" -gt 0 ] || [ "$ssh_" -gt 0 ] || [ "$jobs" -gt 0 ]; } && { activo=true; date +%s > "$EST"; }
 
-r=$(curl -sf -m 20 -X POST -H "Content-Type: application/json" -H "X-Demo-Token: $TOK" \
+r=$(curl -skf -m 20 -X POST -H "Content-Type: application/json" -H "X-Demo-Token: $TOK" \
      -d "{\"activo\": $activo, \"sesiones\": $ssh_, \"http\": $https, \"ssh\": $ssh_, \"cpu\": \"$(cut -d' ' -f1 /proc/loadavg)\"}" \
      "$FA/api/demo-gcp/$NUM/uso" 2>/dev/null)
 if [ -n "$r" ]; then

@@ -233,4 +233,48 @@ for n in ("demo-ajena", "prod-db"):
     except gcp.ErrorGCP:
         chk(True, f"{n} no se toca (sin etiqueta o sin prefijo)")
 
+print("11. «Demo de FaceOps» desde la oportunidad (1 semana por defecto, IP efímera si no hay permiso para reservar)")
+F.inst.pop("demo-ajena"); F.inst.pop("prod-db")
+T[0] = datetime(2026, 11, 30, 10, 0, tzinfo=TZ).timestamp()   # lunes
+_ofecha = DG.datetime
+with A.app.app_context():
+    A.ej("UPDATE demos_nube SET hasta='2026-11-20' WHERE id=?", did)
+pg = cl.get(f"/oportunidades/{oid}").get_data(as_text=True)
+chk("Demo de FaceOps" in pg and "n2-standard-4" in pg and 'value="7" selected' in pg and 'value="14"' in pg, "el panel de la oportunidad ofrece «Demo de FaceOps» (n2-standard-4, 7 días por defecto, hasta 14)")
+_orig_r = gcp.Compute._r
+def _sin_ip(self, metodo, ruta, **kw):
+    if metodo == "POST" and ruta.startswith("regions/") and ruta.endswith("/addresses"):
+        raise gcp.ErrorGCP("GCP POST → 403: Required 'compute.addresses.create' permission")
+    return _orig_r(self, metodo, ruta, **kw)
+gcp.Compute._r = _sin_ip
+import demos_nube as DN  # noqa: E402
+_hoy = DN.date
+class _D(_hoy):
+    @classmethod
+    def today(cls):
+        return _hoy(2026, 11, 30)
+DN.date = _D
+r = cl.post(f"/oportunidades/{oid}", data={"_csrf": "c", "accion": "demo_faceops", "dias": "7", "tz": "America/Santiago", "dias_habiles": "1-5",
+                                           "hora_ini": "8", "hora_fin": "19", "inactividad_min": "30", "usuario_cliente": "acme2"})
+DN.date = _hoy
+with A.app.app_context():
+    d2 = A.q1("SELECT * FROM demos_nube WHERE oportunidad_id=? ORDER BY id DESC", oid)
+    g2 = A.q1("SELECT * FROM demos_gcp WHERE demo_id=?", d2["id"])
+chk(r.status_code == 302 and g2 and d2["id"] != did, f"Demo {d2['numero']} y su VM pedidas en un paso → {r.headers.get('Location')}")
+chk(abs((g2["expira"] - g2["creada"]) - 7 * 86400) < 5 and d2["hasta"] == "2026-12-06", f"vence en 7 días ({d2['hasta']})")
+i2 = F.inst[g2["instancia"]]
+chk("natIP" not in i2["networkInterfaces"][0]["accessConfigs"][0] and i2["machineType"].endswith("n2-standard-4"), "VM n2-standard-4 con IP efímera (sin reserva)")
+i2["networkInterfaces"][0]["accessConfigs"][0]["natIP"] = "34.176.99.9"
+with A.app.app_context():
+    DG.avanzar(g2["id"])
+    g2 = A.q1("SELECT * FROM demos_gcp WHERE id=?", g2["id"])
+chk(g2["url"] == "https://faceops.34.176.99.9.sslip.io", f"URL tomada de la IP efímera: {g2['url']}")
+r = cl.post(f"/oportunidades/{oid}", data={"_csrf": "c", "accion": "demo_faceops", "dias": "21"}, follow_redirects=True)
+chk("ya tiene una Demo vigente" in r.get_data(as_text=True) or "entre 1 y" in r.get_data(as_text=True), "no se pide una segunda Demo ni más de 14 días")
+with A.app.app_context():
+    DG.eliminar_ya(g2["id"], "cq")
+    DG.avanzar(g2["id"])
+    chk(A.q1("SELECT estado FROM demos_gcp WHERE id=?", g2["id"])["estado"] == "eliminada", "eliminada sin IP reservada que liberar")
+gcp.Compute._r = _orig_r
+
 print(f"\nOK: {sum(OK)}/{len(OK)} verificaciones")

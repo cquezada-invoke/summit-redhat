@@ -21,9 +21,10 @@ LLAVE_ARCH = os.path.join(DIR, "gcp_sa.llave")     # llave Fernet (600)
 CFG_ARCH = os.path.join(DIR, "demo_gcp.json")      # configuración no secreta
 API = "https://compute.googleapis.com/compute/v1"
 ALCANCE = "https://www.googleapis.com/auth/compute"
+META = "http://metadata.google.internal/computeMetadata/v1"   # credenciales de la cuenta de servicio de la propia VM de FaceAdmin
 ETIQUETA = "faceadmin-demo"
-CFG_DEF = {"proyecto": "", "zona": "southamerica-west1-a", "imagen": "familia:faceops-demo", "tipo": "n2-standard-8", "disco_gb": 100,
-           "red": "default", "prefijo": "demo-", "faceadmin_url": "", "inactividad_min": 30, "dias_max": 7, "aviso_horas": 24,
+CFG_DEF = {"proyecto": "", "zona": "southamerica-west1-a", "imagen": "familia:faceops-demo", "tipo": "n2-standard-4", "disco_gb": 60,
+           "red": "default", "prefijo": "demo-", "faceadmin_url": "", "inactividad_min": 30, "dias_max": 14, "dias_def": 7, "aviso_horas": 24,
            "tz": "America/Santiago", "dias_habiles": "1-5", "hora_ini": 8, "hora_fin": 19, "arranque_programado": False}
 
 
@@ -44,6 +45,8 @@ def config():
         d.update({k: x[k] for k in CFG_DEF if k in x})
     except (OSError, ValueError):
         pass
+    if not d["proyecto"] and not os.path.exists(SA_ARCH):
+        d["proyecto"] = (sa_metadata() or {}).get("proyecto", "")
     return d
 
 
@@ -101,10 +104,35 @@ def borrar_sa():
             os.remove(r)
 
 
+_META_CACHE = {}
+
+
+def _meta(ruta, timeout=2):
+    r = requests.get(f"{META}/{ruta}", headers={"Metadata-Flavor": "Google"}, timeout=timeout)
+    r.raise_for_status()
+    return r.text
+
+
+def sa_metadata():
+    """Cuenta de servicio adjunta a la VM de FaceAdmin (sin clave: el token lo entrega el servidor de metadatos de GCP).
+    Devuelve {proyecto, correo, fuente} o None si FaceAdmin no corre en GCP o la VM no tiene cuenta."""
+    if "x" in _META_CACHE and time.time() - _META_CACHE["t"] < 300:
+        return _META_CACHE["x"]
+    x = None
+    try:
+        correo = _meta("instance/service-accounts/default/email").strip()
+        if correo and "compute@developer" not in correo:
+            x = {"proyecto": _meta("project/project-id").strip(), "correo": correo, "id_clave": "", "fuente": "metadata"}
+    except (requests.RequestException, OSError):
+        x = None
+    _META_CACHE.update(x=x, t=time.time())
+    return x
+
+
 def sa_resumen():
-    """Solo lo mostrable: proyecto y correo de la cuenta (nunca la clave)."""
+    """Solo lo mostrable: proyecto y correo de la cuenta (nunca la clave). Primero la clave cargada; si no, la cuenta de la VM."""
     if not os.path.exists(SA_ARCH):
-        return None
+        return sa_metadata()
     try:
         d = json.loads(_fernet().decrypt(open(SA_ARCH, "rb").read()).decode())
         return {"proyecto": d.get("project_id", ""), "correo": d.get("client_email", ""), "id_clave": (d.get("private_key_id") or "")[:8]}
@@ -146,6 +174,13 @@ class Compute:
             from google.oauth2 import service_account
         except ImportError as e:
             raise ErrorGCP("Falta la biblioteca google-auth en FaceAdmin") from e
+        if not os.path.exists(SA_ARCH) and sa_metadata():
+            try:
+                t = json.loads(_meta("instance/service-accounts/default/token", timeout=5))
+            except (requests.RequestException, ValueError) as e:
+                raise ErrorGCP(f"El servidor de metadatos no entregó el token de la cuenta de la VM ({type(e).__name__})") from e
+            self._token, self._vence = t["access_token"], time.time() + max(60, int(t.get("expires_in", 300)) - 60)
+            return self._token
         cred = service_account.Credentials.from_service_account_info(_sa_info(), scopes=[ALCANCE])
         try:
             cred.refresh(Request())
@@ -176,7 +211,7 @@ class Compute:
         pasos = []
         try:
             self._tok()
-            pasos.append(("Cuenta de servicio aceptada por Google", True, ""))
+            pasos.append(("Cuenta de servicio aceptada por Google" + (" (cuenta de la VM, sin clave)" if not os.path.exists(SA_ARCH) else ""), True, ""))
         except ErrorGCP as e:
             return [("Cuenta de servicio aceptada por Google", False, str(e))]
         for titulo, fn in ((f"Zona {self.z}", lambda: self._r("GET", f"zones/{self.z}")),
@@ -239,6 +274,8 @@ class Compute:
     def liberar_ip(self, nombre):
         if not nombre.startswith(self.cfg["prefijo"]):
             raise ErrorGCP("La IP no es de una demo")
+        if self._r("GET", f"regions/{self.region}/addresses/{nombre}") is None:
+            return None   # IP efímera: no hay reserva que liberar
         return self._r("DELETE", f"regions/{self.region}/addresses/{nombre}")
 
     # --- ciclo de vida de la instancia
@@ -257,7 +294,7 @@ class Compute:
                 "sourceImage": self.url_imagen() if self.url_imagen().startswith("http") else f"projects/{self.p}/{self.url_imagen()}",
                 "diskSizeGb": str(int(self.cfg["disco_gb"])), "diskType": f"zones/{self.z}/diskTypes/pd-balanced", "labels": etiquetas}}],
             "networkInterfaces": [{"network": f"global/networks/{self.cfg['red']}",
-                                   "accessConfigs": [{"name": "externa", "type": "ONE_TO_ONE_NAT", "natIP": ip, "networkTier": "PREMIUM"}]}],
+                                   "accessConfigs": [dict({"name": "externa", "type": "ONE_TO_ONE_NAT", "networkTier": "PREMIUM"}, **({"natIP": ip} if ip else {}))]}],
             "metadata": {"items": [{"key": k, "value": str(v)} for k, v in metadatos.items()]},
             "tags": {"items": ["faceadmin-demo", "http-server", "https-server"]},   # 80 solo para el certificado (ACME)
             "scheduling": {"onHostMaintenance": "MIGRATE", "automaticRestart": True},
@@ -284,6 +321,15 @@ class Compute:
         if self._propia(nombre) is not None:
             ops.append(self._r("DELETE", f"zones/{self.z}/instances/{nombre}"))
         return ops
+
+    def ip_externa(self, nombre):
+        """IP externa actual de la VM (con IP efímera cambia en cada encendido)."""
+        i = self.instancia(nombre) or {}
+        for n in i.get("networkInterfaces", []):
+            for a in n.get("accessConfigs", []):
+                if a.get("natIP"):
+                    return a["natIP"]
+        return ""
 
     def estado(self, nombre):
         """RUNNING, STAGING, PROVISIONING, STOPPING, TERMINATED (apagada) … o None si no existe."""

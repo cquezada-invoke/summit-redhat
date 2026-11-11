@@ -2,7 +2,7 @@
 <div class="card" id="gcp"><h2>Demo instantánea en GCP</h2>
 {% if not gx %}{% if d.est in ('pedida', 'preparada', 'activa') %}
 {% if demo_gcp_listo() %}<p class="sub" style="margin-top:0">FaceAdmin crea una VM desde la imagen dorada (AWX + EDA comunitarios, FaceOps, Gitea, Vault, MinIO, Grafana y 2–3 VMs anidadas) en minutos.
-Dura como máximo 7 días y luego se elimina por completo; solo se enciende en horario hábil y se apaga sola si no se usa.</p>
+Dura lo que queda de la Demo (máximo 14 días) y luego se elimina por completo; solo se enciende en horario hábil y se apaga sola si no se usa.</p>
 <form method="post" action="{{ url_for('demo_gcp_accion', did=d.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:end">
 <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="crear">
 <label>Zona horaria del cliente<input name="tz" value="America/Santiago" maxlength="40"></label>
