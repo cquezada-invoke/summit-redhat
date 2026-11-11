@@ -1,0 +1,27 @@
+commit: e2bad671ef80271ea808f84337b1e53c086c6857
+inicio: 2026-11-11T17:02:20-03:00
+---
+8a6dac9
+   · Plantilla «Monitoreo · Grafana de OpenShift» (id 1176)
+   · Monitoreo: aap-kvm escribe la configuración de FaceOps en Prometheus y Alertmanager
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+SINCRONIZADO lab
+SMTP configurado: 0 · correo alertas: 0
+== plan Grafana de OpenShift
+CASO C1 falla · Conectar ocp-sno
+CASO C2 falla · Repetir
+CASO C3 ok · Solo lectura
+CASO C4 ok · Nombre inválido
+EVIDENCIA [{"id": "C1", "caso": "Conectar ocp-sno", "resultado": "falla", "evidencia": "fallido paneles= consultas=[] [] Grafana (en el anfitrión) llega al Thanos Querier con ese token y solo puede leer ·  · "}, {"id": "C2", "caso": "Repetir", "resultado": "falla", "evidencia": "fallido grafana 2026-11-11 09:23:34.734771986 -0300 -03→2026-11-11 09:23:34.734771986 -0300 -03"}, {"id": "C3", "caso": "Solo lectura", "resultado": "ok", "evidencia": "faceops-grafana: create pods=no, delete nodes=no, leer el monitoreo=no"}, {"id": "C4", "caso": "Nombre inválido", "resultado": "ok", "evidencia": "falla en la validación; Grafana sin cambios"}]
+CERT Monitoreo · Grafana de OpenShift → sin probar
+FIN-GRAFANA-OCP
+OCP botón: True | alertas: 19 | visibles en Grafana: 0 | Generar ticket deshabilitado: True | enlaces: []
+== plan agente
+CASO C1 ok · Instalar
+CASO C2 ok · Repetir
+CASO C3 ok · SSH fallidos
+CASO C4 falla · Equipo apagado
+EVIDENCIA [{"id": "C1", "caso": "Instalar", "resultado": "ok", "evidencia": "node_exporter y temporizador activos; 9 métricas faceops_seg_*: faceops_seg_archivo_huella faceops_seg_cuentas_bloqueadas faceops_seg_root_login_5m faceops_seg_selinux_modo faceops_seg_ssh_fallidos_5m "}, {"id": "C2", "caso": "Repetir", "resultado": "ok", "evidencia": "sin reiniciar el agente (PID 254330), un temporizador, métricas presentes"}, {"id": "C3", "caso": "SSH fallidos", "resultado": "ok", "evidencia": "faceops_seg_ssh_fallidos_5m=6 tras 6 intentos"}, {"id": "C4", "caso": "Equipo apagado", "resultado": "falla", "evidencia": "srv-prueba-rocky-01: rechazado al solicitar"}]
+CERT FaceOps · Agente de monitoreo (Linux) → cambiada
+FIN-AGENTE
+--- fin: 2026-11-11T17:30:22-03:00 · código: 0
