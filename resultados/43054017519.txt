@@ -1,0 +1,29 @@
+commit: 3f05bbac0e81412c46d5f4ff27f59ac5c9b38205
+inicio: 2026-11-11T13:05:27-03:00
+---
+TK FO-LAB-01485 {'segmento': '', 'parametros': '{"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "evaluar", "mv_puerto": 22}', 'limite': '', 'filtros': '{}', 'motivo': 'Prueba C1: evaluar srv-mover-01 → Valparaíso', 'prueba': None, 'usuario_id': 1}
+TK FO-LAB-01486 {'segmento': '', 'parametros': '{"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22}', 'limite': '', 'filtros': '{"ambientes": ["desarrollo"]}', 'motivo': 'Mover srv-mover-01 de KVM · Santiago a KVM · Valparaíso', 'prueba': None, 'usuario_id': 1}
+TK FO-LAB-01500 {'segmento': 'App de pagos', 'parametros': '{"app_version": "1.0.43", "app_commit": ""}', 'limite': 'nodo-jboss:nodo-jboss2', 'filtros': '{"ambientes": ["produccion"]}', 'motivo': 'Plan de prueba C1: desplegar 1.0.43 en produccion', 'prueba': None, 'usuario_id': 1}
+TK FO-LAB-01504 {'segmento': 'App de pagos', 'parametros': '{"app_version": "1.0.44", "app_commit": ""}', 'limite': 'nodo-jboss:nodo-jboss2', 'filtros': '{"ambientes": ["produccion"]}', 'motivo': 'Plan de prueba C2: desplegar 1.0.44 en produccion', 'prueba': None, 'usuario_id': 1}
+TK FO-LAB-01506 {'segmento': 'App de pagos', 'parametros': '{"app_version": "9.9.999", "app_commit": ""}', 'limite': 'nodo-jboss:nodo-jboss2', 'filtros': '{"ambientes": ["produccion"]}', 'motivo': 'Plan de prueba C4: desplegar 9.9.999 en produccion', 'prueba': None, 'usuario_id': 1}
+TK FO-LAB-01507 {'segmento': 'App de pagos', 'parametros': '{"app_version": "1.0.44", "app_commit": ""}', 'limite': 'nodo-jboss-dev', 'filtros': '{"ambientes": ["desarrollo"]}', 'motivo': 'Plan de prueba C5: desplegar 1.0.44 en desarrollo', 'prueba': None, 'usuario_id': 1}
+TK FO-LAB-01516 {'segmento': '', 'parametros': '{"mv_maquina": "srv-mover-01", "mv_destino": "default", "mv_modo": "mover", "mv_puerto": 22}', 'limite': '', 'filtros': '{"ambientes": ["desarrollo"]}', 'motivo': 'Mover srv-mover-01 de KVM · Valparaíso a KVM · Santiago', 'prueba': None, 'usuario_id': 1}
+TK FO-LAB-01519 {'segmento': '', 'parametros': '{"mv_maquina": "srv-mover-01", "mv_destino": "default", "mv_modo": "evaluar", "mv_puerto": 22}', 'limite': '', 'filtros': '{}', 'motivo': 'Prueba C6: destino donde ya está', 'prueba': None, 'usuario_id': 1}
+TK FO-LAB-01520 {'segmento': '', 'parametros': '{"mv_maquina": "nodo-vault", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 22}', 'limite': '', 'filtros': '{}', 'motivo': 'Prueba C6: nodo-vault no se mueve', 'prueba': None, 'usuario_id': 1}
+TK FO-LAB-01521 {'segmento': '', 'parametros': '{"mv_maquina": "srv-mover-01", "mv_destino": "dc-valpo", "mv_modo": "mover", "mv_puerto": 9}', 'limite': '', 'filtros': '{}', 'motivo': 'Prueba C7: no responde en el destino → vuelta atrás', 'prueba': None, 'usuario_id': 1}
+PKG []
+COMMIT be31547 2026-11-10T20:45 JBoss · Desplegar app: manifiesto por cada ambiente desplegado (crea el que falt
+COMMIT 05bd126 2026-11-10T20:15 JBoss · Desplegar app: solo los JBoss que responden cuando no se fijan máquinas
+
+COMMIT f717a31 2026-10-31T23:36 JBoss: consola de administración accesible (-bmanagement)
+
+COMMIT d1c65e2 2026-10-31T19:34 JBoss · Desplegar app: registra la aplicación desplegada (versión, commit, artef
+COMMIT efabdf9 2026-10-26T17:24 JBoss en dos nodos (grupo jboss), balanceo en Nginx y manifiesto del ambiente
+
+COMMIT 41daa3c 2026-10-22T23:14 Despliegue muestra quien lo solicita
+
+COMMIT 4105a6f 2026-10-22T22:36 Despliegue registra quien lo solicita
+
+COMMIT 0d7c31b 2026-10-22T21:18 Despliegue en JBoss EAP
+
+--- fin: 2026-11-11T13:05:35-03:00 · código: 0
