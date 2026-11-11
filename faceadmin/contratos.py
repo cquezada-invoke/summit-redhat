@@ -202,6 +202,9 @@ def contrato_nuevo():
     kid = ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por) VALUES (?,?,?,?,?,?)", c["id"], pid, num, "borrador", ahora(),
              g.usuario["usuario"])
     bitacora("contrato creado", c["codigo"], {"contrato": num, "tipo": tipo, "monto": monto(q1("SELECT * FROM propuestas WHERE id=?", pid))})
+    import enriquecer   # datos adicionales de la empresa y, si quedan vacíos, los completa la IA en segundo plano
+    enriquecer.guardar_extra(c["id"], f)
+    enriquecer.completar_fondo(c["id"])
     flash(f"Contrato {num} creado en borrador: revisa el documento, envíalo a firma y registra la orden de compra", "ok")
     return redirect(url_for("contrato_ficha", kid=kid))
 

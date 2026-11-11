@@ -1,0 +1,29 @@
+{# Agente de IA con búsqueda web que completa los datos de una empresa. iaEmpresa(form, {nombre, pais, cid}, elEstado, modo):
+   modo 'vacios' llena solo los campos vacíos del formulario (empresa nueva); modo 'revisar' muestra lo encontrado y deja aplicarlo con confirmación. #}
+<script>
+const IA_URL={{ url_for('api_enriquecer')|tojson }},IA_CSRF={{ csrf|tojson }};
+const IA_ET={razon_social:'Razón social',rut:'Identificador fiscal',pais:'País',industria:'Industria',sitio_web:'Sitio web',direccion:'Dirección',empleados:'Tamaño (empleados)',descripcion:'Descripción'};
+function iaEsc(t){return String(t||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+function iaFuentes(fs){return (fs||[]).length?'Fuentes: '+fs.map(u=>{let h=u;try{h=new URL(u).hostname.replace(/^www\./,'')}catch(e){}return '<a href="'+iaEsc(u)+'" target="_blank" rel="noopener">'+iaEsc(h)+'</a>'}).join(' · '):'Sin fuentes'}
+function iaPoner(f,k,v){const el=f.elements[k];if(!el||!v)return false;
+ if(el.tagName==='SELECT'){if(![...el.options].some(o=>(o.value||o.text)===v)){if(k!=='industria')return false;el.add(new Option(v,v))}el.value=v}else el.value=v;
+ el.style.outline='2px solid var(--acc,#e0a800)';el.title='Sugerido por IA: revísalo';return true}
+async function iaEmpresa(f,p,est,modo){const fd=new FormData();fd.append('_csrf',IA_CSRF);['nombre','pais','cid'].forEach(k=>{if(p[k])fd.append(k,p[k])});
+ est.innerHTML='· <i>buscando en internet con IA…</i>';let d;
+ try{d=await (await fetch(IA_URL,{method:'POST',body:fd})).json()}catch(e){est.textContent='· no se pudo consultar la IA';return}
+ if(!d.ok){est.innerHTML='· <span style="color:var(--err,#c00)">'+iaEsc(d.error||'no se pudo consultar la IA')+'</span>';return}
+ if(d.vacio){est.textContent='· la IA no encontró datos confiables de esta empresa';return}
+ if(f.elements.ia_fuentes)f.elements.ia_fuentes.value=JSON.stringify(d.fuentes||[]);
+ if(modo==='vacios'){const hechos=[];Object.keys(IA_ET).forEach(k=>{const el=f.elements[k];if(!el)return;
+   const vacio=k==='pais'?!el.dataset.tocado:!el.value.trim();if(vacio&&d.datos[k]&&iaPoner(f,k,d.datos[k]))hechos.push(IA_ET[k])});
+  est.innerHTML=hechos.length?'· <b>sugerido por IA: revísalo</b> ('+iaEsc(hechos.join(', '))+') · <span style="font-size:11.5px">'+iaFuentes(d.fuentes)+'</span>':'· la IA no agregó datos nuevos';return}
+ const filas=Object.keys(IA_ET).filter(k=>d.datos[k]&&f.elements[k]).map(k=>{const act=(f.elements[k].value||'').trim(),igual=act===d.datos[k];
+  return '<tr><td>'+IA_ET[k]+'</td><td class=sub>'+iaEsc(act||'—')+'</td><td>'+iaEsc(d.datos[k])+'</td><td style="text-align:center"><input type=checkbox data-k="'+k+'" '+(!act?'checked':'')+(igual?' disabled':'')+' style="width:auto"></td></tr>'}).join('');
+ if(!filas){est.textContent='· la IA no encontró datos confiables de esta empresa';return}
+ est.innerHTML='<div class="card" style="margin:8px 0;border-color:var(--acc,#e0a800)"><b>Encontrado por IA</b> <span class=sub style="font-size:12px">revísalo antes de aplicar; lo marcado reemplaza lo actual</span>'+
+  '<table style="font-size:13px;margin-top:6px"><tr><th>Campo</th><th>Actual</th><th>Encontrado</th><th>Aplicar</th></tr>'+filas+'</table>'+
+  '<p class=sub style="font-size:12px;margin:6px 0">'+iaFuentes(d.fuentes)+'</p><button type=button class="btn chico" data-aplicar>Aplicar seleccionados</button> <button type=button class="btn chico gris" data-cerrar>Descartar</button></div>';
+ est.querySelector('[data-cerrar]').onclick=()=>{est.innerHTML=''};
+ est.querySelector('[data-aplicar]').onclick=()=>{let n=0;est.querySelectorAll('[data-k]:checked').forEach(c=>{if(iaPoner(f,c.dataset.k,d.datos[c.dataset.k]))n++});
+  est.innerHTML='<p class=sub style="margin:6px 0">'+n+' campo(s) aplicados al formulario (marcados): revísalos y pulsa <b>Guardar</b>.</p>'}}
+</script>

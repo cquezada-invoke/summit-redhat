@@ -13,9 +13,11 @@
 <label>Empresa<select name="empresa_id" onchange="ncTipo()"><option value="">+ Empresa nueva</option>{% for e in existentes %}<option value="{{ e.id }}" data-tipo="{{ e.tipo }}" {{ 'selected' if f.empresa_id == e.id|string }}>{{ e.nombre }}{{ ' (tenant)' if e.tipo == 'tenant' }}</option>{% endfor %}</select></label>
 </div><p class="sub" style="margin:6px 0 0;font-size:12.5px">Un tenant que también es cliente directo tiene dos contratos: elige la misma empresa y el tipo «Cliente directo» (va a su FaceOps propio).</p></fieldset>
 <fieldset style="grid-column:1/-1"><legend>Datos de la empresa</legend><div class="rejilla">
-<label data-nueva>Código *<input name="codigo" maxlength="20" placeholder="ej. bsc" value="{{ f.codigo }}"></label><label data-nueva>Nombre *<input name="nombre" value="{{ f.nombre }}"></label>
-<label>Razón social<input name="razon_social" value="{{ f.razon_social }}"></label><label>RUT<input name="rut" value="{{ f.rut }}"></label>
-<label>País *<select name="pais">{% for p in paises %}<option {{ 'selected' if (f.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label>{% from "_industria.html" import sel_industria with context %}<label>Industria{{ sel_industria(f.industria) }}</label></div>
+<label data-nueva>Código *<input name="codigo" maxlength="20" placeholder="ej. bsc" value="{{ f.codigo }}"></label><label data-nueva>Nombre *<input name="nombre" value="{{ f.nombre }}" onchange="if(!this.form.empresa_id.value&&this.value.trim().length>1)iaEmpresa(this.form,{nombre:this.value.trim(),pais:this.form.pais.dataset.tocado?this.form.pais.value:''},document.getElementById('nc-ia'),'vacios')"></label>
+<label>Razón social<input name="razon_social" value="{{ f.razon_social }}"></label><label>RUT / identificador fiscal<input name="rut" value="{{ f.rut }}"></label>
+<label>País *<select name="pais" onchange="this.dataset.tocado=1">{% for p in paises %}<option {{ 'selected' if (f.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label>{% from "_industria.html" import sel_industria with context %}<label>Industria{{ sel_industria(f.industria) }}</label><label data-nueva>Sitio web<input name="sitio_web" value="{{ f.sitio_web }}"></label>
+{% for k in ('direccion', 'empleados', 'descripcion', 'ia_fuentes') %}<input type="hidden" name="{{ k }}" value="{{ f[k] }}">{% endfor %}</div>
+<p class="sub" id="nc-ia" style="margin:6px 0 0;font-size:12.5px"></p>{% include "_ia_empresa.html" %}
 <p class="sub" data-existente style="margin:6px 0 0;font-size:12.5px">Lo que completes aquí actualiza los datos de la empresa elegida; lo vacío se mantiene.</p></fieldset>
 <fieldset style="grid-column:1/-1"><legend>Contacto del cliente</legend><div class="rejilla">
 <label>Nombre<input name="contacto_nombre" value="{{ f.contacto_nombre }}"></label><label>Cargo<input name="contacto_cargo" value="{{ f.contacto_cargo }}"></label>

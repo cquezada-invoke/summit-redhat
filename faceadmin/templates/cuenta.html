@@ -3,10 +3,16 @@
 <div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">{{ c.nombre }}</h1><span class="chip {{ 'ok' if est[0] == 'cliente' else ('med' if est[0] in ('demo', 'prospecto') else '') }}">{{ est[1] }}</span>
 <span class="der fila" style="gap:8px">{% if est[0] == 'cliente' %}<a class="btn gris" href="{{ url_for('cliente', cid=c.id) }}">Ver como cliente →</a>{% endif %}<button type="button" class="btn gris" onclick="ctPanel(true)">+ Agregar contacto</button><a class="btn" href="{{ url_for('oportunidad_nueva', empresa_id=c.id) }}">+ Oportunidad</a></span></div>
 <div style="margin-top:10px">
-<div class="card"><h2>Datos de la cuenta</h2><form method="post" class="rejilla"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="datos">
+<div class="card"><div class="fila" style="align-items:center"><h2 style="margin:0">Datos de la cuenta</h2><button type="button" class="btn chico gris der" onclick="iaEmpresa(document.getElementById('cta-datos'),{cid:'{{ c.id }}'},document.getElementById('cta-ia'),'revisar')" title="Busca en internet razón social, identificador fiscal, sitio web y más">Completar con IA</button></div>
+<div id="cta-ia"></div>
+<form method="post" class="rejilla" id="cta-datos"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="datos"><input type="hidden" name="ia_fuentes" value="">
 <label>Razón social<input name="razon_social" value="{{ c.razon_social or '' }}"></label><label>RUT / identificador<input name="rut" value="{{ c.rut or '' }}"></label>
 <label>País<select name="pais">{% for p in paises %}<option {{ 'selected' if (c.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label>{% from "_industria.html" import sel_industria with context %}<label>Industria{{ sel_industria(c.industria or '') }}</label>
-<div><button class="btn gris">Guardar</button></div></form></div>
+<label>Sitio web<input name="sitio_web" value="{{ c.sitio_web or '' }}"></label><label>Dirección<input name="direccion" value="{{ c.direccion or '' }}"></label>
+<label>Tamaño (empleados)<input name="empleados" value="{{ c.empleados or '' }}"></label><label style="grid-column:1/-1">Descripción<input name="descripcion" value="{{ c.descripcion or '' }}"></label>
+<div><button class="btn gris">Guardar</button></div></form>
+{% if c.ia_completado %}{% set fu = (c.ia_fuentes or '[]')|fromjson %}<p class="sub" style="font-size:12px;margin:6px 0 0">Datos completados con IA ({{ c.ia_completado }}): revísalos.{% if fu %} Fuentes: {% for u in fu %}<a href="{{ u }}" target="_blank" rel="noopener">{{ u.split('/')[2] if u.count('/') >= 2 else u }}</a>{{ ' · ' if not loop.last }}{% endfor %}{% endif %}</p>{% endif %}
+{% include "_ia_empresa.html" %}</div>
 </div>
 <div class="card tabla-scroll"><h2>Contactos</h2><table><tr><th>Nombre</th><th>Cargo</th><th>Rol</th><th>Correo</th><th>Teléfono</th><th></th></tr>
 {% for x in contactos %}<tr><td><a href="{{ url_for('contacto', kid=x.id) }}">{{ x.nombre }}</a>{% if x.principal %} <span class="chip ok" style="font-size:11px">principal</span>{% endif %}</td><td>{{ x.cargo or '—' }}</td><td>{{ x.rol or '—' }}</td>

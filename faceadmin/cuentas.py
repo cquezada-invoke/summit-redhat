@@ -91,9 +91,13 @@ def cuenta(cid):
             bitacora("contacto quitado de la cuenta", c["codigo"], {"nombre": x["nombre"]})
             flash(f"{x['nombre']} ya no está en esta cuenta (se conserva en Contactos)", "ok")
         elif acc == "datos":
-            for k in ("razon_social", "rut", "pais", "industria"):
+            for k in ("razon_social", "rut", "pais", "industria", "sitio_web", "direccion", "empleados", "descripcion"):
                 if k in f:
-                    ej(f"UPDATE clientes SET {k}=? WHERE id=?", (f.get(k) or "").strip()[:120], cid)
+                    ej(f"UPDATE clientes SET {k}=? WHERE id=?", (f.get(k) or "").strip()[:300], cid)
+            if (f.get("ia_fuentes") or "").startswith("["):   # datos aplicados desde «Completar con IA»: se guardan sus fuentes
+                import json
+                import enriquecer
+                ej("UPDATE clientes SET ia_fuentes=?, ia_completado=? WHERE id=?", json.dumps(enriquecer._fuentes_ok(f["ia_fuentes"])), ahora() + " · " + g.usuario["usuario"], cid)
             flash("Datos de la cuenta actualizados", "ok")
         return redirect(url_for("cuenta", cid=cid))
     contactos = q("SELECT * FROM contactos WHERE cliente_id=? ORDER BY principal DESC, nombre", cid)

@@ -5,8 +5,12 @@
 <fieldset><legend>Cliente</legend><div class="rejilla">
 <label>Empresa<select name="empresa_id" onchange="opEmpresa(this)"><option value="">+ Empresa nueva</option>{% for e in existentes %}<option value="{{ e.id }}" data-pais="{{ e.pais or '' }}" data-industria="{{ e.industria or '' }}" data-tel="{{ e.contacto_telefono or '' }}" {{ 'selected' if f.empresa_id == e.id|string }}>{{ e.nombre }}{{ ' (tenant)' if e.tipo == 'tenant' }}</option>{% endfor %}</select></label>
 <label data-nueva>Nombre * <span class="sub" id="op-ia" style="font-size:11.5px"></span><input name="nombre" value="{{ f.nombre }}" autofocus placeholder="escribe el nombre: se completa el resto" oninput="opCod(this)" onchange="opNombre(this)"></label><label data-nueva>Código <span class="sub" style="font-size:11.5px">· automático</span><input name="codigo" maxlength="20" readonly tabindex="-1" placeholder="se genera del nombre" value="{{ f.codigo }}" style="background:var(--fondo2,#f0f0f0);cursor:not-allowed"></label>
-<label>País *<select name="pais">{% for p in paises %}<option {{ 'selected' if (f.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label>{% from "_industria.html" import sel_industria with context %}<label>Industria{{ sel_industria(f.industria) }}</label>
-</div></fieldset>
+<label>País *<select name="pais" onchange="this.dataset.tocado=1">{% for p in paises %}<option {{ 'selected' if (f.pais or 'Chile') == p }}>{{ p }}</option>{% endfor %}</select></label>{% from "_industria.html" import sel_industria with context %}<label>Industria{{ sel_industria(f.industria) }}</label>
+<label data-nueva>Razón social<input name="razon_social" value="{{ f.razon_social }}"></label><label data-nueva>Identificador fiscal <span class="sub" style="font-size:11.5px">· RUT, RFC, NIT, RUC…</span><input name="rut" value="{{ f.rut }}"></label>
+<label data-nueva>Sitio web<input name="sitio_web" value="{{ f.sitio_web }}"></label>
+{% for k in ('direccion', 'empleados', 'descripcion', 'ia_fuentes') %}<input type="hidden" name="{{ k }}" value="{{ f[k] }}">{% endfor %}
+</div><p class="sub" id="op-ia-web" style="margin:6px 0 0;font-size:12.5px"></p></fieldset>
+{% include "_ia_empresa.html" %}
 <fieldset><legend>Contactos</legend>
 <p class="sub" style="margin:0 0 6px;font-size:12.5px">Elige un contacto existente o crea uno nuevo. El primero queda como contacto principal; agrega los que necesites.</p>
 <table id="op-cts" style="font-size:13.5px"><tr><th>Contacto</th><th>Nombre</th><th>Apellido</th><th>Cargo</th><th>Correo</th><th>Teléfono</th><th></th></tr>
@@ -53,7 +57,8 @@ async function opNombre(inp){const f=inp.form,nom=inp.value.trim();if(nom.length
  try{const d=await (await fetch({{ url_for('api_empresa')|tojson }},{method:'POST',body:fd})).json();
   if(d.codigo)f.codigo.value=d.codigo;
   if(d.pais&&[...f.pais.options].some(o=>o.text===d.pais))f.pais.value=d.pais;if(d.industria&&!f.industria.value)opInd(f,d.industria);
-  document.getElementById('op-ia').textContent=d.ia?'· país e industria sugeridos por IA: revísalos':''}catch(e){document.getElementById('op-ia').textContent=''}}
+  document.getElementById('op-ia').textContent=d.ia?'· país e industria sugeridos por IA: revísalos':''}catch(e){document.getElementById('op-ia').textContent=''}
+ if(!f.empresa_id.value)iaEmpresa(f,{nombre:nom,pais:f.pais.dataset.tocado?f.pais.value:''},document.getElementById('op-ia-web'),'vacios')}
 function opMod(f){const m=(f.querySelector('[name=modalidad]:checked')||{}).value;f.querySelector('[data-alcance]').style.display=m==='alcance'?'':'none'}
 async function opAlcance(f){const est=document.getElementById('op-alc-est'),out=document.getElementById('op-alc');const fd=new FormData();fd.append('_csrf',CSRF);fd.append('texto',f.alcance_texto.value);
  est.textContent='analizando…';out.innerHTML='';

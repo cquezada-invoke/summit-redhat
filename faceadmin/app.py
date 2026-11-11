@@ -976,6 +976,7 @@ import oportunidades  # noqa: E402,F401  (oportunidades y demos de FaceOps por s
 import cuentas  # noqa: E402,F401  (cuentas y sus contactos: toda empresa, con o sin contrato)
 import contactos  # noqa: E402,F401  (contactos independientes de las cuentas, con historial de cuentas)
 import alcance  # noqa: E402,F401  (costo fijo por alcance: análisis con IA y confirmación del especialista de negocio)
+import enriquecer  # noqa: E402,F401  (agente de IA con búsqueda web que completa los datos de las empresas)
 
 
 def validar_smtp(cfg):

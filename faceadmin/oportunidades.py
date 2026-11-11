@@ -265,6 +265,9 @@ def oportunidad_nueva():
     niv = niv if niv in NIVEL_P and niv > 0 else 5   # nivel 0 (negocio) se alcanza desde la oportunidad
     ej("UPDATE oportunidades SET nivel=? WHERE id=?", niv, oid)
     bitacora("oportunidad creada", c["codigo"], {"oportunidad": num, "monto": monto})
+    import enriquecer   # datos adicionales de la empresa y, si quedan vacíos, los completa la IA en segundo plano
+    enriquecer.guardar_extra(c["id"], f)
+    enriquecer.completar_fondo(c["id"])
     aviso = ""
     if est["modalidad"] == "alcance":
         try:
