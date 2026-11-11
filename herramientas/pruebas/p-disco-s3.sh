@@ -34,7 +34,7 @@ fi
 # ── S3 del data lake (antes: nodo-storage registrado en Red Hat, para tener repositorios si hay que instalar nftables)
 caso "{\"auto\":\"Sistema · Registrar en Red Hat\",\"equipo\":\"nodo-storage\",\"params\":{},\"rhsm\":true,\"min\":15,\"caso\":\"previo\"}"; echo "registro nodo-storage: $(estado) $(ticket)"
 CASOS='[]'; TKS='[]'; N="Storage · Servicio S3 del data lake"
-S3="{\"ls_modo\":\"instalar\",\"ls_dir\":\"/srv/datalake\",\"ls_clientes\":\"192.168.122.50/32,192.168.122.1/32\"}"
+S3="{\"ls_modo\":\"instalar\",\"ls_dir\":\"/srv/datalake\",\"ls_clientes\":\"192.168.122.0/24\"}"
 caso "{\"auto\":\"$N\",\"equipo\":\"nodo-storage\",\"params\":{\"ls_modo\":\"instalar\",\"ls_dir\":\"/opt/lake-raiz\",\"ls_clientes\":\"192.168.122.50/32\"},\"min\":15,\"caso\":\"C1\"}"
 X=$(en $IPS 'test -e /opt/lake-raiz && echo existe || echo no; systemctl is-enabled lake-s3 2>&1 | head -1')
 [ "$(estado)" = fallido ] && echo "$X" | head -1 | grep -q no && anotar C1 "Sin disco dedicado" ok "rechazado; no creó /opt/lake-raiz" || anotar C1 "Sin disco dedicado" falla "$(estado) $X"

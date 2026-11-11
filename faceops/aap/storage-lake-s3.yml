@@ -4,6 +4,7 @@
 # «FaceOps · Agregar disco»). Abre los puertos solo a los clientes indicados. Idempotente.
 # Variables: ls_dir (punto de montaje del disco) · ls_clientes (redes que pueden escribir/leer, CIDR, separadas por coma)
 #            · ls_modo instalar | estado · ls_volumen_mb (tamaño de cada volumen interno)
+# El servidor de volúmenes interno usa el puerto 18080 (no el 8080 por defecto, que ocupa la API del storage emulado).
 - name: Storage · Servicio S3 del data lake
   hosts: all
   become: true
@@ -67,7 +68,7 @@
               [Service]
               Restart=always
               WorkingDirectory={{ dir }}/s3
-              ExecStart=/usr/local/bin/weed server -dir={{ dir }}/s3 -ip=127.0.0.1 -ip.bind=0.0.0.0 -master.volumeSizeLimitMB={{ vol_mb }} -volume.max=0 -filer -s3 -s3.port=9000
+              ExecStart=/usr/local/bin/weed server -dir={{ dir }}/s3 -ip=127.0.0.1 -ip.bind=0.0.0.0 -master.volumeSizeLimitMB={{ vol_mb }} -volume.max=0 -volume.port=18080 -filer -s3 -s3.port=9000
               [Install]
               WantedBy=multi-user.target
           register: r_unit
