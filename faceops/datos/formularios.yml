@@ -243,6 +243,7 @@
   usa_limite: true
   campos:
     - {var: mig_politica, etiqueta: "Versión de destino", tipo: multiplechoice, defecto: minimo, opciones: [minimo, mantenimiento, ultima], ayuda: "minimo: la menor versión que recibe parches (puede requerir add-on ELS, p. ej. RHEL 7) · mantenimiento: la menor con soporte estándar (hoy RHEL 8) · ultima: RHEL 10"}
+    - {var: mig_destino, etiqueta: "Versión exacta de destino", tipo: text, ayuda: "Opcional. Versión mayor de RHEL (p. ej. 9 para RHEL 8 → 9); si se indica, manda sobre la política. Una versión que no existe o es anterior a la actual se rechaza sin tocar el equipo"}
     - {var: mig_snapshot, etiqueta: "Snapshot antes de migrar", tipo: multiplechoice, defecto: kvm, opciones: [kvm, "no"], ayuda: "kvm: snapshot en el anfitrión y vuelta atrás automática si algo falla"}
     - {var: mig_repo_rhel7, etiqueta: "Repositorio de RHEL 7.9 (solo saltos 6 → 7)", tipo: text, ayuda: "URL del repositorio RHEL 7.9 Server (CDN o Satellite)"}
     - {var: mig_forzar, etiqueta: "Migrar aunque la evaluación esté en rojo", tipo: multiplechoice, defecto: "false", opciones: ["false", "true"]}

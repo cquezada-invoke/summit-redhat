@@ -2,10 +2,11 @@
 # Migraciones · sistema operativo: RHEL a una versión soportada y CentOS / Rocky / Alma / Oracle Linux a RHEL.
 #   mig_modo      evaluar (no cambia nada) | migrar
 #   mig_tipo      rhel | centos (qué migración se pidió; la evaluación sirve para ambas)
-#   mig_destino   versión mayor exacta a evaluar (p. ej. 9); si viene, manda sobre la política
+#   mig_destino   versión mayor exacta de destino (p. ej. 9); si viene, manda sobre la política (no válida → rojo, no se migra)
 #   mig_politica  minimo (la menor versión que recibe parches, aunque sea con ELS) | mantenimiento (soporte estándar) | ultima
 #   mig_snapshot  kvm (snapshot en el anfitrión antes de tocar el equipo y vuelta atrás si falla) | no
 #   mig_preupgrade  en evaluar, corre además el análisis oficial (Leapp / Preupgrade Assistant / convert2rhel analyze)
+#   mig_prueba_falla  SOLO plan de prueba: falla justo después del snapshot para verificar la vuelta atrás
 # Todo lo que corre en el equipo es «raw» (shell): sirve igual en RHEL 5 y 6, que no tienen el Python que exige Ansible.
 # Credenciales: la del equipo (Machine) · «Infra · Anfitrión KVM (snapshots)» · «Red Hat · Llave de activación» (conversión).
 - name: Migración de sistema operativo
@@ -146,6 +147,10 @@
 
         - name: Migración
           block:
+            - name: Falla simulada (solo plan de prueba de la vuelta atrás; deja una marca que el snapshot debe borrar)
+              ansible.builtin.raw: date > /root/faceops-prueba-falla; echo "falla simulada después del snapshot"; exit 1
+              when: mig_prueba_falla | default(false) | bool
+
             - name: Conversión a RHEL (Convert2RHEL)
               ansible.builtin.include_tasks: migrar-so-convertir.yml
               when: plan.convertir

@@ -203,17 +203,28 @@ planes:
       - {id: C3, caso: "ab por cookie", verificar: "con la cookie b todas van al verde y sin cookie todas al azul"}
       - {id: C4, caso: "shadow", verificar: "las respuestas salen del azul (100 %) y la configuración espeja al verde"}
       - {id: C5, caso: "volver todo a azul", verificar: "100 % azul; configuración del balanceador válida (nginx -t)"}
+  "Migración · Evaluar sistema operativo":
+    casos:
+      - {id: C1, caso: "Rocky 9 de prueba (srv-mig-rocky-01, creada con Habilitar servidor) con política mínimo", tipo: Funcional, verificar: "origen Rocky 9, acción convertir, destino RHEL 9 y camino con Convert2RHEL; la máquina no cambia (release y lista de paquetes iguales antes y después)"}
+      - {id: C2, caso: "Rocky 9 con el análisis oficial (convert2rhel analyze)", tipo: Funcional, verificar: "informe de convert2rhel analyze con su código; sigue siendo Rocky; la llave de activación no queda en la máquina"}
+      - {id: C3, caso: "RHEL 8 de prueba (srv-mig-rhel8-01) con destino 9 y el análisis oficial (Leapp preupgrade)", tipo: Funcional, verificar: "camino 8 → 9 con Leapp, semáforo y bloqueos de Leapp; sigue en RHEL 8"}
+      - {id: C4, caso: "RHEL 9 al día (nodo-jboss-dev) con política mínimo", tipo: Funcional, verificar: "sin acción, semáforo al día; no cambia nada"}
+      - {id: C5, caso: "Versión de destino no válida (99)", tipo: Error controlado, verificar: "semáforo rojo con el motivo; no cambia nada"}
+      - {id: C6, caso: "Repetir C1", tipo: Idempotencia, verificar: "mismo resultado (solo lectura)"}
+      - {id: C7, caso: "Equipo apagado (nodo-jboss-qa)", tipo: Error controlado, verificar: "FaceOps no lanza el ticket (equipo apagado); nada cambia"}
   "Migración · CentOS a RHEL":
     casos:
-      - {id: C1, caso: "Rocky 9 de prueba recién creada (Habilitar servidor) → RHEL con política mínimo y snapshot", verificar: "/etc/redhat-release RHEL; registrada; responde por SSH"}
-      - {id: C2, caso: "Destino no válido (versión 99)", verificar: "se rechaza antes de tocar la máquina (sin snapshot ni cambios)"}
-      - {id: C3, caso: "Repetir sobre la máquina ya convertida", verificar: "no hace nada (sin acción)"}
+      - {id: C1, caso: "Rocky 9 de prueba con versión de destino no válida (99)", tipo: Error controlado, verificar: "se rechaza en las validaciones antes de tocar la máquina: sin snapshot nuevo, sigue siendo Rocky"}
+      - {id: C2, caso: "Falla después del snapshot (mig_prueba_falla)", tipo: Vuelta atrás, verificar: "el ticket falla en forma controlada; la VM vuelve al snapshot: sigue siendo Rocky, sin la marca de la falla, responde por SSH"}
+      - {id: C3, caso: "Rocky 9 → RHEL con política mínimo y snapshot", tipo: Funcional, verificar: "/etc/redhat-release RHEL 9; registrada en Red Hat; responde por SSH; snapshot previo en el anfitrión; la llave no queda en la máquina"}
+      - {id: C4, caso: "Repetir sobre la máquina ya convertida", tipo: Idempotencia, verificar: "sin acción: no toma snapshot ni cambia nada"}
   "Migración · RHEL a versión soportada":
     casos:
-      - {id: C1, caso: "RHEL 8 de prueba: evaluar con análisis oficial (Leapp preupgrade)", verificar: "semáforo e informe de Leapp; la máquina no cambia"}
-      - {id: C2, caso: "RHEL 8 con política mínimo (migrar)", verificar: "queda en la última menor con parches; responde por SSH"}
-      - {id: C3, caso: "RHEL 8 con política última (salto a 9 con Leapp y snapshot)", verificar: "RHEL 9; registrada; responde por SSH"}
-      - {id: C4, caso: "Repetir con la máquina ya en la versión de la política", verificar: "sin cambios"}
+      - {id: C1, caso: "RHEL 8 de prueba (srv-mig-rhel8-01) con versión de destino anterior (7)", tipo: Error controlado, verificar: "se rechaza en las validaciones antes de tocar la máquina: sin snapshot, sigue en RHEL 8"}
+      - {id: C2, caso: "RHEL 8 con política mínimo", tipo: Funcional, verificar: "queda en la última versión menor de RHEL 8 con parches; responde por SSH"}
+      - {id: C3, caso: "Falla después del snapshot (mig_prueba_falla) con destino 9", tipo: Vuelta atrás, verificar: "el ticket falla en forma controlada; la VM vuelve al snapshot: sigue en RHEL 8, sin la marca de la falla, responde por SSH"}
+      - {id: C4, caso: "RHEL 8 → 9 con Leapp (destino 9) y snapshot", tipo: Funcional, verificar: "RHEL 9; registrada; responde por SSH; sin servicios fallidos nuevos; snapshot previo en el anfitrión"}
+      - {id: C5, caso: "Repetir con la máquina ya en RHEL 9 (destino 9)", tipo: Idempotencia, verificar: "sin salto de versión: sigue en RHEL 9"}
   "Ciclo de vida · Evaluar destino":
     casos:
       - {id: C1, caso: "Java 17 → 21 en nodo-jboss-dev", verificar: "semáforo con versión instalada, destino en repositorios, disco y memoria; no cambia nada (mismos paquetes antes y después)"}

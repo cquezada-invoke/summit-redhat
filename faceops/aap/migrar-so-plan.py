@@ -84,6 +84,9 @@ def main():
         pedido = 0
     if pedido >= mayor and pedido in CICLO:   # igual a la actual: solo la última versión menor
         dst = pedido
+    elif pedido:   # versión pedida que no existe o es anterior a la actual: no se migra (rechazo antes de tocar el equipo)
+        hall("rojo", "Sistema", f"Versión de destino {e.get('destino')} no válida para {origen}: "
+                                f"use una versión mayor de RHEL entre {mayor} y {max(CICLO)}")
     saltos, accion = [], ""
     convertir = fam in ("centos", "otro_el")
     if convertir:

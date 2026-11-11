@@ -1203,7 +1203,7 @@ if c_rhsm:   # parches: si el equipo no está registrado, se registra con la lla
     if jps_ and c_rhsm["id"] not in [x["id"] for x in aap("GET", f"job_templates/{jps_['id']}/credentials/").get("results", [])]:
         aap("POST", f"job_templates/{jps_['id']}/credentials/", {"id": c_rhsm["id"]})
 for nombre_m, desc_m, creds_m in (
-        ("Migración · Evaluar sistema operativo", "Composición del sistema por categoría, versión de destino con parches, camino y semáforo (no cambia nada)", []),
+        ("Migración · Evaluar sistema operativo", "Composición del sistema por categoría, versión de destino con parches, camino y semáforo (no cambia nada)", [c_rhsm]),   # la llave: convert2rhel analyze
         ("Migración · RHEL a versión soportada", "Lleva RHEL a la versión con parches según la política: última menor y saltos in-place (Leapp / redhat-upgrade-tool) con snapshot y vuelta atrás", [c_snap]),
         ("Migración · CentOS a RHEL", "Convierte CentOS, Rocky, AlmaLinux u Oracle Linux a RHEL con Convert2RHEL (y sigue a la versión con parches si la política lo pide)", [c_snap, c_rhsm])):
     jm_ = asegurar("job_templates", nombre_m, {
