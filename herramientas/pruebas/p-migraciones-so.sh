@@ -113,7 +113,7 @@ fi
 R8=srv-mig-rhel8-01
 baja() { caso "{\"auto\":\"FaceOps · Eliminar servidor\",\"params\":{\"el_equipo\":\"$1\"},\"min\":20,\"caso\":\"baja $1\"}" >/dev/null; echo "eliminar $1: $(estado) $(ticket)"; }
 if [ "$FASE" = rhel8-ev ]; then
-  existe $RK && baja $RK   # libera su nodo de la licencia de AAP
+  # (la Rocky se elimina en «limpiar»: con nodos libres en la licencia ambas pueden convivir)
   if ! existe $R8; then
     L=$(libres); echo "licencia AAP libres: $L"; [ "${L:-0}" -ge 1 ] || { echo "SIN LICENCIA LIBRE: no se crea la máquina"; exit 0; }
     hab rhel8 mig-rhel8
