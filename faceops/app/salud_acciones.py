@@ -77,8 +77,9 @@ def _ticket(cliente_id, e, aid, por_param=None):
         if por_param:
             if not str((j(t["parametros"], {}) or {}).get(por_param) or "").startswith(e["nombre"] + ":"):
                 continue
-        elif e["nombre"] not in (t["limite"] or "").split(":"):
-            continue
+        elif e["nombre"] not in (t["limite"] or "").split(":") and not (
+                (t["motivo"] or "").startswith(MARCA) and (t["motivo"] or "").endswith(f" en {e['nombre']}")):
+            continue   # (las que corren en FaceOps o en otro host no llevan la máquina en el límite: se reconoce por el motivo)
         if t["estado"] in ABIERTOS:
             return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": True}
         if t["estado"] == "exitoso" and (t["motivo"] or "").startswith(MARCA):
