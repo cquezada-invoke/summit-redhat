@@ -2838,14 +2838,16 @@ def _keycloak_entrar(e, w, sub, prefijo):
     try:
         s_ = requests.Session()
         r1 = s_.get(f"{origen}/{sub}", params=request.args, cookies=galletas, timeout=10, allow_redirects=False)
+        # las cookies de Keycloak llegan «Secure» (su nombre público es https) y FaceOps le habla por http: se reenvían a mano
+        ck_ = "; ".join(c.split(";", 1)[0].strip() for c in (r1.raw.headers.getlist("Set-Cookie") if hasattr(r1.raw.headers, "getlist") else []))
         m_ = re.search(r'<form[^>]+id="kc-form-login"[^>]+action="([^"]+)"', r1.text) if r1.status_code == 200 else None
         if not m_:
             return None
         accion = _html.unescape(m_.group(1))
         i_ = accion.find("/consola-web/keycloak/")
         accion = origen + accion[i_ + len("/consola-web/keycloak"):] if i_ >= 0 else re.sub(r"^https?://[^/]+", origen, accion)
-        r2 = s_.post(accion, data={"username": cr.get("usuario") or "admin", "password": cr["clave"], "credentialId": ""},
-                     timeout=10, allow_redirects=False)
+        r2 = requests.post(accion, data={"username": cr.get("usuario") or "admin", "password": cr["clave"], "credentialId": ""},
+                           headers={"Cookie": ck_} if ck_ else {}, timeout=10, allow_redirects=False)
         if r2.status_code not in (302, 303) or not r2.headers.get("Location"):
             return None
     except requests.RequestException:

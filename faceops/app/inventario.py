@@ -460,7 +460,7 @@ def sincronizar(cliente, usuario="sistema"):
             # si calza con lo que ve el sistema; si no, en una VM, MemTotal redondeado al GB (estimada).
             so_ = int(r["ram_mb"])
             ult_ = _ajuste_posterior(cliente["id"], nombre, None)
-            if ult_ and so_ <= ult_[1] <= so_ / 0.75:
+            if ult_ and so_ <= ult_[1]:   # lo que ve el sistema nunca supera lo asignado (facts anteriores al ajuste incluidos)
                 fila["ram_mb"] = ult_[1]
             elif (r["datos"].get("virtual_rol") == "guest") and so_ % 1024:
                 fila["ram_mb"] = -(-so_ // 1024) * 1024
