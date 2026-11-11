@@ -1,12 +1,7 @@
-commit: b425129d227fc138f0cb622a10e6630d48d5bdf5
-inicio: 2026-11-11T20:17:28-03:00
+commit: 67377186ea6c28df641c3d0c6e18e2305bdeced8
+inicio: 2026-11-11T20:40:26-03:00
 ---
-inventariar srv-mig-rhel8-01: exitoso FO-LAB-01947
-IP srv-mig-rhel8-01 192.168.122.233 · Red Hat Enterprise Linux release 8.10 (Ootpa)
-  (arnés cortado en "caso":"C3"; reanudo FO-LAB-01955)
-  C3 srv-mig-rhel8-01: exitoso FO-LAB-01955 · RHEL 8.10 → RHEL 9 · migrar · amarillo · análisis {"herramienta": "Leapp", "bloqueos": [], "riesgos_altos": ["Remote root logins globally allowed using password", "GRUB2 core will be automatically updated during the upgrade"]} 
-CASO C3 ok · RHEL 8 → 9 con Leapp preupgrade
-EVALUAR: [{"id": "C1", "caso": "Rocky 9 política mínimo", "resultado": "ok", "evidencia": "Rocky Linux 9.8 → RHEL 9 · convertir · verde · camino [\"Convertir Rocky Linux 9.8 → RHEL 9 (Convert2RHEL)\"] · paquetes 7969f069f54d=7969f069f54d"}, {"id": "C2", "caso": "Rocky 9 con convert2rhel analyze", "resultado": "ok", "evidencia": "análisis {\"herramienta\": \"convert2rhel analyze\", \"codigo\": \"2\", \"bloqueos\": [\"Invalid kernel version detected\"], \"advertencias\": [\"Outdated packages detected\"], \"error\": \"\"} · Rocky Linux release 9.8 (Blue Onyx) sin-llave"}, {"id": "C4", "caso": "RHEL 9 al día (nodo-jboss-dev)", "resultado": "ok", "evidencia": "RHEL 9.8 · sin acción · amarillo"}, {"id": "C5", "caso": "Destino no válido (99)", "resultado": "ok", "evidencia": "semáforo rojo: Versión de destino 99 no válida para Rocky Linux 9.8: use una versión mayor de RHEL entre 9 y 10"}, {"id"
-CERT Migración · Evaluar sistema operativo → certificada
-centos: [{"id": "C1", "caso": "Destino no válido (99)", "resultado": "ok", "evidencia": "rechazado en validaciones: snapshots 1=1, sigue Rocky Linux release 9.8 (Blue Onyx)"}, {"id": "C2", "caso": "Falla tras el snapshot", "resultado": "falla", "evidencia": "fallido Falla simulada (solo plan de prueba de la vuelta atrás; deja una marca que el snapshot debe borrar) · non-zero return code · Migración fallida · Falló «Falla simulada (solo plan de prueba de la vuelta atrás; deja una marca que el snapshot debe borrar)»: non-zero return code · el equipo volvi"}, {"id": "C3", "caso": "Rocky 9 → RHEL", "resultado": "ok", "evidencia": "Red Hat Enterprise Linux release 9.9 (Plow) 1 sin-llave · snapshot previo (2→3)"}, {"id": "C4", "caso": "Repetir ya convertida", "resultado": "ok", "evidencia": "Sin acción: el equipo ya es RHEL 9.9, no hay nada que convertir · sin snapshot nuevo"}]
---- fin: 2026-11-11T20:40:08-03:00 · código: 0
+AAP ping 200
+SINCRONIZADO lab
+CASO -- SIN ESCENARIO: no se pudo preparar faceops-prueba-mov (5 de 5 imágenes)
+--- fin: 2026-11-11T20:42:55-03:00 · código: 0
