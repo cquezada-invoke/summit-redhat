@@ -1,11 +1,17 @@
-commit: ea404335b246f73f52181a5502087043758c7add
-inicio: 2026-11-11T17:37:51-03:00
+commit: 4d48da27e57cb90ec987cf236f95312223708213
+inicio: 2026-11-11T17:47:02-03:00
 ---
-IP srv-mig-rocky-01 192.168.122.231 · Rocky Linux release 9.8 (Blue Onyx)
-CASO C1 ok · Destino no válido (99)
-CASO C2 falla · Falla tras el snapshot
-CASO C3 falla · Rocky 9 → RHEL
-CASO C4 falla · Repetir
-CENTOS: [{"id": "C1", "caso": "Destino no válido (99)", "resultado": "ok", "evidencia": "rechazado en validaciones: snapshots 0=0, sigue Rocky Linux release 9.8 (Blue Onyx)"}, {"id": "C2", "caso": "Falla tras el snapshot", "resultado": "falla", "evidencia": "fallido Falla simulada (solo plan de prueba de la vuelta atrás; deja una marca que el snapshot debe borrar) · non-zero return code · Volver al snapshot · non-zero return code "}, {"id": "C3", "caso": "Rocky 9 → RHEL", "resultado": "falla", "evidencia": "fallido  1/1 "}, {"id": "C4", "caso": "Repetir", "resultado": "falla", "evidencia": "rechazado al solicitar {} 1/1 None"}]
-FIN-ROCKY
---- fin: 2026-11-11T17:44:53-03:00 · código: 0
+SINCRONIZADO lab
+enuso=- cero=- rollout:v1=- rollout:v2=- sinuso=-
+CASO C1 falla · Valores por defecto
+plan=[] · - · rollout= · poda=False
+CASO C2 falla · Umbral 0, rangos 1,2 y Quay
+CASO C3 falla · Solo el namespace de prueba y organización fija
+git=None None · ficha=FO-LAB-01874 3 · raw=404
+CASO C4 falla · Informe en Git y en la ficha del clúster
+CASO C5 falla · Repetir
+RES {"caso": "C6", "auto": "OpenShift · Evaluar imágenes (uso y antigüedad)", "ticket": "FO-LAB-01877", "estado": "fallido", "stats": {}, "detalle": "Datos · Falta el API del clúster o hay datos no válidos: meses 0–60 (0 = toda imagen sin uso), rangos en meses separados por coma (3,6,12), namespaces con comodines, host y organización de Quay · ", "fallos": ["Datos · Falta el API del clúster o hay datos no válidos: meses 0–60 (0 = toda imagen sin uso), rangos en meses separados por coma (3,6,12), namespaces con comodines, host y organización de Quay"], "resultado": "s (uso y antigüedad)] ******
+CASO C6 ok · Rangos no válidos
+CASOS [{"id": "C1", "caso": "Valores por defecto", "resultado": "falla", "evidencia": "sin respuesta del arnés enuso=- cero=- rollout:v1=- rollout:v2=- sinuso=- cand=0 sys=False rangos=0"}, {"id": "C2", "caso": "Umbral 0, rangos 1,2 y Quay", "resultado": "falla", "evidencia": "sin respuesta del arnés [] -  False"}, {"id": "C3", "caso": "Solo el namespace de prueba y organización fija", "resultado": "falla", "evidencia": "sin respuesta del arnés todas=True n=None -"}, {"id": "C4", "caso": "Informe en Git y en la ficha del clúster", "resultado": "falla", "evidencia": "git=None None ficha=FO-LAB-
+CERT OpenShift · Evaluar imágenes (uso y antigüedad) → sin probar
+--- fin: 2026-11-11T17:55:00-03:00 · código: 0
