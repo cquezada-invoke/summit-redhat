@@ -545,7 +545,7 @@ planes:
       - {id: C3, caso: "intentar eliminar un nodo de OpenShift o un equipo que no es VM del hipervisor", verificar: "FaceOps lo rechaza sin crear ticket"}
   "Certificados · Inventario":
     casos:
-      - {id: C1, caso: "Leer la lista completa de la CA interna (más de 20 certificados emitidos)", verificar: "trabajo exitoso; set_stats faceops_cert_inventario.emitidos trae tantos como el total que informa la CA (antes cortaba en 20) e incluye el más nuevo de nodo-jboss (el de FO-LAB-01411); el panel de FaceOps lo muestra vigente y deja como reemplazados los huérfanos de los intentos fallidos"}
-      - {id: C2, caso: "Certificados en uso en nodo-jboss", verificar: "en_uso de nodo-jboss trae jboss-https (pkcs12, 8443) con entrega=true y la misma serie que entrega el puerto"}
-      - {id: C3, caso: "Repetir la lectura", tipo: Idempotencia, verificar: "trabajo exitoso sin cambios (changed=0) y los mismos emitidos"}
+      - {id: C1, caso: "Lanzarlo desde FaceOps sobre nodo-jboss (con límite) y leer la lista completa de la CA (más de 20 emitidos)", verificar: "ticket exitoso; set_stats faceops_cert_inventario trae alcance [nodo-jboss], completo=false y tantos emitidos como el total de la CA (antes cortaba en 20, y con límite no informaba nada); incluye el más nuevo de nodo-jboss (FO-LAB-01411); el panel lo muestra vigente y deja como reemplazado el huérfano de un intento fallido"}
+      - {id: C2, caso: "Certificados en uso en nodo-jboss y las demás máquinas", verificar: "en_uso de nodo-jboss trae jboss-https (pkcs12, 8443) con entrega=true y la serie que entrega el puerto; el panel conserva el en uso de las otras máquinas desde la última lectura completa"}
+      - {id: C3, caso: "Repetir la lectura", tipo: Idempotencia, verificar: "ticket exitoso sin cambios (changed=0) y los mismos emitidos"}
       - {id: C4, caso: "Pedirlo sobre nodo-jboss y una máquina apagada (nodo-jboss3)", tipo: Error controlado, verificar: "la apagada queda fuera del límite (FaceOps no lanza sobre apagadas) y la lectura termina bien con lo de nodo-jboss; la máquina apagada no se enciende"}

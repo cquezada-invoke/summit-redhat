@@ -47,69 +47,79 @@
       ansible.builtin.set_fact:
         cert_uso: "{{ r_uso.results | default([]) | map(attribute='stdout') | map('from_json') | list }}"
 
+# Corre una sola vez en el nodo de ejecución (delegate_to localhost). No es «hosts: localhost» porque, lanzado desde
+# FaceOps con un límite (una máquina o un segmento), el límite dejaba fuera a localhost y el trabajo no informaba nada.
+# «alcance» dice qué máquinas leyó: FaceOps toma de ella solo esas y conserva las demás de la última lectura completa.
 - name: Certificados emitidos por la CA y avisos a Event-Driven Ansible
-  hosts: localhost
-  connection: local
+  hosts: all
   gather_facts: false
+  ignore_unreachable: true
   vars:
     dias: "{{ cert_dias | default(30) | int }}"
     avisar: "{{ (cert_avisar | default(true) | string | lower) in ['true', 'si', 'sí', 'yes', '1'] }}"
     eda: "{{ faceops_eda_certificados | default('http://192.168.122.1:5020/') }}"
+    leidos: "{{ ansible_play_hosts_all }}"
   tasks:
-    - name: Lista de la CA (API pública, solo lectura)
-      ansible.builtin.uri:
-        url: "{{ faceops_ca_url }}/ca/rest/certs?maxResults=1000&size=1000"   # sin maxResults la CA corta en 20 y los más nuevos no aparecen
-        headers: {Accept: application/json}
-        validate_certs: false
-        return_content: true
-      register: r_ca
+    - name: Consolidar en el nodo de ejecución
+      run_once: true
+      delegate_to: localhost
+      block:
+        - name: Lista de la CA (API pública, solo lectura)
+          ansible.builtin.uri:
+            url: "{{ faceops_ca_url }}/ca/rest/certs?maxResults=1000&size=1000"   # sin maxResults la CA corta en 20 y los más nuevos no aparecen
+            headers: {Accept: application/json}
+            validate_certs: false
+            return_content: true
+          register: r_ca
 
-    - name: Consolidar
-      ansible.builtin.set_fact:
-        uso: >-
-          {{ dict(groups['all'] | zip(groups['all'] | map('extract', hostvars, 'cert_uso') | map('default', []))) }}
-        emitidos: "{{ r_ca.json.entries | default([]) }}"
+        - name: Consolidar
+          ansible.builtin.set_fact:
+            uso: >-
+              {{ dict(leidos | zip(leidos | map('extract', hostvars, 'cert_uso') | map('default', []))) }}
+            emitidos: "{{ r_ca.json.entries | default([]) }}"
 
-    - name: Días restantes de los certificados en uso
-      ansible.builtin.set_fact:
-        por_vencer: "{{ por_vencer | default([]) + [{'equipo': item.0.key, 'servicio': item.1.servicio, 'serie': item.1.serie, 'dias': d | int}] }}"
-      vars:
-        d: "{{ ((item.1.vence | to_datetime('%b %d %H:%M:%S %Y GMT')) - now(utc=true).replace(tzinfo=None)).days if item.1.vence else -1 }}"
-      loop: "{{ uso | dict2items | subelements('value') }}"
-      loop_control: {label: "{{ item.0.key }}/{{ item.1.servicio }}"}
-      when: (d | int) < (dias | int)
+        - name: Días restantes de los certificados en uso
+          ansible.builtin.set_fact:
+            por_vencer: "{{ por_vencer | default([]) + [{'equipo': item.0.key, 'servicio': item.1.servicio, 'serie': item.1.serie, 'dias': d | int}] }}"
+          vars:
+            d: "{{ ((item.1.vence | to_datetime('%b %d %H:%M:%S %Y GMT')) - now(utc=true).replace(tzinfo=None)).days if item.1.vence else -1 }}"
+          loop: "{{ uso | dict2items | subelements('value') }}"
+          loop_control: {label: "{{ item.0.key }}/{{ item.1.servicio }}"}
+          when: (d | int) < (dias | int)
 
-    - name: Resultado para FaceOps
-      ansible.builtin.set_stats:
-        data:
-          faceops_cert_inventario:
-            leido: "{{ now(utc=true).isoformat() }}Z"
-            umbral: "{{ dias | int }}"
-            en_uso: "{{ uso }}"
-            emitidos: >-
-              {{ emitidos | map('dict2items') | map('selectattr', 'key', 'in', ['id', 'SubjectDN', 'IssuerDN', 'Status', 'NotValidBefore', 'NotValidAfter', 'IssuedOn'])
-                 | map('items2dict') | list }}
-            por_vencer: "{{ por_vencer | default([]) }}"
+        - name: Resultado para FaceOps
+          ansible.builtin.set_stats:
+            data:
+              faceops_cert_inventario:
+                leido: "{{ now(utc=true).isoformat() }}Z"
+                umbral: "{{ dias | int }}"
+                alcance: "{{ leidos }}"
+                completo: "{{ ansible_limit is not defined or not ansible_limit }}"
+                en_uso: "{{ uso }}"
+                emitidos: >-
+                  {{ emitidos | map('dict2items') | map('selectattr', 'key', 'in', ['id', 'SubjectDN', 'IssuerDN', 'Status', 'NotValidBefore', 'NotValidAfter', 'IssuedOn'])
+                     | map('items2dict') | list }}
+                por_vencer: "{{ por_vencer | default([]) }}"
 
-    - name: Avisar a Event-Driven Ansible (uno por equipo con certificados por vencer)
-      ansible.builtin.uri:
-        url: "{{ eda }}"
-        method: POST
-        body_format: json
-        body:
-          tipo: certificado_por_vencer
-          equipo: "{{ item }}"
-          servicios: "{{ por_vencer | selectattr('equipo', 'equalto', item) | map(attribute='servicio') | list }}"
-          dias_minimo: "{{ por_vencer | selectattr('equipo', 'equalto', item) | map(attribute='dias') | min }}"
-          umbral: "{{ dias | int }}"
-        status_code: [200, 201, 202]
-        timeout: 10
-      loop: "{{ por_vencer | default([]) | map(attribute='equipo') | unique | list }}"
-      when: avisar
-      failed_when: false
+        - name: Avisar a Event-Driven Ansible (uno por equipo con certificados por vencer)
+          ansible.builtin.uri:
+            url: "{{ eda }}"
+            method: POST
+            body_format: json
+            body:
+              tipo: certificado_por_vencer
+              equipo: "{{ item }}"
+              servicios: "{{ por_vencer | selectattr('equipo', 'equalto', item) | map(attribute='servicio') | list }}"
+              dias_minimo: "{{ por_vencer | selectattr('equipo', 'equalto', item) | map(attribute='dias') | min }}"
+              umbral: "{{ dias | int }}"
+            status_code: [200, 201, 202]
+            timeout: 10
+          loop: "{{ por_vencer | default([]) | map(attribute='equipo') | unique | list }}"
+          when: avisar
+          failed_when: false
 
-    - name: Resumen
-      ansible.builtin.debug:
-        msg: >-
-          {{ emitidos | length }} emitidos por la CA · {{ uso.values() | map('length') | sum }} en uso en {{ uso.values() | select | list | length }} equipo(s) ·
-          {{ (por_vencer | default([]) | length) }} por vencer (< {{ dias }} días){{ ' → avisado a EDA' if avisar and por_vencer | default([]) else '' }}
+        - name: Resumen
+          ansible.builtin.debug:
+            msg: >-
+              {{ emitidos | length }} emitidos por la CA · {{ uso.values() | map('length') | sum }} en uso en {{ uso.values() | select | list | length }} equipo(s) ·
+              {{ (por_vencer | default([]) | length) }} por vencer (< {{ dias }} días){{ ' → avisado a EDA' if avisar and por_vencer | default([]) else '' }}

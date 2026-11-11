@@ -65,11 +65,25 @@ def _inventario(aap):
     jt = (aap.get("job_templates/", name=INVENTARIO).get("results") or [None])[0]
     if not jt:
         raise ErrorAAP(f"No existe la plantilla «{INVENTARIO}» en AAP")
-    for jb in aap.get("jobs/", job_template=jt["id"], status="successful", order_by="-finished", page_size=5).get("results", []):
+    base, ult, uso, pv = None, None, {}, []
+    for jb in aap.get("jobs/", job_template=jt["id"], status="successful", order_by="-finished", page_size=25).get("results", []):
         d = (aap.get(f"jobs/{jb['id']}/").get("artifacts") or {}).get("faceops_cert_inventario")
-        if d:
-            return d, jb, jt
-    return {}, None, jt
+        if not d:
+            continue
+        if base is None:   # lo emitido por la CA y la hora de lectura: del trabajo más reciente
+            base, ult = d, jb
+        # en uso: un trabajo lanzado con límite (FaceOps, sobre una máquina o un segmento) solo leyó su «alcance»;
+        # las demás máquinas se conservan de lecturas anteriores, hasta la última completa
+        completo = d.get("alcance") is None or d.get("completo") in (True, "True", "true")
+        for eq in (d.get("en_uso") or {}) if completo else (d.get("alcance") or []):
+            if eq not in uso:
+                uso[eq] = (d.get("en_uso") or {}).get(eq) or []
+                pv += [x for x in d.get("por_vencer") or [] if x.get("equipo") == eq]
+        if completo:
+            break
+    if base is None:
+        return {}, None, jt
+    return dict(base, en_uso=uso, por_vencer=pv), ult, jt
 
 
 def _gestionados(aap):
