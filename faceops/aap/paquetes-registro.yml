@@ -61,7 +61,7 @@
           {%- set out = [] %}{% for p in paquetes %}{% set k = p.n ~ '|' ~ p.v ~ '|' ~ p.a %}{% if p.r == '' and k in org %}{% set _ = out.append(dict(p, r=org[k], b=true)) %}{% else %}{% set _ = out.append(p) %}{% endif %}{% endfor %}{{ out }}
       when: r_origen is not skipped
 
-    - name: Huella (sha256) de cada paquete en su repositorio de origen (RHEL 8 no trae python3: se usa platform-python, que tiene dnf)
+    - name: Huella (sha256) de cada paquete en su repositorio de origen (en RHEL 8, sin python3, con platform-python)
       ansible.builtin.shell: |
         $(command -v python3 || echo /usr/libexec/platform-python) - <<'PY'
         import json
