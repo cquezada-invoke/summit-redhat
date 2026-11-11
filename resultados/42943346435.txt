@@ -1,0 +1,17 @@
+commit: 77f2db99a6ac13e15443fa21971ff22e07fa6a03
+inicio: 2026-11-10T23:03:47-03:00
+---
+{'numero': 'FO-LAB-01404', 'estado': 'exitoso', 'limite': 'nodo-jboss', 'parametros': '{"sp_accion": "apagar", "sp_unidades": ["keycloak"], "sp_plataforma": "Keycloak"}', 'aap_job_id': '21654', 'aap_job_tipo': 'workflow', 'resultado': 'AAP terminó (successful): ejecución 10 s, espera de aprobación 49 s', 'aprobado_por': '1', 'respuesta': 'Aprobado por Claude (regla de Cristian)', 'nombre_aap': 'Plataforma · Controlar servicio'}
+{'numero': 'FO-LAB-01457', 'estado': 'exitoso', 'limite': 'nodo-jboss', 'parametros': '{"politica": {"nombre": "JBoss con consola de administración protegida", "categoria": "aplicaciones", "descripcion": "La consola de administración de JBoss (9990) responde solo desde el propio equipo.", "reglas": [{"tipo": "comando", "verificar": "! ss -ltn | grep -Eq \'(0\\\\.0\\\\.0\\\\.0|\\\\*|\\\\[::\\\\]):9990 \'", "aplicar": "sed -i \'s/jboss.bind.address.management=[^ \\"]*/jboss.bind.address.management=127.0.0.1/\' /etc/opt/rh/eap8/wildfly/eap8-standalone.conf 2>/dev/null; grep -q \'bind.address.management\' /etc/opt/rh/eap8/wildfly/eap8-standalone.conf || echo \'WILDFLY_OPTS=\\"$WILDFLY_OPTS -Djboss.bind.address.management=127.0.0.1\\"\' >> /etc/opt/rh/eap8/wildfly/eap8-standalone.conf; systemctl restart eap8-standalone"}], "codigo": "APP-02", "recargar": [], "version": 1, "id": "APP-02"}, "politica_modo": "aplicar", "politica_codigo": "APP-02", "politica_version": 1}', 'aap_job_id': '22176', 'aap_job_tipo': 'workflow', 'resultado': 'AAP terminó (successful): ejecución 7 s, espera de aprobación 28 s\nPolítica APP-02 v1 (aplicar): nodo-jboss: falló', 'aprobado_por': '1', 'respuesta': '', 'nombre_aap': 'FaceOps · Aplicar política de seguridad'}
+ADHOC error  s.py", line 751, in run
+    params['module_args'] = self.build_module_args(self.instance)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/lib/awx/venv/awx/lib64/python3.12/site-packages/awx/main/tasks/jobs.py", line 2145, in build_module_args
+    module_args = sanitize_jinja(module_args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/lib/awx/venv/awx/lib64/python3.12/site-packages/awx/main/utils/safe_yaml.py", line 75, in sanitize_jinja
+    raise ValueError('Inline Jinja variables are not allowed.')
+ValueError: Inline Jinja variables are not allowed.
+
+
+--- fin: 2026-11-10T23:03:54-03:00 · código: 0
