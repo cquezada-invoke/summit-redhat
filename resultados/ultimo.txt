@@ -1,17 +1,91 @@
-commit: 77f2db99a6ac13e15443fa21971ff22e07fa6a03
-inicio: 2026-11-10T23:03:47-03:00
+commit: e55eec60c72132ecc0acc1056e948b047c593d9a
+inicio: 2026-11-10T23:04:08-03:00
 ---
-{'numero': 'FO-LAB-01404', 'estado': 'exitoso', 'limite': 'nodo-jboss', 'parametros': '{"sp_accion": "apagar", "sp_unidades": ["keycloak"], "sp_plataforma": "Keycloak"}', 'aap_job_id': '21654', 'aap_job_tipo': 'workflow', 'resultado': 'AAP terminó (successful): ejecución 10 s, espera de aprobación 49 s', 'aprobado_por': '1', 'respuesta': 'Aprobado por Claude (regla de Cristian)', 'nombre_aap': 'Plataforma · Controlar servicio'}
-{'numero': 'FO-LAB-01457', 'estado': 'exitoso', 'limite': 'nodo-jboss', 'parametros': '{"politica": {"nombre": "JBoss con consola de administración protegida", "categoria": "aplicaciones", "descripcion": "La consola de administración de JBoss (9990) responde solo desde el propio equipo.", "reglas": [{"tipo": "comando", "verificar": "! ss -ltn | grep -Eq \'(0\\\\.0\\\\.0\\\\.0|\\\\*|\\\\[::\\\\]):9990 \'", "aplicar": "sed -i \'s/jboss.bind.address.management=[^ \\"]*/jboss.bind.address.management=127.0.0.1/\' /etc/opt/rh/eap8/wildfly/eap8-standalone.conf 2>/dev/null; grep -q \'bind.address.management\' /etc/opt/rh/eap8/wildfly/eap8-standalone.conf || echo \'WILDFLY_OPTS=\\"$WILDFLY_OPTS -Djboss.bind.address.management=127.0.0.1\\"\' >> /etc/opt/rh/eap8/wildfly/eap8-standalone.conf; systemctl restart eap8-standalone"}], "codigo": "APP-02", "recargar": [], "version": 1, "id": "APP-02"}, "politica_modo": "aplicar", "politica_codigo": "APP-02", "politica_version": 1}', 'aap_job_id': '22176', 'aap_job_tipo': 'workflow', 'resultado': 'AAP terminó (successful): ejecución 7 s, espera de aprobación 28 s\nPolítica APP-02 v1 (aplicar): nodo-jboss: falló', 'aprobado_por': '1', 'respuesta': '', 'nombre_aap': 'FaceOps · Aplicar política de seguridad'}
-ADHOC error  s.py", line 751, in run
-    params['module_args'] = self.build_module_args(self.instance)
-                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/var/lib/awx/venv/awx/lib64/python3.12/site-packages/awx/main/tasks/jobs.py", line 2145, in build_module_args
-    module_args = sanitize_jinja(module_args)
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/var/lib/awx/venv/awx/lib64/python3.12/site-packages/awx/main/utils/safe_yaml.py", line 75, in sanitize_jinja
-    raise ValueError('Inline Jinja variables are not allowed.')
-ValueError: Inline Jinja variables are not allowed.
-
-
---- fin: 2026-11-10T23:03:54-03:00 · código: 0
+Certificados · Emitir para servicio | Emitir certificado para un servicio | Seguridad | sk=[] | so=[]
+Certificados · Inventario | Inventario | FaceOps | sk=[] | so=[]
+Certificados · OpenShift | OpenShift | FaceOps | sk=[] | so=[]
+Certificados · Renovar (EDA) | Renovar (EDA) | FaceOps | sk=[] | so=[]
+Certificados · Renovar por vencer | Renovar certificados por vencer | Seguridad | sk=[] | so=[]
+Ciclo de vida · Evaluar destino | Evaluar destino de versión | Migraciones | sk=[] | so=[]
+DC · Base de los equipos | Endurecer equipos del data center (base) | Data center | sk=[] | so=[]
+DC · Configurar IGA | Configurar IGA | Data center | sk=[] | so=[]
+DC · Construir identidad (Linux) | Construir identidad (Linux) | Data center | sk=[] | so=[]
+DC · Registrar en Red Hat | Registrar equipos en Red Hat | Data center | sk=[] | so=[]
+Data lake · Derivar segmento | Derivar el segmento al data lake | Segmentos de negocio | sk=[] | so=[]
+Despliegue · Cambiar tráfico | Cambiar tráfico de una app (blue-green, canary, A/B) | Despliegues | sk=[] | so=[]
+FaceOps · Rendimiento del canal | Rendimiento del canal | FaceOps | sk=[] | so=[]
+FaceOps · Uso por segmento | Uso por segmento | FaceOps | sk=[] | so=[]
+FaceOps · Vincular máquina a la bóveda | Vincular máquina a la bóveda | Seguridad | sk=[] | so=[]
+Fiscalía · Aviso de complemento | Aviso de complemento | FaceOps | sk=[] | so=[]
+Homologación · Relevar entorno | Relevar entorno para homologar ambientes | Gobierno | sk=[] | so=[]
+Incidentes · Diagnosticar PostgreSQL | Diagnosticar PostgreSQL | Operación y remediación | sk=[] | so=[]
+Incidentes · Verificar error conocido | Verificar error conocido | Operación y remediación | sk=[] | so=[]
+Infra · Agregar disco (anfitrión) | Agregar disco (anfitrión) | FaceOps | sk=[] | so=[]
+Infra · Ampliar disco (anfitrión) | Ampliar disco (anfitrión) | FaceOps | sk=[] | so=[]
+Integración · PostgreSQL | Integrar PostgreSQL al soporte | Operación y remediación | sk=[] | so=[]
+JBoss · Aplicar configuración | Aplicar configuración de JBoss desde Git | Despliegues | sk=["jboss"] | so=[]
+JBoss · Desplegar app | Redesplegar una versión publicada | Despliegues | sk=["jboss"] | so=[]
+JBoss · Restablecer a versión | Restablecer JBoss a una versión | Despliegues | sk=["jboss"] | so=[]
+Migración · CentOS a RHEL | CentOS a RHEL | Migraciones | sk=[] | so=[]
+Migración · Evaluar sistema operativo | Evaluar migración de sistema operativo | Migraciones | sk=[] | so=[]
+Migración · IIS a OpenShift | IIS a OpenShift | Migraciones | sk=[] | so=[]
+Migración · JBoss a EAP 8 | JBoss a EAP 8 | FaceOps | sk=[] | so=[]
+Migración · RHEL a versión soportada | RHEL a versión soportada | Migraciones | sk=[] | so=[]
+Migración · WebLogic a OpenShift | Migración WebLogic → OpenShift 4.x | Migraciones | sk=[] | so=[]
+Migración · WebLogic a OpenShift · Evaluar | WebLogic → OpenShift 4.x · Evaluar | Migraciones | sk=[] | so=[]
+Nube · Limpiar huérfanos | Limpiar huérfanos | Nube | sk=[] | so=[]
+Nube · Prueba: crear huérfanos | Prueba: crear huérfanos | Nube | sk=[] | so=[]
+Nube · Prueba: regla peligrosa | Prueba: regla peligrosa | Nube | sk=[] | so=[]
+Nube · Solicitar VM | Solicitar VM | Nube | sk=[] | so=[]
+OpenShift · Agente de ACS | Agente de ACS | FaceOps | sk=[] | so=[]
+OpenShift · Diagnóstico de regularización | Diagnóstico de regularización | FaceOps | sk=[] | so=[]
+OpenShift · Habilitar OpenShift Virtualization | Habilitar OpenShift Virtualization | Plataformas de contenedores | sk=[] | so=[]
+OpenShift · Informe y ficha | Informe y ficha | FaceOps | sk=[] | so=[]
+OpenShift · Límites y cuotas | Límites y cuotas | FaceOps | sk=[] | so=[]
+OpenShift · Modelo de alertamiento | Modelo de alertamiento de OpenShift | Plataformas de contenedores | sk=[] | so=[]
+OpenShift · Operador | Operador | FaceOps | sk=[] | so=[]
+OpenShift · Operadores OLM | Operadores OLM | FaceOps | sk=[] | so=[]
+OpenShift · Recolectar clúster | Recolectar clúster | FaceOps | sk=[] | so=[]
+OpenShift · Relevamiento de imágenes | Relevamiento de imágenes de OpenShift | Plataformas de contenedores | sk=[] | so=[]
+OpenShift · Remediar alerta | Remediar alerta de OpenShift | Plataformas de contenedores | sk=[] | so=[]
+OpenShift · Respaldo de etcd | Respaldo de etcd | FaceOps | sk=[] | so=[]
+OpenShift · Versión del clúster | Versión del clúster | FaceOps | sk=[] | so=[]
+Plataforma · Controlar servicio | Encender, apagar o reiniciar plataforma | Operación y remediación | sk=[] | so=[]
+Plataforma · Desinstalar | Desinstalar | FaceOps | sk=[] | so=[]
+Plataforma · Preparar dependencias | Preparar la plataforma de la app | Despliegues | sk=[] | so=[]
+Portal · Telco · Red del servicio (VLAN y BGP) (plantilla) | Telco · Red del servicio (VLAN y BGP) (plantilla) | Redes | sk=[] | so=[]
+Red · Actualizar firmware | Actualizar firmware | Redes | sk=[] | so=[]
+Red · Aplicar configuración | Aplicar configuración de red desde Git | Redes | sk=[] | so=[]
+Red · Configurar VLAN | Configurar VLAN | Redes | sk=[] | so=[]
+Red · Inventariar equipo de red | Inventariar equipo de red | FaceOps | sk=[] | so=[]
+Red · Preparar red OpenShift | Preparar red OpenShift | Redes | sk=[] | so=[]
+Red · Revocar acceso | Revocar acceso | Redes | sk=[] | so=[]
+Red · Revocar accesos vencidos | Revocar accesos vencidos | Redes | sk=[] | so=[]
+Red · Solicitar acceso | Solicitar acceso | Redes | sk=[] | so=[]
+Remediación · Cola de pagos | Destrabar la cola de pagos | Operación y remediación | sk=[] | so=[]
+Remediación · Diagnosticar app | Diagnosticar la aplicación | Operación y remediación | sk=[] | so=[]
+Remediación · IIS en Windows | Levantar IIS en Windows | Operación y remediación | sk=["iis"] | so=[]
+Remediación · Limpiar logs | Liberar disco (limpiar logs) | Operación y remediación | sk=["jboss"] | so=[]
+Remediación · Reiniciar JBoss | Reiniciar JBoss | Operación y remediación | sk=["jboss"] | so=[]
+Remediación · Renovar certificado | Renovar certificado HTTPS | Operación y remediación | sk=["nginx", "httpd"] | so=[]
+Remediación · Volver a la versión validada | Volver a la versión validada | Operación y remediación | sk=["jboss"] | so=[]
+SQL Server · Configurar alta disponibilidad | SQL Server · Configurar alta disponibilidad | Plataformas de datos | sk=[] | so=[]
+SQL Server · Conmutar réplica primaria | SQL Server · Conmutar réplica primaria | Plataformas de datos | sk=[] | so=[]
+SQL Server · Levantamiento y medición | SQL Server · Levantamiento para alta disponibilidad | Plataformas de datos | sk=[] | so=[]
+Seguridad · Aplicar parches de seguridad | Aplicar parches de seguridad | Seguridad | sk=[] | so=[]
+Seguridad · Escaneo de servidores | Escaneo de seguridad de servidores | Seguridad | sk=[] | so=[]
+Sistema · Ampliar disco en la máquina | Ampliar disco en la máquina | FaceOps | sk=[] | so=[]
+Sistema · Cambio de hora del país | Cambio de hora del país | Sistemas operativos | sk=[] | so=[]
+Sistema · Inventariar máquina | Inventariar máquina | FaceOps | sk=[] | so=[]
+Sistema · Paquetes · inventario y respaldo | Paquetes · inventario y respaldo | FaceOps | sk=[] | so=[]
+Sistema · Preparar disco nuevo | Preparar disco nuevo | FaceOps | sk=[] | so=[]
+Sistema · Quitar agente | Quitar agente | Operación y remediación | sk=[] | so=[]
+Sistema · Registrar en Red Hat | Registrar en Red Hat | Sistemas operativos | sk=[] | so=[]
+Storage · Ampliar volumen | Ampliar volumen | Storage | sk=[] | so=[]
+Storage · Asignar volumen a servidor | Asignar volumen a un servidor | Storage | sk=[] | so=[]
+Storage · Crear volumen | Crear volumen | Storage | sk=[] | so=[]
+Storage · Servicio S3 del data lake | Servicio S3 del data lake | Data center | sk=[] | so=[]
+Storage · Snapshot de volumen | Snapshot de volumen | Storage | sk=[] | so=[]
+Windows · Habilitar escritorio remoto | Habilitar escritorio remoto | FaceOps | sk=[] | so=[]
+Windows · Provocar caída de IIS (demo) | Prueba: provocar caída de IIS | Pruebas de demo | sk=[] | so=[]
+--- fin: 2026-11-10T23:04:14-03:00 · código: 0
