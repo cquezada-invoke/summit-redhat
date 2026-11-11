@@ -1,8 +1,25 @@
-commit: 4b9ba54a66bbcfd4ef706769001ec9757dcca428
-inicio: 2026-11-11T20:51:47-03:00
+commit: 2ab38a9f8448e0074efca7ac9c7cc0281a1cd62f
+inicio: 2026-11-11T20:52:16-03:00
 ---
-FO-LAB-01913 exitoso 22:36 Migración · CentOS a RHEL Plan de prueba C4 de «Migración · CentOS
-FO-LAB-01915 fallido 22:38 Sistema · Inventariar máquina Plan de prueba inventario srv-mig-rhel8-
-FO-LAB-01947 exitoso 23:21 Sistema · Inventariar máquina Plan de prueba inventario srv-mig-rhel8-
-FO-LAB-01955 exitoso 23:30 Migración · Evaluar sistema operativo Plan de prueba C3 de «Migración · Evalua
---- fin: 2026-11-11T20:52:00-03:00 · código: 0
+6187f99
+== EDA
+reiniciada: ServiceNow · Solicitudes de nube
+reiniciada: Monitoreo · Alertas de Prometheus
+reiniciada: Seguridad · Bloqueo de IP
+reiniciada: Remediación · Eventos de JBoss
+reiniciada: Red · Drift por eventos
+activación FaceOps · Alertas de objetos error
+activación ServiceNow · Solicitudes de red error
+activación Claro PR · Eventos (Odoo y Grafana) error
+activación Amdocs · Órdenes de servicio error
+activación FaceOps · OpenShift error
+activación FaceOps · Certificados error
+activación JBoss · Configuración desde Git error
+activación ServiceNow · Solicitudes de nube error
+activación Monitoreo · Alertas de Prometheus error
+activación Seguridad · Bloqueo de IP error
+activación Remediación · Eventos de JBoss error
+activación Red · Drift por eventos error
+== Grafana de OpenShift (un caso)
+RES {"caso": "diag", "auto": "Monitoreo · Grafana de OpenShift", "ticket": "FO-LAB-01971", "estado": "fallido", "stats": {}, "detalle": "Grafana (en el anfitrión) llega al Thanos Querier con ese token y solo puede leer ·  · ", "fallos": ["Grafana (en el anfitrión) llega al Thanos Querier con ese token y solo puede leer · "], "resultado": "anfitrion-kvm -> localhost]\n\nTASK [Ruta del Thanos Querier] *************************************************\nok: [anfitrion-kvm -> localhost]\n\nTASK [Datos de conexión] *******************************************************\nok: [anfitrion-kvm]\n\nTASK [Grafana (en el anfitrión) llega al Thanos Querier con ese token y solo puede leer] ***\nfatal: [anfitrion-kvm]: FAILED! => {\"censored\": \"the output has been hidden due to the fact that 'no_log: true' was specified for this result\", \"changed\": false}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=6    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   "}
+--- fin: 2026-11-11T20:55:30-03:00 · código: 0
