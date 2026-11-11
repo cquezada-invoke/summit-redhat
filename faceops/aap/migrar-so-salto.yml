@@ -36,9 +36,9 @@
         [ "{{ desde }}" = 7 ] && subscription-manager repos --enable rhel-7-server-extras-rpms >/dev/null 2>&1
         $PM -y -q install leapp-upgrade
       changed_when: true
-    - name: Acceso de root por SSH explícito (Leapp 7 → 8 lo exige; se mantiene el comportamiento actual)
+    - name: Acceso de root por SSH explícito (Leapp 7 → 8 y 8 → 9 lo exigen; se mantiene el comportamiento actual)
       ansible.builtin.raw: grep -qiE '^[[:space:]]*PermitRootLogin' /etc/ssh/sshd_config || echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
-      when: desde | int == 7
+      when: desde | int in [7, 8]
       changed_when: true
     - name: Respuestas conocidas
       ansible.builtin.raw: leapp answer --section remove_pam_pkcs11_module_check.confirm=True >/dev/null 2>&1; true

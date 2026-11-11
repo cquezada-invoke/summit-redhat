@@ -169,7 +169,7 @@ def main():
         hall("amarillo", "Servicios y arranque", "ntpd: en RHEL 8+ se reemplaza por chrony (Leapp migra la configuración)")
     if d.get("iptables") == "si" and cruza(8):
         hall("info", "Red", "Reglas con iptables: en RHEL 8+ el backend es nftables (firewalld)")
-    if d.get("root_ssh_implicito") == "si" and 7 in saltos:
+    if d.get("root_ssh_implicito") == "si" and (7 in saltos or 8 in saltos):
         hall("info", "Identidad y acceso", "PermitRootLogin no está explícito en sshd: se fija antes del upgrade para no perder el acceso")
     ag = (d.get("agentes") or "").split()
     if ag and final and cambia:
