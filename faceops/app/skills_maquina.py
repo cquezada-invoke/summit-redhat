@@ -52,6 +52,46 @@ def grupo_de(a, plataforma=False):
     return "ciclo"
 
 
+_AMB = {}
+
+
+def ambito(nombre_aap):
+    """«so» o la lista de familias de plataforma de la automatización, según datos/skills-ambito.yml (explícito por nombre,
+    luego por prefijo «X · …»; lo que no figure queda en el sistema operativo y se informa en sin_ambito())."""
+    import os
+    import yaml
+    ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "skills-ambito.yml")
+    m = os.path.getmtime(ruta) if os.path.exists(ruta) else 0
+    if _AMB.get("m") != m:
+        _AMB.update(m=m, c=(yaml.safe_load(open(ruta, encoding="utf-8")) if m else None) or {}, sin=set())
+    c = _AMB["c"]
+    v = (c.get("automatizaciones") or {}).get(nombre_aap)
+    if v is None:
+        v = (c.get("prefijos") or {}).get(nombre_aap.split(" · ")[0])
+    if v is None:
+        _AMB["sin"].add(nombre_aap)
+        return "so"
+    return "so" if v == "so" else [str(x) for x in (v if isinstance(v, list) else [v])]
+
+
+def sin_ambito():
+    return sorted(_AMB.get("sin") or [])
+
+
+def nombre_so(e):
+    """Rótulo corto del sistema de la máquina para el panel: «RHEL 9.8», «Windows Server 2022», «VyOS»…"""
+    so = (e.get("so") or "").strip()
+    m = re.search(r"(?:red ?hat enterprise linux|rhel)[^0-9]*([0-9]+(?:\.[0-9]+)?)", so, re.I)
+    if m:
+        return f"RHEL {m.group(1)}"
+    m = re.search(r"windows server (\d{4})", so, re.I)
+    if m:
+        return f"Windows Server {m.group(1)}"
+    if (e.get("categoria") or "") == "clúster openshift":
+        return so or "OpenShift"
+    return re.sub(r"\s+\S*\d{4}[.-]\d{2}[.-]?\d*\S*", "", so).strip() or (e.get("categoria") or "Sistema").capitalize()
+
+
 def _motivo_bloqueo(a):
     from .pruebas import estado
     ep = estado(dict(a, cliente_id=g.cliente["id"]))["estado"]
@@ -121,7 +161,7 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
                else "Red · Inventariar equipo de red" if cat in CATEGORIAS_RED else INVENTARIAR)
         s = base("inventariar", "inventario", "Inventariar", "Trae sistema, servicios y paquetes; FaceOps los contrasta con lo que sabe de la máquina.",
                  inv, url=url_for("consola.equipo_inventariar", eid=e["id"]), lectura=True)
-        propios.add(inv)
+        propios.update({inv, INVENTARIAR, "OpenShift · Recolectar clúster", "Red · Inventariar equipo de red"})
     # ── Recursos y movimiento: CPU, memoria y discos con su formulario (mismos endpoints de la ficha); mover abre su flotante
     lr = lim_rec or {}
     libre = lr.get("disco_disp_gb")
@@ -226,9 +266,18 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
         if a["nombre_aap"] in vistos or a.get("habilita_skill"):
             continue   # instalar plataformas y agentes: «Incorporar plataforma» y la sección Agentes
         vistos.add(a["nombre_aap"])
-        comps = [c for c in (de_comp(a) or []) if c and c != so_cod]
+        amb = ambito(a["nombre_aap"])
+        if amb == "so":
+            comps = []
+        else:   # skill de plataforma: solo si la máquina la tiene instalada (y no es su propio sistema, como OpenShift en un clúster)
+            comps = [c["codigo"] for c in componentes if familia(c["codigo"]) in amb and not c.get("so")]
+            if not comps:
+                if any(c.get("so") and familia(c["codigo"]) in amb for c in componentes):
+                    comps = []
+                else:
+                    continue
         campos = [c for c in j(a.get("campos"), []) if c.get("tipo") not in ("equipo", "equipos")]
-        s = {"id": f"a{a['id']}", "plats": comps, "grupo": grupo_de(a, bool(comps)), "nombre": a["nombre"], "que": _que(a), "aap": a["nombre_aap"], "aid": a["id"],
+        s = {"id": f"a{a['id']}", "plats": comps, "grupo": grupo_de(a), "nombre": a["nombre"], "que": _que(a), "aap": a["nombre_aap"], "aid": a["id"],
              "aprob": bool(a.get("requiere_aprobacion")), "lectura": lectura(a), "deshab": "", "campos": campos,
              "bloqueo": f"Bloqueada por la regla de prueba: {_motivo_bloqueo(a)}" if a.get("_bloqueada") else "",
              "confirmar": "", "destructiva": bool(re.search(r"eliminar|desinstalar|borrar|retirar", _texto(a))),
@@ -241,8 +290,11 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
         if xs:
             grupos.append({"clave": k, "nombre": n, "skills": xs if k == "energia" else
                            sorted(xs, key=lambda s: (bool(s["bloqueo"]), bool(re.fullmatch(r"a\d+", s["id"])), s["nombre"].lower()))})
+    maq = [s for s in out if not s.get("plats")]
     por_plat = {}
     for s in out:
         for c in s.get("plats") or []:
             por_plat[c] = por_plat.get(c, 0) + (0 if s["bloqueo"] else 1)
-    return {"grupos": grupos, "total": len(out), "bloqueadas": sum(1 for s in out if s["bloqueo"]), "por_plat": por_plat}
+    return {"grupos": grupos, "total": len(out), "bloqueadas": sum(1 for s in out if s["bloqueo"]), "por_plat": por_plat,
+            "maquina": sum(1 for s in maq if not s["bloqueo"]), "maquina_total": len(maq), "so_nombre": nombre_so(e),
+            "plat_nombre": {c["codigo"]: c["nombre"] for c in componentes if not c.get("so")}}

@@ -1,0 +1,82 @@
+# Ámbito de cada automatización en el panel «Skills» de la ficha de una máquina.
+#   so          → skill del SISTEMA OPERATIVO de la máquina (botón Skills de la caja «Encendido»)
+#   [familias]  → skill de esa PLATAFORMA (botón Skills de su tarjeta); familia = código de la plataforma (jboss, redis, nginx…)
+# Si la máquina no tiene instalada ninguna de las plataformas indicadas, la skill no se muestra.
+# Lo que no esté aquí se resuelve por «prefijos» (la parte antes de « · » en el nombre de AAP); si tampoco, queda en «so».
+# Las marcadas «por confirmar» se dejaron en el SO porque su ámbito no es claro.
+prefijos:
+  JBoss: [jboss]
+  Redis: [redis]
+  Keycloak: [keycloak]
+  Vault: [vault]
+  Jenkins: [jenkins]
+  PostgreSQL: [postgresql]
+  MySQL: [mysql]
+  MongoDB: [mongodb]
+  SQL Server: [sql-server, sqlserver, mssql]
+  Satellite: [satellite]
+  VPN: [vpn, wireguard]
+  OpenShift: [openshift]
+  Sistema: so
+  Seguridad: so
+  Infra: so
+  Storage: so
+  Red: so
+  DC: so
+  Windows: so
+  Migración: so
+automatizaciones:
+  # JBoss
+  "JBoss · Aplicar configuración": [jboss]
+  "JBoss · Desplegar app": [jboss]
+  "JBoss · Restablecer a versión": [jboss]
+  "Migración · JBoss a EAP 8": [jboss]
+  "Remediación · Reiniciar JBoss": [jboss]
+  "Remediación · Limpiar logs": [jboss]
+  "Remediación · Volver a la versión validada": [jboss]
+  # WebLogic
+  "Migración · WebLogic a OpenShift": [weblogic]
+  "Migración · WebLogic a OpenShift · Evaluar": [weblogic]
+  # IIS
+  "Migración · IIS a OpenShift": [iis]
+  "Remediación · IIS en Windows": [iis]
+  "Windows · Provocar caída de IIS (demo)": [iis]
+  # PostgreSQL
+  "Incidentes · Diagnosticar PostgreSQL": [postgresql]
+  "Integración · PostgreSQL": [postgresql]
+  # Nginx / Apache (balanceador y certificado HTTPS del servicio web)
+  "Despliegue · Cambiar tráfico": [nginx]
+  "Remediación · Renovar certificado": [nginx, httpd]
+  # Sistema operativo de la máquina
+  "Sistema · Inventariar máquina": so
+  "Sistema · Ampliar disco en la máquina": so
+  "Sistema · Cambio de hora del país": so
+  "Sistema · Paquetes · inventario y respaldo": so
+  "Sistema · Preparar disco nuevo": so
+  "Sistema · Quitar agente": so
+  "Sistema · Registrar en Red Hat": so
+  "Seguridad · Aplicar parches de seguridad": so
+  "Seguridad · Escaneo de servidores": so
+  "Migración · CentOS a RHEL": so
+  "Migración · Evaluar sistema operativo": so
+  "Migración · RHEL a versión soportada": so
+  "Ciclo de vida · Evaluar destino": so
+  "DC · Base de los equipos": so
+  "DC · Construir identidad (Linux)": so
+  "DC · Registrar en Red Hat": so
+  "DC · Configurar IGA": so
+  "FaceOps · Vincular máquina a la bóveda": so
+  "Windows · Habilitar escritorio remoto": so
+  "Certificados · Inventario": so
+  "Certificados · Renovar (EDA)": so
+  "Certificados · Renovar por vencer": so
+  # por confirmar (quedan en el SO)
+  "Certificados · Emitir para servicio": so
+  "Incidentes · Verificar error conocido": so
+  "Remediación · Diagnosticar app": so
+  "Remediación · Cola de pagos": so
+  "Plataforma · Preparar dependencias": so
+  "Homologación · Relevar entorno": so
+  "Data lake · Derivar segmento": so
+  "FaceOps · Rendimiento del canal": so
+  "FaceOps · Uso por segmento": so
