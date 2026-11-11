@@ -1,0 +1,154 @@
+commit: 6e084963e8ac3699f20f63be8ecedf357e42ff93
+inicio: 2026-11-10T23:04:45-03:00
+---
+AUTO {'id': 69, 'nombre_aap': 'FaceOps · Aplicar política de seguridad', 'aap_tipo': 'job', 'aap_id': 124}
+AUTO {'id': 82, 'nombre_aap': 'Certificados · Emitir para servicio', 'aap_tipo': 'job', 'aap_id': 143}
+AUTO {'id': 100, 'nombre_aap': 'Plataforma · Controlar servicio', 'aap_tipo': 'job', 'aap_id': 162}
+AUTO {'id': 161, 'nombre_aap': 'Storage · Servicio S3 del data lake', 'aap_tipo': 'job', 'aap_id': 557}
+AUTO {'id': 174, 'nombre_aap': 'Políticas de desarrollo · Evaluar aplicaciones', 'aap_tipo': 'job', 'aap_id': 612}
+AUTO {'id': 197, 'nombre_aap': 'Portal · Telco · Red del servicio (VLAN y BGP) (plantilla)', 'aap_tipo': 'job', 'aap_id': 627}
+AUTO {'id': 178, 'nombre_aap': 'Portal · Amdocs · Orden de servicio (plantilla)', 'aap_tipo': 'job', 'aap_id': 630}
+AUTO {'id': 52, 'nombre_aap': 'Autoservicio · Nuevo ambiente', 'aap_tipo': 'workflow', 'aap_id': 12}
+AUTO {'id': 223, 'nombre_aap': 'Portal · Telco · Red del servicio (VLAN y BGP)', 'aap_tipo': 'workflow', 'aap_id': 649}
+AUTO {'id': 201, 'nombre_aap': 'Portal · Amdocs · Activar orden de servicio', 'aap_tipo': 'workflow', 'aap_id': 653}
+TK {'numero': 'FO-LAB-01457', 'estado': 'exitoso', 'motivo': 'Aplicar APP-02 v1 · JBoss con consola de administración protegida', 'creado': '2026-11-10T23:21:18+00:00'}
+TK {'numero': 'FO-LAB-01404', 'estado': 'exitoso', 'motivo': 'Keycloak instalado por error en nodo-jboss (job 15130) ocupa el puerto 8080 de JBoss: se apaga', 'creado': '2026-11-10T19:50:25+00:00'}
+TK {'numero': 'FO-LAB-00954', 'estado': 'fallido', 'motivo': 'Incorporar Keycloak en nodo-jboss', 'creado': '2026-11-06T17:44:18+00:00'}
+TK {'numero': 'FO-LAB-00429', 'estado': 'pendiente_aprobacion', 'motivo': 'Encender Keycloak en dc1-idm01', 'creado': '2026-11-02T05:24:22+00:00'}
+TK {'numero': 'FO-LAB-00428', 'estado': 'pendiente_aprobacion', 'motivo': 'Encender Keycloak en dc1-idm01', 'creado': '2026-11-02T05:24:14+00:00'}
+TK {'numero': 'FO-LAB-00426', 'estado': 'exitoso', 'motivo': 'Incorporar Keycloak en dc1-idm01', 'creado': '2026-11-02T05:22:26+00:00'}
+TK {'numero': 'FO-LAB-00329', 'estado': 'exitoso', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'creado': '2026-11-01T05:47:27+00:00'}
+TK {'numero': 'FO-LAB-00328', 'estado': 'fallido', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'creado': '2026-11-01T05:39:13+00:00'}
+TK {'numero': 'FO-LAB-00325', 'estado': 'fallido', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'creado': '2026-11-01T05:23:00+00:00'}
+TK {'numero': 'FO-LAB-00324', 'estado': 'fallido', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'creado': '2026-11-01T05:17:02+00:00'}
+POL {'codigo': 'APP-02', 'version': 1, 'autor': 'repositorio', 'motivo': 'datos/politicas.yml', 'creado': '2026-10-30T06:19:13+00:00'}
+BOV nodo-jboss ['clave', 'host', 'sitio', 'url', 'usuario'] True admin
+BOV nodo-jboss2 ['clave', 'sitio', 'usuario'] True admin-aap
+BOV nodo-jboss-dev ['clave', 'sitio', 'usuario'] True admin-aap
+PEST {'cliente_id': 1, 'codigo': 'APP-02', 'equipo_id': 6, 'version': 1, 'estado': 'fallida', 'modo': 'aplicar', 'detalle': '[]', 'cuando': '2026-11-10T23:22:36+00:00', 'ticket_id': 1457}
+AD HOC nodo-jboss 22674 successful
+== nodo-jboss.demo.local 2cpu
+               total        used        free      shared  buff/cache   available
+Mem:            1707        1175         245           7         449         531
+lo 127.0.0.1/8
+eth0 192.168.122.15/24
+podman0 10.88.0.1/16
+192.168.122.1 dev eth0 src 192.168.122.15 uid 0 
+inactive
+table ip nat
+table ip filter
+127.0.0.1:6379 users:(("redis-server",pid=778,fd=6))
+192.168.122.15:6379 users:(("redis-server",pid=778,fd=7))
+0.0.0.0:8080 users:(("java",pid=1551,fd=462))
+0.0.0.0:22 users:(("sshd",pid=758,fd=7))
+0.0.0.0:111 users:(("rpcbind",pid=686,fd=4),("systemd",pid=1,fd=31))
+0.0.0.0:8443 users:(("java",pid=1551,fd=451))
+127.0.0.1:9990 users:(("java",pid=1551,fd=441))
+0.0.0.0:5540 users:(("conmon",pid=1798,fd=5))
+*:9100 users:(("node_exporter",pid=777,fd=3))
+[::]:22 users:(("sshd",pid=758,fd=8))
+[::]:111 users:(("rpcbind",pid=686,fd=6),("systemd",pid=1,fd=34))
+25:WILDFLY_BIND=0.0.0.0
+28:#WILDFLY_OPTS=""
+29:WILDFLY_OPTS="-bmanagement=127.0.0.1"
+active
+inactive
+total 4
+drwxr-xr-x. 2 root    root  32 Nov 10 18:32 .
+drwxr-x---. 4 ansible root  54 Nov 10 18:32 ..
+-rw-r--r--. 1 root    root 689 Nov  6 12:47 keycloak.container
+[Unit]
+Description=Keycloak (SSO) del data center
+[Container]
+Image=quay.io/keycloak/keycloak:26.0.7
+ContainerName=keycloak
+Volume=/var/lib/keycloak/datos:/opt/keycloak/data:Z
+EnvironmentFile=/var/lib/keycloak/kc.env
+Environment=KC_BOOTSTRAP_ADMIN_USERNAME=admin
+Environment=KC_HTTP_RELATIVE_PATH=/sso
+Environment=KC_HOSTNAME=http://34.176.42.56:8090/sso
+Environment=KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true
+Environment=KC_PROXY_HEADERS=xforwarded
+Environment=KC_HTTP_ENABLED=true
+Environment=KC_HEALTH_ENABLED=true
+Environment=TZ=America/Santiago
+PublishPort=8080:8080
+PodmanArgs=--memory=1536m
+Exec=start-dev
+[Service]
+Restart=always
+TimeoutStartSec=900
+[Install]
+WantedBy=multi-user.target
+CONTAINER ID  IMAGE                                COMMAND     CREATED      STATUS      PORTS                   NAMES
+d96c614c5871  docker.io/redis/redisinsight:latest              2 hours ago  Up 2 hours  0.0.0.0:5540->5540/tcp  redisinsight
+REPOSITORY                    TAG         IMAGE ID      CREATED        SIZE
+docker.io/redis/redisinsight  latest      3e9a2017a4d4  3 months ago   394 MB
+quay.io/keycloak/keycloak     26.0.7      469d050236bb  23 months ago  436 MB
+/opt/rh/eap8/root/usr/share/wildfly/standalone/configuration/mgmt-users.properties
+1
+/var/lib/faceops/respaldo/repo/archivos/etc/opt/rh/eap8/wildfly/domain/mgmt-users.properties
+/var/lib/faceops/respaldo/repo/archivos/etc/opt/rh/eap8/wildfly/standalone/mgmt-users.properties
+/etc/opt/rh/eap8/wildfly/domain/mgmt-users.properties
+
+AD HOC nodo-jboss2 22676 successful
+== nodo-jboss2.demo.local 1cpu
+               total        used        free      shared  buff/cache   available
+Mem:            1707         988         415           8         458         719
+lo 127.0.0.1/8
+eth0 192.168.122.18/24
+192.168.122.1 dev eth0 src 192.168.122.18 uid 0 
+inactive
+127.0.0.1:9990 users:(("java",pid=1698,fd=444))
+0.0.0.0:8080 users:(("java",pid=1698,fd=434))
+0.0.0.0:111 users:(("rpcbind",pid=637,fd=4),("systemd",pid=1,fd=31))
+0.0.0.0:22 users:(("sshd",pid=716,fd=7))
+0.0.0.0:8443 users:(("java",pid=1698,fd=442))
+*:9100 users:(("node_exporter",pid=742,fd=3))
+[::]:111 users:(("rpcbind",pid=637,fd=6),("systemd",pid=1,fd=34))
+[::]:22 users:(("sshd",pid=716,fd=8))
+25:WILDFLY_BIND=0.0.0.0
+28:#WILDFLY_OPTS=""
+active
+inactive
+ls: cannot access '/var/lib/keycloak/deshabilitado/': No such file or directory
+ls: cannot access '/etc/containers/systemd/': No such file or directory
+/bin/sh: line 7: podman: command not found
+/bin/sh: line 8: podman: command not found
+/opt/rh/eap8/root/usr/share/wildfly/standalone/configuration/mgmt-users.properties
+1
+/var/lib/faceops/respaldo/repo/archivos/etc/opt/rh/eap8/wildfly/domain/mgmt-users.properties
+/var/lib/faceops/respaldo/repo/archivos/etc/opt/rh/eap8/wildfly/standalone/mgmt-users.properties
+/etc/opt/rh/eap8/wildfly/domain/mgmt-users.properties
+
+AD HOC nodo-jboss-dev 22683 successful
+== nodo-jboss-dev.demo.local 1cpu
+               total        used        free      shared  buff/cache   available
+Mem:            1707         921         446           4         491         786
+lo 127.0.0.1/8
+eth0 192.168.122.21/24
+192.168.122.1 dev eth0 src 192.168.122.21 uid 0 
+inactive
+0.0.0.0:8443 users:(("java",pid=1471,fd=472))
+0.0.0.0:22 users:(("sshd",pid=717,fd=7))
+0.0.0.0:111 users:(("rpcbind",pid=651,fd=4),("systemd",pid=1,fd=31))
+127.0.0.1:9990 users:(("java",pid=1471,fd=407))
+0.0.0.0:8080 users:(("java",pid=1471,fd=469))
+[::]:22 users:(("sshd",pid=717,fd=8))
+[::]:111 users:(("rpcbind",pid=651,fd=6),("systemd",pid=1,fd=34))
+*:9100 users:(("node_exporter",pid=742,fd=3))
+25:WILDFLY_BIND=0.0.0.0
+28:#WILDFLY_OPTS=""
+active
+inactive
+ls: cannot access '/var/lib/keycloak/deshabilitado/': No such file or directory
+ls: cannot access '/etc/containers/systemd/': No such file or directory
+/bin/sh: line 7: podman: command not found
+/bin/sh: line 8: podman: command not found
+/opt/rh/eap8/root/usr/share/wildfly/standalone/configuration/mgmt-users.properties
+1
+/var/lib/faceops/respaldo/repo/archivos/etc/opt/rh/eap8/wildfly/domain/mgmt-users.properties
+/var/lib/faceops/respaldo/repo/archivos/etc/opt/rh/eap8/wildfly/standalone/mgmt-users.properties
+/etc/opt/rh/eap8/wildfly/domain/mgmt-users.properties
+
+--- fin: 2026-11-10T23:05:28-03:00 · código: 0
