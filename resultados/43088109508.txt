@@ -1,0 +1,18 @@
+commit: cb5da1619aa4f43080e15c03a92ed09532b174b3
+inicio: 2026-11-11T16:33:05-03:00
+---
+efddecf
+CA total: 25
+estado previo cambiada
+TICKET (sigue) FO-LAB-01824 exitoso
+C1 exitoso limite nodo-jboss emitidos 0 CA 0 nuevo False
+  panel nuevo None huérfano vigente
+C2 en_uso []
+TICKET FO-LAB-01827
+C3 exitoso changed 0 mismos True
+nodo-jboss3 energia apagado
+TICKET FO-LAB-01828
+C4 exitoso limite nodo-jboss en_uso [] jboss3 apagado
+CASOS [{"id": "C1", "caso": "lista completa de la CA", "resultado": "falla", "evidencia": "FO-LAB-01824: 0/0 emitidos; nuevo vigente; huérfano reemplazado"}, {"id": "C2", "caso": "en uso en nodo-jboss", "resultado": "falla", "evidencia": "FO-LAB-01824: jboss-https :8443 entrega=[]"}, {"id": "C3", "caso": "repetir la lectura", "resultado": "ok", "evidencia": "FO-LAB-01827: changed=0, mismos emitidos"}, {"id": "C4", "caso": "máquina apagada en el pedido", "resultado": "falla", "evidencia": "FO-LAB-01828: límite nodo-jboss; nodo-jboss3 sigue apagado"}]
+NO CERTIFICADA
+--- fin: 2026-11-11T16:37:07-03:00 · código: 0
