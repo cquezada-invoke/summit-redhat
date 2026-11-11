@@ -3,7 +3,7 @@ source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="FaceOps · Agente de monitoreo (Linux)"; CASOS='[]'; TKS='[]'
 # si FaceOps se reinicia a mitad de un caso (otro despliegue), el arnés no responde: espera a que vuelva y repite el caso una vez
 caso_() { caso "$@"; if [ "$(estado)" = "sin respuesta del arnés" ]; then for i in $(seq 1 30); do sleep 10; curl -s -o /dev/null -w '%{http_code}' http://192.168.122.1:8110/sesion/valida | grep -q 401 && break; done; sleep 20; caso "$@"; fi; }
-L=nodo-jboss; energia $L encender; IL=$(ip_de $L); echo "$L $IL"
+L=nodo-jboss; energia $L encender; IL=""; for i in $(seq 1 12); do IL=$(ip_de $L); [ -n "$IL" ] && break; sleep 10; done; echo "$L ${IL:+con IP}"   # FaceOps puede estar reiniciándose por otro despliegue
 seg() { curl -s --max-time 8 http://$IL:9100/metrics | grep '^faceops_seg_' ; }
 # C1 · instalar
 caso_ "{\"auto\":\"$N\",\"equipo\":\"$L\",\"params\":{},\"reinstalar\":true,\"min\":15,\"caso\":\"C1\"}" >/dev/null; E1=$(estado); sleep 75
