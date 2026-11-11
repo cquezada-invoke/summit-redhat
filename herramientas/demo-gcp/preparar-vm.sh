@@ -2,7 +2,7 @@
 # Corre DENTRO de la VM constructora (Rocky Linux 9) y deja todo instalado y detenido listo para la imagen dorada.
 # Versiones fijadas y parametrizables; revisar antes de construir (AWX pausó sus versiones públicas en 24.6.1 / awx-operator 2.19.1).
 set -euo pipefail
-AWX_OP=${AWX_OP:-2.19.1}; EDA_OP=${EDA_OP:-2.0.0}; K3S=${K3S:-v1.30.6+k3s1}
+AWX_OP=${AWX_OP:-2.19.1}; EDA_OP=${EDA_OP:-main}   # eda-server-operator: 1.0.2 es el último tag (2024); eda-server solo publica main; K3S=${K3S:-v1.30.6+k3s1}
 FACEOPS_REPO=${FACEOPS_REPO:-https://github.com/cquezada-invoke/summit-redhat.git}
 VMS=${VMS:-"nodo-web nodo-app nodo-db"}          # VMs anidadas (Rocky 9, 1 vCPU, 2 GB) que FaceOps administra en la demo
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
@@ -56,6 +56,10 @@ namespace: eda
 resources:
   - github.com/ansible/eda-server-operator/config/default?ref=$EDA_OP
   - eda.yaml
+images:
+  - name: controller
+    newName: quay.io/ansible/eda-server-operator
+    newTag: $EDA_OP
 K
 cat > eda.yaml <<K
 apiVersion: eda.ansible.com/v1alpha1
@@ -63,6 +67,7 @@ kind: EDA
 metadata: {name: eda}
 spec:
   service_type: NodePort
+  nodeport_port: 30081   # eda-ui: sirve la interfaz y hace de proxy de /api/eda/v1
   automation_server_url: http://awx-service.awx.svc.cluster.local
 K
 kubectl create ns eda --dry-run=client -o yaml | kubectl apply -f -

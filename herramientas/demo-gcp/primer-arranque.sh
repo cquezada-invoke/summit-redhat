@@ -24,6 +24,9 @@ printf 'GF_SECURITY_ADMIN_USER=%s\nGF_SECURITY_ADMIN_PASSWORD=%s\nGF_SERVER_ROOT
 kubectl -n awx exec deploy/awx-web -c awx-web -- awx-manage update_password --username=admin --password="$P" >/dev/null
 kubectl -n awx exec deploy/awx-web -c awx-web -- awx-manage shell -c \
   "from django.contrib.auth.models import User; u,_=User.objects.get_or_create(username='$U'); u.is_superuser=True; u.set_password('$P'); u.save()" >/dev/null
+# EDA: misma clave para su admin (FaceOps lee EDA con usuario y clave: eda-server no usa el token de AWX)
+kubectl -n eda exec deploy/eda-api -- aap-eda-manage shell -c \
+  "from aap_eda.core.models import User; u=User.objects.get(username='admin'); u.set_password('$P'); u.save()" >/dev/null
 AWX_TOKEN=$(kubectl -n awx exec deploy/awx-web -c awx-web -- awx-manage create_oauth2_token --user admin 2>/dev/null | tail -1)
 
 cat > /etc/demo/faceops.env <<F
@@ -32,7 +35,10 @@ FACEOPS_AAP_MODO=awx
 FACEOPS_AAP_URL=http://127.0.0.1:30080
 FACEOPS_AAP_TOKEN=$AWX_TOKEN
 FACEOPS_AAP_PUBLICA=https://awx.$IP.sslip.io
-FACEOPS_EDA_URL=http://127.0.0.1:$(kubectl -n eda get svc eda-api -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo 30081)
+FACEOPS_EDA_URL=http://127.0.0.1:30081
+FACEOPS_EDA_PUBLICA=https://eda.$IP.sslip.io
+FACEOPS_EDA_USUARIO=admin
+FACEOPS_EDA_CLAVE=$P
 FACEOPS_ADMIN_USUARIO=$U
 FACEOPS_ADMIN_CLAVE=$P
 F
@@ -40,6 +46,7 @@ F
 cat > /etc/demo/Caddyfile <<F
 faceops.$IP.sslip.io { reverse_proxy 127.0.0.1:8443 { transport http { tls_insecure_skip_verify } } }
 awx.$IP.sslip.io { reverse_proxy 127.0.0.1:30080 }
+eda.$IP.sslip.io { reverse_proxy 127.0.0.1:30081 }
 gitea.$IP.sslip.io { reverse_proxy 127.0.0.1:3000 }
 grafana.$IP.sslip.io { reverse_proxy 127.0.0.1:3001 }
 F
