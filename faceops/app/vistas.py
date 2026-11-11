@@ -7279,9 +7279,9 @@ def certificado_reemplazar(serie):
     params = {"cert_bits": int(bits)}
     vig = (fo.get("cert_vigencia_dias") or "").strip()
     if vig:
-        if not vig.isdigit() or not (1 <= int(vig) <= 825):
-            return {"error": "Vigencia: entre 1 y 825 días"}, 400
-        params["cert_vigencia_dias"] = int(vig)   # queda registrada en el ticket; la CA aplica la vigencia de su perfil
+        if not vig.isdigit() or not (1 <= int(vig) <= 720):
+            return {"error": "Vigencia: entre 1 y 720 días (máximo del perfil caServerCert de la CA)"}, 400
+        params["cert_vigencia_dias"] = int(vig)   # la automatización la fija en la CA (notAfter) y la valida en el certificado emitido
     if modo == "renovar":
         params.update(cert_forzar="si", cert_dias=30)
     else:

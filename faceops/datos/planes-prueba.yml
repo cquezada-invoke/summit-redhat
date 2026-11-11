@@ -551,6 +551,12 @@ planes:
       - {id: C1, caso: "eliminar una máquina virtual del hipervisor desde su ficha", verificar: "ticket con aprobación; la VM sale de libvirt (disco conservado aparte), sale de los inventarios de AAP (libera licencia) y queda retirada en FaceOps"}
       - {id: C2, caso: "rechazar la aprobación", verificar: "el ticket termina rechazado y la máquina sigue igual (encendida o apagada, en AAP y en FaceOps)"}
       - {id: C3, caso: "intentar eliminar un nodo de OpenShift o un equipo que no es VM del hipervisor", verificar: "FaceOps lo rechaza sin crear ticket"}
+  "Certificados · Emitir para servicio":
+    casos:
+      - {id: C1, caso: "Reemplazar el certificado de JBoss (jboss-https, 8443) en nodo-jboss desde su detalle con vigencia 3 días", tipo: Funcional, verificar: "ticket exitoso; 8443 entrega una serie nueva de la misma CA con notAfter a 3 días (± 1); el anterior queda revocado; la app de pagos responde 200 por el balanceador; la ficha muestra un solo certificado vigente con ~3 días"}
+      - {id: C2, caso: "Reemplazarlo sin vigencia (la del perfil de la CA)", tipo: Funcional, verificar: "ticket exitoso; 8443 entrega otra serie nueva con la vigencia del perfil caServerCert (~720 días); el de 3 días queda revocado; app de pagos 200"}
+      - {id: C3, caso: "Vigencia fuera de rango (900 días) desde el detalle", tipo: Error controlado, verificar: "FaceOps rechaza el pedido (400, «entre 1 y 720 días») sin crear ticket; JBoss sigue con su certificado"}
+      - {id: C4, caso: "Repetir el reemplazo sin vigencia", tipo: Idempotencia, verificar: "ticket exitoso; un solo registro jboss-https (no duplica servicio ni keystore en EAP); queda una sola serie vigente y la anterior revocada; app de pagos 200"}
   "Certificados · Inventario":
     casos:
       - {id: C1, caso: "Lanzarlo desde FaceOps sobre nodo-jboss (con límite) y leer la lista completa de la CA (más de 20 emitidos)", verificar: "ticket exitoso; set_stats faceops_cert_inventario trae alcance [nodo-jboss], completo=false y tantos emitidos como el total de la CA (antes cortaba en 20, y con límite no informaba nada); incluye el más nuevo de nodo-jboss (FO-LAB-01411); el panel lo muestra vigente y deja como reemplazado el huérfano de un intento fallido"}

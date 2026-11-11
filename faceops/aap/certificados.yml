@@ -8,7 +8,8 @@
 #   · se valida (firma de la CA y que corresponda a la llave), se respalda el anterior y se deja en su lugar
 #   · formato pem (servidor.crt/servidor.key/ca.crt) o pkcs12 (keystore.p12 para Kafka/Java; su clave en keystore.properties)
 #   · se recarga el servicio (cert_recargar) y se verifica en el puerto que ya entrega el certificado nuevo
-#   cert_bits: tamaño de la llave RSA (2048, 3072 o 4096) · cert_vigencia_dias: vigencia solicitada; queda en el ticket, la CA aplica la del perfil caServerCert
+#   cert_bits: tamaño de la llave RSA (2048, 3072 o 4096) · cert_vigencia_dias: vigencia pedida (1–720 días; sin valor, la del perfil
+#   caServerCert). FaceOps la fija como agente en la revisión de la solicitud (notAfter de «Validity Default»), y se valida en el certificado emitido
 #   · si algo falla después de reemplazar, vuelve al certificado anterior y recarga
 #   cert_revocar_serie: al reemplazar desde FaceOps, el certificado anterior se revoca en la CA (queda inhabilitado) solo si el nuevo quedó verificado
 # Los clientes no se tocan: confían en la CA (truststore), no en el certificado del servidor.
@@ -151,6 +152,19 @@
                       if a["name"] == "requestor_name": a["Value"] = "FaceOps · " + os.environ["NOMBRE"]
               rid = r("POST", "certrequests", t)["entries"][0]["requestID"]
               rev = r("GET", f"agent/certrequests/{rid}")
+              dias = int(os.environ.get("DIAS") or 0)
+              if dias:   # vigencia pedida: el agente fija notAfter en «Validity Default» (el perfil acepta hasta su rango)
+                  from datetime import datetime, timedelta
+                  fijado = False
+                  for ps in rev.get("ProfilePolicySet") or []:
+                      for po in ps.get("policies") or []:
+                          ats = {a.get("name"): a for a in (po.get("def") or {}).get("attributes") or []}
+                          if "notAfter" in ats and "notBefore" in ats:
+                              ini = datetime.strptime(ats["notBefore"]["Value"], "%Y-%m-%d %H:%M:%S")
+                              ats["notAfter"]["Value"] = (ini + timedelta(days=dias)).strftime("%Y-%m-%d %H:%M:%S")
+                              fijado = True
+                  if not fijado:
+                      sys.exit("La revisión de la CA no trae «Validity Default» editable: no se puede fijar la vigencia pedida")
               r("POST", f"agent/certrequests/{rid}/approve", rev)
               cid = r("GET", f"certrequests/{rid}")["certId"]
               c = r("GET", f"certs/{cid}")
@@ -165,6 +179,7 @@
             CA_LLAVE: "{{ faceops_ca_llave }}"
             CSR: "{{ item.content | b64decode }}"
             NOMBRE: "{{ inventory_hostname }}/{{ item.item.nombre }}"
+            DIAS: "{{ cert_vigencia_dias | default('', true) }}"
           loop: "{{ r_csr.results | default([]) }}"
           loop_control: {label: "{{ item.item.nombre }}"}
           register: r_emit
@@ -192,6 +207,11 @@
             set -e; cd {{ base }}/{{ item.nombre }}
             openssl verify -CAfile ca.crt nuevo.crt >/dev/null
             [ "$(openssl x509 -in nuevo.crt -noout -pubkey | sha256sum)" = "$(openssl pkey -in nuevo.key -pubout | sha256sum)" ]
+            {% if cert_vigencia_dias | default('', true) | string | length %}
+            # vigencia pedida: no debe pasar de los días pedidos (+1 de margen) y debe durar al menos (días − 1)
+            ! openssl x509 -in nuevo.crt -noout -checkend {{ (cert_vigencia_dias | int + 1) * 86400 }} >/dev/null || { echo "la CA emitió más vigencia que la pedida"; exit 1; }
+            openssl x509 -in nuevo.crt -noout -checkend {{ ((cert_vigencia_dias | int - 1) * 86400) | int }} >/dev/null || { echo "la CA emitió menos vigencia que la pedida"; exit 1; }
+            {% endif %}
           loop: "{{ pendientes }}"
           loop_control: {label: "{{ item.nombre }}"}
           changed_when: false

@@ -81,7 +81,7 @@
 <input type="hidden" name="modo" value="emitir">
 <label>Máquina<input type="text" value="{{ f.equipo_nombre }}" disabled><small class="sub">Donde está instalado hoy</small></label>
 <div class="grid g2"><label>Tamaño de la llave<select name="cert_bits"><option value="2048">RSA 2048</option><option value="3072">RSA 3072</option><option value="4096">RSA 4096</option></select><small class="sub">Se genera en la máquina; la llave no sale de ella</small></label>
-<label>Vigencia solicitada (días)<input type="number" name="cert_vigencia_dias" min="1" max="825" placeholder="la del perfil de la CA"><small class="sub">Queda registrada en el ticket; la CA aplica la vigencia de su perfil (caServerCert)</small></label></div>
+<label>Vigencia solicitada (días)<input type="number" name="cert_vigencia_dias" min="1" max="720" placeholder="la del perfil de la CA"><small class="sub">Entre 1 y 720 días; vacío = la del perfil de la CA (caServerCert). Se verifica en el certificado emitido</small></label></div>
 {# servicio: el del certificado; si no tiene, el registrado en la máquina con el mismo CN (el que entrega su puerto). Nunca se inventa desde el CN #}
 {% set reg_ = ((r.en_uso or {}).get(f.equipo_nombre) or []) | selectattr('cn', 'equalto', f.cn) | list %}
 {% set reg_ok_ = reg_ | selectattr('entrega') | list %}
