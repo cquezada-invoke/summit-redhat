@@ -1,37 +1,36 @@
-commit: febcf1b7c92392e9e331361737f7b3327ec033c2
-inicio: 2026-11-11T13:14:19-03:00
+commit: d219a211611a77491e76b4dba38380ccc582d5e5
+inicio: 2026-11-11T13:14:42-03:00
 ---
-TK FO-LAB-01260 exitoso 2026-11-07T16:46 Migración · RHEL a versión soportada Plan de prueba C2 de «Migración · RHEL a versión s :: AAP terminó (successful): ejecución 9 s, espera de aprobación 28 s
-TK FO-LAB-01259 exitoso 2026-11-07T16:39 Migración · RHEL a versión soportada Plan de prueba C1 de «Migración · RHEL a versión s :: AAP terminó (successful): ejecución 324 s, espera de aprobación 28 s
-TK FO-LAB-01258 fallido 2026-11-07T16:37 Migración · CentOS a RHEL Plan de prueba C3 de «Migración · CentOS a RHEL» ( :: fatal: [srv-prueba-rocky-01]: FAILED! => {"assertion": "tipo != 'centos' or plan.convertir", "changed": false, "evaluated_to": false, "msg": "RHEL 9.8: sin acción (al día). "} |  | PLAY RECAP ********************************************************************* | srv-prueba-rocky-01        : ok=6   
-TK FO-LAB-01257 fallido 2026-11-07T16:35 Migración · CentOS a RHEL Plan de prueba C2 de «Migración · CentOS a RHEL» ( :: fatal: [srv-prueba-rocky-01]: FAILED! => {"assertion": "tipo != 'centos' or plan.convertir", "changed": false, "evaluated_to": false, "msg": "RHEL 9.8: sin acción (al día). "} |  | PLAY RECAP ********************************************************************* | srv-prueba-rocky-01        : ok=6   
-TK FO-LAB-01256 fallido 2026-11-07T16:33 Migración · CentOS a RHEL Plan de prueba C1 de «Migración · CentOS a RHEL» ( :: fatal: [srv-prueba-rocky-01]: FAILED! => {"assertion": "tipo != 'centos' or plan.convertir", "changed": false, "evaluated_to": false, "msg": "RHEL 9.8: sin acción (al día). "} |  | PLAY RECAP ********************************************************************* | srv-prueba-rocky-01        : ok=6   
-TK FO-LAB-01250 exitoso 2026-11-07T14:42 Migración · CentOS a RHEL Plan de prueba C1 de «Migración · CentOS a RHEL» ( :: AAP terminó (successful): ejecución 1248 s, espera de aprobación 30 s
-TK FO-LAB-01248 exitoso 2026-11-07T14:39 FaceOps · Habilitar servidor Plan de prueba alta prueba-rhel8 de «FaceOps · Hab :: AAP terminó (successful): ejecución 36 s, espera de aprobación 30 s | Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-prueba-rhel8-01 · 192.168.122.64
-TK FO-LAB-01246 exitoso 2026-11-07T14:38 FaceOps · Habilitar servidor Plan de prueba alta prueba-rocky de «FaceOps · Hab :: AAP terminó (successful): ejecución 9 s, espera de aprobación 30 s | Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-prueba-rocky-01 · 192.168.122.216
-TK FO-LAB-01244 exitoso 2026-11-07T14:36 FaceOps · Habilitar servidor Plan de prueba alta prueba-rhel9 de «FaceOps · Hab :: AAP terminó (successful): ejecución 33 s, espera de aprobación 29 s | Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-prueba-rhel9-01 · 192.168.122.247
-TK FO-LAB-01200 exitoso 2026-11-07T11:21 FaceOps · Habilitar servidor Plan de prueba alta prueba-rocky de «FaceOps · Hab :: AAP terminó (successful): ejecución 8 s, espera de aprobación 29 s | Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-prueba-rocky-01 · 192.168.122.216
-TK FO-LAB-01134 exitoso 2026-11-07T07:22 FaceOps · Habilitar servidor Plan de prueba alta prueba-rocky de «FaceOps · Hab :: AAP terminó (successful): ejecución 48 s, espera de aprobación 27 s | Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-prueba-rocky-01 · 192.168.122.216
-TK FO-LAB-00630 exitoso 2026-11-02T12:06 Migración · Evaluar sistema operativo Prueba nocturna de automatizaciones :: AAP terminó (successful): ejecución 8 s, espera de aprobación 14 s
-TK FO-LAB-00488 exitoso 2026-11-02T07:04 Migración · Evaluar sistema operativo Prueba nocturna de automatizaciones :: AAP terminó (successful): ejecución 12 s, espera de aprobación 11 s
-TK FO-LAB-00452 exitoso 2026-11-02T06:49 Migración · JBoss a EAP 8 Prueba nocturna de automatizaciones :: AAP terminó (successful): ejecución 7 s, espera de aprobación 9 s
-TK FO-LAB-00443 fallido 2026-11-02T06:10 Migración · JBoss a EAP 8 Prueba nocturna de automatizaciones :: fatal: [nodo-jboss-dev]: FAILED! => {"msg": "The task includes an option with an undefined variable. The error was: {{ '(' ~ ((mj_lista | map('trim') | reject('equalto', '') | map('regex_escape') | list) | join('|') or '.') ~ ')' }}: {{ (mj_apps | default([])) if (mj_apps | default('')) is not strin
-TK FO-LAB-00440 exitoso 2026-11-02T06:07 Migración · Evaluar sistema operativo Prueba nocturna de automatizaciones :: AAP terminó (successful): ejecución 7 s, espera de aprobación 9 s
-TK FO-LAB-00414 exitoso 2026-11-02T04:05 Migración · JBoss a EAP 8 Prueba del formulario de migración JBoss :: AAP terminó (successful): ejecución 60 s, espera de aprobación 5 s
-TK FO-LAB-00413 exitoso 2026-11-02T03:52 Migración · JBoss a EAP 8 Prueba: migrar catalogo-legacy a EAP 8 en nodo-jbo :: AAP terminó (successful): ejecución 22 s, espera de aprobación 6 s
-TK FO-LAB-00411 fallido 2026-11-02T03:46 Migración · JBoss a EAP 8 Prueba: migrar catalogo-legacy a EAP 8 en nodo-jbo :: msg": "Status code was 404 and not [200, 301, 302, 401, 403]: HTTP Error 404: Not Found", "redirected": false, "status": 404, "url": "http://127.0.0.1:8080/catalogo-legacy/"}, "msg": "non-zero return code", "rc": 1, "start": "2026-11-01 22:48:07.400081"
-TK FO-LAB-00410 fallido 2026-11-02T03:42 Migración · JBoss a EAP 8 Prueba: migrar catalogo-legacy a EAP 8 en nodo-jbo :: msg": "Status code was 404 and not [200, 301, 302, 401, 403]: HTTP Error 404: Not Found", "redirected": false, "status": 404, "url": "http://127.0.0.1:8080/catalogo-legacy/"}, "msg": "non-zero return code", "rc": 1, "start": "2026-11-01 22:43:42.337756"
-TK FO-LAB-00408 fallido 2026-11-02T03:36 Migración · JBoss a EAP 8 Prueba: migrar catalogo-legacy a EAP 8 en nodo-jbo :: msg": "Status code was 404 and not [200, 301, 302, 401, 403]: HTTP Error 404: Not Found", "redirected": false, "status": 404, "url": "http://127.0.0.1:8080/catalogo-legacy/"}, "msg": "non-zero return code", "rc": 1, "start": "2026-11-01 22:38:18.050781"
-TK FO-LAB-00407 fallido 2026-11-02T03:32 Migración · JBoss a EAP 8 Prueba: migrar catalogo-legacy a EAP 8 en nodo-jbo :: fatal: [nodo-jboss-qa]: FAILED! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false} |  | PLAY RECAP ********************************************************************* | nodo-jboss-dev             : ok=10   changed=2    
-TK FO-LAB-00406 fallido 2026-11-02T03:29 Migración · JBoss a EAP 8 Prueba: migrar catalogo-legacy a EAP 8 en nodo-jbo :: msg": "non-zero return code", "rc": 127, "start": "2026-11-01 22:29:50.240994", "stderr": "/bin/sh: line 4: unzip: command not found", "stderr_lines": ["/bin/sh: line 4: unzip: command not found"], "stdout": "", "stdout_lines": []} |  | PLAY RECAP *****
-TK FO-LAB-00405 exitoso 2026-11-02T03:28 Migración · JBoss a EAP 8 Prueba: evaluar JBoss 5 en nodo-jboss-dev :: AAP terminó (successful): ejecución 7 s, espera de aprobación 5 s
-TK FO-LAB-00311 exitoso 2026-11-01T04:42 Migración · Evaluar sistema operativo Evaluar impacto de llevar nodo-jboss.demo.local a  :: AAP terminó (successful): ejecución 8 s, espera de aprobación 43 s
-TK FO-LAB-00085 exitoso 2026-10-31T21:57 Migración · Evaluar sistema operativo Evaluar impacto de llevar nodo-nginx a RHEL 10 :: AAP terminó (successful): ejecución 6 s
-TK FO-LAB-00084 exitoso 2026-10-31T21:57 Migración · Evaluar sistema operativo Evaluar impacto de llevar nodo-nginx a RHEL 10 :: AAP terminó (successful): ejecución 6 s
-TK FO-LAB-00081 exitoso 2026-10-31T21:03 Migración · Evaluar sistema operativo Prueba: impacto de pasar a RHEL 10 :: AAP terminó (successful): ejecución 5 s
-18:        if sudo -n virsh dominfo {{ el_equipo }} >/dev/null 2>&1; then
-19:          sudo -n virsh destroy {{ el_equipo }} 2>/dev/null
-20:          sudo -n virsh undefine {{ el_equipo }} --nvram 2>/dev/null || sudo -n virsh undefine {{ el_equipo }}
-/home/cquezada/faceops/rhsm-activacion.json
-rhsm claves: ['llave', 'org']
---- fin: 2026-11-11T13:14:26-03:00 · código: 0
+{'numero': 'FO-LAB-01684', 'estado': 'fallido', 'aap_job_id': 23582, 'r': 'AAP terminó (failed): ejecución 68 s, espera de aprobación 55 s\nFalló en la tarea «Archivos» de nodo-jboss: Destination directory /etc/containers/containers.conf.d does not exist\n\nTASK [Parámetros del'}
+{'numero': 'FO-LAB-01686', 'estado': 'fallido', 'aap_job_id': 23588, 'r': 'AAP terminó (failed): ejecución 69 s, espera de aprobación 34 s\nFalló en la tarea «Servicios» de nodo-jboss: Could not find the requested service firewalld: host\nok: [nodo-jboss] => {\n    "msg": "fire'}
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
+    return opener.open(url, data, timeout)
+  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
+    response = self.parent.error(
+  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
+    return self._call_chain(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
+    return opener.open(url, data, timeout)
+  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
+    response = self.parent.error(
+  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
+    return self._call_chain(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+--- fin: 2026-11-11T13:14:50-03:00 · código: 0
