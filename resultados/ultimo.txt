@@ -1,17 +1,29 @@
-commit: c3f3a42a2b5beceffd5eb3bb19eac91979224f06
-inicio: 2026-11-11T14:28:14-03:00
+commit: 8116523dd75540a1c8884ad1ab15bdcdf38d1d36
+inicio: 2026-11-11T15:28:34-03:00
 ---
-0922c35
-   · Plantilla «FaceOps · Agente de monitoreo (Linux)» (id 107)
-   · Monitoreo: aap-kvm escribe la configuración de FaceOps en Prometheus y Alertmanager
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-SMTP configurado: 0
-== plan agente
-CASO C1 falla · Instalar
-CASO C2 falla · Repetir
-CASO C3 falla · SSH fallidos
-CASO C4 falla · Equipo apagado
-EVIDENCIA [{"id": "C1", "caso": "Instalar", "resultado": "falla", "evidencia": "rechazado al solicitar métricas=0 servicios=inactive active  "}, {"id": "C2", "caso": "Repetir", "resultado": "falla", "evidencia": "rechazado al solicitar pid 833→833 timers=0"}, {"id": "C3", "caso": "SSH fallidos", "resultado": "falla", "evidencia": "faceops_seg_ssh_fallidos_5m="}, {"id": "C4", "caso": "Equipo apagado", "resultado": "falla", "evidencia": "srv-prueba-rocky-01: rechazado al solicitar"}]
-CERT FaceOps · Agente de monitoreo (Linux) → cambiada
-FIN-AGENTE
-== plan alertas
+=== minio
+e7cdc43 Salud › remediaciones: lo prevenido/aplicado no se m
+· credenciales (se generan en la VM una sola vez)
+  ya existían
+no se pudo descargar la imagen de MinIO (docker.io/minio/minio:latest quay.io/minio/minio:latest)
+lake: disco · /var/lib/faceadmin/lake/faceops-pulsos
+migrados del disco al lake: 0
+=== faceops (más tráfico)
+admin url set: True token set: True
+en cola: 10
+secretos en cola: []
+enviadas: 10 quedan: 0
+=== lake (esperando 60 s: también llega el tráfico real del servicio)
+lake: disco · /var/lib/faceadmin/lake/faceops-pulsos
+objetos: 209
+  instancia=lab/fecha=2026-11-11/hora=18/1509-1511-1b06f7fdbc.ndjson.gz 284
+  instancia=lab/fecha=2026-11-11/hora=18/1512-1517-4e4790df05.ndjson.gz 313
+  instancia=lab/fecha=2026-11-11/hora=18/1518-1518-53275295eb.ndjson.gz 191
+  instancia=lab/fecha=2026-11-11/hora=18/1519-1519-ff3ca0883d.ndjson.gz 191
+  instancia=lab/fecha=2026-11-11/hora=18/1520-1520-d4d8f044a6.ndjson.gz 245
+  instancia=lab/fecha=2026-11-11/hora=18/1521-1530-4eb73bcca2.ndjson.gz 793
+pulsos: 1738
+secretos: []
+lab req 1242 eventos {'ticket_aprobado': 100, 'ticket_creado': 34, 'error_aap': 148, 'login_fallido': 3, 'prueba_pulsos': 3} e5 3 p50 462.1 p95 4927.1 usuarios 1 top ['GET /tickets/<int:tid>/bitacora', 'GET /tickets/<int:tid>/flujo', 'GET /inventario/<int:eid>', 'GET /tickets/<int:tid>']
+vista /fabrica/uso-faceops: 200 True
+--- fin: 2026-11-11T15:29:56-03:00 · código: 0
