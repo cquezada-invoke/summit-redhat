@@ -1,0 +1,24 @@
+commit: 35337b638d2b30804d1b5ff7edaf349df45ed291
+inicio: 2026-11-11T18:32:31-03:00
+---
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/adapters.py", line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='127.0.0.1', port=443): Max retries exceeded with url: /api/controller/v2/workflow_jobs/24600/workflow_nodes/?page_size=200 (Caused by NewConnectionError("HTTPSConnection(host='127.0.0.1', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/m.py", line 10, in <module>
+    jobs = [x["job"] for x in aap.todos(f"workflow_jobs/{t['aap_job_id']}/workflow_nodes/") if x.get("job")]
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 51, in todos
+    datos = self.get(ruta, **params)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 35, in _r
+    raise ErrorAAP(f"AAP no responde: {e}") from e
+app.aap.ErrorAAP: AAP no responde: HTTPSConnectionPool(host='127.0.0.1', port=443): Max retries exceeded with url: /api/controller/v2/workflow_jobs/24600/workflow_nodes/?page_size=200 (Caused by NewConnectionError("HTTPSConnection(host='127.0.0.1', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+--- fin: 2026-11-11T18:33:04-03:00 · código: 0
