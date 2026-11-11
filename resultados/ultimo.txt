@@ -1,18 +1,22 @@
-commit: 202b01bcf4efbcddba72dab29cfcd21bafc301fc
-inicio: 2026-11-11T14:05:20-03:00
+commit: b295592f5cd903de9adf70ccf1230a64ebbe892b
+inicio: 2026-11-11T13:46:46-03:00
 ---
-host_metrics activos: 50 · hosts: 46
-SIN HOST: nodo-jboss5 2026-11-11T16:04
-SIN HOST: dc1-sql01 2026-11-11T16:10
-SIN HOST: localhost 2026-11-11T16:56
-SIN HOST: dc2-sql01 2026-11-11T16:10
-SIN HOST: dc1-vpn01 2026-11-11T16:10
-SIN HOST: srv-legado-jboss7-01 2026-11-11T16:10
-liberado nodo-jboss5
-liberado dc1-sql01
-liberado localhost
-liberado dc2-sql01
-liberado dc1-vpn01
-liberado srv-legado-jboss7-01
-{'deleted_instances': 40, 'reactivated_instances': 1, 'current_instances': 46, 'automated_instances': 44, 'free_instances': 6}
---- fin: 2026-11-11T14:05:22-03:00 · código: 0
+energía nodo-storage encender: exitoso FO-LAB-01716
+energía nodo-jboss-dev encender: sin respuesta del arnés 
+nodo-storage 192.168.122.167 · nodo-jboss-dev 192.168.122.21
+registro nodo-storage: rechazado al solicitar 
+CASO C1 ok · Sin disco dedicado
+CASO C2 falla · Instalar sobre /srv/datalake
+CASO C3 falla · Repetir instalar
+estado: None
+CASO C5 falla · Estado y CIDR inválido
+antes: 0 0 0 (fiscalía, telco, javia crm) · S3 viejo 10.128.0.137
+tras migrar: 0 0 0
+energía nodo-storage apagar: exitoso FO-LAB-01727
+energía nodo-storage encender: exitoso FO-LAB-01729
+tras reiniciar: 0 0 0 · active
+S3 del lake ahora en 192.168.122.167
+CASO C4 ok · Lake en el storage y reinicio
+CERT Storage · Servicio S3 del data lake → sin probar
+FIN-DISCO-S3
+--- fin: 2026-11-11T14:08:56-03:00 · código: 0
