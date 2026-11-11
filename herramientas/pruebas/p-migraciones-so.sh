@@ -1,7 +1,7 @@
 # Planes de las migraciones de sistema operativo (Evaluar SO, CentOS a RHEL, RHEL a versión soportada).
 # Una máquina de prueba a la vez (licencia de AAP al límite): fase «rocky» (srv-mig-rocky-01) y fase «rhel8» (srv-mig-rhel8-01).
 # Los casos de «Evaluar sistema operativo» de ambas fases se acumulan en ~/pruebas-mig/ y se certifica al terminar la segunda.
-#   bash p-migraciones-so.sh rocky | rhel8
+#   bash p-migraciones-so.sh rocky-ev (crear + evaluar, corta) | rocky-cr (CentOS a RHEL, larga) | rhel8-ev | rhel8-rv
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 FASE=${1:-rocky}; mkdir -p ~/pruebas-mig; EST=~/pruebas-mig
 ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(estado)" = "rechazado al solicitar" ]; }
@@ -21,8 +21,8 @@ evaluar() {  # evaluar <id> <equipo> '<params json sin llaves>' <min>
   echo "  $1 $2: $(estado) $(ticket) · $(campo "$M" origen) → $(campo "$M" destino) · $(campo "$M" accion) · $(campo "$M" semaforo) · análisis $(campo "$M" analisis) $(jq_ "r.get('detalle') or ''")"
 }
 
-if [ "$FASE" = rocky ]; then
-  RK=srv-mig-rocky-01
+RK=srv-mig-rocky-01
+if [ "$FASE" = rocky-ev ]; then
   if ! existe $RK; then
     L=$(libres); echo "licencia AAP libres: $L"; [ "${L:-0}" -ge 1 ] || { echo "SIN LICENCIA LIBRE: no se crea la máquina"; exit 0; }
     hab rocky9 mig-rocky; inv $RK
@@ -53,6 +53,9 @@ if [ "$FASE" = rocky ]; then
   E7=$(jq_ "r.get('error') or r.get('detalle') or ''")
   [ "$(estado)" = "rechazado al solicitar" ] && echo "$E7" | grep -qi apagad && anotar C7 "Equipo apagado (nodo-jboss-qa)" ok "FaceOps no lanza: $E7" || anotar C7 "Equipo apagado" falla "$(estado) $E7"
   guardar evaluar; echo "EVALUAR fase rocky: $CASOS" | cut -c1-600
+fi
+if [ "$FASE" = rocky-cr ]; then
+  IK=$(ip_de $RK); echo "IP $RK $IK · $(en $IK 'cat /etc/redhat-release')"
   # ── CentOS a RHEL
   CASOS='[]'; TKS='[]'
   S0=$(snaps $RK)
