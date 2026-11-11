@@ -1,41 +1,33 @@
-commit: a4b492b1bafdfce9ce2a85414e238dd7d9e830dd
-inicio: 2026-11-11T19:26:03-03:00
+commit: f9a65d0331458a1530eafbc666908b151afd70e5
+inicio: 2026-11-11T19:26:30-03:00
 ---
-total 6900
--rw-r--r--. 1 pkiuser pkiuser  696925 Nov 11 19:24 debug.2026-11-11.log
--rw-r-----. 1 pkiuser pkiuser   27639 Nov 11 18:31 selftests.log
--rw-r--r--. 1 pkiuser pkiuser  744218 Nov 10 23:59 debug.2026-11-10.log
--rw-r--r--. 1 pkiuser pkiuser  550954 Nov  9 23:57 debug.2026-11-09.log
--rw-r--r--. 1 pkiuser pkiuser  565891 Nov  8 22:56 debug.2026-11-08.log
--rw-r--r--. 1 pkiuser pkiuser  458918 Nov  7 23:58 debug.2026-11-07.log
--rw-r--r--. 1 pkiuser pkiuser  403178 Nov  6 23:58 debug.2026-11-06.log
-## debug.2026-11-11.log
-6791:	at com.netscape.cms.servlet.cert.RevocationProcessor.getCertificateRecord(RevocationProcessor.java:263)
-6792:	at org.dogtagpki.server.ca.rest.v1.AgentCertService.revokeCert(AgentCertService.java:226)
-6793:	at org.dogtagpki.server.ca.rest.v1.AgentCertService.revokeCert(AgentCertService.java:139)
-6855:Caused by: netscape.ldap.LDAPException: No such object (32); matchedDN = ou=certificateRepository,ou=ca,o=pki-invoke-CA
-6887:2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: SessionContextInterceptor: Invoking AgentCertResource.revokeCert()
-6903:2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: CertService.revokeCert: client cert issued by this CA
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-10] INFO: PKIService: Response class: CertData
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: SessionContextInterceptor: Invoking AgentCertResource.revokeCert()
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem: Retrieving user uid=caadmin,ou=People,o=pki-invoke-CA
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem: User uid=caadmin,ou=People,o=pki-invoke-CA:
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem: - uid: caadmin
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem: - cn: caadmin
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem: - mail: cquezada@invoke.cl
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem: - password: ********
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem: - type: adminType
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem: - state: 1
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem: - cert:
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem:   - serial: 0x4ff20af63b209f9c99c6a6135771ea72
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem:   - subject: CN=PKI Administrator,E=cquezada@invoke.cl,OU=pki-invoke,O=INVOKE
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: UGSubsystem:   - issuer: CN=Invoke CA interna,OU=Seguridad,O=INVOKE
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: AAclAuthz: Granting execute permission for certServer.ca.certs
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: Revoking certificate 0xf78d099a8ce11db890114c54dea701db
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: LDAPSession: Retrieving cn=329051623602351141402216625314204156379,ou=certificateRepository, ou=ca,o=pki-invoke-CA
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: CertService.revokeCert: client cert issued by this CA
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] INFO: LDAPSession: Retrieving cn=106265769839296852221967030853968194162,ou=certificateRepository, ou=ca,o=pki-invoke-CA
+2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] SEVERE: Unable to pre-process revocation request: Record not found: No such object
+Record not found: No such object
+...
+Caused by: netscape.ldap.LDAPException: No such object (32); matchedDN = ou=certificateRepository,ou=ca,o=pki-invoke-CA
+## revocaciones de hoy
+6054:2026-11-11 19:19:54 [https-jsse-jss-nio-18443-exec-8] SEVERE: Unable to pre-process revocation request: Record not found: No such object
+6287:2026-11-11 19:19:57 [https-jsse-jss-nio-18443-exec-16] SEVERE: Unable to pre-process revocation request: Record not found: No such object
+6572:2026-11-11 19:21:49 [https-jsse-jss-nio-18443-exec-24] SEVERE: Unable to pre-process revocation request: Record not found: No such object
+6785:2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-7] SEVERE: Unable to pre-process revocation request: Record not found: No such object
 6905:2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] SEVERE: Unable to pre-process revocation request: Record not found: No such object
-6906:Record not found: No such object
-6911:	at com.netscape.cms.servlet.cert.RevocationProcessor.getCertificateRecord(RevocationProcessor.java:263)
-6912:	at org.dogtagpki.server.ca.rest.v1.AgentCertService.revokeCert(AgentCertService.java:226)
-6913:	at org.dogtagpki.server.ca.rest.v1.AgentCertService.revokeCert(AgentCertService.java:139)
-6975:Caused by: netscape.ldap.LDAPException: No such object (32); matchedDN = ou=certificateRepository,ou=ca,o=pki-invoke-CA
-## selftests.log
-## debug.2026-11-10.log
-4384:2026-11-10 17:29:04 [https-jsse-jss-nio-18443-exec-3] INFO: SessionContextInterceptor: Invoking AgentCertResource.revokeCert()
-4397:2026-11-10 17:29:04 [https-jsse-jss-nio-18443-exec-3] INFO: CertService.revokeCert: client cert issued by this CA
-4409:2026-11-10 17:29:04 [https-jsse-jss-nio-18443-exec-3] INFO: RevocationProcessor: Processing revocation request 0x8208191cef6603fc228feef4b73863c4
-## debug.2026-11-09.log
-localhost_access_log.2026-11-11.txt
-pki
-host-manager.2026-11-11.log
-manager.2026-11-11.log
-localhost.2026-11-11.log
-catalina.2026-11-11.log
-ca
-localhost_access_log.2026-11-10.txt
-host-manager.2026-11-10.log
-localhost.2026-11-10.log
---- fin: 2026-11-11T19:26:04-03:00 · código: 0
+--- fin: 2026-11-11T19:26:31-03:00 · código: 0
