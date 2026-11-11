@@ -1,17 +1,33 @@
-commit: f16be27970ffcd63dca54eb9220851fef5177ffe
-inicio: 2026-11-11T12:01:53-03:00
+commit: d8cd39342d0d97ec4d17149ebfcd125cb94dea5e
+inicio: 2026-11-11T12:33:42-03:00
 ---
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-REV pendiente_aprobacion 
-CVE-2026-114406 [{'estado': 'pendiente', 'paquete': 'ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.noarch'}]
-rev {'cliente_id': 1, 'equipo_id': 6, 'repos': 1, 'pendientes': 779, 'cubiertos': 3883, 'cuando': '2026-10-30T11:26:27+00:00', 'ticket_id': 47}
-pendientes 779 Counter({'importante': 681, 'moderada': 81, 'crítica': 7, 'baja': 6, 'bugfix': 4})
-Seguridad 20
-CVE en lista True | Aplicada 01648 True
-motivo 7 CVE críticos pendientes (−70) · 681 CVE importantes pendientes (−40) · 91 CVE moderados o bajos pendientes (−15)
-motivo Instala solo el parche de CVE-2026-1933 (dnf --cve) · ticket con aprobación
-motivo Instala solo el parche de CVE-2026-2340 (dnf --cve) · ticket con aprobación
-motivo Instala solo el parche de CVE-2026-3012 (dnf --cve) · ticket con aprobación
-rc=0
---- fin: 2026-11-11T12:33:26-03:00 · código: 0
+{'id': 66, 'cliente_id': 1, 'nombre': 'Respaldo continuo en Git', 'nombre_aap': 'FaceOps · Respaldo continuo en Git', 'visible': 1, 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 0}
+{'id': 75, 'cliente_id': 1, 'nombre': 'Snapshot de volumen', 'nombre_aap': 'Storage · Snapshot de volumen', 'visible': 1, 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 0}
+{'id': 84, 'cliente_id': 1, 'nombre': 'Inventario', 'nombre_aap': 'Certificados · Inventario', 'visible': 1, 'usa_limite': 1, 'por_inventario': 0, 'requiere_aprobacion': 0}
+{'id': 102, 'cliente_id': 1, 'nombre': 'Paquetes · inventario y respaldo', 'nombre_aap': 'Sistema · Paquetes · inventario y respaldo', 'visible': 1, 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 0}
+{'id': 104, 'cliente_id': 1, 'nombre': 'Inventariar máquina', 'nombre_aap': 'Sistema · Inventariar máquina', 'visible': 1, 'usa_limite': 1, 'por_inventario': 1, 'requiere_aprobacion': 0}
+{'id': 113, 'cliente_id': 1, 'nombre': 'Respaldo de etcd', 'nombre_aap': 'OpenShift · Respaldo de etcd', 'visible': 1, 'usa_limite': 1, 'por_inventario': 0, 'requiere_aprobacion': 0}
+{'id': 167, 'cliente_id': 1, 'nombre': 'Cargar imágenes base al registro', 'nombre_aap': 'Infra · Cargar imágenes base al registro', 'visible': 1, 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1}
+{'id': 194, 'cliente_id': 1, 'nombre': 'OpenShift · Respaldo de etcd (plantilla)', 'nombre_aap': 'Portal · OpenShift · Respaldo de etcd (plantilla)', 'visible': 0, 'usa_limite': 1, 'por_inventario': 0, 'requiere_aprobacion': 0}
+{'id': 226, 'cliente_id': 1, 'nombre': 'Inventariar equipo de red', 'nombre_aap': 'Red · Inventariar equipo de red', 'visible': 1, 'usa_limite': 1, 'por_inventario': 0, 'requiere_aprobacion': 0}
+{'id': 65, 'cliente_id': 1, 'nombre': 'Replicar con alta disponibilidad', 'nombre_aap': 'FaceOps · Replicar con alta disponibilidad', 'visible': 0, 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1}
+{'id': 220, 'cliente_id': 1, 'nombre': 'OpenShift · Respaldo de etcd', 'nombre_aap': 'Portal · OpenShift · Respaldo de etcd', 'visible': 1, 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1}
+{'id': 208, 'cliente_id': 1, 'nombre': 'Infraestructura · Inventariar servidor', 'nombre_aap': 'Portal · Infraestructura · Inventariar servidor', 'visible': 1, 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1}
+{'id': 209, 'cliente_id': 1, 'nombre': 'Infraestructura · Inventario de certificados', 'nombre_aap': 'Portal · Infraestructura · Inventario de certificados', 'visible': 1, 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1}
+{'id': 231, 'cliente_id': 1, 'nombre': 'Replicar máquina', 'nombre_aap': 'Infra · Replicar máquina', 'visible': 0, 'usa_limite': 0, 'por_inventario': 0, 'requiere_aprobacion': 1}
+{'id': 6, 'nombre': 'nodo-jboss', 'estado': 'con datos', 'ambiente': 'produccion'}
+{'id': 7, 'nombre': 'nodo-jboss2', 'estado': 'con datos', 'ambiente': 'produccion'}
+{'id': 20, 'nombre': 'nodo-jboss3', 'estado': 'con datos', 'ambiente': 'produccion'}
+{'id': 21, 'nombre': 'nodo-jboss-dev', 'estado': 'con datos', 'ambiente': 'desarrollo'}
+{'id': 22, 'nombre': 'nodo-jboss-qa', 'estado': 'con datos', 'ambiente': 'qa'}
+{'id': 128, 'nombre': 'nodo-jboss4', 'estado': 'sin datos', 'ambiente': 'produccion'}
+no cert: 124
+BLOQ Sistema · Inventariar máquina
+BLOQ Infra · Cargar imágenes base al registro
+BLOQ Portal · OpenShift · Respaldo de etcd (plantilla)
+BLOQ FaceOps · Replicar con alta disponibilidad
+BLOQ Portal · OpenShift · Respaldo de etcd
+BLOQ Portal · Infraestructura · Inventariar servidor
+BLOQ Portal · Infraestructura · Inventario de certificados
+BLOQ Infra · Replicar máquina
+--- fin: 2026-11-11T12:33:49-03:00 · código: 0
