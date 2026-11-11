@@ -1,0 +1,24 @@
+commit: 183208b74bab77ca25b5cffa1b32fb9ba2bd814e
+inicio: 2026-11-11T13:10:30-03:00
+---
+inicio: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · dev 1.0.44
+energía nodo-jboss2 apagar: exitoso FO-LAB-01692
+   nodo-jboss2: shut off
+RES {"caso": "C1", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01694", "estado": "fallido", "stats": {}, "detalle": "Desplegar en JBoss con jboss-cli ·  · ", "resultado": "been hidden due to the fact that 'no_log: true' was specified for this result\", \"changed\": true}\n\nTASK [Volver a la versión anterior] ********************************************\nfatal: [nodo-jboss]: FAILED! => {\"censo
+energía nodo-jboss2 encender: exitoso FO-LAB-01695
+C1: fallido · límite/aprobado nodo-jboss|FaceOps (cquezada) → AAP · LB  12 1.0.44; · nodo-jboss 1.0.44
+CASO C1 falla · 1.0.43 con nodo apagado
+RES {"caso": "C2", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01697", "estado": "fallido", "stats": {}, "detalle": "Desplegar en JBoss con jboss-cli ·  · ", "resultado": "rsión anterior] ********************************************\nfatal: [nodo-jboss]: FAILED! => {\"censored\": \"the output has been hidden due to the fact that 'no_log: true' was specified for this result\", \"changed\": true}
+C2: fallido · set_stats None · LB  12 1.0.44; · nodos 1.0.44/1.0.44 · manifiesto con 1.0.44: 1
+CASO C2 falla · 1.0.44 en producción
+RES {"caso": "C3", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01699", "estado": "fallido", "stats": {}, "detalle": "Desplegar en JBoss con jboss-cli ·  · ", "resultado": "rsión anterior] ********************************************\nfatal: [nodo-jboss]: FAILED! => {\"censored\": \"the output has been hidden due to the fact that 'no_log: true' was specified for this result\", \"changed\": true}
+CASO C3 falla · repetir
+RES {"caso": "C4", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01700", "estado": "fallido", "stats": {}, "detalle": "Descargar versión 9.9.999 publicada por el pipeline · Request failed · ", "resultado": ": Not Found\", \"secontext\": \"system_u:object_r:var_lib_t:s0\", \"size\": 53822, \"state\": \"file\", \"status_code\": 404, \"uid\": 0, \"url\": \"http://192.168.122.1:3000/api/packages/invo
+C4: fallido · Descargar versión 9.9.999 publicada por el pipeline · Request failed ·  · LB  12 1.0.44;
+CASO C4 ok · versión inexistente 9.9.999
+RES {"caso": "C5", "auto": "JBoss · Desplegar app", "ticket": "FO-LAB-01701", "estado": "exitoso", "stats": {"version_desplegada": "1.0.44", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 21 s, espera de aprobación 29 s"}
+C5: exitoso · nodo-jboss-dev|FaceOps (cquezada) → AAP · dev 1.0.44 · LB  12 1.0.44;
+CASO C5 falla · desarrollo sin aprobación
+CERT JBoss · Desplegar app → cambiada
+final: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · HTTP 200
+--- fin: 2026-11-11T13:24:38-03:00 · código: 0
