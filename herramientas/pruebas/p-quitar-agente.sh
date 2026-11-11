@@ -31,7 +31,7 @@ A2=$(en $IP 'systemctl is-active node_exporter; test -e /usr/local/bin/node_expo
 H0=$(en $IP 'ls /etc/systemd/system | md5sum | cut -c1-10')
 caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"params\":{\"qa_agente\":\"agente-inexistente\"},\"min\":10,\"caso\":\"C3\"}" >/dev/null; E3=$(estado)
 H1=$(en $IP 'ls /etc/systemd/system | md5sum | cut -c1-10')
-{ [ "$E3" = fallido ] || [ "$E3" = "rechazado al solicitar" ]; } && [ "$H0" = "$H1" ] && anotar C3 "Agente desconocido" ok "$E3 ($(jq_ "(r.get('detalle') or r.get('error') or '')[:140]")); la máquina no cambia (huella $H0)" || anotar C3 "Agente desconocido" falla "$E3 $H0→$H1"
+{ [ "$E3" = fallido ] || { [ "$E3" = "rechazado al solicitar" ] && echo "$RES" | grep -qiE 'agente|opci|v[aá]lid'; }; } && [ "$H0" = "$H1" ] && anotar C3 "Agente desconocido" ok "$E3 ($(jq_ "(r.get('detalle') or r.get('error') or '')[:140]")); la máquina no cambia (huella $H0)" || anotar C3 "Agente desconocido" falla "$E3 $H0→$H1"
 echo "EVIDENCIA $CASOS"
 certificar "$N" "Plan quitar agente · C1–C3 (planes-prueba.yml)"
 # deja la máquina de prueba como estaba (solo reinstala los agentes que tenía antes del plan)
