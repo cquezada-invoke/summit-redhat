@@ -1,0 +1,87 @@
+commit: e86dc6523a440b27f54d5789f60b29048ef79d47
+inicio: 2026-11-10T21:12:17-03:00
+---
+913bc45
+/home/cquezada/summit-redhat/demo-cicd
+436be7f JBoss · Desplegar app: el manifiesto se actualiza en cada ambiente que r
+JT 10 Autoservicio · 3 Validar | Demo Summit | autoservicio/validar.yml | certificada
+JT 11 Autoservicio · Retirar app | Demo Summit | autoservicio/retirar.yml | certificada
+JT 91 DC · Active Directory | Data center | playbooks/ad.yml | sin probar
+JT 90 DC · Base de los equipos | Data center | playbooks/base.yml | certificada
+JT 96 DC · Configurar IGA | Data center | playbooks/iga.yml | sin probar
+JT 97 DC · Construir identidad (Linux) | Data center | playbooks/sitio-linux.yml | certificada
+JT 93 DC · Directory Server | Data center | playbooks/directorio.yml | certificada
+JT 95 DC · Keycloak | Data center | playbooks/keycloak.yml | certificada
+JT 94 DC · midPoint | Data center | playbooks/midpoint.yml | sin probar
+JT 92 DC · Red Hat IdM | Data center | playbooks/idm.yml | certificada
+JT 89 DC · Registrar en Red Hat | Data center | playbooks/registrar.yml | certificada
+JT 98 DC · Satellite | Data center | playbooks/satellite.yml | sin probar
+JT 6 Demo Job Template | Demo Project | hello_world.yml | -no en faceops-
+JT 22 Drift · Incorporar servidor | Cumplimiento de servidores | drift/incorporar.yml | certificada
+JT 23 Drift · Retirar servidor | Cumplimiento de servidores | drift/retirar.yml | certificada
+JT 61 Drift · Windows | Cumplimiento de servidores | drift/windows.yml | certificada
+JT 25 Estado · Aplicar base desde Git | Cumplimiento de servidores | estado/aplicar_base.yml | certificada
+JT 34 Estado · Proponer base | Cumplimiento de servidores | estado/proponer_base.yml | certificada
+JT 24 Estado · Registrar servidor | Cumplimiento de servidores | estado/registrar.yml | certificada
+JT 47 Estado · Volver a un commit | Cumplimiento de servidores | estado/volver_a_commit.yml | certificada
+JT 52 JBoss · Aplicar configuración | JBoss · configuración | playbooks/aplicar.yml | certificada
+JT 14 JBoss · Desplegar app | Despliegues de aplicaciones | jboss/desplegar.yml | certificada
+JT 13 JBoss · Preparar servidor | Despliegues de aplicaciones | jboss/preparar.yml | sin probar
+JT 54 JBoss · Restablecer a versión | JBoss · configuración | playbooks/restablecer-version.yml | certificada
+JT 55 Monitoreo · Exportador en Windows | Operación · remediación | playbooks/exportador-windows.yml | sin probar
+JT 68 Nube · Avisar por correo | Nube · GCP | playbooks/aviso.yml | -no en faceops-
+JT 84 Nube · Cerrar ticket tras falla | Nube · GCP | playbooks/ticket-error.yml | -no en faceops-
+JT 64 Nube · Dar de baja VM | Nube · GCP | playbooks/vm-baja.yml | certificada
+JT 66 Nube · Limpiar huérfanos | Nube · GCP | playbooks/huerfanos-limpiar.yml | certificada
+JT 69 Nube · Prueba: crear huérfanos | Nube · GCP | playbooks/prueba-huerfanos.yml | sin probar
+JT 70 Nube · Prueba: regla peligrosa | Nube · GCP | playbooks/prueba-regla-peligrosa.yml | sin probar
+JT 65 Nube · Reporte de huérfanos | Nube · GCP | playbooks/huerfanos-reporte.yml | certificada
+JT 63 Nube · Solicitar VM | Nube · GCP | playbooks/vm-solicitud.yml | certificada
+JT 67 Nube · Vigilar firewall | Nube · GCP | playbooks/firewall-vigilar.yml | certificada
+JT 16 Plataforma · Preparar dependencias | Despliegues de aplicaciones | plataforma/aplicar.yml | certificada
+JT 629 Portal · Amdocs · Desplegar release (plantilla) | Claro PR · automatizaciones | playbooks/amdocs-release.yml | sin probar
+JT 701 Portal · Amdocs · Informe de operación y conciliación (plantilla) | Claro PR · automatizaciones | playbooks/amdocs-informe-operacion.yml | sin probar
+JT 630 Portal · Amdocs · Orden de servicio (plantilla) | Claro PR · automatizaciones | playbooks/amdocs-orden.yml | sin probar
+JT 628 Portal · Amdocs · Salud de la plataforma BSS (plantilla) | Claro PR · automatizaciones | playbooks/amdocs-salud.yml | sin probar
+JT 854 Portal · Informe de ejecución (PDF) | Claro PR · automatizaciones | playbooks/informe-ejecucion.yml | sin probar
+JT 779 Portal · Infra · Atender ticket de Odoo (plantilla) | Claro PR · automatizaciones | playbooks/infra-ticket-odoo.yml | sin probar
+JT 702 Portal · Linux · Informe de seguridad (plantilla) | Claro PR · automatizaciones | playbooks/linux-informe-seguridad.yml | sin probar
+JT 778 Portal · Linux · Liberar espacio en disco (plantilla) | Claro PR · automatizaciones | playbooks/linux-liberar-disco.yml | sin probar
+JT 699 Portal · OpenShift · Acceso de equipo (plantilla) | Claro PR · automatizaciones | playbooks/ocp-acceso-equipo.yml | sin probar
+JT 622 Portal · OpenShift · Actualizaciones y operadores (plantilla) | Claro PR · automatizaciones | playbooks/ocp-actualizaciones.yml | sin probar
+JT 696 Portal · OpenShift · Actualización guiada con ACM (plantilla) | Claro PR · automatizaciones | playbooks/ocp-actualizacion-guiada.yml | sin probar
+JT 624 Portal · OpenShift · Alta de proyecto (plantilla) | Claro PR · automatizaciones | playbooks/ocp-onboarding-proyecto.yml | sin probar
+JT 698 Portal · OpenShift · Certificado de aplicación de punta a punta (plantilla) | Claro PR · automatizaciones | playbooks/ocp-certificado-app.yml | sin probar
+JT 619 Portal · OpenShift · Certificados (plantilla) | Claro PR · automatizaciones | playbooks/ocp-certificados.yml | sin probar
+JT 697 Portal · OpenShift · De alerta a incidente (plantilla) | Claro PR · automatizaciones | playbooks/ocp-alerta-incidente.yml | sin probar
+JT 700 Portal · OpenShift · Informe de seguridad del clúster (plantilla) | Claro PR · automatizaciones | playbooks/ocp-informe-seguridad.yml | sin probar
+JT 621 Portal · OpenShift · Optimizar recursos y limpiar (plantilla) | Claro PR · automatizaciones | playbooks/ocp-optimizar.yml | sin probar
+JT 620 Portal · OpenShift · Regularizar línea base (plantilla) | Claro PR · automatizaciones | playbooks/ocp-regularizar.yml | sin probar
+JT 623 Portal · OpenShift · Respaldo de etcd (plantilla) | Claro PR · automatizaciones | playbooks/ocp-etcd-respaldo.yml | sin probar
+JT 618 Portal · OpenShift · Salud del clúster (plantilla) | Claro PR · automatizaciones | playbooks/ocp-salud.yml | sin probar
+JT 626 Portal · Telco · Onboarding de CNF (plantilla) | Claro PR · automatizaciones | playbooks/telco-onboarding-cnf.yml | sin probar
+JT 627 Portal · Telco · Red del servicio (VLAN y BGP) (plantilla) | Red · laboratorio | playbooks/telco-red-servicio.yml | sin probar
+JT 625 Portal · Telco · Validar clúster para CNF (plantilla) | Claro PR · automatizaciones | playbooks/telco-validar-cnf.yml | sin probar
+JT 703 Portal · Windows · Informe de seguridad (plantilla) | Claro PR · automatizaciones | playbooks/windows-informe-seguridad.yml | sin probar
+JT 77 Red · Actualizar firmware | Red · laboratorio | playbooks/actualizar-firmware.yml | sin probar
+JT 18 Red · Aplicar configuración | Red · laboratorio | playbooks/aplicar.yml | certificada
+JT 40 Red · Bloquear IP | Red · laboratorio | playbooks/bloquear-ip.yml | certificada
+JT 425 Red · Configurar VLAN | Red · laboratorio | playbooks/configurar-vlan.yml | certificada
+JT 39 Red · Responder solicitud | Red · laboratorio | playbooks/responder-solicitud.yml | -no en faceops-
+JT 56 Red · Revocar acceso | Red · laboratorio | playbooks/revocar-acceso.yml | certificada
+JT 59 Red · Revocar accesos vencidos | Red · laboratorio | playbooks/revocar-vencidos.yml | certificada
+JT 20 Red · Solicitar acceso | Red · laboratorio | playbooks/solicitar-acceso.yml | certificada
+JT 19 Red · Verificar drift | Red · laboratorio | playbooks/drift.yml | certificada
+JT 44 Remediación · Cola de pagos | Operación · remediación | playbooks/cola-pagos.yml | certificada
+JT 29 Remediación · Diagnosticar app | Operación · remediación | playbooks/diagnosticar-app.yml | certificada
+JT 31 Remediación · Escalar sin acción | Operación · remediación | playbooks/escalar.yml | -no en faceops-
+JT 49 Remediación · IIS en Windows | Operación · remediación | playbooks/reiniciar-iis.yml | certificada
+JT 28 Remediación · Limpiar logs | Operación · remediación | playbooks/limpiar-logs.yml | certificada
+JT 27 Remediación · Reiniciar JBoss | Operación · remediación | playbooks/reiniciar-jboss.yml | certificada
+JT 45 Remediación · Renovar certificado | Operación · remediación | playbooks/renovar-certificado.yml | certificada
+JT 30 Remediación · Volver a la versión validada | Operación · remediación | playbooks/volver-version-validada.yml | certificada
+JT 48 Windows · Preparar IIS | Operación · remediación | playbooks/preparar-windows.yml | sin probar
+JT 50 Windows · Provocar caída de IIS (demo) | Operación · remediación | playbooks/provocar-iis.yml | certificada
+Counter({'FaceOps · automatizaciones': 114, 'Claro PR · automatizaciones': 23, 'Operación · remediación': 11, 'Data center': 10, 'Red · laboratorio': 10, 'Nube · GCP': 9, 'Cumplimiento de servidores': 7, 'Demo Summit': 4, 'Despliegues de aplicaciones': 3, 'JBoss · configuración': 2, 'Demo Project': 1})
+{'playbook': 'jboss/desplegar.yml', 'proyecto': 'Despliegues de aplicaciones', 'rama': 'main', 'commit': 'be315474'} http://192.168.122.1:3000/invoke/automatizacion.git
+--- fin: 2026-11-10T21:12:25-03:00 · código: 0
