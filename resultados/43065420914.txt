@@ -1,0 +1,18 @@
+commit: f4abc4cfdaa35f33b07e460a4827bc0f48c35102
+inicio: 2026-11-11T14:41:14-03:00
+---
+fallido FO-LAB-01754
+Sin firewalld ni nftables, instalar nftables (necesita repositorios; si no, registrar con «Sistema · Registrar en Red Hat») · Failed to install some of the specified packages · 
+********************
+ok: [nodo-storage]
+
+TASK [Sin firewalld ni nftables, instalar nftables (necesita repositorios; si no, registrar con «Sistema · Registrar en Red Hat»)] ***
+fatal: [nodo-storage]: FAILED! => {"ansible_facts": {"pkg_mgr": "dnf"}, "changed": false, "failures": ["No package nftables available."], "msg": "Failed to install some of the specified packages", "rc": 1, "results": []}
+
+PLAY RECAP *********************************************************************
+nodo-storage               : ok=8    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+active
+s3 200
+package nftables is not installed
+package firewalld is not installed
+--- fin: 2026-11-11T14:43:05-03:00 · código: 0
