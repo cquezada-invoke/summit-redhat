@@ -1,8 +1,19 @@
-commit: c1f47422e7d628fb59e50a933c0d1425854baa19
-inicio: 2026-11-11T12:36:36-03:00
+commit: 91d7324515c1addc8d285ac14cc4c67ad8ba15f5
+inicio: 2026-11-11T12:36:18-03:00
 ---
-tecnico {'playbook': 'playbooks/inventariar-maquina.yml', 'proyecto': 'FaceOps · automatizaciones', 'nodos': None}
-archivos ['inventariar-maquina.yml', 'recolectar.yml', 'paquetes-registro.yml', 'inventario-archivos.yml', 'files/inventario-a-git.py']
-estado cambiada huella b7d472e6642d
-{'id': 73, 'huella': '1dfb27028554', 'resultado': 'aprobada', 'fecha': '2026-11-05T18:09:36+00:00', 'por': 'Claude (regla de Cristian)', 't': '["FO-LAB-00889", "FO-LAB-00888", "FO-LAB-00887"]'}
---- fin: 2026-11-11T12:37:02-03:00 · código: 0
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+aprobado
+REV exitoso AAP terminó (successful): ejecución 26 s, espera de aprobación 2235 s
+CVE: 
+CVE-2026-114406 [{'estado': 'pendiente', 'paquete': 'ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.noarch'}]
+rev {'cliente_id': 1, 'equipo_id': 6, 'repos': 1, 'pendientes': 779, 'cubiertos': 3883, 'cuando': '2026-10-30T11:26:27+00:00', 'ticket_id': 47}
+pendientes 779 Counter({'importante': 681, 'moderada': 81, 'crítica': 7, 'baja': 6, 'bugfix': 4})
+Seguridad 20
+CVE en lista True | Aplicada 01648 True
+motivo 7 CVE críticos pendientes (−70) · 681 CVE importantes pendientes (−40) · 91 CVE moderados o bajos pendientes (−15)
+motivo Instala solo el parche de CVE-2026-1933 (dnf --cve) · ticket con aprobación
+motivo Instala solo el parche de CVE-2026-2340 (dnf --cve) · ticket con aprobación
+motivo Instala solo el parche de CVE-2026-3012 (dnf --cve) · ticket con aprobación
+rc=0
+--- fin: 2026-11-11T12:38:05-03:00 · código: 0
