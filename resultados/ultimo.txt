@@ -1,35 +1,23 @@
-commit: 329b31d00cf310fff71d190aaa12fa1bbf4d14a1
-inicio: 2026-11-11T10:12:52-03:00
+commit: 58d9c316daedc79a5946dd71cf86ea19b04a2ee2
+inicio: 2026-11-11T10:18:50-03:00
 ---
-faceadmin Up About a minute
-active
-failed
-
-[2026-11-11 10:11:08 -0300] [1] [INFO] Listening at: https://0.0.0.0:8843 (1)
-
-[2026-11-11 10:11:08 -0300] [1] [INFO] Using worker: gthread
-
-[2026-11-11 10:11:08 -0300] [2] [INFO] Booting worker with pid: 2
-
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-
-  warnings.warn(
-
-34.176.42.56 - - [11/Nov/2026:10:11:13 -0300] "GET /ingresar HTTP/1.1" 200 4904 "-" "curl/7.76.1"
-
-34.176.42.56 - - [11/Nov/2026:10:11:27 -0300] "GET /api/instancia/estado HTTP/1.1" 200 275 "-" "python-requests/2.32.5"
-
-34.176.42.56 - - [11/Nov/2026:10:11:27 -0300] "GET /api/instancia/estado HTTP/1.1" 200 275 "-" "python-requests/2.32.5"
-
-34.176.42.56 - - [11/Nov/2026:10:11:27 -0300] "POST /api/instancia/uso HTTP/1.1" 200 115 "-" "python-requests/2.32.5"
-
-34.176.42.56 - - [11/Nov/2026:10:12:04 -0300] "GET /api/instancia/estado HTTP/1.1" 200 275 "-" "python-requests/2.32.5"
-
-34.176.42.56 - - [11/Nov/2026:10:12:05 -0300] "POST /api/instancia/uso HTTP/1.1" 200 115 "-" "python-requests/2.32.5"
-
-34.176.42.56 - - [11/Nov/2026:10:12:49 -0300] "GET /api/instancia/estado HTTP/1.1" 200 275 "-" "python-requests/2.32.5"
-
+#!/bin/bash
+set -u
+R=/home/cquezada/faceops-repo; REPO=$(cat /etc/faceadmin/repo 2>/dev/null)
+[ -d "$R/.git" ] || sudo -u cquezada git clone -q "$REPO" "$R"
+antes=$(sudo -u cquezada git -C "$R" rev-parse HEAD 2>/dev/null)
+sudo -u cquezada git -C "$R" checkout -q -- faceadmin/fabrica.json 2>/dev/null
+for i in 1 2 3 4 5; do sudo -u cquezada git -C "$R" pull -q --ff-only && break; sleep 15; done
+ahora=$(sudo -u cquezada git -C "$R" rev-parse HEAD)
+if [ "$antes" != "$ahora" ] || ! podman image exists localhost/faceadmin:latest; then
+  sudo -u cquezada bash "$R/faceadmin/version.sh"
+  podman build -q -t localhost/faceadmin:latest -f "$R/faceadmin/Containerfile" "$R/faceadmin" >/dev/null && echo "FaceAdmin actualizado a $(git -C "$R" rev-parse --short HEAD)"
+  systemctl try-restart faceadmin
+fi
+---
+FaceAdmin actualizado a fc2b392c
+rc=0
+fc2b392c
+faceadmin Up 8 seconds
 local 200
-Type=oneshot
-ExecStart=/usr/local/sbin/faceadmin-actualizar
---- fin: 2026-11-11T10:12:53-03:00 · código: 0
+--- fin: 2026-11-11T10:19:17-03:00 · código: 0
