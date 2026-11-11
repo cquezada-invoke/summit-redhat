@@ -1,24 +1,19 @@
-commit: 9b02b77c5cd8e26c996549eb37f851af3212f1c8
-inicio: 2026-11-10T21:13:20-03:00
+commit: 42b07ad37868e40142afed129e58e8ed81bf36c4
+inicio: 2026-11-10T21:13:53-03:00
 ---
-AUTO 95 1 Encender o apagar equipo → cambiada 64f2e6b09c81 2026-11-05T18:09 aprobada
-EQ {'id': 6, 'nombre': 'nodo-jboss', 'ip': '192.168.122.15', 'forma': 'virtual', 'categoria': 'servidor', 'ambiente': 'produccion', 'energia': 'encendido', 'estado': 'con datos', 'ubicacion': 'Centro de datos Santiago', 'cliente_id': 1}
-EQ {'id': 7, 'nombre': 'nodo-jboss2', 'ip': '192.168.122.18', 'forma': 'virtual', 'categoria': 'servidor', 'ambiente': 'produccion', 'energia': 'encendido', 'estado': 'con datos', 'ubicacion': 'Centro de datos Santiago', 'cliente_id': 1}
-GET 200 2053568
-bloque: >
-</div><div class="eq-energia-acc"><a class="btn-energ entrar" href="/lab/inventario/6/consola" target="_blank" title="Consola SSH" aria-label="Entrar a la máquina"></a>
-<button type="button" class="btn-energ prender" data-energia="encender" aria-label="Encender" disabled title="Encender nodo-jboss"></button>
-<button type="button" class="btn-energ reiniciar" data-energia="reiniciar" aria-label="Reiniciar"  title="Reiniciar nodo-jboss"></button>
-<button type="button" class="btn-energ apagar" data-energia="apagar" aria-label="Apagar"  title="Apagar nodo-jboss"></button>
-<button type="button" class="btn-energ inventariar" data-inventariar="1" aria-label="Inventariar" title="Inventariar: trae sistema, servicios y paquetes; FaceOps los contrasta con lo que sabe de la máquina"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="
-JS: "16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
-<script>(()=>{const caja=document.currentScript.previousElementSibling;
-function pedir(b,url,datos,pregunta){if(pregunta&&!confirm(pregunta))return;const bs=[...caja.querySelectorAll('button')];bs.forEach(x=>{x.dataset.ini=x.disabled?'1':'0';x.disabled=true;});
- const fd=new FormData();fd.append('_csrf',"cf55cbb47a389be43fc5699059183b29");Object.entries(datos).forEach(([k,v])=>fd.append(k,v));
- fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');
-  if(t.error){fxAviso(t.error,'error');return;}window.fxNuevoTicket&&window.fxNuevoTicket(t);}).catch(()=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');fxAviso('No se pudo crear el ticket','error');});}
-caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()=>{const ac=b.dataset.energia;
- pedir(b,"/lab/inventario/6/energia",{accion:ac},'¿'+ac.charAt(0).toUpperCase()+ac.slice(1)+' nodo-jboss? Es producción: pasa por aprobación en AAP.');}));
-const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('click',()=>pedir(bi,"/lab/inventario/6/inventariar",{},null));
-const be=caja.querySelector('[data-eliminar]');if(be)be.addEventListener('click',()=>pedir(be,"/lab/inventario/6/eliminar",{},'¿Eliminar nodo-jboss? Se apaga, se retira del hipervisor y sale de los inventarios de AAP. El disco y su respaldo en Git se conservan para poder recuperarlo. Pasa por
---- fin: 2026-11-10T21:13:33-03:00 · código: 0
+8462356
+faceops actualizado
+ficha: 200
+pilar Seguridad: ['8 %']
+   CVE · Red Hat Enterprise Linux 0 %
+   Políticas de seguridad · Red Hat Enterprise Linux 15 %
+Disponibilidad 50 %
+Rendimiento 95 %
+Seguridad 8 %
+Recuperación 85 %
+Costo 100 %
+Excelencia operativa 78 %
+barra: ['Disponibilidad 50 % · Rendimiento 0 % · Seguridad 50 % · Recuperación 100 % · Costo 100 % · Excelencia operativa 92 %', 'Disponibilidad 50 % · Rendimiento 0 % · Seguridad 50 % · Recuperación 100 % · Costo 100 % · Excelencia operativa 95 %']
+nota: True
+madurez: 200 False True True
+--- fin: 2026-11-10T21:14:51-03:00 · código: 0
