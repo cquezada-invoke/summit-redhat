@@ -12,13 +12,12 @@
 {% if o.alcance_texto %}<tr><td class="sub">Alcance</td><td style="white-space:pre-wrap">{{ o.alcance_texto }}</td></tr>{% endif %}
 <tr><td class="sub">Tipo</td><td>{{ tipos.get(o.tipo, o.tipo) }}</td></tr>
 <tr><td class="sub">Modalidad</td><td>{{ 'Por consumo · ' ~ (o.plan or '') if o.modalidad == 'creditos' else ('Costo fijo por alcance · ' ~ (o.est.get('items') or [])|length ~ ' acciones' if o.modalidad == 'alcance' else '—') }}</td></tr>
-<tr><td class="sub">Monto tentativo esperado</td><td>{% if o.monto_ %}<b style="font-size:16px">USD {{ o.monto_|num }} al año</b>{% else %}<span class="sub">sin monto</span>{% endif %}</td></tr>
 <tr><td class="sub">Se espera cerrar</td><td><b>{{ o.quarter }}</b> <span class="sub mono" style="font-size:12px">{{ o.cierre_estimado or '' }}</span></td></tr>
 <tr><td class="sub">Creada</td><td>{{ o.creado[:10] }} por {{ o.por }}</td></tr></table>
 <form method="post" class="fila" style="margin-top:12px;align-items:end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="etapa">
 <label>Nivel<select name="nivel">{% for n, p in niveles %}<option value="{{ n }}" {{ 'selected' if o.nivel_ == n }}>{{ 'Nivel 0 · negocio' if n == 0 else 'Nivel ' ~ n ~ ' · ' ~ p ~ ' %' }}</option>{% endfor %}</select></label>
 <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="perdida" value="1" style="width:auto" {{ 'checked' if o.etapa == 'perdida' }}> perdida</label>
-<label>Se espera cerrar<input type="date" name="cierre_estimado" value="{{ o.cierre_estimado }}"></label><label>Monto tentativo (USD/año)<input name="monto_tentativo" inputmode="decimal" value="{{ o.monto_|int if o.monto_ else '' }}" placeholder="opcional" style="width:130px"></label>
+<label>Se espera cerrar<input type="date" name="cierre_estimado" value="{{ o.cierre_estimado }}"></label>
 <button class="btn gris">Guardar</button></form>
 </div>
 </div>
