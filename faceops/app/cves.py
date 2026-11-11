@@ -104,11 +104,35 @@ def por_equipo(cliente_id, eqs):
                         "cuando": r["cuando"] if r else None, "top": ps[:8],
                         # por severidad: CVE distintos pendientes y detectados (pendientes + corregidos), para el puntaje proporcional
                         "sev": _por_sev(pend.get(e["id"], {}), base.get(e["id"], {})), "criterio": CRITERIO,
+                        "act": actualizacion(e, pend.get(e["id"], {}).values()),
                         # todos los CVE reportados para su sistema: pendientes primero (por severidad) y los resueltos marcados ok
                         "todos": [dict(x, ok=False) for x in ps] + [dict(x, ok=True) for x in sorted(
                             (v for k, v in cub.get(e["id"], {}).items() if k not in pend.get(e["id"], {})),
                             key=lambda x: (ORDEN.get(x["severidad"], 9), x["cve"]))]}
     return out
+
+
+# paquetes que exigen reiniciar al actualizarse (los mismos que mira needs-restarting -r)
+REINICIO = ("kernel", "kernel-core", "kernel-rt", "kernel-modules", "glibc", "linux-firmware", "systemd", "systemd-udev", "udev",
+            "openssl-libs", "gnutls", "dbus", "dbus-broker", "microcode_ctl")
+
+
+def actualizacion(e, filas):
+    """Qué deja «Aplicar todos los parches de seguridad»: versión actual → versión menor resultante (la del flujo de los paquetes
+    que corrigen los CVE pendientes: .el9_8 = 9.8; si el release estuviera fijado, los repositorios solo ofrecerían esa menor),
+    cuántos paquetes cambian y si exige reiniciar. Dentro de la misma versión mayor: 9 → 10 es Modernización."""
+    import re
+    m = re.search(r"(\d+)(?:\.(\d+))?", str(e.get("so") or ""))
+    may, men = (int(m.group(1)), int(m.group(2) or 0)) if m else (None, None)
+    pkgs = {x["paquete"] for x in filas if x.get("paquete")}
+    if not pkgs:
+        return None
+    nombres = {p.rsplit("-", 2)[0] if p.count("-") >= 2 else p for p in pkgs}
+    menores = [int(b) for p in pkgs for a, b in re.findall(r"\.el(\d+)_(\d+)", p) if may is None or int(a) == may]
+    dest = max([men or 0] + menores) if may is not None else None
+    return {"actual": f"{may}.{men}" if may is not None else (e.get("so") or "—"), "destino": f"{may}.{dest}" if may is not None else None,
+            "sube": may is not None and dest > (men or 0), "paquetes": len(nombres), "familia": "RHEL" if "red hat" in str(e.get("so") or "").lower() or "rhel" in str(e.get("so") or "").lower() else (str(e.get("so") or "").split(" ")[0] or "SO"),
+            "reinicio": any(n in REINICIO for n in nombres)}
 
 
 def _por_sev(pend, base):

@@ -943,7 +943,24 @@ def _pagina_modernizacion(clave):
             a["var_origen"] = next((c["var"] for c in campos_ if c["tipo"] == "jboss_origen"), "")
             a["maquinas"] = [{"id": e["id"], "nombre": e["nombre"], "cod": _cod(e), "ambiente": e.get("ambiente") or "", "ip": e.get("ip") or ""}
                              for e in _compatibles(a)] if (a.get("por_inventario") or a.get("usa_limite")) else []
-    return render_template("modernizacion.html", titulo=titulo, sub=sub, grupos=grupos, clave=clave)
+    maq_act = _maquinas_actualizacion() if clave == "so_actualizaciones" else None
+    return render_template("modernizacion.html", titulo=titulo, sub=sub, grupos=grupos, clave=clave, maq_act=maq_act)
+
+
+def _maquinas_actualizacion():
+    """Actualizaciones › por máquina: versión actual → versión menor que deja «Aplicar todos los parches de seguridad», CVE y
+    paquetes pendientes, reinicio y el mismo botón de la ficha (En curso / Aplicada con su ticket)."""
+    from .compatibilidad import compatible
+    from .cves import PARCHAR
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], PARCHAR)
+    out = []
+    for e in equipos_visibles():
+        if e["estado"] == "retirado" or not a or not compatible(a, e)[0]:
+            continue
+        cv = _cves_equipo(e)
+        if cv and cv.get("revisado") and cv.get("repos"):
+            out.append({"e": e, "cv": cv})
+    return sorted(out, key=lambda x: (-(x["cv"]["criticos"] or 0), -(x["cv"]["pendientes"] or 0), x["e"]["nombre"]))
 
 
 @bp.route("/arquitectura/modernizacion")
