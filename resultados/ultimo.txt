@@ -1,18 +1,14 @@
-commit: cf30c089db81199d73a862583c6ac2e02f418848
-inicio: 2026-11-10T22:43:19-03:00
+commit: 1a04a5b44a445ca3cac8cde4f1e8350446f088e7
+inicio: 2026-11-10T22:44:02-03:00
 ---
-TK Servidores corporativos {'id': 480, 'numero': 'FO-LAB-00480', 'estado': 'pendiente_aprobacion', 'aap_job_id': 9590, 'creado': '2026-11-02T07:03:47+00:00', 'motivo': 'Inventario diario de nodo-so'}
-TK Servidores corporativos {'id': 507, 'numero': 'FO-LAB-00507', 'estado': 'pendiente_aprobacion', 'aap_job_id': 9679, 'creado': '2026-11-02T07:18:45+00:00', 'motivo': 'Inventario diario de nodo-so'}
-TK Servidores corporativos {'id': 801, 'numero': 'FO-LAB-00801', 'estado': 'pendiente_aprobacion', 'aap_job_id': 13079, 'creado': '2026-11-04T07:04:43+00:00', 'motivo': 'Inventario diario de nodo-so'}
-TK Servidores corporativos {'id': 874, 'numero': 'FO-LAB-00874', 'estado': 'pendiente_aprobacion', 'aap_job_id': 14161, 'creado': '2026-11-05T07:04:04+00:00', 'motivo': 'Inventario diario de nodo-so'}
-ERROR Servidores corporativos Tiene 4 ticket(s) en curso: espera que terminen o cancélalos antes de archivar
-TK Base de datos de pagos {'id': 864, 'numero': 'FO-LAB-00864', 'estado': 'pendiente_aprobacion', 'aap_job_id': 14141, 'creado': '2026-11-05T07:03:09+00:00', 'motivo': 'Inventario diario de dc1-sql01'}
-TK Base de datos de pagos {'id': 867, 'numero': 'FO-LAB-00867', 'estado': 'pendiente_aprobacion', 'aap_job_id': 14147, 'creado': '2026-11-05T07:03:26+00:00', 'motivo': 'Inventario diario de dc2-sql01'}
-ERROR Base de datos de pagos Tiene 2 ticket(s) en curso: espera que terminen o cancélalos antes de archivar
-TK Ventas en línea {'id': 204, 'numero': 'FO-HIS-0115', 'estado': 'pendiente_aprobacion', 'aap_job_id': None, 'creado': '2026-10-22T22:07:53+00:00', 'motivo': ''}
-  cancelado FO-HIS-0115
-archivado Ventas en línea máquinas liberadas: ['nodo-jboss', 'nodo-jboss2', 'nodo-nginx', 'nodo-postgres']
-App de pagos máquinas antes == después: True ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss-qa', 'nodo-jboss2', 'nodo-nginx', 'nodo-postgres', 'nodo-tomcat']
-arq App de pagos: [(5, 'aprobada')]
-activos tras git: ['Base de datos de pagos', 'Servidores corporativos']
---- fin: 2026-11-10T22:43:26-03:00 · código: 0
+cancelado FO-LAB-00480 Inventario diario de nodo-so
+cancelado FO-LAB-00507 Inventario diario de nodo-so
+cancelado FO-LAB-00801 Inventario diario de nodo-so
+cancelado FO-LAB-00874 Inventario diario de nodo-so
+archivado Servidores corporativos ['nodo-so']
+cancelado FO-LAB-00864 Inventario diario de dc1-sql01
+cancelado FO-LAB-00867 Inventario diario de dc2-sql01
+archivado Base de datos de pagos ['dc1-sql01', 'dc2-sql01']
+activos tras git: []
+archivados: ['Servicios en la nube', 'Catálogo en línea', 'Ventas en línea', 'Servidores corporativos', 'Base de datos de pagos']
+--- fin: 2026-11-10T22:44:09-03:00 · código: 0
