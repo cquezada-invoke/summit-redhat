@@ -4570,8 +4570,13 @@ def equipo(eid):
             # plataforma CON interfaz web propia (Keycloak, Vault, IdM, JBoss) cuya consola no se ofrece porque no corre o no
             # responde: no es «sin interfaz»; se muestra «detenido» sin botón activo (la comprobación en vivo manda sobre el inventario)
             c["consola_detenida"] = "detenido"
-            c["nota_consola"] = (f"{c['nombre']} está detenido (su consola web no responde): la consola ({CONSOLAS[familia(c['codigo'])][3]}) "
-                                 "se habilita sola cuando la plataforma esté encendida.")
+            pto_ = puerto_web(e, familia(c["codigo"]), CONSOLAS[familia(c["codigo"])][1])
+            viejo_ = servicio_estado(e, c["codigo"]) == "en ejecución"
+            if e.get("energia") == "encendido":   # máquina arriba y la plataforma no contesta: su caja de estado dice lo mismo que la consola
+                c["estado_vivo"] = "detenido"
+            c["nota_consola"] = (f"{c['nombre']} está detenido: no responde en el puerto {pto_} de la máquina"
+                                 + (" (la última recolección aún lo daba en ejecución)" if viejo_ else "")
+                                 + f". Su consola ({CONSOLAS[familia(c['codigo'])][3]}) se habilita sola cuando la plataforma esté encendida.")
     for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
         ent = None
         if c["so"] or (c["codigo"] == "windows" and consola_tipo):
