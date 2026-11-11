@@ -8780,6 +8780,29 @@ def equipo_alertas(eid):
     return redirect(vuelta)
 
 
+@bp.route("/inventario/<int:eid>/alertas/regla")
+@requiere_login
+def equipo_alerta_regla(eid):
+    """Trazabilidad FaceOps → monitoreo: la regla de una alerta tal como está CARGADA en el monitoreo (Prometheus del anfitrión
+    o del clúster), con su expresión, duración, etiquetas, salud y estado, y el enlace a su panel de Grafana. Solo lectura."""
+    from . import alertas_objeto as ao
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    t = ao.tipo_de(e) if e else None
+    if not t:
+        abort(404)
+    aid = (request.args.get("aid") or "").strip()
+    amb = (request.args.get("ambito") or "maquina").strip()
+    a = next((x for x in ao.catalogo()["alertas"] if x["id"] == aid), None)
+    if not a or (amb != "maquina" and not ao.ambito_de_plataforma(amb.split(":", 1)[-1])):
+        abort(404)
+    mon = ao.reglas_monitoreo(e, amb, t)
+    graf = (ao.grafana_ocp(g.cliente["id"], e) or "") if t == "openshift" else ao.url_grafana(e["nombre"], aid, amb)
+    if t == "openshift" and graf:
+        graf += f"?orgId=1&from=now-24h&to=now&viewPanel={ao.panel_id(aid)}"
+    return render_template("alerta_regla.html", e=e, a=a, aid=aid, ambito=amb, mon=mon, d=(mon or {}).get(aid), grafana=graf,
+                           grupo=ao.grupo_monitoreo(e, amb), archivo=f"{ao.REGLAS}/{e['nombre']}{ao.sufijo(amb)}.yml" if t != "openshift" else "")
+
+
 @bp.route("/sesion/valida")
 def sesion_valida():
     """auth_request del proxy público (Grafana del monitoreo en /grafana/, faceops/grafana-publico.sh): 204 si hay una sesión

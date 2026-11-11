@@ -7,6 +7,7 @@ dejó aplicado (datos.alertas del equipo, desde los artefactos del ticket) para 
 import json
 import os
 import re
+import time
 from urllib.parse import urlencode
 
 import yaml
@@ -110,6 +111,53 @@ def en_curso(cliente_id, e, ambito="maquina"):
 
 
 AUTO_GRAFANA_OCP = "Monitoreo · Grafana de OpenShift"
+PROMETHEUS = os.environ.get("FACEOPS_PROMETHEUS", "http://127.0.0.1:9090")   # Prometheus del anfitrión (FaceOps usa la red del host)
+_mon = {}
+
+
+def grupo_monitoreo(e, ambito="maquina"):
+    return f"faceops-{e['nombre']}{sufijo(ambito)}"
+
+
+def reglas_monitoreo(e, ambito="maquina", tipo=None):
+    """Lo que REALMENTE está cargado en el monitoreo para este objeto (no el reflejo del último ticket): por alerta del catálogo
+    (etiqueta faceops_alerta), sus reglas con su expresión, duración, salud y estado (firing / pending / inactive). Fuente:
+    Prometheus del anfitrión (grupo faceops-<equipo>[--plataforma]) o, para un clúster OpenShift, su Thanos Querier con la
+    cuenta de solo lectura que dejó «Monitoreo · Grafana de OpenShift» (token en la bóveda). None si no se pudo consultar."""
+    import requests
+    grupo = grupo_monitoreo(e, ambito)
+    hdr, url = {}, PROMETHEUS
+    if tipo == "openshift":
+        from .boveda import leer
+        cred = leer(f"maquinas/{e['nombre']}/grafana-monitoreo") or {}
+        if not cred.get("url") or not cred.get("token"):
+            return None
+        url, hdr = cred["url"], {"Authorization": f"Bearer {cred['token']}"}
+    k = (url, grupo)
+    if k in _mon and time.time() - _mon[k][0] < 15:
+        return _mon[k][1]
+    try:
+        r = requests.get(url.rstrip("/") + "/api/v1/rules", params={"type": "alert"}, headers=hdr, timeout=4, verify=False)
+        r.raise_for_status()
+        gs = [g_ for g_ in r.json()["data"]["groups"] if g_["name"] == grupo]
+    except Exception:  # noqa: BLE001
+        return None
+    out = {}
+    orden = {"firing": 2, "pending": 1, "inactive": 0}
+    for g_ in gs:
+        for x in g_.get("rules") or []:
+            aid = (x.get("labels") or {}).get("faceops_alerta")
+            if not aid:
+                continue
+            d = out.setdefault(aid, {"reglas": [], "estado": "inactive", "salud": "ok", "grupo": grupo, "archivo": g_.get("file", ""), "fuente": url})
+            d["reglas"].append({k_: x.get(k_) for k_ in ("name", "query", "duration", "labels", "annotations", "health", "lastError", "state", "lastEvaluation")}
+                               | {"activas": len(x.get("alerts") or [])})
+            if orden.get(x.get("state"), 0) > orden.get(d["estado"], 0):
+                d["estado"] = x.get("state")
+            if x.get("health") == "err":
+                d["salud"] = "err"
+    _mon[k] = (time.time(), out)
+    return out
 
 
 def grafana_ocp(cliente_id, e):
@@ -159,6 +207,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     grupos = {}
     datos = j(e.get("datos"), {}) or {}
     g_ocp = grafana_ocp(cliente_id, e) if t == "openshift" else None
+    prom = reglas_monitoreo(e, ambito, t)   # lo realmente cargado en el monitoreo (None: no se pudo consultar → reflejo del último ticket)
     for a in cat["alertas"]:
         if t in a["tipos"] and a.get("ambito", "maquina") == ambito and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
@@ -166,10 +215,11 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
                 accs_ = [(cat.get("acciones") or {}).get(k, {}).get("texto", k) for k in (a.get("acciones") or ["avisar"])]
                 grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=False, acciones_l=[], pendiente=a.get("pendiente") or "",
                                                                             en_prueba=a.get("estado") == "en_prueba", en_revision=a.get("estado") == "en_revision",
-                                                                            acciones_txt=accs_, grafana_ocp=(f"{g_ocp}?" + urlencode({"orgId": 1, "from": "now-24h", "to": "now", "viewPanel": panel_id(a["id"])})) if g_ocp else "", expr_txt=(a.get("expr") or "").replace('{faceops_equipo="__EQ__"}', "").replace('faceops_equipo="__EQ__",', "")))
+                                                                            acciones_txt=accs_, mon=(prom or {}).get(a["id"]), grafana_ocp=(f"{g_ocp}?" + urlencode({"orgId": 1, "from": "now-24h", "to": "now", "viewPanel": panel_id(a["id"])})) if g_ocp else "", expr_txt=(a.get("expr") or "").replace('{faceops_equipo="__EQ__"}', "").replace('faceops_equipo="__EQ__",', "")))
                 continue
             accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k), bloqueo_accion(cliente_id, cat, k)) for k in (a.get("acciones") or ["avisar"])]
-            grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, grafana=url_grafana(e["nombre"], a["id"], ambito),
+            grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x) if prom is None else a["id"] in prom, mon=(prom or {}).get(a["id"]),
+                                                                         en_reflejo=bool(x), acciones_l=accs, grafana=url_grafana(e["nombre"], a["id"], ambito),
                                                                          regla=nombre_regla(a), valor_accion=(x or {}).get("accion", "avisar"),
                                                                          valor_aviso=(x or {}).get("aviso", a.get("aviso")),
                                                                          valor_critico=(x or {}).get("critico", a.get("critico")),
@@ -188,7 +238,9 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
         disponible, por_que = False, "El equipo no tiene IP registrada"
     return {"tipo": t, "tipo_nombre": cat["tipos"][t]["nombre"], "fuente": cat["tipos"][t]["fuente"], "grupos": grupos,
             "ambito": ambito, "sufijo": sufijo(ambito), "nombre_amb": nombre_amb,
-            "n": sum(1 for k in act if any(a["id"] == k and a.get("ambito", "maquina") == ambito for a in cat["alertas"])) if ambito != "maquina" else len(act),
+            "n": (len(prom) if prom is not None else
+                  (sum(1 for k in act if any(a["id"] == k and a.get("ambito", "maquina") == ambito for a in cat["alertas"])) if ambito != "maquina" else len(act))),
+            "eid": e["id"], "monitoreo": prom is not None, "disparadas": sum(1 for v in (prom or {}).values() if v["estado"] == "firing"),
             "aplicado": ap.get("actualizado"), "ticket": ap.get("ticket"), "resumen": ap.get("resumen") or [],
             "grafana": url_grafana(e["nombre"], None, ambito), "archivo": f"{REGLAS}/{e['nombre']}{sufijo(ambito)}.yml", "grupo_prom": f"faceops-{e['nombre']}{sufijo(ambito)}",
             "informe": _informe(cliente_id, e), "grafana_ocp": (g_ocp + "?orgId=1&from=now-24h&to=now") if g_ocp else "",

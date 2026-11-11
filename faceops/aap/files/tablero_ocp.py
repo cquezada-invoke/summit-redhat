@@ -2,7 +2,9 @@
 (aap/files/alertas-objetos.yml) como VISUALIZACIÓN: por alerta, lo que evalúa su expresión, sus umbrales de aviso y crítico como
 líneas y, como anotación, los tramos en que la condición se cumplió. Consulta el monitoreo del clúster (Thanos Querier de
 openshift-monitoring) por el datasource <ds_uid>. Sin acciones de EDA.
-Uso: tablero_ocp.py <catalogo.yml> <clúster> <ds_uid>"""
+Uso: tablero_ocp.py <catalogo.yml> <clúster> <ds_uid>
+     tablero_ocp.py --reglas <catalogo.yml> <clúster>   → PrometheusRule «faceops-alertas-clúster» (JSON) para openshift-monitoring:
+     las mismas alertas como reglas del monitoreo del clúster (visibles en su Prometheus y Alertmanager), sin acciones."""
 import json
 import re
 import sys
@@ -58,5 +60,31 @@ def tablero(cat, cl, ds):
             "templating": {"list": []}, "annotations": {"list": anot}, "panels": paneles}
 
 
+def reglas(cat, cl):
+    """Una regla por umbral (aviso y crítico) etiquetada con faceops_alerta/faceops_equipo para la trazabilidad con FaceOps."""
+    rs = []
+    for a in cat["alertas"]:
+        if "openshift" not in a.get("tipos", []) or not a.get("expr"):
+            continue
+        nombre = "FaceOps" + re.sub(r"[^A-Za-z0-9]", "", a["nombre"].title()) + a["id"]
+        etq = {"faceops_equipo": cl, "faceops_alerta": a["id"], "faceops_origen": "faceops-tentativa"}
+        ann = {"summary": f"{cl} · {a['nombre']}", "description": a.get("descripcion", "")}
+        if a.get("umbral", True) is False:
+            rs.append({"alert": nombre, "expr": a["expr"], "for": a.get("para", "5m"),
+                       "labels": dict(etq, severity="critical" if a.get("severidad") == "critico" else "warning"), "annotations": ann})
+            continue
+        for sev, s_ in (("aviso", "warning"), ("critico", "critical")):
+            if a.get(sev) is not None:
+                rs.append({"alert": nombre + ("Critico" if sev == "critico" else "Aviso"), "expr": a["expr"].replace("__UMBRAL__", str(a[sev])),
+                           "for": a.get("para", "5m"), "labels": dict(etq, severity=s_), "annotations": ann})
+    return {"apiVersion": "monitoring.coreos.com/v1", "kind": "PrometheusRule",
+            "metadata": {"name": "faceops-alertas-clúster".replace("ú", "u"), "namespace": "openshift-monitoring",
+                         "labels": {"faceops.invoke.cl/gestionado": "true"}},
+            "spec": {"groups": [{"name": f"faceops-{cl}", "rules": rs}]}}
+
+
 if __name__ == "__main__":
+    if sys.argv[1] == "--reglas":
+        print(json.dumps(reglas(yaml.safe_load(open(sys.argv[2])), sys.argv[3]), ensure_ascii=False))
+        sys.exit(0)
     print(json.dumps(tablero(yaml.safe_load(open(sys.argv[1])), sys.argv[2], sys.argv[3]), ensure_ascii=False, indent=1))

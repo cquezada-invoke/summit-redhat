@@ -3,6 +3,8 @@
    La campana de la ficha es de la máquina y su SO (ámbito «maquina»); cada plataforma (JBoss, Redis…) tiene la suya, más chica,
    en su tarjeta: {{ boton_alertas(alertas_plat(c.codigo, c.nombre), url, c.nombre ~ ' en ' ~ e.nombre, true) }} #}
 {% macro campana(s=20) %}<svg viewBox="0 0 24 24" width="{{ s }}" height="{{ s }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>{% endmacro %}
+{% macro estado_mon(al, a) %}{% if a.mon %}<small class="al-ver"><span class="chip {{ 's-alta' if a.mon.estado == 'firing' else ('s-media' if a.mon.estado == 'pending' else 's-ok') }}" style="font-size:10px">{{ {'firing': 'disparada', 'pending': 'por dispararse', 'inactive': 'activa en el monitoreo'}.get(a.mon.estado, a.mon.estado) }}</span>{% if a.mon.salud != 'ok' %} <span class="chip s-alta" style="font-size:10px">regla con error</span>{% endif %}
+  · <a href="{{ url_for('consola.equipo_alerta_regla', eid=al.eid, aid=a.id, ambito=al.ambito or 'maquina') }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Regla en el monitoreo ↗</a></small>{% elif al.monitoreo and a.en_reflejo %}<small class="al-ver"><span class="chip s-alta" style="font-size:10px">no está cargada en el monitoreo</span></small>{% endif %}{% endmacro %}
 {% macro boton_alertas(al, accion, nombre, chico=false) %}{% if al %}{% set sx_ = al.sufijo or '' %}
 {% set est_ = 'curso' if al.en_curso else ('on' if al.n else 'off') %}
 <button type="button" id="alertas{{ sx_ }}" class="al-btn al-solo al-{{ est_ }}{{ ' al-chica' if chico }}" aria-label="Alertas{{ ' de ' ~ nombre if chico }}" onclick="event.stopPropagation();document.getElementById('al-dlg{{ sx_ }}').showModal()"
@@ -19,6 +21,7 @@
   <span><i class="al-lg al-off">{{ campana(12) }}</i>Naranja pulsando: sin alertas configuradas</span>
   <span><i class="al-lg al-on">{{ campana(12) }}<b>N</b></i>Verde con número: N alertas activas en Prometheus</span>
   <span><i class="al-lg al-curso">{{ campana(12) }}</i>Azul girando: cambio de alertas en curso (ticket)</span></p>
+<p class="sub al-ult">{% if al.monitoreo %}Estado leído ahora del monitoreo: {{ al.n }} alerta{{ 's' if al.n != 1 }} cargada{{ 's' if al.n != 1 }}{% if al.disparadas %}, {{ al.disparadas }} disparada{{ 's' if al.disparadas != 1 }}{% endif %} (el verde = cargada en el monitoreo){% else %}No se pudo leer el monitoreo: el estado es el del último ticket aplicado{% endif %}</p>
 {% if not al.disponible %}<div class="flash error">{{ al.por_que }}</div>{% endif %}
 {% if al.aplicado %}<p class="sub al-ult">Configuración vigente en Ansible desde {{ al.aplicado|fecha }}{% if al.ticket %} · {{ al.ticket }}{% endif %}</p>{% endif %}
 {% if al.grafana_ocp %}<p class="sub al-ult al-donde">Visualización en Grafana del monitoreo del clúster (Thanos Querier, solo lectura); las acciones están por definir · <a href="{{ al.grafana_ocp }}" target="_blank" rel="noopener">Ver todas en Grafana ↗</a></p>{% endif %}
@@ -29,14 +32,14 @@
 {% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
 {% for a in xs %}{% if a.en_revision %}<div class="al-fila al-pend al-rev"><span class="al-sw"><input type="checkbox" disabled><i></i></span>
   <span class="al-def"><b>{{ a.nombre }} {% if a.grafana_ocp %}<span class="chip s-ok" style="font-size:10px">visible en Grafana</span>{% else %}<span class="chip" style="font-size:10px">tentativa · en revisión</span>{% endif %}</b><small>{{ a.descripcion }}</small>
-    {% if a.grafana_ocp %}<small class="al-ver"><a href="{{ a.grafana_ocp }}" target="_blank" rel="noopener">Ver en Grafana ↗</a> · acción: por definir</small>{% endif %}
+    {% if a.grafana_ocp %}<small class="al-ver"><a href="{{ a.grafana_ocp }}" target="_blank" rel="noopener">Ver en Grafana ↗</a> · acción: por definir</small>{% endif %}{{ estado_mon(al, a) }}
     <small class="al-ver">PromQL propuesta: <code>{{ a.expr_txt }}</code></small>
     <small>{% if a.umbral is sameas false %}Severidad {{ a.severidad }}{% else %}Aviso {{ a.aviso }} · crítico {{ a.critico }} {{ a.unidad or '' }}{% endif %} · durante {{ a.para }} · acciones: {{ a.acciones_txt|join(' / ') }}</small></span></div>
 {% elif a.pendiente or a.en_prueba %}<div class="al-fila al-pend" title="{{ a.pendiente or 'En prueba: se libera cuando pase su prueba de punta a punta' }}"><span class="al-sw"><input type="checkbox" disabled><i></i></span>
   <span class="al-def"><b>{{ a.nombre }}</b><small>{% if a.pendiente %}Pendiente de métrica: {{ a.pendiente }}{% else %}Bloqueada · en prueba: {{ a.descripcion }}{% endif %}</small></span></div>{% else %}<label class="al-fila{{ ' on' if a.activa }}">
   <span class="al-sw"><input type="checkbox" name="on_{{ a.id }}" {{ 'checked' if a.activa }} {{ 'disabled' if not al.disponible }} onchange="this.closest('.al-fila').classList.toggle('on', this.checked)"><i></i></span>
   <span class="al-def"><b>{{ a.nombre }}</b><small>{{ a.descripcion }}</small>
-    {% if a.activa %}<small class="al-ver"><a href="{{ a.grafana }}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Lo que evalúa la regla, su umbral y su historia (últimas 24 h)">Ver en Grafana ↗</a> · <code>{{ a.regla }}</code></small>{% endif %}</span>
+    {% if a.activa %}<small class="al-ver"><a href="{{ a.grafana }}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Lo que evalúa la regla, su umbral y su historia (últimas 24 h)">Ver en Grafana ↗</a> · <code>{{ a.regla }}</code></small>{% endif %}{{ estado_mon(al, a) }}</span>
   <span class="al-acc"><small>Acción al dispararse</small><select name="acc_{{ a.id }}" {{ 'disabled' if not al.puede }} onclick="event.stopPropagation()" onchange="this.parentElement.querySelector('.al-diag').hidden=!{{ al.informe.acciones|tojson|forceescape }}.includes(this.value)">{% for k, t, bl in a.acciones_l %}<option value="{{ k }}" {{ 'selected' if a.valor_accion == k }} {{ 'disabled' if bl and a.valor_accion != k }} title="{{ bl }}">{{ t }}{{ ' — bloqueada: ' ~ bl if bl }}</option>{% endfor %}</select>
     <small class="al-diag" {{ 'hidden' if a.valor_accion not in al.informe.acciones }}>{% if al.informe.para %}El diagnóstico se envía a {{ al.informe.quien }}{{ ' (' ~ al.informe.para ~ ')' if al.informe.quien != al.informe.para }}{% else %}Sin responsable con correo: asígnalo en la ficha para recibir el diagnóstico{% endif %}</small></span>
   <span class="al-umb">{% if a.umbral is sameas false %}

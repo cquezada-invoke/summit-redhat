@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block titulo %}{{ a.nombre }} · {{ e.nombre }}{% endblock %}
+{% block cuerpo %}
+<p class="sub" style="margin:0"><a href="{{ url_for('consola.equipo', eid=e.id) }}#alertas">← {{ e.nombre }}</a> · alerta {{ aid }}{% if ambito != 'maquina' %} · {{ ambito }}{% endif %}</p>
+<h1 style="margin:4px 0 2px">{{ a.nombre }}</h1>
+<p class="sub" style="margin:0 0 12px">{{ a.descripcion }}</p>
+<div class="card">
+{% if mon is none %}<p class="flash error">No se pudo consultar el monitoreo{% if e.categoria and 'openshift' in (e.categoria|lower) %} del clúster (¿está encendido y conectado con «Monitoreo · Grafana de OpenShift»?){% endif %}.</p>
+{% elif not d %}<p><b>Esta alerta no está cargada en el monitoreo.</b> <span class="sub">Grupo consultado: <code>{{ grupo }}</code></span></p>
+{% else %}
+<p style="margin-top:0"><span class="chip {{ 's-alta' if d.estado == 'firing' else ('s-media' if d.estado == 'pending' else 's-ok') }}">{{ {'firing': 'disparada', 'pending': 'por dispararse', 'inactive': 'activa · sin disparar'}.get(d.estado, d.estado) }}</span>
+  <span class="chip {{ 's-ok' if d.salud == 'ok' else 's-alta' }}">salud de la regla: {{ d.salud }}</span>
+  {% if grafana %}<a class="btn chico" href="{{ grafana }}" target="_blank" rel="noopener">Ver su panel en Grafana ↗</a>{% endif %}</p>
+<p class="sub">Monitoreo: <code>{{ d.fuente.split('//')[-1].split('/')[0] }}</code> · grupo <code>{{ d.grupo }}</code>{% if archivo %} · archivo <code>{{ archivo }}</code>{% elif d.archivo %} · <code>{{ d.archivo }}</code>{% endif %}</p>
+{% for r in d.reglas %}<h3 style="margin:14px 0 4px">{{ r.name }} <span class="chip" style="font-size:11px">{{ r.labels.severity }}</span> <span class="chip" style="font-size:11px">{{ r.state }}{% if r.activas %} · {{ r.activas }}{% endif %}</span></h3>
+<pre class="mono" style="white-space:pre-wrap;margin:0">expr: {{ r.query }}
+for: {{ (r.duration or 0)|int }} s
+labels: {% for k, v in (r.labels or {}).items() %}{{ k }}={{ v }}{{ ', ' if not loop.last }}{% endfor %}
+{% if r.lastError %}error: {{ r.lastError }}
+{% endif %}última evaluación: {{ r.lastEvaluation }}</pre>{% endfor %}
+{% endif %}
+</div>
+{% endblock %}

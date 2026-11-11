@@ -488,6 +488,7 @@ planes:
       - {id: C1, caso: "Conectar ocp-sno (encendido)", tipo: Funcional, verificar: "cuenta faceops-grafana con cluster-monitoring-view; datasource del Thanos Querier en Grafana que responde consultas; tablero «Alertas de OpenShift · ocp-sno» con un panel por alerta del catálogo y datos reales"}
       - {id: C2, caso: "Repetir", tipo: Idempotencia, verificar: "termina bien sin reiniciar Grafana; mismo datasource y mismo tablero"}
       - {id: C3, caso: "Solo lectura", tipo: Seguridad, verificar: "la cuenta faceops-grafana no puede crear ni borrar objetos en el clúster (SelfSubjectAccessReview: create pods = no)"}
+      - {id: C5, caso: "Reglas en el monitoreo del clúster", tipo: Funcional, verificar: "PrometheusRule faceops-alertas-cluster cargada en el Prometheus del clúster (grupo faceops-<clúster>, reglas sanas) con faceops_alerta en cada regla; repetir no la cambia"}
       - {id: C4, caso: "Nombre de clúster inválido", tipo: Error controlado, verificar: "falla en la validación y no cambia Grafana (si el API no responde, falla pidiendo encender el clúster)"}
   "Monitoreo · Configurar alertas del equipo":
     casos:

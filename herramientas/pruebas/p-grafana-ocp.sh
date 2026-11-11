@@ -18,6 +18,11 @@ I0=$(inicio); caso_ "{\"auto\":\"$N\",\"params\":{\"go_cluster\":\"$CL\"},\"min\
 C3=$($OC auth can-i create pods -A --as=system:serviceaccount:faceops:faceops-grafana 2>/dev/null); C3b=$($OC auth can-i delete nodes --as=system:serviceaccount:faceops:faceops-grafana 2>/dev/null)
 C3c=$($OC auth can-i get prometheuses.monitoring.coreos.com/api -n openshift-monitoring --as=system:serviceaccount:faceops:faceops-grafana 2>/dev/null)
 [ "$C3" = no ] && [ "$C3b" = no ] && anotar C3 "Solo lectura" ok "faceops-grafana: create pods=$C3, delete nodes=$C3b, leer el monitoreo=$C3c" || anotar C3 "Solo lectura" falla "create pods=$C3 delete nodes=$C3b"
+# C5 · reglas en el monitoreo del clúster
+R5=""; for i in $(seq 1 12); do R5=$($OC -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s localhost:9090/api/v1/rules 2>/dev/null | python3 -c "
+import json,sys;d=json.load(sys.stdin);g=[x for x in d['data']['groups'] if x['name']=='faceops-$CL'];r=[y for x in g for y in x['rules']]
+print(len(r), sum(1 for y in r if y.get('health')=='err'), sum(1 for y in r if y['labels'].get('faceops_alerta')), sum(1 for y in r if y.get('health')=='unknown'))" 2>/dev/null); [ -n "$R5" ] && [ "$(echo $R5 | cut -d' ' -f4)" = 0 ] && break; sleep 20; done
+set -- $R5; [ "${1:-0}" -ge 19 ] && [ "${2:-1}" = 0 ] && [ "$3" = "$1" ] && anotar C5 "Reglas en el monitoreo del clúster" ok "grupo faceops-$CL con $1 reglas sanas, todas con faceops_alerta" || anotar C5 "Reglas en el monitoreo del clúster" falla "reglas/err/etiquetadas/sin evaluar: $R5"
 # C4 · nombre inválido
 I3=$(inicio); caso_ "{\"auto\":\"$N\",\"params\":{\"go_cluster\":\"Mal Nombre!\"},\"min\":10,\"caso\":\"C4\"}" >/dev/null; E4=$(estado); I4=$(inicio)
 [ "$E4" = fallido ] && [ "$I3" = "$I4" ] && anotar C4 "Nombre inválido" ok "falla en la validación; Grafana sin cambios" || anotar C4 "Nombre inválido" falla "$E4 $I3→$I4"

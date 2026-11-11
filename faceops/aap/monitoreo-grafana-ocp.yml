@@ -2,7 +2,9 @@
 # Monitoreo · Grafana de OpenShift. Conecta la Grafana del monitoreo del lab al monitoreo del propio clúster (Thanos Querier
 # de openshift-monitoring) con una cuenta de servicio de SOLO LECTURA (faceops-grafana, rol cluster-monitoring-view), guarda su
 # token en la bóveda y deja el tablero «Alertas de OpenShift · <clúster>» con las alertas del catálogo de tipo openshift
-# como visualización (expresión, umbrales e historia). No crea reglas ni acciones de EDA. Si el clúster está apagado, falla
+# como visualización (expresión, umbrales e historia). Deja además esas alertas como reglas del monitoreo del clúster
+# (PrometheusRule «faceops-alertas-cluster» en openshift-monitoring, etiquetadas faceops_alerta / faceops_equipo para la
+# trazabilidad con FaceOps): se ven en su Prometheus y su Alertmanager. Sin acciones de EDA. Si el clúster está apagado, falla
 # sin tocar nada: hay que encenderlo antes.
 #   go_cluster: nombre del clúster en FaceOps (p. ej. ocp-sno)
 #   Credenciales: «OpenShift · <clúster> (despliegue)» (API del clúster), «FaceOps · Bóveda (escritura)» y la del anfitrión
@@ -136,6 +138,35 @@
       ansible.builtin.command: setfacl -m u:472:r "{{ g }}/provisioning/datasources/faceops-{{ cl }}.yml"
       changed_when: false
 
+    - name: Reglas de las alertas en el monitoreo del clúster (PrometheusRule faceops-alertas-cluster)
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/tablero_ocp.py", --reglas, "{{ playbook_dir }}/files/alertas-objetos.yml", "{{ cl }}"]
+      delegate_to: localhost
+      register: r_pr
+      changed_when: false
+
+    - name: PrometheusRule vigente
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/monitoring.coreos.com/v1/namespaces/openshift-monitoring/prometheusrules/faceops-alertas-cluster"
+        headers: "{{ h }}"
+        validate_certs: false
+        status_code: [200, 404]
+      delegate_to: localhost
+      register: r_pr0
+
+    - name: Crear o actualizar la PrometheusRule (solo si cambió)
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/monitoring.coreos.com/v1/namespaces/openshift-monitoring/prometheusrules{{ '' if r_pr0.status == 404 else '/faceops-alertas-cluster' }}"
+        method: "{{ 'POST' if r_pr0.status == 404 else 'PUT' }}"
+        headers: "{{ h }}"
+        body_format: json
+        body: "{{ (r_pr.stdout | from_json) | combine({'metadata': (r_pr.stdout | from_json).metadata | combine({'resourceVersion': r_pr0.json.metadata.resourceVersion} if r_pr0.status == 200 else {})}) }}"
+        validate_certs: false
+        status_code: [200, 201]
+      delegate_to: localhost
+      when: r_pr0.status == 404 or (r_pr0.json.spec | to_json) != ((r_pr.stdout | from_json).spec | to_json)
+      register: r_pr1
+
     - name: Armar el tablero «Alertas de OpenShift · {{ cl }}»
       ansible.builtin.command:
         argv: [python3, "{{ playbook_dir }}/files/tablero_ocp.py", "{{ playbook_dir }}/files/alertas-objetos.yml", "{{ cl }}", "{{ ds_uid }}"]
@@ -165,5 +196,6 @@
       ansible.builtin.set_stats:
         data:
           faceops_grafana_ocp: {cluster: "{{ cl }}", tablero: "{{ (r_tab.stdout | from_json).uid }}", datasource: "{{ ds_uid }}",
-                                series_up: "{{ r_q.json.data.result | length }}", reiniciado: "{{ r_ds is changed }}"}
+                                series_up: "{{ r_q.json.data.result | length }}", reiniciado: "{{ r_ds is changed }}",
+                                reglas: "{{ (r_pr.stdout | from_json).spec.groups[0].rules | length }}", reglas_cambiadas: "{{ r_pr1 is not skipped }}"}
         per_host: false
