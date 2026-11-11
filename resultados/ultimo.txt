@@ -1,5 +1,26 @@
-commit: 05e415057a0013568290a9642b70b4ae5c358b5c
-inicio: 2026-11-11T17:00:20-03:00
+commit: b26c66b6c1d9d00c3cbcaa7ba5f88484aca3d503
+inicio: 2026-11-11T16:45:04-03:00
 ---
-FO-LAB-01846 fallido workflow 24497 AAP terminó (failed): ejecución 6 s, espera de aprobación 43 s / Identity added: /runner/artifacts/24501/ssh_key_data (cquezada@demo-ansible-summit) / ERROR! We were unable to read either as JSON nor YAML, these are the errors we got from each: / JSON: Expecting value: line 1 column 1 (char 0) /  / Syntax Error while loading YAML. /   mapping values are not allowed in this context /  / The error appears to be in '/runner/project/playbooks/paquetes-registro.yml': line 64, column 96, but may / be elsewhere in the file depending on the exact syntax problem. /  / The offending line appears to be: /  /  /     - name: Huella (sha256) de cada paquete en su repositorio de origen (RHEL 8 no trae python3: se usa platform-python, que tiene dnf) /                                                                                                ^ here
---- fin: 2026-11-11T17:00:27-03:00 · código: 0
+RES {"ticket": "FO-LAB-01833", "estado": "fallido", "limite": "nodo-jboss4", "resultado": "a (sha256) de cada paquete en su repositorio de origen (RHEL 8 no trae python3: se usa platform-python, que tiene dnf)\n                                                                                               ^ here", "stats": {}, "detalle": "", "aprobado": true}
+inventario nodo-jboss4: fallido FO-LAB-01833
+anoche C5: FO-LAB-01507 AAP terminó (successful): ejecución 15 s, espera de aprobación 35 s
+inicio: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · dev 1.0.44
+energía nodo-jboss2 apagar: exitoso FO-LAB-01836
+   nodo-jboss2: shut off
+RES {"ticket": "FO-LAB-01839", "estado": "exitoso", "limite": "nodo-jboss", "resultado": "AAP terminó (successful): ejecución 24 s, espera de aprobación 44 s", "stats": {"version_desplegada": "1.0.43", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
+energía nodo-jboss2 encender: exitoso FO-LAB-01841
+C1: exitoso · límite nodo-jboss · aprobación True · LB  6 1.0.43; 6 1.0.44; · nodo-jboss 1.0.43 · 
+CASO C1 falla · 1.0.43 con nodo apagado
+RES {"ticket": "FO-LAB-01843", "estado": "exitoso", "limite": "nodo-jboss:nodo-jboss2", "resultado": "AAP terminó (successful): ejecución 34 s, espera de aprobación 43 s", "stats": {"version_desplegada": "1.0.44", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
+C2: exitoso · set_stats 1.0.44 · LB  12 1.0.44; · nodos 1.0.44/1.0.44 · manifiesto 1 · 
+CASO C2 ok · 1.0.44 en producción
+RES {"ticket": "FO-LAB-01844", "estado": "exitoso", "limite": "nodo-jboss:nodo-jboss2", "resultado": "AAP terminó (successful): ejecución 28 s, espera de aprobación 45 s", "stats": {"version_desplegada": "1.0.44", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
+CASO C3 ok · repetir 1.0.44
+RES {"ticket": "FO-LAB-01847", "estado": "fallido", "limite": "nodo-jboss:nodo-jboss2", "resultado": "            : ok=6    changed=1    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   \nnodo-jboss2                : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   ", "stats": {}, "detalle": "Descargar versión 9.9.999 publicada por el pipeline · Request failed", "aprobado": true}
+CASO C4 ok · versión inexistente 9.9.999
+RES {"ticket": "FO-LAB-01848", "estado": "exitoso", "limite": "nodo-jboss-dev", "resultado": "AAP terminó (successful): ejecución 16 s, espera de aprobación 40 s", "stats": {"version_desplegada": "1.0.44", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
+C5: exitoso · límite nodo-jboss-dev · aprobación True · dev 1.0.44 · LB  12 1.0.44;
+CASO C5 ok · desarrollo
+CERT JBoss · Desplegar app → cambiada
+final: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · HTTP 200
+--- fin: 2026-11-11T17:02:03-03:00 · código: 0
