@@ -1,0 +1,21 @@
+commit: ba790b06dc83b72767c8878c92f680c458711e05
+inicio: 2026-11-10T23:00:27-03:00
+---
+RES {"estado":"sin respuesta del arnés"}
+CASO C1 falla · Activar espejo App de pagos
+CASO C2 falla · Flujos y datos en el lake
+RES {"caso": "C3", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01523", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "AAP terminó (failed): ejecución 0 s, espera de aprobación 29 s\n"}
+CASO C3 falla · Desactivar
+RES {"estado":"sin respuesta del arnés"}
+RES {"estado":"sin respuesta del arnés"}
+CASO C4 falla · Repetir la activación
+RES {"caso": "C5", "auto": "Data lake · Derivar segmento", "ticket": "FO-LAB-01524", "estado": "exitoso", "stats": {"faceops_datalake": {"banca-core-bancario": {"accion": "activar", "modo": "declarada", "equipo": "nodo-nginx", "destino": "s3://lake/apps/banca_core/operaciones_vivo/", "enviado_lake": 7768}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 20 s, espera de aprobación 29 s"}
+CASO C5 falla · Declarada: activar Core bancario
+RES {"estado":"sin respuesta del arnés"}
+CASO C6 falla · Declarada: repetir
+RES {"estado":"sin respuesta del arnés"}
+CASO C7 falla · Declarada: desactivar
+Traceback (most recent call last):
+RES {"estado":"sin respuesta del arnés"}
+CASO C8 falla · Declarada: URL inválida
+--- fin: 2026-11-10T23:06:45-03:00 · código: 0
