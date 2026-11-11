@@ -286,6 +286,11 @@
   campos:
     - {var: cert_dias, etiqueta: "Renovar si vence en menos de (días)", tipo: integer, defecto: 30}
     - {var: cert_forzar, etiqueta: "Renovar todos aunque estén vigentes", tipo: multiplechoice, defecto: "no", opciones: ["no", "si"], ayuda: "Para probar la rotación"}
+"Certificados · Limpiar certificados sobrantes":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: cert_limpiar_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: revisar, opciones: [revisar, limpiar], ayuda: "revisar: solo informa qué sobra (servicios falsos, directorios sin registro y certificados sin uso en la CA) · limpiar: lo retira y revoca; el certificado en uso no se toca"}
 "Storage · Preparar emulador":
   por_inventario: true
   usa_limite: true

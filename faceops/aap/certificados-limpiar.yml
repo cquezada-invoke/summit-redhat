@@ -1,0 +1,273 @@
+---
+# Certificados · Limpiar certificados sobrantes (escritura, con aprobación). Para una máquina:
+#   · conserva los servicios REALES del registro de la skill «certificados» (/etc/faceops/certificados): los que entregan en
+#     su puerto el certificado que tienen instalado (o sin puerto que verificar); su certificado en uso no se toca
+#   · retira los servicios FALSOS: registrados por un intento fallido, cuyo puerto no entrega su certificado y cuyo comando
+#     de recarga apunta a una unidad que no existe (p. ej. «systemctl restart nodo-jboss»). Se borran su registro, sus archivos
+#     (/etc/pki/faceops/<nombre>/) y la unidad o drop-in de systemd que FaceOps le hubiera dejado. Si la unidad existe, se
+#     informa y no se toca (puede ser un servicio real caído)
+#   · retira los directorios de certificados sin registro que ninguna configuración (EAP, nginx, httpd) referencia
+#   · revoca en la CA interna (la misma de certificados.yml: revoke por serie con el nonce de agent/certs/{cid}) los
+#     certificados VIGENTES emitidos para los nombres de la máquina que no están desplegados en ningún servicio real
+# Orden: se respalda, se retira, se revoca y se verifica que los servicios reales siguen entregando su certificado en su
+# puerto. Si algo falla, se restauran los archivos retirados (una revocación ya hecha en la CA no se deshace y se informa).
+#   cert_limpiar_modo: revisar (solo informa lo que haría) · limpiar (lo hace)
+#   cert_limpiar_prueba_falla: solo para el plan de prueba; fuerza una falla después de retirar para probar la vuelta atrás
+- name: Certificados · Limpiar certificados sobrantes
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    modo: "{{ cert_limpiar_modo | default('revisar') }}"
+    registro: /etc/faceops/certificados
+    base: /etc/pki/faceops
+    respaldo: "/var/lib/faceops/limpieza-certificados/{{ ansible_date_time.epoch }}"
+    prueba_falla: "{{ (cert_limpiar_prueba_falla | default(false) | string | lower) in ['si', 'sí', 'yes', 'true', '1'] }}"
+  tasks:
+    - name: Datos de la limpieza
+      ansible.builtin.assert:
+        that:
+          - faceops_ca_url is defined and faceops_ca_cert is defined
+          - modo in ['revisar', 'limpiar']
+        fail_msg: "Falta la credencial «FaceOps · CA interna» o cert_limpiar_modo no es revisar/limpiar"
+        quiet: true
+
+    - name: Sin emisiones ni renovaciones en curso en la máquina
+      ansible.builtin.shell: |
+        ls -d {{ base }}/*/.reemplazando {{ base }}/*/nuevo.key 2>/dev/null || true
+      register: r_curso
+      changed_when: false
+
+    - name: Ninguna emisión a medias
+      ansible.builtin.assert:
+        that: r_curso.stdout | trim | length == 0
+        fail_msg: "Hay una emisión o renovación en curso ({{ r_curso.stdout_lines | join(', ') }}): no se limpia nada"
+        quiet: true
+
+    - name: Qué hay en la máquina (servicios reales, falsos y directorios sin registro)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import glob, json, os, re, subprocess
+        REG, BASE, IP = "{{ registro }}", "{{ base }}", "{{ ansible_default_ipv4.address }}"
+        def x(*a, entrada=None):
+            r = subprocess.run(a, capture_output=True, text=True, input=entrada)
+            return r.stdout.strip() if r.returncode == 0 else ""
+        def serie(pem_o_archivo, es_archivo=True):
+            s = x("openssl", "x509", "-in", pem_o_archivo, "-noout", "-serial") if es_archivo else \
+                x("openssl", "x509", "-noout", "-serial", entrada=pem_o_archivo)
+            return s.split("=")[-1].lower().lstrip("0") if s else ""
+        def entrega(puerto, cn):
+            pem = x("timeout", "8", "openssl", "s_client", "-connect", f"{IP}:{puerto}", "-servername", cn, entrada="")
+            return serie(pem, False) if "BEGIN CERTIFICATE" in pem else ""
+        # configuraciones que pueden apuntar a un directorio de certificados
+        confs = [d for d in ("/opt/rh/eap8/root/usr/share/wildfly/standalone/configuration", "/var/opt/rh/eap8/lib/wildfly/standalone/configuration",
+                             "/etc/opt/rh/eap8", "/etc/nginx", "/etc/httpd", "/etc/systemd/system") if os.path.isdir(d)]
+        def referenciado(d):
+            return bool(confs) and subprocess.run(["grep", "-rlsF", d + "/"] + confs, capture_output=True).returncode == 0
+        def unidad(cmd):
+            m = re.search(r"systemctl\s+(?:restart|reload|try-restart|reload-or-restart)\s+([\w@.-]+)", cmd or "")
+            if not m:
+                return None, None
+            u = m.group(1) if "." in m.group(1) else m.group(1) + ".service"
+            return u, subprocess.run(["systemctl", "cat", u], capture_output=True).returncode == 0
+        HOST = "{{ inventory_hostname }}"
+        conservar, falsos, dudosos, cns, registrados = [], [], [], {HOST + ".demo.local"}, set()
+        for p in sorted(glob.glob(REG + "/*.json")):
+            f = json.load(open(p)); n = f["nombre"]; registrados.add(n); cns.add(f.get("cn") or "")
+            d = f"{BASE}/{n}"; s = serie(d + "/servidor.crt"); pu = int(f.get("puerto") or 0)
+            ps = entrega(pu, f.get("cn") or IP) if pu else ""
+            u, existe = unidad(f.get("recargar"))
+            fila = {"nombre": n, "serie": s, "puerto": pu, "puerto_serie": ps, "cn": f.get("cn"), "recargar": f.get("recargar") or "", "unidad": u}
+            if pu == 0 or (s and ps == s):
+                conservar.append(fila)
+            elif existe is True or (u is None and f.get("recargar")) or referenciado(d):   # su servicio existe (o no se sabe): no se toca
+                dudosos.append(dict(fila, motivo="no entrega su certificado en el puerto, pero su servicio existe o su directorio está en uso: no se toca"))
+            else:
+                extra = [q for q in (f"/etc/systemd/system/{u}.d" if u else "", f"/etc/systemd/system/{u}" if u else "")
+                         if q and os.path.exists(q) and subprocess.run(["grep", "-rqis", "faceops", q]).returncode == 0]
+                falsos.append(dict(fila, archivos=[p] + ([d] if os.path.isdir(d) else []) + extra))
+        sin_registro = []
+        for d in sorted(glob.glob(BASE + "/*/")):
+            d = d.rstrip("/"); n = os.path.basename(d)
+            if n in registrados:
+                continue
+            s = serie(d + "/servidor.crt")
+            if referenciado(d):
+                conservar.append({"nombre": n, "serie": s, "puerto": 0, "puerto_serie": "", "cn": "", "recargar": "", "unidad": None, "sin_registro": True})
+            else:
+                sin_registro.append({"nombre": n, "serie": s, "archivos": [d]})
+        en_uso = sorted({v for c in conservar + dudosos for v in (c["serie"], c.get("puerto_serie")) if v})
+        print(json.dumps({"conservar": conservar, "falsos": falsos, "dudosos": dudosos, "sin_registro": sin_registro,
+                          "en_uso": en_uso, "cns": sorted(c for c in cns if c == HOST or c.startswith(HOST + "."))}))   # solo nombres de esta máquina
+        P
+      register: r_maq
+      changed_when: false
+
+    - name: Lo que se conserva y lo que sobra en la máquina
+      ansible.builtin.set_fact:
+        maq: "{{ r_maq.stdout | from_json }}"
+
+    - name: Certificados vigentes de la CA para esta máquina que no están en uso
+      delegate_to: localhost
+      become: false
+      ansible.builtin.shell:
+        cmd: |
+          python3 - <<'P'
+          import http.cookiejar, json, os, ssl, sys, urllib.request
+          B = os.environ["CA_URL"].rstrip("/") + "/ca/rest/"
+          cx = ssl.create_default_context(cafile=os.environ["CA_CA"]); cx.check_hostname = False
+          cx.load_cert_chain(os.environ["CA_CERT"], os.environ["CA_LLAVE"])
+          op = urllib.request.build_opener(urllib.request.HTTPSHandler(context=cx), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+          q = urllib.request.Request(B + "certs?maxResults=1000&size=1000", headers={"Accept": "application/json"})
+          with op.open(q, timeout=30) as r_:
+              lista = json.loads(r_.read()).get("entries") or []
+          cns, uso = set(json.loads(os.environ["CNS"])), set(json.loads(os.environ["EN_USO"]))
+          norm = lambda s: str(s or "").lower().removeprefix("0x").lstrip("0")
+          def cn(dn):
+              return next((p.split("=", 1)[1].strip() for p in str(dn or "").split(",") if p.strip().upper().startswith("CN=")), "")
+          out = [{"serie": c["id"], "cn": cn(c.get("SubjectDN")), "vence": c.get("NotValidAfter")} for c in lista
+                 if (c.get("Status") or "").upper() == "VALID" and cn(c.get("SubjectDN")) in cns and norm(c.get("id")) not in uso]
+          print(json.dumps({"revocar": out, "en_uso_ca": [c["id"] for c in lista if norm(c.get("id")) in uso]}))
+          P
+      environment:
+        CA_URL: "{{ faceops_ca_url }}"
+        CA_CA: "{{ faceops_ca_ca }}"
+        CA_CERT: "{{ faceops_ca_cert }}"
+        CA_LLAVE: "{{ faceops_ca_llave }}"
+        CNS: "{{ maq.cns | to_json }}"
+        EN_USO: "{{ maq.en_uso | to_json }}"
+      register: r_ca
+      changed_when: false
+
+    - name: Plan de limpieza
+      ansible.builtin.set_fact:
+        revocar: "{{ (r_ca.stdout | from_json).revocar }}"
+        retirar: "{{ maq.falsos + maq.sin_registro }}"
+
+    - name: Resumen del plan
+      ansible.builtin.debug:
+        msg:
+          - "Se conserva: {{ maq.conservar | map(attribute='nombre') | zip(maq.conservar | map(attribute='serie')) | map('join', ' serie ') | join(' · ') or 'nada' }}"
+          - "Servicios falsos a retirar: {{ maq.falsos | map(attribute='nombre') | join(', ') or 'ninguno' }}"
+          - "Directorios sin registro a retirar: {{ maq.sin_registro | map(attribute='nombre') | join(', ') or 'ninguno' }}"
+          - "Sin tocar (revisar a mano): {{ maq.dudosos | map(attribute='nombre') | join(', ') or 'ninguno' }}"
+          - "A revocar en la CA: {{ revocar | map(attribute='serie') | join(', ') or 'ninguno' }}"
+
+    - name: Limpiar
+      when: modo == 'limpiar' and (retirar | length > 0 or revocar | length > 0)
+      block:
+        - name: Respaldar lo que se retira
+          ansible.builtin.shell: |
+            set -e; umask 077; mkdir -p {{ respaldo }}
+            tar -czPf {{ respaldo }}/archivos.tar.gz {{ retirar | map(attribute='archivos') | flatten | map('quote') | join(' ') }}
+          when: retirar | length > 0
+          changed_when: true
+
+        - name: Retirar registros, archivos y unidades de los servicios falsos y directorios sin registro
+          ansible.builtin.file: {path: "{{ item }}", state: absent}
+          loop: "{{ retirar | map(attribute='archivos') | flatten }}"
+
+        - name: Recargar systemd si se retiró una unidad
+          ansible.builtin.systemd: {daemon_reload: true}
+          when: retirar | map(attribute='archivos') | flatten | select('search', '^/etc/systemd/') | list | length > 0
+
+        - name: Falla forzada (solo plan de prueba)
+          ansible.builtin.fail: {msg: "Falla forzada por el plan de prueba después de retirar los archivos"}
+          when: prueba_falla
+
+        - name: Revocar en la CA los certificados que no están en uso
+          delegate_to: localhost
+          become: false
+          ansible.builtin.shell:
+            cmd: |
+              python3 - <<'P'
+              import http.cookiejar, json, os, ssl, sys, urllib.request
+              B = os.environ["CA_URL"].rstrip("/") + "/ca/rest/"
+              cx = ssl.create_default_context(cafile=os.environ["CA_CA"]); cx.check_hostname = False
+              cx.load_cert_chain(os.environ["CA_CERT"], os.environ["CA_LLAVE"])
+              op = urllib.request.build_opener(urllib.request.HTTPSHandler(context=cx), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+              def r(m, p, d=None):
+                  q = urllib.request.Request(B + p, method=m, data=json.dumps(d).encode() if d is not None else None,
+                                             headers={"Content-Type": "application/json", "Accept": "application/json"})
+                  with op.open(q, timeout=30) as x:
+                      b = x.read(); return json.loads(b) if b else {}
+              norm = lambda s: str(s or "").lower().removeprefix("0x").lstrip("0")
+              uso = {norm(s) for s in json.loads(os.environ["EN_USO"])}
+              hechos = []
+              for s in json.loads(os.environ["SERIES"]):
+                  cid = "0x" + norm(s)
+                  if norm(s) in uso:
+                      sys.exit(f"{cid} está en uso: no se revoca")
+                  c = {k.lower(): v for k, v in r("GET", f"certs/{cid}").items()}
+                  if (c.get("status") or "").upper() == "REVOKED":
+                      continue
+                  d = r("GET", f"agent/certs/{cid}")   # la vista de agente trae el nonce para revocar
+                  r("POST", f"agent/certs/{cid}/revoke", {"Reason": "Cessation_of_Operation", "Nonce": d.get("Nonce") or d.get("nonce")})
+                  hechos.append(cid); print(f"{cid} revocado (sobrante)", flush=True)
+              print(json.dumps({"revocados": hechos}))
+              P
+          environment:
+            CA_URL: "{{ faceops_ca_url }}"
+            CA_CA: "{{ faceops_ca_ca }}"
+            CA_CERT: "{{ faceops_ca_cert }}"
+            CA_LLAVE: "{{ faceops_ca_llave }}"
+            SERIES: "{{ revocar | map(attribute='serie') | list | to_json }}"
+            EN_USO: "{{ maq.en_uso | to_json }}"
+          register: r_rev
+          when: revocar | length > 0
+          changed_when: "'revocado (' in r_rev.stdout"
+
+        - name: Los servicios reales siguen entregando su certificado en su puerto
+          ansible.builtin.shell: |
+            echo | timeout 10 openssl s_client -connect {{ ansible_default_ipv4.address }}:{{ item.puerto }} -servername {{ item.cn }} 2>/dev/null \
+              | openssl x509 -noout -serial | cut -d= -f2 | tr 'A-F' 'a-f' | sed 's/^0*//'
+          loop: "{{ maq.conservar | selectattr('puerto') | list }}"
+          loop_control: {label: "{{ item.nombre }} :{{ item.puerto }}"}
+          register: r_ver
+          until: r_ver.stdout == item.serie
+          retries: 6
+          delay: 5
+          changed_when: false
+
+      rescue:
+        - name: Restaurar lo retirado
+          ansible.builtin.shell: |
+            [ -f {{ respaldo }}/archivos.tar.gz ] || exit 0
+            tar -xzPf {{ respaldo }}/archivos.tar.gz && restorecon -R {{ registro }} {{ base }} 2>/dev/null; systemctl daemon-reload
+          changed_when: true
+        - name: Falló la limpieza
+          ansible.builtin.fail:
+            msg: >-
+              No se pudo limpiar; se restauraron los archivos retirados ({{ ansible_failed_result.msg | default('') }}).
+              Revocados en la CA antes de la falla: {{ (r_rev.stdout | default('') | regex_findall('0x[0-9a-fA-F]+(?= revocado)')) | join(', ') or 'ninguno' }}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_cert_limpieza: >-
+            {{ {inventory_hostname: {'modo': modo, 'conservados': maq.conservar, 'dudosos': maq.dudosos,
+                'retirados': (retirar | map(attribute='nombre') | list) if modo == 'limpiar' else [],
+                'por_retirar': retirar | map(attribute='nombre') | list,
+                'revocados': ((r_rev.stdout | default('{}')).splitlines() | last | default('{}') | from_json).revocados | default([]) if modo == 'limpiar' else [],
+                'por_revocar': revocar | map(attribute='serie') | list}} }}
+
+    - name: Avisar a Event-Driven Ansible (actualiza el inventario de certificados)
+      delegate_to: localhost
+      become: false
+      ansible.builtin.uri:
+        url: "{{ faceops_eda_certificados | default('http://192.168.122.1:5020/') }}"
+        method: POST
+        body_format: json
+        body: {tipo: certificado_renovado, equipo: "{{ inventory_hostname }}", servicios: ["limpieza"]}
+        status_code: [200, 201, 202]
+        timeout: 10
+      when: modo == 'limpiar' and (retirar | length > 0 or revocar | length > 0)
+      failed_when: false
+      changed_when: false
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ ('Revisión: ' if modo == 'revisar' else 'Limpieza: ') }}{{ retirar | length }} servicio(s)/directorio(s) sobrante(s) y
+          {{ revocar | length }} certificado(s) sin uso en la CA{{ ' (nada que limpiar)' if not retirar and not revocar else '' }}.
+          Se conserva: {{ maq.conservar | map(attribute='nombre') | join(', ') or 'nada' }}
