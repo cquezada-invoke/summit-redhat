@@ -70,7 +70,7 @@ if [ "$FASE" = rocky-ev ]; then
   evaluar C2 $RK '"mig_politica":"minimo","mig_preupgrade":"true"' 30; M2=$M
   R2=$(en $IK 'cat /etc/redhat-release; sudo test -e /root/.convert2rhel.ini && echo LLAVE-QUEDO || echo sin-llave')
   A2=$(campo "$M2" analisis)
-  ok_ && echo "$A2" | grep -q "convert2rhel" && echo "$R2" | grep -q Rocky && echo "$R2" | grep -q sin-llave \
+  ok_ && echo "$A2" | grep -q "convert2rhel" && echo "$A2" | grep -q '"error": ""' && echo "$R2" | grep -q Rocky && echo "$R2" | grep -q sin-llave \
     && anotar C2 "Rocky 9 con convert2rhel analyze" ok "análisis $A2 · $(echo $R2)" || anotar C2 "Rocky 9 con convert2rhel analyze" falla "$(estado) $A2 $R2 $(jq_ "r.get('detalle')")"
   evaluar C4 nodo-jboss-dev '"mig_politica":"minimo"'; M4=$M
   ok_ && [ "$(campo "$M4" accion)" = "sin acción" ] && anotar C4 "RHEL 9 al día (nodo-jboss-dev)" ok "$(campo "$M4" origen) · sin acción · $(campo "$M4" semaforo)" || anotar C4 "RHEL 9 al día" falla "$(estado) $M4"

@@ -3,16 +3,29 @@
   ansible.builtin.raw: |
     v={{ plan.mayor }}
     curl -sfo /etc/yum.repos.d/convert2rhel.repo https://cdn-public.redhat.com/content/public/repofiles/convert2rhel-for-rhel-$v-x86_64.repo
+    curl -sfo /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release https://security.access.redhat.com/data/fd431d51.txt
     $(command -v dnf || command -v yum) -y -q install convert2rhel >/dev/null 2>&1
     umask 077; printf '[subscription_manager]\norg = %s\nactivation_key = %s\n' '{{ rhsm_org }}' '{{ rhsm_llave }}' > /root/.convert2rhel.ini
   no_log: true
   changed_when: false
-- name: Analizar
-  ansible.builtin.raw: convert2rhel analyze -y >/dev/null 2>&1; echo "codigo=$?"; rm -f /root/.convert2rhel.ini; cat /var/log/convert2rhel/convert2rhel-pre-conversion.json
+- name: Analizar (el informe existe aunque haya bloqueos; sin informe se devuelve el final del registro)
+  ansible.builtin.raw: |
+    if command -v convert2rhel >/dev/null; then convert2rhel analyze -y >/dev/null 2>&1; echo "codigo=$?"; else echo "codigo=127"; echo "convert2rhel no se pudo instalar (repositorio o red)"; fi
+    rm -f /root/.convert2rhel.ini
+    f=/var/log/convert2rhel/convert2rhel-pre-conversion.json
+    if [ -s $f ]; then echo "C2R-JSON"; cat $f; else echo "C2R-SIN-JSON"; tail -4 /var/log/convert2rhel/convert2rhel.log 2>/dev/null | cut -c1-300; fi
+    true
   register: r_c2a
   changed_when: false
-- name: Informe
+- name: Informe del análisis
   ansible.builtin.set_fact:
     analisis:
       herramienta: convert2rhel analyze
       codigo: "{{ r_c2a.stdout | regex_search('codigo=(\\d+)', '\\1') | first | default('?') }}"
+      bloqueos: "{{ (c2a.actions | default({}) | dict2items | selectattr('value.result.level', 'defined') | selectattr('value.result.level', 'in', ['ERROR', 'OVERRIDABLE'])
+                    | map(attribute='value.result') | map(attribute='title') | list) if c2a else [] }}"
+      advertencias: "{{ (c2a.actions | default({}) | dict2items | map(attribute='value.messages') | flatten | selectattr('level', 'defined')
+                        | selectattr('level', 'equalto', 'WARNING') | map(attribute='title') | unique | list) if c2a else [] }}"
+      error: "{{ '' if c2a else (r_c2a.stdout.split('C2R-SIN-JSON') | last | trim)[-400:] }}"
+  vars:
+    c2a: "{{ (r_c2a.stdout.split('C2R-JSON', 1) | last | trim | from_json) if 'C2R-JSON' in r_c2a.stdout else {} }}"
