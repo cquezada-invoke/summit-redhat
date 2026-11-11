@@ -1,11 +1,30 @@
-commit: dcd878d899cf9bee59ae2da9175e5e1501d551a3
-inicio: 2026-11-10T21:38:06-03:00
+commit: bdef0414e6639e3fd8edf282d894adaa89b5ec71
+inicio: 2026-11-10T21:38:27-03:00
 ---
-cols: ['id', 'cliente_id', 'numero', 'automatizacion_id', 'usuario_id', 'estado', 'segmento', 'limite', 'parametros', 'motivo', 'aap_job_id', 'aap_job_tipo', 'resultado', 'creado', 'inicio', 'fin', 'duracion_s', 'valor_min', 'tarifa', 'externo_ref', 'aprobado_por', 'respuesta', 'aap_aprobacion_id', 'aprobado_en', 'filtros', 'dur_ejecucion_s', 'dur_aprobacion_s', 'unidades', 'creditos', 'factor', 'ahorro', 'odoo_ref']
-job: None stats: 
-inventariar 400 {"error":"\u00abInventariar m\u00e1quina\u00bb est\u00e1 bloqueada: cambi\u00f3 desde su \u00faltima prueba y debe probarse de nuevo"}
+WF FaceOps · Aprobar › Infra · Ajustar recursos de máquinas [Hipervisores] successful
+ nodo 21311 workflow_approval successful Etapa 1/1 · Hipervisores · ¿Ejecutar «Ajustar recursos de máquinas (vCPU y memoria)»?
+ nodo 21312 job successful Infra · Ajustar recursos de máquinas
+Identity added: /runner/artifacts/21312/ssh_key_data (aap-kvm (FaceOps))
 
-uptime/boot: {'uptime_dias': 0.3}
-servicios: []
-21:38:13
---- fin: 2026-11-10T21:38:13-03:00 · código: 0
+PLAY [Infra · Ajustar recursos de máquinas] ************************************
+
+TASK [Datos válidos] ***********************************************************
+ok: [anfitrion-kvm]
+
+TASK [Ajustar cada máquina] ****************************************************
+changed: [anfitrion-kvm] => (item=nodo-jboss)
+
+TASK [Resultado para FaceOps] **************************************************
+ok: [anfitrion-kvm]
+
+PLAY RECAP *********************************************************************
+anfitrion-kvm              : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+22397 2026-11-11T00:37:08 running Migración · WebLogic a OpenShift {"wl_modo": "migrar", "wl_app": "legado", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+22396 2026-11-11T00:37:05 successful FaceOps · automatizaciones 
+22395 2026-11-11T00:37:05 running FaceOps · Habilitar servidor {"hab_so": "rocky9", "hab_infraestructura": "KVM \u00b7 Santiago", "hab_destino": "onpremise", "hab_nombre": "mover", "h
+22393 2026-11-11T00:36:27 running FaceOps · Aprobar › Migración · WebLogic a OpenShift · Nodos demo · credencial 3 [Contenedores] {"wl_modo": "migrar", "wl_app": "legado", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+22391 2026-11-11T00:36:00 running FaceOps · Aprobar › FaceOps · Habilitar servidor [Servidores] {"hab_so": "rocky9", "hab_infraestructura": "KVM \u00b7 Santiago", "hab_destino": "onpremise", "hab_nombre": "mover", "h
+22390 2026-11-11T00:35:40 failed FaceOps · Uso por segmento {"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+22382 2026-11-11T00:34:02 failed FaceOps · Uso por segmento {"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794357083, "faceops_autorizacion": "<REDACTADO>"wl_modo": "migrar", "wl_app": "ventas", "wl_namespace": "wl-ventas", "wl_salud_ruta": "/ventas/salud", "wl_cpu": "10m"
+22368 2026-11-11T00:30:47 failed FaceOps · Uso por segmento {"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>"uso_desde": 1794356635, "faceops_autorizacion": "<REDACTADO>
