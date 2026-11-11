@@ -18,7 +18,7 @@ from .vistas import bp, equipos_visibles
 from . import requiere_login
 
 RUTA = os.path.join(os.path.dirname(__file__), "..", "datos", "habilidades.yml")
-MARCA = "Habilidad · "   # prefijo del motivo de los tickets creados desde la ventana
+MARCA = "Skill · "   # prefijo del motivo de los tickets creados desde la ventana
 ABIERTOS = ("pendiente_aprobacion", "en_cola", "en_ejecucion", "en curso", "ejecutando", "esperando")
 _cache = {}
 
@@ -54,6 +54,24 @@ def _en_ambito(a, e):
     return amb == "so" or bool({familia(s) for s in skills_de(e)} & set(amb))
 
 
+_PLAT = {"jboss": "JBoss", "tomcat": "Tomcat", "keycloak": "Keycloak", "weblogic": "WebLogic", "iis": "IIS", "nginx": "Nginx",
+         "httpd": "Apache", "redis": "Redis", "postgresql": "PostgreSQL", "mysql": "MySQL", "mongodb": "MongoDB", "openshift": "OpenShift"}
+
+
+def _ambito_txt(a, e, ui=""):
+    """«Sistema operativo», «Máquina» (mover/replicar) o el nombre de la plataforma de la máquina a la que pertenece."""
+    from .skills_maquina import ambito
+    from .inventario import skills_de
+    from .vistas import familia
+    if ui:
+        return "Máquina"
+    amb = ambito(a["nombre_aap"])
+    if amb == "so":
+        return "Sistema operativo"
+    fams = [f for f in amb if f in {familia(s) for s in skills_de(e)}] or list(amb)
+    return " · ".join(_PLAT.get(f, f.capitalize()) for f in fams[:2])
+
+
 def _auto(e, h):
     """(automatización, motivo de bloqueo) de la primera acción de la habilidad que aplica a la máquina; (None, None) si ninguna."""
     from .operacion import motivo_no_aplica
@@ -65,7 +83,12 @@ def _auto(e, h):
         a = dict(a)
         if not _en_ambito(a, e):
             continue
-        if not h.get("ui") and motivo_no_aplica(g.usuario, g.cliente["id"], a, e):
+        if h.get("origen"):   # elige su servidor en el formulario: basta con que sea compatible y esté en el catálogo
+            from .compatibilidad import compatible
+            from .inventario import skills_de
+            if not a.get("visible") or e.get("estado") == "retirado" or not compatible(a, dict(e, skills=list(skills_de(e))))[0]:
+                continue
+        elif not h.get("ui") and motivo_no_aplica(g.usuario, g.cliente["id"], a, e):
             continue
         b = _motivo_prueba(a)
         if not b:
@@ -75,12 +98,15 @@ def _auto(e, h):
     return elegida, bloqueo
 
 
-def _ticket(e, aid):
-    """Último ticket de la acción sobre la máquina: abierto (por cualquier vía) o exitoso pedido desde la ventana."""
-    for t in q("SELECT id, numero, estado, limite, motivo FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 40",
+def _ticket(e, aid, origen=None):
+    """Último ticket de la acción sobre la máquina: abierto (por cualquier vía) o exitoso pedido desde la ventana.
+    origen: parámetro que nombra la máquina cuando la acción no la lleva en el límite."""
+    for t in q("SELECT id, numero, estado, limite, motivo, parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 40",
                g.cliente["id"], aid):
         desde_aqui = (t["motivo"] or "").startswith(MARCA) and (t["motivo"] or "").endswith(f" en {e['nombre']}")
-        if e["nombre"] not in (t["limite"] or "").split(":") and not desde_aqui:
+        if origen and (j(t["parametros"], {}) or {}).get(origen) == e["nombre"]:
+            pass
+        elif e["nombre"] not in (t["limite"] or "").split(":") and not desde_aqui:
             continue
         if t["estado"] in ABIERTOS:
             return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": True}
@@ -91,9 +117,9 @@ def _ticket(e, aid):
     return None
 
 
-def _faltan_datos(a):
+def _faltan_datos(a, origen=None):
     return [c["etiqueta"] for c in j(a.get("campos"), []) if c.get("requerido") and c.get("tipo") not in ("equipo", "equipos")
-            and c.get("defecto") in (None, "")]
+            and c.get("defecto") in (None, "") and c["var"] != origen]
 
 
 @bp.app_template_global("habilidades_maquina")
@@ -109,7 +135,7 @@ def habilidades_maquina(e, rep=None):
         if not a:
             continue
         x = {"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"],
-             "valor": h.get("valor") or "", "auto": a["nombre"], "aid": a["id"], "ui": h.get("ui") or "", "bloqueo": bloqueo or "",
+             "valor": h.get("valor") or "", "ambito": _ambito_txt(a, e, h.get("ui") or ""), "auto": a["nombre"], "aid": a["id"], "ui": h.get("ui") or "", "bloqueo": bloqueo or "",
              "ticket": None, "escritura": bool(escritura), "url": url_for("consola.habilidad_ejecutar", eid=e["id"])}
         if x["ui"] == "replica":   # su flotante propio decide si se puede (instancias, balanceo, regla de prueba)
             if not rep or not rep.get("posible"):
@@ -118,10 +144,10 @@ def habilidades_maquina(e, rep=None):
             x["en_curso"] = rep.get("en_curso")
         elif not x["ui"]:
             if not bloqueo:
-                f_ = _faltan_datos(a)
+                f_ = _faltan_datos(a, h.get("origen"))
                 if f_:
                     x["bloqueo"] = "pide datos (" + ", ".join(f_[:2]) + "): lánzala desde Acciones"
-            x["ticket"] = _ticket(e, a["id"])
+            x["ticket"] = _ticket(e, a["id"], h.get("origen"))
         out.append(x)
     out.sort(key=lambda x: (x["tipo"] != "diferenciador", bool(x["bloqueo"])))
     return out
@@ -138,29 +164,36 @@ def habilidad_ejecutar(eid):
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
     h = next((x for x in mapa() if x.get("id") == request.form.get("hid")), None)
     if not e or not h or h.get("ui"):
-        return {"error": "Habilidad o máquina no válidas"}, 400
+        return {"error": "Skill o máquina no válidas"}, 400
     if h.get("so") and not re.search(h["so"], e.get("so") or ""):
-        return {"error": "Esta habilidad no aplica al sistema de la máquina"}, 400
+        return {"error": "Este skill no aplica al sistema de la máquina"}, 400
     a, bloqueo = _auto(e, h)
     if not a:
-        return {"error": "Ninguna acción de esta habilidad aplica a la máquina"}, 400
+        return {"error": "Ninguna acción de este skill aplica a la máquina"}, 400
     if bloqueo:
         return {"error": f"«{a['nombre']}» está bloqueada: {bloqueo}"}, 400
-    if _faltan_datos(a):
+    if _faltan_datos(a, h.get("origen")):
         return {"error": f"«{a['nombre']}» pide datos: lánzala desde Acciones"}, 400
-    t0 = _ticket(e, a["id"])
+    t0 = _ticket(e, a["id"], h.get("origen"))
     if t0 and t0["abierto"]:
         return dict(t0, url=url_for("consola.ticket", tid=t0["id"]), existente=True)
     params = {}
     for c in j(a.get("campos"), []):
-        if c.get("tipo") == "equipo":
+        if c["var"] == h.get("origen"):
+            params[c["var"]] = e["nombre"]
+        elif c.get("tipo") == "equipo":
             params[c["var"]] = e["nombre"]
         elif c.get("tipo") == "equipos":
             params[c["var"]] = [e["nombre"]]
         elif c.get("defecto") not in (None, ""):
             params[c["var"]] = int(c["defecto"]) if c.get("tipo") == "integer" else c["defecto"]
     try:
-        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, f"{MARCA}{h['nombre']} en {e['nombre']}")
+        if h.get("origen"):   # la acción elige su servidor por parámetro (no por límite)
+            from .operacion import solicitar
+            t = solicitar(g.usuario, g.cliente, a, None, params, f"{MARCA}{h['nombre']} en {e['nombre']}", None,
+                          {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {})
+        else:
+            t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, f"{MARCA}{h['nombre']} en {e['nombre']}")
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"]}

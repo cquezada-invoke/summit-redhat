@@ -4,50 +4,63 @@
    «En curso · número» (también al recargar) y al terminar «Aplicada · número», sin cerrar la ventana. Las no certificadas
    (regla de prueba) se muestran deshabilitadas con su motivo. #}
 {% set hb_ = habilidades_maquina(e, rep_maq) %}{% if hb_ %}{% set hb_ok = hb_|rejectattr('bloqueo')|list|length %}
-<button type="button" class="hb-btn" id="hb-btn" aria-haspopup="dialog" aria-controls="hb-dlg" onclick="document.getElementById('hb-dlg').showModal()" title="Habilidades de {{ e.nombre }}: {{ hb_ok }} disponibles">
-<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M12.2 6.2L11 5"/><path d="M15 9h.01"/><path d="M3 21l9-9"/></svg><span>Habilidades</span><b class="hb-n">{{ hb_ok }}</b></button>
+<button type="button" class="hb-btn" id="hb-btn" aria-label="Skills" aria-haspopup="dialog" aria-controls="hb-dlg" onclick="document.getElementById('hb-dlg').showModal()" title="Skills · {{ hb_ok }} disponibles en {{ e.nombre }}">
+<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M12.2 6.2L11 5"/><path d="M15 9h.01"/><path d="M3 21l9-9"/></svg><b class="hb-n">{{ hb_ok }}</b></button>
 <dialog id="hb-dlg" class="hb-dlg" onclick="if(event.target===this)this.close()" aria-labelledby="hb-tit">
-<header class="hb-cab"><div><h2 id="hb-tit">Habilidades de {{ cod_eq(e) }}</h2><p class="sub">{{ e.so or '' }} · cada habilidad crea un ticket con aprobación en AAP; FaceOps no toca la máquina directo</p></div>
+<header class="hb-cab"><div><h2 id="hb-tit">Skills de {{ cod_eq(e) }}</h2><p class="sub">{{ e.so or '' }} · cada skill crea un ticket con aprobación en AAP; FaceOps no toca la máquina directo</p></div>
 <button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button></header>
-<div class="hb-filtro" role="group" aria-label="Filtrar"><button type="button" class="on" data-hb-f="">Todas <span>{{ hb_|length }}</span></button><button type="button" data-hb-f="diferenciador">Diferenciador <span>{{ hb_|selectattr('tipo', 'equalto', 'diferenciador')|list|length }}</span></button><button type="button" data-hb-f="quick win">Quick win <span>{{ hb_|selectattr('tipo', 'equalto', 'quick win')|list|length }}</span></button></div>
-<ul class="hb-lista">{% for h in hb_ %}<li class="hb-it{{ ' bloq' if h.bloqueo }}" data-hb-tipo="{{ h.tipo }}"{{ ' data-hb-ui=' ~ h.ui if h.ui }}>
-<div class="hb-t"><div class="hb-n1"><b>{{ h.nombre }}</b> <span class="hb-tag {{ 'dif' if h.tipo == 'diferenciador' else 'qw' }}">{{ 'Diferenciador' if h.tipo == 'diferenciador' else 'Quick win' }}</span>{% if h.grupo %} <span class="sub hb-g">{{ h.grupo }}</span>{% endif %}</div>
-<div class="sub hb-v">{{ h.valor }}</div>{% if h.bloqueo %}<div class="hb-motivo">Bloqueada: {{ h.bloqueo }}</div>{% endif %}</div>
-<div class="hb-a">{% if h.ui == 'replica' and h.en_curso %}<button type="button" class="btn chico" disabled>En curso</button> <span class="ult-t e-en_cola">{{ h.en_curso }}</span>
+<div class="hb-filtro"><input type="search" class="hb-busca" placeholder="Buscar por skill, tipo, ámbito o valor…" aria-label="Buscar skill"><span role="group" aria-label="Filtrar por tipo"><button type="button" class="on" data-hb-f="">Todas <span>{{ hb_|length }}</span></button><button type="button" data-hb-f="diferenciador">Diferenciador <span>{{ hb_|selectattr('tipo', 'equalto', 'diferenciador')|list|length }}</span></button><button type="button" data-hb-f="quick win">Quick win <span>{{ hb_|selectattr('tipo', 'equalto', 'quick win')|list|length }}</span></button></span></div>
+<div class="hb-tabla"><table class="no-apilar sin-pag"><thead><tr><th>Skill</th><th>Tipo</th><th>Ámbito</th><th>Valor</th><th class="hb-a">Acción</th></tr></thead><tbody>{% for h in hb_ %}<tr class="hb-it{{ ' bloq' if h.bloqueo }}" data-hb-tipo="{{ h.tipo }}"{{ ' data-hb-ui=' ~ h.ui if h.ui }}>
+<td class="hb-n1"><b>{{ h.nombre }}</b>{% if h.grupo %}<span class="sub hb-g">{{ h.grupo }}</span>{% endif %}</td>
+<td><span class="hb-tag {{ 'dif' if h.tipo == 'diferenciador' else 'qw' }}">{{ 'Diferenciador' if h.tipo == 'diferenciador' else 'Quick win' }}</span></td>
+<td class="hb-amb">{{ h.ambito }}</td>
+<td><div class="sub hb-v" title="{{ h.valor }}">{{ h.valor }}</div>{% if h.bloqueo %}<div class="hb-motivo" title="Bloqueada: {{ h.bloqueo }}">Bloqueada: {{ h.bloqueo }}</div>{% endif %}</td>
+<td class="hb-a">{% if h.ui == 'replica' and h.en_curso %}<button type="button" class="btn chico" disabled>En curso</button> <span class="ult-t e-en_cola">{{ h.en_curso }}</span>
 {% elif h.bloqueo %}<button type="button" class="btn chico" disabled title="«{{ h.auto }}»: {{ h.bloqueo }}">Ejecutar</button>
 {% elif h.ticket and h.ticket.abierto %}<button type="button" class="btn chico" disabled title="{{ h.auto }} · {{ h.ticket.estado|replace('_', ' ') }}">En curso</button> <a class="ult-t e-{{ h.ticket.estado }}" href="{{ url_for('consola.ticket', tid=h.ticket.id) }}" data-hb-poll="{{ h.ticket.id }}">{{ h.ticket.numero }}</a>
 {% elif h.ticket %}<span class="chip e-exitoso" title="{{ h.auto }}">Aplicada · <a href="{{ url_for('consola.ticket', tid=h.ticket.id) }}">{{ h.ticket.numero }}</a></span>
 {% elif not h.escritura %}<span class="sub">solo lectura</span>
 {% elif h.ui %}<button type="button" class="btn chico" data-hb-abrir="{{ h.ui }}" title="«{{ h.auto }}»: elige el destino; ticket con aprobación">Ejecutar…</button>
-{% else %}<button type="button" class="btn chico" data-hb-url="{{ h.url }}" data-hb-id="{{ h.id }}" title="«{{ h.auto }}»: ticket con aprobación">Ejecutar</button>{% endif %}</div></li>{% endfor %}</ul>
+{% else %}<button type="button" class="btn chico" data-hb-url="{{ h.url }}" data-hb-id="{{ h.id }}" title="«{{ h.auto }}»: ticket con aprobación">Ejecutar</button>{% endif %}</td></tr>{% endfor %}
+<tr class="hb-vacio" hidden><td colspan="5" class="sub">Ningún skill coincide con la búsqueda.</td></tr></tbody></table></div>
 </dialog>
 <style>
 .fila:has(>.hb-btn){flex-wrap:nowrap;align-items:flex-start}.fila:has(>.hb-btn)>div:first-child{flex:1 1 auto;min-width:0}
-.fila>.hb-btn{margin:5px 0 0 auto;flex:none;align-self:flex-start}.fila>.eq-accesos~.hb-btn{margin-left:10px}
-.hb-btn{display:inline-flex;align-items:center;gap:8px;position:relative;padding:8px 16px 8px 12px;border-radius:999px;border:2px solid #6d28d9;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;font:inherit;font-weight:600;font-size:14px;cursor:pointer;transition:transform .12s,box-shadow .12s}
+.fila>.hb-btn{margin:0 0 0 auto;flex:none;align-self:flex-start}.fila>.eq-accesos~.hb-btn{margin-left:10px}
+.hb-btn{display:inline-grid;place-items:center;position:relative;box-sizing:border-box;width:48px;height:48px;padding:0;border-radius:50%;border:2px solid #6d28d9;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s}
 .hb-btn:hover,.hb-btn:focus-visible{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.18)}.hb-btn:focus-visible{outline:3px solid #c4b5fd;outline-offset:2px}
 .hb-btn .hb-n{position:absolute;top:-8px;right:-8px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#fff;color:#5b21b6;border:2px solid #6d28d9;font-size:11px;display:grid;place-items:center;box-sizing:border-box}
-.hb-dlg{width:min(760px,calc(100vw - 32px));max-height:min(82vh,820px);padding:0;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:inherit;box-shadow:0 24px 60px rgba(0,0,0,.28)}
+.hb-dlg{width:min(880px,calc(100vw - 32px));height:min(520px,calc(100vh - 32px));max-height:none;padding:0;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:inherit;box-shadow:0 24px 60px rgba(0,0,0,.28);box-sizing:border-box;overflow:hidden}
 .hb-dlg[open]{display:flex;flex-direction:column}.hb-dlg::backdrop{background:rgba(15,23,42,.45)}
-.hb-cab{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 6px}.hb-cab h2{margin:0 0 2px;font-size:19px}.hb-cab .sub{margin:0;font-size:12.5px}.hb-cab .cajon-x{margin-left:auto;position:static}
-.hb-filtro{display:flex;gap:6px;padding:6px 18px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.hb-cab{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 6px;flex:none}.hb-cab h2{margin:0 0 2px;font-size:19px}.hb-cab .sub{margin:0;font-size:12.5px}.hb-cab .cajon-x{margin-left:auto;position:static}
+.hb-filtro{display:flex;gap:10px;align-items:center;padding:6px 18px 12px;flex-wrap:wrap;flex:none}
+.hb-busca{flex:1;min-width:180px;padding:7px 11px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;background:var(--panel);color:inherit}
+.hb-filtro [role=group]{display:flex;gap:6px}
 .hb-filtro button{font:inherit;font-size:12.5px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:inherit;cursor:pointer}
 .hb-filtro button span{opacity:.65;margin-left:3px}.hb-filtro button.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.hb-lista{list-style:none;margin:0;padding:8px 18px 18px;overflow:auto}
-.hb-it{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.hb-it:last-child{border-bottom:0}.hb-it[hidden]{display:none}
-.hb-it.bloq .hb-t{opacity:.7}.hb-n1 b{font-size:14px}.hb-v{font-size:12.5px;margin-top:2px}.hb-g{font-size:11.5px}
-.hb-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:1px 8px;border-radius:999px;vertical-align:1px}
+.hb-tabla{margin:0 18px 18px;max-height:calc(38px + 5 * 66px);overflow:auto;border:1px solid var(--line);border-radius:10px;flex:none}
+.hb-tabla table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0}
+.hb-tabla th{position:sticky;top:0;z-index:1;background:var(--soft,var(--panel));text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:0 12px;height:38px;border-bottom:1px solid var(--line)}
+.hb-tabla th:nth-child(1){width:24%}.hb-tabla th:nth-child(2){width:116px}.hb-tabla th:nth-child(3){width:130px}.hb-tabla th:nth-child(5){width:150px}
+.hb-amb{font-size:12.5px}
+.hb-tabla td{height:66px;box-sizing:border-box;padding:6px 12px;border-bottom:1px solid var(--line);vertical-align:middle;overflow:hidden}
+.hb-tabla tr:last-child td{border-bottom:0}.hb-it[hidden],.hb-vacio[hidden]{display:none}
+.hb-it.bloq td:not(.hb-a){opacity:.72}.hb-n1 b{display:block;font-size:13.5px}.hb-g{font-size:11.5px}
+.hb-v{font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hb-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:1px 8px;border-radius:999px;white-space:nowrap}
 .hb-tag.dif{background:#ede9fe;color:#5b21b6}.hb-tag.qw{background:#dcfce7;color:#166534}
-.hb-motivo{font-size:11.5px;color:var(--warn,#b45309);margin-top:3px}
-.hb-a{display:flex;align-items:center;gap:6px;justify-content:flex-end;white-space:nowrap}
+.hb-it.bloq .hb-v{-webkit-line-clamp:1}.hb-motivo{font-size:11.5px;color:var(--warn,#b45309);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb-tabla .hb-a{text-align:right;white-space:nowrap}
 @media (prefers-color-scheme:dark){.hb-tag.dif{background:#3b2a63;color:#ddd6fe}.hb-tag.qw{background:#14432a;color:#bbf7d0}}
-@media (max-width:600px){.fila:has(>.hb-btn){flex-wrap:wrap}.hb-btn span{display:none}.hb-btn{padding:8px}.hb-it{grid-template-columns:1fr}.hb-a{justify-content:flex-start}}
+@media (max-width:600px){.fila:has(>.hb-btn){flex-wrap:wrap}.hb-tabla th:nth-child(3),.hb-tabla td:nth-child(3),.hb-tabla th:nth-child(4),.hb-tabla td:nth-child(4){display:none}.hb-tabla th:nth-child(5){width:110px}}
 </style>
 <script>(()=>{const dlg=document.getElementById('hb-dlg');if(!dlg)return;const EST={{ url_for('consola.ticket_estado', tid=0)|tojson }},TK={{ url_for('consola.ticket', tid=0)|tojson }};
 const ABIERTO=['pendiente_aprobacion','en_cola','en_ejecucion','en curso','ejecutando','esperando'];
-if(!document.getElementById('btn-mover'))dlg.querySelectorAll('[data-hb-ui="mover"]').forEach(li=>li.remove());
-dlg.querySelectorAll('[data-hb-f]').forEach(b=>b.onclick=()=>{dlg.querySelectorAll('[data-hb-f]').forEach(x=>x.classList.toggle('on',x===b));
- dlg.querySelectorAll('.hb-it').forEach(li=>li.hidden=!!b.dataset.hbF&&li.dataset.hbTipo!==b.dataset.hbF);});
+if(!document.getElementById('btn-mover'))dlg.querySelectorAll('[data-hb-ui="mover"]').forEach(tr=>tr.remove());
+const bus=dlg.querySelector('.hb-busca'),norm=t=>(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');let tipo='';
+const filtrar=()=>{const q_=norm(bus.value.trim());let n=0;dlg.querySelectorAll('.hb-it').forEach(tr=>{tr.hidden=(tipo&&tr.dataset.hbTipo!==tipo)||(q_&&!norm(tr.textContent).includes(q_));if(!tr.hidden)n++;});dlg.querySelector('.hb-vacio').hidden=n>0;};
+bus.addEventListener('input',filtrar);
+dlg.querySelectorAll('[data-hb-f]').forEach(b=>b.onclick=()=>{dlg.querySelectorAll('[data-hb-f]').forEach(x=>x.classList.toggle('on',x===b));tipo=b.dataset.hbF;filtrar();});
 const vigilar=(a,ini)=>{const tick=()=>fetch(EST.replace(/0$/,a.dataset.hbPoll)).then(r=>r.json()).then(t=>{
   a.className='ult-t e-'+t.estado;if(ABIERTO.includes(t.estado)){setTimeout(tick,8000);return;}
   const b=a.previousElementSibling&&a.previousElementSibling.tagName==='BUTTON'?a.previousElementSibling:null;

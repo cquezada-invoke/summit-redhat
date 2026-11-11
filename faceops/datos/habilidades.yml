@@ -4,6 +4,7 @@
 #   valor: una línea con lo que gana el cliente
 #   nombre_aap: automatización(es) del catálogo, en orden de preferencia (la primera que exista y aplique a la máquina)
 #   so: regex sobre el sistema operativo de la máquina (opcional; si no calza, la habilidad no se muestra)
+#   origen: parámetro que lleva la máquina cuando la acción la elige en su formulario (no usa límite), p. ej. mj_origen
 #   ui: replica | mover → abre el flotante propio de la ficha (elige destino) en vez de lanzar directo
 # Una habilidad se muestra si su automatización aplica a la máquina (misma regla de la ficha: sistema, plataformas
 # instaladas, inventario de AAP; ámbito en datos/skills-ambito.yml). Si aplica pero no está certificada (regla de prueba,
@@ -30,6 +31,7 @@ habilidades:
     nombre: JBoss a EAP 8
     valor: Lleva el servidor de aplicaciones y sus despliegues a JBoss EAP 8 (Jakarta EE 10) con la configuración migrada.
     nombre_aap: ["Migración · JBoss a EAP 8"]
+    origen: mj_origen   # la acción elige su servidor en el formulario: la máquina va en ese parámetro (modo por defecto: evaluar)
   - id: weblogic-ocp
     tipo: diferenciador
     grupo: Migraciones
