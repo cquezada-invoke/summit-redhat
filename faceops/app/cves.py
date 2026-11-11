@@ -24,7 +24,8 @@ def iniciar():
 
 def registrar(aap, cliente, t):
     """Resultado de «Revisar CVEs»: reemplaza lo conocido de cada equipo revisado."""
-    art = (aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {}) if t["aap_job_tipo"] == "job" else {}
+    from .operacion import artefactos_ticket   # también si corrió dentro del flujo de aprobación (workflow)
+    art = artefactos_ticket(aap, t)
     res, lineas = art.get("faceops_cves") or {}, []
     for n, r in res.items():
         e = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], n)
