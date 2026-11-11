@@ -1,13 +1,8 @@
-commit: 7de168fb4f9adc4b30b9764bf277d4b1950b7b35
-inicio: 2026-11-11T13:49:05-03:00
+commit: 0815058c88f20d131b57592a8f5693e41fbdaa31
+inicio: 2026-11-11T13:53:13-03:00
 ---
-9c14599 Políticas: RED-01 v2 abre en firewalld solo lo que la máquina sirve (SSH
-   · Plantilla «FaceOps · Aplicar política de seguridad» (id 124)
-   · Plantilla «Políticas de desarrollo · Evaluar aplicaciones» (id 612)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-RED-01 v 2
-CON-02 v 2
-puertos nodo-jboss {'abrir': ['22/tcp', '5540/tcp', '6379/tcp', '8080/tcp', '8180/tcp', '8443/tcp', '9100/tcp'], 'restringir': ['9990/tcp@192.168.122.1']}
-estado prueba cambiada
-{"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"up","instance":"192.168.122.15:9100","job":"servidores","nombre":"nodo-jboss","rol":"JBoss EAP 8","sistema":"linux"},"value":[1794415963.485,"1"]}]}}
---- fin: 2026-11-11T13:52:43-03:00 · código: 0
+FIN dc1-sql01 retirado con FO-LAB-01696 | hosts que quedan en AAP: []
+FIN dc2-sql01 retirado con FO-LAB-01698 | hosts que quedan en AAP: []
+OCULTAR nodo-so 302 1
+LISTA ['nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss2', 'nodo-jboss4', 'nodo-postgres', 'nodo-tomcat', 'srv-mover-01', 'nodo-jboss3']
+--- fin: 2026-11-11T13:53:26-03:00 · código: 0
