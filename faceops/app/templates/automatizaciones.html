@@ -23,7 +23,7 @@
 {% else %}
 {% for ar in areas %}
 <div class="cat"><h2>{{ ar.nombre }}</h2><span class="sub">{{ ar.desc }} · {{ ar.autos|length }}</span></div>
-{% set abrir_ = area and ar.grupos|length <= 2 %}
+{% set abrir_ = true %}{# todas las cajas abiertas: sirve para explicar el catálogo #}
 {% for gr in ar.grupos %}<details class="grupo-autos"{{ ' open' if abrir_ }}>
   <summary><span class="ga-chev"></span>{% if 'GCP' in gr.nombre %}<img src="{{ url_for('static', filename='logos/gcp.png') }}" alt="" width="22" height="22">{% endif %}<b>{{ gr.nombre }}</b>{% set dis_ = gr.autos|rejectattr('_bloqueada')|list|length %}{% set gri_ = gr.autos|length - dis_ %}<span class="ga-n">{{ dis_ }} disponible{{ 's' if dis_ != 1 }}</span>{% if gri_ %}<span class="ga-n pr-gris">{{ gri_ }} en gris</span>{% endif %}{% if gr.plan %}<span class="ga-plan">{{ gr.plan|length }} por implementar</span>{% endif %}
     <span class="ga-prev">{% for a in gr.autos[:4] %}{{ a.nombre }}{{ ' · ' if not loop.last }}{% endfor %}{% if gr.autos|length > 4 %} …{% endif %}{% if not gr.autos %}{% for p in gr.plan[:3] %}{{ p.nombre }}{{ ' · ' if not loop.last }}{% endfor %}{% endif %}</span></summary>
