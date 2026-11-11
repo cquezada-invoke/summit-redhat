@@ -11,6 +11,9 @@ ESQUEMA = """
 CREATE TABLE IF NOT EXISTS cves_equipo (
   cliente_id INTEGER NOT NULL, equipo_id INTEGER NOT NULL, cve TEXT NOT NULL, severidad TEXT DEFAULT '', paquete TEXT DEFAULT '',
   estado TEXT NOT NULL, visto TEXT, PRIMARY KEY(cliente_id, equipo_id, cve, estado));
+CREATE TABLE IF NOT EXISTS cves_base (
+  cliente_id INTEGER NOT NULL, equipo_id INTEGER NOT NULL, cve TEXT NOT NULL, severidad TEXT DEFAULT '', desde TEXT,
+  PRIMARY KEY(cliente_id, equipo_id, cve));
 CREATE TABLE IF NOT EXISTS cves_revision (
   cliente_id INTEGER NOT NULL, equipo_id INTEGER NOT NULL, repos INTEGER, pendientes INTEGER, cubiertos INTEGER, cuando TEXT, ticket_id INTEGER,
   PRIMARY KEY(cliente_id, equipo_id));
@@ -26,6 +29,8 @@ def registrar(aap, cliente, t):
     """Resultado de «Revisar CVEs»: reemplaza lo conocido de cada equipo revisado."""
     from .operacion import artefactos_ticket   # también si corrió dentro del flujo de aprobación (workflow)
     art = artefactos_ticket(aap, t)
+    if not q1("SELECT 1 FROM cves_base WHERE cliente_id=? LIMIT 1", cliente["id"]):
+        sembrar_base(aap, cliente)
     res, lineas = art.get("faceops_cves") or {}, []
     for n, r in res.items():
         e = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], n)
@@ -37,6 +42,7 @@ def registrar(aap, cliente, t):
                 cve, sev, pkg = (f.split("|") + ["", ""])[:3]
                 ej("INSERT OR IGNORE INTO cves_equipo(cliente_id, equipo_id, cve, severidad, paquete, estado, visto) VALUES (?,?,?,?,?,?,?)",
                    cliente["id"], e["id"], cve, SEV.get(sev, sev), pkg, estado, ahora())
+        _a_base(cliente["id"], e["id"], r.get("pendientes") or [])
         ej("INSERT INTO cves_revision(cliente_id, equipo_id, repos, pendientes, cubiertos, cuando, ticket_id) VALUES (?,?,?,?,?,?,?) "
            "ON CONFLICT(cliente_id, equipo_id) DO UPDATE SET repos=excluded.repos, pendientes=excluded.pendientes, cubiertos=excluded.cubiertos, "
            "cuando=excluded.cuando, ticket_id=excluded.ticket_id",
@@ -45,6 +51,32 @@ def registrar(aap, cliente, t):
         lineas.append(f"{n}: " + (f"{len(r.get('pendientes') or [])} pendientes · {len(r.get('cubiertos') or [])} cubiertos" if r.get("repos")
                                   else "sin repositorios Red Hat (no se puede evaluar)"))
     return "CVE: " + " · ".join(lineas)
+
+
+def _a_base(cliente_id, equipo_id, filas, cuando=None):
+    """Línea base de exposición: todo CVE que alguna vez estuvo pendiente en la máquina (desde su primera revisión)."""
+    for f in filas:
+        cve, sev = (f.split("|") + [""])[:2]
+        ej("INSERT OR IGNORE INTO cves_base(cliente_id, equipo_id, cve, severidad, desde) VALUES (?,?,?,?,?)",
+           cliente_id, equipo_id, cve, SEV.get(sev, sev), cuando or ahora())
+
+
+def sembrar_base(aap, cliente):
+    """Primera vez: arma la línea base con los pendientes de todas las revisiones anteriores (artefactos en AAP)."""
+    from .operacion import artefactos_ticket
+    n = 0
+    for t in q("SELECT t.* FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.cliente_id=? AND a.nombre_aap=? "
+               "AND t.estado='exitoso' ORDER BY t.id", cliente["id"], REVISAR):
+        try:
+            res = artefactos_ticket(aap, t).get("faceops_cves") or {}
+        except Exception:  # noqa: BLE001 - trabajo purgado en AAP: se sigue con los demás
+            continue
+        for nombre, r in res.items():
+            e = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
+            if e:
+                _a_base(cliente["id"], e["id"], r.get("pendientes") or [], t["fin"] or t["creado"])
+                n += 1
+    return n
 
 
 def por_equipo(cliente_id, eqs):
@@ -56,6 +88,13 @@ def por_equipo(cliente_id, eqs):
         if r["equipo_id"] not in ids_:
             continue
         (pend if r["estado"] == "pendiente" else cub).setdefault(r["equipo_id"], {}).setdefault(r["cve"], r)
+    base = {}
+    try:
+        for r in q("SELECT equipo_id, cve, severidad FROM cves_base WHERE cliente_id=?", cliente_id):
+            if r["equipo_id"] in ids_:
+                base.setdefault(r["equipo_id"], {})[r["cve"]] = r
+    except Exception:  # noqa: BLE001 - tabla aún no creada
+        pass
     out = {}
     for e in eqs:
         r = rev.get(e["id"])
@@ -64,7 +103,7 @@ def por_equipo(cliente_id, eqs):
                         "criticos": len([x for x in ps if x["severidad"] == "crítica"]), "importantes": len([x for x in ps if x["severidad"] == "importante"]),
                         "cuando": r["cuando"] if r else None, "top": ps[:8],
                         # por severidad: CVE distintos pendientes y detectados (pendientes + corregidos), para el puntaje proporcional
-                        "sev": _por_sev(pend.get(e["id"], {}), cub.get(e["id"], {})), "criterio": CRITERIO,
+                        "sev": _por_sev(pend.get(e["id"], {}), base.get(e["id"], {})), "criterio": CRITERIO,
                         # todos los CVE reportados para su sistema: pendientes primero (por severidad) y los resueltos marcados ok
                         "todos": [dict(x, ok=False) for x in ps] + [dict(x, ok=True) for x in sorted(
                             (v for k, v in cub.get(e["id"], {}).items() if k not in pend.get(e["id"], {})),
@@ -72,9 +111,10 @@ def por_equipo(cliente_id, eqs):
     return out
 
 
-def _por_sev(pend, cub):
+def _por_sev(pend, base):
+    """{severidad: {p: pendientes, t: detectados desde la línea base}} (CVE distintos)."""
     out = {}
-    for k, x in list(pend.items()) + [(k, v) for k, v in cub.items() if k not in pend]:
+    for k, x in list(base.items()) + [(k, v) for k, v in pend.items() if k not in base]:
         sv = x["severidad"] if x["severidad"] in ("crítica", "importante", "moderada") else "baja"
         d = out.setdefault(sv, {"p": 0, "t": 0})
         d["t"] += 1
@@ -82,27 +122,25 @@ def _por_sev(pend, cub):
     return out
 
 
-# Puntaje de la sección CVE (pilar Seguridad): cada severidad descuenta su peso × (pendientes ÷ detectados) de esa severidad,
-# sin tope por cantidad, así que cada CVE corregido suma; las críticas pesan más y cada crítica pendiente descuenta al menos 10.
-PESOS = {"crítica": 50, "importante": 35, "moderada": 10, "baja": 5}
-CRITERIO = ("Puntaje CVE: cada severidad descuenta su peso × (pendientes ÷ detectados) — críticas 50 (mínimo 10 por crítica "
-            "pendiente, hasta 50), importantes 35, moderadas 10, bajas 5. Cada parche aplicado suma.")
+# Puntaje de la sección CVE (pilar Seguridad): % de la exposición ya corregida desde la línea base de la máquina (todo CVE que
+# estuvo pendiente desde su primera revisión), ponderada por severidad. Cada CVE corregido suma su peso.
+PESOS = {"crítica": 10, "importante": 5, "moderada": 2, "baja": 1}
+CRITERIO = ("CVE: % de la exposición corregida desde la línea base de la máquina (su primer análisis), ponderada por severidad "
+            "— crítica 10, importante 5, moderada 2, baja 1; cada parche aplicado suma.")
+_PLURAL = {"crítica": "críticos", "importante": "importantes", "moderada": "moderados", "baja": "bajos"}
 
 
 def descuentos(cv):
-    """[(texto, descuento con 1 decimal, nivel)] de la sección CVE."""
+    """[(texto, descuento en puntos con 1 decimal, nivel)]: la parte de 100 que aún está expuesta, por severidad."""
+    sv_ = cv.get("sev") or {}
+    total = sum(PESOS[k] * (sv_.get(k) or {}).get("t", 0) for k in PESOS)
     out = []
     for sv, peso in PESOS.items():
-        d = (cv.get("sev") or {}).get(sv) or {}
-        p, t = d.get("p", 0), d.get("t", 0)
-        if not p or not t:
+        d = sv_.get(sv) or {}
+        if not total or not d.get("p"):
             continue
-        x = peso * p / t
-        if sv == "crítica":
-            x = max(x, min(peso, 10 * p))
-        out.append((f"{p} de {t} CVE {sv}s pendientes ({peso} × {100 * p / t:.0f} %)".replace("críticas", "críticos").replace("crítica", "crítico")
-                    .replace("importantes", "importantes").replace("moderadas", "moderados").replace("bajas", "bajos"),
-                    round(x, 1), "rojo" if sv == "crítica" else ("amarillo" if sv == "importante" else "info")))
+        out.append((f"{d['p']} de {d['t']} CVE {_PLURAL[sv]} pendientes (peso {peso})", round(100 * peso * d["p"] / total, 1),
+                    "rojo" if sv == "crítica" else ("amarillo" if sv == "importante" else "info")))
     return out
 
 

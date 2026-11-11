@@ -6,5 +6,5 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('button[data-se
   if(t.error){b.disabled=false;b.textContent=ini;(window.fxAviso||alert)(t.error,'error');return;}
   const tk=(t.tickets&&t.tickets[0])||t,a=document.createElement('a');a.className='ult-t e-'+(tk.estado||'pendiente_aprobacion');a.href=tk.url;a.textContent=tk.numero;
   b.title='Ticket '+tk.numero+': '+(tk.estado||'').replace(/_/g,' ');b.after(' ',a);
-  window.fxAviso&&fxAviso(tk.numero+(t.existente?' ya estaba en curso':' creado')+(b.dataset.cve?': parche de '+b.dataset.cve:'')+(tk.estado==='pendiente_aprobacion'?' (espera aprobación)':''),'ok');
+  window.fxAviso&&fxAviso(tk.numero+(t.existente?' ya estaba en curso':' creado')+(b.dataset.cve==='todos'?': todos los parches de seguridad':(b.dataset.cve?': parche de '+b.dataset.cve:''))+(tk.estado==='pendiente_aprobacion'?' (espera aprobación)':''),'ok');
  }).catch(()=>{b.disabled=false;b.textContent=ini;(window.fxAviso||alert)('No se pudo crear el ticket','error');});});</script>

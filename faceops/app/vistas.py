@@ -608,7 +608,7 @@ def _cves_equipo(e):
     última revisión («aplicado»: el CVE sale de pendientes cuando la revisión automática lo confirma)."""
     from .cves import PARCHAR, por_equipo
     cv = por_equipo(g.cliente["id"], [e]).get(e["id"])
-    if not cv or not cv.get("todos"):
+    if not cv or not cv.get("revisado"):
         return cv
     import re as re_
     abiertos, ok_ = {}, {}
@@ -618,7 +618,13 @@ def _cves_equipo(e):
         if e["nombre"] not in (t["limite"] or "").split(":"):
             continue
         x = {"id": t["id"], "numero": t["numero"], "estado": t["estado"]}
-        for c_ in re_.findall(r"CVE-\d+-\d+", str(j(t["parametros"], {}).get("cves") or "")):
+        cs_ = re_.findall(r"CVE-\d+-\d+", str(j(t["parametros"], {}).get("cves") or ""))
+        if not cs_:   # «Aplicar todos los parches de seguridad pendientes»
+            if t["estado"] != "exitoso":
+                cv["todos_en_curso"] = x
+            elif not cv.get("cuando") or (t["fin"] or "") > cv["cuando"]:
+                cv["todos_aplicado"] = x
+        for c_ in cs_:
             if t["estado"] != "exitoso":
                 abiertos[c_] = x
             elif not cv.get("cuando") or (t["fin"] or "") > cv["cuando"]:
@@ -6606,13 +6612,15 @@ def equipo_cve_parche(eid):
         return {"error": "Necesitas perfil de escritura"}, 403
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
     cve = (request.form.get("cve") or "").strip().upper()
-    if not e or not re_.fullmatch(r"CVE-\d{4}-\d{4,7}", cve):
+    todos = cve == "TODOS"   # «Aplicar todos los parches de seguridad pendientes»: un ticket sin filtro de CVE
+    if not e or not (todos or re_.fullmatch(r"CVE-\d{4}-\d{4,7}", cve)):
         return {"error": "CVE o máquina no válidos"}, 400
-    if not q1("SELECT 1 FROM cves_equipo WHERE cliente_id=? AND equipo_id=? AND cve=? AND estado='pendiente'", g.cliente["id"], e["id"], cve):
-        return {"error": f"{cve} no está pendiente en {e['nombre']}"}, 400
-    x = next((c_ for c_ in (_cves_equipo(e) or {}).get("todos") or [] if c_["cve"] == cve and c_.get("en_curso")), None)
-    if x:
-        t = x["en_curso"]
+    if not q1("SELECT 1 FROM cves_equipo WHERE cliente_id=? AND equipo_id=? AND estado='pendiente'" + ("" if todos else " AND cve=?"),
+              g.cliente["id"], e["id"], *([] if todos else [cve])):
+        return {"error": f"{'No hay CVE pendientes' if todos else cve + ' no está pendiente'} en {e['nombre']}"}, 400
+    cv_ = _cves_equipo(e) or {}
+    t = cv_.get("todos_en_curso") or next((c_["en_curso"] for c_ in cv_.get("todos") or [] if not todos and c_["cve"] == cve and c_.get("en_curso")), None)
+    if t:
         return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "existente": True}
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], PARCHAR)
     if not a:
@@ -6621,7 +6629,8 @@ def equipo_cve_parche(eid):
     if not ok:
         return {"error": f"{e['nombre']}: {por_que}"}, 400
     try:
-        ts = solicitar_cve(g.usuario, g.cliente, PARCHAR, [e], {"cves": cve}, f"Aplicar parche de {cve} en {e['nombre']}")
+        ts = solicitar_cve(g.usuario, g.cliente, PARCHAR, [e], {} if todos else {"cves": cve},
+                           f"Aplicar todos los parches de seguridad pendientes en {e['nombre']}" if todos else f"Aplicar parche de {cve} en {e['nombre']}")
     except (PermissionError, ErrorAAP) as x_:
         return {"error": str(x_)}, 400
     if not ts:
