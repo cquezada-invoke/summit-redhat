@@ -1,7 +1,27 @@
-commit: c38da1b2422aa76c1f3c313ec0f49895fa1ac8a3
-inicio: 2026-11-10T21:52:15-03:00
+commit: 202a77ec41247b479f0ffdca9f2cdbc814e8b0a2
+inicio: 2026-11-10T21:43:08-03:00
 ---
-{"message":"token does not have at least one of required scope(s): [write:user]","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
+AAP hosts: 96
+C1 flotante: {'origen': 'KVM · Santiago', 'bloqueo': '', 'pendiente': None, 'destinos': [('KVM · Valparaíso', True, []), ('VMware · Santiago', False, ['la automatización no convierte máquinas KVM a VMware vSphere'])]}
+C1 ficha: 200 btn 1
+C1 evaluar: FO-LAB-01485 exitoso | stats: {'maquina': 'srv-mover-01', 'modo': 'evaluar', 'destino': 'dc-valpo', 'red_origen': 'default', 'red_actual': '', 'gb': '0.1', 'minutos_estimados': '3', 'ip': '', 'responde': '', 'puerto': '22'} | AAP terminó (successful): ejecución 7 s, espera de aprobación 39 s
+C1 estado: {'faceops': {'ip': '192.168.122.35', 'ubicacion': 'Centro de datos Santiago'}, 'aap': [('192.168.122.35', 'Centro de datos Santiago')]}
+C2 mover (flotante): FO-LAB-01486 exitoso | stats: {'maquina': 'srv-mover-01', 'modo': 'mover', 'destino': 'dc-valpo', 'red_origen': 'default', 'red_actual': 'dc-valpo', 'gb': '0.1', 'minutos_estimados': '3', 'ip': '192.168.150.130', 'responde': True, 'puerto': '22'} | AAP terminó (successful): ejecución 66 s, espera de aprobación 31 s
+C2 estado: {'faceops': {'ip': '192.168.150.130', 'ubicacion': 'Centro de datos Valparaíso'}, 'aap': [('192.168.150.130', 'Centro de datos Valparaíso')]}
+C2 flotante: {'origen': 'KVM · Valparaíso', 'bloqueo': '', 'pendiente': {'ticket': 'FO-LAB-01486', 'fecha': '2026-11-11 00:47', 'hacia': 'KVM · Valparaíso'}, 'destinos': [('KVM · Santiago', True, []), ('VMware · Santiago', False, ['la automatización no convierte máquinas KVM a VMware vSphere'])]}
+C3 revertir (flotante): FO-LAB-01487 exitoso | stats: {'maquina': 'srv-mover-01', 'modo': 'revertir', 'destino': 'dc-valpo', 'red_origen': '', 'red_actual': 'default', 'gb': '0', 'minutos_estimados': '3', 'ip': '192.168.122.35', 'responde': '', 'puerto': '22'} | AAP terminó (successful): ejecución 9 s, espera de aprobación 31 s
+C3 estado: {'faceops': {'ip': '192.168.122.35', 'ubicacion': 'Centro de datos Santiago'}, 'aap': [('192.168.122.35', 'Centro de datos Santiago')]}
+C3 flotante: {'origen': 'KVM · Santiago', 'bloqueo': '', 'pendiente': None, 'destinos': [('KVM · Valparaíso', True, []), ('VMware · Santiago', False, ['la automatización no convierte máquinas KVM a VMware vSphere'])]}
+C4a mover (flotante): FO-LAB-01489 exitoso | stats: {'maquina': 'srv-mover-01', 'modo': 'mover', 'destino': 'dc-valpo', 'red_origen': 'default', 'red_actual': 'dc-valpo', 'gb': '0.1', 'minutos_estimados': '3', 'ip': '192.168.150.130', 'responde': True, 'puerto': '22'} | AAP terminó (successful): ejecución 45 s, espera de aprobación 55 s
+C4a estado: {'faceops': {'ip': '192.168.150.130', 'ubicacion': 'Centro de datos Valparaíso'}, 'aap': [('192.168.150.130', 'Centro de datos Valparaíso')]}
+Error: container has already been removed
+Error: no container with name or ID "faceops" found: no such container
+--- anfitrión
+ 34   srv-mover-01                 running
+ -    srv-mover-01-origen          shut off
+ Interface   Type      Source     Model    MAC
+--------------------------------------------------------------
+ vnet33      network   dc-valpo   virtio   52:54:00:1e:78:c7
 
-repo=404
---- fin: 2026-11-10T21:52:15-03:00 · código: 0
+ srv-mover-01.qcow2   /var/lib/libvirt/dc-valpo/srv-mover-01.qcow2
+--- fin: 2026-11-10T21:52:20-03:00 · código: 0
