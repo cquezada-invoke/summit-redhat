@@ -1,0 +1,29 @@
+commit: ebe4553cb2c83cd9ff5c66d7b76ad0b070ecaeb5
+inicio: 2026-11-11T15:17:30-03:00
+---
+inicio: 192.168.122.35|Centro de datos Santiago · dominios: srv-mover-01  · running
+FICHA botón «Mover a otra infraestructura»: True
+FLOT ELEGIBLE KVM · Valparaíso Centro de datos Valparaíso 192.168.150.0/24 libres 16 cores 46 GB 121 GB | 
+FLOT no VMware · Santiago Centro de datos Santiago datacenter vSphere Santiago libres None cores None GB None GB | la automatización no convierte máquinas KVM a VMware vSphere
+RES {"ticket": "FO-LAB-01788", "estado": "exitoso", "limite": "", "resultado": "AAP terminó (successful): ejecución 10 s, espera de aprobación 34 s", "stats": {"faceops_traslado": {"maquina": "srv-mover-01", "modo": "evaluar", "destino": "dc-valpo", "red_origen": "default", "red_actual": "", "gb": "1.4", "minutos_estimados": "3", "ip": "", "responde": "", "puerto": "22"}}, "detalle": "", "aprobado": true}
+CASO C1 ok · ficha › Mover a otra infraestructura: destinos con capacidad y evaluar Santiago → Valparaíso
+RES {"ticket": "FO-LAB-01791", "estado": "exitoso", "limite": "", "resultado": "AAP terminó (successful): ejecución 69 s, espera de aprobación 38 s", "stats": {"faceops_traslado": {"maquina": "srv-mover-01", "modo": "mover", "destino": "dc-valpo", "red_origen": "default", "red_actual": "dc-valpo", "gb": "1.4", "minutos_estimados": "3", "ip": "192.168.150.130", "responde": true, "puerto": "22"}}, "detalle": "", "aprobado": true}
+192.168.150.130|Centro de datos Valparaíso · srv-mover-01 srv-mover-01-origen 
+CASO C2 ok · mover Santiago → Valparaíso con el ticket del flotante
+RES {"ticket": "FO-LAB-01794", "estado": "exitoso", "limite": "", "resultado": "AAP terminó (successful): ejecución 12 s, espera de aprobación 39 s", "stats": {"faceops_traslado": {"maquina": "srv-mover-01", "modo": "revertir", "destino": "dc-valpo", "red_origen": "", "red_actual": "default", "gb": "0", "minutos_estimados": "3", "ip": "192.168.122.35", "responde": "", "puerto": "22"}}, "detalle": "", "aprobado": true}
+CASO C3 ok · revertir
+RES {"ticket": "FO-LAB-01797", "estado": "exitoso", "limite": "", "resultado": "AAP terminó (successful): ejecución 54 s, espera de aprobación 37 s", "stats": {"faceops_traslado": {"maquina": "srv-mover-01", "modo": "mover", "destino": "dc-valpo", "red_origen": "default", "red_actual": "dc-valpo", "gb": "1.4", "minutos_estimados": "3", "ip": "192.168.150.130", "responde": true, "puerto": "22"}}, "detalle": "", "aprobado": true}
+RES {"ticket": "FO-LAB-01798", "estado": "exitoso", "limite": "", "resultado": "AAP terminó (successful): ejecución 8 s, espera de aprobación 38 s", "stats": {"faceops_traslado": {"maquina": "srv-mover-01", "modo": "confirmar", "destino": "dc-valpo", "red_origen": "", "red_actual": "", "gb": "0", "minutos_estimados": "3", "ip": "", "responde": "", "puerto": "22"}}, "detalle": "", "aprobado": true}
+CASO C4 ok · mover y confirmar
+RES {"ticket": "FO-LAB-01799", "estado": "exitoso", "limite": "", "resultado": "AAP terminó (successful): ejecución 69 s, espera de aprobación 38 s", "stats": {"faceops_traslado": {"maquina": "srv-mover-01", "modo": "mover", "destino": "default", "red_origen": "dc-valpo", "red_actual": "default", "gb": "1.4", "minutos_estimados": "3", "ip": "192.168.122.35", "responde": true, "puerto": "22"}}, "detalle": "", "aprobado": true}
+RES {"ticket": "FO-LAB-01802", "estado": "exitoso", "limite": "", "resultado": "AAP terminó (successful): ejecución 6 s, espera de aprobación 46 s", "stats": {"faceops_traslado": {"maquina": "srv-mover-01", "modo": "confirmar", "destino": "default", "red_origen": "", "red_actual": "", "gb": "0", "minutos_estimados": "3", "ip": "", "responde": "", "puerto": "22"}}, "detalle": "", "aprobado": true}
+CASO C5 ok · Valparaíso → Santiago
+RES {"ticket": "FO-LAB-01804", "estado": "fallido", "limite": "", "resultado": "se centro de datos\"}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   ", "stats": {}, "detalle": "Se puede mover · La máquina ya está en ese centro de datos", "aprobado": true}
+RES {"ticket": "FO-LAB-01807", "estado": "fallido", "limite": "", "resultado": "hift no se mueven)\"}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   ", "stats": {}, "detalle": "Datos válidos · Máquina, destino o modo no válidos (nodo-vault y OpenShift no se mueven)", "aprobado": true}
+CASO C6 ok · destino actual y máquina protegida
+RES {"ticket": "FO-LAB-01809", "estado": "fallido", "limite": "", "resultado": "de datos de origen\"}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=10   changed=4    unreachable=0    failed=1    skipped=0    rescued=1    ignored=0   ", "stats": {}, "detalle": "Responde en el destino (su servicio de acceso; si no responde, se vuelve atrás) · Timeout when waiting for 192.168.150.130:9", "aprobado": true}
+CASO C7 ok · no responde en el destino
+final: 192.168.122.35|Centro de datos Santiago · srv-mover-01  · VM running
+CERT Infra · Mover máquina entre centros de datos → certificada
+FIN-MOVER2
+--- fin: 2026-11-11T15:51:15-03:00 · código: 0
