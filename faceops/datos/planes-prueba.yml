@@ -2,6 +2,10 @@
 # Cada plan prueba TODA la funcionalidad: un caso por modo, acción o camino relevante (incluido el de error esperado) y su
 # verificación. Se ejecuta completo con tickets reales (aprobados por Claude con «Aprobado por Claude (regla de Cristian)»);
 # solo con todos los casos ok la versión vigente queda certificada. Si la automatización cambia, se ejecuta de nuevo.
+# excepciones: automatizaciones que el usuario autorizó usar sin esperar su certificación (su plan sigue corriendo en paralelo;
+# el bloqueo queda caso a caso, p. ej. en la opción de acción del selector de alertas).
+excepciones:
+  - {automatizacion: "Monitoreo · Configurar alertas del equipo", autoriza: "Cristian Quezada", fecha: "2026-11-11", motivo: "«ya bloquearemos caso a caso»: el flotante de alertas no se bloquea por la certificación; solo las acciones no certificadas del selector"}
 planes:
   "Redis · Instalar Redis Insight":
     casos:

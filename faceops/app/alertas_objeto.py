@@ -239,7 +239,8 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     if auto:
         from .pruebas import estado
         est = estado(dict(auto, cliente_id=cliente_id))["estado"]
-        disponible = est == "certificada"
+        from .pruebas import exceptuada
+        disponible = est == "certificada" or bool(exceptuada(auto_n))   # excepción autorizada por el usuario (planes-prueba.yml)
         por_que = "" if disponible else "La automatización que configura las alertas aún no tiene su plan de prueba aprobado: se podrá activar cuando lo pase"
     if not puede_escribir:
         disponible, por_que = False, "Tu perfil es de solo lectura"

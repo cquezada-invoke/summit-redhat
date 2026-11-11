@@ -298,6 +298,12 @@ def calidad(auto):
             "aprobadas": len(aprob), "primera_cert": aprob[-1]["fecha"] if aprob else None, "nivel": nivel, "por_que": por_que}
 
 
+def exceptuada(nombre_aap):
+    """Excepción a la regla de prueba autorizada explícitamente por el usuario (planes-prueba.yml › excepciones): la
+    automatización se puede usar aunque su versión vigente aún no esté certificada; su plan sigue corriendo en paralelo."""
+    return next((x for x in (_yaml("planes-prueba.yml").get("excepciones") or []) if x.get("automatizacion") == nombre_aap), None)
+
+
 def plan_de(nombre_aap):
     return (_yaml("planes-prueba.yml").get("planes") or {}).get(nombre_aap)
 

@@ -362,7 +362,8 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
         raise PermissionError(por_que)
     from .pruebas import estado as estado_prueba
     ep_ = estado_prueba(dict(auto, cliente_id=cliente["id"]))
-    if ep_["estado"] != "certificada" and not prueba:   # regla de prueba: sin su plan de prueba aprobado no se usa
+    from .pruebas import exceptuada as _exceptuada
+    if ep_["estado"] != "certificada" and not prueba and not _exceptuada(auto["nombre_aap"]):   # regla de prueba (salvo excepción del usuario)
         raise PermissionError(f"«{auto['nombre']}» está bloqueada: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep_["estado"] == "cambiada"
                                                                         else "su última prueba falló y debe pasar de nuevo" if ep_["estado"] == "fallida"
                                                                         else "aún no tiene su plan de prueba ejecutado y aprobado"))
