@@ -408,7 +408,8 @@ def registrar(aap, cliente, t, est):
     codigo, version, modo = params.get("politica_codigo"), params.get("politica_version"), params.get("politica_modo", "aplicar")
     if not codigo:
         return ""
-    art = (aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {}) if t["aap_job_tipo"] == "job" else {}
+    from .operacion import artefactos_ticket
+    art = artefactos_ticket(aap, t)   # también dentro del flujo de aprobación (workflow): antes quedaba «falló» aunque se aplicara
     res = art.get("faceops_politica") or {}
     lineas = []
     for n in [x for x in (t["limite"] or "").split(":") if x]:
