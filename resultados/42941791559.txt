@@ -1,0 +1,108 @@
+commit: bb02c30730dd44e6e107ac24bb74a6905fe6b772
+inicio: 2026-11-10T22:50:22-03:00
+---
+f2d4e8f
+faceops actualizado
+  [inventario] Diagnosticar la aplicación(lect) | Inventariar equipo de red | Verificar error conocido(lect) | Inventariar{B}(lect) | Relevar entorno para homologar ambientes{B}(lect)
+  [recursos] Ampliar un disco | Evaluar destino de versión(form)(lect) | IIS a OpenShift(form) | Liberar disco (limpiar logs) | Migración WebLogic → OpenShift 4.x(form) | WebLogic → OpenShift 4.x · Evaluar(form)(lect) | Cambiar vCPU y memoria{B} | Incorporar un disco{B} | Mover a otra infraestructura{B} | Ampliar disco en la máquina{B} | CentOS a RHEL{B}(form) | RHEL a versión soportada{B}(form)
+  [seguridad] Aplicar parches de seguridad(form) | Emitir certificado para un servicio(form) | Escaneo de seguridad de servidores(lect) | Inventario | Vincular máquina a la bóveda(form) | Renovar (EDA){B} | Renovar certificados por vencer{B}(form)
+  [respaldo] Puntos de restauración | Recuperar desde un punto | Paquetes · inventario y respaldo
+  [plataformas] Aplicar configuración de JBoss desde Git(form) | Restablecer JBoss a una versión(form) | Redesplegar una versión publicada{B}(form)
+  [ciclo] Cambiar tráfico de una app (blue-green, canary, A/B)(form) | Cambio de hora del país(form) | Desinstalar | Registrar en Red Hat(form) | Uso por segmento | Volver a la versión validada | Eliminar máquina{B} | Derivar el segmento al data lake{B} | Evaluar migración de sistema operativo{B}(form)(lect) | Preparar la plataforma de la app{B}(form) | Preparar red OpenShift{B} | Quitar agente{B}(form) | Rendimiento del canal{B} | Telco · Red del servicio (VLAN y BGP) (plantilla){B}
+   bloqueada: Encender → Falta «Infra · Encender o apagar equipo» en el catálogo (sincroniza con AAP)
+   bloqueada: Reiniciar → Falta «Infra · Encender o apagar equipo» en el catálogo (sincroniza con AAP)
+   bloqueada: Apagar → Falta «Infra · Encender o apagar equipo» en el catálogo (sincroniza con AAP)
+   bloqueada: Inventariar → Bloqueada por la regla de prueba: «Inventariar máquina» cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Relevar entorno para homologar ambientes → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+   bloqueada: Cambiar vCPU y memoria → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Incorporar un disco → Bloqueada por la regla de prueba: «Agregar disco» su última prueba falló y debe pasar de nuevo
+   bloqueada: Mover a otra infraestructura → Bloqueada por la regla de prueba: «Mover máquina entre centros de datos» cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Ampliar disco en la máquina → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+   bloqueada: CentOS a RHEL → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+   bloqueada: RHEL a versión soportada → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+   bloqueada: Renovar (EDA) → Bloqueada por la regla de prueba: cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Renovar certificados por vencer → Bloqueada por la regla de prueba: cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Redesplegar una versión publicada → Bloqueada por la regla de prueba: cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Eliminar máquina → Falta «FaceOps · Eliminar servidor» en el catálogo (sincroniza con AAP)
+   bloqueada: Derivar el segmento al data lake → Bloqueada por la regla de prueba: cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Evaluar migración de sistema operativo → Bloqueada por la regla de prueba: cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Preparar la plataforma de la app → Bloqueada por la regla de prueba: cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Preparar red OpenShift → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+   bloqueada: Quitar agente → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+   bloqueada: Rendimiento del canal → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+   bloqueada: Telco · Red del servicio (VLAN y BGP) (plantilla) → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+
+### nodo-windows (servidor, Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0) HTTP 200 · botón Skills: True · botones sueltos viejos: 0
+  total 24 · disponibles 15 · bloqueadas 9 · deshabilitadas por estado 0
+  [energia] Encender{B} | Reiniciar{B} | Apagar{B} | Encender, apagar o reiniciar plataforma
+  [inventario] Verificar error conocido(lect) | Inventariar{B}(lect) | Relevar entorno para homologar ambientes{B}(lect)
+  [recursos] Evaluar destino de versión(form)(lect) | Cambiar vCPU y memoria{B} | Incorporar un disco{B} | Mover a otra infraestructura{B}
+  [seguridad] Escaneo de seguridad de servidores(lect) | Vincular máquina a la bóveda(form)
+  [respaldo] Puntos de restauración | Recuperar desde un punto | Paquetes · inventario y respaldo
+  [plataformas] IIS a OpenShift(form) | Levantar IIS en Windows | Prueba: provocar caída de IIS
+  [ciclo] Cambiar tráfico de una app (blue-green, canary, A/B)(form) | Desinstalar | Habilitar escritorio remoto | Registrar en Red Hat(form) | Eliminar máquina{B}
+   bloqueada: Encender → Falta «Infra · Encender o apagar equipo» en el catálogo (sincroniza con AAP)
+   bloqueada: Reiniciar → Falta «Infra · Encender o apagar equipo» en el catálogo (sincroniza con AAP)
+   bloqueada: Apagar → Falta «Infra · Encender o apagar equipo» en el catálogo (sincroniza con AAP)
+   bloqueada: Inventariar → Bloqueada por la regla de prueba: «Inventariar máquina» cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Relevar entorno para homologar ambientes → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+   bloqueada: Cambiar vCPU y memoria → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Incorporar un disco → Bloqueada por la regla de prueba: «Agregar disco» su última prueba falló y debe pasar de nuevo
+   bloqueada: Mover a otra infraestructura → Bloqueada por la regla de prueba: «Mover máquina entre centros de datos» cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Eliminar máquina → Falta «FaceOps · Eliminar servidor» en el catálogo (sincroniza con AAP)
+
+### fw (firewall, VyOS 2026.10.23-0026-rolling) HTTP 200 · botón Skills: True · botones sueltos viejos: 0
+  total 8 · disponibles 6 · bloqueadas 2 · deshabilitadas por estado 0
+  [inventario] Inventariar(lect)
+  [recursos] Cambiar vCPU y memoria{B}
+  [ciclo] Aplicar configuración de red desde Git | Configurar VLAN(form) | Revocar acceso(form) | Revocar accesos vencidos(form) | Solicitar acceso(form) | Actualizar firmware{B}
+   bloqueada: Cambiar vCPU y memoria → Bloqueada por la regla de prueba: «Ajustar recursos de máquinas (vCPU y memoria)» cambió desde su última prueba y debe probarse de nuevo
+   bloqueada: Actualizar firmware → Bloqueada por la regla de prueba: aún no tiene su plan de prueba ejecutado y aprobado
+
+CANDIDATAS lectura: ['Verificar error conocido', 'Diagnosticar la aplicación', 'Escaneo de seguridad de servidores']
+POST Verificar error conocido 200 FO-LAB-01522 en_ejecucion None
+TICKET FO-LAB-01522 exitoso · AAP terminó (successful): ejecución 15 s, espera de aprobación 29 s
+IDS 6 12 14
+puerto: 
+BASE https://faceops.34.176.42.56.sslip.io:8843/faceops/lab
+
+[6] botones en la caja de estado: ['Skills\n27']
+  panel abierto: True · a la derecha x= 760 ancho 640
+  grupos: ['Energía 5', 'Inventario y diagnóstico 5', 'Recursos y movimiento 12', 'Seguridad 7', 'Respaldo y recuperación 3', 'Plataformas 3', 'Ciclo de vida 14']
+  items visibles: 49 · deshabilitados: 22
+  búsqueda «inventar»: 15 ['Diagnosticar la aplicación', 'Inventariar equipo de red', 'Verificar error conocido', 'Inventariar']
+  contraer → visibles: 0
+  formulario abierto: 1 campos: ['Plataforma *', 'Versión actual', 'Versión de destino *']
+  diálogo de confirmación: True · ¿Reiniciar JBoss en nodo-jboss? Recupera la aplicación cuando JBoss se detuvo
+  errores JS: []
+
+[12] botones en la caja de estado: ['Skills\n15']
+  panel abierto: True · a la derecha x= 760 ancho 640
+  grupos: ['Energía 4', 'Inventario y diagnóstico 3', 'Recursos y movimiento 4', 'Seguridad 2', 'Respaldo y recuperación 3', 'Plataformas 3', 'Ciclo de vida 5']
+  items visibles: 24 · deshabilitados: 9
+  búsqueda «inventar»: 6 ['Verificar error conocido', 'Inventariar', 'Relevar entorno para homologar ambientes', 'Puntos de restauración']
+  contraer → visibles: 0
+  formulario abierto: 1 campos: ['Plataforma *', 'Versión actual', 'Versión de destino *']
+  diálogo de confirmación: True · ¿Encender, apagar o reiniciar plataforma en nodo-windows? Enciende, apaga o reinicia el se
+  errores JS: []
+
+[14] botones en la caja de estado: []
+Traceback (most recent call last):
+  File "<stdin>", line 21, in <module>
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/sync_api/_generated.py", line 10783, in click
+    self._sync(
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_page.py", line 878, in click
+    return await self._main_frame._click(**locals_to_params(locals()))
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_frame.py", line 569, in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 69, in send
+    return await self._connection.wrap_api_call(
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 559, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Page.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("#sk-btn")
+
+--- fin: 2026-11-10T22:53:22-03:00 · código: 0
