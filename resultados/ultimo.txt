@@ -1,29 +1,10 @@
-commit: 48e3ea7d842e29334a6bb6fa0ce607cc083482cc
-inicio: 2026-11-11T14:48:38-03:00
+commit: 42f17c6ee60dc5943d17cc7c2aa99f8e7e119298
+inicio: 2026-11-11T15:06:16-03:00
 ---
-inicio: 192.168.122.35|Centro de datos Santiago · dominios: srv-mover-01  · running
-FICHA botón «Mover a otra infraestructura»: True
-FLOT ELEGIBLE KVM · Valparaíso Centro de datos Valparaíso 192.168.150.0/24 libres 16 cores 46 GB 121 GB | 
-FLOT no VMware · Santiago Centro de datos Santiago datacenter vSphere Santiago libres None cores None GB None GB | la automatización no convierte máquinas KVM a VMware vSphere
-RES {"ticket": "FO-LAB-01762", "estado": "exitoso", "limite": "", "resultado": "AAP terminó (successful): ejecución 8 s, espera de aprobación 41 s", "stats": {"faceops_traslado": {"maquina": "srv-mover-01", "modo": "evaluar", "destino": "dc-valpo", "red_origen": "default", "red_actual": "", "gb": "1.4", "minutos_estimados": "3", "ip": "", "responde": "", "puerto": "22"}}, "detalle": "", "aprobado": true}
-CASO C1 ok · ficha › Mover a otra infraestructura: destinos con capacidad y evaluar Santiago → Valparaíso
-RES {"estado": "rechazado al solicitar", "error": "\u00abMover m\u00e1quina entre centros de datos\u00bb est\u00e1 bloqueada: cambi\u00f3 desde su \u00faltima prueba y debe probarse de nuevo"}
-192.168.122.35|Centro de datos Santiago · srv-mover-01 
-CASO C2 falla · mover desde el flotante
-RES {"estado": "rechazado al solicitar", "error": "No hay un traslado pendiente de confirmar"}
-CASO C3 falla · revertir
-RES {"estado": "rechazado al solicitar", "error": "\u00abMover m\u00e1quina entre centros de datos\u00bb est\u00e1 bloqueada: cambi\u00f3 desde su \u00faltima prueba y debe probarse de nuevo"}
-RES {"estado": "rechazado al solicitar", "error": "No hay un traslado pendiente de confirmar"}
-CASO C4 falla · mover y confirmar
-RES {"estado": "rechazado al solicitar", "error": "Elige un destino de la lista"}
-RES {"estado": "rechazado al solicitar", "error": "No hay un traslado pendiente de confirmar"}
-CASO C5 falla · Valparaíso → Santiago
-RES {"ticket": "FO-LAB-01765", "estado": "fallido", "limite": "", "resultado": "se centro de datos\"}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   ", "stats": {}, "detalle": "Se puede mover · La máquina ya está en ese centro de datos", "aprobado": true}
-RES {"ticket": "FO-LAB-01769", "estado": "fallido", "limite": "", "resultado": "hift no se mueven)\"}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   ", "stats": {}, "detalle": "Datos válidos · Máquina, destino o modo no válidos (nodo-vault y OpenShift no se mueven)", "aprobado": true}
-CASO C6 ok · destino actual y máquina protegida
-RES {"ticket": "FO-LAB-01772", "estado": "fallido", "limite": "", "resultado": "de datos de origen\"}\n\nPLAY RECAP *********************************************************************\nanfitrion-kvm              : ok=10   changed=4    unreachable=0    failed=1    skipped=0    rescued=1    ignored=0   ", "stats": {}, "detalle": "Responde en el destino (su servicio de acceso; si no responde, se vuelve atrás) · Timeout when waiting for 192.168.150.130:9", "aprobado": true}
-CASO C7 ok · no responde en el destino
-final: 192.168.122.35|Centro de datos Santiago · srv-mover-01  · VM running
-CERT Infra · Mover máquina entre centros de datos → cambiada
-FIN-MOVER2
---- fin: 2026-11-11T15:05:48-03:00 · código: 0
+hosts nodo-jboss5: 0
+LIC {'instance_count': 50, 'free_instances': 5, 'automated_instances': 45}
+nodo-jboss5 en FaceOps: []
+estado certificada
+data-pil="Disponibilidad"> Disponibilidad 100 % Instancias (3) nodo-jboss esta máquina 192.168.122.15 nodo-jboss2 réplica 192.168.122.18 nodo-jboss4 réplica 192.168.122.105 Segmentos que usan esta máquina (1) App de pagos JBoss EAP (app-jboss) · produccion · balanceo en nodo-nginx · puertos 8080 3 instancias : nodo-jboss, nodo-jboss2 , nodo-jboss4 Solicitar réplica adicional ticket con aprobación · sube a 4 instancias (100 %) Al 100 %. Rendimiento 95 % CPU · 11 % de 2 vCPU 85 % Memoria · 55 % de 3 GB 100 % Disco (volumen más lleno) · 22 % de su capacidad <i style="width:100%;background:var(--o
+dialogo True True
+--- fin: 2026-11-11T15:06:38-03:00 · código: 0
