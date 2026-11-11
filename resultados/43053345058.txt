@@ -1,0 +1,23 @@
+commit: a645c012e2b68b0f7c00535d6027aa0a114116ef
+inicio: 2026-11-11T12:57:06-03:00
+---
+srv-prueba-rhel8-01: CPU(s):         1 Max memory:     2097152 KiB  snaps=faceops-migracion-20261107-1648,, desc=No description for domain: srv-prueba-rhel8-01 creado=
+srv-prueba-rhel9-01: CPU(s):         1 Max memory:     2097152 KiB  snaps=, desc=No description for domain: srv-prueba-rhel9-01 creado=
+srv-prueba-resp-01: CPU(s):         1 Max memory:     2097152 KiB  snaps=, desc=No description for domain: srv-prueba-resp-01 creado=
+srv-prueba-rocky-01: CPU(s):         1 Max memory:     2097152 KiB  snaps=faceops-migracion-20261107-1443,, desc=No description for domain: srv-prueba-rocky-01 creado=
+srv-rocky-prueba-01: CPU(s):         1 Max memory:     2097152 KiB  snaps=, desc=No description for domain: srv-rocky-prueba-01 creado=
+srv-rocky-demo-01: CPU(s):         1 Max memory:     2097152 KiB  snaps=faceops-migracion-20261105-0413,, desc=No description for domain: srv-rocky-demo-01 creado=
+nodo-jboss-qa: CPU(s):         1 Max memory:     2097152 KiB  snaps=, desc=No description for domain: nodo-jboss-qa creado=
+nodo-jboss3: CPU(s):         1 Max memory:     2097152 KiB  snaps=, desc=No description for domain: nodo-jboss3 creado=
+srv-legado-jboss5-01: CPU(s):         1 Max memory:     2097152 KiB  snaps=, desc=No description for domain: srv-legado-jboss5-01 creado=
+nodo-jboss5: CPU(s):         1 Max memory:     2097152 KiB  snaps=, desc=No description for domain: nodo-jboss5 creado=
+nodo-jboss4: CPU(s):         2 Max memory:     2097152 KiB  snaps=, desc=No description for domain: nodo-jboss4 creado=
+Traceback (most recent call last):
+  File "/tmp/m.py", line 4, in <module>
+    for e in q("SELECT id,nombre,so,estado,ambiente,creado FROM equipos WHERE cliente_id=? AND (nombre LIKE 'srv-prueba%' OR nombre LIKE '%rocky%' OR nombre LIKE 'nodo-jboss%' OR nombre LIKE 'srv-legado%')", cl["id"]): print("EQ", dict(e))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 179, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: creado
+--- fin: 2026-11-11T12:57:14-03:00 · código: 0
