@@ -300,8 +300,9 @@ def aplica_a_equipo(usuario, cliente_id, auto, e):
     return motivo_no_aplica(usuario, cliente_id, auto, e) is None
 
 
-def motivo_no_aplica(usuario, cliente_id, auto, e):
-    """None si la acción puede correr sobre el equipo; si no, por qué (en palabras del usuario)."""
+def motivo_no_aplica(usuario, cliente_id, auto, e, reinstalar=False):
+    """None si la acción puede correr sobre el equipo; si no, por qué (en palabras del usuario). Con reinstalar, una
+    instalación idempotente puede volver a correr aunque el equipo ya tenga la skill (p. ej. Redis Insight con otra ruta)."""
     from .inventario import skills_de
     from .permisos import ambiente_permitido, perfil
     if not auto["usa_limite"]:
@@ -322,14 +323,14 @@ def motivo_no_aplica(usuario, cliente_id, auto, e):
     ok, por_que = compatible(auto, dict(e, skills=list(sk)))
     if not ok:
         return por_que or "no es compatible con el sistema, el tipo o los productos del equipo"
-    if auto.get("habilita_skill") and auto["habilita_skill"] in sk:
+    if auto.get("habilita_skill") and auto["habilita_skill"] in sk and not reinstalar:
         return f"el equipo ya tiene {auto['habilita_skill']}"
     return None
 
 
-def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=None, prueba=False):
+def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=None, prueba=False, reinstalar=False):
     """Ejecuta la acción directamente sobre un equipo (desde su detalle en el inventario)."""
-    no_ = motivo_no_aplica(usuario, cliente["id"], auto, e)
+    no_ = motivo_no_aplica(usuario, cliente["id"], auto, e, reinstalar)
     if no_:
         raise PermissionError(f"Esta acción no aplica a {e['nombre']}: {no_}")
     if (auto.get("habilita_skill") and not auto.get("por_inventario") and auto["inventario"]

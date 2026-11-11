@@ -2835,8 +2835,10 @@ def equipo_redis_insight(eid):
     pre = request.script_root or os.environ.get("FACEOPS_PREFIJO", "/faceops")   # la ruta pública con la que el navegador la pide
     ruta = pre + url_for("consola.consola_web_plataforma", eid=eid, cod="redis", sub="")[len(request.script_root):].rstrip("/")
     try:
-        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"ri_ruta": ruta}, f"Instalar Redis Insight en {e['nombre']}")
-        flash(f"Instalando Redis Insight en {e['nombre']} ({t['numero']}): al terminar, el icono de Redis abre su consola", "ok")
+        from .inventario import skills_de
+        ya_ = "redisinsight" in skills_de(e)   # ya instalado: se reinstala (idempotente) para dejarlo con la ruta vigente; conserva sus conexiones
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"ri_ruta": ruta}, f"{'Reinstalar' if ya_ else 'Instalar'} Redis Insight en {e['nombre']}", reinstalar=ya_)
+        flash(f"{'Reinstalando' if ya_ else 'Instalando'} Redis Insight en {e['nombre']} ({t['numero']}): al terminar, el icono de Redis abre su consola", "ok")
     except (PermissionError, ErrorAAP, ValueError) as x:
         flash(str(x), "error")
     return redirect(url_for("consola.equipo", eid=eid) + "#p-redis")
