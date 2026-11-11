@@ -3,11 +3,12 @@
 # los equipos que la tenían aplicada quedan «desactualizados» y se vuelve a aplicar con la versión nueva.
 # Categorías: sistema operativo · contenedores · comunicaciones · redes · datos · aplicaciones · middleware · identidad ·
 #             auditoria · respaldo
-# aplica: sistemas [linux|windows], categorias [servidor…], skills (alguna), ambientes, segmentos; vacío = todos
+# aplica: sistemas [linux|windows], categorias [servidor…], skills (alguna), sin_skills (ninguna), ambientes, segmentos; vacío = todos
 # reglas (idempotentes; en «verificar» solo se revisan, sin cambiar nada):
 #   linea:    {archivo, regexp, linea}                       sysctl: {nombre, valor}
 #   servicio: {nombre, activo: true|false}                   permisos: {ruta, modo, dueno, grupo}
 #   archivo:  {ruta, contenido, modo}                        comando: {verificar, aplicar}  (verificar = 0 si cumple)
+#   firewall: {siempre, por_skill: {skill: [puerto/proto | puerto/proto@origen]}}  FaceOps suma consolas y flujos hacia el equipo
 # recargar: servicios que se recargan si algo cambió
 - id: SO-01
   nombre: SSH endurecido
@@ -63,10 +64,31 @@
   nombre: Firewall del equipo activo
   categoria: redes
   severidad: alta
-  descripcion: firewalld activo y al iniciar; solo los puertos de sus flujos declarados.
-  aplica: {sistemas: [linux], categorias: [servidor]}
+  descripcion: >-
+    firewalld instalado, activo y al iniciar, abriendo solo lo que la máquina sirve: SSH (AAP), los puertos de sus plataformas
+    (skills), los de sus consolas registradas en FaceOps y los de los flujos declarados hacia ella; las consolas de administración
+    solo desde FaceOps/AAP (192.168.122.1). Las redes de Podman quedan en la zona de confianza (como lo hace netavark). No quita
+    reglas existentes; lo que escucha y no es de su rol queda cerrado y se informa.
+  aplica: {sistemas: [linux], categorias: [servidor], sin_skills: [openshift, vyos-firewall, frrouting, kvm]}
   reglas:
-    - {tipo: servicio, nombre: firewalld, activo: true}
+    - tipo: firewall
+      siempre: [22/tcp]
+      por_skill:
+        jboss: [8080/tcp, 8443/tcp, 9990/tcp@192.168.122.1]
+        keycloak: [8080/tcp, 8180/tcp, 8443/tcp]
+        redis: [6379/tcp]
+        redisinsight: [5540/tcp]
+        node-exporter: [9100/tcp]
+        nginx: [80/tcp, 443/tcp]
+        postgres: [5432/tcp]
+        vault: [8200/tcp]
+        activemq: [61616/tcp, 8161/tcp]
+        kafka: [9092/tcp]
+        gitea: [3000/tcp]
+        389-directory-server: [389/tcp, 636/tcp]
+        red-hat-idm: [53/tcp, 53/udp, 80/tcp, 88/tcp, 88/udp, 389/tcp, 443/tcp, 464/tcp, 464/udp, 636/tcp]
+        certificate-system: [8080/tcp, 8443/tcp]
+        satellite: [53/tcp, 53/udp, 67/udp, 69/udp, 80/tcp, 443/tcp, 5647/tcp, 8000/tcp, 8140/tcp, 9090/tcp]
 - id: RED-02
   nombre: Sin reenvío de paquetes en servidores
   categoria: redes
@@ -189,10 +211,22 @@
   nombre: Límites de recursos por contenedor
   categoria: contenedores
   severidad: media
-  descripcion: Cada contenedor con tope de procesos y registros de tamaño acotado, para que uno solo no agote el servidor.
+  descripcion: >-
+    Cada contenedor con tope de procesos (2048) y registros de tamaño acotado (100 MB), para que uno solo no agote el servidor:
+    valores por defecto de Podman para los contenedores nuevos y tope de procesos aplicado en caliente a los que están en
+    ejecución sin él (sin reiniciarlos). Si el equipo no tiene Podman, no aplica (cumple).
   aplica: {sistemas: [linux], categorias: [servidor]}
   reglas:
-    - {tipo: archivo, ruta: /etc/containers/containers.conf.d/50-faceops.conf, modo: '0644', contenido: "[containers]\npids_limit = 2048\nlog_size_max = 104857600\n"}
+    - tipo: comando
+      verificar: >-
+        ! command -v podman >/dev/null || { grep -qsx 'pids_limit = 2048' /etc/containers/containers.conf.d/50-faceops.conf &&
+        grep -qsx 'log_size_max = 104857600' /etc/containers/containers.conf.d/50-faceops.conf &&
+        for c in $(podman ps -q); do podman container inspect $c | grep -Eq '"PidsLimit": [1-9]' || exit 1; done; }
+      aplicar: >-
+        mkdir -p /etc/containers/containers.conf.d &&
+        printf '[containers]\npids_limit = 2048\nlog_size_max = 104857600\n' > /etc/containers/containers.conf.d/50-faceops.conf &&
+        chmod 0644 /etc/containers/containers.conf.d/50-faceops.conf &&
+        for c in $(podman ps -q); do podman container inspect $c | grep -Eq '"PidsLimit": [1-9]' || podman update --pids-limit 2048 $c || exit 1; done
 - id: AUD-01
   nombre: Auditoría del sistema activa
   categoria: auditoria

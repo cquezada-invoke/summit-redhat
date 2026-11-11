@@ -215,7 +215,7 @@ def validar(p):
         err.append("Falta id o nombre")
     if p.get("categoria") not in dict(CATEGORIAS):
         err.append("categoria debe ser: " + ", ".join(dict(CATEGORIAS)))
-    tipos = {"linea", "sysctl", "servicio", "permisos", "archivo", "comando"}
+    tipos = {"linea", "sysctl", "servicio", "permisos", "archivo", "comando", "firewall"}
     for i, r in enumerate(p.get("reglas") or []):
         if r.get("tipo") not in tipos:
             err.append(f"regla {i + 1}: tipo debe ser {', '.join(sorted(tipos))}")
@@ -305,6 +305,8 @@ def aplica(p, e):
         return False
     if a.get("skills") and not set(a["skills"]) & set(e.get("skills") or []):
         return False
+    if a.get("sin_skills") and set(a["sin_skills"]) & set(e.get("skills") or []):
+        return False   # p. ej. el firewall local no se gestiona en OpenShift (RHCOS) ni en equipos de red
     if a.get("ambientes") and (e.get("ambiente") or "") not in a["ambientes"]:
         return False
     if a.get("segmentos") and not set(a["segmentos"]) & set(e.get("segmentos") or []):
@@ -365,14 +367,21 @@ def tablero(cliente_id, eqs):
     return pols, por_eq
 
 
-def solicitar(usuario, cliente, p, equipos, modo="aplicar", motivo=""):
-    """Un ticket por inventario de AAP (cada uno con su credencial). Devuelve los tickets creados."""
+def solicitar(usuario, cliente, p, equipos, modo="aplicar", motivo="", prueba=False):
+    """Un ticket por inventario de AAP (cada uno con su credencial). Devuelve los tickets creados. Regla de prueba: si la
+    automatización cambió desde su última certificación queda bloqueada (solo el arnés de prueba la lanza, prueba=True)."""
     from .aap import AAP
     from .operacion import acceso_equipo, ejecutar, numero_ticket
     from .bd import auditar
+    from .pruebas import estado as estado_prueba
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], AUTO)
     if not a:
         raise PermissionError(f"Falta «{AUTO}» en el catálogo (sincroniza con AAP)")
+    ep_ = estado_prueba(dict(a, cliente_id=cliente["id"]))["estado"]
+    if ep_ != "certificada" and not prueba:
+        raise PermissionError(f"«{AUTO}» está bloqueada: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep_ == "cambiada"
+                                                             else "su última prueba falló y debe pasar de nuevo" if ep_ == "fallida"
+                                                             else "aún no tiene su plan de prueba ejecutado y aprobado"))
     aap = AAP.de_cliente(cliente)
     grupos = {}
     for e in equipos:
@@ -381,8 +390,11 @@ def solicitar(usuario, cliente, p, equipos, modo="aplicar", motivo=""):
     out = []
     pol = {k: v for k, v in p.items() if k in ("codigo", "nombre", "categoria", "descripcion", "reglas", "recargar", "version")}
     pol["id"] = pol["codigo"]
+    fw = next((r for r in p.get("reglas") or [] if r.get("tipo") == "firewall"), None)
     for inv_n, es in grupos.items():
         params = {"politica": pol, "politica_modo": modo, "politica_codigo": p["codigo"], "politica_version": p["version"]}
+        if fw:   # puertos de cada equipo según su rol (skills), sus consolas registradas y los flujos declarados hacia él
+            params["politica_firewall"] = {e["nombre"]: puertos_firewall(cliente, fw, e) for e in es}
         seg = next((s for e in es for s in (e.get("segmentos") or [])), "")
         tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, motivo, creado, "
                  "valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -400,6 +412,43 @@ def solicitar(usuario, cliente, p, equipos, modo="aplicar", motivo=""):
         ejecutar(tid)
         out.append(q1("SELECT * FROM tickets WHERE id=?", tid))
     return out
+
+
+_SERV = {"ssh": "22/tcp", "http": "80/tcp", "https": "443/tcp", "ldap": "389/tcp", "ldaps": "636/tcp", "bgp": "179/tcp",
+         "winrm": "5985/tcp", "dns": "53/udp"}
+
+
+def puertos_firewall(cliente, regla, e):
+    """{'abrir': [...], 'restringir': ['9990/tcp@192.168.122.1', ...]} de un equipo: los de siempre (SSH para AAP), los de
+    sus plataformas (regla.por_skill según sus skills), los de sus consolas registradas (datos.puertos_web) y los de los
+    flujos declarados hacia él (arquitecturas y topología). Un puerto restringido a un origen no se abre a todos."""
+    import re as _re
+    from .inventario import skills_de
+    skills = e.get("skills") or skills_de(e)
+    ab, rs = set(regla.get("siempre") or []), set()
+    for sk in skills:
+        for x in (regla.get("por_skill") or {}).get(sk) or []:
+            (rs if "@" in x else ab).add(x)
+    d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    for v in (d_.get("puertos_web") or {}).values():
+        if str(v).isdigit():
+            ab.add(f"{v}/tcp")
+    try:
+        from .arquitectura import flujos_de
+        for f in flujos_de(cliente):
+            if f.get("hacia") != e["nombre"]:
+                continue
+            for tok in _re.split(r"[\s·,;]+", str(f.get("puerto") or "")):
+                tok = tok.strip().lower()
+                if _re.fullmatch(r"\d{1,5}(/(tcp|udp))?", tok):
+                    ab.add(tok if "/" in tok else tok + "/tcp")
+                elif tok in _SERV:
+                    ab.add(_SERV[tok])
+    except Exception as x:  # noqa: BLE001 - sin flujos se abren los de su rol
+        print("Firewall (flujos):", str(x)[:160])
+    ab -= {x.split("@")[0] for x in rs}
+    orden = lambda x: (int(x.split("/")[0]), x)  # noqa: E731
+    return {"abrir": sorted(ab, key=orden), "restringir": sorted(rs, key=orden)}
 
 
 def registrar(aap, cliente, t, est):
@@ -428,9 +477,11 @@ def registrar(aap, cliente, t, est):
         prev = q1("SELECT * FROM politicas_estado WHERE cliente_id=? AND codigo=? AND equipo_id=?", cliente["id"], codigo, e["id"])
         # verificar no sube la versión aplicada: si estaba en una versión anterior, sigue desactualizada aunque hoy cumpla
         ver = version if (modo == "aplicar" or not prev or prev["estado"] == "fallida") else prev["version"]
+        # una verificación que confirma lo aplicado conserva el ticket que la resolvió («Aplicada · FO-…» no cambia)
+        tid_ = prev["ticket_id"] if (modo == "verificar" and prev and prev["estado"] == "al_dia" and st == "al_dia") else t["id"]
         ej("INSERT INTO politicas_estado(cliente_id, codigo, equipo_id, version, estado, modo, detalle, cuando, ticket_id) VALUES (?,?,?,?,?,?,?,?,?) "
            "ON CONFLICT(cliente_id, codigo, equipo_id) DO UPDATE SET version=excluded.version, estado=excluded.estado, modo=excluded.modo, "
            "detalle=excluded.detalle, cuando=excluded.cuando, ticket_id=excluded.ticket_id",
-           cliente["id"], codigo, e["id"], ver, st, modo, json.dumps(det, ensure_ascii=False), ahora(), t["id"])
+           cliente["id"], codigo, e["id"], ver, st, modo, json.dumps(det, ensure_ascii=False), ahora(), tid_)
         lineas.append(f"{n}: {ETIQUETA[st]}" + (f" ({', '.join(det[:4])})" if det else ""))
     return f"Política {codigo} v{version} ({modo}): " + " · ".join(lineas)
