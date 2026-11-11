@@ -37,14 +37,20 @@ def pedir(api, ruta, metodo="GET", cuerpo=None, ok=(), tipo="application/json", 
     req.add_header("Accept", "application/json")
     if cuerpo is not None:
         req.add_header("Content-Type", tipo)
-    try:
-        with urllib.request.urlopen(req, context=CTX, timeout=120) as r:
-            b = r.read()
-            return b.decode(errors="replace") if crudo else (json.loads(b) if b else {})
-    except urllib.error.HTTPError as e:
-        if e.code in ok:
-            return {}
-        raise RuntimeError(f"{metodo} {ruta.split('?')[0]}: HTTP {e.code}") from None
+    for intento in range(4):   # la API agregada (image.openshift.io) puede responder 503 un momento: reintenta
+        try:
+            with urllib.request.urlopen(req, context=CTX, timeout=120) as r:
+                b = r.read()
+                return b.decode(errors="replace") if crudo else (json.loads(b) if b else {})
+        except urllib.error.HTTPError as e:
+            if e.code in ok:
+                return {}
+            if e.code < 500 or intento == 3:
+                raise RuntimeError(f"{metodo} {ruta.split('?')[0]}: HTTP {e.code}") from None
+        except urllib.error.URLError as e:
+            if intento == 3:
+                raise RuntimeError(f"{metodo} {ruta.split('?')[0]}: {e.reason}") from None
+        time.sleep(10 * (intento + 1))
 
 
 def listar(api, ruta, opcional=True):

@@ -11,6 +11,8 @@ mk() { $OC -n $NS get deploy $1 >/dev/null 2>&1 || $OC -n $NS create deployment 
 mk enuso $R/enuso:v1 1; mk cero $R/cero:v1 0
 if ! $OC -n $NS get deploy rollout >/dev/null 2>&1; then mk rollout $R/rollout:v1 1; sleep 40; $OC -n $NS set image deploy/rollout rollout=$R/rollout:v2 >/dev/null; fi
 $OC -n $NS rollout status deploy/rollout --timeout=120s >/dev/null 2>&1; $OC -n $NS rollout status deploy/enuso --timeout=120s >/dev/null 2>&1
+for i in $(seq 1 12); do [ "$($OC -n $NS get is -o name 2>/dev/null | wc -l)" = 4 ] && [ "$($OC -n $NS get pods --field-selector=status.phase=Running -o name 2>/dev/null | wc -l)" = 2 ] && break; sleep 15; done
+[ "$($OC -n $NS get is -o name 2>/dev/null | wc -l)" = 4 ] || { echo "CASO -- SIN ESCENARIO: no se pudo preparar $NS (API del clúster)"; exit 1; }
 foto() { $OC -n $NS get is,rs,deploy,pods -o name 2>/dev/null | sort | md5sum | cut -c1-8; }
 est_() { jq_ "next((x['estado'] for x in s.get('faceops_imagenes_movilidad',{}).get('detalle',[]) if x['id']=='$NS/$1' and x['rev']==0),'-')"; }
 
