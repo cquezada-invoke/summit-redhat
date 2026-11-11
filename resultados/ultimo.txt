@@ -1,25 +1,24 @@
-commit: cf179cf9a970be9e99de41e11551003c75963985
-inicio: 2026-11-11T19:57:44-03:00
+commit: 43ae6f58b2ac58b9f957e29a0d5e52180fae2211
+inicio: 2026-11-11T20:43:11-03:00
 ---
-11e1272
-== tickets de alertas colgados
-COLG FO-LAB-01575 pendiente_aprobacion 2026-11-11T03:01:12+00:00 nodo-jboss-qa
-COLG FO-LAB-01632 pendiente_aprobacion 2026-11-11T14:22:34+00:00 nodo-jboss
-== plan alertas
-CASO C1 ok · Activar en Linux con agente
-CASO C9 ok · Acción por alerta y ruta a EDA
-CASO C11 ok · Tablero en Grafana
-CASO C2 ok · Disparo real
-CASO C3 ok · Ajustar y quitar
-CASO C4 ok · Repetir
-CASO C5 falla · Storage y equipo de red
-CASO C6 ok · Equipo sin agente
-CASO C7 ok · Umbral inválido
-CASO C12 ok · Ámbitos máquina / plataforma
-CASO C13 ok · Seguridad real (S01)
-CASO C14 ok · Bloqueo real (B02)
-CASO C8 falla · Retirar todas
-EVIDENCIA [{"id": "C1", "caso": "Activar en Linux con agente", "resultado": "ok", "evidencia": "7 reglas faceops-nodo-jboss, up=1, 4 alertas en la ficha (FO-LAB-01927)"}, {"id": "C9", "caso": "Acción por alerta y ruta a EDA", "resultado": "ok", "evidencia": "faceops_accion y faceops_automatizacion en las reglas; Alertmanager enruta faceops-objetos → :5022"}, {"id": "C11", "caso": "Tablero en Grafana", "resultado": "ok", "evidencia": "faceops-al-nodo-jboss solo con sus 4 alertas activas y consultas fijas al equipo (6701,6702,6703,6801 True); umbrales C01 critical=95,warning=80"}, {"id": "C2", "caso": "Disparo real", "resultado": "ok", "evidencia": "C03 firing en Prometheus (4) y en Alertmanager (4)"}, {"id": "C3", "caso": "Ajustar y quitar", "resultado": "ok", "evidencia": "3 reglas, CPU con aviso 70; disco retirado"}, {"id": "C4", "caso": "Repetir", "resultado": "ok", "evidencia": "mismas reglas (706f8cc7ca); un solo trabajo faceops-equipos"}, {"id": "C5", "caso": "Storage y equipo de red", "resultado": "falla", "evidencia": "fallido/exitoso reglas=0/3 probe=1 Sin métricas no se configuran alertas · nodo-storage (192.168.122.167) no responde en el puerto 9100: instálale primero el agente de monitoreo («FaceOps · Agente de monitoreo») · "}, {"id": "C6", "caso": "Equipo sin agente", "resultado": "ok", "evidencia": "falla con «instala el agente de monitoreo»; Prometheus sin cambios"}, {"id": "C7", "caso": "Umbral inválido", "resultado": "ok", "evidencia": "FaceOps lo rechaza; el playbook falla y deja las reglas como estaban"}, {"id": "C12", "caso": "Ámbitos máquina / plataforma", "resultado": "ok", "evidencia": "faceops-nodo-jboss--jboss con J01, archivo y tablero propios; máquina sin cambios (3 reglas); al retirar JBoss la máquina sigue (3 reglas, up=1)"}, {"id": "C13", "caso": "Seguridad real (S01)", "resultado": "ok", "evidencia": "6 ingresos SSH fallidos → S01 firing (1) y en Alertmanager (1)"}, {"id": "C14", "caso": "Bloqueo real (B02)", "resultado": "ok", "evidencia": "lectura directa del disco → B02 firing (1) y en Alertmanager (1)"}, {"id": "C8", "caso": "Retirar todas", "resultado": "falla", "evidencia": "exitoso reglas=0 up=1 ready=200 tablero=sin-tablero"}]
-CERT Monitoreo · Configurar alertas del equipo → cambiada
-FIN-ALERTAS-OBJ
---- fin: 2026-11-11T20:56:54-03:00 · código: 0
+AAP ping 200
+SINCRONIZADO lab
+RES {"estado":"sin respuesta del arnés"}
+enuso=- cero=- rollout:v1=- rollout:v2=- sinuso=-
+CASO C1 falla · Valores por defecto
+RES {"estado":"sin respuesta del arnés"}
+plan=[] · - · rollout= · poda=False
+CASO C2 falla · Umbral 0, rangos 1,2 y Quay
+CASO C7 ok · Sin imágenes internas y con Quay
+CASO C8 ok · Sin imágenes internas ni Quay
+CASO C3 ok · Solo el namespace de prueba y organización fija
+git=True repositorio/openshift-manifiestos/imagenes-movilidad/ocp-sno/plan.md · ficha=FO-LAB-01966 2 · raw=404
+CASO C4 ok · Informe en Git y en la ficha del clúster
+CASO C5 ok · Repetir
+CASO C6 ok · Rangos no válidos
+CASO C9 ok · Evaluación por defecto sin el escenario
+CASOS [{"id": "C1", "caso": "Valores por defecto", "resultado": "falla", "evidencia": "sin respuesta del arnés enuso=- cero=- rollout:v1=- rollout:v2=- sinuso=- cand=0 sys=False rangos=0"}, {"id": "C2", "caso": "Umbral 0, rangos 1,2 y Quay", "resultado": "falla", "evidencia": "sin respuesta del arnés [] -  False"}, {"id": "C7", "caso": "Sin imágenes internas y con Quay", "resultado": "ok", "evidencia": "revisiones, candidatas, enlace = (0, 0, 'https://quay.lab.local/organization/movilidad')"}, {"id": "C8", "caso": "Sin imágenes internas ni Quay", "resultado": "ok", "evidencia": "revisiones y Q
+CERT OpenShift · Evaluar imágenes (uso y antigüedad) → sin probar
+/lab/inventario/29 HTTP 200 seccion True
+id="imagenes-movilidad"> Movilidad de imágenes a Quay evaluación 2026-11-11 23:55 · FO-LAB-01973 Solo imágenes del registro interno de OpenShift (ImageStreams); las de registros externos no se listan. 8 / 49 candidatas a Quay (sin uso hace 6 meses o más, o huérfanas) 1.36 GB de las candidatas · 8 capas se liberan solo con ellas — Quay de destino · organización (una por namespace) Rango Revisiones Tamaño en uso 9 3735 MB referenciada 3 1265 MB sin uso 0–3 meses 29 13106 MB huérfana 8 1391 MB Plan de movilidad Ola Imagen Sin uso Tamaño Riesgo Destino Referencias 1 huérfana@a2ed7803e1a1 0.0 meses 411 MB bajo — ninguna (no está en uso) 1 huérfana@0d191d0e6af9 0.0 meses 411 MB bajo — ninguna (no está en uso) 1 huérfana@5bc032f12475 0.0 meses 411 MB bajo — ninguna (no está en uso) 1 huérfana@eb9763766543 0.0 meses 39 MB bajo — ninguna (no está en uso) 1 huérfana@98d7a0ab74bd 0.0 meses 38 MB bajo — ninguna (no está en uso) 1 huérfana@c2fa6cd9b1c0 0.0 meses 38 MB bajo — ninguna (no está en uso
+--- fin: 2026-11-11T20:56:56-03:00 · código: 0
