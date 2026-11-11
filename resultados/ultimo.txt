@@ -1,9 +1,38 @@
-commit: 382c2ed7e188093ff2ab3e97cc6c57996fb52d95
-inicio: 2026-11-11T15:16:50-03:00
+commit: 2f292390241364d3094ae1bfcba335ae65dddca9
+inicio: 2026-11-11T15:17:15-03:00
 ---
-2c5d02a
-antes: HU cambiada huella 82ec48160bce | certificada con 77a459eaeb3d 2026-11-05T18:09
-   automatizacion: 0917d04 JBoss · Desplegar app: set_stats sin agregar
-   proyecto Despliegues de aplicaciones: successful 0917d04
-después: HU cambiada huella 5fa8e4d48ad9 | certificada con 77a459eaeb3d 2026-11-05T18:09
---- fin: 2026-11-11T15:17:14-03:00 · código: 0
+== chequeos
+APP http://192.168.122.11/app-jboss/: 200
+APP https://192.168.122.11/app-jboss/: 200
+RI ruta vigente directo: 200
+KEYCLOAK 8180 desde host: 302
+JBOSS 8080 directo: 200  9990 desde host: 302  RedisInsight 5540: 404
+CONSOLA jboss por FaceOps: HTTP 302 485 bytes  Redirecting... /faceops/lab/inventario/6/consola-web/jboss/console/index.html?connect=https%3A%2F%2Flocalhost%2Ffaceops%2Flab%2Finventario%2F6%2Fconsola-web%2Fjboss
+CONSOLA redis por FaceOps: HTTP 200 29319 bytes  Redis Insight 
+SEGURIDAD pilar: 66.0 %
+    CVE · Red Hat Enterprise Linux = 32.0 %
+    Políticas de seguridad · Red Hat Enterprise Linux (13 de 13 al día) = 100.0 %
+    Recuperación del último punto de restauración = 85 %
+    Remediaciones preventivas · Red Hat Enterprise Linux = 47 %
+    Servicio de Red Hat JBoss EAP · versión 8.0 Update 12.0 = 100 %
+    Instancias de la máquina que la aloja = 100 %
+    Compartido con la máquina (se remedia en la salud de la máquina) = 95 %
+    Compartido con la máquina (se remedia en la salud de la máquina) = 68 %
+   criterio: Seguridad = promedio simple de sus 2 subítems medidos (CVE y políticas de seguridad del sistema y de cada plataforma; cada uno pesa lo mismo).
+   criterio: Puntaje de políticas: proporcional a las políticas al día sobre las que le aplican a la máquina (cada una pesa 100 ÷ aplicables; una desactualizada vale la mita
+   criterio: CVE: % de la exposición corregida desde la línea base de la máquina (su primer análisis), ponderada por severidad — crítica 10, importante 5, moderada 2, baja 1
+FLOTANTE RED-01 Aplicada · FO-LAB-01766
+FLOTANTE CON-02 Aplicada · FO-LAB-01770
+FLOTANTE RED-02 Aplicada · FO-LAB-01756
+PROMETHEUS [('servidores', '192.168.122.15:9100', '1'), ('faceops-equipos', '192.168.122.15:9100', '1')]
+SSH ok nodo-jboss.demo.local
+HORA: yes chronyd=active
+FIREWALLD: active / enabled
+  zona public: puertos [22/tcp 5540/tcp 6379/tcp 8080/tcp 8180/tcp 8443/tcp 9100/tcp] servicios [cockpit dhcpv6-client ssh]
+  rich: rule family="ipv4" source address="192.168.122.1" port port="9990" protocol="tcp" accept
+  trusted: 10.88.0.0/16
+APP02: tabla-ok
+CONTAINERS: 50-faceops.conf  redisinsight Up 2 hours;keycloak Up 44 minutes; pids="PidsLimit": 2048
+TMOUT login no interactivo: [900] interactivo: [900]
+SESION no interactiva sobrevive (sleep 3) rc=0
+--- fin: 2026-11-11T15:17:35-03:00 · código: 0
