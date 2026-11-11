@@ -8,7 +8,7 @@
 set -euo pipefail
 IP=$1
 S="ssh -i $HOME/.ssh/id_demo -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR cquezada@$IP"
-IMGS=${MINIO_IMAGEN:-"docker.io/minio/minio:latest quay.io/minio/minio:latest"}
+IMGS=${MINIO_IMAGEN:-"quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z docker.io/minio/minio:RELEASE.2024-10-13T13-34-11Z quay.io/minio/minio:latest"}
 
 echo "· credenciales (se generan en la VM una sola vez)"
 $S 'sudo install -d -m 700 /etc/faceadmin; sudo install -d -m 700 /var/lib/faceadmin-minio
