@@ -1,20 +1,49 @@
-commit: ccf6b63cb741b4a5dc26974d51a9407130ee16d2
-inicio: 2026-11-10T21:26:15-03:00
+commit: 68d09b696f713c9cdd03389600b468c5eaf0042b
+inicio: 2026-11-10T21:26:30-03:00
 ---
-Traceback (most recent call last):
-  File "<stdin>", line 8, in <module>
-  File "<stdin>", line 5, in t
-  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
-    return opener.open(url, data, timeout)
-  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
-    response = meth(req, response)
-  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
-    response = self.parent.error(
-  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
-    return self._call_chain(*args)
-  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
-    result = func(*args)
-  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
-    raise HTTPError(req.full_url, code, msg, hdrs, fp)
-urllib.error.HTTPError: HTTP Error 404: Not Found
---- fin: 2026-11-10T21:26:15-03:00 · código: 0
+GIT_PUBLICA=<vacía>
+URL_PUBLICA=<vacía>
+nodo-jboss 192.168.122.15 servicios: ['keycloak', 'redis', 'redisinsight'] skills: ["jboss", "keycloak", "node-exporter", "redis", "redisinsight"] []
+*:9100 node_exporter
+0.0.0.0:111 rpcbind
+0.0.0.0:22 sshd
+0.0.0.0:5540 conmon
+0.0.0.0:8080 java
+0.0.0.0:8443 java
+127.0.0.1:6379 redis-server
+127.0.0.1:9990 java
+192.168.122.15:6379 redis-server
+Local Peer
+[::]:111 rpcbind
+[::]:22 sshd
+● not-found failed
+redis.service active running
+redisinsight.service active running
+RI_PROXY_PATH=/faceops/inventario/6/consola-web/redis
+
+nodo-nginx 192.168.122.11 servicios: ['redis', 'redisinsight'] skills: ["kafka", "nginx", "node-exporter", "redis", "redisinsight"] []
+*:38451 java
+*:9093 java
+*:9100 node_exporter
+0.0.0.0:111 rpcbind
+0.0.0.0:22 sshd
+0.0.0.0:443 nginx
+0.0.0.0:5540 conmon
+0.0.0.0:80 nginx
+0.0.0.0:8009 nginx
+127.0.0.1:6379 redis-server
+192.168.122.11:6379 redis-server
+Local Peer
+[::]:111 rpcbind
+[::]:22 sshd
+[::]:80 nginx
+[::ffff:127.0.0.1]:9092 java
+[::ffff:127.0.0.1]:9094 java
+redis.service active running
+redisinsight.service active running
+RI_PROXY_PATH=/faceops/inventario/8/consola-web/redis
+
+nodo-tomcat 192.168.122.14 servicios: ['keycloak', 'redisinsight'] skills: ["activemq", "keycloak", "node-exporter", "redis", "redisinsight"] []
+nodo-so 192.168.122.12 servicios: [] skills: ["node-exporter"] []
+anfitrion-stand 192.168.122.1 servicios: [] skills: [] ["aap", "automation-hub", "certificate-system", "gitea", "kvm", "registro-paquetes"]
+--- fin: 2026-11-10T21:26:32-03:00 · código: 0
