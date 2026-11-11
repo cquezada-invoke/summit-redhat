@@ -1,0 +1,49 @@
+commit: 9f017250406f50f79ba1a76c5b3a7eb2a19c86d0
+inicio: 2026-11-11T13:16:12-03:00
+---
+IP=192.168.122.15
+Red Hat Enterprise Linux release 9.8 (Plow)
+package firewalld is not installed
+nftables-1.0.9-9.el9_8.x86_64
+podman-5.8.5-3.el9_9.x86_64
+netavark-1.17.2-1.el9.x86_64
+== listen
+0.0.0.0:5540 "conmon",pid=2337,fd=5))
+0.0.0.0:8443 "java",pid=2062,fd=441))
+0.0.0.0:111 "rpcbind",pid=231904,fd=4),("systemd",pid=1,fd=46))
+0.0.0.0:22 "sshd",pid=231906,fd=7))
+192.168.122.15:6379 "redis-server",pid=810,fd=7))
+0.0.0.0:8080 "java",pid=2062,fd=429))
+0.0.0.0:9990 "java",pid=2062,fd=424))
+127.0.0.1:6379 "redis-server",pid=810,fd=6))
+[::]:111 "rpcbind",pid=231904,fd=6),("systemd",pid=1,fd=48))
+[::]:22 "sshd",pid=231906,fd=8))
+*:9100 "node_exporter",pid=808,fd=3))
+== nft tables
+table inet faceops_app02
+table ip nat
+table ip filter
+== podman root
+redisinsight Up 4 hours 0.0.0.0:5540->5540/tcp
+netavark fw=netavark-1.17.2-1.el9.x86_64
+#firewall_driver = ""
+== rootless
+== quadlets
+ls: cannot access '/etc/containers/containers.conf.d': No such file or directory
+== systemd units
+eap8-standalone.service
+node_exporter.service
+redis.service
+redisinsight.service
+rpcbind.service
+vigia-jboss.service
+vigia.service
+== tmout
+TMOUT=900
+readonly TMOUT
+export TMOUT
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+eth0             UP             192.168.122.15/24 fe80::5054:ff:fede:15/64 
+podman0          UP             10.88.0.1/16 fe80::a045:2cff:fe5e:b5a8/64 
+veth0@if2        UP             fe80::a0ef:8ff:fe41:4f0f/64 
+--- fin: 2026-11-11T13:16:18-03:00 · código: 0

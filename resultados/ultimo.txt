@@ -1,22 +1,49 @@
-commit: 600930fee724d420bd6f806ab238bb57ed36a3bf
-inicio: 2026-11-11T13:15:45-03:00
+commit: 9f017250406f50f79ba1a76c5b3a7eb2a19c86d0
+inicio: 2026-11-11T13:16:12-03:00
 ---
-tipo workflow 17449 {"mig_modo": "migrar", "mig_tipo": "centos", "mig_politica": "minimo", "mig_snapshot": "kvm"}
-extra_vars {"mig_modo": "migrar", "mig_tipo": "centos", "mig_politica": "minimo", "mig_snapshot": "kvm", "faceops_ticket": "FO-LAB-01256", "faceops_solicitante": "cquezada", "solicitado_por": "cquezada", "faceops_autorizacion": "eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjYxMTA3MTYiLCJ0eXAiOiJmYWNlb3BzK2F1dG9yaXphY2lvbiJ9.eyJhdXRvbWF0aXphY2lvbiI6Ik1pZ3JhY2nDs24gwrcgQ2VudE9TIGEgUkhFTCIsImNsaWVudGUiOiJJbnZva2UgTGFiIiwiZXhwIjoxNzk0MDY5ODIzLCJodWVsbGEiOiJmYTA1YmQ2YTQwMGFlNDk2MzYwN2M5YzRhNzJmYzZhZjhjYjk0ODYyMzk1MTY1NWM2N2QxZWExNTA4ZTIzMTQ0IiwiaHVlbGxhX3BhcmFtZXRyb3MiOiIwZjQ0NzhjYTZjMTk1MzE4NjI4MGE5M2QwOTQ4MDVhOTUyZDJmY
-runner_on_start Anfitrión KVM (credencial «Infra · Anfitrión KVM (snapshots)»)
-runner_on_ok Anfitrión KVM (credencial «Infra · Anfitrión KVM (snapshots)»)
-runner_on_ok Nombre del snapshot (uno por ejecución)
-runner_on_start Nombre del snapshot (uno por ejecución)
-runner_on_start Composición del sistema (sirve de RHEL 5 a 10)
-runner_on_ok Composición del sistema (sirve de RHEL 5 a 10)
-runner_on_start Datos recolectados
-runner_on_ok Datos recolectados
-runner_on_start Plan (versión de destino, camino y hallazgos por categoría)
-runner_on_ok Plan (versión de destino, camino y hallazgos por categoría)
-runner_on_ok Plan del equipo
-runner_on_start Plan del equipo
-runner_on_skipped Análisis oficial (solo lectura)
-runner_on_start Análisis oficial (solo lectura)
-runner_on_failed Validaciones previas
-runner_on_start Validaciones previas
---- fin: 2026-11-11T13:15:56-03:00 · código: 0
+IP=192.168.122.15
+Red Hat Enterprise Linux release 9.8 (Plow)
+package firewalld is not installed
+nftables-1.0.9-9.el9_8.x86_64
+podman-5.8.5-3.el9_9.x86_64
+netavark-1.17.2-1.el9.x86_64
+== listen
+0.0.0.0:5540 "conmon",pid=2337,fd=5))
+0.0.0.0:8443 "java",pid=2062,fd=441))
+0.0.0.0:111 "rpcbind",pid=231904,fd=4),("systemd",pid=1,fd=46))
+0.0.0.0:22 "sshd",pid=231906,fd=7))
+192.168.122.15:6379 "redis-server",pid=810,fd=7))
+0.0.0.0:8080 "java",pid=2062,fd=429))
+0.0.0.0:9990 "java",pid=2062,fd=424))
+127.0.0.1:6379 "redis-server",pid=810,fd=6))
+[::]:111 "rpcbind",pid=231904,fd=6),("systemd",pid=1,fd=48))
+[::]:22 "sshd",pid=231906,fd=8))
+*:9100 "node_exporter",pid=808,fd=3))
+== nft tables
+table inet faceops_app02
+table ip nat
+table ip filter
+== podman root
+redisinsight Up 4 hours 0.0.0.0:5540->5540/tcp
+netavark fw=netavark-1.17.2-1.el9.x86_64
+#firewall_driver = ""
+== rootless
+== quadlets
+ls: cannot access '/etc/containers/containers.conf.d': No such file or directory
+== systemd units
+eap8-standalone.service
+node_exporter.service
+redis.service
+redisinsight.service
+rpcbind.service
+vigia-jboss.service
+vigia.service
+== tmout
+TMOUT=900
+readonly TMOUT
+export TMOUT
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+eth0             UP             192.168.122.15/24 fe80::5054:ff:fede:15/64 
+podman0          UP             10.88.0.1/16 fe80::a045:2cff:fe5e:b5a8/64 
+veth0@if2        UP             fe80::a0ef:8ff:fe41:4f0f/64 
+--- fin: 2026-11-11T13:16:18-03:00 · código: 0
