@@ -1,9 +1,38 @@
-commit: b8d4be4e479ab48e891d0a3145354b2e8e209f99
-inicio: 2026-11-10T23:02:16-03:00
+commit: 70baba1978ae7120856a419d504f164e0bdbce26
+inicio: 2026-11-10T23:02:55-03:00
 ---
-Traceback (most recent call last):
-  File "/tmp/dk1.py", line 12, in <module>
-    print("EQ", n, e["id"], e["ip"], e["estado"], "skills:", e["skills"], "serv:", (e["servicios"] or "")[:200], "datos-keys:", list(d)[:40])
-                                                             ~^^^^^^^^^^
-KeyError: 'skills'
---- fin: 2026-11-10T23:02:22-03:00 · código: 0
+EQ nodo-jboss 6 192.168.122.15 con datos cols: {'so': 'RedHat 9.8', 'cpu': '2', 'servicios': '["NetworkManager", "auditd", "chronyd", "crond", "dbus-broker", "eap8-standalone", "getty@tty1", "gssproxy", "keycloak",'} datos-keys: ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos', 'versiones']
+EQ nodo-jboss2 7 192.168.122.18 con datos cols: {'so': 'RedHat 9.8', 'cpu': '1', 'servicios': '["NetworkManager", "auditd", "chronyd", "crond", "dbus-broker", "eap8-standalone", "getty@tty1", "gssproxy", "node_expor'} datos-keys: ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
+EQ nodo-jboss-dev 21 192.168.122.21 con datos cols: {'so': 'RedHat 9.8', 'cpu': '1', 'servicios': '["NetworkManager", "auditd", "chronyd", "crond", "dbus-broker", "eap8-standalone", "getty@tty1", "gssproxy", "node_expor'} datos-keys: ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
+TCOLS ['id', 'cliente_id', 'numero', 'automatizacion_id', 'usuario_id', 'estado', 'segmento', 'limite', 'parametros', 'motivo', 'aap_job_id', 'aap_job_tipo', 'resultado', 'creado', 'inicio', 'fin', 'duracion_s', 'valor_min', 'tarifa', 'externo_ref', 'aprobado_por', 'respuesta', 'aap_aprobacion_id', 'aprobado_en', 'filtros', 'dur_ejecucion_s', 'dur_aprobacion_s', 'unidades', 'creditos', 'factor', 'ahorro', 'odoo_ref']
+AUTO {'id': 1, 'nombre_aap': 'Autoservicio · 1 Desplegar app', 'aap_tipo': 'job', 'aap_id': 8}
+AUTO {'id': 2, 'nombre_aap': 'Autoservicio · 2 Publicar en Nginx', 'aap_tipo': 'job', 'aap_id': 9}
+AUTO {'id': 3, 'nombre_aap': 'Autoservicio · 3 Validar', 'aap_tipo': 'job', 'aap_id': 10}
+AUTO {'id': 4, 'nombre_aap': 'Autoservicio · Retirar app', 'aap_tipo': 'job', 'aap_id': 11}
+AUTO {'id': 10, 'nombre_aap': 'DC · Keycloak', 'aap_tipo': 'job', 'aap_id': 95}
+AUTO {'id': 69, 'nombre_aap': 'FaceOps · Aplicar política de seguridad', 'aap_tipo': 'job', 'aap_id': 124}
+AUTO {'id': 82, 'nombre_aap': 'Certificados · Emitir para servicio', 'aap_tipo': 'job', 'aap_id': 143}
+AUTO {'id': 100, 'nombre_aap': 'Plataforma · Controlar servicio', 'aap_tipo': 'job', 'aap_id': 162}
+AUTO {'id': 161, 'nombre_aap': 'Storage · Servicio S3 del data lake', 'aap_tipo': 'job', 'aap_id': 557}
+AUTO {'id': 174, 'nombre_aap': 'Políticas de desarrollo · Evaluar aplicaciones', 'aap_tipo': 'job', 'aap_id': 612}
+AUTO {'id': 197, 'nombre_aap': 'Portal · Telco · Red del servicio (VLAN y BGP) (plantilla)', 'aap_tipo': 'job', 'aap_id': 627}
+AUTO {'id': 178, 'nombre_aap': 'Portal · Amdocs · Orden de servicio (plantilla)', 'aap_tipo': 'job', 'aap_id': 630}
+AUTO {'id': 52, 'nombre_aap': 'Autoservicio · Nuevo ambiente', 'aap_tipo': 'workflow', 'aap_id': 12}
+AUTO {'id': 223, 'nombre_aap': 'Portal · Telco · Red del servicio (VLAN y BGP)', 'aap_tipo': 'workflow', 'aap_id': 649}
+AUTO {'id': 201, 'nombre_aap': 'Portal · Amdocs · Activar orden de servicio', 'aap_tipo': 'workflow', 'aap_id': 653}
+TK {'numero': 'FO-LAB-01457', 'estado': 'exitoso', 'motivo': 'Aplicar APP-02 v1 · JBoss con consola de administración protegida', 'creado': '2026-11-10T23:21:18+00:00'}
+TK {'numero': 'FO-LAB-01404', 'estado': 'exitoso', 'motivo': 'Keycloak instalado por error en nodo-jboss (job 15130) ocupa el puerto 8080 de JBoss: se apaga', 'creado': '2026-11-10T19:50:25+00:00'}
+TK {'numero': 'FO-LAB-00954', 'estado': 'fallido', 'motivo': 'Incorporar Keycloak en nodo-jboss', 'creado': '2026-11-06T17:44:18+00:00'}
+TK {'numero': 'FO-LAB-00429', 'estado': 'pendiente_aprobacion', 'motivo': 'Encender Keycloak en dc1-idm01', 'creado': '2026-11-02T05:24:22+00:00'}
+TK {'numero': 'FO-LAB-00428', 'estado': 'pendiente_aprobacion', 'motivo': 'Encender Keycloak en dc1-idm01', 'creado': '2026-11-02T05:24:14+00:00'}
+TK {'numero': 'FO-LAB-00426', 'estado': 'exitoso', 'motivo': 'Incorporar Keycloak en dc1-idm01', 'creado': '2026-11-02T05:22:26+00:00'}
+TK {'numero': 'FO-LAB-00329', 'estado': 'exitoso', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'creado': '2026-11-01T05:47:27+00:00'}
+TK {'numero': 'FO-LAB-00328', 'estado': 'fallido', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'creado': '2026-11-01T05:39:13+00:00'}
+TK {'numero': 'FO-LAB-00325', 'estado': 'fallido', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'creado': '2026-11-01T05:23:00+00:00'}
+TK {'numero': 'FO-LAB-00324', 'estado': 'fallido', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'creado': '2026-11-01T05:17:02+00:00'}
+POL {'codigo': 'APP-02', 'version': 1, 'autor': 'repositorio', 'motivo': 'datos/politicas.yml', 'creado': '2026-10-30T06:19:13+00:00'}
+PEST {'cliente_id': 1, 'codigo': 'APP-02', 'equipo_id': 6, 'version': 1, 'estado': 'fallida', 'modo': 'aplicar', 'detalle': '[]', 'cuando': '2026-11-10T23:22:36+00:00', 'ticket_id': 1457}
+AD HOC nodo-jboss 22667 error
+AD HOC nodo-jboss2 22668 error
+AD HOC nodo-jboss-dev 22669 error
+--- fin: 2026-11-10T23:03:12-03:00 · código: 0
