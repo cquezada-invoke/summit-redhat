@@ -1,10 +1,13 @@
-commit: 8e9f1c273df96ede8c620092e9695710f860cfcd
-inicio: 2026-11-11T15:57:33-03:00
+commit: 531b0318a4e007bf39122b2d6f537326a0551df3
+inicio: 2026-11-11T15:58:08-03:00
 ---
-24010 "msg": "nodo-jboss: corregido: firewall: firewalld instalado · quedan cerrados (no son de su rol ni de sus flujos): 111/tcp"
-24010 nodo-jboss                 : ok=5    changed=1    unreachable=0    failed=0    skipped=10   rescued=0    ignored=0
-24065 "msg": "Cada contenedor con tope de procesos (2048) y registros de tamaño acotado (100 MB), para que uno solo no agote el servidor: valores por defecto de Podman para los contenedores nuevos y tope de procesos aplicado en caliente a los que están en ejecución sin él (sin reiniciarlos). Si el equipo 
-24065 "msg": "nodo-jboss: corregido: ! command -v podman >/dev/null || { grep -qsx..."
-24065 nodo-jboss                 : ok=6    changed=1    unreachable=0    failed=0    skipped=9    rescued=0    ignored=0
-CERT certificada 8 casos
---- fin: 2026-11-11T15:57:41-03:00 · código: 0
+TICKET {'id': 1776, 'cliente_id': 1, 'numero': 'FO-LAB-01776', 'automatizacion_id': 82, 'usuario_id': 1, 'estado': 'fallido', 'segmento': 'App de pagos', 'limite': 'nodo-jboss', 'parametros': {'cert_bits': 2048, 'cert_vigencia_dias': 5, 'cert_nombre': 'nodo-jboss', 'cert_formato': 'pem', 'cert_recargar': 'systemctl restart nodo-jboss', 'cert_san': 'nodo-jboss.demo.local', 'cert_cn': 'nodo-jboss.demo.local', 'cert_propietario': 'root', 'cert_puerto': 443, 'cert_revocar_serie': '712b447484972e16f0a76957e9e0cfc6'}, 'motivo': 'Reemplazo del certificado nodo-jboss.demo.local pedido desde su detalle', 'aap_job_id': 24089, 'aap_job_tipo': 'workflow', 'resultado': 'AAP terminó (failed): ejecución 24 s, espera de aprobación 17 s\nFalló en la tarea «Recargar el servicio» de nodo-jboss: non-zero return code\n\nTASK [Respaldar el anterior y dejar el nuevo en su lugar] **********************\nchanged: [nodo-jboss] => (item=nodo-jboss)\n\nTASK [JBoss EAP entrega el keystore emitido (Elytron)] *************************\nskipping: [nodo-jboss]\n\nTASK [Recargar el servicio] ...', 'creado': '2026-11-11T18:01:15+00:00', 'inicio': '2026-11-11T18:01:19+00:00', 'fin': '2026-11-11T18:03:18+00:00', 'duracion_s': 123, 'valor_min': 45, 'tarifa': 10.0, 'externo_ref': 'INC0011466|6c79bcf4c3241710bfc1be13e4013199|incident', 'aprobado_por': 1, 'respuesta': '', 'aap_aprobacion_id': 24090, 'aprobado_en': 'FaceOps (cquezada) → AAP', 'filtros': '{"ambientes": ["produccion"]}', 'dur_ejecucion_s': 24, 'dur_aprobacion_s': 17, 'unidades': 1, 'creditos': 0.0, 'factor': None, 'ahorro': 0.0, 'odoo_ref': '1591'}
+Traceback (most recent call last):
+  File "/tmp/k1776.py", line 18, in <module>
+    a = q1("SELECT id, nombre_aap, plantilla_id, tipo, requiere_aprobacion FROM automatizaciones WHERE id=?", t["automatizacion_id"]) if t["automatizacion_id"] else None
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 183, in q1
+    r = con().execute(sql, args).fetchone()
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: plantilla_id
+--- fin: 2026-11-11T15:58:14-03:00 · código: 0
