@@ -1,24 +1,16 @@
-commit: e9e7fd673faea4a086f4ded7df20532b50821e3a
-inicio: 2026-11-11T14:03:38-03:00
+commit: 916fe46297c0f953cad8c6847d0d27d2a0154050
+inicio: 2026-11-11T14:22:36-03:00
 ---
-anoche C5: FO-LAB-01507 AAP terminó (successful): ejecución 15 s, espera de aprobación 35 s
-inicio: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · dev 1.0.44
-energía nodo-jboss2 apagar: exitoso FO-LAB-01728
-   nodo-jboss2: shut off
-RES {"ticket": "FO-LAB-01731", "estado": "exitoso", "limite": "nodo-jboss", "resultado": "AAP terminó (successful): ejecución 17 s, espera de aprobación 41 s", "stats": {"version_desplegada": "1.0.43", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
-energía nodo-jboss2 encender: sin respuesta del arnés 
-C1: exitoso · límite nodo-jboss · aprobación True · LB  6 1.0.43; 6 1.0.44; · nodo-jboss 1.0.43 · 
-CASO C1 falla · 1.0.43 con nodo apagado
-RES {"ticket": "FO-LAB-01738", "estado": "exitoso", "limite": "nodo-jboss:nodo-jboss2", "resultado": "AAP terminó (successful): ejecución 28 s, espera de aprobación 40 s", "stats": {"version_desplegada": "1.0.441.0.44", "commit": "", "solicitado_por": "cquezadacquezada", "origen": "AAPAAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
-C2: exitoso · set_stats 1.0.441.0.44 · LB  12 1.0.44; · nodos 1.0.44/1.0.44 · manifiesto 1 · 
-CASO C2 falla · 1.0.44 en producción
-RES {"ticket": "FO-LAB-01739", "estado": "exitoso", "limite": "nodo-jboss:nodo-jboss2", "resultado": "AAP terminó (successful): ejecución 39 s, espera de aprobación 38 s", "stats": {"version_desplegada": "1.0.441.0.44", "commit": "", "solicitado_por": "cquezadacquezada", "origen": "AAPAAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
-CASO C3 ok · repetir 1.0.44
-RES {"ticket": "FO-LAB-01741", "estado": "fallido", "limite": "nodo-jboss:nodo-jboss2", "resultado": "            : ok=6    changed=1    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   \nnodo-jboss2                : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   ", "stats": {}, "detalle": "Descargar versión 9.9.999 publicada por el pipeline · Request failed", "aprobado": true}
-CASO C4 ok · versión inexistente 9.9.999
-RES {"ticket": "FO-LAB-01743", "estado": "exitoso", "limite": "nodo-jboss-dev", "resultado": "AAP terminó (successful): ejecución 16 s, espera de aprobación 61 s", "stats": {"version_desplegada": "1.0.44", "commit": "", "solicitado_por": "cquezada", "origen": "AAP", "url_app": "http://34-176-42-56.sslip.io:8090/app-jboss/"}, "detalle": "", "aprobado": true}
-C5: exitoso · límite nodo-jboss-dev · aprobación True · dev 1.0.44 · LB  12 1.0.44;
-CASO C5 ok · desarrollo
-CERT JBoss · Desplegar app → cambiada
-final: LB  12 1.0.44; · nodo-jboss 1.0.44 · nodo-jboss2 1.0.44 · HTTP 200
---- fin: 2026-11-11T14:22:19-03:00 · código: 0
+base nodo-jboss 839
+sev {'importante': {'p': 531, 't': 739}, 'baja': {'p': 2, 't': 10}, 'moderada': {'p': 10, 't': 83}, 'crítica': {'p': 0, 't': 7}}
+seccion CVE 32.0 -> tras 1 importante 32.2
+Seguridad pilar 56.4
+boton todos False | Parchar viejo False
+motivos 531 de 739 CVE importantes pendientes (peso 5) (−67.4) · 10 de 83 CVE moderados pendientes (peso 2) (−0.5) · 2 de 10 CVE bajos pendientes (peso 1) (−0.1)
+resolveria None
+so RedHat 9.8 | datos so {'kernel': '5.14.0-687.5.3.el9_8.x86_64'}
+paquetes 45 | nombres 1
+streams ['9_8', '9_9']
+kernel ['kernel-5.14.0-687.10.1.el9_8.x86_64', 'kernel-5.14.0-687.12.1.el9_8.x86_64', 'kernel-5.14.0-687.13.1.el9_8.x86_64', 'kernel-5.14.0-687.15.1.el9_8.x86_64', 'kernel-5.14.0-687.17.1.el9_8.x86_64', 'kernel-5.14.0-687.19.1.el9_8.x86_64']
+redhat-release []
+--- fin: 2026-11-11T14:23:40-03:00 · código: 0
