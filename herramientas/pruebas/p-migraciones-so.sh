@@ -34,6 +34,7 @@ Q
   echo "$ip"
 }
 FASE=${1:-rocky}; mkdir -p ~/pruebas-mig; EST=~/pruebas-mig
+aap_arriba() { for i in $(seq 1 60); do curl -sk -m 5 -o /dev/null -w '%{http_code}' https://localhost/api/controller/v2/ping/ 2>/dev/null | grep -q 200 && return 0; sleep 10; done; return 1; }
 ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(estado)" = "rechazado al solicitar" ]; }
 mig() { jq_ "json.dumps((s.get('faceops_migracion') or {}).get('$1') or {}, ensure_ascii=False)"; }
 campo() { echo "$1" | python3 -c "import json,sys;d=json.load(sys.stdin);v=d.get('$2');print(json.dumps(v,ensure_ascii=False) if isinstance(v,(dict,list)) else v)" 2>/dev/null; }
@@ -41,7 +42,7 @@ libres() { set -a; . ~/faceops/faceops.env; set +a; python3 -c "
 import json,os,ssl,urllib.request;cx=ssl._create_unverified_context()
 print(json.loads(urllib.request.urlopen(urllib.request.Request(os.environ['FACEOPS_AAP_URL'].rstrip('/')+'/api/controller/v2/config/',headers={'Authorization':'Bearer '+os.environ['FACEOPS_AAP_TOKEN']}),context=cx).read())['license_info']['free_instances'])"; }
 hab() { caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"$1\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"$2\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"20\",\"hab_ambiente\":\"desarrollo\"},\"rhsm\":true,\"min\":40,\"caso\":\"alta $2\"}" >/dev/null; echo "habilitar $2 ($1): $(estado) $(ticket) $(jq_ "r.get('detalle') or ''")"; }
-inv() { caso "{\"auto\":\"Sistema · Inventariar máquina\",\"equipo\":\"$1\",\"params\":{},\"min\":20,\"caso\":\"inventario $1\"}" >/dev/null; echo "inventariar $1: $(estado) $(ticket)"; }
+inv() { caso "{\"auto\":\"Sistema · Inventariar máquina\",\"equipo\":\"$1\",\"params\":{},\"min\":60,\"caso\":\"inventario $1\"}" >/dev/null; echo "inventariar $1: $(estado) $(ticket)"; }
 snaps() { sudo virsh snapshot-list $1 --name 2>/dev/null | grep -c .; }
 guardar() { echo "$CASOS" > $EST/$1.casos; echo "$TKS" > $EST/$1.tks; }
 cargar() { CASOS=$(cat $EST/$1.casos 2>/dev/null || echo '[]'); TKS=$(cat $EST/$1.tks 2>/dev/null || echo '[]'); }
@@ -158,3 +159,18 @@ if [ "$FASE" = rhel8-rv ]; then
   echo FIN-RHEL8
 fi
 if [ "$FASE" = limpiar ]; then for m in $RK $R8; do existe $m && baja $m; done; echo FIN-LIMPIEZA; fi
+
+if [ "$FASE" = todo ]; then   # lo que falte, en orden y en un solo runner largo (el laboratorio está muy cargado)
+  aap_arriba || { echo "AAP no responde"; exit 0; }
+  if [ ! -s $EST/centos.casos ] || grep -q '"falla"' $EST/centos.casos; then
+    REL=$(en $(ip_de $RK) 'cat /etc/redhat-release' 2>/dev/null)
+    if ! echo "$REL" | grep -q Rocky; then   # quedó a medias: se parte de una Rocky nueva (baja y alta por FaceOps)
+      echo "Rocky de prueba en «$REL»: se recrea"; existe $RK && baja $RK; hab rocky9 mig-rocky; inv $RK
+    fi
+    bash $0 rocky-cr
+  fi
+  aap_arriba; bash $0 rhel8-ev
+  aap_arriba; grep -q '"C3"' $EST/evaluar.casos && bash $0 rhel8-rv
+  aap_arriba; bash $0 limpiar
+  echo "FIN-TODO · centos: $(cat $EST/centos.casos 2>/dev/null | grep -o '"resultado": "[a-z]*"' | tr '\n' ' ') · rhel: $(cat $EST/rhel.casos 2>/dev/null | grep -o '"resultado": "[a-z]*"' | tr '\n' ' ')"
+fi
