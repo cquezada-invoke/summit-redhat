@@ -6945,24 +6945,36 @@ def itil():
     return render_template("itil.html", **calcular(_indicadores()["v"]))
 
 
-@bp.route("/monitoreo/aprobaciones-pendientes")
+@bp.route("/monitoreo/eventos-aap")
 @requiere_login
-def aprobaciones_pendientes():
-    """Aprobaciones de AAP que esperan respuesta (lo que quedó del antiguo panel de alertas)."""
-    from .alertas import leer
+def eventos_aap():
+    """Monitoreo › Eventos de AAP: lo que AAP registra en vivo (reglas de EDA disparadas, activaciones de EDA con problemas,
+    trabajos fallidos y aprobaciones que esperan), con filtro por tipo y período y enlace a AAP y a la máquina/ticket de FaceOps.
+    No son las alertas de monitoreo (esas se configuran en cada objeto y están en Monitoreo › Alertas)."""
+    from .alertas import leer, clave as clave_alerta
     dias = request.args.get("dias", "7")
     dias = int(dias) if dias in ("1", "7", "30") else 7
+    origen = request.args.get("origen", "")
+    origen = origen if origen in ("eda", "eda-activacion", "trabajo", "aprobacion") else ""
     try:
         r = leer(g.cliente, dias)
     except ErrorAAP as e:
         r = {"alertas": [], "errores": [str(e)], "cuenta": {}}
-    origen = "aprobacion"
-    lista = [x for x in r["alertas"] if x["origen"].startswith(origen)]
-    por_origen = {o: sum(1 for x in r["alertas"] if x["origen"].startswith(o)) for o in ("", "eda", "trabajo", "aprobacion")}
-    from .alertas import clave as clave_alerta
+    lista = [dict(x) for x in r["alertas"] if not origen or x["origen"] == origen]
+    por_origen = {o: sum(1 for x in r["alertas"] if not o or x["origen"] == o) for o in ("", "eda", "eda-activacion", "trabajo", "aprobacion")}
+    eqs = {x["nombre"]: x["id"] for x in q("SELECT id, nombre FROM equipos WHERE cliente_id=? AND estado!='retirado'", g.cliente["id"])}
     for x in lista:
         x["clave"] = clave_alerta(x)
+        lim = [n_.strip() for n_ in (x.get("limite") or "").replace(":", ",").split(",") if n_.strip()]
+        x["maquinas"] = [(n_, eqs[n_]) for n_ in lim if n_ in eqs][:3]
     return render_template("alertas.html", r=r, lista=lista, dias=dias, origen=origen, por_origen=por_origen)
+
+
+@bp.route("/monitoreo/aprobaciones-pendientes")
+@requiere_login
+def aprobaciones_pendientes():
+    """Antigua vista de aprobaciones pendientes: ahora es el filtro «Aprobaciones» de Eventos de AAP."""
+    return redirect(url_for("consola.eventos_aap", origen="aprobacion", dias=request.args.get("dias") or None))
 
 
 @bp.route("/alertas/eliminar", methods=["POST"])
@@ -6975,7 +6987,7 @@ def alertas_eliminar():
     descartar(g.cliente["id"], claves, g.usuario["usuario"])
     auditar(g.usuario["usuario"], g.cliente["id"], "eliminar alertas", f"{len(claves)} alerta(s)", {"claves": claves[:20]})
     flash(f"{len(claves)} alerta{'s' if len(claves) != 1 else ''} eliminada{'s' if len(claves) != 1 else ''}: si vuelven a fallar, reaparecen", "ok")
-    return redirect(request.referrer or url_for("consola.aprobaciones_pendientes"))
+    return redirect(request.referrer or url_for("consola.eventos_aap"))
 
 
 @bp.route("/certificados")
@@ -7806,7 +7818,7 @@ def menu_nav():
               "consola.ticket": "consola.radar_salud", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.ecosistema", "consola.ciclo_vida_version": "consola.ecosistema", "consola.stack_tecnologico": "consola.ecosistema",
               "consola.modernizacion_apps": "consola.ecosistema", "consola.so_modernizacion": "consola.sistemas_operativos", "consola.so_actualizaciones": "consola.sistemas_operativos",
-              "consola.tickets": "consola.radar_salud", "consola.aprobaciones_pendientes": "consola.radar_salud", "consola.aprobaciones_traza": "consola.radar_salud"}.get(request.endpoint, request.endpoint)
+              "consola.tickets": "consola.radar_salud", "consola.aprobaciones_pendientes": "consola.radar_salud", "consola.eventos_aap": "consola.radar_salud", "consola.aprobaciones_traza": "consola.radar_salud"}.get(request.endpoint, request.endpoint)
     ep_ = request.endpoint or ""
     if ep_.startswith(("consola.devsecops", "consola.buenas_practicas", "consola.stack_")):
         activo = "consola.ecosistema"
@@ -7859,7 +7871,7 @@ def menu_nav():
                                                                       ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True})]),   # «Buenas prácticas por tecnología» quitada del menú
                  ("consola.fabrica_desarrollo", "Fábrica de software", "segmentos", [("Desarrollo", {}), ("Políticas de software", {"_ep": "consola.politicas_desarrollo"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
-                 ("consola.radar_salud", "Monitoreo", "alertas", [("Radar de salud", {}), ("Alertas", {"_ep": "consola.alertas"}), ("Productividad", {"_ep": "consola.inicio", "_ancla": "sec-productividad"}), ("Tickets", {"_ep": "consola.tickets", "_titulo": True}), ("Todos", {"_ep": "consola.tickets", "_sub": True}),
+                 ("consola.radar_salud", "Monitoreo", "alertas", [("Radar de salud", {}), ("Alertas", {"_ep": "consola.alertas"}), ("Eventos de AAP", {"_ep": "consola.eventos_aap"}), ("Productividad", {"_ep": "consola.inicio", "_ancla": "sec-productividad"}), ("Tickets", {"_ep": "consola.tickets", "_titulo": True}), ("Todos", {"_ep": "consola.tickets", "_sub": True}),
                                                              ("En ejecución", {"_ep": "consola.tickets", "estado": "en_ejecucion", "_sub": True}), ("Exitosos", {"_ep": "consola.tickets", "estado": "exitoso", "_sub": True}),
                                                              ("Fallidos", {"_ep": "consola.tickets", "estado": "fallido", "_sub": True}),
                                                              ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}),

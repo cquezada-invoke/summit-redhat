@@ -49,7 +49,7 @@ def leer(cliente, dias=7):
     aap = AAP.de_cliente(cliente)
     desde = (datetime.now(timezone.utc) - timedelta(days=dias)).strftime("%Y-%m-%dT%H:%M:%SZ")
     errores, out = [], []
-    tickets = {str(t["aap_job_id"]): t for t in q("SELECT id, numero, aap_job_id FROM tickets WHERE cliente_id=? AND aap_job_id IS NOT NULL", cliente["id"])}
+    tickets = {str(t["aap_job_id"]): t for t in q("SELECT id, numero, aap_job_id, limite FROM tickets WHERE cliente_id=? AND aap_job_id IS NOT NULL", cliente["id"])}
     # 1. Event-Driven Ansible: reglas disparadas
     try:
         for r in _eda(aap, "audit-rules/", page_size=100, order_by="-fired_at").get("results", []):
@@ -95,6 +95,7 @@ def leer(cliente, dias=7):
                                     + (" · la última salió bien" if resuelta else " · la última falló")
                                     + (f" · {(f.get('job_explanation') or '')[:120]}" if f.get("job_explanation") else "")),
                         "estado": "resuelta" if resuelta else f["status"], "cuando": f.get("finished"), "ticket": t,
+                        "limite": (t or {}).get("limite") or f.get("limit") or "",
                         "url": f"{aap.publica}/execution/jobs/{'workflow' if f['type'] == 'workflow_job' else 'playbook'}/{f['id']}/output"})
     except ErrorAAP as e:
         errores.append(f"Trabajos: {str(e)[:160]}")
@@ -107,7 +108,7 @@ def leer(cliente, dias=7):
             viejo = creado and creado < (datetime.now(timezone.utc) - timedelta(hours=4)).strftime("%Y-%m-%dT%H:%M:%SZ")
             out.append({"origen": "aprobacion", "nivel": "media" if viejo else "info", "titulo": ap.get("name") or "aprobación",
                         "detalle": f"Workflow «{wj.get('name') or '?'}»" + (" · espera hace más de 4 h" if viejo else ""),
-                        "estado": "pendiente", "cuando": creado, "ticket": t,
+                        "estado": "pendiente", "cuando": creado, "ticket": t, "limite": (t or {}).get("limite") or "",
                         "url": f"{aap.publica}/execution/workflow-approvals/{ap['id']}/details"})
     except ErrorAAP as e:
         errores.append(f"Aprobaciones: {str(e)[:160]}")

@@ -1,24 +1,25 @@
-{% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Aprobaciones pendientes{% endblock %}
+{% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Eventos de AAP{% endblock %}
 {% block cuerpo %}
 {% set NIV = {'critica': ('crítica', 's-alta'), 'alta': ('alta', 's-alta'), 'media': ('media', 's-media'), 'info': ('informativa', 's-ok')} %}
-{% set ORI = {'eda': 'Event-Driven Ansible', 'eda-activacion': 'Activación EDA', 'trabajo': 'Trabajo fallido', 'aprobacion': 'Aprobación'} %}
-<div class="fila"><div><h1>Aprobaciones pendientes</h1><p class="sub">Aprobaciones de Ansible Automation Platform que esperan respuesta. Media: esperan más de 4 horas. Las alertas de cada objeto se configuran ahora en su ficha (botón «Alertas») y su estado está en Monitoreo › Alertas.</p></div>
-<span class="der fila" style="gap:6px">{% for d in (1, 7, 30) %}<a class="chip{{ ' s-ok' if dias == d }}" href="{{ url_for('consola.aprobaciones_pendientes', dias=d, origen=origen or None) }}">{{ 'último día' if d == 1 else 'últimos ' ~ d ~ ' días' }}</a>{% endfor %}</span></div>
-{{ kpi_panel(kpi_de('aprobaciones')) }}
+{% set ORI = {'eda': 'Regla EDA disparada', 'eda-activacion': 'Activación EDA', 'trabajo': 'Trabajo fallido', 'aprobacion': 'Aprobación'} %}
+<div class="fila"><div><h1>Eventos de AAP</h1><p class="sub">Lo que Ansible Automation Platform registra, en vivo: reglas de Event-Driven Ansible que se dispararon, activaciones de EDA con problemas, trabajos fallidos y aprobaciones que esperan. No son las alertas de monitoreo: esas se configuran en la ficha de cada objeto y su estado está en Monitoreo › Alertas.</p></div>
+<span class="der fila" style="gap:6px">{% for d in (1, 7, 30) %}<a class="chip{{ ' s-ok' if dias == d }}" href="{{ url_for('consola.eventos_aap', dias=d, origen=origen or None) }}">{{ 'último día' if d == 1 else 'últimos ' ~ d ~ ' días' }}</a>{% endfor %}</span></div>
+{% if origen == 'aprobacion' %}{{ kpi_panel(kpi_de('aprobaciones')) }}{% endif %}
 <div class="grid g4" style="margin:6px 0 14px">
 {% for k in ('critica', 'alta', 'media', 'info') %}<div class="card kpi"><div class="n" style="color:{{ {'critica': 'var(--bad)', 'alta': 'var(--bad)', 'media': 'var(--warn)', 'info': 'var(--info)'}[k] }}">{{ r.cuenta.get(k, 0) }}</div><div class="l">{{ NIV[k][0] }}</div></div>{% endfor %}
 </div>
-
+<div class="tabs-pf">{% for o, t in [('', 'Todos'), ('eda', 'Reglas EDA'), ('eda-activacion', 'Activaciones EDA'), ('trabajo', 'Trabajos fallidos'), ('aprobacion', 'Aprobaciones')] %}<a class="{{ 'on' if origen == o }}" href="{{ url_for('consola.eventos_aap', dias=dias, origen=o or None) }}">{{ t }} <span class="sub">{{ por_origen.get(o, 0) }}</span></a>{% endfor %}</div>
+<p class="sub" style="font-size:12px;margin:4px 0 8px">El período aplica a reglas disparadas y trabajos; las activaciones con problemas y las aprobaciones se muestran mientras sigan así. Aprobación media: espera más de 4 horas.</p>
 {% for e in r.errores %}<p class="flash error">No se pudo leer de AAP · {{ e }}</p>{% endfor %}
 {% set elim = lista|rejectattr('origen', 'equalto', 'aprobacion')|list %}
-{% if perfil_actual.modo == 'escritura' and elim %}<form method="post" action="{{ url_for('consola.alertas_eliminar') }}" style="margin:0 0 8px;text-align:right" onsubmit="return confirm('¿Eliminar las {{ elim|length }} alertas de esta vista? Si algo vuelve a fallar, reaparece.')"><input type="hidden" name="_csrf" value="{{ csrf }}">{% for x in elim %}<input type="hidden" name="clave" value="{{ x.clave }}">{% endfor %}<button class="btn chico gris">Eliminar todas ({{ elim|length }})</button></form>{% endif %}
-{% if r.ocultas %}<p class="sub" style="font-size:12px;margin:0 0 6px">{{ r.ocultas }} alerta{{ 's' if r.ocultas != 1 }} eliminada{{ 's' if r.ocultas != 1 }} de la vista.</p>{% endif %}
-<div class="card" style="padding:0">{% if lista %}<table><tr><th style="width:90px">Nivel</th><th>Alerta</th><th>Origen</th><th>Estado</th><th>Cuándo</th><th>Ticket</th><th></th></tr>
+{% if perfil_actual.modo == 'escritura' and elim %}<form method="post" action="{{ url_for('consola.alertas_eliminar') }}" style="margin:0 0 8px;text-align:right" onsubmit="return confirm('¿Quitar los {{ elim|length }} eventos de esta vista? Si algo vuelve a fallar, reaparece.')"><input type="hidden" name="_csrf" value="{{ csrf }}">{% for x in elim %}<input type="hidden" name="clave" value="{{ x.clave }}">{% endfor %}<button class="btn chico gris">Quitar todos ({{ elim|length }})</button></form>{% endif %}
+{% if r.ocultas %}<p class="sub" style="font-size:12px;margin:0 0 6px">{{ r.ocultas }} evento{{ 's' if r.ocultas != 1 }} quitado{{ 's' if r.ocultas != 1 }} de la vista.</p>{% endif %}
+<div class="card" style="padding:0">{% if lista %}<table><tr><th style="width:90px">Nivel</th><th>Evento</th><th>Tipo</th><th>Estado</th><th>Cuándo</th><th>En FaceOps</th><th></th></tr>
 {% for x in lista %}<tr><td><span class="chip {{ NIV[x.nivel][1] }}">{{ NIV[x.nivel][0] }}</span></td>
 <td><b>{{ x.titulo }}</b><div class="sub" style="font-size:12.5px">{{ x.detalle }}</div></td>
 <td>{{ ORI.get(x.origen, x.origen) }}</td><td>{{ x.estado }}</td><td>{{ x.cuando|fecha if x.cuando else '—' }}</td>
-<td>{% if x.ticket %}<a href="{{ url_for('consola.ticket', tid=x.ticket.id) }}">{{ x.ticket.numero }}</a>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td>{% if x.ticket %}<a href="{{ url_for('consola.ticket', tid=x.ticket.id) }}">{{ x.ticket.numero }}</a>{% endif %}{% for n, eid in x.maquinas %}{% if x.ticket or not loop.first %} · {% endif %}<a href="{{ url_for('consola.equipo', eid=eid) }}">{{ n }}</a>{% endfor %}{% if not x.ticket and not x.maquinas %}<span class="sub">—</span>{% endif %}</td>
 <td style="white-space:nowrap"><a href="{{ x.url }}" target="_blank" rel="noopener">ver en AAP ↗</a>{% if perfil_actual.modo == 'escritura' and x.origen != 'aprobacion' %}
-<form method="post" action="{{ url_for('consola.alertas_eliminar') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="clave" value="{{ x.clave }}"><button class="btn chico gris" style="margin-left:6px" title="La quita de la vista; si vuelve a fallar, reaparece">Eliminar</button></form>{% endif %}</td></tr>{% endfor %}</table>
-{% else %}<p class="nada" style="padding:18px">Sin alertas en este período.</p>{% endif %}</div>
+<form method="post" action="{{ url_for('consola.alertas_eliminar') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="clave" value="{{ x.clave }}"><button class="btn chico gris" style="margin-left:6px" title="Lo quita de la vista; si vuelve a fallar, reaparece">Quitar</button></form>{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="nada" style="padding:18px">Sin eventos en este período.</p>{% endif %}</div>
 {% endblock %}
