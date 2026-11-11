@@ -1,0 +1,105 @@
+commit: ed72c9be17e71c070bd2a648dbe4d879d8d8ac84
+inicio: 2026-11-10T21:26:46-03:00
+---
+
+### Banca · Core bancario produccion
+  N p:seg grupo None 'Banca · Core bancario' 
+  N p:ocp grupo_ocp p:seg 'OpenShift · ocp-sno' 
+  N c:app equipo p:ocp 'Core bancario' 
+  N c:_route equipo p:ocp 'Route' bif
+  N x:usuarios entrada None '▶ Clientes y ejecutivos\ninicio del flujo' 
+  E oc0r entrada x:usuarios -> c:_route 443 no aplica negocio
+  E oc0 flujo c:_route -> c:app 8080 no aplica negocio
+  N v:app:produccion por_crear p:seg 'Core bancario\npor crear (1)\nServidor · produccion' 
+  N v:lake:produccion por_crear p:seg 'Data lake central (S3 + Trino) · zona banca_core\np' 
+  E pl0-1 planificado x:usuarios -> v:app:produccion 443  
+  E pl1-2 planificado v:app:produccion -> v:lake:produccion 9000  
+
+### Denuncias · Fiscalía (demo) produccion
+  N p:seg grupo None 'Denuncias · Fiscalía (demo)' 
+  N p:ocp grupo_ocp p:seg 'OpenShift · ocp-sno · namespace demo-fiscalia' 
+  N c:app equipo p:ocp 'Aplicación de denuncias (formulario y evaluación)' 
+  N c:bd equipo p:ocp 'Base de datos operacional' 
+  N c:lake equipo p:ocp 'Data lake (S3 + Trino)' 
+  N c:ia equipo p:ocp 'Agente de IA · IBM Granite 3.3 2B' 
+  N c:_route equipo p:ocp 'Route' bif
+  N x:agentes entrada None '▶ Agentes del MP y personas denunciantes\ninicio de' 
+  E oc0r entrada x:agentes -> c:_route 443 no aplica negocio
+  E oc0 flujo c:_route -> c:app 8080 no aplica negocio
+  E oc1 flujo c:app -> c:bd 5432 no aplica negocio
+  E oc2 flujo c:_route -> c:lake 9000 no aplica bifurcacion
+  E oc3 flujo c:lake -> c:ia 8080 no aplica bifurcacion
+  N v:app:produccion por_crear p:seg 'Aplicación de denuncias (formulario y evaluación)\n' 
+  N v:bd:produccion por_crear p:seg 'Base de datos operacional\npor crear (1)\nServidor ·' 
+  N v:lake:produccion por_crear p:seg 'Data lake (S3 + Trino)\npor crear (1)\nServidor · pr' 
+  N v:ia:produccion por_crear p:seg 'Agente de IA · IBM Granite 3.3 2B\npor crear (1)\nSe' 
+  E pl0-1 planificado x:agentes -> v:app:produccion 443  
+  E pl1-2 planificado v:app:produccion -> v:bd:produccion 5432  
+  E pl2-3 planificado v:app:produccion -> v:lake:produccion 9000  
+  E pl3-4 planificado v:lake:produccion -> v:ia:produccion 8080  
+
+### Plataforma OpenShift (SNO) produccion
+  N p:seg grupo None 'Plataforma OpenShift (SNO) · produccion' 
+  N e:ocp-sno equipo p:seg 'ocp-sno\nopenshift' 
+  N x:admins entrada None '▶ Administradores (API)\ninicio del flujo' 
+  E f0 entrada x:admins -> e:ocp-sno 6443 🔒CA interna  
+  N p:ocp grupo_ocp p:seg 'OpenShift · ocp-sno' 
+  N c:ingreso equipo p:ocp 'Ingreso (router de OpenShift)' 
+  N c:gitops equipo p:ocp 'Red Hat OpenShift GitOps' 
+  N c:pipelines equipo p:ocp 'Red Hat OpenShift Pipelines' 
+  N c:_route equipo p:ocp 'Route' 
+  N x:usuarios entrada None '▶ Usuarios y aplicaciones\ninicio del flujo' 
+  E oc0r entrada x:usuarios -> c:_route 443 no aplica negocio
+  E oc0 flujo c:_route -> c:ingreso 8080 no aplica negocio
+  N v:ingreso:produccion por_crear p:seg 'Ingreso (router de OpenShift)\npor crear (1)\nServid' 
+  N v:gitops:produccion por_crear p:seg 'Red Hat OpenShift GitOps\npor crear (1)\nServidor · ' 
+  N v:pipelines:produccion por_crear p:seg 'Red Hat OpenShift Pipelines\npor crear (1)\nServidor' 
+  E pl0-2 planificado x:usuarios -> v:ingreso:produccion 443  
+  E pl2-3 planificado v:ingreso:produccion -> e:ocp-sno 443  
+  E pl4-4 planificado v:gitops:produccion -> e:ocp-sno 6443  
+  E pl5-5 planificado v:pipelines:produccion -> e:ocp-sno 6443  
+
+### Ventas en línea produccion
+  N p:seg grupo None 'Ventas en línea · produccion' 
+  N e:nodo-jboss equipo p:seg 'nodo-jboss\njboss, keycloak' 
+  N e:nodo-jboss2 equipo p:seg 'nodo-jboss2\njboss, node-exporter' 
+  N e:nodo-nginx equipo p:seg 'nodo-nginx\nkafka, nginx' bif
+  N e:nodo-postgres equipo p:seg 'nodo-postgres\nnode-exporter, postgres' 
+  N x:clientes entrada None '▶ Clientes (Internet)\ninicio del flujo' 
+  N v:fwperim red_virtual p:seg 'Firewall perimetral\n(por asignar)' 
+  E p1 paso x:clientes -> v:fwperim None  
+  N v:waf red_virtual p:seg 'WAF (protección de aplicaciones web)\n(por asignar)' 
+  E p2 paso v:fwperim -> v:waf None  
+  E f0 entrada v:waf -> e:nodo-nginx 443 🔒CA interna  
+  E f1 flujo e:nodo-nginx -> e:nodo-jboss 8080 ✓ abierto 
+  E f2 flujo e:nodo-nginx -> e:nodo-jboss2 8080 ✓ abierto 
+  E f3 flujo e:nodo-jboss -> e:nodo-postgres 5432 ✓ 🔒CA interna abierto 
+  E f4 flujo e:nodo-jboss2 -> e:nodo-postgres 5432 ✓ 🔒CA interna abierto 
+  N st:nodo-jboss:0 almacen None 'Storage · /datos\ndisco de datos /dev/vdb · 19.9 GB' 
+  E stl:nodo-jboss:0 montaje e:nodo-jboss -> st:nodo-jboss:0 None  
+  N v:fwperim:produccion por_crear p:seg 'Firewall perimetral\npor crear (1)\nFirewall · produ' 
+  N v:waf:produccion por_crear p:seg 'WAF (protección de aplicaciones web)\npor crear (1)' 
+
+### App de pagos qa
+  N p:seg grupo None 'App de pagos · qa' 
+  N e:nodo-jboss-qa equipo p:seg 'nodo-jboss-qa\njboss, node-exporter' 
+  N v:web:qa por_crear p:seg 'Balanceador Nginx\npor crear (1)\nBalanceo · qa' bif
+  N v:bd:qa por_crear p:seg 'PostgreSQL\npor crear (1)\nBase de datos · qa' 
+  N v:mensajeria:qa por_crear p:seg 'Colas (Artemis) y caché (Valkey)\npor crear (1)\nMen' 
+  N x:usuarios entrada None '▶ Usuarios de la app\ninicio del flujo' 
+  E pl0-1 planificado x:usuarios -> v:web:qa 443  
+  E pl1-2 planificado v:web:qa -> e:nodo-jboss-qa 8080  
+  E pl2-3 planificado e:nodo-jboss-qa -> v:bd:qa 5432  
+  E pl3-4 planificado e:nodo-jboss-qa -> v:mensajeria:qa 61616 · 6379  
+  N dl:lake datalake None 'Data lake corporativo\nS3 + Trino (demo-datalake)\nl' 
+  E bl0 bifurcacion v:web:qa -> dl:lake 9000  bifurcacion
+
+### Autoservicio de desarrollo produccion
+  N p:seg grupo None 'Autoservicio de desarrollo · produccion' 
+  N e:nodo-nginx equipo p:seg 'nodo-nginx\nkafka, nginx' bif
+  N e:nodo-tomcat equipo p:seg 'nodo-tomcat\nactivemq, keycloak' 
+  E f0 flujo e:nodo-nginx -> e:nodo-tomcat 8080 ✗ bloqueado 
+{'id': 1, 'cliente_id': 1, 'segmento': 'Denuncias · Fiscalía (demo)', 'punto': 'Route', 'destino': 's3://lake/fiscalia/', 'activa': 1, 'por': 'arquitectura', 'en': '2026-11-06T21:32:08+00:00'}
+denuncias-fiscalia-demo {'en_cola': 0, 'en_s3_archivos': 0, 'en_s3_bytes': 0, 'enviado_bytes': 0, 'enviado_desde': '2026-11-11T00:26:58Z', 'enviado_registros': 0, 'generador': {'activo': None, 'base': None, 'enviados': None, 'errores': None, 'hasta': None}, 'recibidos': 0, 'rps_1m': 0.0, 'segmento': 'denuncias-fiscalia-demo', 'ultimo': ''}
+app-de-pagos {'en_cola': 6, 'en_s3_archivos': 97, 'en_s3_bytes': 127333, 'enviado_bytes': 128418, 'enviado_desde': '2026-11-11T00:02:44Z', 'enviado_registros': 599, 'generador': {'activo': None, 'base': None, 'enviados': None, 'errores': None, 'hasta': None}, 'recibidos': 630, 'rps_1m': 0.4, 'segmento': 'app-de-pagos', 'ultimo': '2026-11-11T00:26:56.341Z'}
+--- fin: 2026-11-10T21:26:58-03:00 · código: 0
