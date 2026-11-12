@@ -1,0 +1,20 @@
+commit: 0d8618f5132deb3a28e195856f223478ef2a633b
+inicio: 2026-11-11T22:46:42-03:00
+---
+d601d38 Centros de datos: diagrama con una caja por centro o
+   · Plantilla «OpenShift · Evaluar imágenes (uso y antigüedad)» (id 1170)
+   · Plantilla «OpenShift · Mover imágenes a Quay» (id 1171)
+ANTES {'nombre': 'srv-windows-iis-01', 'cliente_id': 1, 'categoria': 'servidor', 'so': '', 'so_familia': 'Windows', 'inventario': 'Servidores habilitados', 'inventarios': '["Servidores habilitados"]', 'proveedor': 'kvm', 'ubicacion': 'Centro de datos Valparaíso', 'ip': 'pendiente', 'energia': 'apagado', 'estado': 'sin datos', 'ultima_recoleccion': None}
+HOST srv-windows-iis-01 inv 10 facts None keys ['ansible_connection', 'ansible_host', 'ansible_port', 'ansible_winrm_transport', 'faceops_ambiente', 'faceops_forma', 'faceops_segmento', 'faceops_so_pedido', 'faceops_ticket', 'faceops_ubicacion']
+ so_pedido windows2022 ticket FO-LAB-01949 conn winrm
+INFRA None
+sync ok
+DESPUES so= Windows Server 2022 | familia= Windows | version= 2022
+INCORPORAR 80 sin probar
+FICHA HTTP 200 |  Sistema Windows Server 2022 IP pendiente Centro de datos Centro de da
+ acceso: ['RDP no disponible: La máquina está apagada']
+ vinculo: Sin vínculo WinRM: FaceOps no puede inventariar ni medir el sistema operativo. Incorpórala para inventariarla y medirla sin agente. El inventario (sistema, CPU, memoria, discos, servicios, parches, ce
+ incorporar: ['>Incorporar a FaceOps<'] ['Aún no disponible: «FaceOps · Incorporar máquinas» no ha pasado su plan de prueba (no está certificada)']
+ segmentos: id="segmentos-negocio"> Segmentos de negocio servicios de negocio a los que pertenece la máquina La máquina no pertenece a ningún segmento de negocio. Asociar a un segmento Segmentos de srv-windows-ii
+ eliminar btn: False False
+--- fin: 2026-11-11T22:50:59-03:00 · código: 0
