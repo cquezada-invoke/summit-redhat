@@ -1666,8 +1666,7 @@ def _uso_cajas(cajas, grupos):
             "n": max(len(cpus), len(rams)), "ts": max(tss).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if tss else ""}
 
 
-_STACK = {"aceptada": ("En el stack · Adoptar", "s-ok"), "evaluacion": ("En el stack · En evaluación", "s-media"),
-          "contener": ("Contener", "s-media"), "retirar": ("Retirar", "s-alta"), "fuera": ("Fuera del stack", "s-alta")}
+from .manifiesto import ESTADO_STACK as _STACK  # noqa: E402  (una sola fuente: el chip «En el stack» y el nivel 3 del Stack Tecnológico)
 
 
 def _logo_plat(k):
@@ -1742,13 +1741,11 @@ def plataformas_vista():
     nombre.update({c: _nombre_plat(c) for c in grupos if c not in nombre})
     cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c]), "inst": True}
              for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
-    try:   # manifiesto de arquitectura: lo instalado que no está aceptado queda marcado «fuera del manifiesto»
-        from .manifiesto import ESTADOS as _mfe, por_skill as _mfps
+    try:   # Stack Tecnológico (manifiesto): lo instalado que no está aceptado queda marcado «fuera del stack»; misma fuente que el nivel 3
+        from .manifiesto import ESTADOS as _mfe, por_skill as _mfps, estado_plataforma as _mfep
         ps_ = _mfps(g.cliente["id"])
-        inv_ = {"postgresql": "postgres", "jboss-eap": "jboss", "wireguard": "vpn", "redis-insight": "redisinsight", "datalake": "trino", "data-lake": "trino", "activemq": "artemis"}
         for c_ in cajas:
-            t_ = ps_.get(c_["clave"]) or ps_.get(inv_.get(c_["clave"], ""))
-            c_["mf"] = (t_ or {}).get("estado") or "fuera"
+            c_["mf"] = _mfep(ps_, c_["clave"])[0]
             c_["mf_t"] = _mfe.get(c_["mf"], "Fuera del manifiesto")
     except Exception:  # noqa: BLE001
         pass
@@ -1769,7 +1766,7 @@ def plataformas_vista():
         c_["logo"] = _logo_plat(c_["clave"])
         d_ = (desc_kb.get(c_["clave"]) or _desc_plat(c_["clave"])).strip().split("\n")[0]
         c_["desc"] = d_ if len(d_) <= 110 else d_[:107].rsplit(" ", 1)[0] + "…"
-        c_["stack"] = _STACK.get(c_.get("mf")) if c_.get("mf") else None
+        c_["stack"] = _STACK.get(c_.get("mf")) if c_.get("mf") else None   # mismo origen que Stack Tecnológico › nivel 3
     srv_inc = sorted([e for e in equipos_visibles() if seccion_eq(e) in ("inventario", "nubes") and not _propia_faceops(e)], key=lambda e: e["nombre"])
     return render_template("plataformas.html", servidores_inc=srv_inc, titulo="Plataformas", desc="Tecnologías instaladas en el parque: servidores de aplicación, bases de datos, caché, mensajería, contenedores y gestión.",
                            cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.plataformas_vista",
@@ -7831,8 +7828,68 @@ def _datos_plano():
 @bp.route("/arquitectura/manifiesto", methods=["GET", "POST"])
 @requiere_login
 def manifiesto_arquitectura():
-    """Manifiesto de arquitectura en tres niveles: capas, conceptos y tecnologías aceptadas (con lo instalado y su ciclo de vida)."""
+    """URL anterior del manifiesto: ahora es el nivel 1 del Stack Tecnológico (los enlaces viejos siguen funcionando)."""
+    return redirect(url_for("consola.stack_arquitectura", **request.args.to_dict()), code=307 if request.method == "POST" else 301)
+
+
+def _stack_fisico(m, ps):
+    """Nivel 3: a cada tecnología le agrega lo instalado según las cajas de Plataformas (versiones, fase, fabricante, logo e
+    instancias), solo con datos ya recolectados. Devuelve las plataformas instaladas que no están en el manifiesto."""
+    from . import ciclo_vida as CV, manifiesto as M
+    from .asistente import PLATAFORMAS
+    nombre = {c: n for c, n, _ in PLATAFORMAS}
+    sos = {"rhel", "so:ubuntu", "windows-server", "so:windows", "so:linux"}
+    grupos = defaultdict(list)
+    for e, r in _riesgo_parque():
+        for c in set(_plataformas_de(e, r)):
+            if c not in sos:
+                grupos[c].append(e)
+    cajas = [{"clave": c, "t": nombre.get(c) or _nombre_plat(c), "n": len(grupos[c])} for c in grupos]
+    _salud_cajas(cajas, grupos)
+    por_t, fuera = defaultdict(list), []
+    for c in cajas:
+        c["logo"] = _logo_plat(c["clave"])
+        t = M.tecnologia_de(ps, c["clave"])
+        (por_t[t["clave"]] if t else fuera).append(c)
+    for t in M.tecnologias(m):
+        k = t.get("skill") or t["clave"]
+        t["plats"] = por_t.get(t["clave"], [])
+        t["logo"] = t["plats"][0]["logo"] if t["plats"] else _logo_plat(k)
+        if t["logo"].endswith("generico.svg") and k != t["clave"]:
+            t["logo"] = _logo_plat(t["clave"])
+        t["fab"] = next((p["fab"] for p in t["plats"] if p.get("fab")), "") or next(
+            (f for pre, f in _FABRICANTES if t["clave"] == pre or t["clave"].startswith(pre + "-") or k == pre or k.startswith(pre + "-")), "")
+        t["chip"] = M.ESTADO_STACK.get(t["estado"])
+        vs = {}
+        for p in t["plats"]:
+            for vd in p.get("vers_det") or []:
+                x = vs.setdefault(vd["v"], {"version": vd["v"], "n": 0, "fase": vd["fase"]})
+                x["n"] += vd["n"]
+        for v in (t.get("instalado") or {}).get("versiones") or []:   # ciclo de vida (barrido guardado) y sistemas operativos
+            vs.setdefault(str(v["version"]), {"version": str(v["version"]), "n": v["n"], "fase": v["fase"]})
+        for v in vs.values():
+            v["fuera"] = bool(t["versiones"]) and v["version"] not in t["versiones"] and v["version"].split(".")[0] not in t["versiones"]
+        prod_ = t.get("producto") or CV.ALIAS_FUENTE.get(k) or CV.ALIAS_FUENTE.get(t["clave"]) or t["clave"]
+        for v in vs.values():   # vigencia: tiempo de soporte restante de la versión en uso (fechas de datos/ciclo-vida.yml)
+            v["vig"] = CV.vigencia(prod_, CV.version_ciclo(prod_, v["version"])) if prod_ in CV.datos() else None
+            if v["vig"]:   # la fase sale de la misma versión del ciclo de vida que la barra (15.6 → 15)
+                v["fase"] = v["vig"]["fase"]
+        t["vers_uso"] = sorted(vs.values(), key=lambda v: (v["vig"]["dias"] if v.get("vig") else 10 ** 6, v["version"]))   # la peor primero
+        t["fuente_of"] = CV.fuente_oficial(prod_, t["vers_uso"][0]["version"] if len(t["vers_uso"]) == 1 else None) or CV.fuente_oficial(k)
+        orden_ = ["fuera", "extendido", "mantencion", "completo", "desconocido"]
+        t["soporte"] = next((f for f in orden_ if any(v["fase"] == f for v in t["vers_uso"])), "")
+        t["n_inst"] = sum(p["n"] for p in t["plats"]) or (t.get("instalado") or {}).get("n", 0)
+    return sorted(fuera, key=lambda c: -c["n"])
+
+
+@bp.route("/arquitectura/stack-tecnologico", methods=["GET", "POST"])
+@requiere_login
+def stack_arquitectura():
+    """Stack Tecnológico en tres niveles: 1 · Manifiesto de arquitectura (principios, objetivo de cada capa y decisiones
+    Adoptar/Contener/Retirar con su roadmap), 2 · Arquitectura Conceptual (capacidades ligadas a los principios) y
+    3 · Arquitectura Física (productos del cliente por capacidad, con versiones en uso y fase de soporte)."""
     from . import manifiesto as M
+    vuelta = request.form.get("nivel") if request.form.get("nivel") in ("1", "2", "3") else "1"
     if request.method == "POST" and request.form.get("accion") == "roadmap":
         _escritura()
         sk = request.form.get("skill", "")[:80]
@@ -7843,7 +7900,7 @@ def manifiesto_arquitectura():
             flash("Roadmap actualizado: " + sk, "ok")
         except ValueError as x:
             flash(str(x), "error")
-        return redirect(url_for("consola.manifiesto_arquitectura", nivel=3, _anchor="roadmap"))
+        return redirect(url_for("consola.stack_arquitectura", nivel=1, _anchor="roadmap"))
     if request.method == "POST":
         _escritura()
         try:
@@ -7854,17 +7911,22 @@ def manifiesto_arquitectura():
             flash("Manifiesto actualizado: " + request.form.get("tecnologia", ""), "ok")
         except ValueError as x:
             flash(str(x), "error")
-        return redirect(url_for("consola.manifiesto_arquitectura", nivel=3, _anchor="t-" + request.form.get("tecnologia", "")))
+        return redirect(url_for("consola.stack_arquitectura", nivel=vuelta, _anchor="t-" + request.form.get("tecnologia", "")))
     nivel = request.args.get("nivel", "1")
     nivel = nivel if nivel in ("1", "2", "3") else "1"
     m = M.manifiesto(g.cliente["id"])
     eqs = equipos_visibles()
-    fuera = M.fuera_del_manifiesto(g.cliente["id"], eqs)   # con su roadmap de salida (resumen en todos los niveles)
+    fuera = M.fuera_del_manifiesto(g.cliente["id"], eqs)   # con su roadmap de salida (detalle en el nivel 1, resumen en los otros)
     rm = M.roadmap(g.cliente["id"], fuera)
+    fuera_plat = []
     if nivel == "3":
         from . import stack as S
-        r = S.ultimo(g.cliente["id"]) or S.evaluar(g.cliente["id"], {})
+        r = S.ultimo(g.cliente["id"]) or S.evaluar(g.cliente["id"], {})   # último barrido guardado o el inventario: sin consultas en vivo
         M.con_instalado(m, eqs, r.get("filas"))
+        try:
+            fuera_plat = _stack_fisico(m, M.por_skill(g.cliente["id"]))
+        except Exception as e_:  # noqa: BLE001
+            current_app.logger.warning("stack físico: %s", e_)
     try:   # madurez (COBIT/CMMI) de cada tecnología y de cada capa, sobre los equipos que la usan
         from .madurez import con_madurez
         con_madurez(m, g.cliente["id"], eqs, hallazgos_visibles(eqs))
@@ -7878,10 +7940,12 @@ def manifiesto_arquitectura():
             sal_apps = salud_apps(apps, g.cliente["id"], eqs, hallazgos_visibles(eqs))
         except Exception as e_:  # noqa: BLE001
             current_app.logger.warning("salud de aplicaciones: %s", e_)
-    cuenta = Counter(t["estado"] for t in M.tecnologias(m))
-    aceptadas = sorted({t["nombre"] for t in M.tecnologias(m) if t.get("estado") in ("aceptada", "evaluacion")})
+    tecs = list(M.tecnologias(m))
+    cuenta = Counter(t["estado"] for t in tecs)
+    aceptadas = sorted({t["nombre"] for t in tecs if t.get("estado") in ("aceptada", "evaluacion")})
+    decisiones = {k: [t for t in tecs if t["estado"] == k] for k in M.ESTADOS}
     return render_template("manifiesto.html", m=m, nivel=nivel, estados=M.ESTADOS, fuera=fuera, apps=apps, sal_apps=sal_apps, cuenta=cuenta, rm=rm,
-                           salida=M.SALIDA, avance=M.AVANCE, aceptadas=aceptadas)
+                           salida=M.SALIDA, avance=M.AVANCE, aceptadas=aceptadas, decisiones=decisiones, fuera_plat=fuera_plat)
 
 
 @bp.route("/fabrica/politicas", methods=["GET", "POST"])
@@ -8177,6 +8241,8 @@ def stack_tecnologico():
     r = S.ultimo(g.cliente["id"])
     if not r:   # sin barrido aún: lo que FaceOps ya sabe del inventario
         r = dict(S.evaluar(g.cliente["id"], {}), preliminar=True)
+    from .ciclo_vida import con_referencias
+    con_referencias(r.get("filas"))   # vigencia (barra) y fuente oficial de cada versión, desde datos/ciclo-vida.yml
     return render_template("stack.html", r=r, a=a)
 
 
@@ -8416,12 +8482,12 @@ def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.deudas": "consola.radar_salud", "consola.alertas": "consola.radar_salud", "consola.kpi_okr": "consola.radar_salud", "consola.itil": "consola.radar_salud", "consola.seguridad_mapa": "consola.politicas", "consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario", "consola.edge": "consola.inventario", "consola.edge_ficha": "consola.inventario",
               "consola.ticket": "consola.radar_salud", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.ecosistema", "consola.ciclo_vida_version": "consola.ecosistema", "consola.stack_tecnologico": "consola.ecosistema",
-              "consola.modernizacion_apps": "consola.ecosistema", "consola.so_modernizacion": "consola.sistemas_operativos", "consola.so_actualizaciones": "consola.sistemas_operativos",
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.stack_arquitectura", "consola.ciclo_vida_version": "consola.stack_arquitectura", "consola.stack_tecnologico": "consola.stack_arquitectura",
+              "consola.modernizacion_apps": "consola.stack_arquitectura", "consola.ecosistema": "consola.centros_datos", "consola.manifiesto_arquitectura": "consola.stack_arquitectura", "consola.so_modernizacion": "consola.sistemas_operativos", "consola.so_actualizaciones": "consola.sistemas_operativos",
               "consola.tickets": "consola.radar_salud", "consola.cola_acciones": "consola.radar_salud", "consola.aprobaciones_pendientes": "consola.radar_salud", "consola.eventos_aap": "consola.radar_salud", "consola.aprobaciones_traza": "consola.radar_salud"}.get(request.endpoint, request.endpoint)
     ep_ = request.endpoint or ""
     if ep_.startswith(("consola.devsecops", "consola.buenas_practicas", "consola.stack_")):
-        activo = "consola.ecosistema"
+        activo = "consola.stack_arquitectura"
     elif ep_.startswith(("consola.respaldo", "consola.reportes", "consola.sla")):
         activo = "consola.gobierno_ti"
     if request.endpoint == "consola.equipo" and (request.view_args or {}).get("eid"):
@@ -8469,7 +8535,7 @@ def menu_nav():
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Incidentes", {"_ep": "consola.incidentes"}), ("Incidentes de seguridad", {"_ep": "consola.seg_incidentes"})]),   # «VPN y accesos remotos» fuera del menú por ahora (la ruta sigue)
                  # «Disponibilidad» ya no es una sección: es un criterio de cada segmento de negocio (sección en su flotante del mapa)
-                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Manifiesto de arquitectura", {"_ep": "consola.manifiesto_arquitectura"}), ("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Políticas de desarrollo", {"_ep": "consola.politicas_desarrollo"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}), ("Modernización de aplicaciones", {"_ep": "consola.modernizacion_apps"}),
+                 ("consola.stack_arquitectura", "Arquitectura", "segmentos", [("Stack Tecnológico", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Políticas de desarrollo", {"_ep": "consola.politicas_desarrollo"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}), ("Modernización de aplicaciones", {"_ep": "consola.modernizacion_apps"}),
                                                                       ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True})]),   # «Buenas prácticas por tecnología» quitada del menú
                  ("consola.fabrica_desarrollo", "Fábrica de software", "segmentos", [("Desarrollo", {}), ("Políticas de software", {"_ep": "consola.politicas_desarrollo"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),

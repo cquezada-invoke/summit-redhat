@@ -94,3 +94,42 @@ productos:
     versiones:          # completo = soporte general · extendido = guía técnica
       "7.0": {ga: 2020-04-02, completo: 2025-10-02, extendido: 2027-10-02}
       "8.0": {ga: 2022-10-11, completo: 2027-10-11, extendido: 2029-10-11}
+
+# Fuente oficial del ciclo de vida/soporte de cada producto (la usa todo FaceOps: Ciclo de vida, Stack Tecnológico › nivel 3, fichas).
+# url: política del fabricante (endoflife.date solo como respaldo cuando el fabricante no publica una página pública de política)
+# versiones: página específica por versión cuando el fabricante la tiene · verificado: última vez que se comprobó que la URL existe
+fuentes:
+  redhat:            {url: "https://access.redhat.com/product-life-cycles", verificado: 2026-11-12, nota: "Red Hat Product Life Cycles (todos los productos)"}
+  rhel:              {url: "https://access.redhat.com/support/policy/updates/errata", verificado: 2026-11-12, nota: "Red Hat Enterprise Linux Life Cycle"}
+  red-hat-idm:       {url: "https://access.redhat.com/support/policy/updates/errata", verificado: 2026-11-12, nota: "IdM es parte de RHEL: sigue su ciclo de vida"}
+  centos:            {url: "https://www.centos.org/centos-linux-eol/", verificado: 2026-11-12}
+  openshift:         {url: "https://access.redhat.com/support/policy/updates/openshift", verificado: 2026-11-12, nota: "Red Hat OpenShift Container Platform Life Cycle Policy"}
+  jboss-eap:         {url: "https://access.redhat.com/support/policy/updates/jboss_notes", verificado: 2026-11-12, nota: "Red Hat JBoss Middleware Product Update and Support Policy"}
+  aap:               {url: "https://access.redhat.com/support/policy/updates/ansible-automation-platform", verificado: 2026-11-12, nota: "Ansible Automation Platform Life Cycle"}
+  satellite:         {url: "https://access.redhat.com/support/policy/updates/satellite", verificado: 2026-11-12, nota: "Red Hat Satellite Product Life Cycle"}
+  keycloak:          {url: "https://access.redhat.com/support/policy/updates/red_hat_build_of_keycloak_notes", verificado: 2026-11-12, nota: "Red Hat build of Keycloak Life Cycle"}
+  389-directory-server: {url: "https://access.redhat.com/product-life-cycles?product=Red%20Hat%20Directory%20Server", verificado: 2026-11-12}
+  certificate-system: {url: "https://access.redhat.com/product-life-cycles?product=Red%20Hat%20Certificate%20System", verificado: 2026-11-12}
+  kafka:             {url: "https://access.redhat.com/product-life-cycles?product=Streams%20for%20Apache%20Kafka", verificado: 2026-11-12, nota: "Streams for Apache Kafka (AMQ Streams)"}
+  artemis:           {url: "https://access.redhat.com/product-life-cycles?product=Red%20Hat%20AMQ", verificado: 2026-11-12, nota: "Red Hat AMQ (Broker)"}
+  java:              {url: "https://access.redhat.com/articles/1299013", verificado: 2026-11-12, nota: "OpenJDK Life Cycle and Support Policy"}
+  ubuntu:            {url: "https://ubuntu.com/about/release-cycle", verificado: 2026-11-12}
+  windows:           {url: "https://learn.microsoft.com/lifecycle/", verificado: 2026-11-12, nota: "Microsoft Lifecycle",
+                      versiones: {"2022": "https://learn.microsoft.com/lifecycle/products/windows-server-2022", "2025": "https://learn.microsoft.com/lifecycle/products/windows-server-2025"}}
+  active-directory:  {url: "https://learn.microsoft.com/lifecycle/products/windows-server-2025", verificado: 2026-11-12, nota: "Rol de Windows Server: sigue su ciclo de vida"}
+  iis:               {url: "https://learn.microsoft.com/lifecycle/products/internet-information-services-iis", verificado: 2026-11-12}
+  sqlserver:         {url: "https://learn.microsoft.com/lifecycle/", verificado: 2026-11-12, nota: "Microsoft Lifecycle",
+                      versiones: {"2022": "https://learn.microsoft.com/lifecycle/products/sql-server-2022"}}
+  postgresql:        {url: "https://www.postgresql.org/support/versioning/", verificado: 2026-11-12}
+  mysql:             {url: "https://www.oracle.com/us/support/library/lifetime-support-technology-069183.pdf", verificado: 2026-11-12, nota: "Oracle Lifetime Support Policy"}
+  mongodb:           {url: "https://www.mongodb.com/legal/support-policy/lifecycles", verificado: 2026-11-12}
+  redis:             {url: "https://redis.io/docs/latest/operate/rs/installing-upgrading/product-lifecycle/", verificado: 2026-11-12}
+  tomcat:            {url: "https://tomcat.apache.org/whichversion.html", verificado: 2026-11-12}
+  httpd:             {url: "https://httpd.apache.org/download.cgi", verificado: 2026-11-12, nota: "En RHEL lo soporta Red Hat junto con el sistema operativo"}
+  nginx:             {url: "https://nginx.org/en/download.html", verificado: 2026-11-12, nota: "Ramas mainline, stable y legacy"}
+  haproxy:           {url: "https://www.haproxy.org/", verificado: 2026-11-12, nota: "Tabla de ramas con su fin de vida"}
+  vault:             {url: "https://developer.hashicorp.com/vault/docs/enterprise/support", verificado: 2026-11-12, nota: "Vault Enterprise support (LTS y periodo de soporte)"}
+  jenkins:           {url: "https://www.jenkins.io/download/lts/", verificado: 2026-11-12}
+  vmware-vsphere:    {url: "https://endoflife.date/vmware-vcenter", verificado: 2026-11-12, nota: "Respaldo: el portal de Broadcom no tiene página pública de política"}
+  prometheus:        {url: "https://endoflife.date/prometheus", verificado: 2026-11-12, nota: "Respaldo: el proyecto no publica política propia"}
+  grafana:           {url: "https://endoflife.date/grafana", verificado: 2026-11-12, nota: "Respaldo"}

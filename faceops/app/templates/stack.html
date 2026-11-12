@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block titulo %}Ciclo de vida{% endblock %}
-{% block cuerpo %}
+{% block cuerpo %}{% from "_vigencia.html" import barra_vig, fuente %}
 {% include "_stack_tabs.html" %}
 <div class="fila"><div><h1>Ciclo de vida</h1><p class="sub">Versiones de sistemas operativos, plataformas, bases de datos y lenguajes de todo el parque, frente al ciclo de vida del fabricante: qué está fuera de soporte, qué está por vencer y a qué versión conviene ir.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn" {{ '' if a else 'disabled title="Falta la acción en el catálogo"' }}>Evaluar ahora (ticket)</button></form>{% endif %}</div>
@@ -12,10 +12,10 @@
   <div class="card kpi"><div class="l">En mantención</div><div class="n" style="color:var(--warn)">{{ r.cuenta.mantencion }}</div><div class="l">solo correcciones críticas</div></div>
   <div class="card kpi"><div class="l">Barrido</div><div class="n">{{ r.equipos }}</div><div class="l">equipos · {{ r.componentes }} componentes{% if r.sin_ciclo %} · {{ r.sin_ciclo }} sin ciclo de vida cargado{% endif %}</div></div>
 </div>
-<div class="card" style="margin-top:14px;padding:0"><table><tr><th>Tipo</th><th>Componente</th><th>Versión</th><th class="num">Equipos</th><th>Fase</th><th>Fin de soporte</th><th class="num">Días</th><th>Conviene ir a</th></tr>
+<div class="card" style="margin-top:14px;padding:0"><table><tr><th>Tipo</th><th>Componente</th><th>Versión</th><th class="num">Equipos</th><th>Fase</th><th>Fin de soporte</th><th class="num">Días</th><th style="min-width:170px">Vigencia</th><th>Conviene ir a</th><th>Fuente oficial</th></tr>
 {% for f in r.filas %}<tr><td class="sub" style="font-size:12px">{{ f.tipo }}</td><td><b>{{ f.nombre }}</b>{% if f.instaladas|length > 1 or (f.instaladas and f.instaladas[0] != f.version) %}<br><span class="sub mono" style="font-size:11px">{{ f.instaladas|join(', ') }}</span>{% endif %}</td>
 <td class="mono">{{ f.version or '—' }}</td><td class="num" title="{{ f.equipos|join(', ') }}">{{ f.n }}</td>
-<td><span class="chip {{ fase_n[f.fase][1] }}">{{ fase_n[f.fase][0] }}</span></td><td>{{ f.fin_soporte or '—' }}</td><td class="num">{{ '' if f.dias is none else f.dias }}</td><td>{{ f.siguiente or '—' }}</td></tr>
-{% else %}<tr><td colspan="8" class="vacio">Sin datos todavía.</td></tr>{% endfor %}</table></div>
-<p class="sub" style="font-size:12px">Fechas referenciales de cada fabricante (ver Seguridad › Ciclo de vida); verificar en la fuente antes de comprometer fechas.</p>
+<td><span class="chip {{ fase_n[f.fase][1] }}">{{ fase_n[f.fase][0] }}</span></td><td>{{ f.fin_soporte or '—' }}</td><td class="num">{{ '' if f.dias is none else f.dias }}</td><td>{{ barra_vig(f.vig) }}</td><td>{{ f.siguiente or '—' }}</td><td style="font-size:12.5px">{{ fuente(f.fuente_of) }}</td></tr>
+{% else %}<tr><td colspan="10" class="vacio">Sin datos todavía.</td></tr>{% endfor %}</table></div>
+<p class="sub" style="font-size:12px">Fechas referenciales de cada fabricante (ver Seguridad › Ciclo de vida); verificar en la fuente oficial de cada fila antes de comprometer fechas.</p>
 {% endblock %}

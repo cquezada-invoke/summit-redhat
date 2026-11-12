@@ -1,4 +1,4 @@
-"""Manifiesto de arquitectura: capas (negocio → infraestructura), gobierno transversal, conceptos y tecnologías aceptadas
+"""Stack Tecnológico (nivel 1: manifiesto de arquitectura): principios, capas (negocio → infraestructura), gobierno transversal, conceptos y tecnologías aceptadas
 con sus versiones. Base en datos/manifiesto-arquitectura.yml; cada cliente lo ajusta (tabla manifiesto_ajustes, auditado).
 FaceOps lo usa para decidir qué plataformas se pueden instalar y para marcar lo instalado fuera del manifiesto."""
 import json
@@ -12,7 +12,14 @@ ESQUEMA = """
 CREATE TABLE IF NOT EXISTS manifiesto_ajustes (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, tecnologia TEXT NOT NULL,
   estado TEXT, versiones TEXT DEFAULT '[]', motivo TEXT DEFAULT '', usuario TEXT, fecha TEXT, UNIQUE(cliente_id, tecnologia));
 """
-ESTADOS = {"aceptada": "Aceptada", "evaluacion": "En evaluación", "contener": "Contener", "retirar": "Retirar"}
+ESTADOS = {"aceptada": "Adoptar", "evaluacion": "En evaluación", "contener": "Contener", "retirar": "Retirar"}
+# chip «En el stack» de las plataformas (cajas de lab/plataformas y nivel 3 del Stack Tecnológico): una sola fuente
+ESTADO_STACK = {"aceptada": ("En el stack · Adoptar", "s-ok"), "evaluacion": ("En el stack · En evaluación", "s-media"),
+                "contener": ("Contener", "s-media"), "retirar": ("Retirar", "s-alta"), "fuera": ("Fuera del stack", "s-alta")}
+# clave de plataforma del inventario → clave/skill del manifiesto cuando no coinciden
+ALIAS_PLAT = {"postgresql": "postgres", "jboss-eap": "jboss", "wireguard": "vpn", "redis-insight": "redisinsight", "datalake": "trino",
+              "data-lake": "trino", "activemq": "artemis", "aap-controller": "aap", "aap-gateway": "aap", "prometheus": "prometheus",
+              "grafana": "prometheus", "samba-ad": "active-directory", "ad": "active-directory", "idm": "red-hat-idm", "bind": "dns"}
 INSTALABLE = ("aceptada", "evaluacion")
 _base = {"v": None, "t": 0}
 
@@ -47,7 +54,34 @@ def manifiesto(cliente_id):
                     t["estado"] = a["estado"] or t["estado"]
                     t["versiones"] = json.loads(a["versiones"] or "[]")
                     t["ajuste"] = {"usuario": a["usuario"], "fecha": a["fecha"], "motivo": a["motivo"]}
+    return _trazar(b)
+
+
+def _trazar(b):
+    """Principio (N1) → capacidad (N2): cada concepto con sus principios y cada principio con sus capacidades."""
+    caps = {c["clave"]: (capa, c) for capa in b["capas"] + [dict(b["gobierno"], clave="gobierno")] for c in capa["conceptos"]}
+    for c in (x for _, x in caps.values()):
+        c["principios"] = []
+    for p in b.get("principios") or []:
+        p["caps"] = []
+        for k in p.get("capacidades") or []:
+            if k in caps:
+                capa, c = caps[k]
+                c["principios"].append({"codigo": p["codigo"], "nombre": p["nombre"]})
+                p["caps"].append({"clave": k, "nombre": c["nombre"], "capa": capa["nombre"]})
     return b
+
+
+def tecnologia_de(ps, clave):
+    """Tecnología del manifiesto para una clave de plataforma del inventario (ps = por_skill)."""
+    return ps.get(clave) or ps.get(ALIAS_PLAT.get(clave, "")) or ps.get(clave.split(":")[-1])
+
+
+def estado_plataforma(ps, clave):
+    """(estado, (texto del chip, clase)) de una plataforma instalada según el manifiesto; «fuera» si no está."""
+    t = tecnologia_de(ps, clave)
+    e = (t or {}).get("estado") or "fuera"
+    return e, ESTADO_STACK.get(e, ESTADO_STACK["fuera"])
 
 
 def tecnologias(m):

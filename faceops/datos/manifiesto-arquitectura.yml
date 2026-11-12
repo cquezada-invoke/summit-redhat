@@ -5,16 +5,30 @@
 #           nueva, se mantiene lo existente) · retirar (plan de salida en el roadmap)
 #   skill: la plataforma de FaceOps que la instala/detecta · producto: su ciclo de vida (datos/ciclo-vida.yml)
 #   versiones: las versiones aceptadas (vacío = cualquiera con soporte del fabricante)
+# Principios de arquitectura (nivel 1 del Stack Tecnológico). «capacidades» son las claves de los conceptos (nivel 2) que cada
+# principio gobierna: así se traza principio → capacidad → producto (nivel 3). Toda capacidad debe quedar cubierta por al menos uno.
+principios:
+  - {codigo: P1, nombre: Código abierto con respaldo empresarial, que: "Preferimos tecnologías abiertas con suscripción, soporte del fabricante y ciclo de vida publicado.", capacidades: [lenguajes, servidores_app, so, relacional, cache, mensajeria, analitica]}
+  - {codigo: P2, nombre: Contenedores primero, que: "Lo nuevo se construye para contenedores sobre OpenShift; una máquina virtual solo cuando la aplicación no lo permite.", capacidades: [aplicaciones, contenedores, servidores_app, lenguajes, virtualizacion]}
+  - {codigo: P3, nombre: Todo como código, que: "Infraestructura, configuración y despliegues se definen en Git y se ejecutan con AAP y pipelines, nunca a mano.", capacidades: [automatizacion, cicd, parches, red, so]}
+  - {codigo: P4, nombre: Seguridad e identidad desde el diseño, que: "Login único, identidades centralizadas, secretos en bóveda y certificados gestionados en cada capa.", capacidades: [acceso, identidad, secretos, web, red]}
+  - {codigo: P5, nombre: Integración desacoplada, que: "Las aplicaciones se comunican por APIs y eventos con contratos explícitos, sin dependencias ocultas.", capacidades: [apis, mensajeria, aplicaciones, balanceo]}
+  - {codigo: P6, nombre: Datos gobernados, que: "Una fuente de verdad por dominio, en motores aceptados, con respaldo y acceso para analítica.", capacidades: [analitica, relacional, documentos, cache, objetos]}
+  - {codigo: P7, nombre: Observable por defecto, que: "Todo componente expone métricas, registros y salud desde el primer día.", capacidades: [observabilidad, balanceo, web]}
+  - {codigo: P8, nombre: Versiones soportadas y estandarizadas, que: "Pocas versiones por producto y siempre con soporte del fabricante; lo que sale de soporte entra al roadmap.", capacidades: [so, servidores_app, relacional, contenedores, parches]}
+  - {codigo: P9, nombre: Nube híbrida y portable, que: "Las cargas se mueven entre centro de datos y nube sin reescribirse.", capacidades: [nube, virtualizacion, contenedores, objetos]}
 capas:
   - clave: negocio
     nombre: Negocio
     que: "Capacidades y aplicaciones que usa el negocio"
+    objetivo: "Creemos que la tecnología existe para sostener lo que el negocio entrega, no al revés. Por eso cada aplicación es un segmento con dueño y salud medida, y toda decisión de las capas de abajo se justifica por el valor que habilita aquí."
     conceptos:
       - {clave: aplicaciones, nombre: Aplicaciones de negocio, que: "Segmentos de negocio (cada uno es una aplicación)", tecnologias: []}
       - {clave: analitica, nombre: Analítica y datos, tecnologias: [{clave: trino, nombre: Trino (data lake), skill: datalake, estado: aceptada}, {clave: superset, nombre: Superset, estado: evaluacion}]}
   - clave: front
     nombre: Front
     que: "Lo que recibe al usuario: web, balanceo y acceso"
+    objetivo: "Nos comprometemos a que cada usuario entre por una puerta conocida, segura y balanceada. Por eso publicamos solo servidores web y balanceadores aceptados y concentramos el acceso en un login único, para que la experiencia y el control no dependan de cada aplicación."
     conceptos:
       - {clave: web, nombre: Servidores web, tecnologias: [{clave: nginx, nombre: NGINX, estado: aceptada}, {clave: httpd, nombre: Apache httpd, estado: aceptada}, {clave: iis, nombre: IIS, skill: iis, estado: contener}]}
       - {clave: balanceo, nombre: Balanceo y tráfico, tecnologias: [{clave: haproxy, nombre: HAProxy, estado: aceptada}, {clave: proxy, nombre: Proxy de salida (DMZ), estado: aceptada}]}
@@ -22,12 +36,14 @@ capas:
   - clave: interoperabilidad
     nombre: Interoperabilidad
     que: "Cómo se comunican las aplicaciones entre sí"
+    objetivo: "Creemos que las aplicaciones deben conversar por contratos y no por dependencias ocultas. Por eso integramos con APIs y eventos: una pieza puede cambiar, escalar o reemplazarse sin arrastrar a las demás capas del manifiesto."
     conceptos:
       - {clave: mensajeria, nombre: Mensajería y eventos, tecnologias: [{clave: kafka, nombre: Kafka / AMQ Streams, estado: aceptada}, {clave: artemis, nombre: AMQ Broker (Artemis), skill: activemq, estado: evaluacion}]}
       - {clave: apis, nombre: APIs e integración, tecnologias: [{clave: camel, nombre: Camel / Red Hat build of Apache Camel, estado: evaluacion}]}
   - clave: middleware
     nombre: Middleware
     que: "Donde corren las aplicaciones"
+    objetivo: "Nos comprometemos a que el código corra sobre runtimes estándar y soportados, con contenedores como primera opción. Así cada aplicación se despliega igual en cualquier ambiente y modernizar es un camino continuo, no un proyecto aparte."
     conceptos:
       - {clave: servidores_app, nombre: Servidores de aplicaciones, tecnologias: [{clave: jboss, nombre: JBoss EAP, skill: jboss, producto: jboss-eap, estado: aceptada, versiones: ["8.0", "8.1"]}, {clave: tomcat, nombre: Apache Tomcat, producto: tomcat, estado: contener, versiones: ["10.1"]}, {clave: weblogic, nombre: Oracle WebLogic, estado: retirar}]}
       - {clave: contenedores, nombre: Contenedores, tecnologias: [{clave: openshift, nombre: Red Hat OpenShift, producto: openshift, estado: aceptada, versiones: ["4.18", "4.20"]}, {clave: podman, nombre: Podman, estado: aceptada}]}
@@ -35,6 +51,7 @@ capas:
   - clave: persistencia
     nombre: Persistencia
     que: "Donde viven los datos"
+    objetivo: "Creemos que los datos son el activo más duradero de la organización. Por eso viven en motores aceptados, con versiones soportadas y una sola fuente de verdad por dominio, listos para respaldarse, replicarse y analizarse."
     conceptos:
       - {clave: relacional, nombre: Bases relacionales, tecnologias: [{clave: postgres, nombre: PostgreSQL, skill: postgres, producto: postgresql, estado: aceptada, versiones: ["15", "16", "17"]}, {clave: sqlserver, nombre: SQL Server, skill: sqlserver, estado: aceptada}, {clave: mysql, nombre: MySQL / MariaDB, skill: mysql, estado: contener}]}
       - {clave: documentos, nombre: Documentos, tecnologias: [{clave: mongodb, nombre: MongoDB, skill: mongodb, estado: evaluacion}]}
@@ -43,6 +60,7 @@ capas:
   - clave: infraestructura
     nombre: Infraestructura
     que: "Sistemas operativos, virtualización, nube y red"
+    objetivo: "Nos comprometemos a una base común, híbrida y reemplazable: sistemas operativos empresariales, virtualización y nube bajo las mismas reglas. Así la capa de abajo deja de ser un freno y cada carga puede moverse a donde más convenga."
     conceptos:
       - {clave: so, nombre: Sistemas operativos, tecnologias: [{clave: rhel, nombre: Red Hat Enterprise Linux, producto: rhel, estado: aceptada, versiones: ["9", "10"]}, {clave: windows, nombre: Windows Server, producto: windows, estado: aceptada, versiones: ["2022", "2025"]}, {clave: ubuntu, nombre: Ubuntu Server, producto: ubuntu, estado: contener}, {clave: centos, nombre: CentOS, producto: centos, estado: retirar}]}
       - {clave: virtualizacion, nombre: Virtualización, tecnologias: [{clave: kvm, nombre: KVM / libvirt, estado: aceptada}, {clave: openshift-virt, nombre: OpenShift Virtualization, estado: aceptada}, {clave: vmware, nombre: VMware vSphere, producto: vmware-vsphere, estado: contener}]}
@@ -51,6 +69,7 @@ capas:
 gobierno:
   nombre: Gobierno
   que: "Transversal a todas las capas: automatización, identidad, secretos, parches, CI/CD y observabilidad"
+  objetivo: "Creemos que el orden no se impone al final: se construye en cada capa. Por eso automatizamos, protegemos identidades y secretos, parchamos y observamos de forma transversal, para que cumplir este manifiesto sea lo que ocurre por defecto."
   conceptos:
     - {clave: automatizacion, nombre: Automatización, tecnologias: [{clave: aap, nombre: Ansible Automation Platform, estado: aceptada}, {clave: automation-hub, nombre: Automation Hub, estado: aceptada}]}
     - {clave: identidad, nombre: Identidad y directorio, tecnologias: [{clave: red-hat-idm, nombre: Red Hat IdM, skill: red-hat-idm, estado: aceptada}, {clave: active-directory, nombre: Active Directory, skill: active-directory, estado: aceptada}, {clave: 389-directory-server, nombre: Directory Server (389), skill: 389-directory-server, estado: aceptada}, {clave: midpoint, nombre: midPoint, skill: midpoint, estado: evaluacion}]}

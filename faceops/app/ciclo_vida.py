@@ -19,6 +19,76 @@ def datos():
     return _DATOS
 
 
+_FUENTES = None
+# clave de plataforma o tecnología → producto de datos/ciclo-vida.yml (fuentes) cuando no coinciden
+ALIAS_FUENTE = {"postgres": "postgresql", "jboss": "jboss-eap", "eap": "jboss-eap", "ocp": "openshift", "aap-controller": "aap",
+                "aap-gateway": "aap", "automation-hub": "aap", "eda": "aap", "rhbk": "keycloak", "idm": "red-hat-idm", "freeipa": "red-hat-idm",
+                "windows-server": "windows", "so:windows": "windows", "so:ubuntu": "ubuntu", "ad": "active-directory", "samba-ad": "active-directory",
+                "mssql": "sqlserver", "mariadb": "mysql", "redisinsight": "redis", "redis-insight": "redis", "vmware": "vmware-vsphere",
+                "openjdk": "java", "amq-streams": "kafka", "activemq": "artemis", "389": "389-directory-server", "rhds": "389-directory-server"}
+
+
+def fuentes():
+    """Fuente oficial del ciclo de vida de cada producto (url, fecha de última verificación y nota), para todo FaceOps."""
+    global _FUENTES
+    if _FUENTES is None:
+        d = yaml.safe_load(open(os.path.join(os.path.dirname(__file__), "..", "datos", "ciclo-vida.yml"), encoding="utf-8"))
+        _FUENTES = {k: dict(v) for k, v in (d.get("fuentes") or {}).items()}
+        for k, v in (d.get("productos") or {}).items():   # productos con fechas: su «fuente» vale si no hay entrada propia
+            if v.get("fuente") and k not in _FUENTES:
+                _FUENTES[k] = {"url": v["fuente"]}
+    return _FUENTES
+
+
+def fuente_oficial(clave, version=None):
+    """{url, verificado, nota, sitio} de la política de ciclo de vida del fabricante para un producto o plataforma (con la página
+    de la versión cuando el fabricante la tiene); None si no hay."""
+    if not clave:
+        return None
+    f = fuentes()
+    c = str(clave).lower()
+    x = f.get(c) or f.get(ALIAS_FUENTE.get(c, "")) or f.get(c.split(":")[-1])
+    if not x or not x.get("url"):
+        return None
+    x = dict(x, url=(x.get("versiones") or {}).get(str(version or ""), x["url"]))
+    m = re.match(r"https?://(?:www\.)?([^/]+)", x["url"])
+    return dict(x, sitio=m.group(1) if m else x["url"])
+
+
+def vigencia(p, v, hoy=None):
+    """Tiempo de soporte restante de una versión hasta su fin (extendido, mantención o completo, el último que tenga):
+    {pct, dias, fin, fase, texto, color}; None sin fechas. Color por fase: verde completo, amarillo mantención/extendido,
+    rojo fuera de soporte o con menos de 90 días."""
+    hoy = hoy or date.today()
+    ver = ((datos().get(p) or {}).get("versiones") or {}).get(str(v))
+    if not ver:
+        return None
+    fechas = {k: (x if isinstance(x, date) else date.fromisoformat(str(x))) for k, x in ver.items()}
+    fin = fechas.get("extendido") or fechas.get("mantencion") or fechas.get("completo")
+    if not fin:
+        return None
+    fase = evaluar_producto(p, str(v), hoy)["fase"]
+    dias = (fin - hoy).days
+    total = max(1, (fin - fechas["ga"]).days) if fechas.get("ga") else max(1, dias)
+    pct = max(0, min(100, round(100 * dias / total)))
+    if dias < 0:
+        texto = "vencido hace " + (f"{-dias} días" if -dias < 90 else f"{round(-dias / 30.4)} meses")
+    else:
+        texto = (f"{dias} días" if dias < 90 else f"{round(dias / 30.4)} meses") + " restantes"
+    color = "bad" if fase == "fuera" or dias < 90 else ("ok" if fase == "completo" else "warn")
+    return {"pct": pct, "dias": dias, "fin": fin.isoformat(), "fase": fase, "texto": texto, "color": color,
+            "fin_fase": next((fechas[k].isoformat() for k in ("completo", "mantencion", "extendido") if k in fechas and hoy <= fechas[k]), None)}
+
+
+def con_referencias(filas, hoy=None):
+    """Agrega a cada fila del ciclo de vida (producto, versión) su vigencia y su fuente oficial; no consulta nada en vivo."""
+    for f in filas or []:
+        p = f.get("producto") or ""
+        f["vig"] = vigencia(p, f.get("version"), hoy) if p in datos() else None
+        f["fuente_of"] = fuente_oficial(p, f.get("version"))
+    return filas
+
+
 def producto_de(e):
     """(clave, versión del ciclo) a partir del sistema o plataforma del equipo."""
     so = (e.get("so") or "").strip()

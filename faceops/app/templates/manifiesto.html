@@ -1,9 +1,9 @@
-{% extends "base.html" %}{% block titulo %}Manifiesto de arquitectura{% endblock %}
-{% block cuerpo %}
+{% extends "base.html" %}{% block titulo %}Stack Tecnológico{% endblock %}
+{% block cuerpo %}{% from "_vigencia.html" import barra_vig, fuente %}
 <style>
 .mf-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}
 .mf-mad{display:inline-block;font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:4px;padding:0 6px;margin-left:6px;background:var(--panel);color:inherit;white-space:nowrap}
-.mf{display:grid;grid-template-columns:minmax(0,1fr) {{ '150px' if nivel == '1' else ('230px' if nivel == '2' else '300px') }};gap:10px;align-items:stretch}
+.mf{display:grid;grid-template-columns:minmax(0,1fr) {{ '300px' if nivel == '1' else '230px' }};gap:10px;align-items:stretch}
 .mf-capas{display:flex;flex-direction:column;gap:8px;min-width:0}
 .mf-capa{border:1px solid var(--line);border-left:6px solid var(--c);border-radius:10px;background:var(--panel);padding:10px 14px;min-height:{{ '64px' if nivel == '1' else '0' }}}
 .mf-capa h3{margin:0;font-size:15px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.mf-capa h3 .sub{font-weight:400;font-size:12.5px}
@@ -31,11 +31,26 @@
 @media(max-width:700px){.mf-apps{grid-template-columns:1fr}}
 .mf-ley{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px;font-size:12.5px}
 @media(max-width:900px){.mf{grid-template-columns:1fr}.mf-gob-1 h3{writing-mode:horizontal-tb;transform:none}}
+.st-n{display:flex;gap:10px;align-items:baseline;margin:4px 0 4px}.st-n h2{margin:0;font-size:18px}.st-n .n{font-size:12px;font-weight:700;color:#fff;background:var(--acc,#0066cc);border-radius:4px;padding:1px 7px}
+.st-traza{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:0 0 12px}.st-traza b{color:var(--ink)}
+.st-pri{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin:0 0 16px}
+.st-p{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:8px 10px;font-size:12.5px;scroll-margin-top:70px}.st-p h4{margin:0 0 3px;font-size:13.5px}
+.st-cod{font-family:var(--mono,monospace);font-size:11px;font-weight:700;border:1px solid var(--line);border-radius:4px;padding:0 5px;background:var(--soft);color:var(--ink);text-decoration:none;white-space:nowrap}
+.st-caps{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.st-caps a{font-size:11px;border-radius:10px;padding:1px 7px;background:var(--soft);color:var(--ink);text-decoration:none}
+.mf-obj{font-size:12.5px;line-height:1.45;margin:5px 0 2px;color:var(--ink);font-style:italic;max-width:900px}
+.st-dec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.st-dec>div{border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);min-width:0}
+.st-dec h4{margin:0 0 4px;font-size:13px;display:flex;gap:6px;align-items:center}
+@media(max-width:900px){.st-dec{grid-template-columns:1fr 1fr}}@media(max-width:560px){.st-dec{grid-template-columns:1fr}}
+.st-f{font-size:13px}.st-f td{vertical-align:top}.st-f .logo{width:24px;height:24px;object-fit:contain;vertical-align:middle;margin-right:6px}
+.st-f .cap{font-weight:600;min-width:140px}.st-f .vig{margin:0 0 5px;min-width:150px}.st-f .barra{height:7px}.st-f tr{scroll-margin-top:70px}
+.mf-con{scroll-margin-top:70px}
+.st-ed{background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:{{ 'pointer' if perfil_actual.modo == 'escritura' else 'default' }}}
+.st-wrap{overflow-x:auto}
 </style>
-<div class="fila"><div><h1>Manifiesto de arquitectura</h1>
-<p class="sub" style="margin:0">Las tecnologías que acepta la organización, de arriba hacia abajo por capa, con el gobierno de forma transversal. FaceOps solo instala lo aceptado y marca lo que está fuera del manifiesto. Las versiones conectan con <a href="{{ url_for('consola.stack_tecnologico') }}">Ciclo de vida</a> para llevarlas al roadmap.</p></div></div>
-<div class="mf-tabs">{% for n, t in [('1', '1 · Capas'), ('2', '2 · Conceptos'), ('3', '3 · Tecnologías aceptadas')] %}<a class="chip {{ 'e-en_cola' if nivel == n }}" href="{{ url_for('consola.manifiesto_arquitectura', nivel=n) }}">{{ t }}</a>{% endfor %}</div>
-{% if nivel == '3' %}<div class="mf-ley">{% for k, v in estados.items() %}<span class="mf-e e-{{ k }}">{{ v }} · {{ cuenta.get(k, 0) }}</span>{% endfor %}<span class="sub">· aceptada y en evaluación se pueden instalar; contener y retirar, no.{% if perfil_actual.modo == 'escritura' %} Clic en una tecnología para ajustarla.{% endif %}</span></div>{% endif %}
+<div class="fila"><div><h1>Stack Tecnológico</h1>
+<p class="sub" style="margin:0">Tres niveles con trazabilidad completa: los principios y decisiones del manifiesto, las capacidades que la arquitectura necesita sin depender de un producto, y los productos concretos que las implementan en el parque, con sus versiones y su ciclo de vida (<a href="{{ url_for('consola.stack_tecnologico') }}">Ciclo de vida</a>). FaceOps solo instala lo que el manifiesto adopta y marca lo que está fuera del stack.</p></div></div>
+<div class="mf-tabs" role="tablist">{% for n, t in [('1', 'Nivel 1 · Manifiesto de arquitectura'), ('2', 'Nivel 2 · Arquitectura Conceptual'), ('3', 'Nivel 3 · Arquitectura Física (Stack Tecnológico)')] %}<a role="tab" aria-selected="{{ 'true' if nivel == n else 'false' }}" class="chip {{ 'e-en_cola' if nivel == n }}" href="{{ url_for('consola.stack_arquitectura', nivel=n) }}">{{ t }}</a>{% endfor %}</div>
+<div class="st-traza"><span class="{{ 'mf-e e-aceptada' if nivel == '1' }}"><b>Principio</b> (N1)</span>→<span class="{{ 'mf-e e-aceptada' if nivel == '2' }}"><b>Capacidad</b> (N2)</span>→<span class="{{ 'mf-e e-aceptada' if nivel == '3' }}"><b>Producto</b> (N3)</span><span>· cada capacidad nombra los principios que la gobiernan y cada producto, la capacidad que implementa.</span></div>
 {% set colores = {'negocio': '#0066cc', 'front': '#009596', 'interoperabilidad': '#5e40be', 'middleware': '#c46100', 'persistencia': '#3e8635', 'infraestructura': '#8a8d90'} %}
 {% macro mad(x, corto=false) %}{% if x and x.nivel %}<span class="mf-mad" title="Madurez (COBIT/CMMI): {{ x.pct }} % hoy · meta {{ x.meta_pct }} % (N{{ x.meta_nivel.n }} {{ x.meta_nivel.nombre }}){{ ' · ' ~ x.tecnologias ~ ' tecnología(s) con equipos' if x.tecnologias is defined }}">N{{ x.nivel.n }}{% if not corto %} {{ x.nivel.nombre }}{% endif %} · {{ x.pct }} %<span class="sub"> / meta {{ x.meta_pct }} %</span></span>{% endif %}{% endmacro %}
 {% macro salud(x, compacto=false) %}{% if x and x.pct is not none %}{% set v = x.pct %}<div class="mf-pil {{ 'mf-sal-c' if compacto }}" title="Salud {{ v }} % · {% for p, w in (x.pilares or {}).items() %}{{ p }} {{ w if w is not none else '—' }}{{ ' %' if w is not none }}{{ ' · ' if not loop.last }}{% endfor %}"><span>Salud</span><i><b style="width:{{ v }}%;background:{{ {'verde': '#3e8635', 'amarillo': '#f0ab00'}.get(semaforo_salud(v), '#c9190b') }}"></b></i><em>{{ v }} %</em></div>{% endif %}{% endmacro %}
@@ -45,17 +60,59 @@
 <div class="mf-ver">{% if t.versiones %}versiones: {{ t.versiones|join(', ') }}{% else %}cualquier versión con soporte{% endif %}{% if t.ajuste %} · ajustada por {{ t.ajuste.usuario }}{% endif %}</div>
 {% if t.instalado is defined %}<div class="mf-ver">{% if t.instalado.n %}<span title="{{ t.instalado.equipos|join(', ') }}">instalada en {{ t.instalado.n }} máquina{{ 's' if t.instalado.n != 1 }}</span>{% for v in t.instalado.versiones %} <span class="chip {{ 's-alta' if v.fuera or v.fase == 'fuera' else ('s-media' if v.fase in ('extendido', 'mantencion') else 's-ok') }}" title="{{ v.n }} · fase {{ v.fase }}{{ ' · versión fuera del manifiesto' if v.fuera }}">{{ v.version }} · {{ v.n }}</span>{% endfor %}{% if t.instalado.fuera_version %} · <b style="color:var(--bad)">{{ t.instalado.fuera_version }} fuera de versión</b>{% endif %}{% else %}sin instalar{% endif %}</div>{% endif %}
 </button>{% endmacro %}
-<div class="mf">
-<div class="mf-capas">{% for capa in m.capas %}<section class="mf-capa" style="--c:{{ colores.get(capa.clave, '#6a6e73') }}"><h3>{{ capa.nombre }}{% if nivel == '1' %}<span class="sub">{{ capa.que }}</span>{% endif %}{% if capa.madurez is defined %}{% if capa.madurez.nivel %}{% else %} <span class="sub" style="font-size:12px;font-weight:400">· salud: sin equipos que medir</span>{% endif %}{% endif %}</h3>
-{% if nivel == '1' and capa.madurez is defined and capa.madurez.nivel %}{{ salud(capa.madurez) }}{% endif %}
-{% if nivel != '1' %}<div class="mf-cons">{% for c in capa.conceptos %}<div class="mf-con"><b>{{ c.nombre }}</b>
-{% if c.clave == 'aplicaciones' %}{% if nivel == '3' %}<div class="mf-apps">{% for a in apps %}{% set sa = sal_apps.get(a) %}<a class="mf-tec" style="text-decoration:none" href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=a) }}"><b>{{ a }}</b>{% if sa and sa.pct is not none %}{{ salud(sa, true) }}<span class="sub" style="font-size:11px">{{ sa.n }} equipo{{ 's' if sa.n != 1 }}</span>{% else %}<div class="sub" style="font-size:11px;margin-top:3px">salud: sin equipos que medir</div>{% endif %}</a>{% else %}<span class="sub" style="font-size:12px">sin aplicaciones</span>{% endfor %}</div>{% else %}<span class="sub" style="font-size:12px">{{ c.que or (apps|length ~ ' aplicaciones') }}</span>{% endif %}
-{% elif nivel == '3' %}{% for t in c.tecnologias %}{{ tec(t) }}{% endfor %}{% else %}<span class="sub" style="font-size:12px">{{ c.tecnologias|map(attribute='nombre')|join(' · ') if false else (c.tecnologias|length ~ ' tecnología' ~ ('s' if c.tecnologias|length != 1 else '')) }}</span>{% endif %}{% if nivel == '2' %}{% if c.madurez is defined and c.madurez.pct is not none %}{{ salud(c.madurez, true) }}{% elif c.clave != 'aplicaciones' %}<div class="sub" style="font-size:11px;margin-top:3px">salud: sin equipos que medir</div>{% endif %}{% endif %}</div>{% endfor %}</div>{% endif %}
-</section>{% endfor %}</div>
-<aside class="mf-gob {{ 'mf-gob-1' if nivel == '1' }}"><h3>{{ m.gobierno.nombre }}{% if m.gobierno.madurez is defined and m.gobierno.madurez.nivel %}{% endif %}</h3>{% if nivel != '2' and m.gobierno.madurez is defined and m.gobierno.madurez.nivel %}{{ salud(m.gobierno.madurez, true) }}{% endif %}{% if nivel == '1' %}<span class="sub" style="font-size:12px;writing-mode:horizontal-tb">transversal</span>{% else %}<span class="sub" style="font-size:12px">{{ m.gobierno.que }}</span>
-<div class="mf-cons">{% for c in m.gobierno.conceptos %}<div class="mf-con"><b>{{ c.nombre }}</b>{% if nivel == '3' %}{% for t in c.tecnologias %}{{ tec(t) }}{% endfor %}{% else %}<span class="sub" style="font-size:12px">{{ c.tecnologias|length }} tecnología{{ 's' if c.tecnologias|length != 1 }}</span>{% endif %}{% if nivel == '2' and c.madurez is defined and c.madurez.pct is not none %}{{ salud(c.madurez, true) }}{% endif %}</div>{% endfor %}</div>{% endif %}</aside>
-</div>
-{% if nivel == '3' %}<div class="card" id="roadmap" style="margin-top:14px"><h2 style="margin:0 0 4px;font-size:16px">Instalado fuera del manifiesto · roadmap de salida o reemplazo
+{% if nivel == '1' %}
+<div class="st-n"><span class="n">Nivel 1</span><h2>Manifiesto de arquitectura</h2></div>
+<p class="sub" style="margin:0 0 10px">Lo que la organización cree y decide: principios, el objetivo de cada capa y qué tecnologías adopta, contiene o retira.</p>
+<h3 style="font-size:15px;margin:0 0 6px">Principios</h3>
+<div class="st-pri">{% for p in m.principios or [] %}<div class="st-p" id="p-{{ p.codigo }}"><h4><span class="st-cod">{{ p.codigo }}</span> {{ p.nombre }}</h4><div class="sub">{{ p.que }}</div>
+<div class="st-caps" title="Capacidades (nivel 2) que gobierna">{% for c in p.caps %}<a href="{{ url_for('consola.stack_arquitectura', nivel=2, _anchor='c-' ~ c.clave) }}">{{ c.nombre }}</a>{% endfor %}</div></div>{% endfor %}</div>
+<h3 style="font-size:15px;margin:0 0 6px">Capas y su objetivo</h3>
+<div class="mf"><div class="mf-capas">{% for capa in m.capas %}<section class="mf-capa" id="capa-{{ capa.clave }}" style="--c:{{ colores.get(capa.clave, '#6a6e73') }}"><h3>{{ capa.nombre }}<span class="sub">{{ capa.que }}</span>{% if capa.madurez is defined and not capa.madurez.nivel %} <span class="sub" style="font-size:12px;font-weight:400">· salud: sin equipos que medir</span>{% endif %}</h3>
+{% if capa.objetivo %}<p class="mf-obj">{{ capa.objetivo }}</p>{% endif %}
+{% if capa.madurez is defined and capa.madurez.nivel %}{{ salud(capa.madurez) }}{% endif %}</section>{% endfor %}</div>
+<aside class="mf-gob" id="capa-gobierno"><h3>{{ m.gobierno.nombre }} <span class="sub" style="font-weight:400;font-size:12px">· transversal</span></h3>{% if m.gobierno.madurez is defined and m.gobierno.madurez.nivel %}{{ salud(m.gobierno.madurez, true) }}{% endif %}
+<span class="sub" style="font-size:12px">{{ m.gobierno.que }}</span>{% if m.gobierno.objetivo %}<p class="mf-obj">{{ m.gobierno.objetivo }}</p>{% endif %}</aside></div>
+<h3 style="font-size:15px;margin:16px 0 6px">Decisiones: qué se adopta, qué se contiene y qué se retira</h3>
+<div class="mf-ley">{% for k, v in estados.items() %}<span class="mf-e e-{{ k }}">{{ v }} · {{ cuenta.get(k, 0) }}</span>{% endfor %}<span class="sub">· Adoptar y En evaluación se pueden instalar; Contener y Retirar, no.{% if perfil_actual.modo == 'escritura' %} Clic en una tecnología para ajustarla.{% endif %}</span></div>
+<div class="st-dec">{% for k, v in estados.items() %}<div><h4><span class="mf-e e-{{ k }}">{{ v }}</span><span class="sub" style="font-weight:400">{{ decisiones[k]|length }}</span></h4>{% for t in decisiones[k] %}{{ tec(t) }}{% else %}<span class="sub" style="font-size:12px">ninguna</span>{% endfor %}</div>{% endfor %}</div>
+{% endif %}
+{% if nivel == '2' %}
+<div class="st-n"><span class="n">Nivel 2</span><h2>Arquitectura Conceptual</h2></div>
+<p class="sub" style="margin:0 0 10px">Las capacidades lógicas que la arquitectura necesita, independientes de producto, por capa. Cada una indica los principios del nivel 1 que la gobiernan y lleva a los productos del nivel 3 que la implementan.</p>
+{% macro capacidad(c) %}<div class="mf-con" id="c-{{ c.clave }}"><b>{{ c.nombre }}</b>
+<div class="st-caps" style="margin:0 0 4px">{% for p in c.principios %}<a class="st-cod" href="{{ url_for('consola.stack_arquitectura', nivel=1, _anchor='p-' ~ p.codigo) }}" title="{{ p.nombre }}">{{ p.codigo }}</a>{% else %}<span class="sub" style="font-size:11px">sin principio asociado</span>{% endfor %}</div>
+{% if c.clave == 'aplicaciones' %}<span class="sub" style="font-size:12px">{{ c.que or '' }} · {{ apps|length }} aplicacion{{ 'es' if apps|length != 1 }}</span>
+{% else %}<a class="sub" style="font-size:12px" href="{{ url_for('consola.stack_arquitectura', nivel=3, _anchor='c3-' ~ c.clave) }}">{{ c.tecnologias|length }} producto{{ 's' if c.tecnologias|length != 1 }} en el nivel 3 →</a>{% endif %}
+{% if c.madurez is defined and c.madurez.pct is not none %}{{ salud(c.madurez, true) }}{% elif c.clave != 'aplicaciones' %}<div class="sub" style="font-size:11px;margin-top:3px">salud: sin equipos que medir</div>{% endif %}</div>{% endmacro %}
+<div class="mf"><div class="mf-capas">{% for capa in m.capas %}<section class="mf-capa" style="--c:{{ colores.get(capa.clave, '#6a6e73') }}"><h3>{{ capa.nombre }}<span class="sub">{{ capa.que }}</span></h3>
+<div class="mf-cons">{% for c in capa.conceptos %}{{ capacidad(c) }}{% endfor %}</div></section>{% endfor %}</div>
+<aside class="mf-gob"><h3>{{ m.gobierno.nombre }}</h3><span class="sub" style="font-size:12px">{{ m.gobierno.que }}</span>
+<div class="mf-cons">{% for c in m.gobierno.conceptos %}{{ capacidad(c) }}{% endfor %}</div></aside></div>
+{% endif %}
+{% if nivel == '3' %}
+<div class="st-n"><span class="n">Nivel 3</span><h2>Arquitectura Física (Stack Tecnológico)</h2></div>
+<p class="sub" style="margin:0 0 10px">Por cada capacidad, los productos concretos del cliente: fabricante, decisión del manifiesto, versiones en uso con su vigencia y fase de soporte, la fuente oficial del fabricante y sus instancias. Datos del inventario y del último barrido guardado (sin consultas en vivo).</p>
+{% set fase_n = {'completo': ('Completo', 's-ok'), 'mantencion': ('Mantención', 's-media'), 'extendido': ('Extendido', 's-media'), 'fuera': ('Fuera de soporte', 's-alta'), 'desconocido': ('Sin dato', '')} %}
+{% for capa in m.capas + [m.gobierno] %}<div class="card st-wrap" style="padding:0;margin:0 0 12px;border-left:5px solid {{ colores.get(capa.clave, '#6a6e73') }}">
+<h3 style="margin:0;padding:10px 12px 6px;font-size:15px">{{ capa.nombre }} <span class="sub" style="font-weight:400;font-size:12.5px">{{ capa.que }}</span></h3>
+<table class="st-f"><tr><th>Capacidad</th><th>Producto</th><th>Fabricante</th><th>Manifiesto</th><th style="min-width:180px">Versiones en uso · vigencia</th><th>Soporte</th><th>Fuente oficial</th><th style="text-align:right">Instancias</th></tr>
+{% for c in capa.conceptos %}{% set filas = c.tecnologias %}
+{% if c.clave == 'aplicaciones' %}<tr id="c3-{{ c.clave }}"><td class="cap">{{ c.nombre }}<div>{% for p in c.principios %}<a class="st-cod" href="{{ url_for('consola.stack_arquitectura', nivel=1, _anchor='p-' ~ p.codigo) }}" title="{{ p.nombre }}">{{ p.codigo }}</a> {% endfor %}</div></td><td colspan="7"><div class="mf-apps">{% for a in apps %}{% set sa = sal_apps.get(a) %}<a class="mf-tec" style="text-decoration:none" href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=a) }}"><b>{{ a }}</b>{% if sa and sa.pct is not none %}{{ salud(sa, true) }}{% else %}<div class="sub" style="font-size:11px;margin-top:3px">salud: sin equipos que medir</div>{% endif %}</a>{% else %}<span class="sub" style="font-size:12px">sin aplicaciones</span>{% endfor %}</div></td></tr>
+{% else %}{% for t in filas %}<tr id="t-{{ t.clave }}">{% if loop.first %}<td class="cap" rowspan="{{ filas|length }}" id="c3-{{ c.clave }}">{{ c.nombre }}<div>{% for p in c.principios %}<a class="st-cod" href="{{ url_for('consola.stack_arquitectura', nivel=1, _anchor='p-' ~ p.codigo) }}" title="{{ p.nombre }}">{{ p.codigo }}</a> {% endfor %}</div><a class="sub" style="font-size:11px;font-weight:400" href="{{ url_for('consola.stack_arquitectura', nivel=2, _anchor='c-' ~ c.clave) }}">ver en nivel 2</a></td>{% endif %}
+<td><button type="button" class="st-ed" data-t="{{ t.clave }}" data-n="{{ t.nombre }}" data-e="{{ t.estado }}" data-v="{{ t.versiones|join(', ') }}"><img class="logo" src="{{ url_for('static', filename=t.logo or 'logos/generico.svg') }}" alt="" aria-hidden="true"><b>{{ t.nombre }}</b></button>
+{% if t.versiones %}<div class="sub" style="font-size:11px">acepta: {{ t.versiones|join(', ') }}</div>{% endif %}</td>
+<td>{{ t.fab or '—' }}</td>
+<td>{% set ch = t.chip %}{% if t.n_inst %}<span class="chip {{ ch[1] }}" style="font-size:11px">{{ ch[0] }}</span>{% else %}<span class="mf-e e-{{ t.estado }}">{{ estados[t.estado] }}</span>{% endif %}</td>
+<td>{% for v in t.vers_uso %}{{ barra_vig(v.vig, v.version ~ (' ×' ~ v.n if v.n > 1 else '') ~ (' · fuera de versión' if v.fuera else '')) }}{% else %}<span class="sub" style="font-size:12px">{{ 'sin versión leída' if t.n_inst else 'sin instalar' }}</span>{% endfor %}</td>
+<td>{% set sp = fase_n.get(t.soporte) %}{% if sp %}<span class="chip {{ sp[1] }}" style="font-size:11px">{{ sp[0] }}</span>{% else %}—{% endif %}</td>
+<td style="font-size:12px">{{ fuente(t.fuente_of) }}</td>
+<td style="text-align:right;white-space:nowrap">{% for p in t.plats %}<a href="{{ url_for('consola.plataformas_vista', p=p.clave) }}" title="Ver las instancias de {{ p.t }}">{{ p.n }}{{ ' · ' ~ p.t if t.plats|length > 1 }}</a>{{ '<br>'|safe if not loop.last }}{% else %}{{ t.n_inst or '—' }}{% endfor %}</td></tr>{% endfor %}{% endif %}
+{% endfor %}</table></div>{% endfor %}
+{% if fuera_plat %}<div class="card st-wrap" style="padding:0;margin:0 0 12px;border-left:5px solid #c9190b"><h3 style="margin:0;padding:10px 12px 6px;font-size:15px">Instalado fuera del stack <span class="sub" style="font-weight:400;font-size:12.5px">· plataformas del parque que el manifiesto no nombra: necesitan su decisión en el <a href="{{ url_for('consola.stack_arquitectura', nivel=1, _anchor='roadmap') }}">roadmap del nivel 1</a></span></h3>
+<table class="st-f"><tr><th>Plataforma</th><th>Fabricante</th><th>Versiones en uso · vigencia</th><th style="text-align:right">Instancias</th></tr>{% for p in fuera_plat %}<tr><td><img class="logo" src="{{ url_for('static', filename=p.logo) }}" alt="" aria-hidden="true"><b>{{ p.t }}</b> <span class="chip s-alta" style="font-size:11px">Fuera del stack</span></td><td>{{ p.fab or '—' }}</td>
+<td>{% for vd in p.vers_det %}<span class="chip {{ fase_n.get(vd.fase, ('', ''))[1] }}" style="font-size:11px">{{ vd.v }}{{ ' ×' ~ vd.n if vd.n > 1 }}</span> {% else %}—{% endfor %}</td><td style="text-align:right"><a href="{{ url_for('consola.plataformas_vista', p=p.clave) }}">{{ p.n }}</a></td></tr>{% endfor %}</table></div>{% endif %}
+{% endif %}
+{% if nivel == '1' %}<div class="card" id="roadmap" style="margin-top:14px"><h2 style="margin:0 0 4px;font-size:16px">Instalado fuera del manifiesto · roadmap de salida o reemplazo
  {% if rm.sin_plan %}<span class="chip s-alta" style="font-size:11.5px">{{ rm.sin_plan }} sin roadmap</span>{% endif %}{% if rm.vencidos %} <span class="chip s-alta" style="font-size:11.5px">{{ rm.vencidos }} vencido{{ 's' if rm.vencidos != 1 }}</span>{% endif %}</h2>
 <p class="sub" style="font-size:12.5px;margin:0 0 8px">Toda tecnología instalada que el manifiesto no acepta necesita su plan: reemplazarla por una aceptada, retirarla o regularizarla en el manifiesto, con responsable y fecha objetivo.</p>
 {% if fuera %}<table style="font-size:13.5px"><tr><th>Plataforma</th><th>Estado</th><th>Máquinas</th><th>Roadmap</th></tr>{% for f in fuera %}
@@ -77,15 +134,15 @@
 {% for f in rm.cronograma %}<tr><td class="mono"{% if f.vencido %} style="color:#a30000;font-weight:600"{% endif %}>{{ f.plan.fecha_objetivo or '—' }}</td><td>{{ f.nombre }}</td><td>{{ salida.get(f.plan.decision, f.plan.decision) }}{{ ' → ' ~ f.plan.reemplazo if f.plan.reemplazo }}</td><td>{{ f.plan.responsable or '—' }}</td><td>{{ avance.get(f.plan.avance, f.plan.avance) }}</td></tr>{% endfor %}</table>{% endif %}
 {% else %}<p class="sub" style="margin:0">Todo lo instalado está dentro del manifiesto.</p>{% endif %}
 {% if rm.cumplidos %}<p class="sub" style="font-size:12.5px;margin:10px 0 0">Cumplidos (ya no están instalados): {% for p in rm.cumplidos %}{{ p.skill }} ({{ salida.get(p.decision, p.decision) }}{{ ' → ' ~ p.reemplazo if p.reemplazo }}){{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
-</div>{% elif fuera %}<div class="card" style="margin-top:14px;border-left:3px solid #c9190b"><b>{{ fuera|length }} tecnología{{ 's' if fuera|length != 1 }} instalada{{ 's' if fuera|length != 1 }} fuera del manifiesto</b>{% if rm.sin_plan %} · <span style="color:#a30000">{{ rm.sin_plan }} sin roadmap de salida</span>{% endif %}{% if rm.vencidos %} · <span style="color:#a30000">{{ rm.vencidos }} vencido{{ 's' if rm.vencidos != 1 }}</span>{% endif %} · <a href="{{ url_for('consola.manifiesto_arquitectura', nivel=3, _anchor='roadmap') }}">ver roadmap</a></div>{% endif %}
-{% if nivel == '3' and perfil_actual.modo == 'escritura' %}<dialog id="mf-dlg" class="al-dlg" style="max-width:460px"><form method="post" class="form-infra" style="display:grid;gap:10px">
-<input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tecnologia" id="mf-t">
+</div>{% elif fuera %}<div class="card" style="margin-top:14px;border-left:3px solid #c9190b"><b>{{ fuera|length }} tecnología{{ 's' if fuera|length != 1 }} instalada{{ 's' if fuera|length != 1 }} fuera del manifiesto</b>{% if rm.sin_plan %} · <span style="color:#a30000">{{ rm.sin_plan }} sin roadmap de salida</span>{% endif %}{% if rm.vencidos %} · <span style="color:#a30000">{{ rm.vencidos }} vencido{{ 's' if rm.vencidos != 1 }}</span>{% endif %} · <a href="{{ url_for('consola.stack_arquitectura', nivel=1, _anchor='roadmap') }}">ver roadmap</a></div>{% endif %}
+{% if nivel in ('1', '3') and perfil_actual.modo == 'escritura' %}<dialog id="mf-dlg" class="al-dlg" style="max-width:460px"><form method="post" class="form-infra" style="display:grid;gap:10px">
+<input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tecnologia" id="mf-t"><input type="hidden" name="nivel" value="{{ nivel }}">
 <h2 style="margin:0" id="mf-n"></h2>
 <label>Estado<select name="estado" id="mf-e">{% for k, v in estados.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
 <label>Versiones aceptadas <span class="sub">(separadas por coma; vacío = cualquiera con soporte)</span><input name="versiones" id="mf-v"></label>
 <label>Motivo<input name="motivo" required placeholder="ej. estándar 2027 de Arquitectura"></label>
 <div class="fila"><button class="btn">Guardar</button><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button></div></form></dialog>
-<script>(()=>{const d=document.getElementById('mf-dlg');document.querySelectorAll('.mf-tec').forEach(b=>b.onclick=()=>{
+<script>(()=>{const d=document.getElementById('mf-dlg');document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{
  document.getElementById('mf-t').value=b.dataset.t;document.getElementById('mf-n').textContent=b.dataset.n;
  document.getElementById('mf-e').value=b.dataset.e;document.getElementById('mf-v').value=b.dataset.v;d.showModal();});
  d.addEventListener('click',e=>{if(e.target===d)d.close();});})();</script>{% endif %}
