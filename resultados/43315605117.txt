@@ -1,0 +1,31 @@
+commit: 3278a9237f3527c691d3dc35627124f56370589f
+inicio: 2026-11-12T18:59:38-03:00
+---
+ESTADO cambiada
+FO-LAB-02275 fallido 19:19:35 Plan de prueba C5: sin parámetros | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02277 fallido 19:20:53 Plan de prueba C6: límite fuera de rango | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02279 fallido 19:21:48 Plan de prueba C1: CVE-2026-8932 sin reinicio | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02281 fallido 19:23:18 Plan de prueba C2: repetir todos | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02283 fallido 19:24:38 Plan de prueba C3: reiniciar solo si hace falta | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02284 fallido 19:25:44 Plan de prueba C4: programar reinicio | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02287 fallido 19:27:25 Plan de prueba C5: sin parámetros | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02289 fallido 19:28:49 Plan de prueba C6: límite fuera de rango | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02291 fallido 19:30:52 Plan de prueba C1: CVE-2026-8932 sin reinicio | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02292 fallido 19:32:35 Plan de prueba C2: repetir todos | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02295 fallido 19:34:48 Plan de prueba C3: reiniciar solo si hace falta | AAP terminó (failed): ejecución 0 s, espera de aprobación 14 s
+FO-LAB-02296 fallido 19:37:06 Plan de prueba C4: programar reinicio | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02357 fallido 21:01:11 Plan de prueba C5: sin parámetros | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02366 fallido 21:46:15 Plan de prueba C5: sin parámetros | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02367 fallido 21:50:37 Plan de prueba C6: límite fuera de rango | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02369 fallido 21:53:45 Plan de prueba C1: CVE-2026-8932 sin reinicio | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02370 fallido 21:55:11 Plan de prueba C2: repetir todos | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02371 fallido 21:56:59 Plan de prueba C3: reiniciar solo si hace falta | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02373 en_ejecucion 21:58:18 Plan de prueba C4: programar reinicio | 
+    853 bash herramientas/vm/tarea.sh
+    851 timeout 5400 sudo podman exec -w /opt/faceops -e PYTHONPATH=/opt/faceops -e FACEOPS_VIGIA=0 faceops python3 /tmp
+    851 sudo podman exec -w /opt/faceops -e PYTHONPATH=/opt/faceops -e FACEOPS_VIGIA=0 faceops python3 /tmp/p3004.py
+    851 podman exec -w /opt/faceops -e PYTHONPATH=/opt/faceops -e FACEOPS_VIGIA=0 faceops python3 /tmp/p3004.py
+    851 python3 /tmp/p3004.py
+    648 bash herramientas/vm/tarea.sh
+     13 bash herramientas/vm/tarea.sh
+--- fin: 2026-11-12T18:59:52-03:00 · código: 0
