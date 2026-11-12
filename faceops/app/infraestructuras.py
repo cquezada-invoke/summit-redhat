@@ -805,7 +805,8 @@ def estado_nube(aap, x, cliente_id, guardar=True, ttl=60):
             r["mensaje"] = f"AAP lee la nube: {r['hosts']} máquina(s) en su inventario"
         elif fte.get("status") in ("failed", "error"):
             r["estado"] = "error"
-            mot = _motivo_falla(aap, r["fuente"]["job"]) if r["fuente"]["job"] else ""
+            jid_ = r["fuente"]["job"] or ((aap.get("inventory_updates/", inventory_source=r["fuente"]["id"], order_by="-id", page_size=1).get("results") or [{}])[0].get("id"))
+            mot = _motivo_falla(aap, jid_) if jid_ else ""
             r["mensaje"] = "La última sincronización con la nube falló" + (f": {mot}" if mot else "")
         elif fte.get("status") in ("running", "pending", "waiting"):
             r["estado"], r["mensaje"] = "sin probar", "Sincronizando con la nube en AAP…"
