@@ -339,6 +339,7 @@ def create_app():
     from . import habilidades   # noqa: F401  (ficha: botón «Habilidades», quick wins y diferenciadores)
     from . import segmento_ops   # noqa: F401  (vista del segmento: campana de alertas y botón Skills)
     from . import ia_usos   # noqa: F401  (Administración › Uso de IA y distintivo «IA»)
+    from . import reportes   # noqa: F401  (Gobierno › Reportes: cumplimiento por área e iniciativas de mejora)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo
     app.jinja_env.globals["es_demo"] = multicliente.es_demo
@@ -361,6 +362,7 @@ def create_app():
                 _correo_alertas()
         except Exception as e_:  # noqa: BLE001
             app.logger.warning("correo de alertas: %s", e_)
+        reportes.iniciar_programador(app)   # envío programado del reporte de cumplimiento a cada grupo dueño
     from .bloqueo_admin import iniciar_latido
     iniciar_latido()   # FaceOps informa a FaceAdmin (solo de adentro hacia afuera)
     return app

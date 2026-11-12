@@ -1,0 +1,73 @@
+{% extends "base.html" %}{% block titulo %}Reportes{% endblock %}
+{% set CH = {'ok': 's-ok', 'med': 's-media', 'mal': 's-alta', 'nd': ''} %}
+{% macro pct(v) %}{{ '—' if v is none else v ~ ' %' }}{% endmacro %}
+{% macro delta(d) %}{% if d is none %}<span class="sub">—</span>{% else %}<b style="color:{{ 'var(--ok)' if d > 0 else ('var(--bad)' if d < 0 else 'inherit') }}">{{ '▲ +' if d > 0 else ('▼ ' if d < 0 else '= ') }}{{ d }}</b>{% endif %}{% endmacro %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Reportes</h1>
+<p class="sub">Cumplimiento de cada área responsable (grupo dueño) en los 6 pilares del Radar de salud, con las iniciativas de mejora que abre cada brecha y el envío del reporte al correo del grupo. Los % salen de la salud real de los objetos de cada área; los colores siguen la regla de toda la consola: rojo &lt; 50 %, amarillo 50–84 %, verde ≥ 85 %.</p></div>
+<div class="der"><span class="sub" style="font-size:12px">Comparar contra</span>
+{% for k, t in [('semana', 'semana anterior'), ('mes', 'mes anterior')] %}<a class="btn chico {{ '' if (periodo or (sel.periodo if sel else 'semana')) == k else 'gris' }}" href="{{ url_for('consola.reportes', area=sec, periodo=k) }}">{{ t }}</a> {% endfor %}</div></div>
+
+{% if not areas %}<div class="card vacio">Ningún área tiene objetos que medir todavía.</div>{% else %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin:0 0 16px">
+{% for a in areas %}<a class="card" href="{{ url_for('consola.reportes', area=a.clave, periodo=periodo) }}" style="display:block;padding:10px 12px;color:inherit;margin:0;{{ 'outline:2px solid var(--acc);' if a.clave == sec }}">
+<div class="fila"><b>{{ a.nombre }}</b><span class="chip {{ CH[a.tono] }} der">{{ pct(a.total) }}</span></div>
+<span class="kp-barra" style="margin:6px 0"><i class="c-{{ a.tono }}" style="width:{{ a.total or 0 }}%"></i></span>
+<span class="sub" style="font-size:12px">{{ a.n }} objeto{{ 's' if a.n != 1 }} · {{ delta(a.delta) }} vs {{ 'semana' if a.periodo == 'semana' else 'mes' }} anterior</span></a>{% endfor %}</div>
+{% endif %}
+
+{% if sel %}
+<section class="card"><div class="fila"><div><h2 style="margin:0">{{ sel.nombre }} · {{ pct(sel.total) }} <span class="chip {{ CH[sel.tono] }}">{{ COLOR[sel.tono] }}</span></h2>
+<span class="sub">Responsable: grupo «Dueño de {{ sel.nombre }}»{% if sel.duenos %} ({{ sel.duenos|map(attribute='nombre')|join(', ') }}){% endif %} · {{ sel.correo or 'sin correo de grupo' }} · {{ sel.n }} objeto{{ 's' if sel.n != 1 }}</span></div>
+<div class="der sub" style="font-size:12px;text-align:right">{% if sel.anterior %}Comparado con la medición del {{ sel.anterior.dia }}{% else %}Sin medición de {{ 'la semana' if sel.periodo == 'semana' else 'el mes' }} anterior: la tendencia aparece cuando exista{% endif %}</div></div>
+<table style="margin-top:10px"><tr><th>Pilar</th><th class="num">Cumplimiento</th><th style="width:30%"></th><th class="num">Anterior</th><th class="num">Tendencia</th><th>Criterios pendientes</th></tr>
+{% for p in sel.pilares %}<tr><td><b>{{ p.nombre }}</b></td><td class="num"><span class="chip {{ CH[p.tono] }}">{{ pct(p.pct) }}</span></td>
+<td><span class="kp-barra"><i class="c-{{ p.tono }}" style="width:{{ p.pct or 0 }}%"></i></span></td><td class="num">{{ pct(p.antes) }}</td><td class="num">{{ delta(p.delta) }}</td>
+<td class="sub" style="font-size:12px">{% for c in p.criterios if c.n_faltan %}{{ c.nombre }} ({{ c.n_faltan }}){{ ' · ' if not loop.last }}{% else %}—{% endfor %}</td></tr>{% endfor %}
+<tr><td><b>Total</b></td><td class="num"><span class="chip {{ CH[sel.tono] }}">{{ pct(sel.total) }}</span></td><td><span class="kp-barra"><i class="c-{{ sel.tono }}" style="width:{{ sel.total or 0 }}%"></i></span></td>
+<td class="num">{{ pct(sel.anterior.total) if sel.anterior else '—' }}</td><td class="num">{{ delta(sel.delta) }}</td><td></td></tr></table></section>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px">
+<section class="card"><h2 style="margin:0 0 6px">Objetos peor evaluados</h2>
+<table>{% for x in sel.peores %}<tr><td><a href="{{ url_for('consola.equipo', eid=x.id) }}">{{ x.nombre }}</a></td><td class="num"><span class="chip {{ CH[x.tono] }}">{{ x.pct }} %</span></td>
+<td class="sub" style="font-size:12px">{{ x.ok }}/{{ x.n }} criterios · falta: {{ x.faltan|join(', ') or '—' }}</td></tr>{% else %}<tr><td class="sub">Sin objetos medidos</td></tr>{% endfor %}</table></section>
+
+<section class="card"><h2 style="margin:0 0 6px">Ítems remediables pendientes</h2>
+<table>{% for it in sel.remediables %}<tr><td><b>{{ it.texto }}</b> <span class="sub">· {{ it.pilar }} · {{ it.n }} objeto{{ 's' if it.n != 1 }}</span><br>
+<span class="sub" style="font-size:12px">{{ it.objetos|map(attribute='nombre')|join(', ') }}{{ '…' if it.n > it.objetos|length }}</span></td><td style="font-size:12.5px">{{ it.accion }}</td></tr>{% else %}<tr><td class="sub">Nada pendiente: todos los objetos cumplen los criterios.</td></tr>{% endfor %}</table>
+{% if sel.hallazgos_accion %}<h3 style="margin:12px 0 4px;font-size:13px">Hallazgos con acción del catálogo ({{ sel.n_hallazgos_accion }})</h3>
+<table>{% for h in sel.hallazgos_accion %}<tr><td><a href="{{ url_for('consola.equipo', eid=h.equipo_id) }}">{{ h.equipo }}</a></td><td>{{ h.texto }} {% if h.severidad %}<span class="chip {{ 's-alta' if h.severidad == 'alta' else 's-media' }}" style="font-size:11px">{{ h.severidad }}</span>{% endif %}</td><td style="font-size:12.5px">Acción: <b>{{ h.accion }}</b></td></tr>{% endfor %}</table>{% endif %}</section></div>
+
+<section class="card" id="iniciativas"><h2 style="margin:0 0 4px">Iniciativas de mejora</h2>
+<p class="sub" style="font-size:12px;margin:0 0 8px">Cada pilar bajo {{ UMBRAL }} % abre una iniciativa del área (o actualiza la que ya está abierta). Fecha compromiso: 14 días si el pilar está en rojo, 30 si está en amarillo (editable). Beneficio esperado: puntos que sube el pilar al cumplir sus criterios pendientes. Pasa a «en curso» con el primer ticket de una acción del área y se cierra sola cuando una medición deja el pilar en {{ UMBRAL }} % o más, con el ticket que la cerró.</p>
+<table><tr><th>Pilar</th><th>Responsable</th><th>Abierta</th><th>Compromiso</th><th class="num">Beneficio esperado</th><th class="num">% inicial → actual</th><th>Estado</th><th>Ticket</th></tr>
+{% for i in sel.iniciativas %}<tr><td><b>{{ i.pilar }}</b><br><span class="sub" style="font-size:11.5px">{{ i.criterios|join(', ') }}</span>{% if i.nota %}<br><span class="sub" style="font-size:11.5px">Nota: {{ i.nota }}</span>{% endif %}</td>
+<td>Dueño de {{ sel.nombre }}</td><td>{{ i.abierta|fecha('fecha') }}</td>
+<td>{% if escribe and i.estado != 'cerrada' %}<form method="post" action="{{ url_for('consola.reportes_iniciativa', iid=i.id) }}" class="fila" style="gap:4px;flex-wrap:nowrap"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<input type="date" name="compromiso" value="{{ i.compromiso }}" style="width:140px"><select name="estado">{% for k in ['abierta', 'en_curso'] %}<option value="{{ k }}" {{ 'selected' if i.estado == k }}>{{ ESTADOS[k] }}</option>{% endfor %}</select>
+<input type="text" name="nota" value="{{ i.nota }}" placeholder="Nota" style="width:110px"><button class="btn chico gris">Guardar</button></form>{% else %}{{ i.compromiso }}{% endif %}
+{% if i.vencida %}<span class="chip s-alta" style="font-size:11px">vencida</span>{% endif %}</td>
+<td class="num">{% if i.estado == 'cerrada' %}<span class="sub">logrado</span>{% else %}+{{ i.beneficio }} pts{% endif %}</td>
+<td class="num">{{ i.pct_inicial }} % → {{ i.pct_actual }} %</td>
+<td><span class="chip {{ 's-ok' if i.estado == 'cerrada' else ('s-media' if i.estado == 'en_curso' else 's-alta') }}">{{ ESTADOS[i.estado] }}</span>{% if i.cerrada %}<br><span class="sub" style="font-size:11.5px">{{ i.cerrada|fecha('fecha') }}</span>{% endif %}</td>
+<td>{% if i.ticket_id %}<a class="mono" href="{{ url_for('consola.ticket', tid=i.ticket_id) }}">{{ i.ticket_numero }}</a>{% else %}<span class="sub">—</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="8" class="sub">Sin iniciativas: todos los pilares del área están en {{ UMBRAL }} % o más.</td></tr>{% endfor %}</table></section>
+
+<section class="card" id="envios"><h2 style="margin:0 0 6px">Envío al grupo responsable</h2>
+{% set pr = sel.programa %}
+<div class="fila" style="gap:16px;flex-wrap:wrap;align-items:flex-end">
+{% if escribe %}<form method="post" action="{{ url_for('consola.reportes_programa') }}" class="fila" style="gap:6px;flex-wrap:wrap;align-items:flex-end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="area" value="{{ sel.clave }}">
+<label class="sub" style="font-size:12px">Frecuencia<br><select name="frecuencia">{% for k, t in FRECUENCIAS %}<option value="{{ k }}" {{ 'selected' if pr and pr.frecuencia == k }}>{{ t }}</option>{% endfor %}</select></label>
+<label class="sub" style="font-size:12px">Día<br><select name="dia">{% for d in DIAS %}<option value="{{ loop.index0 }}" {{ 'selected' if pr and pr.dia == loop.index0 }}>{{ d }}</option>{% endfor %}</select></label>
+<label class="sub" style="font-size:12px">Hora (del destinatario)<br><input type="time" name="hora" value="{{ pr.hora if pr else '08:00' }}"></label>
+<button class="btn chico gris">Guardar programa</button></form>{% endif %}
+<span class="sub" style="font-size:12px">{% if pr %}{{ dict(FRECUENCIAS)[pr.frecuencia] }}{% if pr.frecuencia != 'pausado' %} · {{ 'cada' if pr.frecuencia == 'semanal' else 'primer' }} {{ DIAS[pr.dia] }}{{ ' del mes' if pr.frecuencia == 'mensual' }} a las {{ pr.hora }} · próximo envío {{ pr.proximo|fecha }}{% endif %}{% endif %}<br>Destino: {{ sel.correo or 'sin correo de grupo (Administración › Grupos)' }}{% if not smtp %} · FaceOps aún no tiene servidor de correo{% endif %}</span>
+{% if escribe %}<form method="post" action="{{ url_for('consola.reportes_enviar') }}" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="area" value="{{ sel.clave }}"><button class="btn" {{ 'disabled' if not sel.correo }}>Enviar ahora</button></form>{% endif %}</div>
+<p class="sub" style="font-size:12px">El correo es breve (total, los 6 pilares con su color y tendencia, iniciativas abiertas y los peor evaluados) y trae el enlace a esta página; el detalle vive aquí.</p></section>
+{% endif %}
+
+<section class="card"><h2 style="margin:0 0 6px">Historial de envíos</h2>
+<table><tr><th>Fecha</th><th>Área</th><th>Tipo</th><th>Por</th><th>Para</th><th class="num">Total</th><th>Resultado</th></tr>
+{% for h in hist %}<tr><td>{{ h.fecha|fecha }}</td><td>{{ nombres.get(h.seccion, h.seccion) }}</td><td>{{ 'Programado' if h.tipo == 'programado' else 'Enviar ahora' }}</td><td>{{ h.quien }}</td><td class="mono" style="font-size:12px">{{ h.para or '—' }}</td><td class="num">{{ pct(h.total) }}</td>
+<td><span class="chip {{ 's-ok' if (h.resultado or '').startswith('enviado') else 's-alta' }}" style="font-size:11px">{{ h.resultado }}</span></td></tr>{% else %}<tr><td colspan="7" class="sub">Aún no se envían reportes.</td></tr>{% endfor %}</table></section>
+{% endblock %}

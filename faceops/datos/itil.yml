@@ -38,8 +38,13 @@ practicas:
       - {t: "Detalle de madurez: qué falta para la meta, dónde y con qué acción del catálogo", ep: consola.madurez_detalle}
       - {t: "OKR por opción de Monitoreo", ep: consola.kpi_okr}
       - {t: "Radar de salud con brecha a la meta", ep: consola.radar_salud}
+      - {t: "Gobierno › Reportes: registro de iniciativas de mejora por área (responsable, fecha compromiso, beneficio esperado y ticket que la cierra)", ep: consola.reportes}
     falta: "Registro de iniciativas de mejora con responsable, fecha y beneficio esperado (el Control de deuda hoy son aprobaciones pendientes, no mejoras)"
     nuevo: "Detalle de madurez por pilar con evidencia y acción que lo resuelve"
+    # app/itil.py: pasa a «cubierta» y el «Falta» deja de aparecer cuando hay iniciativas registradas con responsable, fecha y beneficio
+    dinamico: iniciativas
+    nuevo_dinamico: "Registro de iniciativas de mejora en Gobierno › Reportes"
+    apoyo: "Tabla reporte_iniciativas (app/reportes.py): cada pilar de salud bajo 85 % en un área abre una iniciativa con responsable = grupo dueño del área, fecha compromiso (14 días en rojo, 30 en amarillo, editable) y beneficio esperado = puntos que sube el pilar al cumplir sus criterios pendientes (100 − % medido por el Radar de salud). Estado abierta → en curso (primer ticket de una acción del área) → cerrada (una medición deja el pilar en 85 % o más), con el ticket que la cerró. Se cuenta cuando existe al menos una iniciativa con los tres datos."
   - nombre: "Gestión de la seguridad de la información"
     en: "Information security management"
     grupo: "Prácticas generales de gestión"
@@ -78,7 +83,12 @@ practicas:
       - {t: "KPI y OKR", ep: consola.kpi_okr}
       - {t: "Madurez COBIT 2019 / CMMI por pilar", ep: consola.madurez_detalle}
       - {t: "Resumen del contrato con reporte CSV", ep: consola.resumen}
+      - {t: "Gobierno › Reportes: cumplimiento por área en los 6 pilares, con tendencia y envío programado al grupo responsable", ep: consola.reportes}
     falta: "Informe periódico enviado automáticamente al cliente (hoy el resumen se genera a pedido)"
+    # app/itil.py: pasa a «cubierta» cuando el reporte por área tiene envío programado activo y al menos un envío aceptado por el SMTP
+    dinamico: reporte_envio
+    nuevo_dinamico: "Reporte de cumplimiento por área enviado de forma programada a cada grupo responsable"
+    apoyo: "Tablas reporte_programa y reporte_envios (app/reportes.py): programa semanal por defecto por área (configurable) y registro de cada envío con el resultado del SMTP. Se cuenta con al menos un programa activo y un envío aceptado."
     nuevo: "6 pilares (AWS Well-Architected) y escala de madurez COBIT/CMMI"
   - nombre: "Gestión del cambio organizacional"
     en: "Organizational change management"

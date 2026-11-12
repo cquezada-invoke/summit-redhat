@@ -17,9 +17,34 @@ def _pct(ps, campo):
     return round(100 * sum(PESO[str(p.get(campo) or "no")] for p in ps) / len(ps)) if ps else None
 
 
+def _dinamicas(ps):
+    """Prácticas que se evalúan con datos del cliente (campo «dinamico» en itil.yml; «apoyo» documenta en qué se basa):
+    · iniciativas: Mejora continua queda cubierta, sin «Falta», cuando hay iniciativas de mejora registradas con
+      responsable, fecha compromiso y beneficio esperado (Gobierno › Reportes).
+    · reporte_envio: Medición y reporte queda cubierta con un envío programado activo y al menos un envío aceptado."""
+    from flask import g
+    try:
+        from .reportes import itil_mejora
+        m = itil_mejora(g.cliente["id"])
+    except Exception:  # noqa: BLE001  sin cliente o sin tablas: queda lo declarado
+        return
+    for p in ps:
+        k = p.get("dinamico")
+        if k == "iniciativas" and m["validas"]:
+            p["estado"], p["falta"] = "cubierta", None
+            p["medido"] = f"{m['validas']} iniciativas registradas con responsable, fecha y beneficio ({m['abiertas']} abiertas o en curso, {m['cerradas']} cerradas)"
+        elif k == "reporte_envio" and m["envios"] and m["programados"]:
+            p["estado"], p["falta"] = "cubierta", None
+            p["medido"] = f"{m['programados']} áreas con envío programado · {m['envios']} envíos aceptados por el servidor de correo"
+        else:
+            continue
+        p["nuevo"] = p.get("nuevo_dinamico") or p.get("nuevo")
+
+
 def calcular(v):
     d = yaml.safe_load(open(RUTA, encoding="utf-8")) or {}
     ps = d.get("practicas") or []
+    _dinamicas(ps)
     for p in ps:
         p["estado"], p["antes"] = str(p.get("estado") or "no"), str(p.get("antes") or "no")
         p["sube"] = PESO[p["estado"]] > PESO[p["antes"]]

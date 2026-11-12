@@ -8177,7 +8177,7 @@ def menu_nav():
     ep_ = request.endpoint or ""
     if ep_.startswith(("consola.devsecops", "consola.buenas_practicas", "consola.stack_")):
         activo = "consola.ecosistema"
-    elif ep_.startswith("consola.respaldo"):
+    elif ep_.startswith(("consola.respaldo", "consola.reportes")):
         activo = "consola.gobierno_ti"
     if request.endpoint == "consola.equipo" and (request.view_args or {}).get("eid"):
         e_m = q1("SELECT * FROM equipos WHERE id=? AND cliente_id=?", request.view_args["eid"], g.cliente["id"])
@@ -8218,7 +8218,7 @@ def menu_nav():
                  ("consola.mapa", "Segmentos de negocio", "apps", [("Todos", {"vista": "aplicaciones"})]   # un solo punto: se filtra por grupo y
                   + [(gn, {"vista": "aplicaciones", "grupo": gk}) for gk, gn, _, _ in GRUPOS if any(grupo_de(x) == gk for x in segs_v)]),   # cada perfil ve solo sus segmentos
                  ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Industria y país", {"_ancla": "n3"}), ("Plano de control", {"_ep": "consola.plano_control"}),
-                                                                        ("Respaldos y recuperación", {"_ep": "consola.respaldos"})]),
+                                                                        ("Respaldos y recuperación", {"_ep": "consola.respaldos"}), ("Reportes", {"_ep": "consola.reportes"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Mapa de seguridad", {"_ep": "consola.seguridad_mapa"}), ("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Incidentes", {"_ep": "consola.incidentes"})]),   # «VPN y accesos remotos» fuera del menú por ahora (la ruta sigue)
