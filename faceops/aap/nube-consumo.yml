@@ -9,9 +9,11 @@
   hosts: localhost
   connection: local
   gather_facts: false
-  vars:
-    salida: "/tmp/nube-resumen-{{ nr_infra_id | default('x') }}-{{ 99999 | random }}.json"
   tasks:
+    - name: Archivo temporal del resultado (nombre fijo para todo el trabajo)
+      ansible.builtin.set_fact:
+        salida: "/tmp/nube-resumen-{{ nr_infra_id | default('x') }}-{{ 999999 | random }}.json"
+
     - name: Datos válidos
       ansible.builtin.assert:
         that:
