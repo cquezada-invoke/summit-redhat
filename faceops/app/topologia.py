@@ -1030,8 +1030,24 @@ def estrella_svg(actual, meta, tam=320, etiquetas=True):
     return Markup("".join(out))
 
 
+_memo_estrella = {}
+
+
 def estrella_parque(cliente, eqs, hallazgos):
-    """Radar de salud del parque: promedio de los segmentos de aplicaciones en producción, con su meta."""
+    """Radar de salud del parque: promedio de los segmentos de aplicaciones en producción, con su meta.
+    El panel lo pide en cada carga: se reutiliza 60 s mientras no cambien los equipos visibles ni sus hallazgos."""
+    import time as _t
+    clave = (cliente["id"], tuple(sorted((e["id"], e.get("energia") or "", e.get("estado") or "") for e in eqs)),
+             tuple(sorted((h.get("equipo_id"), h.get("titulo") or "", h.get("severidad") or "") for h in hallazgos)))
+    m = _memo_estrella.get(cliente["id"])
+    if m and m[0] == clave and _t.time() - m[1] < 60:
+        return m[2]
+    r = _estrella_parque(cliente, eqs, hallazgos)
+    _memo_estrella[cliente["id"]] = (clave, _t.time(), r)
+    return r
+
+
+def _estrella_parque(cliente, eqs, hallazgos):
     from .bd import q
     segs = [s["nombre"] for s in q("SELECT nombre FROM segmentos WHERE cliente_id=? AND grupo='aplicaciones'", cliente["id"])]
     filas = []
