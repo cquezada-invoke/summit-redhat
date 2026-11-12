@@ -52,6 +52,11 @@ jobs:
         if: always() && steps.guard.outputs.omitir != '1'
         run: |
           export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_VALUE_0=""
+          # vm-resultados es pública: se redactan tokens, cabeceras Authorization/Bearer, JWT y claves antes de publicar.
+          # Si la redacción falla, no se publica la salida (solo el aviso), para no filtrar nada.
+          OUT=/tmp/vm-res/${{ github.run_id }}.txt
+          sed -E -i -f "$GITHUB_WORKSPACE/herramientas/vm/redactar.sed" "$OUT" \
+            || { printf 'commit: %s\n---\nSalida retenida: falló la redacción de secretos.\n' "${{ github.sha }}" > "$OUT"; }
           for intento in 1 2 3 4 5 6; do   # varias tareas en paralelo: si otro publicó antes, se reintenta sobre lo nuevo
             cd "$RUNNER_TEMP" && rm -rf res && git clone -q --depth 1 -b vm-resultados "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" res 2>/dev/null \
               || { git init -q res && cd res && git checkout -q --orphan vm-resultados && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" && cd ..; }
