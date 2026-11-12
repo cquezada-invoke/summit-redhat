@@ -10,10 +10,9 @@
 <header class="hb-cab"><div><h2 id="hb-tit">Skills de {{ hb_tit }}</h2><p class="sub">{{ hb_sub if hb_sub is defined else ((e.so or '') ~ ' · cada skill crea un ticket con aprobación en AAP; FaceOps no toca la máquina directo') }}</p></div>
 <button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button></header>
 {% if hb_ %}<div class="hb-filtro"><input type="search" class="hb-busca" placeholder="Buscar por skill, tipo, ámbito o valor…" aria-label="Buscar skill"><span role="group" aria-label="Filtrar por tipo"><button type="button" class="on" data-hb-f="">Todas <span>{{ hb_|length }}</span></button><button type="button" data-hb-f="diferenciador">Diferenciador <span>{{ hb_|selectattr('tipo', 'equalto', 'diferenciador')|list|length }}</span></button><button type="button" data-hb-f="quick win">Quick win <span>{{ hb_|selectattr('tipo', 'equalto', 'quick win')|list|length }}</span></button></span></div>
-<div class="hb-tabla"><table class="no-apilar sin-pag"><thead><tr><th>Skill</th><th>Tipo</th><th>Ámbito</th><th>Valor</th><th class="hb-a">Acción</th></tr></thead><tbody>{% for h in hb_ %}<tr class="hb-it{{ ' bloq' if h.bloqueo }}" data-hb-tipo="{{ h.tipo }}"{{ ' data-hb-ui=' ~ h.ui if h.ui }}>
+<div class="hb-tabla"><table class="no-apilar sin-pag"><thead><tr><th>Skill</th><th>Tipo</th><th>Lo que gana el cliente</th><th class="hb-a">Acción</th></tr></thead><tbody>{% for h in hb_ %}<tr class="hb-it{{ ' bloq' if h.bloqueo }}" data-hb-tipo="{{ h.tipo }}"{{ ' data-hb-ui=' ~ h.ui if h.ui }}>
 <td class="hb-n1"><b title="{{ h.nombre }}">{{ h.nombre }}</b>{% if h.grupo %}<span class="sub hb-g">{{ h.grupo }}</span>{% endif %}</td>
 <td><span class="hb-tag {{ 'dif' if h.tipo == 'diferenciador' else 'qw' }}">{{ 'Diferenciador' if h.tipo == 'diferenciador' else 'Quick win' }}</span></td>
-<td class="hb-amb">{{ h.ambito }}</td>
 <td><div class="sub hb-v" title="{{ h.valor }}">{{ h.valor }}</div>{% if h.bloqueo %}<div class="hb-motivo" title="Bloqueada: {{ h.bloqueo }}">Bloqueada: {{ h.bloqueo }}</div>{% endif %}</td>
 <td class="hb-a">{% if h.ui == 'replica' and h.en_curso %}<button type="button" class="btn chico" disabled>En curso</button> <span class="ult-t e-en_cola">{{ h.en_curso }}</span>
 {% elif h.bloqueo %}<button type="button" class="btn chico" disabled title="«{{ h.auto }}»: {{ h.bloqueo }}">Ejecutar</button>
@@ -22,7 +21,7 @@
 {% elif not h.escritura %}<span class="sub">solo lectura</span>
 {% elif h.ui %}<button type="button" class="btn chico" data-hb-abrir="{{ h.ui }}" title="«{{ h.auto }}»: elige el destino; ticket con aprobación">Ejecutar</button>
 {% else %}<button type="button" class="btn chico" data-hb-url="{{ h.url }}" data-hb-id="{{ h.id }}"{% if h.campos %} data-hb-campos="{{ h.campos|tojson|forceescape }}" data-hb-nombre="{{ h.nombre }}"{% endif %} title="«{{ h.auto }}»: ticket con aprobación">{{ 'Ejecutar…' if h.campos else 'Ejecutar' }}</button>{% endif %}</td></tr>{% endfor %}
-<tr class="hb-vacio" hidden><td colspan="5" class="sub">Ningún skill coincide con la búsqueda.</td></tr></tbody></table></div>
+<tr class="hb-vacio" hidden><td colspan="4" class="sub">Ningún skill coincide con la búsqueda.</td></tr></tbody></table></div>
 <form class="hb-form" hidden autocomplete="off"><h3></h3><p class="sub">Las claves no se muestran ni quedan en FaceOps: viajan solo a AAP con el ticket (enmascaradas en el ticket y la auditoría; la acción no las escribe en sus registros).</p><div class="hb-campos"></div>
 <div class="hb-fbot"><button type="button" class="btn chico gris" data-hb-cancelar>Cancelar</button><button type="submit" class="btn chico">Solicitar con aprobación</button></div></form>
 {% else %}<div class="hb-sin"><b>Aún no hay skills para {{ hb_tit }}.</b><span class="sub">Ninguna acción del catálogo aplica hoy a esta máquina (su sistema, sus plataformas o su tipo). Cuando se publique y certifique una, aparecerá aquí.</span></div>{% endif %}
@@ -46,22 +45,22 @@
 .hb-tabla{margin:0 18px 18px;max-height:calc(38px + 5 * 66px);overflow:auto;border:1px solid var(--line);border-radius:10px;flex:none}
 .hb-tabla table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0}
 .hb-tabla th{position:sticky;top:0;z-index:1;background:var(--soft,var(--panel));text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:0 12px;height:38px;border-bottom:1px solid var(--line)}
-.hb-tabla th:nth-child(1){width:24%}.hb-tabla th:nth-child(2){width:116px}.hb-tabla th:nth-child(3){width:130px}.hb-tabla th:nth-child(5){width:150px}
+.hb-tabla th:nth-child(1){width:24%}.hb-tabla th:nth-child(2){width:116px}.hb-tabla th:nth-child(4){width:150px}
 .hb-amb{font-size:12.5px}
 .hb-tabla td{height:66px;box-sizing:border-box;padding:6px 12px;border-bottom:1px solid var(--line);vertical-align:middle;overflow:hidden}
 .hb-tabla tr:last-child td{border-bottom:0}.hb-it[hidden],.hb-vacio[hidden]{display:none}
 .hb-it.bloq td:not(.hb-a){opacity:.72}.hb-n1 b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hb-g{font-size:11.5px}
-.hb-v{font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hb-v{font-size:12.5px;white-space:normal}
 .hb-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:1px 8px;border-radius:999px;white-space:nowrap}
 .hb-tag.dif{background:#ede9fe;color:#5b21b6}.hb-tag.qw{background:#dcfce7;color:#166534}
-.hb-it.bloq .hb-v{-webkit-line-clamp:1}.hb-motivo{font-size:11.5px;color:var(--warn,#b45309);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb-motivo{font-size:11.5px;color:var(--warn,#b45309);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hb-tabla .hb-a{text-align:right;white-space:nowrap}
 .hb-form{margin:0 18px 18px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;overflow:auto}.hb-form[hidden],.hb-tabla[hidden]{display:none}.hb-form h3{margin:0 0 4px;font-size:15px}.hb-form>.sub{font-size:12px;margin:0 0 10px}
 .hb-campos label{display:block;margin:0 0 10px;font-size:12.5px;font-weight:600}.hb-campos input{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-weight:400;background:var(--panel);color:inherit}.hb-campos small{font-weight:400;color:var(--muted)}
 .hb-fbot{display:flex;gap:8px;justify-content:flex-end}
 .hb-sin{margin:auto 18px;padding:40px 20px;text-align:center;display:flex;flex-direction:column;gap:6px;border:1px dashed var(--line);border-radius:12px}
 @media (prefers-color-scheme:dark){.hb-tag.dif{background:#3b2a63;color:#ddd6fe}.hb-tag.qw{background:#14432a;color:#bbf7d0}}
-@media (max-width:600px){.fila:has(>.hb-btn){flex-wrap:wrap}.hb-tabla th:nth-child(3),.hb-tabla td:nth-child(3),.hb-tabla th:nth-child(4),.hb-tabla td:nth-child(4){display:none}.hb-tabla th:nth-child(5){width:110px}}
+@media (max-width:600px){.fila:has(>.hb-btn){flex-wrap:wrap}.hb-tabla th:nth-child(2),.hb-tabla td:nth-child(2){display:none}.hb-tabla th:nth-child(4){width:110px}}
 </style>
 <script>(()=>{const dlg=document.getElementById('hb-dlg');if(!dlg||!dlg.querySelector('.hb-tabla'))return;const EST={{ url_for('consola.ticket_estado', tid=0)|tojson }},TK={{ url_for('consola.ticket', tid=0)|tojson }};
 const ABIERTO=['pendiente_aprobacion','en_cola','en_ejecucion','en curso','ejecutando','esperando'];
