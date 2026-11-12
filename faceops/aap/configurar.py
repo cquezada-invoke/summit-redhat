@@ -195,7 +195,7 @@ shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
 shutil.copy(f"{AQUI}/openshift-operador.yml", f"{tmp}/playbooks/openshift-operador.yml")
-for f_ in ("openshift-operador-instalar.yml", "openshift-operador-desinstalar.yml"):   # Agregar plataforma en un clúster: operadores
+for f_ in ("openshift-operador-instalar.yml", "openshift-operador-desinstalar.yml", "openshift-operador-retirar.yml"):   # Agregar plataforma en un clúster: operadores
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)   # catálogo de operadores: la recolección verifica esos paquetes en el clúster
 shutil.copy(os.path.join(os.path.dirname(AQUI), "datos", "operadores-ocp.yml"), f"{tmp}/playbooks/files/operadores-ocp.yml")
