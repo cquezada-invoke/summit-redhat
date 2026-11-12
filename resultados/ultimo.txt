@@ -1,41 +1,26 @@
-commit: 71baa89e263d8dc36a24caebadfad0b76a41bd7b
-inicio: 2026-11-12T19:53:59-03:00
+commit: 3e80d6fc62d7c71fd7a7a18c7ea50b9d53c2fcea
+inicio: 2026-11-12T19:54:34-03:00
 ---
-===== nodo-so 192.168.122.12
-curl: (60) SSL certificate problem: self-signed certificate in certificate chain
-More details here: https://curl.se/docs/sslcerts.html
-http: 301
-tcp443: abierto
-proxy env/curlrc: 0 
-firewalld: sudo: firewall-cmd: command not found · zona: sudo: firewall-cmd: command not found
-sudo: firewall-cmd: command not found
-hosts: 192.168.122.2 dc1-sat01.invoke.lab dc1-sat01;
-crypto-policy: DEFAULT
-ca bundle: lrwxrwxrwx. 1 root root 49 Oct 22 07:39 /etc/pki/tls/certs/ca-bundle.crt -> /etc
-===== nodo-postgres 192.168.122.13
-curl: (60) SSL certificate problem: self-signed certificate in certificate chain
-More details here: https://curl.se/docs/sslcerts.html
-http: 301
-tcp443: abierto
-proxy env/curlrc: 0 
-firewalld: running · zona: public
-		oifname "eth0" goto nat_POST_public
-	chain nat_OUTPUT {
-		type nat hook output priority dstnat + 10; policy accept;
-		jump nat_OUTPUT_POLICIES_pre
-		jump nat_OUTPUT_POLICIES_post
-	chain nat_OUTPUT_POLICIES_pre {
-	chain nat_OUTPUT_POLICIES_post {
-		meta nfproto ipv6 fib saddr . mark . iif check missing drop
-		ct state invalid drop
-		reject with icmpx admin-prohibited
-		ct state invalid drop
-		ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 addr-unreachable
-hosts: 
-crypto-policy: DEFAULT
-ca bundle: lrwxrwxrwx. 1 root root 49 Oct 10  2025 /etc/pki/tls/certs/ca-bundle.crt -> /etc
-===== host: reglas para 192.168.122.12
-    <interface type='network'>
-      <mac address='52:54:00:de:00:12'/>
-      <source network='default' portid='c34ca0ac-d02f-4cc1-a760-6445e25b3801' bridge='virbr0'/>
---- fin: 2026-11-12T19:54:03-03:00 · código: 0
+desplegado: 120cf198 2026-11-12 22:42
+objetivos: {"n_equipos": 111, "n_visibles": 48, "encendida": 26, "apagada": 22, "apagada_nombre": "nodo-jboss-qa", "apagada_energia": "apagado", "ticket": 2377, "ticket_num": "FO-LAB-02377", "auto": 95, "n_tickets": 2377, "lector": 23}
+Traceback (most recent call last):
+  File "/tmp/n3.py", line 63, in <module>
+    t0 = time.time(); pg, paso = login(ctx, "qa.nucleo"); R["login"] = {"pide_codigo": paso, "url_final": pg.url.replace(B, "")[:40], "s": round(time.time() - t0, 2),
+  File "/tmp/n3.py", line 12, in login
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/sync_api/_generated.py", line 8770, in wait_for_selector
+    self._sync(
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_page.py", line 424, in wait_for_selector
+    return await self._main_frame.wait_for_selector(**locals_to_params(locals()))
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_frame.py", line 372, in wait_for_selector
+    await self._channel.send(
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 69, in send
+    return await self._connection.wrap_api_call(
+  File "/home/cquezada/.local/lib/python3.9/site-packages/playwright/_impl/_connection.py", line 559, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator("input[name=usuario]") to be visible
+
+--- fin: 2026-11-12T19:55:42-03:00 · código: 0
