@@ -1,0 +1,71 @@
+commit: 2b2b2b04c51141e56b0f545385122ef75eda9b58
+inicio: 2026-11-12T19:50:36-03:00
+---
+SNO_ESTADO_INICIAL: running
+API: ok tras 10s
+operadores no listos: 0
+ansible [core 2.15.13]
+community.general             7.5.2  
+kubernetes.core               2.4.0  
+community.general             7.5.2  
+kubernetes.core               2.4.0  
+
+playbook: evaluar-imagenes-ocp.yml
+RC 0
+TASK [Leer objetos del clúster (solo lectura)] *********************************
+TASK [Verificar lectura de imágenes, imagestreams y pods] **********************
+TASK [Avisar recursos no disponibles en este clúster] **************************
+skipping: [localhost]
+TASK [Agrupar objetos leídos por tipo y elegir nodos] **************************
+TASK [Crear archivo temporal] **************************************************
+skipping: [localhost]
+TASK [Escribir kubeconfig temporal] ********************************************
+skipping: [localhost]
+TASK [Leer caché de imágenes de cada nodo (oc debug + crictl, sin cambios en el nodo)] ***
+skipping: [localhost] => (item=sno) 
+skipping: [localhost]
+TASK [Cruzar imágenes con su uso y clasificar candidatas] **********************
+TASK [Crear carpeta del reporte] ***********************************************
+TASK [Generar reporte HTML] ****************************************************
+TASK [Generar detalle CSV] *****************************************************
+TASK [Generar detalle JSON] ****************************************************
+TASK [Resumen] *****************************************************************
+    "msg": [
+        "Clúster api.sno.invoke.lab (4.19.51) · registro: emptyDir",
+        "Registro interno: 71 imagestreams, 333 revisiones, 301 imágenes (56 gestionadas, 15 huérfanas)",
+        "Espacio registro: total 5,9 GiB · en uso 3,0 GiB · recuperable bloques 1-3 129,5 MiB",
+        "Caché de nodos: 58,2 GiB en 1 nodo(s), no usada 27,3 GiB",
+        "Bloque 1 · Revisiones históricas antiguas sin referencia: 4 candidatas, 129,5 MiB",
+        "Bloque 2 · Imagestreams y tags completos sin uso: 0 candidatas, 0 B",
+        "Bloque 3 · Imágenes huérfanas (namespace o imagestream eliminado): 0 candidatas, 0 B",
+        "Bloque 4 · Caché de nodos no usada: 21 candidatas, 27,3 GiB",
+        "Bloque 5 · Dudosas: revisión manual: 20 candidatas, 2,3 GiB",
+        "Aviso: El registro interno usa emptyDir: sus imágenes viven en el disco del nodo del pod del registro y se pierden si el pod se reinicia.",
+        "Reporte: /tmp/imgocp-410014/out/reporte-imagenes-20261112-2252.html"
+TASK [Registrar resumen en el historial de AAP] ********************************
+TASK [Enviar reporte por correo] ***********************************************
+skipping: [localhost]
+TASK [Eliminar kubeconfig temporal] ********************************************
+skipping: [localhost]
+PLAY RECAP *********************************************************************
+localhost                  : ok=10   changed=4    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0   
+DURACION 93s
+ 
+134 .
+64 ..
+88110 reporte-imagenes-20261112-2252.csv
+166372 reporte-imagenes-20261112-2252.html
+273271 reporte-imagenes-20261112-2252.json
+== estados
+[('excluida (namespace del sistema)', 292), ('candidata', 24), ('sin uso, bajo umbral de antigüedad', 15), ('en uso', 12), ('con referencia débil, bajo umbral', 5)]
+[(1, 4, 135766368), (2, 0, 0), (3, 0, 0), (4, 21, 29299851118), (5, 20, 2509286370)]
+1 [('amdocs-bss', 2, 4688), ('fabrica-dev', 2, 135761680)]
+2 []
+3 []
+4 [('sno', 21, 29299851118)]
+5 [('catocp-prod', 2, 16339592), ('demo-datalake', 1, 3426105), ('demo-fiscalia', 7, 1920845257), ('demo-javia', 3, 541013728), ('fabrica-codigo', 7, 27661688)]
+sno api (parcial) 50 62474308073 29299851118 0 0
+['El registro interno usa emptyDir: sus imágenes viven en el disco del nodo del pod del registro y se pierden si el pod se reinicia.']
+debug ns restantes: 0
+SNO_ESTADO_FINAL: running
+--- fin: 2026-11-12T19:52:44-03:00 · código: 0
