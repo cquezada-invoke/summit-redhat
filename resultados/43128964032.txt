@@ -1,0 +1,114 @@
+commit: af5e46fddcb70c729a2aa0f416f3df0edbf5dcb5
+inicio: 2026-11-11T22:10:48-03:00
+---
+== runners (procesos)
+1719958       0 bash herramientas/vm/tarea.sh
+1719454       3 /home/cquezada/actions-runner-2/bin/Runner.Worker spawnclient 159 162
+1687337     200 python3 faceops/aap/configurar.py
+1687117     201 bash herramientas/vm/tarea.sh
+1686044     205 /home/cquezada/actions-runner-3/bin/Runner.Worker spawnclient 158 161
+1652147     463 bash herramientas/vm/tarea.sh
+1649513     490 /home/cquezada/actions-runner/bin.2.338.2/Runner.Worker spawnclient 157 160
+== árbol del worker más antiguo
+-- worker 1649513 (    490s) cwd=/home/cquezada/actions-runner/bin.2.338.2
+Runner.Worker,1649513 spawnclient 157 160
+  |-bash,1652143 -e /home/cquezada/actions-runner/_work/_temp/bbe6dbc8-32f5-43bf-b28f-bf38893b6d50.sh
+  |   `-bash,1652147 herramientas/vm/tarea.sh
+  |       |-bash,1696134 herramientas/pruebas/p-migraciones-so.sh rhel8-rv
+  |       |   `-bash,1711639 herramientas/pruebas/p-migraciones-so.sh rhel8-rv
+  |       |       `-sudo,1711640 podman exec -i -e FACEOPS_VIGIA=0 faceops python3 -u - {"auto":"Migraci\303\263n \302\267 RHEL a versi\303\
+  |       |           `-podman,1711644 exec -i -e FACEOPS_VIGIA=0 faceops python3 -u - {"auto":"Migraci\303\263n \302\267 RHEL a versi\303\2
+  |       |               |-{podman},1711645
+  |       |               |-{podman},1711646
+  |       |               |-{podman},1711647
+  |       |               |-{podman},1711648
+  |       |               |-{podman},1711649
+  |       |               |-{podman},1711650
+  |       |               |-{podman},1711654
+  |       |               |-{podman},1711656
+  |       |               |-{podman},1711658
+  |       |               |-{podman},1711660
+  |       |               |-{podman},1711661
+  |       |               |-{podman},1711662
+  |       |               |-{podman},1711665
+  |       |               |-{podman},1711666
+  |       |               |-{podman},1711667
+  |       |               |-{podman},1711669
+  |       |               |-{podman},1711672
+  |       |               |-{podman},1711675
+-- worker 1686044 (    206s) cwd=/home/cquezada/actions-runner-3/bin
+Runner.Worker,1686044 spawnclient 158 161
+  |-bash,1687114 -e /home/cquezada/actions-runner-3/_work/_temp/1f049ac1-7874-48dd-8113-52c278a94c68.sh
+  |   `-bash,1687117 herramientas/vm/tarea.sh
+  |       |-grep,1687338 -E im\303\241genes \\(uso|Mover im\303\241genes|Traceback
+  |       |-head,1687339 -4
+  |       `-python3,1687337 faceops/aap/configurar.py
+  |-{Runner.Worker},1686045
+  |-{Runner.Worker},1686050
+  |-{Runner.Worker},1686053
+  |-{Runner.Worker},1686054
+  |-{Runner.Worker},1686055
+  |-{Runner.Worker},1686077
+  |-{Runner.Worker},1686097
+  |-{Runner.Worker},1686098
+  |-{Runner.Worker},1686112
+  |-{Runner.Worker},1686129
+  |-{Runner.Worker},1686136
+  |-{Runner.Worker},1686439
+  |-{Runner.Worker},1686473
+  `-{Runner.Worker},1694264
+-- worker 1719454 (      4s) cwd=/home/cquezada/actions-runner-2/bin
+Runner.Worker,1719454 spawnclient 159 162
+  |-bash,1719955 -e /home/cquezada/actions-runner-2/_work/_temp/e44cc84e-ed29-48a4-a2a9-8edd59773fbe.sh
+  |   `-bash,1719958 herramientas/vm/tarea.sh
+  |       |-cut,1720010 -c1-140
+  |       |-head,1720011 -25
+  |       `-pstree,1720009 -alp 1719454
+  |-{Runner.Worker},1719455
+  |-{Runner.Worker},1719456
+  |-{Runner.Worker},1719457
+  |-{Runner.Worker},1719458
+  |-{Runner.Worker},1719459
+  |-{Runner.Worker},1719461
+  |-{Runner.Worker},1719470
+  |-{Runner.Worker},1719471
+  |-{Runner.Worker},1719472
+  |-{Runner.Worker},1719484
+  |-{Runner.Worker},1719485
+  |-{Runner.Worker},1719486
+  |-{Runner.Worker},1719487
+  |-{Runner.Worker},1719488
+  |-{Runner.Worker},1719489
+  |-{Runner.Worker},1719490
+  |-{Runner.Worker},1719491
+  |-{Runner.Worker},1719492
+  |-{Runner.Worker},1719493
+== credencial del repo del anfitrión: lectura-ok
+lanzado con systemd-run
+== log limpieza
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.ag ok 22:10:58
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.ah ok 22:10:59
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.ai ok 22:10:59
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.aj ok 22:11:00
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.ak ok 22:11:00
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.al ok 22:11:01
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.am ok 22:11:01
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.an ok 22:11:02
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.ao ok 22:11:03
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.ap ok 22:11:03
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.aq ok 22:11:04
+remote: Permission to cquezada-invoke/summit-redhat.git denied to cquezada-invoke.
+lote lote.ar ok 22:11:04
+quedan=902 FIN
+--- fin: 2026-11-11T22:11:10-03:00 · código: 0
