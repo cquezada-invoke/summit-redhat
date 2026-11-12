@@ -1,41 +1,32 @@
-commit: 587317c94affa8df60136eafe5edfe944710116a
-inicio: 2026-11-12T17:24:08-03:00
+commit: 44c5f6e86bd756bbcedaecb007dadbdf803f1f34
+inicio: 2026-11-12T17:46:19-03:00
 ---
-desplegado 65107aec7
-   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 28 reglas en Prometheus y ruta a EDA :5023
-   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
-   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
-repo 65107ae
-herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
-SINCRONIZADO lab
-== Autocuidado · Revisar estado
-  C1 → fallido FO-LAB-02324
-CASO C1 falla · Revisar el estado
-  C2 → fallido FO-LAB-02325
-CASO C2 falla · Repetir
-  C3 → fallido FO-LAB-02326
-CASO C3 ok · Herramienta distinta
-CERT Autocuidado · Revisar estado → sin probar
-== Autocuidado · Liberar disco
-  C1 → exitoso FO-LAB-02328
-CASO C1 ok · Evaluar
-  C2 → exitoso FO-LAB-02329
-CASO C2 ok · Modo seguro
-  C3 → exitoso FO-LAB-02331
-CASO C3 ok · Repetir
-  C4 → exitoso FO-LAB-02333
-CASO C4 ok · Modo profundo
-  C5 → fallido FO-LAB-02334
-CASO C5 ok · Modo inválido
-CERT Autocuidado · Liberar disco → certificada
-== Autocuidado · Reiniciar componentes de AAP
-  C1 → exitoso FO-LAB-02336
-CASO C1 ok · Evaluar
-  C2 → exitoso FO-LAB-02339
-CASO C2 ok · Componente detenido
-  C3 → exitoso FO-LAB-02341
-CASO C3 ok · Repetir con todo sano
-  C4 → fallido FO-LAB-02342
-CASO C4 ok · Modo inválido
-CERT Autocuidado · Reiniciar componentes de AAP → certificada
---- fin: 2026-11-12T17:46:01-03:00 · código: 0
+sno   Ready   control-plane,master,worker   13d   v1.32.13
+IS: 71  ISTAG: 304  IMAGES: 301
+     59 openshift
+      2 catocp-prod
+      1 wl-proto
+      1 portal-claro
+      1 fabrica-dev
+      1 fabrica-codigo
+      1 demo-javia
+      1 demo-industrias
+      1 demo-ia-analitica
+      1 demo-fiscalia
+      1 demo-datalake
+      1 amdocs-bss
+Managed {"emptyDir":{},"managementState":"Managed"}
+sno 51
+compliance-operator.v1.10.0
+datagrid-operator.v8.6.10
+hawtio-operator.v1.2.0
+network-observability-operator.v2.0.0
+openshift-gitops-operator.v1.22.2
+openshift-pipelines-operator-rh.v1.24.3
+packageserver
+rhacs-operator.v4.11.6
+Python 3.9.25
+WARNING: You are using pip version 21.3.1; however, version 26.0.1 is available.
+You should consider upgrading via the '/tmp/venvprueba/bin/python3 -m pip install --upgrade pip' command.
+ok 35.0.0
+--- fin: 2026-11-12T17:48:10-03:00 · código: 0
