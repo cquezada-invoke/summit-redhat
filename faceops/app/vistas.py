@@ -1543,12 +1543,33 @@ def bases_datos():
                            radar_sec=_radar_de(grupos.get(sel, []) if sel else list({e["id"]: e for v in grupos.values() for e in v}.values())))
 
 
+_FABRICANTES = [("rhel", "Red Hat"), ("jboss", "Red Hat"), ("eap", "Red Hat"), ("aap", "Red Hat"), ("automation-hub", "Red Hat"), ("eda", "Red Hat"),
+                ("openshift", "Red Hat"), ("ocp", "Red Hat"), ("satellite", "Red Hat"), ("idm", "Red Hat"), ("389", "Red Hat"), ("keycloak", "Red Hat"),
+                ("rhbk", "Red Hat"), ("amq", "Red Hat"), ("activemq", "Apache"), ("artemis", "Apache"), ("kafka", "Apache"), ("tomcat", "Apache"),
+                ("httpd", "Apache"), ("datagrid", "Red Hat"), ("quay", "Red Hat"), ("podman", "Red Hat"), ("faceops", "Invoke"),
+                ("redis", "Redis"), ("redis-insight", "Redis"), ("redisinsight", "Redis"), ("postgresql", "PostgreSQL"), ("postgres", "PostgreSQL"),
+                ("mysql", "Oracle"), ("weblogic", "Oracle"), ("oracle", "Oracle"), ("mongodb", "MongoDB"), ("sqlserver", "Microsoft"), ("mssql", "Microsoft"),
+                ("iis", "Microsoft"), ("ad", "Microsoft"), ("active-directory", "Microsoft"), ("windows", "Microsoft"), ("so:windows", "Microsoft"),
+                ("windows-server", "Microsoft"), ("ubuntu", "Canonical"), ("so:ubuntu", "Canonical"), ("vault", "HashiCorp"), ("nginx", "F5 (NGINX)"),
+                ("haproxy", "HAProxy"), ("grafana", "Grafana Labs"), ("prometheus", "CNCF"), ("jenkins", "Jenkins"), ("gitea", "Gitea"),
+                ("minio", "MinIO"), ("trino", "Trino"), ("datalake", "Trino"), ("vyos", "VyOS"), ("frr", "FRRouting"), ("frrouting", "FRRouting"),
+                ("wireguard", "WireGuard"), ("vpn", "WireGuard"), ("rocky", "Rocky Enterprise"), ("centos", "Red Hat")]
+
+
 def _salud_cajas(cajas, grupos):
     """Salud consolidada de cada caja: la línea que resume los 5 puntos del radar de salud de sus máquinas."""
     for c in cajas:
         es_ = grupos.get(c["clave"]) or []
         r_ = _radar_de(es_) if es_ else None
         c["salud"] = r_.get("pct") if r_ else None
+    try:   # fabricante de cada producto: base de conocimiento, y si no está, una lista conocida
+        from . import kb as kb_
+        fab_ = {x["codigo"]: x["fabricante"] for x in (kb_.q("SELECT codigo, fabricante FROM productos") if kb_.disponible() else []) if x.get("fabricante")}
+    except Exception:  # noqa: BLE001
+        fab_ = {}
+    for c in cajas:
+        k_ = c["clave"]
+        c["fab"] = fab_.get(k_) or next((f for pre, f in _FABRICANTES if k_ == pre or k_.startswith(pre + "-") or k_.startswith(pre + ":")), "")
 
 
 def _nombre_plat(c):
