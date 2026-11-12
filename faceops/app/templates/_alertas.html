@@ -16,7 +16,7 @@
 <div class="al-cuerpo">
 {% if not al.grupos %}<div class="vacio" style="padding:22px 6px;text-align:center"><b>Aún no hay alertas definidas para {{ al.tipo_nombre|lower }}.</b><br><span class="sub">Se agregan al catálogo a medida que se necesitan; cuando exista una, aparecerá aquí para activarla.</span></div>{% endif %}
 {% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
-{% for a in xs %}{% if a.en_revision %}<div class="al-fila al-pend al-rev"><span class="al-sw"><input type="checkbox" disabled><i></i></span>
+{% for a in xs %}{% if a.en_revision %}<div class="al-fila al-rev{{ ' on' if a.mon else ' al-pend' }}" title="Las alertas del clúster se cargan juntas en su monitoreo («Generar ticket»)"><span class="al-sw"><input type="checkbox" disabled {{ 'checked' if a.mon }}><i></i></span>
   <span class="al-def"><b>{{ a.nombre }} {% if a.mon %}{% elif a.grafana_ocp %}<span class="chip s-ok" style="font-size:10px">visible en Grafana</span>{% else %}<span class="chip" style="font-size:10px">aún no cargada en el clúster</span>{% endif %}</b><small>{{ a.descripcion }}</small>
     {% if a.grafana_ocp %}<small class="al-ver"><a href="{{ a.grafana_ocp }}" target="_blank" rel="noopener">Ver en Grafana ↗</a> · acción: por definir</small>{% endif %}{{ estado_mon(al, a) }}
     <small class="al-ver">PromQL propuesta: <code>{{ a.expr_txt }}</code></small>
