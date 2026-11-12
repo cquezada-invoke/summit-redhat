@@ -655,7 +655,8 @@ def _zona_para(para):
 
 def _alerta(cliente, r):
     """«SLA en riesgo»: el error budget consumido pasa el umbral del SLA. Se abre una vez (correo breve) y se cierra sola."""
-    from .correo import enviar, hora
+    from .correo import enviar
+    from .hora_local import en_zona
     ab = q1("SELECT * FROM sla_alertas WHERE cliente_id=? AND segmento=? AND cerrada IS NULL ORDER BY id DESC LIMIT 1", cliente["id"], r["segmento"])
     c_, u_ = r.get("consumo"), r["d"]["umbral_riesgo"]
     if c_ is not None and c_ >= u_:
@@ -666,7 +667,7 @@ def _alerta(cliente, r):
         cuerpo = (f"SLA en riesgo · {r['segmento']} · {cliente['nombre']}\n\n"
                   f"El error budget de {r['etiqueta']} va en {pct(c_, 1)} (umbral {pct(u_, 0)}). Disponibilidad medida "
                   f"{r['objetivos'][0]['valor']} contra {r['objetivos'][0]['objetivo']}.\n"
-                  f"Medido el {hora(_ahora(), para) if para else ahora()}.\n\nDetalle: {url_publica(cliente, r['segmento'])}")
+                  f"Medido el {en_zona(_ahora(), _zona_para(para))}.\n\nDetalle: {url_publica(cliente, r['segmento'])}")
         res = enviar(para, f"FaceOps · SLA en riesgo: {r['segmento']} ({pct(c_, 0)} del error budget)", cuerpo) if para else "sin destinatario"
         ej("INSERT INTO sla_alertas(cliente_id, segmento, sla_id, abierta, consumo, umbral, para, resultado) VALUES (?,?,?,?,?,?,?,?)",
            cliente["id"], r["segmento"], r["sla_id"], ahora(), c_, u_, para, res)
@@ -834,10 +835,10 @@ def reporte(cliente, clave=None):
 
 
 def cuerpo_correo(cliente, rs, para, etiqueta):
-    from .correo import hora
+    from .hora_local import en_zona
     ok = sum(1 for r in rs if r["estado"] in ("cumple", "riesgo"))
     med = sum(1 for r in rs if r["estado"] != "sin_medicion")
-    lin = [f"Cumplimiento de SLA · {cliente['nombre']} · {etiqueta}", f"Medido el {hora(_ahora(), para) if para else ahora()}.", "",
+    lin = [f"Cumplimiento de SLA · {cliente['nombre']} · {etiqueta}", f"Medido el {en_zona(_ahora(), _zona_para(para))}.", "",
            f"Servicios que cumplen: {ok} de {med} con medición" + (f" ({len(rs) - med} sin medición)" if len(rs) > med else ""), ""]
     for r in rs:
         d0 = r["objetivos"][0]
@@ -890,7 +891,7 @@ def revisar(cliente):
         if con_sla(cliente["id"]):
             try:   # el reporte programado es del período que acaba de cerrar
                 s = vigente(cliente["id"], con_sla(cliente["id"])[0])
-                clave = periodo_de(s["d"], _ahora() - timedelta(days=2))[0]
+                clave = periodo_de(s["d"], periodo_de(s["d"])[1] - timedelta(days=1))[0]
                 enviar(cliente, "programado", "sistema", clave)
             except Exception as x:  # noqa: BLE001
                 auditar("sistema", cliente["id"], "error reporte de SLA", "programador", {"error": str(x)[:300]})
