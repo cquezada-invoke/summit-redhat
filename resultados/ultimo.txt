@@ -1,17 +1,34 @@
-commit: be5aa1c9cf5bbf19243b10525395ca05f2d1ca3b
-inicio: 2026-11-12T12:42:14-03:00
+commit: 069cf70ce8032f075f85fe67489a311e8d9750a5
+inicio: 2026-11-12T12:47:00-03:00
 ---
-disco: 14G libres (98%)
-desplegado: sí (59aa3e30 o posterior)
-AAP controller: 200
-v0 produccion: pagina 0.92s[200] · grafica 1.09s[200] · total 2.01s
-v0 qa: pagina 0.17s[200] · grafica 0.22s[200] · total 0.39s
-v0 desarrollo: pagina 0.16s[200] · grafica 0.20s[200] · total 0.35s
-v1 produccion: pagina 0.16s[200] · grafica 1.03s[200] · total 1.19s
-v1 qa: pagina 0.16s[200] · grafica 0.21s[200] · total 0.37s
-v1 desarrollo: pagina 0.16s[200] · grafica 0.22s[200] · total 0.38s
-v2 produccion: pagina 0.19s[200] · grafica 1.08s[200] · total 1.27s
-v2 qa: pagina 0.23s[200] · grafica 0.20s[200] · total 0.42s
-v2 desarrollo: pagina 0.23s[200] · grafica 0.26s[200] · total 0.49s
-certificados 0.57s[200] error_503=False
---- fin: 2026-11-12T12:46:30-03:00 · código: 0
+datos prod 0.37s
+        1    0.013    0.013    0.362    0.362 /opt/faceops/app/__init__.py:391(envoltura)
+        1    0.004    0.004    0.348    0.348 /opt/faceops/app/vistas.py:6537(mapa_datos)
+        1    0.012    0.012    0.122    0.122 /opt/faceops/app/cves.py:112(por_equipo)
+       95    0.000    0.000    0.110    0.001 /opt/faceops/app/__init__.py:12(_safe_load)
+        5    0.000    0.000    0.108    0.022 /opt/faceops/app/arquitectura.py:149(vigentes)
+        1    0.000    0.000    0.091    0.091 /opt/faceops/app/topologia.py:899(resumen_segmento)
+      151    0.000    0.000    0.086    0.001 /opt/faceops/app/bd.py:180(q)
+        3    0.000    0.000    0.073    0.024 /opt/faceops/app/arquitectura.py:311(flujos_de)
+      151    0.062    0.000    0.062    0.000 {method 'fetchall' of 'sqlite3.Cursor' objects}
+        1    0.001    0.001    0.054    0.054 /opt/faceops/app/topologia.py:170(construir)
+        1    0.000    0.000    0.048    0.048 /opt/faceops/app/topologia.py:857(resumen_segmentos)
+     7169    0.011    0.000    0.030    0.000 /opt/faceops/app/inventario.py:14(normal)
+        1    0.000    0.000    0.028    0.028 /opt/faceops/app/vistas.py:62(equipos_visibles)
+        1    0.000    0.000    0.026    0.026 /opt/faceops/app/topologia.py:1140(salud_segmento)
+       46    0.000    0.000    0.025    0.001 /opt/faceops/app/inventario.py:69(segmentos_de)
+       46    0.000    0.000    0.025    0.001 /opt/faceops/app/inventario.py:62(segmentos_candidatos)
+       46    0.001    0.000    0.024    0.001 /opt/faceops/app/inventario.py:65(<listcomp>)
+      151    0.021    0.000    0.021    0.000 /opt/faceops/app/bd.py:181(<listcomp>)
+      827    0.003    0.000    0.020    0.000 /opt/faceops/app/inventario.py:33(cumple_regla)
+       21    0.000    0.000    0.014    0.001 /opt/faceops/app/vistas.py:109(auto_sugerida)
+       18    0.001    0.000    0.014    0.001 /opt/faceops/app/vistas.py:113(<genexpr>)
+        1    0.001    0.001    0.012    0.012 /opt/faceops/app/politicas_seg.py:336(tablero)
+     1263    0.001    0.000    0.011    0.000 /opt/faceops/app/bd.py:195(j)
+       60    0.001    0.000    0.010    0.000 /opt/faceops/app/arquitectura.py:247(asignacion)
+    21213    0.008    0.000    0.010    0.000 /opt/faceops/app/cves.py:145(<lambda>)
+    21259    0.008    0.000    0.009    0.000 /opt/faceops/app/cves.py:144(<genexpr>)
+      690    0.002    0.000    0.008    0.000 /opt/faceops/app/politicas_seg.py:299(aplica)
+        1    0.000    0.000    0.007    0.007 /opt/faceops/app/paridad.py:86(evaluar)
+       60    0.000    0.000    0.007    0.000 /opt/faceops/app/replicar_maquina.py:32(replicas)
+--- fin: 2026-11-12T12:47:12-03:00 · código: 0
