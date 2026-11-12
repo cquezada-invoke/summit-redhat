@@ -1378,6 +1378,13 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error recolección de clúster", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] in ("OpenShift · Instalar operador", "OpenShift · Desinstalar operador"):
+                try:   # el operador aparece (o sale) de las plataformas de la ficha del clúster sin esperar la recolección
+                    from .operadores_ocp import al_terminar
+                    res += al_terminar(c, t, a["nombre_aap"], artefactos_ticket(aap, t))
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error al actualizar operadores del clúster", t["numero"], {"error": str(x)[:300]})
             if a and a["nombre_aap"] == "OpenShift · Informe y ficha" and est == "exitoso" and j(t["parametros"], {}).get("oi_programar") == "si":
                 try:   # informe diario programado en AAP para ese clúster (07:00 de Chile), sin repetir la programación
                     nom_s = f"Informe diario · {t['limite']}"

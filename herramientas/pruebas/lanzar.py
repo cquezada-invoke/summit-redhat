@@ -94,7 +94,10 @@ with app.app_context():
             e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cl["id"], eq)
             if not e:
                 raise ValueError(f"no existe el equipo {eq}")
-            if caso.get("apagado"):   # «FaceOps · Apagar equipo» se lanza por su propio camino
+            if caso.get("directo"):   # acción sobre un clúster (u otro equipo sin vinculación SSH): igual que la ficha, límite = el equipo
+                t = solicitar(u, cl, a, None, dict(params), motivo, secretos, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {},
+                              equipo=dict(e), prueba=True)
+            elif caso.get("apagado"):   # «FaceOps · Apagar equipo» se lanza por su propio camino
                 from app.operacion import solicitar_apagado
                 t = solicitar_apagado(u, cl, dict(e), motivo, prueba=True)
             else:
@@ -131,4 +134,17 @@ with app.app_context():
     out["detalle"] = fallo(x) if x["estado"] != "exitoso" and x.get("aap_job_id") else ""
     out["fallos"] = fallos(x) if x["estado"] != "exitoso" and x.get("aap_job_id") else []
     out["resultado"] = (x["resultado"] or "")[-700:]
+    if caso.get("cambios") and x.get("aap_job_id"):   # idempotencia: ¿el trabajo cambió algo? (hosts con changed)
+        try:
+            jobs_ = [x["aap_job_id"]] if x["aap_job_tipo"] != "workflow" else \
+                [n["job"] for n in aap.todos(f"workflow_jobs/{x['aap_job_id']}/workflow_nodes/") if n.get("job")]
+            out["changed"] = 0
+            for jb in jobs_:
+                try:
+                    hs = aap.get(f"jobs/{jb}/job_host_summaries/").get("results") or []
+                    out["changed"] += sum(int(h.get("changed") or 0) for h in hs)
+                except Exception:  # noqa: BLE001  (nodo de aprobación)
+                    pass
+        except Exception:  # noqa: BLE001
+            out["changed"] = None
     print("RES", json.dumps(out, ensure_ascii=False, default=str), flush=True)

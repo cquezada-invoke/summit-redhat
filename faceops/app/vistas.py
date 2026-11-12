@@ -3362,16 +3362,51 @@ def operador_accion(eid, cod):
     accion = request.form.get("accion", "")
     if not op or accion not in ("reiniciar", "desinstalar"):
         return {"error": "Operador o acción no válidos"}, 400
-    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='OpenShift · Operador'", g.cliente["id"])
+    if accion == "desinstalar":   # contraparte de «Instalar operador»: Subscription, CSV, CRD sin uso y lo que creó FaceOps
+        from .operadores_ocp import DESINSTALAR
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], DESINSTALAR)
+        params = {"od_paquete": op["n"], "od_ns": op["ns"]}
+    else:
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='OpenShift · Operador'", g.cliente["id"])
+        params = {"op_ns": op["ns"], "op_sub": op.get("sub") or op["n"], "op_csv": op.get("csv") or "", "op_accion": accion}
     if not a:
-        return {"error": "Falta «OpenShift · Operador» en el catálogo (sincroniza con AAP)"}, 400
+        return {"error": "Falta la acción del operador en el catálogo (sincroniza con AAP)"}, 400
     try:
-        t = solicitar(g.usuario, g.cliente, a, None, {"op_ns": op["ns"], "op_sub": op.get("sub") or op["n"], "op_csv": op.get("csv") or "", "op_accion": accion},
+        t = solicitar(g.usuario, g.cliente, a, None, params,
                       f"{accion.capitalize()} el operador {op.get('nombre') or op['n']} en {e['nombre']}", None,
                       {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
+
+
+@bp.route("/inventario/<int:eid>/operador-instalar", methods=["POST"])
+@requiere_login
+def operador_instalar(eid):
+    """Agregar plataforma en un clúster OpenShift: instala un operador del catálogo (datos/operadores-ocp.yml) con ticket y aprobación."""
+    from .operacion import solicitar
+    from .operadores_ocp import INSTALAR, disponibles
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or (e.get("categoria") or "") != "clúster openshift":
+        abort(404)
+    paq = request.form.get("paquete", "")
+    o = next((x for c in disponibles(e, g.cliente["id"]) for x in c["operadores"] if x["paquete"] == paq), None)
+    if not o:
+        return {"error": "Ese operador no está en el catálogo"}, 400
+    if o["estado"] != "disponible":
+        return {"error": f"{o['nombre']}: {o['motivo']}"}, 400
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], INSTALAR)
+    if not a:
+        return {"error": f"Falta «{INSTALAR}» en el catálogo (sincroniza con AAP)"}, 400
+    params = {"oi_paquete": o["paquete"], "oi_ns": o["ns"], "oi_modo": o["modo"], "oi_canal": o.get("canal") or "",
+              "oi_fuente": o.get("fuente") or "redhat-operators", "oi_nombre": o["nombre"]}
+    try:
+        t = solicitar(g.usuario, g.cliente, a, None, params, f"Instalar el operador {o['nombre']} en {e['nombre']}", None,
+                      {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
 @bp.route("/inventario/<int:eid>/plataforma/<cod>/desinstalar", methods=["POST"])
@@ -4921,8 +4956,21 @@ def equipo(eid):
                         "No se pudo determinar el sistema operativo de esta máquina, y cada plataforma depende de él. Inventaría la máquina para detectarlo."
                         if not _sis_fino_(e) and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo") else
                         f"No hay plataformas compatibles con {e.get('so') or e.get('so_familia') or 'esta máquina'} que aún no tenga instaladas.")
+    ops_cluster, ops_res, ops_bloq = None, None, ""
+    if (e.get("categoria") or "") == "clúster openshift":   # en un clúster, «Agregar plataforma» ofrece el catálogo de operadores
+        from .operadores_ocp import INSTALAR as _OP_INST, disponibles as _ops_disp, resumen as _ops_res
+        ops_cluster = _ops_disp(e, g.cliente["id"])
+        ops_res = _ops_res(ops_cluster)
+        _ai = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], _OP_INST)
+        from .pruebas import estado as _est_prueba
+        ops_bloq = ("Falta «Instalar operador en OpenShift» en el catálogo (sincroniza con AAP)" if not _ai else
+                    "" if _est_prueba(dict(_ai))["estado"] == "certificada" else
+                    "La instalación de operadores aún no pasa su plan de prueba (regla de prueba)")
+        if e.get("energia") and e.get("energia") != "encendido":
+            ops_bloq = ops_bloq or "El clúster está apagado: enciéndelo para agregar operadores"
+        e["_plat_vacio"] = "" if ops_res["total"] else "El catálogo de operadores está vacío (datos/operadores-ocp.yml)."
     agentes_eq = _agentes_de(e, d_)
-    _acc = __import__("app.boveda", fromlist=["x"]).acceso(e["nombre"]) or {}
+    _acc =__import__("app.boveda", fromlist=["x"]).acceso(e["nombre"]) or {}
     if agentes_eq is not None and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo"):
         agentes_eq.insert(0, {"skill": "acceso", "nombre": "Acceso de FaceOps", "instalado": bool(_acc.get("usuario")), "opcional": False,
                               "que": (f"Usuario de servicio «{_acc['usuario']}» con llave propia guardada en la bóveda: por él AAP opera la máquina y hace el inventario diario."
@@ -5062,7 +5110,7 @@ def equipo(eid):
             radar_mso["mix"] = salud_combinada(radar_mso, [(c_["nombre"], c_.get("radar_sal")) for c_ in componentes if not c_.get("so")])
     except Exception as x_:  # noqa: BLE001
         current_app.logger.warning("salud por plataforma: %s", x_)
-    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"], e), agente_salud=lambda a_: _salud_agente_detalle(e, a_), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=False, autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"], e), agente_salud=lambda a_: _salud_agente_detalle(e, a_), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, ops_cluster=ops_cluster, ops_res=ops_res, ops_bloq=ops_bloq, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=False, autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

@@ -1,0 +1,222 @@
+---
+# OpenShift · Instalar operador: instala un operador de OLM por la API del clúster (kubernetes.core; credencial
+# «OpenShift or Kubernetes API Bearer Token» con permisos de administración, que entrega K8S_AUTH_HOST y K8S_AUTH_API_KEY).
+#   1. valida el paquete en el catálogo del clúster (packagemanifest), el canal y que el modo de instalación esté soportado
+#   2. si ya está instalado en ese namespace y su CSV está en Succeeded, no cambia nada (idempotente)
+#   3. crea el Namespace y el OperatorGroup si faltan (con la etiqueta de FaceOps, para que la desinstalación sepa qué retirar)
+#   4. crea la Subscription con aprobación Manual (política del clúster) y aprueba solo el plan de instalación de la versión pedida
+#   5. espera a que el CSV quede en Succeeded y reporta el resultado (set_stats faceops_operador)
+# Variables: oi_paquete, oi_ns, oi_modo (OwnNamespace | AllNamespaces), oi_canal (vacío = canal por defecto del catálogo),
+#            oi_fuente (redhat-operators), oi_nombre (nombre visible), oi_espera_min (10)
+- name: OpenShift · Instalar operador
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    fuente: "{{ oi_fuente | default('redhat-operators', true) }}"
+    etiqueta: {faceops.invoke.cl/operador: "{{ oi_paquete | default('') }}"}
+    espera: "{{ ((oi_espera_min | default(10) | int) * 6) | int }}"
+  module_defaults:
+    kubernetes.core.k8s: {validate_certs: false}
+    kubernetes.core.k8s_info: {validate_certs: false}
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - oi_paquete | default('') is match('^[a-z0-9][a-z0-9.-]{0,62}$')
+          - oi_ns | default('') is match('^[a-z0-9][a-z0-9-]{0,62}$')
+          - oi_modo | default('') in ['OwnNamespace', 'AllNamespaces']
+          - oi_canal | default('') is match('^[A-Za-z0-9._-]*$')
+        fail_msg: "Indica el paquete, el namespace y el modo de instalación (OwnNamespace o AllNamespaces); nada se cambió"
+        quiet: true
+
+    - name: Paquete {{ oi_paquete }} en el catálogo del clúster
+      kubernetes.core.k8s_info:
+        api_version: packages.operators.coreos.com/v1
+        kind: PackageManifest
+        namespace: openshift-marketplace
+        name: "{{ oi_paquete }}"
+      register: r_pm
+
+    - name: El paquete existe en el catálogo
+      ansible.builtin.assert:
+        that: r_pm.resources | length > 0
+        fail_msg: "El paquete «{{ oi_paquete }}» no existe en el catálogo del clúster; nada se cambió"
+        quiet: true
+
+    - name: Canal y versión
+      ansible.builtin.set_fact:
+        pm: "{{ r_pm.resources[0].status }}"
+        canal: "{{ oi_canal if (oi_canal | default('')) in (r_pm.resources[0].status.channels | map(attribute='name') | list) else r_pm.resources[0].status.defaultChannel }}"
+
+    - name: Datos del canal
+      ansible.builtin.set_fact:
+        ch: "{{ pm.channels | selectattr('name', 'equalto', canal) | first }}"
+        fuente_real: "{{ pm.catalogSource | default(fuente, true) }}"
+
+    - name: Modo de instalación soportado
+      ansible.builtin.assert:
+        that: oi_modo in (ch.currentCSVDesc.installModes | default([]) | selectattr('supported') | map(attribute='type') | list)
+        fail_msg: >-
+          {{ oi_paquete }} ({{ canal }}) no admite el modo {{ oi_modo }}; admite:
+          {{ ch.currentCSVDesc.installModes | default([]) | selectattr('supported') | map(attribute='type') | join(', ') }}. Nada se cambió
+        quiet: true
+
+    - name: Suscripciones existentes del paquete
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+      register: r_subs
+
+    - name: Suscripción previa
+      ansible.builtin.set_fact:
+        previa: "{{ r_subs.resources | selectattr('spec.name', 'equalto', oi_paquete) | list }}"
+
+    - name: No está instalado en otro namespace
+      ansible.builtin.assert:
+        that: previa | rejectattr('metadata.namespace', 'equalto', oi_ns) | list | length == 0
+        fail_msg: "{{ oi_paquete }} ya está instalado en el namespace {{ (previa | first).metadata.namespace }}; nada se cambió"
+        quiet: true
+
+    - name: Namespace {{ oi_ns }}
+      kubernetes.core.k8s_info: {api_version: v1, kind: Namespace, name: "{{ oi_ns }}"}
+      register: r_ns
+
+    - name: Crear el namespace {{ oi_ns }}
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata: {name: "{{ oi_ns }}", labels: "{{ etiqueta | combine({'openshift.io/cluster-monitoring': 'true'} if oi_ns is match('^openshift-') else {}) }}"}
+      when: r_ns.resources | length == 0
+
+    - name: OperatorGroup del namespace
+      kubernetes.core.k8s_info: {api_version: operators.coreos.com/v1, kind: OperatorGroup, namespace: "{{ oi_ns }}"}
+      register: r_og
+
+    - name: El OperatorGroup existente sirve para el modo pedido
+      ansible.builtin.assert:
+        that: >-
+          (oi_modo == 'AllNamespaces' and (r_og.resources[0].spec.targetNamespaces | default([]) | length == 0) and r_og.resources[0].spec.selector is not defined)
+          or (oi_modo == 'OwnNamespace' and (r_og.resources[0].spec.targetNamespaces | default([])) == [oi_ns])
+        fail_msg: >-
+          El namespace {{ oi_ns }} ya tiene el OperatorGroup «{{ r_og.resources[0].metadata.name }}» con otro alcance
+          ({{ r_og.resources[0].spec.targetNamespaces | default(['todos']) | join(', ') }}); {{ oi_paquete }} necesita {{ oi_modo }}. Nada se cambió
+        quiet: true
+      when: r_og.resources | length > 0
+
+    - name: Crear el OperatorGroup ({{ oi_modo }})
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: operators.coreos.com/v1
+          kind: OperatorGroup
+          metadata: {name: "{{ oi_ns }}", namespace: "{{ oi_ns }}", labels: "{{ etiqueta }}"}
+          spec: "{{ {'targetNamespaces': [oi_ns]} if oi_modo == 'OwnNamespace' else {} }}"
+      when: r_og.resources | length == 0
+
+    - name: Subscription {{ oi_paquete }} ({{ canal }}, aprobación Manual)
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: operators.coreos.com/v1alpha1
+          kind: Subscription
+          metadata: {name: "{{ oi_paquete }}", namespace: "{{ oi_ns }}", labels: "{{ etiqueta }}"}
+          spec:
+            name: "{{ oi_paquete }}"
+            channel: "{{ canal }}"
+            source: "{{ fuente_real }}"
+            sourceNamespace: openshift-marketplace
+            installPlanApproval: Manual
+            startingCSV: "{{ ch.currentCSV }}"
+      when: previa | length == 0
+
+    - name: Esperar el plan de instalación
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        namespace: "{{ oi_ns }}"
+        name: "{{ (previa | first).metadata.name if previa else oi_paquete }}"
+      register: r_sub
+      until: (r_sub.resources | length > 0) and ((r_sub.resources[0].status | default({})).installPlanRef is defined or (r_sub.resources[0].status | default({})).installedCSV is defined)
+      retries: 36
+      delay: 5
+
+    - name: Plan de instalación
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: InstallPlan
+        namespace: "{{ oi_ns }}"
+        name: "{{ r_sub.resources[0].status.installPlanRef.name }}"
+      register: r_ip
+      when: (r_sub.resources[0].status | default({})).installPlanRef is defined
+
+    - name: Aprobar solo el plan de la versión pedida
+      kubernetes.core.k8s:
+        state: patched
+        api_version: operators.coreos.com/v1alpha1
+        kind: InstallPlan
+        namespace: "{{ oi_ns }}"
+        name: "{{ r_ip.resources[0].metadata.name }}"
+        definition: {spec: {approved: true}}
+      when:
+        - r_ip.resources | default([]) | length > 0
+        - not r_ip.resources[0].spec.approved
+        - previa | length == 0
+        - (r_sub.resources[0].spec.startingCSV | default(ch.currentCSV)) in r_ip.resources[0].spec.clusterServiceVersionNames
+
+    - name: CSV instalado
+      ansible.builtin.set_fact:
+        csv: "{{ r_sub.resources[0].status.installedCSV | default(r_sub.resources[0].spec.startingCSV | default(ch.currentCSV), true) }}"
+
+    - name: Esperar a que el CSV {{ csv }} quede en Succeeded
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        namespace: "{{ oi_ns }}"
+        name: "{{ csv }}"
+      register: r_csv
+      until: r_csv.resources | length > 0 and (r_csv.resources[0].status | default({})).phase | default('') in ['Succeeded', 'Failed']
+      retries: "{{ espera }}"
+      delay: 10
+      failed_when: false
+
+    - name: Pods del operador
+      kubernetes.core.k8s_info: {api_version: v1, kind: Pod, namespace: "{{ oi_ns }}"}
+      register: r_pods
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        fase: "{{ ((r_csv.resources | default([{}]) | first | default({})).status | default({})).phase | default('sin CSV') }}"
+        motivo_csv: "{{ ((r_csv.resources | default([{}]) | first | default({})).status | default({})).message | default('') }}"
+        deps: "{{ (((r_csv.resources | default([{}]) | first | default({})).spec | default({})).install | default({})).spec.deployments | default([]) | map(attribute='name') | list }}"
+
+    - name: Estado de los pods
+      ansible.builtin.set_fact:
+        pods_op: "{{ r_pods.resources | selectattr('metadata.name', 'match', '^(' ~ (deps | map('regex_escape') | join('|')) ~ ')-') | list if deps else [] }}"
+
+    - name: Reporte
+      ansible.builtin.set_stats:
+        data:
+          faceops_operador:
+            accion: instalar
+            paquete: "{{ oi_paquete }}"
+            nombre: "{{ oi_nombre | default((r_csv.resources | default([{}]) | first | default({})).spec.displayName | default(oi_paquete), true) }}"
+            ns: "{{ oi_ns }}"
+            sub: "{{ (previa | first).metadata.name if previa else oi_paquete }}"
+            canal: "{{ canal }}"
+            fuente: "{{ fuente_real }}"
+            csv: "{{ csv }}"
+            fase: "{{ fase }}"
+            ya_estaba: "{{ previa | length > 0 }}"
+            pods: "{{ pods_op | length }}"
+            pods_listos: "{{ pods_op | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
+
+    - name: El operador quedó operativo
+      ansible.builtin.assert:
+        that: fase == 'Succeeded'
+        fail_msg: "{{ oi_paquete }}: el CSV {{ csv }} quedó en {{ fase }} {{ motivo_csv }}"
+        success_msg: >-
+          {{ oi_paquete }} {{ 'ya estaba instalado' if previa else 'instalado' }} en {{ oi_ns }} ({{ oi_modo }}) · canal {{ canal }} ·
+          {{ csv }} Succeeded · {{ pods_op | selectattr('status.phase', 'equalto', 'Running') | list | length }}/{{ pods_op | length }} pods en ejecución

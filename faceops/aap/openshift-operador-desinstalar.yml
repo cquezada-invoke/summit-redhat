@@ -1,0 +1,176 @@
+---
+# OpenShift · Desinstalar operador: contraparte de «OpenShift · Instalar operador», por la API del clúster (kubernetes.core;
+# credencial «OpenShift or Kubernetes API Bearer Token» con permisos de administración).
+#   1. busca la Subscription del paquete en el namespace y su CSV (si no hay ninguno, no cambia nada: idempotente)
+#   2. borra la Subscription y el CSV, y espera a que sus pods terminen
+#   3. borra las CRD que el CSV declaraba como propias solo si ya no queda ningún recurso de ellas (si quedan, se conservan y se informa)
+#   4. si el OperatorGroup y el Namespace los creó FaceOps (etiqueta faceops.invoke.cl/operador) y ya no queda otro operador
+#      ni pod en el namespace, los borra; si no, los conserva
+# Variables: od_paquete, od_ns, od_espera_min (5)
+- name: OpenShift · Desinstalar operador
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    espera: "{{ ((od_espera_min | default(5) | int) * 6) | int }}"
+    marca: faceops.invoke.cl/operador
+  module_defaults:
+    kubernetes.core.k8s: {validate_certs: false}
+    kubernetes.core.k8s_info: {validate_certs: false}
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - od_paquete | default('') is match('^[a-z0-9][a-z0-9.-]{0,62}$')
+          - od_ns | default('') is match('^[a-z0-9][a-z0-9-]{0,62}$')
+          - od_ns not in ['default', 'openshift', 'kube-system', 'openshift-marketplace', 'openshift-operator-lifecycle-manager']
+        fail_msg: "Indica el paquete y el namespace del operador (no uno del sistema); nada se cambió"
+        quiet: true
+
+    - name: Suscripciones del namespace {{ od_ns }}
+      kubernetes.core.k8s_info: {api_version: operators.coreos.com/v1alpha1, kind: Subscription, namespace: "{{ od_ns }}"}
+      register: r_subs
+
+    - name: Suscripción del paquete
+      ansible.builtin.set_fact:
+        sub: "{{ r_subs.resources | selectattr('spec.name', 'equalto', od_paquete) | list | first | default({}) }}"
+        otras: "{{ r_subs.resources | rejectattr('spec.name', 'equalto', od_paquete) | list | length }}"
+
+    - name: CSV del paquete
+      ansible.builtin.set_fact:
+        csvs: >-
+          {{ ([(sub.status | default({})).installedCSV | default(''), (sub.status | default({})).currentCSV | default('')]
+              if sub else []) | select | unique | list }}
+
+    - name: ClusterServiceVersion {{ csvs | join(', ') }}
+      kubernetes.core.k8s_info: {api_version: operators.coreos.com/v1alpha1, kind: ClusterServiceVersion, namespace: "{{ od_ns }}", name: "{{ item }}"}
+      loop: "{{ csvs }}"
+      register: r_csv
+
+    - name: CRD propias y despliegues del operador
+      ansible.builtin.set_fact:
+        crds: "{{ r_csv.results | map(attribute='resources') | flatten | map(attribute='spec.customresourcedefinitions.owned', default=[]) | flatten | map(attribute='name') | unique | list }}"
+        deps: "{{ r_csv.results | map(attribute='resources') | flatten | map(attribute='spec.install.spec.deployments', default=[]) | flatten | map(attribute='name') | unique | list }}"
+        hay_csv: "{{ r_csv.results | map(attribute='resources') | flatten | length > 0 }}"
+
+    - name: Borrar la Subscription {{ sub.metadata.name | default('') }}
+      kubernetes.core.k8s:
+        state: absent
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        namespace: "{{ od_ns }}"
+        name: "{{ sub.metadata.name }}"
+      when: sub | length > 0
+
+    - name: Borrar el CSV
+      kubernetes.core.k8s:
+        state: absent
+        api_version: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        namespace: "{{ od_ns }}"
+        name: "{{ item }}"
+        wait: true
+        wait_timeout: 180
+      loop: "{{ r_csv.results | map(attribute='resources') | flatten | map(attribute='metadata.name') | list }}"
+
+    - name: Esperar a que terminen los pods del operador
+      kubernetes.core.k8s_info: {api_version: v1, kind: Pod, namespace: "{{ od_ns }}"}
+      register: r_pods
+      until: deps | length == 0 or r_pods.resources | selectattr('metadata.name', 'match', '^(' ~ (deps | map('regex_escape') | join('|')) ~ ')-') | list | length == 0
+      retries: "{{ espera }}"
+      delay: 10
+
+    - name: Recursos que quedan de cada CRD propia
+      kubernetes.core.k8s_info: {api_version: apiextensions.k8s.io/v1, kind: CustomResourceDefinition, name: "{{ item }}"}
+      loop: "{{ crds }}"
+      register: r_crd
+
+    - name: Instancias de cada CRD
+      kubernetes.core.k8s_info:
+        api_version: "{{ item.spec.group }}/{{ (item.spec.versions | selectattr('storage') | first).name }}"
+        kind: "{{ item.spec.names.kind }}"
+      loop: "{{ r_crd.results | map(attribute='resources') | flatten }}"
+      loop_control: {label: "{{ item.metadata.name }}"}
+      register: r_inst
+
+    - name: CRD sin uso
+      ansible.builtin.set_fact:
+        crd_borrar: "{{ r_inst.results | selectattr('resources', 'defined') | rejectattr('resources') | map(attribute='item.metadata.name') | list }}"
+        crd_en_uso: "{{ r_inst.results | selectattr('resources', 'defined') | selectattr('resources') | map(attribute='item.metadata.name') | list }}"
+
+    - name: Borrar las CRD que ya no tienen recursos
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        name: "{{ item }}"
+        wait: true
+      loop: "{{ crd_borrar }}"
+
+    - name: Namespace, OperatorGroup y lo que queda en {{ od_ns }}
+      kubernetes.core.k8s_info: {api_version: "{{ item.v }}", kind: "{{ item.k }}", namespace: "{{ od_ns if item.k != 'Namespace' else omit }}", name: "{{ od_ns if item.k == 'Namespace' else omit }}"}
+      loop:
+        - {v: v1, k: Namespace}
+        - {v: operators.coreos.com/v1, k: OperatorGroup}
+        - {v: v1, k: Pod}
+        - {v: operators.coreos.com/v1alpha1, k: ClusterServiceVersion}
+      loop_control: {label: "{{ item.k }}"}
+      register: r_resto
+
+    - name: Qué se puede retirar
+      ansible.builtin.set_fact:
+        ns_obj: "{{ r_resto.results[0].resources | first | default({}) }}"
+        og_faceops: "{{ r_resto.results[1].resources | selectattr('metadata.labels', 'defined') | selectattr('metadata.labels', 'contains', marca) | list }}"
+        limpio: "{{ otras | int == 0 and r_resto.results[2].resources | length == 0 and r_resto.results[3].resources | length == 0 }}"
+
+    - name: Borrar el OperatorGroup creado por FaceOps
+      kubernetes.core.k8s:
+        state: absent
+        api_version: operators.coreos.com/v1
+        kind: OperatorGroup
+        namespace: "{{ od_ns }}"
+        name: "{{ item.metadata.name }}"
+      loop: "{{ og_faceops }}"
+      loop_control: {label: "{{ item.metadata.name }}"}
+      when: limpio | bool
+
+    - name: Borrar el namespace creado por FaceOps
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Namespace
+        name: "{{ od_ns }}"
+        wait: true
+        wait_timeout: 300
+      when:
+        - limpio | bool
+        - marca in (ns_obj.metadata.labels | default({}))
+
+    - name: Borrar el objeto Operator de OLM ({{ od_paquete }}.{{ od_ns }})
+      kubernetes.core.k8s:
+        state: absent
+        api_version: operators.coreos.com/v1
+        kind: Operator
+        name: "{{ od_paquete }}.{{ od_ns }}"
+      when: (sub | length > 0 or hay_csv | bool) and crd_en_uso | length == 0
+
+    - name: Reporte
+      ansible.builtin.set_stats:
+        data:
+          faceops_operador:
+            accion: desinstalar
+            paquete: "{{ od_paquete }}"
+            ns: "{{ od_ns }}"
+            estaba: "{{ sub | length > 0 or hay_csv | bool }}"
+            csv: "{{ csvs | join(', ') }}"
+            crd_borradas: "{{ crd_borrar }}"
+            crd_conservadas: "{{ crd_en_uso }}"
+            ns_borrado: "{{ limpio | bool and marca in (ns_obj.metadata.labels | default({})) }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ od_paquete }} en {{ od_ns }}:
+          {{ ('desinstalado (Subscription y CSV ' ~ (csvs | join(', ')) ~ ' borrados') if (sub or hay_csv | bool) else 'no estaba instalado (nada que cambiar' }})
+          · CRD borradas: {{ crd_borrar | length }}{{ (' · CRD conservadas por tener recursos: ' ~ (crd_en_uso | join(', '))) if crd_en_uso else '' }}
+          · {{ 'namespace y OperatorGroup retirados' if (limpio | bool and marca in (ns_obj.metadata.labels | default({}))) else 'namespace conservado' }}

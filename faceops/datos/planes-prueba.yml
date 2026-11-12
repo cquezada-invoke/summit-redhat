@@ -594,3 +594,23 @@ planes:
       - {id: C2, caso: "Certificados en uso en nodo-jboss y las demás máquinas", verificar: "en_uso de nodo-jboss trae jboss-https (pkcs12, 8443) con entrega=true y la serie que entrega el puerto; el panel conserva el en uso de las otras máquinas desde la última lectura completa"}
       - {id: C3, caso: "Repetir la lectura", tipo: Idempotencia, verificar: "ticket exitoso sin cambios (changed=0) y los mismos emitidos"}
       - {id: C4, caso: "Pedirlo sobre nodo-jboss y una máquina apagada (nodo-jboss3)", tipo: Error controlado, verificar: "la apagada queda fuera del límite (FaceOps no lanza sobre apagadas) y la lectura termina bien con lo de nodo-jboss; la máquina apagada no se enciende"}
+  "OpenShift · Recolectar clúster":
+    casos:
+      - {id: C1, caso: "Recolectar ocp-sno (credencial de solo lectura)", verificar: "ticket exitoso; faceops_ocp trae los operadores OLM con CSV, fase y pods (listos/total) y los paquetes del catálogo de FaceOps con su fuente, canales y modos de instalación; paquetes_completo=true; la ficha muestra los operadores como plataformas con su salud"}
+      - {id: C2, caso: "Lo recolectado coincide con el clúster", verificar: "los operadores son las Subscriptions reales (oc get sub -A) con su CSV en la misma fase; cada paquete del catálogo que existe en el clúster (oc get packagemanifest) aparece con su canal por defecto; los CSV copiados (olm.copiedFrom) no se cuentan"}
+      - {id: C3, caso: "Repetir la recolección", tipo: Idempotencia, verificar: "solo lectura: ticket exitoso sin cambios (changed=0); mismos operadores y paquetes"}
+  "OpenShift · Instalar operador":
+    casos:
+      - {id: C1, caso: "Instalar File Integrity (OwnNamespace, namespace nuevo openshift-file-integrity) en ocp-sno", verificar: "aprobación respondida; ticket exitoso; Namespace, OperatorGroup (targetNamespaces propio) y Subscription con la etiqueta de FaceOps y aprobación Manual; CSV en Succeeded y pods del operador en ejecución; la ficha lo muestra como plataforma operativa con sus pods"}
+      - {id: C2, caso: "Repetir la instalación de File Integrity", tipo: Idempotencia, verificar: "ticket exitoso sin cambios (changed=0, ya_estaba=true); una sola Subscription y el mismo CSV"}
+      - {id: C3, caso: "Instalar Network Observability (AllNamespaces, OperatorGroup global en namespace nuevo)", verificar: "ticket exitoso; OperatorGroup sin targetNamespaces; CSV en Succeeded; pods en ejecución"}
+      - {id: C4, caso: "Paquete inexistente (no-existe-operator)", tipo: Error controlado, verificar: "ticket fallido en «El paquete existe en el catálogo» con el motivo; no se crea namespace ni Subscription"}
+      - {id: C5, caso: "Modo no soportado: Web Terminal en OwnNamespace (solo admite AllNamespaces)", tipo: Error controlado, verificar: "ticket fallido en «Modo de instalación soportado» con los modos que admite; no se crea nada"}
+      - {id: C6, caso: "Desde la ficha: operador no disponible (OpenShift Data Foundation en un clúster de un solo nodo)", tipo: Error controlado, verificar: "FaceOps lo muestra deshabilitado con su motivo (requiere 3 nodos) y rechaza el pedido (400) sin crear ticket"}
+  "OpenShift · Desinstalar operador":
+    casos:
+      - {id: D1, caso: "Desinstalar File Integrity (instalado por C1 de «Instalar operador»)", verificar: "aprobación respondida; ticket exitoso; Subscription, CSV, CRD propias sin recursos, OperatorGroup y Namespace creados por FaceOps retirados; la ficha ya no lo muestra"}
+      - {id: D2, caso: "Desinstalar Network Observability (AllNamespaces)", verificar: "ticket exitoso; Subscription, CSV, CRD y namespace openshift-netobserv-operator retirados"}
+      - {id: D3, caso: "Repetir la desinstalación de File Integrity", tipo: Idempotencia, verificar: "ticket exitoso sin cambios: no estaba instalado"}
+      - {id: D4, caso: "Namespace del sistema (kube-system)", tipo: Error controlado, verificar: "ticket fallido en «Datos» con el motivo; nada se borra"}
+      - {id: D5, caso: "El clúster queda como estaba", verificar: "mismas Subscriptions, CSV, namespaces y cantidad de CRD que antes del plan de instalación"}

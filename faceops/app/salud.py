@@ -266,6 +266,15 @@ def componente_operador(o):
     est = []
     if (o.get("fase") or "") != "Succeeded":
         est.append(_m(f"versión instalada en fase {o.get('fase') or 'sin estado'}", 60, "rojo"))
+    if o.get("pods") is not None:   # pods de los Deployment del CSV (recolección o instalación)
+        try:
+            tot, lis = int(o.get("pods") or 0), int(o.get("pods_listos") or 0)
+        except (TypeError, ValueError):
+            tot, lis = 0, 0
+        if tot == 0 and (o.get("fase") or "") == "Succeeded":
+            est.append(_m("sin pods del operador en ejecución", 40, "rojo"))
+        elif lis < tot:
+            est.append(_m(f"{tot - lis} de {tot} pods del operador no están listos", min(60, 25 * (tot - lis)), "rojo"))
     act = []
     pend = o.get("pendientes") or []
     if pend:

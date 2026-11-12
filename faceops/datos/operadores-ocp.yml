@@ -1,0 +1,67 @@
+# Catálogo de operadores que se agregan a un clúster OpenShift (ficha del clúster › Agregar plataforma).
+# Solo operadores post-instalación (los propios del clúster no van aquí). Para sumar uno, agrega una entrada en su categoría.
+# Campos:
+#   nombre        nombre visible
+#   paquete       nombre del paquete en OLM (packagemanifest); alternativos: otros paquetes que cuentan como el mismo operador
+#   canal         canal por defecto (si el catálogo del clúster no lo tiene, se usa el canal por defecto del catálogo)
+#   ns            namespace donde se instala el operador
+#   modo          OwnNamespace (vigila solo su namespace) o AllNamespaces (todo el clúster, OperatorGroup global)
+#   fuente        CatalogSource (por defecto redhat-operators)
+#   min_nodos     nodos mínimos del clúster; con menos, no se ofrece (p. ej. ODF en SNO)
+#   memoria_gb    memoria que usan los pods del operador; si no hay libre, no se ofrece
+#   instancia_gb  memoria aproximada con su instancia típica; si no hay libre, se avisa
+#   requiere      operadores (paquete) que deben estar instalados antes
+#   storage       true si sus instancias necesitan una clase de storage (se avisa si el clúster no tiene)
+#   nota          aviso fijo (dependencias, límites en SNO)
+categorias:
+  - nombre: Almacenamiento
+    operadores:
+      - {nombre: "OpenShift Data Foundation", paquete: odf-operator, canal: stable-4.19, ns: openshift-storage, modo: OwnNamespace, min_nodos: 3, memoria_gb: 1, instancia_gb: 30, nota: "En un clúster de un solo nodo usa LVM Storage"}
+      - {nombre: "LVM Storage", paquete: lvms-operator, canal: stable-4.19, ns: openshift-storage, modo: OwnNamespace, memoria_gb: 0.3, instancia_gb: 0.5, nota: "Su LVMCluster necesita un disco libre en el nodo"}
+  - nombre: Virtualización
+    operadores:
+      - {nombre: "OpenShift Virtualization", paquete: kubevirt-hyperconverged, canal: stable, ns: openshift-cnv, modo: OwnNamespace, memoria_gb: 0.8, instancia_gb: 4, storage: true, nota: "En un solo nodo no hay migración en vivo ni alta disponibilidad de VM"}
+      - {nombre: "Migration Toolkit for Virtualization", paquete: mtv-operator, canal: release-v2.11, ns: openshift-mtv, modo: OwnNamespace, memoria_gb: 0.3, instancia_gb: 1.5, requiere: [kubevirt-hyperconverged]}
+  - nombre: CI/CD
+    operadores:
+      - {nombre: "OpenShift GitOps", paquete: openshift-gitops-operator, canal: latest, ns: openshift-gitops-operator, modo: AllNamespaces, memoria_gb: 0.3, instancia_gb: 1.5}
+      - {nombre: "OpenShift Pipelines", paquete: openshift-pipelines-operator-rh, canal: latest, ns: openshift-operators, modo: AllNamespaces, memoria_gb: 0.3, instancia_gb: 1.5}
+  - nombre: Malla y serverless
+    operadores:
+      - {nombre: "OpenShift Service Mesh", paquete: servicemeshoperator3, alternativos: [servicemeshoperator], canal: stable, ns: openshift-operators, modo: AllNamespaces, memoria_gb: 0.2, instancia_gb: 1}
+      - {nombre: "OpenShift Serverless", paquete: serverless-operator, canal: stable, ns: openshift-serverless, modo: AllNamespaces, memoria_gb: 0.4, instancia_gb: 2.5}
+  - nombre: Observabilidad
+    operadores:
+      - {nombre: "OpenShift Logging", paquete: cluster-logging, canal: stable-6.5, ns: openshift-logging, modo: AllNamespaces, memoria_gb: 0.2, instancia_gb: 1.5, nota: "Para guardar los logs en el clúster necesita Loki con almacenamiento de objetos"}
+      - {nombre: "Loki", paquete: loki-operator, canal: stable-6.5, ns: openshift-operators-redhat, modo: AllNamespaces, memoria_gb: 0.2, instancia_gb: 6, storage: true, nota: "Su LokiStack necesita almacenamiento de objetos (S3)"}
+      - {nombre: "Cluster Observability", paquete: cluster-observability-operator, canal: stable, ns: openshift-cluster-observability-operator, modo: AllNamespaces, memoria_gb: 0.4, instancia_gb: 1}
+      - {nombre: "Network Observability", paquete: netobserv-operator, canal: stable, ns: openshift-netobserv-operator, modo: AllNamespaces, memoria_gb: 0.2, instancia_gb: 2, nota: "Su FlowCollector usa Loki para guardar los flujos"}
+  - nombre: Seguridad
+    operadores:
+      - {nombre: "Advanced Cluster Security", paquete: rhacs-operator, canal: stable, ns: rhacs-operator, modo: AllNamespaces, memoria_gb: 0.2, instancia_gb: 8, storage: true, nota: "Central pide 4 núcleos y 8 GB; en este laboratorio el clúster se conecta a un Central externo"}
+      - {nombre: "cert-manager", paquete: openshift-cert-manager-operator, canal: stable-v1, ns: cert-manager-operator, modo: OwnNamespace, memoria_gb: 0.2, instancia_gb: 0.5}
+      - {nombre: "Compliance", paquete: compliance-operator, canal: stable, ns: openshift-compliance, modo: OwnNamespace, memoria_gb: 0.2, instancia_gb: 1, storage: true}
+      - {nombre: "File Integrity", paquete: file-integrity-operator, canal: stable, ns: openshift-file-integrity, modo: OwnNamespace, memoria_gb: 0.1, instancia_gb: 0.5}
+      - {nombre: "Security Profiles", paquete: security-profiles-operator, canal: release-alpha-rhel-8, ns: openshift-security-profiles, modo: OwnNamespace, memoria_gb: 0.2, instancia_gb: 0.5}
+  - nombre: Gestión
+    operadores:
+      - {nombre: "Advanced Cluster Management", paquete: advanced-cluster-management, canal: release-2.17, ns: open-cluster-management, modo: OwnNamespace, memoria_gb: 0.5, instancia_gb: 16, storage: true, nota: "Su MultiClusterHub pide unos 16 GB y storage"}
+  - nombre: Registro
+    operadores:
+      - {nombre: "Quay", paquete: quay-operator, canal: stable-3.18, ns: openshift-operators, modo: AllNamespaces, memoria_gb: 0.2, instancia_gb: 8, storage: true, nota: "Su QuayRegistry necesita almacenamiento de objetos"}
+  - nombre: Integración y mensajería
+    operadores:
+      - {nombre: "AMQ Streams (Kafka)", paquete: amq-streams, canal: stable, ns: openshift-operators, modo: AllNamespaces, memoria_gb: 0.4, instancia_gb: 3, storage: true}
+      - {nombre: "AMQ Broker", paquete: amq-broker-rhel9, alternativos: [amq-broker-rhel8], canal: 7.14.x, ns: amq-broker, modo: OwnNamespace, memoria_gb: 0.2, instancia_gb: 2}
+      - {nombre: "Red Hat build of Keycloak", paquete: rhbk-operator, canal: stable-v26.6, ns: keycloak, modo: OwnNamespace, memoria_gb: 0.3, instancia_gb: 1.5, nota: "Keycloak necesita una base de datos PostgreSQL"}
+      - {nombre: "Data Grid", paquete: datagrid, canal: stable, ns: openshift-operators, modo: AllNamespaces, memoria_gb: 0.3, instancia_gb: 2}
+  - nombre: Respaldo
+    operadores:
+      - {nombre: "OADP (respaldo)", paquete: redhat-oadp-operator, canal: stable, ns: openshift-adp, modo: OwnNamespace, memoria_gb: 0.2, instancia_gb: 1, nota: "Su DataProtectionApplication necesita un bucket S3"}
+  - nombre: Desarrollo
+    operadores:
+      - {nombre: "Dev Spaces", paquete: devspaces, canal: stable, ns: openshift-operators, modo: AllNamespaces, memoria_gb: 0.3, instancia_gb: 3, storage: true}
+      - {nombre: "Web Terminal", paquete: web-terminal, canal: fast, ns: openshift-operators, modo: AllNamespaces, memoria_gb: 0.3, instancia_gb: 0.5, nota: "OLM instala también DevWorkspace como dependencia"}
+  - nombre: IA
+    operadores:
+      - {nombre: "OpenShift AI", paquete: rhods-operator, canal: stable-3.x, ns: redhat-ods-operator, modo: AllNamespaces, memoria_gb: 0.5, instancia_gb: 8, storage: true, nota: "Usa Service Mesh y Serverless para servir modelos"}

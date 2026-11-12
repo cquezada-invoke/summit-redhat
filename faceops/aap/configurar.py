@@ -184,6 +184,10 @@ shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
 shutil.copy(f"{AQUI}/openshift-operador.yml", f"{tmp}/playbooks/openshift-operador.yml")
+for f_ in ("openshift-operador-instalar.yml", "openshift-operador-desinstalar.yml"):   # Agregar plataforma en un clúster: operadores
+    shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
+os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)   # catálogo de operadores: la recolección verifica esos paquetes en el clúster
+shutil.copy(os.path.join(os.path.dirname(AQUI), "datos", "operadores-ocp.yml"), f"{tmp}/playbooks/files/operadores-ocp.yml")
 shutil.copy(f"{AQUI}/imagenes-rhel.yml", f"{tmp}/playbooks/imagenes-rhel.yml")
 for f_ in ("openshift-regularizacion-diagnostico.yml", "openshift-etcd-respaldo.yml", "migracion-jboss-eap8.yml",
            "openshift-olm-regularizar.yml", "openshift-olm-aprobar-uno.yml", "openshift-version.yml", "openshift-limites.yml", "openshift-informe.yml", "openshift-acs.yml", "openshift-certificado.yml",
@@ -834,6 +838,18 @@ c_ocp_w = uno("credentials", name="OpenShift · SNO (despliegue)")
 if c_ocp_w and c_ocp_w["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jop['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jop['id']}/credentials/", {"id": c_ocp_w["id"]})
 paso(f"Plantilla «OpenShift · Operador» (id {jop['id']})")
+for nombre_o, pb_o, desc_o in (
+        ("OpenShift · Instalar operador", "openshift-operador-instalar.yml",
+         "Instala un operador de OLM en el clúster: Namespace, OperatorGroup y Subscription (aprobación Manual); espera el CSV en Succeeded"),
+        ("OpenShift · Desinstalar operador", "openshift-operador-desinstalar.yml",
+         "Retira un operador de OLM: Subscription, CSV, sus CRD sin recursos y el Namespace y OperatorGroup que creó FaceOps")):
+    jo_ = asegurar("job_templates", nombre_o, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_o}",
+        "inventory": (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"], "execution_environment": ee["id"],
+        "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_credential_on_launch": True, "timeout": 1800, "description": desc_o})
+    if c_ocp_w and c_ocp_w["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jo_['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{jo_['id']}/credentials/", {"id": c_ocp_w["id"]})
+    paso(f"Plantilla «{nombre_o}» (id {jo_['id']})")
 jocpv = asegurar("job_templates", "OpenShift · Habilitar OpenShift Virtualization", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/openshift-virtualizacion.yml",
     "inventory": (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"], "execution_environment": ee["id"],
