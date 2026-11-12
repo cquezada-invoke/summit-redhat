@@ -63,6 +63,10 @@ def preparar_prometheus(cfg):
                                        {"source_labels": ["__param_target"], "target_label": "instance"},
                                        {"target_label": "__address__", "replacement": "127.0.0.1:9115"}]})
         cambio = True
+    if "faceops-plataformas" not in nombres:   # plataformas: lo que FaceOps midió sin agente (AAP por SSH/API), publicado en el anfitrión
+        sc.append({"job_name": "faceops-plataformas", "metrics_path": "/metricas/plataformas", "scrape_interval": "60s", "honor_labels": True,
+                   "static_configs": [{"targets": ["127.0.0.1:8000"]}]})
+        cambio = True
     cfg["scrape_configs"] = sc
     return cambio
 
@@ -215,13 +219,15 @@ def main():
     retirar = ped.get("retirar") or not ped.get("alertas")
     rs, resumen = ([], []) if retirar else reglas(cat, ped)
     pref = "tcp" if t["job"] == "faceops-sondeo" else ("seg" if t["job"] == "faceops-segmentos" else "exp")
-    obj = [] if retirar else ([{"targets": [f"{ped['ip']}:{t['puerto']}"], "labels": {"faceops_equipo": ped["equipo"], "faceops_tipo": ped["tipo"]}}]
-                              if pref != "seg" else objetivos_segmento(ped))
+    por_id = {a["id"]: a for a in cat["alertas"]}
+    sin_agente = not retirar and all(por_id.get(x.get("id"), {}).get("sin_agente") for x in ped.get("alertas") or [])
+    obj = [] if retirar or sin_agente else ([{"targets": [f"{ped['ip']}:{t['puerto']}"], "labels": {"faceops_equipo": ped["equipo"], "faceops_tipo": ped["tipo"]}}]
+                                            if pref != "seg" else objetivos_segmento(ped))   # sin agente: las métricas las publica FaceOps
     print(json.dumps({
         "prometheus": yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True) if cambio else "",
         "reglas": "" if retirar else yaml.safe_dump({"groups": [{"name": f"faceops-{ped['equipo']}{sufijo(ped)}", "rules": rs}]}, sort_keys=False, allow_unicode=True, width=1000),
         "grupo": f"faceops-{ped['equipo']}{sufijo(ped)}", "reglas_archivo": f"{ped['equipo']}{sufijo(ped)}.yml", "tablero_uid": uid_tablero(ped["equipo"] + sufijo(ped)),
-        "objetivo": "" if retirar else yaml.safe_dump(obj, sort_keys=False, allow_unicode=True),
+        "objetivo": "" if retirar or sin_agente else yaml.safe_dump(obj, sort_keys=False, allow_unicode=True), "sin_agente": sin_agente,
         "objetivo_archivo": f"{pref}-{ped['equipo']}.yml", "resumen": resumen, "n_reglas": sum(1 for r in rs if "alert" in r)}, ensure_ascii=False))
 
 

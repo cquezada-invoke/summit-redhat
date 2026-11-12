@@ -1,44 +1,58 @@
 {% extends "base.html" %}{% block titulo %}{{ p.id }}{% endblock %}
-{% block cuerpo %}
-{% set nv = {'saludable':'verde','atención':'amarillo','crítico':'rojo','rojo':'rojo'}.get(p.nivel, 'gris') %}
-<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.plataformas_vista', p=p.codigo) }}">← {{ p.nombre }}: todas las instancias</a></p>
-<div class="fila"><div><h1 class="mono" style="margin-bottom:2px">{{ p.id }}</h1><p class="sub">{{ p.nombre }}{{ ' · versión ' ~ p.version if p.version }}{{ ' · ' ~ p.descripcion if p.descripcion }}</p></div>
-{% if p.entrar %}<a class="btn der" href="{{ p.entrar.url }}" target="_blank" rel="noopener">{{ p.entrar.t }} ↗</a>{% endif %}</div>
+{# Ficha de una plataforma con el esquema de la ficha de OpenShift y de la máquina (app/ficha_plataforma.py): cabecera con un solo
+   «Editar conexión», barra de salud (su flotante: solo lo remediable, cada punto con su acción en segundo plano), caja Encendido
+   (el servicio de la plataforma; «Consola» arriba a la derecha si la tiene), campana de alertas y Skills, y las secciones
+   componentes, recursos, máquinas donde corre, segmentos de negocio y acciones. Toda acción va por AAP con ticket y aprobación. #}
+{% block cuerpo %}{% from "_ficha_infra.html" import cabecera, salud, cajon_salud, accion, recursos with context %}{% from "_alertas.html" import boton_alertas with context %}
+{% set url_acc = url_for('consola.plataforma_salud_accion', pid=p.id) %}{% set url_medir = url_for('consola.plataforma_medir', pid=p.id) %}
+{% set hb_lista = habilidades_plataforma(e, cod, ambito_txt) %}{% set hb_titulo = p.id %}{% set hb_sub = p.nombre ~ ' en ' ~ e.nombre ~ ' · cada skill crea un ticket con aprobación en AAP; FaceOps no toca la plataforma directo' %}
+{% set logo_ %}<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><rect width="40" height="40" rx="8" fill="#f2f0fc" stroke="#5e40be"/><path d="M10 14l10-5 10 5-10 5z" fill="#fff" stroke="#5e40be" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 20l10 5 10-5M10 26l10 5 10-5" fill="none" stroke="#5e40be" stroke-width="1.6" stroke-linejoin="round"/></svg>{% endset %}
+{% call cabecera(logo_|safe, p.id, url_for('consola.plataformas_vista', p=p.codigo), 'Plataformas · ' ~ p.nombre,
+   p.nombre ~ (' ' ~ p.version if p.version else '') ~ ' · en ' ~ e.nombre ~ ' · ' ~ (defn.medicion or 'sin medición propia'), true, esc) %}{% if al %}{{ boton_alertas(al, url_for('consola.equipo_alertas', eid=e.id), p.nombre ~ ' en ' ~ e.nombre) }}{% endif %}{% include "_habilidades.html" %}{% endcall %}
+{{ salud(radar_p, p.id) }}
 
-<div class="infras" style="margin:6px 0 14px">
-<div class="card"><h2 style="margin-top:0">Estado</h2>
-<div class="ci-fila"><span class="ci-et">Salud</span>{% if p.salud is not none %}<span class="salud-barra s-{{ nv }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ p.salud|int }}%"></span></span><b>{{ p.salud|int }}%</b></span>{% else %}<span class="salud-barra s-gris"><span class="sb-pista"></span><b>—</b></span>{% endif %}</div>
-<div class="ci-chips" style="margin-top:8px"><span class="chip {{ 's-ok' if p.estado == 'encendido' else ('s-alta' if p.estado == 'apagado' else 's-media') }}">● {{ p.estado }}</span><span class="chip">{{ p.nivel }}</span></div>
-{% if p.motivos %}<ul class="sub" style="margin:8px 0 0;padding-left:18px;font-size:12.5px">{% for m in p.motivos %}<li>{{ m }}</li>{% endfor %}</ul>{% elif p.salud is not none %}<p class="sub" style="font-size:12.5px;margin:8px 0 0">Sin observaciones.</p>{% endif %}</div>
-
-<div class="card"><h2 style="margin-top:0">Ciclo de vida</h2>
-{% if p.ciclo and p.ciclo.fase != 'desconocido' %}<dl class="ficha" style="margin:0"><dt>Fase</dt><dd>{{ {'completo':'soporte completo','mantencion':'mantención','extendido':'soporte extendido','fuera':'fuera de soporte'}.get(p.ciclo.fase, p.ciclo.fase) }}</dd>
-<dt>Fin de soporte</dt><dd>{{ p.ciclo.fin_soporte or '—' }}</dd>{% if p.ciclo.siguiente %}<dt>Versión recomendada</dt><dd>{{ p.ciclo.siguiente }}</dd>{% endif %}</dl>
-{% else %}<p class="sub" style="font-size:12.5px">Sin fechas del fabricante cargadas para {{ p.version or 'esta versión' }}.</p>{% endif %}</div>
-
-<div class="card"><h2 style="margin-top:0">Errores conocidos</h2>
-<div class="ci-chips"><span class="chip {{ 's-alta' if p.activos }}">{{ p.activos }} activos</span><span class="chip">{{ p.errores }} aplicables</span><span class="chip {{ 's-ok' if p.prevenidos }}">{{ p.prevenidos }} prevenidos</span></div></div>
+{% set on_ = est_s == 'en ejecución' %}
+<div class="eq-cab">
+  <div class="eq-estado"><div class="eq-energia {{ 'on' if on_ else ('off' if est_s == 'detenido' else 'nd') }}"><i></i><div><b>{{ 'Encendido' if on_ else ('Detenido' if est_s == 'detenido' else 'Sin estado') }}</b><dl class="eq-tiempos">
+    <dt>Servicio</dt><dd>{{ unidades|join(', ') if unidades else '—' }}</dd>
+    <dt>Máquina</dt><dd><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a> · {{ e.energia or 'sin dato' }}</dd>
+    <dt>Medición</dt><dd>{{ m.medido|fecha if m.medido else 'nunca' }}{% if m.ticket %} · {{ m.ticket }}{% endif %}</dd></dl></div>
+  {% if consola %}<a class="con-btn eq-con" href="{{ consola.url }}" target="_blank" rel="noopener" title="{{ consola.t }} (pestaña nueva)" aria-label="Consola"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span>Consola</span></a>{% endif %}
+  <div class="eq-energia-acc" id="fi-energia" data-url="{{ url_for('consola.plataforma_servicio', eid=e.id, cod=cod) }}">{% for ac, cls, ic, dis in [('encender', 'prender', '<path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/>', on_), ('apagar', 'apagar', '<rect x="6" y="6" width="12" height="12" rx="1"/>', not on_)] %}
+  <button type="button" class="btn-energ {{ cls }}" data-energia="{{ ac }}" aria-label="{{ ac|capitalize }}" {{ 'disabled' if motivo_e or dis }} title="{{ motivo_e or (('Ya está ' ~ ('encendida' if on_ else 'detenida')) if dis else (ac|capitalize ~ ' ' ~ p.nombre ~ ': ticket con aprobación en AAP')) }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">{{ ic|safe }}</svg></button>{% endfor %}
+  {% if motivo_e %}<span class="sub fi-motivo">{{ motivo_e }}</span>{% endif %}</div></div></div>
+  <dl class="eq-datos">
+    <div><dt>Producto</dt><dd>{{ p.nombre }}{{ ' · ' ~ p.fabricante if p.fabricante }}</dd></div>
+    <div><dt>Versión</dt><dd>{{ p.version or (m.texto or {}).version or '—' }}{% if p.ciclo and p.ciclo.fase not in ('desconocido', none) %} <span class="chip {{ 's-alta' if p.ciclo.fase == 'fuera' else '' }}">{{ {'completo':'soporte completo','mantencion':'mantención','extendido':'soporte extendido','fuera':'fuera de soporte'}.get(p.ciclo.fase, p.ciclo.fase) }}</span>{% endif %}</dd></div>
+    <div><dt>Tipo</dt><dd>{{ p.grupo }}</dd></div>
+    {% from "_dueno.html" import dueno_campo with context %}<div><dt>Dueño</dt><dd>{{ dueno_campo(dueno, dueno_cand, 'plataforma', p.id, dueno_maq) }}</dd></div>
+    <div><dt>Ambiente</dt><dd>{{ p.ambiente or '—' }}{{ ' · ' ~ p.ubicacion if p.ubicacion }}</dd></div>
+    <div><dt>Licencia</dt><dd><span class="chip {{ 's-ok' if p.licencia.estado == 'atachada' else ('s-alta' if p.licencia.estado == 'no atachada' else '') }}">{{ p.licencia.estado }}</span> <span class="sub" style="font-size:12px">{{ p.licencia.t }}</span></dd></div>
+    <div><dt>Errores conocidos</dt><dd>{{ p.activos }} activos · {{ p.errores }} aplicables · {{ p.prevenidos }} prevenidos</dd></div>
+    <div><dt>Medición</dt><dd style="font-size:12.5px">{{ m.fuente or defn.medicion or '—' }}</dd></div>
+  </dl>
 </div>
+{% if (m.notas or []) %}<p class="sub" style="margin:-4px 0 10px;font-size:12.5px">Última medición: {{ m.notas|join(' · ') }}</p>{% endif %}
 
-<div class="card"><h2 style="margin-top:0">Atributos</h2>
-<dl class="ficha" style="margin:0">
-<dt>ID de plataforma</dt><dd class="mono">{{ p.id }}</dd>
-<dt>Producto</dt><dd>{{ p.nombre }}</dd>
-<dt>Fabricante</dt><dd>{{ p.fabricante or '—' }}</dd>
-<dt>Tipo</dt><dd>{{ p.grupo }}</dd>
-<dt>Versión</dt><dd>{{ p.version or '—' }}</dd>
-{% from "_dueno.html" import dueno_campo with context %}<dt>Dueño</dt><dd>{{ dueno_campo(dueno, dueno_cand, 'plataforma', p.id, dueno_maq) }}</dd>
-<dt>Ambiente</dt><dd>{{ p.ambiente or '—' }}</dd>
-<dt>Ubicación</dt><dd>{{ p.ubicacion or '—' }}</dd>
-<dt>Segmentos de negocio</dt><dd>{{ p.segmentos|join(', ') if p.segmentos else '—' }}</dd>
-<dt>Servidor que la corre</dt><dd><a href="{{ url_for('consola.equipo', eid=p.equipo.id) }}" class="mono">{{ p.equipo.nombre }}</a>{{ ' · ' ~ p.equipo.ip if p.equipo.ip }}{{ ' · ' ~ p.equipo.so if p.equipo.so }}</dd>
-<dt>Componentes internos</dt><dd>{{ p.internos|join(', ') if p.internos else '—' }}</dd>
-<dt>Acceso de administración</dt><dd>{% if p.entrar %}<a href="{{ p.entrar.url }}" target="_blank" rel="noopener">{{ p.entrar.t }} ↗</a>{% else %}—{% endif %}</dd>
-<dt>Suscripción o licencia</dt><dd><span class="chip {{ 's-ok' if p.licencia.estado == 'atachada' else ('s-alta' if p.licencia.estado == 'no atachada' else '') }}">{{ p.licencia.estado }}</span> {{ p.licencia.t }}</dd>
-<dt>Certificados</dt><dd>{% if p.certificados %}{% for c in p.certificados %}<div><a href="{{ c.url }}">{{ c.cn }}</a>{{ ' · ' ~ c.servicio if c.servicio }} · <span class="chip {{ {'verde':'s-ok','amarillo':'s-media','rojo':'s-alta'}.get(c.nivel, '') }}">{{ c.estado }}{{ ' · vence en ' ~ c.dias ~ ' días' if c.dias is not none }}</span></div>{% endfor %}{% else %}Sin certificado registrado en esta máquina{% endif %}</dd>
-<dt>Credencial</dt><dd>{{ 'en la bóveda' if p.credencial else 'no registrada' }}</dd>
-<dt>Última recolección</dt><dd>{{ p.recoleccion|fecha if p.recoleccion else '—' }}</dd>
-</dl></div>
+<div class="card fi-lista" style="margin-top:6px;padding:0" id="componentes"><div class="fi-lcab"><h2>Componentes · {{ comps|length }}</h2>{% if comps|length > 10 %}<input type="search" placeholder="Buscar componente…" aria-label="Buscar componente">{% endif %}</div>
+<table class="sin-pag"><tr><th>Componente</th><th>Estado</th><th>Detalle</th></tr>
+{% for c in comps %}<tr><td><b>{{ c.n }}</b></td><td><span class="chip {{ 's-ok' if c.ok is sameas true else ('s-alta' if c.ok is sameas false else '') }}">{{ 'en línea' if c.ok is sameas true else ('caído' if c.ok is sameas false else 'sin medir') }}</span></td><td class="sub" style="font-size:12.5px">{{ c.d or '—' }}</td></tr>
+{% else %}<tr><td colspan="3" class="sub">Sin componentes medidos.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
+
+<div class="card" style="margin-top:14px" id="recursos"><div class="fila"><h2 style="margin:0">Recursos</h2><span class="sub der" style="font-size:12px">{{ ('medido ' ~ (m.medido|fecha)) if m.medido else 'sin medición: «Medir ahora» en Acciones' }}</span></div>
+<dl class="fi-dl" style="margin-top:10px">{% for x in recursos %}<dt>{{ x.t }}</dt><dd>{{ x.v if x.v is not none and x.v != '' else '—' }}</dd>{% endfor %}
+<dt>Máquina</dt><dd>{{ e.cpu or '—' }} vCPU · {{ ((e.ram_mb / 1024)|round(1) ~ ' GB') if e.ram_mb else '—' }} de memoria</dd>
+{% for k, v in (m.texto or {}).items() if k not in ('version',) and v %}<dt>{{ k|replace('_', ' ')|capitalize }}</dt><dd class="mono" style="font-size:12px">{{ v }}</dd>{% endfor %}</dl></div>
+
+<div class="card fi-lista" style="margin-top:14px;padding:0" id="maquinas"><div class="fi-lcab"><h2>Máquinas donde corre · {{ 1 + otras|length }}</h2>{% if otras|length > 9 %}<input type="search" placeholder="Buscar máquina…" aria-label="Buscar máquina">{% endif %}</div>
+<table class="sin-pag"><tr><th>Máquina</th><th>Instancia</th><th>IP</th><th>Sistema</th><th>Estado</th></tr>
+<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}"><b>{{ e.nombre }}</b></a> <span class="chip">esta instancia</span></td><td class="mono">{{ p.id }}</td><td class="mono">{{ e.ip or '—' }}</td><td style="font-size:12px">{{ e.so or '—' }}</td><td><span class="chip {{ 's-ok' if e.energia == 'encendido' else '' }}">{{ e.energia or '—' }}</span></td></tr>
+{% for x in otras %}<tr><td><a href="{{ url_for('consola.equipo', eid=x.eid) }}">{{ x.nombre }}</a></td><td><a class="mono" href="{{ url_for('consola.plataforma_detalle', pid=x.pid) }}">{{ x.pid }}</a></td><td class="mono">{{ x.ip or '—' }}</td><td style="font-size:12px">{{ x.so or x.categoria or '—' }}</td><td><span class="chip {{ 's-ok' if x.energia == 'encendido' else '' }}">{{ x.energia or '—' }}</span></td></tr>{% endfor %}
+</table><div class="pag-js"></div></div>
+
+<div class="card" style="margin-top:14px" id="segmentos"><h2 style="margin-top:0">Segmentos de negocio · {{ (e.segmentos or [])|length }}</h2>
+{% if e.segmentos %}<div class="ci-chips">{% for s in e.segmentos %}<a class="chip" href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=s) }}">{{ s }}</a>{% endfor %}</div>
+<p class="sub" style="font-size:12.5px;margin:8px 0 0">La plataforma atiende estos segmentos a través de {{ e.nombre }}.</p>{% else %}<p class="vacio">{{ e.nombre }} aún no forma parte de ningún segmento de negocio.</p>{% endif %}</div>
 
 {% if vpn is not none %}<div class="card" style="margin-top:14px;padding:0" id="vpn"><div class="fila" style="padding:14px 16px 6px"><h2 style="margin:0">Usuarios de la VPN</h2><span class="sub der" style="font-size:12px">{% if vpn.endpoint %}conexión {{ vpn.endpoint }}{{ ':' ~ vpn.puerto if vpn.puerto and ':' not in vpn.endpoint }} · {% endif %}{{ (vpn.clientes or {})|length }} cliente{{ 's' if (vpn.clientes or {})|length != 1 }}{% if vpn.actualizado %} · al {{ vpn.actualizado|fecha }}{% endif %}</span></div>
 {% if vpn_usuarios %}<table><tr><th>Usuario</th><th>Cliente</th><th>IP en el túnel</th><th>Segmentos de negocio</th><th>Vigencia (UTC)</th><th>Estado</th><th>Configuración</th></tr>
@@ -48,12 +62,11 @@
 <td>{% if u.estado in ('revocado', 'vencido') %}<span class="sub" style="font-size:12px">sin acceso</span>{% elif u.descargada %}<span class="sub" style="font-size:12px">descargada {{ u.descargada|fecha }}</span>{% elif perfil_actual.modo == 'escritura' %}<a class="btn chico gris" href="{{ url_for('consola.vpn_config', pid=p.id, usuario=u.usuario) }}">Descargar .conf</a>{% endif %}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio" style="padding:0 16px 14px">Aún no hay usuarios: crea un cliente y luego sus usuarios desde las acciones de abajo.</p>{% endif %}</div>{% endif %}
 
-<div class="card" style="margin-top:14px" id="acciones"><h2 style="margin-top:0">Acciones de la plataforma</h2>
-{% if acciones %}<div class="infras" style="margin:0">{% for a in acciones %}
-<div class="card infra-card caja-nav{{ ' no-probado' if not (a.disponible and a.probada) }}"{% if a.disponible and not a.probada %} title="Sin probar: queda bloqueada hasta que se pruebe"{% endif %}><div class="ic-cab"><div class="ic-tit"><b>{{ a.t }}</b><span class="sub">{{ a.auto }}</span></div></div>
-<p class="sub" style="font-size:12.5px;margin:6px 0 10px">{{ a.d }}</p>
-<div class="ic-acc">{% if a.disponible and not a.probada %}<span class="sub" style="font-size:12px">Sin probar · bloqueada hasta probarla</span>{% elif perfil_actual.modo == 'escritura' and a.disponible %}<button type="button" class="btn chico" onclick="document.getElementById('dlg-{{ a.clave }}').showModal()">{{ a.t }}…</button>{% elif not a.disponible %}<span class="sub" style="font-size:12px">Falta sincronizar el catálogo con AAP</span>{% else %}<span class="sub" style="font-size:12px">Tu perfil es de solo lectura</span>{% endif %}</div></div>
-<dialog id="dlg-{{ a.clave }}" class="card dlg-alta" style="max-width:620px"><form method="post" action="{{ url_for('consola.plataforma_accion', pid=p.id, clave=a.clave) }}" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="card" style="margin-top:14px" id="acciones"><div class="fila"><h2 style="margin:0">Acciones</h2><span class="sub der" style="font-size:12px">cada una corre en AAP como ticket, con aprobación</span></div>
+<div class="acc-grupo"><h3>Salud <span class="sub">1</span></h3><table class="sl-tab no-apilar"><tr class="sl-fila"><td class="sl-t"><div class="sl-n">Medir ahora</div><div class="sub sl-d">{{ defn.medicion or 'Lectura sin agente de la plataforma' }}. Solo lectura: no cambia nada.</div></td><td class="sl-s"></td><td class="sl-a">{{ accion(acc_medir, url_acc, 'PM0', 'Medir ahora') }}</td></tr></table></div>
+{% if acciones %}<div class="acc-grupo"><h3>Propias de {{ p.nombre }} <span class="sub">{{ acciones|length }}</span></h3><table class="sl-tab no-apilar">{% for a in acciones %}<tr class="sl-fila"><td class="sl-t"><div class="sl-n">{{ a.t }}</div><div class="sub sl-d">{{ a.d }}</div></td><td class="sl-s"></td><td class="sl-a"><span class="sa-acc">{% if a.disponible and not a.probada %}<button type="button" class="btn chico" disabled>{{ a.t }}</button> <span class="sub sa-motivo">Sin probar · bloqueada hasta probarla</span>{% elif perfil_actual.modo == 'escritura' and a.disponible %}<button type="button" class="btn chico" onclick="document.getElementById('dlg-{{ a.clave }}').showModal()">{{ a.t }}…</button>{% elif not a.disponible %}<span class="sub sa-motivo">Aún no disponible: «{{ a.auto }}» no está publicada en AAP</span>{% else %}<span class="sub sa-motivo">Requiere perfil de escritura</span>{% endif %}</span></td></tr>{% endfor %}</table></div>{% endif %}
+<p class="sub" style="font-size:12.5px;margin:10px 0 0">Las skills de {{ p.nombre }} (operación, seguridad, continuidad y ciclo de vida) están en el botón Skills, junto a la campana.</p>
+{% for a in acciones %}<dialog id="dlg-{{ a.clave }}" class="card dlg-alta" style="max-width:620px"><form method="post" action="{{ url_for('consola.plataforma_accion', pid=p.id, clave=a.clave) }}" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <div class="fila"><h3 style="margin:0">{{ a.t }} · <span class="mono">{{ p.id }}</span></h3><button type="button" class="der alta-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button></div>
 <p class="sub" style="font-size:12.5px">{{ a.d }} Se crea un ticket que pasa por aprobación antes de tocar cualquier máquina.</p>
 <input type="hidden" name="_tz" class="tz-nav">
@@ -69,11 +82,26 @@
 {% if a.elige %}<div style="max-height:320px;overflow:auto;border:1px solid var(--borde, #ddd);border-radius:8px;padding:4px 10px;margin:8px 0">
 {% for c in a.candidatos %}<label style="display:flex;gap:10px;align-items:center;padding:6px 0;font-weight:normal{{ ';opacity:.55' if c.no }}"><input type="checkbox" name="equipos" value="{{ c.nombre }}" {{ 'disabled' if c.no }} style="width:auto;margin:0">
 <span><b class="mono">{{ c.nombre }}</b> <span class="sub" style="font-size:12px">{{ c.so }}{{ ' · ' ~ c.ambiente if c.ambiente }}{{ ' · ' ~ c.no if c.no }}</span></span></label>
-{% else %}<p class="vacio">No hay servidores {{ 'RHEL' if a.elige == 'rhel' else 'CentOS, Rocky, AlmaLinux u Oracle Linux' }} en tu inventario.</p>{% endfor %}</div>{% else %}<p class="sub" style="font-size:12.5px">Se aplica sobre esta plataforma ({{ p.equipo.nombre }}).</p>{% endif %}
-<label>Motivo<input type="text" name="motivo" maxlength="200" placeholder="Gestión de parches y vulnerabilidades desde Satellite"></label>
-<div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear ticket</button></div></form></dialog>
-{% endfor %}</div>
-{% else %}<p class="sub">Esta plataforma aún no tiene acciones propias.</p>{% endif %}</div>
+{% else %}<p class="vacio">No hay servidores {{ 'RHEL' if a.elige == 'rhel' else 'CentOS, Rocky, AlmaLinux u Oracle Linux' }} en tu inventario.</p>{% endfor %}</div>{% else %}<p class="sub" style="font-size:12.5px">Se aplica sobre esta plataforma ({{ e.nombre }}).</p>{% endif %}
+<label>Motivo<input type="text" name="motivo" maxlength="200"></label>
+<div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear ticket</button></div></form></dialog>{% endfor %}
+</div>
+
+{{ cajon_salud(radar_p, p.id, url_acc, url_medir) }}
+{% if esc %}<aside id="fi-cx" class="cajon" hidden aria-label="Editar conexión"><div class="cajon-barra"><b style="font-size:15px">Editar conexión · {{ p.id }}</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
+<p class="sub" style="margin:4px 0 10px;font-size:12.5px">Cómo llega FaceOps a {{ p.nombre }}: siempre por AAP, con la credencial de la máquina guardada en AAP o en la bóveda (los secretos no se muestran).</p>
+<dl class="fi-dl"><dt>Máquina</dt><dd><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a>{{ ' · ' ~ e.ip if e.ip }}</dd>
+<dt>Acceso</dt><dd>{{ 'WinRM' if 'windows' in (e.so or '')|lower else ('SSH' if defn.fuente != 'red' else 'SSH del equipo de red') }} por AAP · inventario {{ inventarios|join(', ') if inventarios else '—' }}</dd>
+<dt>Medición</dt><dd>{{ defn.medicion or '—' }}</dd>
+<dt>Credencial web</dt><dd>{{ 'en la bóveda' if p.credencial else 'no registrada' }}</dd>
+<dt>Consola</dt><dd>{% if consola %}<a href="{{ consola.url }}" target="_blank" rel="noopener">{{ consola.t }} ↗</a>{% else %}—{% endif %}</dd></dl>
+{% if puerto_editable %}<form method="post" action="{{ url_for('consola.plataforma_conexion', pid=p.id) }}" class="form-infra" style="display:flex;flex-direction:column;gap:10px;margin-top:14px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Puerto HTTP de {{ p.nombre }}<input name="puerto" inputmode="numeric" pattern="[0-9]{2,5}" value="{{ puerto_actual or '' }}" placeholder="{{ puerto_defecto }}"></label>
+<p class="sub" style="margin:0;font-size:12.5px">Se usa cuando la plataforma no corre en su puerto de fábrica (p. ej. Keycloak en 8180 junto a JBoss). Al guardar se vuelve a medir (ticket de solo lectura).</p>
+<div class="fila" style="gap:8px"><button class="btn">Guardar y probar</button><button type="button" class="btn gris" data-fi-cerrar="1">Cancelar</button></div></form>{% endif %}
+<div style="margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line)">{{ accion(acc_medir, url_acc, 'PM0', 'Probar acceso sin cambios') }} <span class="sub" style="font-size:12px">mide por AAP: no cambia nada</span></div>
+<p class="sub" style="margin:12px 0 0;font-size:12.5px">La credencial de la máquina se vincula desde <a href="{{ url_for('consola.equipo', eid=e.id) }}?editar=1">su ficha</a> («Vincular a la bóveda»).</p></aside>{% endif %}
+{{ recursos(p.id) }}
 <script>document.querySelectorAll('.acc-seg').forEach(function(b){var t=b.querySelector('.acc-todo');var ips=b.querySelectorAll('.acc-ips input');t.addEventListener('change',function(){ips.forEach(function(i){i.checked=false;i.disabled=t.checked;});});});
 document.querySelectorAll('.tz-nav').forEach(function(x){x.value=new Date().getTimezoneOffset();});</script>
 {% endblock %}

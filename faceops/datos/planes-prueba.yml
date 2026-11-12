@@ -7,6 +7,13 @@
 excepciones:
   - {automatizacion: "Monitoreo · Configurar alertas del equipo", autoriza: "Cristian Quezada", fecha: "2026-11-11", motivo: "«ya bloquearemos caso a caso»: el flotante de alertas no se bloquea por la certificación; solo las acciones no certificadas del selector"}
 planes:
+  "Plataforma · Medir salud":
+    casos:
+      - {id: C1, caso: "Medir el data lake en nodo-storage (SeaweedFS: S3 :9000, master :9333, filer :8888, disco /srv/datalake)", verificar: "ticket exitoso de solo lectura; faceops_salud_plat trae s3_responde, comp_ok/comp_total (4 componentes), buckets y espacio_libre_pct, y el espacio coincide con df en la máquina (±2 puntos); la ficha PL-DATA-LAKE-0027 muestra la medición y su salud"}
+      - {id: C2, caso: "Medir Kafka en nodo-nginx (herramientas del broker contra su bootstrap)", verificar: "ticket exitoso; brokers_arriba ≥ 1 si el servicio kafka está activo en la máquina, particiones sub-replicadas y sin líder medidas, consumer lag sumado"}
+      - {id: C3, caso: "Medir Redis (Valkey) en nodo-tomcat sin mostrar la clave", verificar: "ticket exitoso; ping y persistencia medidos; la salida del trabajo no contiene ninguna clave"}
+      - {id: C4, caso: "Repetir la medición del data lake", tipo: Idempotencia, verificar: "ticket exitoso sin cambios en la máquina (changed=0); los mismos indicadores"}
+      - {id: C5, caso: "Pedir una plataforma que no corresponde al sistema (iis en nodo-storage, Linux)", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos» con el motivo; no se toca la máquina ni cambia la ficha"}
   "Estaciones · Limpieza de disco":   # requiere estaciones reales del laboratorio (Linux y Windows)
     casos:
       - {id: C1, caso: "Modo evaluar en una estación Linux con caché de paquetes, temporales viejos y papelera", verificar: "ticket exitoso; limpieza_disco en set_stats con liberable_mb > 0; nada se borra (libre antes = después, archivos de prueba siguen)"}

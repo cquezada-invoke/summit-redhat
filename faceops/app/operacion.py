@@ -1375,6 +1375,12 @@ def actualizar_tickets():
                     reg_identidad(c["id"], artefactos_ticket(aap, t), t["numero"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error fuente de usuarios", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "Plataforma · Medir salud":
+                try:   # lo medido sin agente queda en la ficha de la plataforma (y en sus métricas para las alertas)
+                    from .ficha_plataforma import registrar_medicion
+                    registrar_medicion(c["id"], artefactos_ticket(aap, t), t["numero"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error medición de plataforma", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "Monitoreo · Configurar alertas del equipo":
                 try:   # reflejo de lo que Ansible dejó en Prometheus: estado del botón «Alertas» del equipo
                     from .alertas_objeto import registrar_resultado

@@ -18,6 +18,13 @@
   vars:
     m: /opt/summit-monitoreo/prometheus
     retirar: "{{ (al_retirar | default(false) | bool) or (al_alertas | default([]) | length == 0) }}"
+    # alertas de una plataforma medida SIN agente (sin_agente en el catálogo): sus métricas las publica FaceOps en el anfitrión
+    # (job faceops-plataformas), así que no se exige el exportador de la máquina ni se le crea objetivo
+    sin_agente: >-
+      {{ (al_ambito | default('maquina')) != 'maquina' and (al_alertas | default([]) | length > 0) and
+         ((lookup('ansible.builtin.file', playbook_dir ~ '/files/alertas-objetos.yml') | from_yaml).alertas
+          | selectattr('sin_agente', 'defined') | map(attribute='id') | list
+          | intersect(al_alertas | default([]) | map(attribute='id') | list) | length) == (al_alertas | default([]) | length) }}
   tasks:
     - name: Datos válidos
       ansible.builtin.assert:
@@ -47,7 +54,7 @@
         host: "{{ al_ip }}"
         port: "{{ 22 if al_tipo == 'red' else (9182 if al_tipo == 'windows' else (9272 if al_tipo == 'vmware' else (9115 if al_tipo == 'segmento' else 9100))) }}"
         timeout: 8
-      when: not retirar
+      when: not retirar and not (sin_agente | bool)
       register: r_exp
       failed_when: false
 
@@ -59,7 +66,7 @@
           {{ 'revisa que esté encendido y con su puerto de administración abierto' if al_tipo == 'red'
              else 'el blackbox_exporter del monitoreo (summit-blackbox) no responde: revisa ese servicio en el anfitrión' if al_tipo == 'segmento'
              else 'instálale primero el agente de monitoreo («FaceOps · Agente de monitoreo»)' }}
-      when: not retirar and r_exp.state is not defined
+      when: not retirar and not (sin_agente | bool) and r_exp.state is not defined
 
     - name: Configuración actual
       ansible.builtin.slurp:
@@ -127,7 +134,7 @@
             dest: "{{ m }}/faceops/objetivos/{{ arm.objetivo_archivo }}"
             content: "{{ arm.objetivo }}"
             mode: "0644"
-          when: not retirar
+          when: not retirar and arm.objetivo | length > 0
 
         - name: Retirar las reglas de este ámbito (y el objetivo, si el equipo ya no tiene reglas de ningún ámbito)
           ansible.builtin.shell:

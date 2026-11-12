@@ -1,0 +1,84 @@
+---
+# Plataforma · Medir salud (solo lectura). Mide SIN agente los indicadores propios de una plataforma desde su máquina: AAP
+# entra por SSH (Linux) o WinRM (Windows) y lee las APIs locales de la plataforma y comandos de consulta; no cambia nada,
+# no instala nada y no imprime secretos. Lo medido vuelve a FaceOps (faceops_salud_plat): la ficha de la plataforma arma
+# su salud y FaceOps publica los mismos valores como métricas (/metricas/plataformas) para sus alertas en Prometheus.
+# Variables: pm_plataforma (código: data-lake, kafka, keycloak, jboss-eap, redis, postgresql, activemq, nginx, vault,
+#            satellite, red-hat-idm, 389-directory-server, iis, active-directory) · pm_puerto (opcional: puerto HTTP propio,
+#            p. ej. Keycloak en 8180)
+- name: Plataforma · Medir salud
+  hosts: all:!localhost:!anfitrion-snapshots:!anfitrion_kvm
+  gather_facts: false
+  become: "{{ (ansible_connection | default('ssh')) not in ['winrm', 'psrp'] }}"
+  vars:
+    windows: "{{ (ansible_connection | default('ssh')) in ['winrm', 'psrp'] }}"
+    linux_ok: [data-lake, kafka, keycloak, jboss-eap, redis, postgresql, activemq, nginx, vault, satellite, red-hat-idm, 389-directory-server]
+    windows_ok: [iis, active-directory]
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - pm_plataforma | default('') in (windows_ok if windows else linux_ok)
+          - (pm_puerto | default('') | string) is match('^([0-9]{2,5})?$')
+        fail_msg: >-
+          {{ pm_plataforma | default('(vacía)') }} no se mide por {{ 'WinRM' if windows else 'SSH' }} en esta máquina:
+          plataformas válidas {{ (windows_ok if windows else linux_ok) | join(', ') }}
+        quiet: true
+
+    - name: Medir {{ pm_plataforma }} (Linux, APIs locales y comandos de lectura)
+      when: not windows
+      ansible.builtin.script:
+        cmd: "medir_plataforma.py {{ pm_plataforma | quote }} {{ pm_puerto | default('') | string | quote }}"
+        executable: /usr/bin/python3
+      register: r_lx
+      changed_when: false
+      failed_when: r_lx.rc not in [0]
+
+    - name: Medir {{ pm_plataforma }} (Windows, WinRM)
+      when: windows
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'SilentlyContinue'
+        $V = @{}; $T = @{}; $C = @(); $N = @()
+        function Comp($n, $ok, $d) { $script:C += @{n = $n; ok = $ok; d = $d} }
+        if ('{{ pm_plataforma }}' -eq 'iis') {
+          $s = Get-Service W3SVC; $V.servicio_activo = [int]($s.Status -eq 'Running'); Comp 'w3svc' ($s.Status -eq 'Running') "$($s.Status)"
+          $w = Get-Service WAS; Comp 'was' ($w.Status -eq 'Running') "$($w.Status)"
+          Import-Module WebAdministration
+          $sites = @(Get-Website); $V.sitios = $sites.Count; $V.sitios_ok = @($sites | Where-Object { $_.State -eq 'Started' }).Count
+          $pools = @(Get-ChildItem IIS:\AppPools); $V.pools = $pools.Count; $V.pools_ok = @($pools | Where-Object { $_.State -eq 'Started' }).Count
+          $hs = @(Get-ChildItem IIS:\SslBindings | ForEach-Object { $_.Thumbprint } | Where-Object { $_ })
+          $V.certificados = $hs.Count
+          $dias = @($hs | ForEach-Object { $c = Get-Item "Cert:\LocalMachine\My\$_"; if ($c) { [int]($c.NotAfter - (Get-Date)).TotalDays } })
+          if ($dias.Count) { $V.cert_dias_min = ($dias | Measure-Object -Minimum).Minimum }
+        } else {
+          $us = 'NTDS','DNS','Netlogon','Kdc','W32Time'; $ok = 0
+          foreach ($u in $us) { $s = Get-Service $u; if ($s.Status -eq 'Running') { $ok++ }; Comp $u.ToLower() ($s.Status -eq 'Running') "$($s.Status)" }
+          $V.serv_ok = $ok; $V.serv_total = $us.Count
+          $rep = repadmin /showrepl /csv 2>$null | ConvertFrom-Csv
+          if ($rep) { $V.repl_errores = @($rep | Where-Object { [int]$_.'Number of Failures' -gt 0 }).Count }
+          $V.sysvol = [int](@(Get-SmbShare -Name SYSVOL).Count -gt 0)
+          $T.dominio = (Get-CimInstance Win32_ComputerSystem).Domain
+        }
+        @{valores = $V; texto = $T; componentes = $C; notas = $N} | ConvertTo-Json -Depth 4 -Compress
+      register: r_win
+      changed_when: false
+
+    - name: Lo medido
+      ansible.builtin.set_fact:
+        medido: "{{ ((r_win.stdout if windows else r_lx.stdout) | trim | from_json) }}"
+
+    - name: Sin medición útil
+      ansible.builtin.fail:
+        msg: "{{ medido.error }}"
+      when: medido.error is defined
+
+    - name: Resultado para FaceOps (ficha y métricas de la plataforma)
+      ansible.builtin.set_stats:
+        data:
+          faceops_salud_plat: "{{ {inventory_hostname: {pm_plataforma: medido | combine({'medido': lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ')})}} }}"
+        per_host: false
+        aggregate: true
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ pm_plataforma }} en {{ inventory_hostname }}: {{ medido.valores | dictsort | map('join', '=') | join(' · ') }}{{ (' · notas: ' ~ (medido.notas | join('; '))) if medido.notas else '' }}"

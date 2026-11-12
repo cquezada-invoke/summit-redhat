@@ -337,6 +337,7 @@ def create_app():
     from . import salud_acciones   # noqa: F401  (flotante de salud: acciones para llegar al 100 %)
     from . import ficha_maquina   # noqa: F401  (ficha: acceso SSH/RDP, segmentos de negocio, vínculo y medición agentless)
     from . import habilidades   # noqa: F401  (ficha: botón «Habilidades», quick wins y diferenciadores)
+    from . import ficha_plataforma   # noqa: F401  (ficha de plataforma: salud propia medida sin agente, alertas y skills)
     from . import segmento_ops   # noqa: F401  (vista del segmento: campana de alertas y botón Skills)
     from . import ia_usos   # noqa: F401  (Administración › Uso de IA y distintivo «IA»)
     from . import reportes   # noqa: F401  (Gobierno › Reportes: cumplimiento por área e iniciativas de mejora)

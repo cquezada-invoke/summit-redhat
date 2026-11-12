@@ -182,6 +182,8 @@ for f_ in ("red-respaldo.yml", "red-drift.yml", "red-config-leer.yml"):   # Red 
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/files/red_config.py", f"{tmp}/playbooks/files/red_config.py")
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
+shutil.copy(f"{AQUI}/plataforma-medir.yml", f"{tmp}/playbooks/plataforma-medir.yml")   # Plataforma · Medir salud (ficha de plataforma)
+shutil.copy(f"{AQUI}/files/medir_plataforma.py", f"{tmp}/playbooks/files/medir_plataforma.py")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
 shutil.copy(f"{AQUI}/escaneo-servidores.yml", f"{tmp}/playbooks/escaneo-servidores.yml")
 shutil.copy(f"{AQUI}/aplicar-parches-seguridad.yml", f"{tmp}/playbooks/aplicar-parches-seguridad.yml")
@@ -444,6 +446,13 @@ jho = asegurar("job_templates", "Homologación · Relevar entorno", {   # solo l
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 1800,
     "description": "Huella del entorno (sistema, recursos, condiciones, JBoss/Java) para homologar ambientes. Solo lectura"})
 paso(f"Plantilla «Homologación · Relevar entorno» (id {jho['id']})")
+
+jpm = asegurar("job_templates", "Plataforma · Medir salud", {   # solo lectura, sin agente: inventario, credencial y límite al lanzar
+    "organization": org["id"], "project": proy, "playbook": "playbooks/plataforma-medir.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 900,
+    "description": "Mide sin agente los indicadores propios de una plataforma (S3, Kafka, Keycloak, JBoss, Redis, PostgreSQL…) por SSH o WinRM. Solo lectura"})
+paso(f"Plantilla «Plataforma · Medir salud» (id {jpm['id']})")
 
 jls = asegurar("job_templates", "Storage · Servicio S3 del data lake", {   # acción sobre un equipo de almacenamiento: inventario y credencial al lanzar
     "organization": org["id"], "project": proy, "playbook": "playbooks/storage-lake-s3.yml", "inventory": inv["id"],

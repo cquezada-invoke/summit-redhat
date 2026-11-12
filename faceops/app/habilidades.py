@@ -166,6 +166,8 @@ def _resolver(h, e):
     """La habilidad para esta máquina: con «por_so» toma la acción y los campos del sistema que calce; con
     «solo_sin_registro» solo si FaceOps sabe que la máquina NO está registrada o licenciada. None si no aplica.
     Un equipo de red solo recibe las skills «red» de su subcategoría."""
+    if h.get("plataforma"):
+        return None   # las de una plataforma viven en su ficha (habilidades_plataforma), no en la lista de la máquina
     sub = subcategoria_red(e)
     if h.get("red"):
         return h if sub and (h["red"] == "todos" or sub in h["red"]) else None
@@ -262,25 +264,34 @@ def habilidades_maquina(e, rep=None):
 @requiere_login
 def habilidad_ejecutar(eid):
     """Crea el ticket (con aprobación en AAP) de la habilidad; si ya hay uno abierto de esa acción para la máquina, devuelve ese."""
-    from .aap import ErrorAAP
-    from .operacion import solicitar_en_equipo
     if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
         return {"error": "Necesitas perfil de escritura"}, 403
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
-    h = next((x for x in mapa() if x.get("id") == request.form.get("hid")), None)
+    return ejecutar(e, request.form.get("hid"), request.form)
+
+
+def ejecutar(e, hid, form):
+    """(respuesta JSON, código) de pedir una skill sobre la máquina e: ticket con aprobación en AAP (o el abierto que ya hay)."""
+    from .aap import ErrorAAP
+    from .operacion import solicitar_en_equipo
+    h = next((x for x in mapa() if x.get("id") == hid), None)
     if not e or not h or h.get("ui"):
         return {"error": "Skill o máquina no válidas"}, 400
-    h = _resolver(h, e)
+    if h.get("plataforma"):
+        if not set(_lista(h["plataforma"])) & set(plataformas_de(e)):
+            return {"error": "Este skill no aplica a la plataforma de esta máquina"}, 400
+    else:
+        h = _resolver(h, e)
     if not h:
         return {"error": "Este skill no aplica a la máquina"}, 400
-    a, bloqueo = _red_auto(e, h) if h.get("red") else _auto(e, h)
+    a, bloqueo = _red_auto(e, h) if h.get("red") else (_plat_auto(e, h) if h.get("plataforma") else _auto(e, h))
     if not a:
         return {"error": f"Ninguna acción de este skill aplica a la máquina{': ' + bloqueo if bloqueo else ''}"}, 400
     if bloqueo:
         return {"error": f"«{a['nombre']}» está bloqueada: {bloqueo}"}, 400
     if _faltan_datos(a, h):
         return {"error": f"«{a['nombre']}» pide datos: lánzala desde Acciones"}, 400
-    t0 = _ticket(e, a["id"], h.get("origen"))
+    t0 = _ticket_plat(e, a["id"], h) if h.get("plataforma") else _ticket(e, a["id"], h.get("origen"))
     if t0 and t0["abierto"]:
         return dict(t0, url=url_for("consola.ticket", tid=t0["id"]), existente=True)
     params, secretos = {}, {}
@@ -295,7 +306,7 @@ def habilidad_ejecutar(eid):
             params[c["var"]] = int(c["defecto"]) if c.get("tipo") == "integer" and str(c["defecto"]).lstrip("-").isdigit() else c["defecto"]
     params.update(h.get("parametros") or {})
     for c in h.get("campos") or []:   # datos que pide la skill: las claves (password) solo viajan a AAP; en FaceOps quedan enmascaradas
-        v = (request.form.get("v_" + c["var"]) or "").strip()
+        v = (form.get("v_" + c["var"]) or "").strip()
         if not v:
             if c.get("requerido"):
                 return {"error": f"Falta «{c['etiqueta']}»"}, 400
@@ -374,3 +385,81 @@ def pedir_habilidad_hipervisor(e, hid):
         return dict(t0, existente=True), a
     params = dict(h.get("parametros") or {}, hv_infra=e["hv_nombre"])
     return solicitar(g.usuario, g.cliente, a, None, params, f"{MARCA}{h['nombre']} en {e['hv_nombre']}"), a
+
+
+# ------------------------------------------------------------------ skills de una plataforma (ficha /plataformas/<ID>)
+def _lista(x):
+    return [x] if isinstance(x, str) else list(x or [])
+
+
+def plataformas_de(e):
+    """Códigos de plataforma que corren en la máquina (la misma detección de Plataformas)."""
+    from .vistas import _plataformas_de, _riesgo_parque
+    r = next((r_ for e_, r_ in _riesgo_parque() if e_["id"] == e["id"]), {}) or {}
+    return _plataformas_de(e, r)
+
+
+def _plat_auto(e, h):
+    """(automatización, motivo) de una skill de plataforma: la primera acción del catálogo que exista; motivo vacío si se puede
+    pedir. Sin acción publicada: (None, «acción aún no disponible»); sin certificar: el motivo de la regla de prueba."""
+    from .operacion import motivo_no_aplica
+    for n_ in h.get("nombre_aap") or []:
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], n_)
+        if not a:
+            continue
+        a = dict(a)
+        if e.get("energia") == "apagado" and not h.get("apagada_ok"):
+            return a, "la máquina que la corre está apagada"
+        if not h.get("sin_limite") and not h.get("origen"):
+            no_ = motivo_no_aplica(g.usuario, g.cliente["id"], a, e)
+            if no_:
+                return a, no_
+        return a, _motivo_prueba(a) or ""
+    return None, "acción aún no disponible"
+
+
+def _ticket_plat(e, aid, h):
+    """Último ticket de la skill de plataforma sobre la máquina (mismos parámetros fijos): abierto o exitoso."""
+    fijos = h.get("parametros") or {}
+    for t in q("SELECT id, numero, estado, limite, motivo, parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 60",
+               g.cliente["id"], aid):
+        p_ = j(t["parametros"], {}) or {}
+        if e["nombre"] not in (t["limite"] or "").split(":") or any(p_.get(k) != v for k, v in fijos.items()):
+            continue
+        if t["estado"] in ABIERTOS:
+            return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": True}
+        return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": False} if t["estado"] == "exitoso" else None
+    return None
+
+
+def skill_plataforma(e, hid, escritura=True):
+    """Estado de una skill de plataforma para pintarla (en la ventana Skills o como acción del flotante de salud)."""
+    h = next((x for x in mapa() if x.get("id") == hid and x.get("plataforma")), None)
+    if not h:
+        return None
+    a, motivo = _plat_auto(e, h)
+    if a and not motivo:
+        f_ = _faltan_datos(a, h)
+        if f_ and not h.get("campos"):
+            motivo = "pide datos (" + ", ".join(f_[:2]) + "): lánzala desde Acciones"
+    return {"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"], "valor": h.get("valor") or "",
+            "ambito": h.get("ambito") or "", "auto": (a or {}).get("nombre") or (h.get("nombre_aap") or [h["nombre"]])[0], "aid": (a or {}).get("id"), "ui": "",
+            "bloqueo": motivo or "", "ticket": _ticket_plat(e, a["id"], h) if a else None, "escritura": bool(escritura),
+            "url": url_for("consola.habilidad_ejecutar", eid=e["id"]) if a else "", "campos": h.get("campos") or []}
+
+
+@bp.app_template_global("habilidades_plataforma")
+def habilidades_plataforma(e, cod, ambito=""):
+    """Skills de la ficha de una plataforma (habilidades.yml › plataforma: <código>), con Ámbito = la plataforma. Las que no
+    tienen acción publicada o no están certificadas se muestran deshabilitadas con su motivo."""
+    escritura = bool(getattr(g, "perfil", None) and g.perfil["modo"] == "escritura")
+    out = []
+    for h in mapa():
+        if cod in _lista(h.get("plataforma")):
+            x = skill_plataforma(e, h["id"], escritura)
+            if x:
+                x["ambito"] = x["ambito"] or ambito
+                out.append(x)
+    out.sort(key=lambda x: (x["tipo"] != "diferenciador", bool(x["bloqueo"])))
+    return out
+

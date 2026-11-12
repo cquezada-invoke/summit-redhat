@@ -1,0 +1,247 @@
+# Ficha de cada plataforma (/plataformas/<ID>): el mismo esquema de la ficha de OpenShift y de la máquina, con lo propio de
+# cada tecnología. Lo lee app/ficha_plataforma.py.
+#   nombre: cómo se llama en la ficha · ambito: texto de la columna Ámbito de sus skills (habilidades.yml › plataforma: <código>)
+#   medicion: cómo se mide sin agente (AAP entra por SSH/WinRM o lee la API; «Plataforma · Medir salud», solo lectura)
+#   fuente: medicion (por defecto: datos.salud_plat del equipo, lo que dejó «Plataforma · Medir salud») · red (inventario de red
+#           que deja «Red · Inventariar equipo de red») · ocp (recolección del clúster: namespace de la plataforma)
+#   indicadores: puntos de salud. Cada uno: id, principio (uno de los 6 pilares), nombre, explica, clave (valor medido) y regla:
+#       si → 1 cumple · no → 0 cumple · min: N → valor ≥ N · max: N → valor ≤ N · ratio: [a, b] → a de b (porcentaje)
+#     skill: la skill (habilidades.yml) que lo remedia; sin skill, el flotante muestra el punto sin acción y su motivo.
+#     Lo que no se midió no castiga (queda «sin medir»). Siempre se suma «Medición vigente (menos de 24 h)».
+#   alerta: prefijo de sus alertas en aap/files/alertas-objetos.yml (ámbito plataforma:<familia>, métricas que FaceOps publica
+#           de esta misma medición en /metricas/plataformas → Prometheus → Alertmanager → EDA → FaceOps)
+#   componentes y recursos: claves de la medición que se muestran en sus secciones (no se inventa nada: lo no medido sale «—»)
+plataformas:
+  data-lake:
+    nombre: Data lake (S3 + Trino)
+    ambito: Data lake
+    medicion: "SSH al nodo de almacenamiento: API HTTP de SeaweedFS (master :9333, volumen :18080, filer :8888, S3 :9000) y espacio del disco"
+    unidad: lake-s3
+    indicadores:
+      - {id: DL1, principio: Disponibilidad, nombre: "S3 respondiendo", explica: "El endpoint S3 (:9000) contesta", clave: s3_responde, regla: si, skill: dl-reiniciar}
+      - {id: DL2, principio: Disponibilidad, nombre: "Componentes en línea", explica: "Master, volumen, filer y S3 de SeaweedFS responden", clave: comp_ok, regla: {ratio: [comp_ok, comp_total]}, skill: dl-reiniciar}
+      - {id: DL3, principio: Disponibilidad, nombre: "Master con líder", explica: "El master del clúster S3 tiene líder elegido", clave: master_lider, regla: si, skill: dl-reiniciar}
+      - {id: DL4, principio: Rendimiento, nombre: "Nodos de volumen online", explica: "Servidores de volumen registrados en el master", clave: nodos_volumen, regla: {min: 1}, skill: dl-reiniciar}
+      - {id: DL5, principio: Recuperación, nombre: "Espacio libre sobre 20 %", explica: "Disco dedicado del lake", clave: espacio_libre_pct, regla: {min: 20}, skill: dl-ampliar}
+      - {id: DL6, principio: Recuperación, nombre: "Sin errores de replicación", explica: "Volúmenes con menos copias que su política de réplica", clave: vol_subreplicados, regla: {max: 0}, skill: dl-replica}
+      - {id: DL7, principio: Recuperación, nombre: "Réplica a otro sitio", explica: "Sincronización del filer hacia otro sitio (filer.sync / remote.sync) en ejecución", clave: replica_sitio, regla: si, skill: dl-replica}
+      - {id: DL8, principio: Seguridad, nombre: "S3 sin acceso anónimo", explica: "Sin credenciales, el S3 no debe listar buckets", clave: s3_anonimo, regla: "no", skill: dl-credenciales}
+      - {id: DL9, principio: Costo, nombre: "Buckets con ciclo de vida", explica: "Buckets con regla de retención (TTL) en la configuración del filer", clave: buckets_ttl, regla: {ratio: [buckets_ttl, buckets]}, skill: dl-ciclo-vida}
+    indicadores_ocp:   # la misma plataforma corriendo en un clúster (Trino, colector y consola en su namespace)
+      - {id: DC1, principio: Disponibilidad, nombre: "Pods del data lake listos", explica: "Pods de servicio (sin cargas puntuales) listos en el namespace", clave: pods_listos, regla: {ratio: [pods_listos, pods_activos]}}
+      - {id: DC2, principio: Disponibilidad, nombre: "Trino en ejecución", explica: "Motor de consultas SQL del lake", clave: trino_ok, regla: si}
+      - {id: DC3, principio: Disponibilidad, nombre: "Colector en ejecución", explica: "Recibe la copia de cada request de los segmentos derivados", clave: colector_ok, regla: si}
+      - {id: DC4, principio: Excelencia operativa, nombre: "Cargas sin fallas", explica: "Trabajos de carga del lake en estado Failed", clave: cargas_fallidas, regla: {max: 0}}
+      - {id: DC5, principio: Rendimiento, nombre: "Pods sin reinicios repetidos", explica: "Reinicios acumulados del pod que más se reinicia", clave: reinicios_max, regla: {max: 5}}
+    componentes: [master, volumen, filer, s3]
+    recursos: [{k: disco_gb, t: "Disco del lake (GB)"}, {k: espacio_libre_pct, t: "Libre (%)"}, {k: buckets, t: "Buckets"}, {k: volumenes, t: "Volúmenes"}, {k: volumenes_libres, t: "Volúmenes libres"}, {k: nodos_volumen, t: "Nodos de volumen"}]
+    alerta: L
+  kafka:
+    nombre: Kafka (AMQ Streams)
+    ambito: Kafka
+    medicion: "SSH al broker: herramientas de Kafka contra su bootstrap (brokers, particiones sub-replicadas o sin líder, consumer lag) y espacio de log.dirs"
+    unidad: kafka
+    indicadores:
+      - {id: KF1, principio: Disponibilidad, nombre: "Servicio Kafka activo", explica: "Unidad systemd del broker", clave: servicio_activo, regla: si, skill: kf-reiniciar}
+      - {id: KF2, principio: Disponibilidad, nombre: "Brokers arriba", explica: "Brokers que responden frente a los del quórum", clave: brokers_arriba, regla: {ratio: [brokers_arriba, brokers_esperados]}, skill: kf-reiniciar}
+      - {id: KF3, principio: Disponibilidad, nombre: "Sin particiones sin líder", explica: "Particiones no disponibles (sin líder)", clave: particiones_offline, regla: {max: 0}, skill: kf-rebalanceo}
+      - {id: KF4, principio: Recuperación, nombre: "Sin particiones sub-replicadas", explica: "Particiones con menos réplicas sincronizadas que su factor", clave: particiones_subreplicadas, regla: {max: 0}, skill: kf-rebalanceo}
+      - {id: KF5, principio: Rendimiento, nombre: "Consumer lag bajo 1.000", explica: "Mensajes pendientes sumados de todos los grupos de consumo", clave: lag_total, regla: {max: 1000}, skill: kf-rebalanceo}
+      - {id: KF6, principio: Recuperación, nombre: "Espacio de logs sobre 20 %", explica: "Disco de log.dirs", clave: espacio_libre_pct, regla: {min: 20}, skill: kf-retencion}
+      - {id: KF7, principio: Seguridad, nombre: "Listener con TLS o SASL", explica: "Ningún listener en PLAINTEXT", clave: listener_seguro, regla: si, skill: kf-tls}
+    componentes: [broker, controlador]
+    recursos: [{k: brokers_arriba, t: "Brokers arriba"}, {k: topicos, t: "Tópicos"}, {k: particiones, t: "Particiones"}, {k: grupos, t: "Grupos de consumo"}, {k: lag_total, t: "Lag total"}, {k: espacio_libre_pct, t: "Libre en log.dirs (%)"}]
+    alerta: Q
+  keycloak:
+    nombre: Keycloak
+    ambito: Keycloak
+    medicion: "SSH a la máquina: endpoints públicos de Keycloak (OIDC del realm master y /health) y su configuración"
+    unidad: keycloak
+    indicadores:
+      - {id: KC1, principio: Disponibilidad, nombre: "Servicio Keycloak activo", explica: "Unidad systemd de Keycloak", clave: servicio_activo, regla: si, skill: kc-reiniciar}
+      - {id: KC2, principio: Disponibilidad, nombre: "OIDC responde", explica: "Descubrimiento OpenID del realm master", clave: oidc_responde, regla: si, skill: kc-reiniciar}
+      - {id: KC3, principio: Disponibilidad, nombre: "Health ready", explica: "/health/ready en UP", clave: health_listo, regla: si, skill: kc-reiniciar}
+      - {id: KC4, principio: Seguridad, nombre: "HTTPS habilitado", explica: "Keycloak sirve por HTTPS (no solo HTTP)", clave: https, regla: si, skill: kc-certificado}
+      - {id: KC5, principio: Excelencia operativa, nombre: "Métricas habilitadas", explica: "metrics-enabled para vigilar logins y sesiones", clave: metricas, regla: si, skill: kc-config}
+    componentes: [http, health, admin]
+    recursos: [{k: version, t: "Versión"}, {k: puerto, t: "Puerto HTTP"}, {k: realms_publicos, t: "Realms detectados"}]
+    alerta: K
+  jboss-eap:
+    nombre: JBoss EAP
+    ambito: JBoss
+    medicion: "SSH a la máquina: jboss-cli local (estado del servidor, despliegues, heap) y el puerto HTTP"
+    unidad: eap8-standalone
+    indicadores:
+      - {id: JB1, principio: Disponibilidad, nombre: "Servicio JBoss activo", explica: "Unidad systemd de JBoss EAP", clave: servicio_activo, regla: si, skill: jb-reiniciar}
+      - {id: JB2, principio: Disponibilidad, nombre: "Servidor en estado running", explica: "server-state leído con jboss-cli", clave: server_running, regla: si, skill: jb-reiniciar}
+      - {id: JB3, principio: Disponibilidad, nombre: "Sin despliegues fallidos", explica: "Despliegues en estado FAILED", clave: despliegues_fallidos, regla: {max: 0}, skill: jb-restablecer}
+      - {id: JB4, principio: Rendimiento, nombre: "Heap bajo 85 %", explica: "Memoria heap usada frente al máximo de la JVM", clave: heap_pct, regla: {max: 85}, skill: jb-reiniciar}
+      - {id: JB5, principio: Disponibilidad, nombre: "HTTP responde", explica: "Puerto HTTP de las aplicaciones (8080)", clave: http_responde, regla: si, skill: jb-reiniciar}
+      - {id: JB6, principio: Seguridad, nombre: "Consola de administración solo local", explica: "La interfaz de administración (9990) no escucha en todas las IP", clave: consola_local, regla: si, skill: jb-config}
+    componentes: [servidor, http, administración]
+    recursos: [{k: version, t: "Versión"}, {k: despliegues, t: "Despliegues"}, {k: datasources, t: "Datasources"}, {k: heap_pct, t: "Heap usado (%)"}, {k: heap_max_mb, t: "Heap máximo (MB)"}]
+    alerta: J
+  redis:
+    nombre: Redis
+    ambito: Redis
+    medicion: "SSH a la máquina: redis-cli/valkey-cli local (PING e INFO)"
+    unidad: redis
+    indicadores:
+      - {id: RD1, principio: Disponibilidad, nombre: "Servicio Redis activo", explica: "Unidad systemd de Redis o Valkey", clave: servicio_activo, regla: si, skill: rd-reiniciar}
+      - {id: RD2, principio: Disponibilidad, nombre: "Responde PING", explica: "PONG del servidor", clave: ping, regla: si, skill: rd-reiniciar}
+      - {id: RD3, principio: Recuperación, nombre: "Persistencia sin errores", explica: "Último guardado RDB/AOF correcto", clave: persistencia_ok, regla: si, skill: rd-respaldo}
+      - {id: RD4, principio: Rendimiento, nombre: "Límite de memoria configurado", explica: "maxmemory distinto de 0", clave: maxmemory_conf, regla: si, skill: rd-config}
+      - {id: RD5, principio: Rendimiento, nombre: "Memoria bajo 85 % del límite", explica: "used_memory frente a maxmemory", clave: memoria_pct, regla: {max: 85}, skill: rd-config}
+      - {id: RD6, principio: Seguridad, nombre: "Acceso con contraseña", explica: "requirepass o ACL: sin credencial no responde", clave: requiere_auth, regla: si, skill: rd-config}
+      - {id: RD7, principio: Disponibilidad, nombre: "Sin clientes bloqueados", explica: "blocked_clients", clave: clientes_bloqueados, regla: {max: 0}, skill: rd-reiniciar}
+    componentes: [servidor, persistencia]
+    recursos: [{k: version, t: "Versión"}, {k: rol, t: "Rol"}, {k: memoria_mb, t: "Memoria usada (MB)"}, {k: clientes, t: "Clientes"}, {k: claves, t: "Claves"}]
+    alerta: R
+  postgresql:
+    nombre: PostgreSQL
+    ambito: PostgreSQL
+    medicion: "SSH a la máquina: pg_isready y consultas de solo lectura como postgres (conexiones, réplicas, archivado, edad de XID)"
+    unidad: postgresql
+    indicadores:
+      - {id: PG1, principio: Disponibilidad, nombre: "Servicio PostgreSQL activo", explica: "Unidad systemd de PostgreSQL", clave: servicio_activo, regla: si, skill: pg-reiniciar}
+      - {id: PG2, principio: Disponibilidad, nombre: "Acepta conexiones", explica: "pg_isready", clave: responde, regla: si, skill: pg-reiniciar}
+      - {id: PG3, principio: Rendimiento, nombre: "Conexiones bajo 80 %", explica: "Conexiones abiertas frente a max_connections", clave: conexiones_pct, regla: {max: 80}, skill: pg-diagnostico}
+      - {id: PG4, principio: Recuperación, nombre: "Archivado WAL activo", explica: "archive_mode on (recuperación a un punto en el tiempo)", clave: archivado, regla: si, skill: pg-respaldo}
+      - {id: PG5, principio: Recuperación, nombre: "Réplicas al día", explica: "Atraso de la réplica más lenta (s)", clave: replica_lag_s, regla: {max: 60}, skill: pg-diagnostico}
+      - {id: PG6, principio: Excelencia operativa, nombre: "Edad de XID bajo 50 %", explica: "Riesgo de wraparound (vacuum al día)", clave: xid_pct, regla: {max: 50}, skill: pg-vacuum}
+      - {id: PG7, principio: Rendimiento, nombre: "Sin transacciones largas", explica: "Transacciones abiertas hace más de 5 minutos", clave: tx_largas, regla: {max: 0}, skill: pg-diagnostico}
+    componentes: [servidor, replicación, archivado]
+    recursos: [{k: version, t: "Versión"}, {k: bases, t: "Bases"}, {k: conexiones, t: "Conexiones"}, {k: max_conexiones, t: "max_connections"}, {k: replicas, t: "Réplicas"}, {k: tamano_mb, t: "Tamaño (MB)"}]
+    alerta: P
+  activemq:
+    nombre: AMQ Broker (Artemis)
+    ambito: AMQ Broker
+    medicion: "SSH a la máquina: puertos del broker y sus métricas locales (/metrics de la consola :8161)"
+    unidad: artemis
+    indicadores:
+      - {id: AM1, principio: Disponibilidad, nombre: "Servicio del broker activo", explica: "Unidad systemd de Artemis", clave: servicio_activo, regla: si, skill: am-reiniciar}
+      - {id: AM2, principio: Disponibilidad, nombre: "Acceptor responde", explica: "Puerto de mensajería (61616)", clave: puerto_ok, regla: si, skill: am-reiniciar}
+      - {id: AM3, principio: Disponibilidad, nombre: "DLQ vacía", explica: "Mensajes en la cola de mensajes muertos", clave: dlq_mensajes, regla: {max: 0}, skill: am-cola}
+      - {id: AM4, principio: Rendimiento, nombre: "Colas con consumidores", explica: "Colas con mensajes y sin consumidor", clave: colas_sin_consumidor, regla: {max: 0}, skill: am-cola}
+      - {id: AM5, principio: Rendimiento, nombre: "Memoria de direcciones bajo 80 %", explica: "Uso de memoria global de direcciones del broker", clave: memoria_pct, regla: {max: 80}, skill: am-reiniciar}
+    componentes: [broker, acceptor, consola]
+    recursos: [{k: colas, t: "Colas"}, {k: mensajes, t: "Mensajes en colas"}, {k: consumidores, t: "Consumidores"}, {k: dlq_mensajes, t: "En DLQ"}]
+    alerta: A
+  nginx:
+    nombre: nginx
+    ambito: nginx
+    medicion: "SSH a la máquina: nginx -t, puerto HTTP y vencimiento de sus certificados"
+    unidad: nginx
+    indicadores:
+      - {id: NG1, principio: Disponibilidad, nombre: "Servicio nginx activo", explica: "Unidad systemd de nginx", clave: servicio_activo, regla: si, skill: ng-reiniciar}
+      - {id: NG2, principio: Excelencia operativa, nombre: "Configuración válida", explica: "nginx -t sin errores", clave: config_ok, regla: si, skill: ng-reiniciar}
+      - {id: NG3, principio: Disponibilidad, nombre: "Responde HTTP", explica: "Puerto 80 o 443 contesta", clave: http_responde, regla: si, skill: ng-reiniciar}
+      - {id: NG4, principio: Seguridad, nombre: "Certificados con más de 30 días", explica: "Días del certificado más próximo a vencer", clave: cert_dias_min, regla: {min: 30}, skill: ng-certificado}
+    componentes: [servidor, configuración, tls]
+    recursos: [{k: version, t: "Versión"}, {k: sitios, t: "server_name"}, {k: upstreams, t: "Upstreams"}, {k: certificados, t: "Certificados"}]
+    alerta: N
+  vault:
+    nombre: HashiCorp Vault
+    ambito: Vault
+    medicion: "SSH a la máquina: API de salud de Vault (/v1/sys/health, sin token) y su configuración"
+    unidad: vault
+    indicadores:
+      - {id: VT1, principio: Disponibilidad, nombre: "Servicio Vault activo", explica: "Unidad systemd de Vault", clave: servicio_activo, regla: si, skill: vt-reiniciar}
+      - {id: VT2, principio: Disponibilidad, nombre: "Inicializado", explica: "Vault inicializado", clave: inicializado, regla: si}
+      - {id: VT3, principio: Disponibilidad, nombre: "Desellado", explica: "Vault no está sellado", clave: sellado, regla: "no", skill: vt-desellar}
+      - {id: VT4, principio: Seguridad, nombre: "TLS en el listener", explica: "El listener TCP no tiene tls_disable", clave: tls, regla: si, skill: vt-tls}
+      - {id: VT5, principio: Recuperación, nombre: "Almacenamiento integrado (raft)", explica: "Backend con snapshots nativos", clave: raft, regla: si, skill: vt-snapshot}
+    componentes: [servidor, almacenamiento]
+    recursos: [{k: version, t: "Versión"}, {k: almacenamiento, t: "Almacenamiento"}]
+    alerta: U
+  satellite:
+    nombre: Red Hat Satellite
+    ambito: Satellite
+    medicion: "SSH a la máquina: servicios de Satellite, espacio de Pulp, tareas en pausa y certificado web"
+    unidad: foreman
+    indicadores:
+      - {id: ST1, principio: Disponibilidad, nombre: "Servicios de Satellite activos", explica: "foreman, httpd, pulpcore, postgresql, redis, tomcat, foreman-proxy y dynflow", clave: serv_ok, regla: {ratio: [serv_ok, serv_total]}, skill: st-reiniciar}
+      - {id: ST2, principio: Recuperación, nombre: "Disco de Pulp sobre 20 % libre", explica: "/var/lib/pulp", clave: espacio_libre_pct, regla: {min: 20}}
+      - {id: ST3, principio: Excelencia operativa, nombre: "Sin tareas en pausa", explica: "Tareas de foreman-tasks en estado paused", clave: tareas_pausadas, regla: {max: 0}}
+      - {id: ST4, principio: Seguridad, nombre: "Certificado web con más de 30 días", explica: "Certificado de Apache de Satellite", clave: cert_dias_min, regla: {min: 30}}
+    componentes: [foreman, pulp, candlepin, base de datos]
+    recursos: [{k: version, t: "Versión"}, {k: serv_ok, t: "Servicios activos"}, {k: serv_total, t: "Servicios"}, {k: espacio_libre_pct, t: "Libre en Pulp (%)"}]
+    alerta: E
+  red-hat-idm:
+    nombre: Red Hat IdM
+    ambito: IdM
+    medicion: "SSH a la máquina: ipactl status, certmonger (getcert list) y LDAP local"
+    unidad: ipa
+    indicadores:
+      - {id: ID1, principio: Disponibilidad, nombre: "Servicios de IdM activos", explica: "ipactl status", clave: serv_ok, regla: {ratio: [serv_ok, serv_total]}, skill: id-reiniciar}
+      - {id: ID2, principio: Disponibilidad, nombre: "LDAP responde", explica: "DSE raíz del directorio de IdM", clave: ldap_ok, regla: si, skill: id-reiniciar}
+      - {id: ID3, principio: Seguridad, nombre: "Certificados con más de 30 días", explica: "El certificado de certmonger más próximo a vencer", clave: cert_dias_min, regla: {min: 30}}
+      - {id: ID4, principio: Seguridad, nombre: "Certificados sin problemas de renovación", explica: "Seguimientos de certmonger que no están en MONITORING", clave: cert_problemas, regla: {max: 0}}
+    componentes: [directorio, kerberos, dns, ca, web]
+    recursos: [{k: serv_ok, t: "Servicios activos"}, {k: serv_total, t: "Servicios"}, {k: certificados, t: "Certificados"}]
+    alerta: I
+  389-directory-server:
+    nombre: 389 Directory Server
+    ambito: Directorio LDAP
+    medicion: "SSH a la máquina: instancia dirsrv, DSE raíz por LDAP y LDAPS, espacio de la base"
+    unidad: dirsrv@
+    indicadores:
+      - {id: DS1, principio: Disponibilidad, nombre: "Instancia dirsrv activa", explica: "Unidad dirsrv@<instancia>", clave: servicio_activo, regla: si, skill: ds-reiniciar}
+      - {id: DS2, principio: Disponibilidad, nombre: "LDAP responde", explica: "DSE raíz en el puerto 389", clave: ldap_ok, regla: si, skill: ds-reiniciar}
+      - {id: DS3, principio: Seguridad, nombre: "LDAPS habilitado", explica: "Puerto 636 con TLS", clave: ldaps_ok, regla: si}
+      - {id: DS4, principio: Recuperación, nombre: "Disco de la base sobre 20 % libre", explica: "/var/lib/dirsrv", clave: espacio_libre_pct, regla: {min: 20}}
+    componentes: [ldap, ldaps]
+    recursos: [{k: instancias, t: "Instancias"}, {k: sufijos, t: "Sufijos"}]
+    alerta: G
+  active-directory:
+    nombre: Active Directory
+    ambito: Active Directory
+    medicion: "WinRM al controlador: servicios del dominio, repadmin /showrepl y SYSVOL"
+    unidad: NTDS
+    indicadores:
+      - {id: AD1, principio: Disponibilidad, nombre: "Servicios del controlador", explica: "NTDS, DNS, Netlogon, KDC y W32Time", clave: serv_ok, regla: {ratio: [serv_ok, serv_total]}, skill: ad-reiniciar}
+      - {id: AD2, principio: Recuperación, nombre: "Replicación sin errores", explica: "Fallas de repadmin /showrepl", clave: repl_errores, regla: {max: 0}}
+      - {id: AD3, principio: Disponibilidad, nombre: "SYSVOL compartido", explica: "Recurso SYSVOL publicado", clave: sysvol, regla: si}
+    componentes: [ntds, dns, netlogon, kdc]
+    recursos: [{k: dominio, t: "Dominio"}, {k: serv_ok, t: "Servicios activos"}]
+    alerta: M
+  iis:
+    nombre: IIS
+    ambito: IIS
+    medicion: "WinRM a la máquina: servicio W3SVC, sitios, pools de aplicaciones y certificados de sus enlaces HTTPS"
+    unidad: W3SVC
+    indicadores:
+      - {id: IS1, principio: Disponibilidad, nombre: "Servicio W3SVC activo", explica: "Servicio web de IIS", clave: servicio_activo, regla: si, skill: is-reiniciar}
+      - {id: IS2, principio: Disponibilidad, nombre: "Sitios iniciados", explica: "Sitios de IIS en Started", clave: sitios_ok, regla: {ratio: [sitios_ok, sitios]}, skill: is-reiniciar}
+      - {id: IS3, principio: Disponibilidad, nombre: "Pools iniciados", explica: "Pools de aplicaciones en Started", clave: pools_ok, regla: {ratio: [pools_ok, pools]}, skill: is-reiniciar}
+      - {id: IS4, principio: Seguridad, nombre: "Certificados con más de 30 días", explica: "Certificado HTTPS más próximo a vencer", clave: cert_dias_min, regla: {min: 30}}
+    componentes: [w3svc, was]
+    recursos: [{k: sitios, t: "Sitios"}, {k: pools, t: "Pools"}, {k: certificados, t: "Certificados"}]
+    alerta: F
+  vyos-firewall:
+    nombre: VyOS (firewall)
+    ambito: Firewall
+    medicion: "Inventario de red por SSH («Red · Inventariar equipo de red»): interfaces, rutas y gestión"
+    fuente: red
+    unidad: vyos-router
+    indicadores:
+      - {id: VY1, principio: Disponibilidad, nombre: "Interfaces arriba", explica: "Interfaces habilitadas que están up", clave: if_up, regla: {ratio: [if_up, if_admin]}}
+      - {id: VY2, principio: Rendimiento, nombre: "Interfaces sin errores", explica: "Interfaces con errores de recepción o transmisión", clave: if_errores, regla: {max: 0}}
+      - {id: VY3, principio: Seguridad, nombre: "Gestión por SSH", explica: "Acceso de administración cifrado", clave: gestion_ssh, regla: si}
+    componentes: [interfaces, rutas]
+    recursos: [{k: interfaces, t: "Interfaces"}, {k: rutas, t: "Rutas"}, {k: subredes, t: "Subredes"}]
+    alerta: Z
+  frrouting:
+    nombre: FRRouting
+    ambito: Router
+    medicion: "Inventario de red por SSH («Red · Inventariar equipo de red»): sesiones BGP, interfaces y rutas"
+    fuente: red
+    unidad: frr
+    indicadores:
+      - {id: FR1, principio: Disponibilidad, nombre: "Sesiones BGP establecidas", explica: "Vecinos BGP en Established", clave: bgp_ok, regla: {ratio: [bgp_ok, bgp_total]}}
+      - {id: FR2, principio: Disponibilidad, nombre: "Interfaces arriba", explica: "Interfaces habilitadas que están up", clave: if_up, regla: {ratio: [if_up, if_admin]}}
+      - {id: FR3, principio: Rendimiento, nombre: "Interfaces sin errores", explica: "Interfaces con errores", clave: if_errores, regla: {max: 0}}
+      - {id: FR4, principio: Recuperación, nombre: "Prefijos recibidos en cada sesión", explica: "Sesiones establecidas que no reciben prefijos", clave: bgp_sin_prefijos, regla: {max: 0}}
+    componentes: [bgp, interfaces, rutas]
+    recursos: [{k: bgp_total, t: "Vecinos BGP"}, {k: interfaces, t: "Interfaces"}, {k: rutas, t: "Rutas"}]
+    alerta: Z

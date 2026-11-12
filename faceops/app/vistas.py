@@ -1876,8 +1876,12 @@ def plataforma_accion(pid, clave):
 @bp.route("/plataformas/<pid>")
 @requiere_login
 def plataforma_detalle(pid):
-    """Detalle de una instancia de plataforma por su ID."""
+    """Ficha de una instancia de plataforma por su ID, con el esquema de la ficha de OpenShift y de la máquina (salud con lo
+    remediable, Encendido, campana de alertas, Skills y secciones). La de OpenShift es la ficha del clúster."""
     e, r, cod = _plataforma_de_id(pid)
+    if cod == "openshift":
+        return redirect(url_for("consola.equipo", eid=e["id"]))
+    from .ficha_plataforma import contexto as ficha_ctx
     acciones = []
     for x in ACCIONES_PLATAFORMA.get(cod, []):
         a_ = q1("SELECT id, nombre_aap FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], x["auto"])
@@ -1887,8 +1891,9 @@ def plataforma_detalle(pid):
         acciones.append(dict(x, disponible=bool(a_), probada=probada_, campos=campos_, candidatos=_candidatos_accion(x, e) if x["elige"] else []))
     vpn_ = (j(e.get("datos"), {}).get("vpn") or {}) if cod == "wireguard" else None
     from .duenos import de as dueno_de, candidatos as dueno_cand
+    fx = ficha_ctx(e, r, cod, pid)
     return render_template("plataforma.html", dueno=dueno_de(g.cliente["id"], "plataforma", pid), dueno_maq=dueno_de(g.cliente["id"], "equipo", e["id"]),
-                           dueno_cand=dueno_cand(g.cliente["id"]), p=_instancia(e, r, cod), acciones=acciones, vpn=vpn_,
+                           dueno_cand=dueno_cand(g.cliente["id"]), acciones=acciones, vpn=vpn_, **fx,
                            vpn_usuarios=_vpn_usuarios(e) if cod == "wireguard" else [])
 
 
@@ -3096,6 +3101,7 @@ def equipo_redis_insight(eid):
 
 
 SERVICIOS_PLATAFORMA = {"jboss": ["eap8-standalone", "eap7-standalone", "jboss-eap", "wildfly", "jboss"], "nginx": ["nginx"],
+                       "data-lake": ["lake-s3"],   # S3 del data lake (SeaweedFS) en su nodo de almacenamiento
                        "postgresql": ["postgresql", "postgresql-16", "postgresql-15", "postgresql-13"], "redis": ["redis", "valkey"],
                        "httpd": ["httpd"], "tomcat": ["tomcat", "jws6-tomcat", "jws5-tomcat"], "keycloak": ["keycloak", "rhbk"],
                        "kafka": ["kafka", "amq-streams"], "activemq": ["artemis", "amq-broker", "activemq"], "mysql": ["mysqld", "mariadb"],
