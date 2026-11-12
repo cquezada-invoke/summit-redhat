@@ -1,0 +1,18 @@
+commit: dafcc9f041912e7eed8f37f38c02403b3d729f1e
+inicio: 2026-11-11T22:56:16-03:00
+---
+energía nodo-jboss-qa encender: exitoso FO-LAB-02031
+maquina nodo-jboss-qa
+prep respaldo: exitoso FO-LAB-02033 
+prep monitoreo: exitoso FO-LAB-02035 
+antes: active active 
+CASO C1 ok · Quitar respaldo continuo
+CASO C2 ok · Quitar node_exporter
+CASO C3 ok · Agente desconocido
+EVIDENCIA [{"id": "C1", "caso": "Quitar respaldo continuo", "resultado": "ok", "evidencia": "timers y scripts retirados (0 archivos); skill respaldo-git fuera del equipo (Agentes: no instalado); node_exporter intacto; la rama en Git no se toca"}, {"id": "C2", "caso": "Quitar node_exporter", "resultado": "ok", "evidencia": "servicio inactive sinbin ; puerto 9100 cerrado (HTTP 000); skill=no"}, {"id": "C3", "caso": "Agente desconocido", "resultado": "ok", "evidencia": "fallido (Agente válido · Agente desconocido: agente-inexistente · ); la máquina no cambia (huella c7e4aa69df)"}]
+CERT Sistema · Quitar agente → certificada
+restaurar respaldo: exitoso FO-LAB-02040
+restaurar monitoreo: exitoso FO-LAB-02042
+energía nodo-jboss-qa apagar: exitoso FO-LAB-02043
+FIN-QUITAR
+--- fin: 2026-11-11T23:22:36-03:00 · código: 0
