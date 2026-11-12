@@ -1,22 +1,20 @@
-commit: 58832725ff9bae9600ee830638c5ea303e1d8d42
-inicio: 2026-11-12T16:41:14-03:00
+commit: e4507feb5cf30ae4ec29986ecf828c0c75685842
+inicio: 2026-11-12T17:40:24-03:00
 ---
-PREVIO: ok · sin restos
-CR-C1: FO-LAB-02297 creado · Prueba C1: crear fo-prueba-11121641 (e2-micro; se elimina al terminar)
-CR-C1: ok · FO-LAB-02297 exitoso · RUNNING e2-micro etiquetas ok · vínculo exitoso · inventario pedido; «Inventariar máquina» bloqueada por su regla de prueba
-CR-C2: FO-LAB-02318 creado · Prueba C2: repetir crear fo-prueba-11121641
-CR-C2: ok · FO-LAB-02318 exitoso · exitoso · formulario rechaza repetido: True
-CR-C3: FO-LAB-02320 creado · Prueba C3: tipo fuera de las familias
-CR-C3: ok · FO-LAB-02320 fallido · fallido
-CR-C4: FO-LAB-02321 creado · Prueba C4: rechazar la aprobación
-CR-C4: ok · FO-LAB-02321 rechazado · rechazado
-CR-C5: ok · rechazos con motivo
-OP-C1: FO-LAB-02323 creado · Prueba C1: apagar fo-prueba-11121641
-OP-C1: ok · FO-LAB-02323 exitoso · TERMINATED · FaceOps apagado
-OP-C2: FO-LAB-02327 creado · Prueba C2: apagar fo-prueba-11121641
-OP-C2: ok · FO-LAB-02327 exitoso · idempotente
-OP-C3: FO-LAB-02330 creado · Prueba C3: redimensionar fo-prueba-11121641
-OP-C3: ok · FO-LAB-02330 exitoso · e2-small TERMINATED
-OP-C4: FO-LAB-02332 creado · Prueba C4: encender fo-prueba-11121641
-ESTADO pasos paso 9 {'PREVIO': True, 'CR-C1': True, 'CR-C2': True, 'CR-C3': True, 'CR-C4': True, 'CR-C5': True, 'OP-C1': True, 'OP-C2': True, 'OP-C3': True, 'OP-C4': None}
---- fin: 2026-11-12T17:36:25-03:00 · código: 0
+ESTADO cambiada
+FO-LAB-02275 fallido 19:19:35 Plan de prueba C5: sin parámetros | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02277 fallido 19:20:53 Plan de prueba C6: límite fuera de rango | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02279 fallido 19:21:48 Plan de prueba C1: CVE-2026-8932 sin reinicio | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02281 fallido 19:23:18 Plan de prueba C2: repetir todos | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02283 fallido 19:24:38 Plan de prueba C3: reiniciar solo si hace falta | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02284 fallido 19:25:44 Plan de prueba C4: programar reinicio | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02287 fallido 19:27:25 Plan de prueba C5: sin parámetros | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02289 fallido 19:28:49 Plan de prueba C6: límite fuera de rango | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02291 fallido 19:30:52 Plan de prueba C1: CVE-2026-8932 sin reinicio | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02292 fallido 19:32:35 Plan de prueba C2: repetir todos | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+FO-LAB-02295 fallido 19:34:48 Plan de prueba C3: reiniciar solo si hace falta | AAP terminó (failed): ejecución 0 s, espera de aprobación 14 s
+FO-LAB-02296 fallido 19:37:06 Plan de prueba C4: programar reinicio | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+    985 bash herramientas/vm/tarea.sh
+    220 bash herramientas/vm/tarea.sh
+      9 bash herramientas/vm/tarea.sh
+--- fin: 2026-11-12T17:40:33-03:00 · código: 0
