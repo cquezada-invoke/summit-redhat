@@ -1,0 +1,66 @@
+---
+# Autocuidado · Ampliar disco del anfitrión (GCP). Acción de CAPACIDAD (cuesta dinero y no se puede deshacer: un disco de GCP
+# no se achica): SIEMPRE con aprobación humana. Agranda el disco de arranque de la VM del laboratorio en GCP y luego crece la
+# partición y el sistema de archivos raíz en línea (growpart + xfs_growfs). Nunca achica.
+#   ac_gb: tamaño NUEVO total en GB (mayor que el actual y a lo más +200 GB)
+- name: Autocuidado · Ampliar disco del anfitrión (GCP) · identidad
+  hosts: anfitrion_kvm
+  gather_facts: false
+  tasks:
+    - name: Identidad de la VM en GCP
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: [identidad-gcp]
+        ac_titulo: Identidad de la VM del laboratorio en GCP
+
+    - name: Para los pasos siguientes
+      ansible.builtin.set_fact:
+        ac_gcp: "{{ ac_res }}"
+
+- name: Autocuidado · Ampliar disco del anfitrión (GCP) · disco
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    gcp: "{{ hostvars[groups['anfitrion_kvm'][0]].ac_gcp }}"
+    auth: &gcp
+      project: "{{ gcp.proyecto }}"
+      auth_kind: serviceaccount
+      service_account_file: "{{ lookup('ansible.builtin.env', 'GCE_CREDENTIALS_FILE_PATH') | default(lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE'), true) }}"
+  tasks:
+    - name: Disco actual
+      google.cloud.gcp_compute_disk_info:
+        zone: "{{ gcp.zona }}"
+        filters: ["name = {{ gcp.disco }}"]
+        <<: *gcp
+      register: r_disco
+
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - r_disco.resources | length == 1
+          - (ac_gb | default(0) | int) > (r_disco.resources[0].sizeGb | int)
+          - (ac_gb | default(0) | int) <= (r_disco.resources[0].sizeGb | int) + 200
+        fail_msg: >-
+          ac_gb debe ser mayor que el tamaño actual ({{ r_disco.resources[0].sizeGb | default('?') }} GB) y a lo más 200 GB más
+          (nunca se achica un disco)
+        quiet: true
+
+    - name: Agrandar el disco en GCP
+      google.cloud.gcp_compute_disk:
+        name: "{{ gcp.disco }}"
+        zone: "{{ gcp.zona }}"
+        size_gb: "{{ ac_gb | int }}"
+        state: present
+        <<: *gcp
+      register: r_resize
+
+- name: Autocuidado · Ampliar disco del anfitrión (GCP) · sistema de archivos
+  hosts: anfitrion_kvm
+  gather_facts: false
+  tasks:
+    - name: Crecer la partición y el sistema de archivos raíz
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: [crecer-fs, --modo, aplicar]
+        ac_titulo: Crecer el sistema de archivos raíz

@@ -1,0 +1,22 @@
+---
+# Autocuidado · Reiniciar FaceOps y su despliegue automático: reinicia FaceOps solo si no responde 200, reactiva el timer del
+# despliegue si quedó detenido y lanza el despliegue si hay commits sin desplegar hace más de 30 min. Espera a que FaceOps responda.
+#   ac_modo: evaluar | aplicar (por defecto)
+- name: Autocuidado · Reiniciar FaceOps y despliegue
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    modo: "{{ ac_modo | default('aplicar') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'aplicar']
+        fail_msg: "ac_modo debe ser evaluar o aplicar"
+        quiet: true
+
+    - name: FaceOps y despliegue
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: [reiniciar-faceops, --modo, "{{ modo }}"]
+        ac_titulo: "FaceOps y despliegue automático ({{ modo }})"

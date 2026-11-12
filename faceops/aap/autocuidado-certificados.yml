@@ -1,0 +1,22 @@
+---
+# Autocuidado · Renovar certificados: el público de FaceOps (Let's Encrypt; certbot solo renueva lo que vence en < 30 días y
+# recarga el proxy). Los de AAP los regenera su instalador: si vencen en < 30 días queda la propuesta (requiere una persona).
+#   ac_modo: evaluar | aplicar (por defecto)
+- name: Autocuidado · Renovar certificados
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    modo: "{{ ac_modo | default('aplicar') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'aplicar']
+        fail_msg: "ac_modo debe ser evaluar o aplicar"
+        quiet: true
+
+    - name: Certificados
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: [renovar-cert, --modo, "{{ modo }}"]
+        ac_titulo: "Certificados de AAP y FaceOps ({{ modo }})"

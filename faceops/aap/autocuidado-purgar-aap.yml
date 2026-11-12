@@ -1,0 +1,74 @@
+---
+# Autocuidado · Purgar historial de AAP: lanza los trabajos de sistema de AAP «cleanup_jobs» (trabajos, eventos y su salida) y,
+# si se pide, «cleanup_activitystream», conservando los últimos ac_dias días. Borra historial: SIEMPRE con aprobación humana.
+#   ac_dias: días que se conservan (14 a 365; por defecto 60) · ac_actividad: true para purgar también el flujo de actividad
+- name: Autocuidado · Purgar historial de AAP
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    dias: "{{ ac_dias | default(60) | int }}"
+    tipos: "{{ ['cleanup_jobs'] + (['cleanup_activitystream'] if (ac_actividad | default(false) | bool) else []) }}"
+    api: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/api/controller/?$', '') | regex_replace('/$', '') }}/api/controller/v2"
+    auth: &auth
+      url_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+      url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+      force_basic_auth: true
+      validate_certs: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - dias | int >= 14 and dias | int <= 365
+          - lookup('ansible.builtin.env', 'CONTROLLER_HOST') | length > 0
+        fail_msg: "ac_dias debe estar entre 14 y 365 (nunca se borra lo reciente) y la plantilla necesita la credencial de AAP"
+        quiet: true
+
+    - name: Trabajos de sistema de AAP
+      ansible.builtin.uri:
+        url: "{{ api }}/system_job_templates/?job_type={{ item }}"
+        <<: *auth
+      register: r_sjt
+      loop: "{{ tipos }}"
+      failed_when: r_sjt.json.count | default(0) == 0
+
+    - name: Lanzar la purga
+      ansible.builtin.uri:
+        url: "{{ api }}/system_job_templates/{{ item.json.results[0].id }}/launch/"
+        method: POST
+        body_format: json
+        body: {extra_vars: {days: "{{ dias | int }}"}}
+        status_code: [201, 202]
+        <<: *auth
+      register: r_lz
+      loop: "{{ r_sjt.results }}"
+      loop_control: {label: "{{ item.item }}"}
+
+    - name: Esperar a que termine
+      ansible.builtin.uri:
+        url: "{{ api }}/system_jobs/{{ item.json.system_job | default(item.json.id) }}/"
+        <<: *auth
+      register: r_fin
+      until: r_fin.json.status in ['successful', 'failed', 'error', 'canceled']
+      retries: 120
+      delay: 10
+      loop: "{{ r_lz.results }}"
+      loop_control: {label: "{{ item.item.item }}"}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_autocuidado:
+            accion: purgar-aap
+            modo: aplicar
+            resultado:
+              ok: "{{ r_fin.results | map(attribute='json.status') | list | difference(['successful']) | length == 0 }}"
+              dias_conservados: "{{ dias | int }}"
+              tipos: "{{ tipos }}"
+              estados: "{{ r_fin.results | map(attribute='json.status') | list }}"
+
+    - name: Falla controlada si una purga no terminó bien
+      ansible.builtin.assert:
+        that: r_fin.results | map(attribute='json.status') | list | difference(['successful']) | length == 0
+        fail_msg: "Una purga de AAP no terminó bien: {{ r_fin.results | map(attribute='json.status') | list }}"
+        quiet: true

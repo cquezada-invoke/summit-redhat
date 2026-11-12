@@ -1,0 +1,23 @@
+---
+# Autocuidado · Reiniciar componentes de AAP no saludables, en orden (base → gateway → controller → receptor → EDA → hub) y
+# espera a que la API responda 200. Lanzado por AAP NO toca lo que sostiene a su propio trabajo (controller-task, receptor,
+# PostgreSQL, Redis): eso lo reinicia el vigía externo del anfitrión cuando AAP no responde.
+#   ac_modo: evaluar | aplicar (por defecto)
+- name: Autocuidado · Reiniciar componentes de AAP
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    modo: "{{ ac_modo | default('aplicar') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'aplicar']
+        fail_msg: "ac_modo debe ser evaluar o aplicar"
+        quiet: true
+
+    - name: Reiniciar componentes
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: [reiniciar-aap, --modo, "{{ modo }}", --sin-propios]
+        ac_titulo: "Reiniciar componentes de AAP ({{ modo }})"

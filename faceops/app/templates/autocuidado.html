@@ -1,0 +1,80 @@
+{% extends "base.html" %}{% block titulo %}Autocuidado de la plataforma{% endblock %}
+{% block cuerpo %}
+<style>
+.ac-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 18px}
+.ac-kpi{background:var(--card,#fff);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.ac-kpi b{display:block;font-size:20px;margin-top:2px}.ac-kpi small{color:var(--muted);font-size:12px}
+.ac-kpi.mal{border-color:var(--bad);background:var(--badbg)}.ac-kpi.medio{border-color:#e0b84a;background:#fdf3d0}
+.ac-tabla td,.ac-tabla th{font-size:13px;vertical-align:top}.ac-tabla code{font-size:11.5px;word-break:break-all}
+.ac-r-disparando{background:var(--badbg);color:var(--bad)}.ac-r-pending{background:#fdf3d0;color:#795600}
+.ac-riesgo-alto{background:var(--badbg);color:var(--bad)}.ac-riesgo-bajo{background:var(--okbg);color:var(--ok)}
+.ac-vigia{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}.ac-vigia>div{flex:1 1 300px}
+@media (max-width:700px){.ac-tabla .ac-op{display:none}}
+</style>
+<div class="fila"><div><h1>Autocuidado de la plataforma</h1>
+<p class="sub">AAP cuida de sí mismo, del anfitrión del laboratorio con sus máquinas virtuales y de FaceOps: Prometheus detecta, Event-Driven Ansible responde
+y cada remediación es un ticket. Las acciones de riesgo bajo y certificadas se aprueban solas («{{ 'Aprobado por Claude (regla de Cristian)' }}»);
+las destructivas o de capacidad esperan a una persona. Si AAP no responde, un vigía externo del anfitrión hace solo lo crítico.</p></div>
+<div class="der sub" style="font-size:12.5px;text-align:right">{% if mon.error %}<span class="chip e-fallido">{{ mon.error }}</span>{% elif edad_mon is not none %}monitoreo leído hace {{ edad_mon }} s{% endif %}</div></div>
+
+{% macro pct(v) %}{% if v is none %}—{% else %}{{ '%.0f'|format(v) }} %{% endif %}{% endmacro %}
+{% macro edad(s) %}{% if s is none %}—{% elif s >= 999999999 %}nunca{% elif s > 86400 %}{{ (s / 86400)|round(1) }} d{% elif s > 3600 %}{{ (s / 3600)|round(1) }} h{% else %}{{ (s / 60)|round|int }} min{% endif %}{% endmacro %}
+<div class="ac-kpis">
+  <div class="ac-kpi {{ 'mal' if (kpi.disco_raiz or 0) >= 90 else ('medio' if (kpi.disco_raiz or 0) >= 80) }}"><small>Disco raíz</small><b>{{ pct(kpi.disco_raiz) }}</b><small>inodos {{ pct(kpi.inodos_raiz) }}</small></div>
+  <div class="ac-kpi {{ 'mal' if (kpi.memoria or 0) >= 90 }}"><small>Memoria · swap</small><b>{{ pct(kpi.memoria) }}</b><small>swap {{ pct(kpi.swap) }} · carga {{ kpi.carga if kpi.carga is not none else '—' }} por CPU</small></div>
+  <div class="ac-kpi {{ 'mal' if kpi.aap_api not in (none, 200.0) }}"><small>API de AAP</small><b>{{ kpi.aap_api|int if kpi.aap_api is not none else '—' }}</b><small>{{ kpi.contenedores }} contenedores · {{ kpi.contenedores_mal|length }} con problemas</small></div>
+  <div class="ac-kpi {{ 'mal' if kpi.vms_pausadas or kpi.vms_caidas }}"><small>Máquinas virtuales</small><b>{{ kpi.vms_encendidas }} encendidas</b><small>{{ kpi.vms_pausadas }} pausadas · {{ kpi.vms_caidas }} caídas</small></div>
+  <div class="ac-kpi {{ 'mal' if kpi.faceops not in (none, 200.0) }}"><small>FaceOps</small><b>{{ kpi.faceops|int if kpi.faceops is not none else '—' }}</b><small>{{ kpi.faceops_s if kpi.faceops_s is not none else '—' }} s · despliegue atrasado {{ edad(kpi.atraso if kpi.atraso else none) if kpi.atraso else 'no' }}</small></div>
+  <div class="ac-kpi"><small>Capacidad de AAP</small><b>{{ kpi.capacidad|int if kpi.capacidad is not none else '—' }}</b><small>{{ kpi.pendientes|int if kpi.pendientes is not none else '—' }} trabajos esperando</small></div>
+  <div class="ac-kpi {{ 'medio' if (kpi.respaldos.values()|select('gt', 93600)|list) }}"><small>Último respaldo</small><b>AAP {{ edad(kpi.respaldos.get('aap')) }}</b><small>FaceOps {{ edad(kpi.respaldos.get('faceops')) }}</small></div>
+  <div class="ac-kpi"><small>Certificados (días)</small><b>{% for s, d in kpi.certificados.items() %}{{ s }} {{ d|int if d >= 0 else '?' }}{{ ' · ' if not loop.last }}{% else %}—{% endfor %}</b><small>se renuevan bajo 21 días</small></div>
+</div>
+
+<h2>Alertas activas</h2>
+<div class="card" style="padding:0">{% if mon.alertas %}<table class="ac-tabla"><tr><th>Regla</th><th>Severidad</th><th>Objeto</th><th>Resumen</th><th>Desde</th><th>Respuesta</th></tr>
+{% for a in mon.alertas %}<tr><td><b>{{ a.regla }}</b></td><td><span class="chip {{ 'e-fallido' if a.severidad == 'critical' else 'e-en_cola' }}">{{ 'crítica' if a.severidad == 'critical' else 'aviso' }}</span></td>
+<td>{{ a.objeto }}</td><td>{{ a.resumen }}</td><td>{{ a.desde|fecha if a.desde }}</td><td>{{ a.accion }}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">{{ 'Sin alertas de la plataforma.' if not mon.error else 'Sin lectura del monitoreo: ' ~ mon.error }}</p>{% endif %}</div>
+
+<h2 style="margin-top:18px">Acciones de autocuidado</h2>
+<p class="sub">Cada acción queda bloqueada hasta pasar su plan de prueba (Administración › Pruebas). Riesgo bajo: se aprueba sola; alto: siempre una persona.</p>
+<div class="card" style="padding:0"><table class="ac-tabla"><tr><th>Acción</th><th>Riesgo</th><th>Prueba</th><th>Reglas</th><th>Última ejecución</th>{% if escritura and es_lab %}<th class="ac-op"></th>{% endif %}</tr>
+{% for x in acciones %}<tr><td><b>{{ x.texto }}</b><br><span class="sub">{{ x.auto }}</span>{% if x.pide_datos %}<br><span class="sub">pide {{ x.pide_datos }}</span>{% endif %}</td>
+<td><span class="chip ac-riesgo-{{ x.riesgo }}">{{ x.riesgo }}</span>{% if x.por_que %}<br><span class="sub">{{ x.por_que }}</span>{% endif %}</td>
+<td>{% set ep = x.prueba.estado %}<span class="chip {{ 'e-exitoso' if ep == 'certificada' else 'e-fallido' }}">{{ {'certificada': 'certificada', 'cambiada': 'cambió: probar de nuevo', 'fallida': 'falló su prueba', 'sin probar': 'pendiente de prueba', 'sin sincronizar': 'aún no está en AAP'}.get(ep, ep) }}</span></td>
+<td>{{ x.reglas|join(', ') or '—' }}</td>
+<td>{% if x.ultimo %}<a href="{{ url_for('consola.ticket', tid=x.ultimo.id) }}">{{ x.ultimo.numero }}</a> <span class="chip e-{{ x.ultimo.estado }}">{{ x.ultimo.estado|replace('_', ' ') }}</span>{% else %}—{% endif %}</td>
+{% if escritura and es_lab %}<td class="ac-op" style="white-space:nowrap;text-align:right">{% if x.existe and not x.pide_datos %}
+  {% if x.modo %}<form method="post" action="{{ url_for('consola.autocuidado_pedir') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="{{ x.clave }}"><input type="hidden" name="modo" value="evaluar"><button class="btn chico gris" {{ 'disabled title=Bloqueada' if x.prueba.estado != 'certificada' }}>Evaluar</button></form>{% endif %}
+  <form method="post" action="{{ url_for('consola.autocuidado_pedir') }}" style="display:inline" onsubmit="return confirm('¿Pedir «{{ x.texto }}»? Queda con su aprobación normal.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="{{ x.clave }}"><button class="btn chico" {{ 'disabled title=Bloqueada' if x.prueba.estado != 'certificada' }}>Pedir</button></form>
+{% endif %}</td>{% endif %}</tr>{% endfor %}</table></div>
+
+<h2 style="margin-top:18px">Últimas ejecuciones y eventos</h2>
+<div class="card" style="padding:0">{% if ejec %}<table class="ac-tabla"><tr><th>Cuándo</th><th>Origen</th><th>Regla</th><th>Respuesta</th><th>Decisión</th><th>Ticket</th></tr>
+{% for e in ejec %}<tr><td>{{ e.cuando|fecha }}</td><td>{{ {'eda': 'EDA', 'vigía': 'vigía externo', 'aap-directo': 'AAP sin FaceOps', 'manual': 'persona'}.get(e.origen, e.origen) }}</td>
+<td>{{ e.regla }}{% if e.objeto and e.objeto != 'anfitrion' %} · {{ e.objeto }}{% endif %}{% if e.estado == 'resolved' %} <span class="chip e-exitoso">resuelta</span>{% endif %}</td><td>{{ e.accion }}</td>
+<td class="sub" style="max-width:380px">{{ e.decision }}</td>
+<td>{% if e.ticket_id %}<a href="{{ url_for('consola.ticket', tid=e.ticket_id) }}">{{ e.numero }}</a> <span class="chip e-{{ e.t_estado }}">{{ (e.t_estado or '')|replace('_', ' ') }}</span>{% else %}—{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Aún no hay eventos.</p>{% endif %}</div>
+
+<h2 style="margin-top:18px">Vigía externo del anfitrión</h2>
+<div class="ac-vigia">
+<div class="card"><p class="sub" style="margin-top:0">Corre cada 2 minutos en el anfitrión con systemd, sin depender de AAP. Solo actúa si AAP no responde (o el disco raíz pasa el 98 %):
+libera disco al 95 %, reanuda máquinas pausadas por E/S y reinicia los contenedores de AAP en orden (con pausa de 15 min y tope diario).</p>
+{% if vigia %}<p>Última pasada: <b>{{ vigia.cuando|fecha if vigia.cuando }}</b> · API de AAP {{ vigia.aap_api }} · disco raíz {{ vigia.disco_raiz_pct }} %</p>
+<p>Decisión: {{ vigia.decision }}</p><p class="sub">Reinicios hoy: {{ vigia.reinicios_hoy or 0 }} · acciones desde que se instaló: {{ vigia.acciones_total or 0 }}</p>
+{% else %}<p class="vacio">Sin datos del vigía (aún no instalado o sin su primera pasada).</p>{% endif %}</div>
+<div class="card" style="padding:0">{% if registro %}<table class="ac-tabla"><tr><th>Cuándo</th><th>Quién</th><th>Acción</th><th>Resultado</th></tr>
+{% for r in registro[:12] %}<tr><td>{{ r.cuando|fecha }}</td><td>{{ {'vigía': 'vigía externo', 'aap': 'AAP', 'prueba': 'plan de prueba'}.get(r.origen, r.origen) }}</td><td>{{ r.accion }}</td>
+<td><span class="chip {{ 'e-exitoso' if r.resultado == 'ok' else 'e-fallido' }}">{{ r.resultado }}</span>{% if r.detalle.liberado_mb is defined %} {{ r.detalle.liberado_mb }} MB{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Sin registro de acciones en el anfitrión.</p>{% endif %}</div>
+</div>
+
+<h2 style="margin-top:18px">Reglas</h2>
+<p class="sub">Generadas desde datos/autocuidado.yml en Prometheus (grupo faceops-autocuidado); Alertmanager las entrega a Event-Driven Ansible.</p>
+{% for gname, rs in grupos %}<details class="card" {{ 'open' if rs|selectattr('estado', 'equalto', 'disparando')|list }} style="padding:8px 12px;margin-bottom:8px"><summary><b>{{ gname }}</b> <span class="sub">· {{ rs|length }} reglas{% set n_ = rs|selectattr('estado', 'equalto', 'disparando')|list|length %}{% if n_ %} · <b style="color:var(--bad)">{{ n_ }} disparando</b>{% endif %}</span></summary>
+<table class="ac-tabla" style="margin-top:6px"><tr><th>Regla</th><th>Estado</th><th>Severidad</th><th>Durante</th><th>Respuesta</th><th class="ac-op">Expresión</th></tr>
+{% for r in rs %}<tr><td><b>{{ r.id }}</b> {{ r.nombre }}</td><td><span class="chip ac-r-{{ 'disparando' if r.estado == 'disparando' else r.estado }}">{{ {'inactive': 'normal', 'pending': 'por disparar', 'disparando': 'disparando'}.get(r.estado, r.estado) }}</span>{% if r.error %}<br><span class="sub">{{ r.error }}</span>{% endif %}</td>
+<td>{{ 'crítica' if r.severidad == 'critico' else 'aviso' }}</td><td>{{ r.para }}</td><td>{{ r.accion_texto }} <span class="chip ac-riesgo-{{ r.riesgo }}">{{ r.riesgo }}</span></td><td class="ac-op"><code>{{ r.expr }}</code></td></tr>{% endfor %}</table></details>{% endfor %}
+<script>setTimeout(()=>{if(!document.querySelector('form:focus-within'))location.reload();},30000);</script>
+{% endblock %}

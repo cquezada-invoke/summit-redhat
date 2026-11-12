@@ -1,0 +1,93 @@
+# Autocuidado de la plataforma: AAP cuidándose a sí mismo, a su arquitectura (el anfitrión del laboratorio y sus máquinas
+# virtuales) y a FaceOps. Fuente ÚNICA de las reglas y la política:
+#   · aap/autocuidado_configurar.py genera con esto las reglas de Prometheus (grupo faceops-autocuidado), la ruta de
+#     Alertmanager a Event-Driven Ansible (:5023) y las plantillas «Autocuidado · …» de AAP;
+#   · FaceOps (app/autocuidado.py) aplica la política a cada evento: ticket siempre; aprobación automática con
+#     «Aprobado por Claude (regla de Cristian)» SOLO si la acción es de riesgo bajo y está certificada (regla de prueba);
+#     las de riesgo alto (destructivas o de capacidad) quedan pendientes de aprobación humana.
+#   · el vigía externo del anfitrión (files/autocuidado.py «vigia») NO usa esta política: solo hace lo crítico cuando AAP no
+#     responde (liberar disco ≥ 95 %, reanudar máquinas pausadas por E/S, reiniciar contenedores de AAP).
+# Métricas: exportador del anfitrión (127.0.0.1:9469, job faceops-autocuidado) · prefijo faceops_ac_
+#
+# riesgo: lectura (solo mira) · bajo (se aprueba solo si está certificada) · alto (siempre una persona)
+acciones:
+  avisar: {texto: "Solo avisar", riesgo: lectura}
+  revisar: {texto: "Revisar el estado (solo lectura)", auto: "Autocuidado · Revisar estado", riesgo: lectura}
+  liberar_disco: {texto: "Liberar disco de forma segura", auto: "Autocuidado · Liberar disco", riesgo: bajo, params: {ac_modo: seguro}}
+  liberar_disco_profundo: {texto: "Liberar disco a fondo (también imágenes sin uso)", auto: "Autocuidado · Liberar disco", riesgo: alto,
+                           params: {ac_modo: profundo}, por_que: "borra imágenes de contenedores sin uso que podrían volver a necesitarse"}
+  recuperar_vms: {texto: "Reanudar o encender máquinas virtuales", auto: "Autocuidado · Recuperar máquinas virtuales", riesgo: bajo, params: {ac_modo: aplicar}}
+  reiniciar_aap: {texto: "Reiniciar componentes de AAP no saludables", auto: "Autocuidado · Reiniciar componentes de AAP", riesgo: bajo, params: {ac_modo: aplicar}}
+  reiniciar_faceops: {texto: "Reiniciar FaceOps y su despliegue", auto: "Autocuidado · Reiniciar FaceOps y despliegue", riesgo: bajo, params: {ac_modo: aplicar}}
+  respaldar: {texto: "Respaldar las bases de AAP y FaceOps", auto: "Autocuidado · Respaldar bases de AAP y FaceOps", riesgo: bajo, params: {ac_modo: aplicar}}
+  renovar_cert: {texto: "Renovar certificados", auto: "Autocuidado · Renovar certificados", riesgo: bajo, params: {ac_modo: aplicar}}
+  purgar_aap: {texto: "Purgar historial de AAP (> 60 días)", auto: "Autocuidado · Purgar historial de AAP", riesgo: alto, params: {ac_dias: 60},
+               por_que: "borra historial de trabajos y eventos"}
+  ampliar_disco: {texto: "Ampliar el disco del anfitrión en GCP", auto: "Autocuidado · Ampliar disco del anfitrión (GCP)", riesgo: alto,
+                  pide_datos: "tamaño nuevo del disco (ac_gb)", por_que: "capacidad: cuesta dinero y no se puede deshacer"}
+
+reglas:
+  # ── Disco ──
+  - {id: AC01, grupo: Disco, nombre: "Disco raíz sobre 80 %", severidad: aviso, para: 5m, accion: avisar, objeto: montaje,
+     expr: 'faceops_ac_disco_uso_pct{montaje="/"} >= 80', resumen: "Disco raíz al {{ $value | humanize }} %"}
+  - {id: AC02, grupo: Disco, nombre: "Disco raíz sobre 90 %", severidad: critico, para: 2m, accion: liberar_disco, objeto: montaje,
+     expr: 'faceops_ac_disco_uso_pct{montaje="/"} >= 90', resumen: "Disco raíz al {{ $value | humanize }} %: se libera espacio"}
+  - {id: AC03, grupo: Disco, nombre: "Disco de datos sobre 80 %", severidad: aviso, para: 5m, accion: avisar, objeto: montaje,
+     expr: 'faceops_ac_disco_uso_pct{montaje!="/"} >= 80', resumen: "{{ $labels.montaje }} al {{ $value | humanize }} %"}
+  - {id: AC04, grupo: Disco, nombre: "Disco de datos sobre 90 %", severidad: critico, para: 2m, accion: liberar_disco, objeto: montaje,
+     expr: 'faceops_ac_disco_uso_pct{montaje!="/"} >= 90', resumen: "{{ $labels.montaje }} al {{ $value | humanize }} %: se libera espacio"}
+  - {id: AC05, grupo: Disco, nombre: "Inodos sobre 80 %", severidad: aviso, para: 10m, accion: avisar, objeto: montaje,
+     expr: 'faceops_ac_inodos_uso_pct >= 80', resumen: "Inodos de {{ $labels.montaje }} al {{ $value | humanize }} %"}
+  - {id: AC06, grupo: Disco, nombre: "Inodos sobre 90 %", severidad: critico, para: 5m, accion: liberar_disco, objeto: montaje,
+     expr: 'faceops_ac_inodos_uso_pct >= 90', resumen: "Inodos de {{ $labels.montaje }} al {{ $value | humanize }} %: se libera espacio"}
+  - {id: AC07, grupo: Disco, nombre: "El disco raíz se llenará en 6 h", severidad: aviso, para: 30m, accion: ampliar_disco, objeto: montaje,
+     expr: 'predict_linear(faceops_ac_disco_libre_gb{montaje="/"}[2h], 21600) < 0 and faceops_ac_disco_uso_pct{montaje="/"} >= 70',
+     resumen: "Al ritmo de las últimas 2 h el disco raíz se llena en menos de 6 h: se propone ampliarlo (aprobación humana)"}
+  # ── Memoria y carga ──
+  - {id: AC08, grupo: Memoria y carga, nombre: "Memoria sobre 90 %", severidad: aviso, para: 15m, accion: avisar, objeto: "",
+     expr: 'faceops_ac_memoria_uso_pct >= 90', resumen: "Memoria al {{ $value | humanize }} %"}
+  - {id: AC09, grupo: Memoria y carga, nombre: "Swap sobre 50 %", severidad: aviso, para: 15m, accion: avisar, objeto: "",
+     expr: 'faceops_ac_swap_uso_pct >= 50', resumen: "Swap al {{ $value | humanize }} %"}
+  - {id: AC10, grupo: Memoria y carga, nombre: "Carga sostenida alta", severidad: aviso, para: 15m, accion: avisar, objeto: "",
+     expr: 'faceops_ac_carga15_por_cpu >= 2', resumen: "Carga de 15 min de {{ $value | humanize }} por CPU"}
+  # ── Máquinas virtuales ──
+  - {id: AC11, grupo: Máquinas virtuales, nombre: "Máquina pausada por E/S", severidad: critico, para: 1m, accion: recuperar_vms, objeto: vm,
+     expr: 'faceops_ac_vm_pausada == 1', resumen: "{{ $labels.vm }} pausada ({{ $labels.razon }}): se reanuda cuando hay espacio"}
+  - {id: AC12, grupo: Máquinas virtuales, nombre: "Máquina caída", severidad: critico, para: 3m, accion: recuperar_vms, objeto: vm,
+     expr: 'faceops_ac_vm_caida == 1', resumen: "{{ $labels.vm }} cayó ({{ $labels.razon }}): se enciende"}
+  - {id: AC27, grupo: Máquinas virtuales, nombre: "libvirt no responde", severidad: critico, para: 3m, accion: avisar, objeto: "",
+     expr: 'faceops_ac_libvirt_ok == 0', resumen: "virsh no responde en el anfitrión"}
+  # ── AAP ──
+  - {id: AC13, grupo: AAP, nombre: "Contenedor de AAP no saludable", severidad: critico, para: 3m, accion: reiniciar_aap, objeto: contenedor,
+     expr: 'faceops_ac_contenedor_ok == 0', resumen: "{{ $labels.contenedor }} {{ $labels.estado }} {{ $labels.salud }}: se reinicia en orden"}
+  - {id: AC14, grupo: AAP, nombre: "Contenedor de AAP reiniciándose", severidad: aviso, para: 0m, accion: revisar, objeto: contenedor,
+     expr: 'increase(faceops_ac_contenedor_reinicios[15m]) >= 3', resumen: "{{ $labels.contenedor }} se reinició {{ $value | humanize }} veces en 15 min"}
+  - {id: AC15, grupo: AAP, nombre: "API de AAP no responde 200", severidad: critico, para: 3m, accion: reiniciar_aap, objeto: "",
+     expr: 'faceops_ac_aap_api_codigo != 200', resumen: "La API de AAP responde {{ $value }}: si AAP no puede, actúa el vigía externo"}
+  - {id: AC16, grupo: AAP, nombre: "AAP sin capacidad de ejecución", severidad: critico, para: 10m, accion: revisar, objeto: "",
+     expr: 'faceops_ac_aap_grupos_con_capacidad == 0 or (faceops_ac_aap_capacidad_libre == 0 and faceops_ac_aap_trabajos_pendientes > 0)',
+     resumen: "Los grupos de instancias de AAP no tienen capacidad libre y hay trabajos esperando"}
+  - {id: AC17, grupo: AAP, nombre: "Trabajos de AAP en cola hace más de 15 min", severidad: aviso, para: 5m, accion: revisar, objeto: "",
+     expr: 'faceops_ac_aap_trabajos_pendientes_antiguos > 0', resumen: "{{ $value }} trabajos de AAP esperan hace más de 15 min"}
+  - {id: AC18, grupo: Certificados, nombre: "Certificado vence en menos de 21 días", severidad: aviso, para: 10m, accion: renovar_cert, objeto: servicio,
+     expr: 'faceops_ac_certificado_dias >= 0 and faceops_ac_certificado_dias < 21', resumen: "Certificado de {{ $labels.servicio }} vence en {{ $value | humanize }} días"}
+  - {id: AC19, grupo: Certificados, nombre: "Certificado vence en menos de 7 días", severidad: critico, para: 5m, accion: renovar_cert, objeto: servicio,
+     expr: 'faceops_ac_certificado_dias >= 0 and faceops_ac_certificado_dias < 7', resumen: "Certificado de {{ $labels.servicio }} vence en {{ $value | humanize }} días"}
+  - {id: AC23, grupo: Respaldos, nombre: "Respaldo de base no realizado en 26 h", severidad: aviso, para: 10m, accion: respaldar, objeto: base,
+     expr: 'faceops_ac_respaldo_edad_segundos > 93600', resumen: "La base de {{ $labels.base }} no tiene respaldo de las últimas 26 h"}
+  # ── FaceOps ──
+  - {id: AC20, grupo: FaceOps, nombre: "FaceOps no responde", severidad: critico, para: 2m, accion: reiniciar_faceops, objeto: "",
+     expr: 'faceops_ac_faceops_codigo != 200', resumen: "FaceOps responde {{ $value }}: se reinicia"}
+  - {id: AC21, grupo: FaceOps, nombre: "FaceOps lento", severidad: aviso, para: 10m, accion: avisar, objeto: "",
+     expr: 'faceops_ac_faceops_respuesta_segundos > 3', resumen: "FaceOps tarda {{ $value | humanize }} s en responder"}
+  - {id: AC22, grupo: FaceOps, nombre: "Despliegue automático detenido", severidad: aviso, para: 5m, accion: reiniciar_faceops, objeto: "",
+     expr: 'faceops_ac_autodeploy_atraso_segundos > 1800 or faceops_ac_autodeploy_timer_activo == 0',
+     resumen: "Hay commits sin desplegar hace más de 30 min o el timer del despliegue está detenido"}
+  - {id: AC24, grupo: FaceOps, nombre: "Cola de acciones atascada", severidad: critico, para: 5m, accion: reiniciar_faceops, objeto: "",
+     expr: '(faceops_ac_cola_atascados > 0 and on() faceops_ac_aap_api_ok == 1) or faceops_ac_cola_latido_segundos > 300',
+     resumen: "Hay acciones en cola hace más de 15 min con AAP disponible, o el proceso de la cola no da señales"}
+  # ── El propio autocuidado ──
+  - {id: AC25, grupo: Autocuidado, nombre: "Exportador de autocuidado sin datos", severidad: critico, para: 3m, accion: avisar, objeto: "",
+     expr: 'up{job="faceops-autocuidado"} == 0 or absent(up{job="faceops-autocuidado"})', resumen: "Prometheus no lee el exportador de autocuidado (127.0.0.1:9469)"}
+  - {id: AC26, grupo: Autocuidado, nombre: "Vigía externo detenido", severidad: aviso, para: 5m, accion: avisar, objeto: "",
+     expr: 'faceops_ac_vigia_ultima_pasada_segundos > 600', resumen: "El vigía externo no corre hace {{ $value | humanizeDuration }}"}

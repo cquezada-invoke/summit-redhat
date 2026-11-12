@@ -1,0 +1,12 @@
+---
+# Autocuidado · Revisar estado (solo lectura). Disco, inodos, memoria, carga, máquinas virtuales, contenedores de AAP, API de
+# AAP, FaceOps, despliegue automático, respaldos y certificados del anfitrión del laboratorio. No cambia nada.
+- name: Autocuidado · Revisar estado
+  hosts: anfitrion_kvm
+  gather_facts: false
+  tasks:
+    - name: Estado del anfitrión
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: [estado]
+        ac_titulo: Estado del anfitrión, AAP y FaceOps

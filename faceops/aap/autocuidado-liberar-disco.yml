@@ -1,0 +1,24 @@
+---
+# Autocuidado · Liberar disco del anfitrión del laboratorio, de forma segura (files/autocuidado.py «liberar-disco»):
+#   journal del sistema (tope de tamaño y días) · imágenes colgantes y contenedores detenidos NO protegidos (root y AAP; nunca
+#   volúmenes ni contenedores de la plataforma) · logs ya rotados de sistema y AAP · artefactos de trabajos viejos y
+#   directorios temporales del runner · caché de paquetes.
+#   ac_modo: evaluar (no cambia nada) · seguro (por defecto; bajo riesgo) · profundo (también imágenes sin uso; requiere aprobación humana)
+- name: Autocuidado · Liberar disco
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    modo: "{{ ac_modo | default('seguro') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'seguro', 'profundo']
+        fail_msg: "ac_modo debe ser evaluar, seguro o profundo"
+        quiet: true
+
+    - name: Liberar disco
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: [liberar-disco, --modo, "{{ modo }}"]
+        ac_titulo: "Liberar disco ({{ modo }})"

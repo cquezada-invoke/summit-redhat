@@ -1,0 +1,9 @@
+{# Campana global de la barra superior: alertas activas del autocuidado de la plataforma (AAP, anfitrión, máquinas virtuales y
+   FaceOps). Lee solo la caché del ciclo de fondo (app/autocuidado.py): no consulta nada al pintar la página. #}
+{% set acc_ = autocuidado_campana() %}{% if acc_ is not none %}
+<div class="top-ic top-ac{{ ' on' if request.endpoint == 'consola.autocuidado' }}"><a href="{{ url_for('consola.autocuidado') }}" aria-label="Alertas de la plataforma" style="position:relative">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+{% if acc_.n %}<span style="position:absolute;top:3px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;font-size:10.5px;font-weight:700;line-height:16px;text-align:center;color:#fff;background:{{ '#c9190b' if acc_.criticas else '#c58c00' }}">{{ acc_.n }}</span>{% endif %}</a>
+<div class="top-ic-menu" style="min-width:300px"><b>Plataforma · {{ acc_.n }} alerta{{ 's' if acc_.n != 1 }}{% if acc_.error %} · sin lectura{% endif %}</b>
+{% for a in acc_.alertas %}<a href="{{ url_for('consola.autocuidado') }}" style="white-space:normal"><span style="color:{{ '#c9190b' if a.severidad == 'critical' else '#795600' }};font-weight:600">{{ a.regla }}</span> {{ a.resumen|truncate(90) }}</a>{% else %}<a href="{{ url_for('consola.autocuidado') }}">{{ 'Sin lectura del monitoreo' if acc_.error else 'Todo en orden' }}</a>{% endfor %}
+<a href="{{ url_for('consola.autocuidado') }}" style="font-weight:600">Ver autocuidado de la plataforma →</a></div></div>{% endif %}

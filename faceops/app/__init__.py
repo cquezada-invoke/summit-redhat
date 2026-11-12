@@ -150,7 +150,7 @@ def create_app():
             ref = request.headers.get("Origin") or request.headers.get("Referer") or ""
             if not ref.startswith(request.host_url.rstrip("/")):
                 abort(400, "Origen no permitido")
-        elif request.method == "POST" and request.endpoint not in ("consola.ingresar", "consola.api_fabrica_ejecutar", "consola.api_alertas_ocp", "consola.api_siem_alerta"):
+        elif request.method == "POST" and request.endpoint not in ("consola.ingresar", "consola.api_fabrica_ejecutar", "consola.api_alertas_ocp", "consola.api_siem_alerta", "consola.api_autocuidado_evento"):
             tok_ = request.form.get("_csrf") or request.headers.get("X-CSRF") or ((request.get_json(silent=True) or {}).get("_csrf") if request.is_json else None)
             if tok_ != session.get("csrf"):
                 abort(400, "Formulario vencido: recarga la página")
@@ -352,6 +352,7 @@ def create_app():
     from . import seguridad_incidentes   # noqa: F401  (Seguridad › Incidentes de seguridad con el SIEM)
     from . import sla   # noqa: F401  (Gobierno › SLA por servicio y Gobierno › Reportes › SLA)
     from . import cola_vista   # noqa: F401  (Monitoreo › Cola de acciones y estado de la cola en el ticket)
+    from . import autocuidado_vista   # noqa: F401  (Monitoreo › Autocuidado de la plataforma, campana global y eventos de EDA)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo
     app.jinja_env.globals["es_demo"] = multicliente.es_demo

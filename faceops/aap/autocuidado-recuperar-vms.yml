@@ -1,0 +1,24 @@
+---
+# Autocuidado · Recuperar máquinas virtuales del anfitrión (libvirt):
+#   reanuda las pausadas por error de E/S (disco lleno) si el disco raíz ya bajó del 95 % · enciende las que cayeron (crashed)
+#   o las de encendido automático que quedaron abajo sin un apagado ordenado. Las pausadas a propósito no se tocan.
+#   ac_modo: evaluar | aplicar (por defecto) · ac_solo_pausadas: true para solo reanudar
+- name: Autocuidado · Recuperar máquinas virtuales
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    modo: "{{ ac_modo | default('aplicar') }}"
+    solo: "{{ ac_solo_pausadas | default(false) | bool }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'aplicar']
+        fail_msg: "ac_modo debe ser evaluar o aplicar"
+        quiet: true
+
+    - name: Recuperar máquinas
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: "{{ ['recuperar-vms', '--modo', modo] + (['--solo-pausadas'] if solo else []) }}"
+        ac_titulo: "Recuperar máquinas virtuales ({{ modo }})"

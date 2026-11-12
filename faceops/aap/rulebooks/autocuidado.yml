@@ -1,0 +1,47 @@
+# Event-Driven Ansible · autocuidado de la plataforma (AAP sobre sí mismo, el anfitrión del laboratorio y FaceOps).
+# Alertmanager del anfitrión entrega aquí (:5023) las alertas con etiqueta faceops_autocuidado="si" (reglas generadas desde
+# datos/autocuidado.yml). Toda alerta —también las de «solo avisar»— pasa a «Autocuidado · Atender alerta», que se la
+# entrega a FaceOps: ticket, política de riesgo y aprobación. Una vez por regla y objeto cada 30 min.
+- name: FaceOps · autocuidado
+  hosts: all
+  sources:
+    - name: alertas_autocuidado
+      ansible.eda.alertmanager:
+        host: 0.0.0.0
+        port: 5023
+        data_alerts_path: alerts
+        data_host_path: ""
+  rules:
+    - name: Autocuidado · alerta activa
+      condition: event.alert.status == "firing" and event.alert.labels.faceops_autocuidado == "si"
+      throttle:
+        once_within: 30 minutes
+        group_by_attributes:
+          - event.alert.labels.faceops_ac_regla
+          - event.alert.labels.faceops_ac_objeto
+      action:
+        run_job_template:
+          name: "Autocuidado · Atender alerta"
+          organization: "FaceOps"
+          job_args:
+            extra_vars:
+              ac_regla: "{{ event.alert.labels.faceops_ac_regla }}"
+              ac_accion: "{{ event.alert.labels.faceops_ac_accion }}"
+              ac_severidad: "{{ event.alert.labels.severity }}"
+              ac_objeto: "{{ event.alert.labels.faceops_ac_objeto | default('') }}"
+              ac_resumen: "{{ event.alert.annotations.summary | default('') }}"
+              ac_estado: firing
+    - name: Autocuidado · alerta resuelta
+      condition: event.alert.status == "resolved" and event.alert.labels.faceops_autocuidado == "si"
+      action:
+        run_job_template:
+          name: "Autocuidado · Atender alerta"
+          organization: "FaceOps"
+          job_args:
+            extra_vars:
+              ac_regla: "{{ event.alert.labels.faceops_ac_regla }}"
+              ac_accion: "{{ event.alert.labels.faceops_ac_accion }}"
+              ac_severidad: "{{ event.alert.labels.severity }}"
+              ac_objeto: "{{ event.alert.labels.faceops_ac_objeto | default('') }}"
+              ac_resumen: "{{ event.alert.annotations.summary | default('') }}"
+              ac_estado: resolved

@@ -108,6 +108,12 @@ os.makedirs(f"{tmp}/rulebooks", exist_ok=True)
 shutil.copy(f"{AQUI}/rulebooks/certificados.yml", f"{tmp}/rulebooks/certificados.yml")
 shutil.copy(f"{AQUI}/rulebooks/openshift.yml", f"{tmp}/rulebooks/openshift.yml")
 shutil.copy(f"{AQUI}/rulebooks/alertas-objetos.yml", f"{tmp}/rulebooks/alertas-objetos.yml")
+shutil.copy(f"{AQUI}/rulebooks/autocuidado.yml", f"{tmp}/rulebooks/autocuidado.yml")   # Autocuidado de la plataforma (EDA :5023)
+os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
+for _f in os.listdir(AQUI):   # Autocuidado · … (playbooks, tareas comunes y la herramienta del anfitrión)
+    if _f.startswith("autocuidado") and _f.endswith(".yml"):
+        shutil.copy(f"{AQUI}/{_f}", f"{tmp}/playbooks/{_f}")
+shutil.copy(f"{AQUI}/files/autocuidado.py", f"{tmp}/playbooks/files/autocuidado.py")
 shutil.copy(f"{AQUI}/monitoreo-responder.yml", f"{tmp}/playbooks/monitoreo-responder.yml")
 shutil.copy(f"{AQUI}/openshift-recolectar.yml", f"{tmp}/playbooks/openshift-recolectar.yml")
 shutil.copy(f"{AQUI}/openshift-segmento.yml", f"{tmp}/playbooks/openshift-segmento.yml")
@@ -1575,4 +1581,10 @@ for w_ in aap("GET", f"workflow_job_templates/?organization={org['id']}&page_siz
         aap("PATCH", f"workflow_job_templates/{w_['id']}/", {"allow_simultaneous": True})
         n_sim += 1
 paso(f"Ejecución simultánea activada en {n_sim} workflows")
+# Autocuidado de la plataforma: anfitrión (herramienta, exportador y vigía externo), Prometheus/Alertmanager, plantillas y EDA
+_ac = subprocess.run([sys.executable, f"{AQUI}/autocuidado_configurar.py"], capture_output=True, text=True, timeout=1200)
+for _l in (_ac.stdout or "").splitlines():
+    print(_l, flush=True)
+if _ac.returncode != 0:
+    paso("autocuidado: " + ((_ac.stderr or "").strip().splitlines() or ["error"])[-1][:200])
 print("LISTO")

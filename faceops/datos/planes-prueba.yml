@@ -769,3 +769,70 @@ planes:
       - {id: D3, caso: "Repetir la desinstalación de File Integrity", tipo: Idempotencia, verificar: "ticket exitoso sin cambios: no estaba instalado"}
       - {id: D4, caso: "Namespace del sistema (kube-system)", tipo: Error controlado, verificar: "ticket fallido en «Datos» con el motivo; nada se borra"}
       - {id: D5, caso: "El clúster queda como estaba", verificar: "mismas Subscriptions, CSV, namespaces y cantidad de CRD que antes del plan de instalación"}
+  # ── Autocuidado de la plataforma (datos/autocuidado.yml · herramienta del anfitrión aap/files/autocuidado.py) ──
+  # Se prueban en el anfitrión del laboratorio con el lab sano (herramientas/pruebas/p-autocuidado.sh). Ninguna toca volúmenes,
+  # discos de máquinas ni bases; los casos que fuerzan una falla (componente detenido, timer detenido, FaceOps detenido) la
+  # revierten dentro del mismo caso.
+  "Autocuidado · Revisar estado":
+    casos:
+      - {id: C1, caso: "Revisar el estado del anfitrión", verificar: "ticket exitoso de solo lectura; faceops_autocuidado.resultado trae disco (/ con uso e inodos), memoria, carga, vms (lista de libvirt), contenedores de AAP, aap_api=200, faceops 200, autodeploy, respaldos y certificados"}
+      - {id: C2, caso: "Repetir", tipo: Idempotencia, verificar: "ticket exitoso sin cambios (changed=0); registro.jsonl del anfitrión sin líneas nuevas"}
+      - {id: C3, caso: "Herramienta del anfitrión distinta a la del proyecto (se mueve temporalmente)", tipo: Error controlado, verificar: "ticket fallido en «Es la versión de este proyecto» con el motivo; nada se ejecuta; la herramienta vuelve a su lugar"}
+  "Autocuidado · Liberar disco":
+    casos:
+      - {id: C1, caso: "Modo evaluar con marcas de prueba (log rotado viejo y reciente, artefacto awx_ viejo y reciente, contenedor detenido protegido)", verificar: "ticket exitoso; pasos con lo liberable; ninguna marca se borra; espacio libre sin cambio (±0,2 GB)"}
+      - {id: C2, caso: "Modo seguro", verificar: "ticket exitoso; se borran el log rotado viejo y el artefacto viejo; quedan el log reciente, el artefacto reciente y el contenedor protegido; ningún volumen de podman desaparece; liberado_mb ≥ 0 y registro.jsonl con origen aap"}
+      - {id: C3, caso: "Repetir el modo seguro", tipo: Idempotencia, verificar: "ticket exitoso; las marcas que quedaron siguen; nada nuevo se borra"}
+      - {id: C4, caso: "Modo profundo (aprobación humana en la política; en la prueba la da Claude)", verificar: "ticket exitoso; imágenes de root sin uso retiradas; las de contenedores en ejecución (FaceOps, Prometheus, Grafana) siguen; las de AAP (usuario de AAP) intactas"}
+      - {id: C5, caso: "ac_modo inválido (borrar)", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; no se toca el anfitrión"}
+  "Autocuidado · Recuperar máquinas virtuales":
+    casos:
+      - {id: C1, caso: "Modo evaluar sin máquinas pausadas ni caídas", verificar: "ticket exitoso; acciones vacías; ninguna máquina cambia de estado"}
+      - {id: C2, caso: "Máquina de prueba pausada a propósito (virsh suspend)", verificar: "ticket exitoso; la máquina aparece en omitidas («pausada a propósito») y sigue pausada"}
+      - {id: C3, caso: "Máquina de prueba pausada por E/S: disco extra en un pool chico que se llena desde adentro (paused, I/O error); se libera el pool", verificar: "ticket exitoso; la máquina vuelve a running; registro.jsonl con reanudar"}
+      - {id: C4, caso: "Máquina de prueba de encendido automático que cae (kill -9 de su qemu)", verificar: "ticket exitoso; la máquina vuelve a running"}
+      - {id: C5, caso: "Repetir", tipo: Idempotencia, verificar: "ticket exitoso; acciones vacías"}
+      - {id: C6, caso: "ac_modo inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; ninguna máquina cambia"}
+  "Autocuidado · Reiniciar componentes de AAP":
+    casos:
+      - {id: C1, caso: "Modo evaluar con AAP sano", verificar: "ticket exitoso; malos vacío; reiniciaría vacío; api 200"}
+      - {id: C2, caso: "Componente no propio detenido (automation-eda-scheduler) y aplicar", verificar: "ticket exitoso; el contenedor vuelve a running; api 200; los propios (controller-task, receptor, PostgreSQL, Redis) no se reinician"}
+      - {id: C3, caso: "Repetir con todo sano", tipo: Idempotencia, verificar: "ticket exitoso; «nada que reiniciar»; ningún contenedor reinicia (RestartCount igual)"}
+      - {id: C4, caso: "ac_modo inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; ningún contenedor se toca"}
+  "Autocuidado · Reiniciar FaceOps y despliegue":
+    casos:
+      - {id: C1, caso: "Modo evaluar", verificar: "ticket exitoso; faceops 200 y estado del despliegue (timer activo, atraso)"}
+      - {id: C2, caso: "Aplicar con todo sano", tipo: Idempotencia, verificar: "ticket exitoso; acciones vacías; FaceOps no se reinicia (mismo PID del contenedor)"}
+      - {id: C3, caso: "Timer del despliegue detenido y aplicar", verificar: "ticket exitoso; faceops-autodeploy.timer vuelve a active"}
+      - {id: C4, caso: "FaceOps detenido: AAP la lanza directo (como «Atender alerta» sin FaceOps)", verificar: "trabajo de AAP exitoso; FaceOps vuelve a 200; FaceOps registra el trabajo como ticket «lanzada por AAP sin FaceOps»"}
+      - {id: C5, caso: "ac_modo inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; FaceOps no se reinicia"}
+  "Autocuidado · Respaldar bases de AAP y FaceOps":
+    casos:
+      - {id: C1, caso: "Modo evaluar", verificar: "ticket exitoso; edad de los respaldos y espacio; no se crea ningún archivo"}
+      - {id: C2, caso: "Aplicar", verificar: "ticket exitoso; aap-*.sql.gz y faceops-*.db.gz nuevos en /var/backups/faceops-autocuidado (0600); gzip -t ok; el de AAP trae CREATE DATABASE; la copia de FaceOps pasa integrity_check"}
+      - {id: C3, caso: "Repetir", tipo: Idempotencia, verificar: "ticket exitoso; un respaldo nuevo de cada base; nunca más de 7 de cada una"}
+      - {id: C4, caso: "Sin espacio seguro (destino en un tmpfs de 16 MB por configuración temporal)", tipo: Error controlado, verificar: "ticket fallido con «sin espacio seguro»; no quedan archivos a medias; la configuración vuelve a la original"}
+  "Autocuidado · Renovar certificados":
+    casos:
+      - {id: C1, caso: "Modo evaluar", verificar: "ticket exitoso; días de vigencia del certificado de AAP y del público de FaceOps"}
+      - {id: C2, caso: "Aplicar (vigente: certbot no renueva)", verificar: "ticket exitoso; faceops-publico-cert.service corre sin error y recarga el proxy; el público de FaceOps responde 200 con el mismo vencimiento"}
+      - {id: C3, caso: "Repetir", tipo: Idempotencia, verificar: "ticket exitoso; mismo vencimiento"}
+      - {id: C4, caso: "ac_modo inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»"}
+  "Autocuidado · Purgar historial de AAP":
+    casos:
+      - {id: C1, caso: "Purgar conservando 365 días", verificar: "ticket exitoso; trabajo de sistema cleanup_jobs successful con days=365; los trabajos del último año siguen"}
+      - {id: C2, caso: "Repetir", tipo: Idempotencia, verificar: "ticket exitoso; nada reciente se borra"}
+      - {id: C3, caso: "ac_dias=7 (bajo el mínimo)", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; no se lanza ninguna purga"}
+  "Autocuidado · Ampliar disco del anfitrión (GCP)":
+    casos:
+      - {id: C1, caso: "ac_gb igual al tamaño actual", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos» con el tamaño actual; el disco no cambia"}
+      - {id: C2, caso: "Ampliar +10 GB (requiere el visto bueno de Cristian: cuesta dinero y no se deshace)", verificar: "ticket exitoso; el disco de GCP queda con el tamaño nuevo y / crece en línea (df)"}
+      - {id: C3, caso: "Repetir con el mismo tamaño", tipo: Idempotencia, verificar: "ticket fallido en «Datos válidos» (no achica ni repite); sin cambios"}
+  "Autocuidado · Atender alerta":
+    casos:
+      - {id: C1, caso: "Evento «solo avisar» (AC01)", verificar: "ticket exitoso; FaceOps registra el evento como aviso; sin ticket de acción"}
+      - {id: C2, caso: "Evento con acción de riesgo bajo certificada (AC22 → Reiniciar FaceOps y despliegue)", verificar: "ticket exitoso; FaceOps crea el ticket de la acción y lo aprueba con «Aprobado por Claude (regla de Cristian)»; la acción termina exitosa"}
+      - {id: C3, caso: "Evento con acción de riesgo alto (AC07 → Ampliar disco)", verificar: "ticket exitoso; FaceOps lo deja como propuesta pendiente de una persona; no se lanza nada"}
+      - {id: C4, caso: "Mismo evento de C2 mientras su ticket sigue abierto", tipo: Idempotencia, verificar: "FaceOps lo agrupa con el ticket abierto; no crea otro"}
+      - {id: C5, caso: "Regla inválida", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; FaceOps no registra nada"}
+      - {id: C6, caso: "Cadena completa: alerta sintética AC01 en Alertmanager", verificar: "Alertmanager la entrega a EDA :5023, la activación «FaceOps · autocuidado» lanza «Autocuidado · Atender alerta» y FaceOps registra el evento (sin intervención)"}

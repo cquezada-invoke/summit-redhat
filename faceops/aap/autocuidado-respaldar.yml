@@ -1,0 +1,23 @@
+---
+# Autocuidado · Respaldar las bases de AAP (pg_dumpall del PostgreSQL de la plataforma) y de FaceOps (copia consistente de
+# SQLite), comprimidas en /var/backups/faceops-autocuidado (0600, se conservan 7 de cada una). No respalda si el disco está
+# sobre 85 % o no hay espacio seguro: falla controlada sin dejar archivos a medias.
+#   ac_modo: evaluar | aplicar (por defecto)
+- name: Autocuidado · Respaldar bases de AAP y FaceOps
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    modo: "{{ ac_modo | default('aplicar') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'aplicar']
+        fail_msg: "ac_modo debe ser evaluar o aplicar"
+        quiet: true
+
+    - name: Respaldar
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: [respaldar, --modo, "{{ modo }}"]
+        ac_titulo: "Respaldo de las bases de AAP y FaceOps ({{ modo }})"

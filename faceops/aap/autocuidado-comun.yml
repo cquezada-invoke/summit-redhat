@@ -1,0 +1,45 @@
+---
+# Autocuidado · tareas comunes (include_tasks). Corre en el anfitrión del laboratorio con el usuario aap-kvm, que solo puede
+# usar con sudo la herramienta de autocuidado (files/autocuidado.py instalada en /usr/local/sbin/faceops-autocuidado).
+#   ac_args: argumentos de la herramienta (lista) · ac_titulo: texto del resumen
+# Antes de actuar verifica que la herramienta instalada sea EXACTAMENTE la de este proyecto (misma huella que la probada).
+- name: Herramienta de autocuidado instalada
+  ansible.builtin.stat:
+    path: /usr/local/sbin/faceops-autocuidado
+    checksum_algorithm: sha256
+  register: ac_stat
+
+- name: Es la versión de este proyecto (la que pasó su plan de prueba)
+  ansible.builtin.assert:
+    that:
+      - ac_stat.stat.exists
+      - ac_stat.stat.checksum == (lookup('ansible.builtin.file', playbook_dir ~ '/files/autocuidado.py', rstrip=false) | hash('sha256'))
+    fail_msg: >-
+      La herramienta del anfitrión no corresponde a esta versión del proyecto (o no está instalada). La instala
+      «aap/autocuidado_configurar.py» con el despliegue de FaceOps; no se actúa con una versión distinta a la probada.
+    quiet: true
+
+- name: "{{ ac_titulo }}"
+  ansible.builtin.command:
+    argv: "{{ ['sudo', '-n', '/usr/local/sbin/faceops-autocuidado'] + ac_args + ['--origen', 'prueba' if (faceops_prueba | default(false) | bool) else 'aap'] }}"
+  register: ac_cmd
+  changed_when: false
+  failed_when: false
+
+- name: Resultado
+  ansible.builtin.set_fact:
+    ac_res: "{{ ac_cmd.stdout | from_json if (ac_cmd.stdout | default('') | trim)[:1] == '{' else {'ok': false, 'error': (ac_cmd.stderr | default('sin salida'))[-300:]} }}"
+
+- name: Resultado para FaceOps
+  ansible.builtin.set_stats:
+    data:
+      faceops_autocuidado: "{{ {'accion': ac_args[0], 'modo': ac_args[2] | default('aplicar'), 'resultado': ac_res} }}"
+
+- name: Resumen
+  ansible.builtin.debug:
+    msg: "{{ ac_titulo }}: {{ 'ok' if ac_res.ok | default(false) else 'con problemas' }} · {{ ac_res | to_json | truncate(1500) }}"
+
+- name: Falla controlada si la acción no terminó bien
+  ansible.builtin.fail:
+    msg: "{{ ac_titulo }} no terminó bien: {{ ac_res.error | default('revisa el detalle del resultado') }}"
+  when: not (ac_res.ok | default(false) | bool)
