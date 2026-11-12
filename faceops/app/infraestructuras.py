@@ -209,6 +209,17 @@ def lista(cliente_id, eqs=None):
     return out
 
 
+def tickets_de(cliente_id, nombre, limite=100):
+    """Tickets de una infraestructura (nube, hipervisor), los más recientes primero: los que llevan su nombre como valor de
+    un parámetro (nube, nv_nube, hv_infra…). Para la lista al pie de su ficha."""
+    if not nombre:
+        return []
+    return q("SELECT t.id, t.numero, t.estado, t.creado, t.fin, t.motivo, a.nombre accion, u.nombre solicitante FROM tickets t "
+             "LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id LEFT JOIN usuarios u ON u.id=t.usuario_id "
+             "WHERE t.cliente_id=? AND instr(COALESCE(t.parametros,''), ?) > 0 ORDER BY t.creado DESC, t.id DESC LIMIT ?",
+             cliente_id, json.dumps(nombre, ensure_ascii=False), limite)
+
+
 def _valores(p, f, exigir=True):
     v = {c: (f.get(c) or "").strip() for c, _, _, _ in p["campos"]}
     faltan = [et for c, et, sec, _ in p["campos"] if not v[c] and c in p["obligatorios"]]

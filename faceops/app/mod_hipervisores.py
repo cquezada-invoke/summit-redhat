@@ -266,7 +266,8 @@ def hipervisor(iid):
         from flask import current_app
         current_app.logger.exception("alertas del hipervisor")
         alertas_obj = None
-    return render_template("hipervisor.html", e=e_hv, alertas_obj=alertas_obj, rep_maq=None, x=x, info=info, cap=cap, asig=asig, vms=vms, vms_on=on_, host=host, fisicos=fisicos,
+    from .infraestructuras import tickets_de
+    return render_template("hipervisor.html", tks_infra=tickets_de(g.cliente["id"], x["nombre"]), e=e_hv, alertas_obj=alertas_obj, rep_maq=None, x=x, info=info, cap=cap, asig=asig, vms=vms, vms_on=on_, host=host, fisicos=fisicos,
                            acciones=acciones, areas=list(dict.fromkeys(a["area"] for a in acciones)), radar_h=radar_h, energia_no=energia_no,
                            prov_ctx=p_, esc=esc, emulado=_emulado(x), medicion_vieja=bool(cap) and _medicion_vieja(cap),
                            etiq=etiqueta_centro([i for i in infras if i["centro"] == x["centro"]]))

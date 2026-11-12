@@ -83,6 +83,8 @@
 {% if acciones %}<div class="nb-acc">{% for a in acciones %}{% if a.bloqueo %}<div class="off" title="{{ a.bloqueo }}"><b>{{ a.nombre }}</b><span class="sub">{{ a.bloqueo }}</span></div>{% else %}<a href="{{ url_for('consola.automatizacion', aid=a.id) }}" target="_blank" rel="noopener" title="Abrir «{{ a.nombre }}» en una ventana nueva"><b>{{ a.nombre }}</b><span class="sub">{{ (j(a.guia, {}).proposito or a.descripcion or '')|truncate(100) }}</span></a>{% endif %}{% endfor %}</div>
 {% else %}<p class="vacio">Aún no hay acciones de nube publicadas en AAP.</p>{% endif %}</div>
 
+{% from "_ficha_infra.html" import lista_tickets with context %}{{ lista_tickets(tks_infra, 'esta nube') }}
+
 {# ---------- flotante: salud (solo lo remediable) ---------- #}
 <div id="nb-velo" class="cajon-velo" hidden></div>
 <aside id="sl-cajon" class="cajon" hidden aria-label="Salud de la nube"><div class="cajon-barra"><b style="font-size:15px">Salud de {{ x.nombre }} · {{ radar_n.pct if radar_n.pct is not none else '—' }} %</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>

@@ -72,6 +72,20 @@
 </div>
 {% endmacro %}
 
+{# Tickets de la infraestructura (al pie de la ficha, como en máquinas y OpenShift): más recientes primero, 20 a la vista
+   y «Ver más»; un ticket recién creado desde la ficha se agrega arriba (window.fxNuevoTicket). #}
+{% macro lista_tickets(tks, que='esta infraestructura') %}{% from "_macros.html" import est %}
+<div class="card" style="margin-top:14px" id="tickets-infra"><div class="fila"><h2 style="margin:0 0 8px">Tickets de {{ que }}</h2><span class="sub der" style="font-size:12px">{{ tks|length }}{{ '+' if tks|length >= 100 }} · más recientes primero</span></div>
+<div style="overflow-x:auto"{{ ' hidden' if not tks }}><table class="hist" id="tki-tabla"><tr><th style="width:120px">Ticket</th><th>Acción</th><th style="width:130px">Estado</th><th style="width:120px">Fecha</th><th style="width:140px">Solicitante</th></tr>
+{% for t in tks %}<tr{{ ' hidden' if loop.index > 20 }}><td><a class="mono" href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td style="font-size:12.5px">{{ t.accion or t.motivo or '—' }}</td><td>{{ est(t.estado) }}</td><td class="sub" style="font-size:12px;white-space:nowrap">{{ t.creado|fecha }}</td><td style="font-size:12.5px">{{ t.solicitante or '—' }}</td></tr>{% endfor %}</table></div>
+<p class="vacio"{{ ' hidden' if tks }} id="tki-vacio">Sin tickets para {{ que }} todavía.</p>
+{% if tks|length > 20 %}<p style="margin:8px 0 0"><a href="#" id="tki-mas" class="sub">Ver más</a></p>{% endif %}</div>
+<script>(()=>{const tb=document.getElementById('tki-tabla'),mas=document.getElementById('tki-mas'),esc=x=>String(x||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+if(mas)mas.addEventListener('click',ev=>{ev.preventDefault();const o=[...tb.rows].filter(r=>r.hidden).slice(0,20);o.forEach(r=>r.hidden=false);if(![...tb.rows].some(r=>r.hidden))mas.remove();});
+window.fxNuevoTicket=t=>{const r=tb.insertRow(1);r.innerHTML='<td><a class="mono" href="'+esc(t.url)+'">'+esc(t.numero)+'</a></td><td style="font-size:12.5px">'+esc(t.auto||t.nombre_aap||'—')+'</td><td><span class="chip e-'+esc(t.estado||'pendiente_aprobacion')+'">'+esc((t.estado||'pendiente_aprobacion')==='pendiente_aprobacion'?'espera aprobación':(t.estado||'').replace('_',' '))+'</span></td><td class="sub" style="font-size:12px">ahora</td><td style="font-size:12.5px">'+esc({{ (usuario.nombre if usuario else '')|tojson }})+'</td>';
+ tb.parentElement.hidden=false;document.getElementById('tki-vacio').hidden=true;if(window.fxAviso)fxAviso('Ticket '+t.numero+' creado','ok');};})();</script>
+{% endmacro %}
+
 {# Estilos y comportamiento: flotantes laterales (uno abierto a la vez), energía por ticket, buscador + paginador de listas #}
 {% macro recursos(nombre) %}
 <style>.fi-cab{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:0 0 4px}.fi-iconos{display:flex;gap:10px;align-items:center}.fi-iconos .hb-btn{margin:0}.fi-cab h1{margin:0}.fi-der{margin-left:auto}

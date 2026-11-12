@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block titulo %}{{ x.nombre }}{% endblock %}
-{% block cuerpo %}{% from "_infra.html" import logo %}{% from "_ficha_infra.html" import cabecera, salud, caja_energia, cajon_salud, cajon_conexion, seccion_acciones, recursos with context %}
+{% block cuerpo %}{% from "_infra.html" import logo %}{% from "_ficha_infra.html" import cabecera, salud, caja_energia, cajon_salud, cajon_conexion, seccion_acciones, recursos, lista_tickets with context %}
 {% set ok_ = x.estado == 'conectada' %}{% set url_acc = url_for('consola.hipervisor_accion', iid=x.id) %}{% set url_probar = url_for('consola.infraestructura_probar', iid=x.id) %}
 {% from "_alertas.html" import boton_alertas with context %}
 {% call cabecera(logo(x.tipo, 40), x.nombre, url_for('consola.hipervisores'), 'Hipervisores',
@@ -47,6 +47,8 @@
 {% else %}<tr><td colspan="6" class="sub">Sin máquinas virtuales registradas.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
 
 {{ seccion_acciones(acciones, areas, url_acc) }}
+
+{{ lista_tickets(tks_infra, 'este hipervisor') }}
 
 {{ cajon_salud(radar_h, x.nombre, url_acc, url_probar) }}
 {% if esc %}{{ cajon_conexion(x, prov_ctx, url_for('consola.infraestructura_editar', iid=x.id), url_probar, x.credencial and true) }}{% endif %}
