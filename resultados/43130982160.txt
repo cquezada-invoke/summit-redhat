@@ -1,0 +1,19 @@
+commit: 8ffdfc412f6129232aa84ab89ce1523433ae1ea0
+inicio: 2026-11-11T22:37:26-03:00
+---
+239159d Contenedores: sin el diálogo «Crear nueva máquina virtual» (so
+   · Workflow «Nube · Validar conexión e inventariar» (id 1203)
+NUBE Cloud GCP · invoke-summit-cloud | estado BD: sin probar | cred: GCP · invoke-summit-cloud | inv: Nube GCP | verif: 2026-11-12T00:50:10+00:00
+DETALLE sin secretos: True
+CRED AAP id 46 modificada 2026-11-12T00:49:54.043025Z | email: True | proyecto: invoke-summit-cloud | llave cifrada: True
+AUD [('', 'conectar infraestructura', 'Cloud GCP · invoke-summit-cloud'), ('', 'probar infraestructura', 'KVM · Santiago'), ('', 'probar infraestructura', 'KVM · Valparaíso'), ('', 'marcar infraestructura del laboratorio', 'nodo-so')]
+CATALOGO 235
+AUTO True sin probar
+TICKET FO-LAB-02020 fallido as parsed, please check your configuration and options." } PLAY RECAP ********************************************************************* localhost : ok=6 changed=0 unreachable=0 failed=1 skipped=0 rescued=0 ignored=0 
+TICKET FO-LAB-02022 rechazado AAP terminó (failed): ejecución 0 s, espera de aprobación 25 s · la aprobación fue rechazada
+TICKET FO-LAB-02024 fallido y_upstream_service_time": "47", "x_frame_options": "DENY"} PLAY RECAP ********************************************************************* localhost : ok=1 changed=0 unreachable=0 failed=1 skipped=0 rescued=0 ignored=0 
+PLAN NO PASA; sin certificar
+PAGINA 200 barra True encendido True cajon True form True secretos False | validar_no: ['Aún no disponible: «Nube · Validar conexión e inventariar» no ha pasado su plan de prueba (no está certificada).'] | estado: ['Con error']
+LINK cuenta ['https://console.cloud.google.com/iam-admin/serviceaccounts/details/demo-lab-faceops@invoke-summit-cloud.iam.gserviceaccount.com/keys?project=invoke-summit-cloud']
+--- LOGS
+--- fin: 2026-11-11T22:46:13-03:00 · código: 0
