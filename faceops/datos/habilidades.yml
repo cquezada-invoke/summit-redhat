@@ -136,6 +136,41 @@ habilidades:
     nombre: Optimizar recursos y limpiar
     valor: "Libera capacidad: recursos huérfanos, réplicas sobredimensionadas y volúmenes sueltos."
     nombre_aap: ["OpenShift · Optimizar recursos y limpiar"]
+  # ── Windows (ámbito «Sistema operativo»; IIS como plataforma). Si la acción aún no existe o no es compatible, se muestra deshabilitada con su motivo
+  - id: win-migrar
+    tipo: diferenciador
+    grupo: Migraciones
+    nombre: Migrar a Windows Server soportado
+    valor: Lleva la máquina a una versión de Windows Server con soporte vigente, con respaldo y vuelta atrás.
+    por_so:
+      - so: "(?i)windows"
+        nombre_aap: ["Migración · Windows Server a versión soportada", "Windows · Actualizar a versión soportada"]
+  - id: win-actualizaciones
+    tipo: quick win
+    grupo: Seguridad y continuidad
+    nombre: Aplicar actualizaciones de Windows
+    valor: Instala las actualizaciones de seguridad y críticas pendientes, con reinicio controlado.
+    por_so:
+      - so: "(?i)windows"
+        nombre_aap: ["Windows · Aplicar actualizaciones", "Windows · Actualizaciones de seguridad"]
+  - id: win-escaneo
+    tipo: quick win
+    grupo: Seguridad y continuidad
+    nombre: Escaneo de seguridad
+    valor: Escanea la máquina y deja sus hallazgos priorizados en FaceOps.
+    por_so:
+      - so: "(?i)windows"
+        nombre_aap: ["Windows · Escaneo de seguridad", "Seguridad · Escaneo de servidores"]
+  - id: win-iis
+    tipo: quick win
+    grupo: Plataformas
+    ambito: IIS
+    sin_skill: iis   # no se ofrece si la máquina ya tiene IIS
+    nombre: Instalar IIS
+    valor: Deja IIS instalado y publicado, listo para alojar aplicaciones .NET.
+    por_so:
+      - so: "(?i)windows"
+        nombre_aap: ["Windows · Instalar IIS", "Windows · Preparar IIS"]
   # ── Quick wins: evaluaciones y mejoras rápidas
   - id: evaluar-so
     tipo: quick win
@@ -173,6 +208,7 @@ habilidades:
     nombre: Escaneo de seguridad
     valor: Escanea la máquina y deja sus hallazgos priorizados en FaceOps.
     nombre_aap: ["Seguridad · Escaneo de servidores"]
+    so: "^(?!.*(?i:windows))"   # en Windows va «win-escaneo»
   - id: certificados
     tipo: quick win
     grupo: Seguridad y continuidad

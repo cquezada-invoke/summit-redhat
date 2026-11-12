@@ -124,6 +124,10 @@ def _resolver(h, e):
     so = e.get("so") or ""
     if h.get("so") and not re.search(h["so"], so):
         return None
+    if h.get("sin_skill"):
+        from .inventario import skills_de
+        if h["sin_skill"] in set(skills_de(e)):
+            return None
     if h.get("categoria") and not re.search(h["categoria"], e.get("categoria") or "servidor"):
         return None
     if not h.get("categoria") and (e.get("categoria") or "") == "clúster openshift":
@@ -159,8 +163,8 @@ def habilidades_maquina(e, rep=None):
         a, bloqueo = _auto(e, h)
         if not a and h.get("por_so"):   # la acción de este sistema aún no existe: se muestra deshabilitada con su motivo
             out.append({"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"],
-                        "valor": h.get("valor") or "", "ambito": "Sistema operativo", "auto": h["nombre_aap"][0], "aid": None, "ui": "",
-                        "bloqueo": f"«{h['nombre_aap'][0]}» aún no está en el catálogo ni tiene su plan de prueba aprobado",
+                        "valor": h.get("valor") or "", "ambito": h.get("ambito") or "Sistema operativo", "auto": h["nombre_aap"][0], "aid": None, "ui": "",
+                        "bloqueo": "aún no hay una acción del catálogo compatible y certificada para esta máquina",
                         "ticket": None, "escritura": bool(escritura), "url": "", "campos": []})
             continue
         if not a:
