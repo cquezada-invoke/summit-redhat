@@ -1,17 +1,41 @@
-commit: d1c533e018e25b0c12c3d7a4609660e09555280d
-inicio: 2026-11-12T15:33:28-03:00
+commit: 0dd5da48d5d81e199c7f4b3cfb1d26a4b4f3b43c
+inicio: 2026-11-12T15:54:48-03:00
 ---
-PREVIO: FO-LAB-02244 creado · Prueba (limpieza previa): eliminar fo-prueba-a-1424
-PREVIO: ok · FO-LAB-02244 exitoso · resto eliminado
-PREVIO: ok · sin restos
-CR-C1: FO-LAB-02246 creado · Prueba C1: crear fo-prueba-11121533 (e2-micro; se elimina al terminar)
-CR-C1: FALLA · FO-LAB-02246 exitoso · RUNNING e2-micro etiquetas ok · vínculo exitoso · inventario None
-  → falla: se salta a la limpieza
-LIMPIEZA: FO-LAB-02270 creado · Prueba (limpieza final): eliminar fo-prueba-11121533
-LIMPIEZA: ok · FO-LAB-02270 exitoso · eliminada · exitoso
-LIMPIEZA: ok · nada de prueba en GCP
-NO certificada Nube · Crear máquina {'C1': 'falla', 'C2': 'falla', 'C3': 'falla', 'C4': 'falla', 'C5': 'falla'}
-NO certificada Nube · Operar máquina {'C1': 'falla', 'C2': 'falla', 'C3': 'falla', 'C4': 'falla', 'C5': 'falla', 'C6': 'falla', 'C7': 'falla', 'C8': 'falla', 'C9': 'falla', 'C10': 'falla', 'C11': 'falla', 'C12': 'falla'}
-PLAN_FIN
-ESTADO fin paso 21 {'PREVIO': True, 'CR-C1': False, 'LIMPIEZA': True, 'OP-C7': None, 'OP-C10': None}
---- fin: 2026-11-12T16:17:54-03:00 · código: 0
+desplegado 8562fdf47
+   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 28 reglas en Prometheus y ruta a EDA :5023
+   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
+   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
+repo 8562fdf
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Revisar estado
+  C1 → fallido FO-LAB-02256
+CASO C1 falla · Revisar el estado
+  C2 → fallido FO-LAB-02258
+CASO C2 falla · Repetir
+  C3 → fallido FO-LAB-02259
+CASO C3 ok · Herramienta distinta
+CERT Autocuidado · Revisar estado → sin probar
+== Autocuidado · Liberar disco
+  C1 → exitoso FO-LAB-02262
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02264
+CASO C2 ok · Modo seguro
+  C3 → exitoso FO-LAB-02265
+CASO C3 ok · Repetir
+  C4 → exitoso FO-LAB-02266
+CASO C4 ok · Modo profundo
+  C5 → fallido FO-LAB-02267
+CASO C5 ok · Modo inválido
+CERT Autocuidado · Liberar disco → certificada
+== Autocuidado · Reiniciar componentes de AAP
+  C1 → fallido FO-LAB-02268
+CASO C1 falla · Evaluar con AAP sano
+  C2 → fallido FO-LAB-02269
+CASO C2 falla · Componente detenido
+  C3 → fallido FO-LAB-02271
+CASO C3 falla · Repetir con todo sano
+  C4 → fallido FO-LAB-02273
+CASO C4 ok · Modo inválido
+CERT Autocuidado · Reiniciar componentes de AAP → sin probar
+--- fin: 2026-11-12T16:19:07-03:00 · código: 0
