@@ -6,6 +6,7 @@ Uso: tablero_ocp.py <catalogo.yml> <clúster> <ds_uid>
      tablero_ocp.py --reglas <catalogo.yml> <clúster>   → PrometheusRule «faceops-alertas-clúster» (JSON) para openshift-monitoring:
      las mismas alertas como reglas del monitoreo del clúster (visibles en su Prometheus y Alertmanager), sin acciones."""
 import json
+import os
 import re
 import sys
 
@@ -60,12 +61,15 @@ def tablero(cat, cl, ds):
             "templating": {"list": []}, "annotations": {"list": anot}, "panels": paneles}
 
 
-def reglas(cat, cl):
-    """Una regla por umbral (aviso y crítico) etiquetada con faceops_alerta/faceops_equipo para la trazabilidad con FaceOps."""
+def reglas(cat, cl, prueba=None):
+    """Una regla por umbral (aviso y crítico) etiquetada con faceops_alerta/faceops_equipo para la trazabilidad con FaceOps.
+    prueba: {"id": X, "aviso": n, "para": "0m"} baja de forma TEMPORAL el umbral de una alerta para dispararla de forma controlada."""
     rs = []
     for a in cat["alertas"]:
         if "openshift" not in a.get("tipos", []) or not a.get("expr"):
             continue
+        if prueba and prueba.get("id") == a["id"]:
+            a = dict(a, **{k: v for k, v in prueba.items() if k in ("aviso", "critico", "para")})
         nombre = "FaceOps" + re.sub(r"[^A-Za-z0-9]", "", a["nombre"].title()) + a["id"]
         etq = {"faceops_equipo": cl, "faceops_alerta": a["id"], "faceops_origen": "faceops-tentativa"}
         ann = {"summary": f"{cl} · {a['nombre']}", "description": a.get("descripcion", "")}
@@ -83,8 +87,30 @@ def reglas(cat, cl):
             "spec": {"groups": [{"name": f"faceops-{cl}", "rules": rs}]}}
 
 
+def alertmanager(conf, faceops_url, eda_url, token):
+    """alertmanager.yaml del clúster con las alertas de FaceOps (faceops_origen="faceops-tentativa") reenviadas a FaceOps (correo
+    al grupo responsable, con token) y a Event-Driven Ansible (trazabilidad). No toca los demás receptores ni rutas."""
+    conf = conf or {}
+    conf["receivers"] = [x for x in conf.get("receivers") or [] if x.get("name") not in ("faceops-ocp-faceops", "faceops-ocp-eda")]
+    conf["receivers"] += [
+        {"name": "faceops-ocp-faceops", "webhook_configs": [{"url": faceops_url, "send_resolved": True,
+                                                              "http_config": {"authorization": {"type": "Bearer", "credentials": token}}}]},
+        {"name": "faceops-ocp-eda", "webhook_configs": [{"url": eda_url, "send_resolved": True}]}]
+    ruta = conf.setdefault("route", {})
+    ruta["routes"] = [x for x in ruta.get("routes") or [] if x.get("receiver") not in ("faceops-ocp-faceops", "faceops-ocp-eda")]
+    m = ['faceops_origen="faceops-tentativa"']
+    ruta["routes"][0:0] = [{"receiver": "faceops-ocp-faceops", "matchers": list(m), "continue": True, "group_wait": "10s", "repeat_interval": "4h"},
+                           {"receiver": "faceops-ocp-eda", "matchers": list(m), "continue": True, "group_wait": "10s", "repeat_interval": "4h"}]
+    return conf
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "--reglas":
-        print(json.dumps(reglas(yaml.safe_load(open(sys.argv[2])), sys.argv[3]), ensure_ascii=False))
+        pr = json.loads(os.environ.get("GO_PRUEBA") or "{}") or None
+        print(json.dumps(reglas(yaml.safe_load(open(sys.argv[2])), sys.argv[3], pr), ensure_ascii=False))
+        sys.exit(0)
+    if sys.argv[1] == "--alertmanager":   # <alertmanager.yaml actual> <url FaceOps> <url EDA>; token en GO_TOKEN (no por argv)
+        print(yaml.safe_dump(alertmanager(yaml.safe_load(open(sys.argv[2])), sys.argv[3], sys.argv[4], os.environ["GO_TOKEN"]),
+                             sort_keys=False, allow_unicode=True))
         sys.exit(0)
     print(json.dumps(tablero(yaml.safe_load(open(sys.argv[1])), sys.argv[2], sys.argv[3]), ensure_ascii=False, indent=1))

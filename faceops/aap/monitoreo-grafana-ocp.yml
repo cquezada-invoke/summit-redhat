@@ -7,6 +7,10 @@
 # trazabilidad con FaceOps): se ven en su Prometheus y su Alertmanager. Sin acciones de EDA. Si el clúster está apagado, falla
 # sin tocar nada: hay que encenderlo antes.
 #   go_cluster: nombre del clúster en FaceOps (p. ej. ocp-sno)
+#   go_prueba: {id, aviso?, critico?, para?} baja de forma TEMPORAL el umbral de una alerta para dispararla de forma controlada;
+#              el siguiente pedido sin go_prueba la deja como estaba
+#   El Alertmanager del clúster reenvía estas alertas (faceops_origen="faceops-tentativa") a FaceOps (correo al grupo
+#   responsable, con token derivado de la cuenta de solo lectura) y a Event-Driven Ansible (:5021, trazabilidad).
 #   Credenciales: «OpenShift · <clúster> (despliegue)» (API del clúster), «FaceOps · Bóveda (escritura)» y la del anfitrión
 #   (aap-kvm: escribe solo el datasource y el tablero de FaceOps en Grafana y reinicia Grafana por un sudo acotado)
 - name: Monitoreo · Grafana de OpenShift
@@ -141,6 +145,8 @@
     - name: Reglas de las alertas en el monitoreo del clúster (PrometheusRule faceops-alertas-cluster)
       ansible.builtin.command:
         argv: [python3, "{{ playbook_dir }}/files/tablero_ocp.py", --reglas, "{{ playbook_dir }}/files/alertas-objetos.yml", "{{ cl }}"]
+      environment:
+        GO_PRUEBA: "{{ go_prueba | default({}) | to_json }}"
       delegate_to: localhost
       register: r_pr
       changed_when: false
@@ -166,6 +172,53 @@
       delegate_to: localhost
       when: r_pr0.status == 404 or (r_pr0.json.spec | to_json) != ((r_pr.stdout | from_json).spec | to_json)
       register: r_pr1
+
+    - name: Alertmanager del clúster vigente
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/openshift-monitoring/secrets/alertmanager-main"
+        headers: "{{ h }}"
+        validate_certs: false
+      delegate_to: localhost
+      register: r_am
+      no_log: true
+
+    - name: Configuración actual del Alertmanager (en el entorno de ejecución)
+      ansible.builtin.copy:
+        dest: "/tmp/faceops-am-{{ cl }}.yml"
+        content: "{{ r_am.json.data['alertmanager.yaml'] | b64decode }}"
+        mode: "0600"
+      delegate_to: localhost
+      no_log: true
+
+    - name: Receptores de FaceOps y EDA para estas alertas
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/tablero_ocp.py", --alertmanager, "/tmp/faceops-am-{{ cl }}.yml",
+               "{{ go_faceops | default('http://192.168.122.1:8110/api/alertas/ocp/' ~ cl) }}", "{{ go_eda | default('http://192.168.122.1:5021/endpoint') }}"]
+      environment:
+        GO_TOKEN: "{{ tok | hash('sha256') }}"
+      delegate_to: localhost
+      register: r_amn
+      changed_when: false
+      no_log: true
+
+    - name: Alertmanager del clúster con los receptores de FaceOps (solo si cambió)
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/openshift-monitoring/secrets/alertmanager-main"
+        method: PATCH
+        headers: "{{ h | combine({'Content-Type': 'application/merge-patch+json'}) }}"
+        body_format: json
+        body: {data: {alertmanager.yaml: "{{ r_amn.stdout | b64encode }}"}}
+        validate_certs: false
+      delegate_to: localhost
+      when: (r_amn.stdout | from_yaml) != (r_am.json.data['alertmanager.yaml'] | b64decode | from_yaml)
+      register: r_amp
+      no_log: true
+
+    - name: Sin restos de la configuración en el entorno de ejecución
+      ansible.builtin.file:
+        path: "/tmp/faceops-am-{{ cl }}.yml"
+        state: absent
+      delegate_to: localhost
 
     - name: Armar el tablero «Alertas de OpenShift · {{ cl }}»
       ansible.builtin.command:
@@ -197,5 +250,6 @@
         data:
           faceops_grafana_ocp: {cluster: "{{ cl }}", tablero: "{{ (r_tab.stdout | from_json).uid }}", datasource: "{{ ds_uid }}",
                                 series_up: "{{ r_q.json.data.result | length }}", reiniciado: "{{ r_ds is changed }}",
-                                reglas: "{{ (r_pr.stdout | from_json).spec.groups[0].rules | length }}", reglas_cambiadas: "{{ r_pr1 is not skipped }}"}
+                                reglas: "{{ (r_pr.stdout | from_json).spec.groups[0].rules | length }}", reglas_cambiadas: "{{ r_pr1 is not skipped }}",
+                                alertmanager_cambiado: "{{ r_amp is not skipped }}", prueba: "{{ go_prueba | default({}) }}"}
         per_host: false

@@ -182,3 +182,38 @@ def iniciar(cada=60):
             except Exception:  # noqa: BLE001
                 pass
     threading.Thread(target=bucle, daemon=True, name="faceops-correo-alertas").start()
+
+
+def evento_cluster(cliente, e, carga):
+    """Alertas que el Alertmanager de un clúster reenvía a FaceOps: cada cambio (disparada / resuelta) queda registrado y se
+    avisa por correo al grupo responsable (una vez por alerta y estado cada 30 minutos)."""
+    from .correo import enviar
+    from .alertas_objeto import catalogo
+    con().executescript("""CREATE TABLE IF NOT EXISTS alerta_eventos (
+      id INTEGER PRIMARY KEY, cliente_id INTEGER, equipo TEXT, alerta TEXT, nombre TEXT, estado TEXT, severidad TEXT, inicio TEXT,
+      fecha TEXT, para TEXT, resultado TEXT);""")
+    cat = {a["id"]: a for a in catalogo()["alertas"]}
+    para, quien = destino(cliente["id"], e)
+    n = 0
+    for x in carga.get("alerts") or []:
+        lab = x.get("labels") or {}
+        aid, est = lab.get("faceops_alerta", ""), x.get("status", "")
+        reciente = q1("SELECT id FROM alerta_eventos WHERE cliente_id=? AND equipo=? AND nombre=? AND estado=? AND fecha > ?", cliente["id"], e["nombre"],
+                      lab.get("alertname", ""), est, (datetime.now(timezone.utc) - timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%S"))
+        if reciente:
+            continue
+        a = cat.get(aid, {})
+        sev = {"warning": "aviso", "critical": "crítico"}.get(lab.get("severity", ""), lab.get("severity", ""))
+        asunto = f"[FaceOps] {'Disparada' if est == 'firing' else 'Resuelta'} · {a.get('nombre', aid)} ({aid}, {sev}) en {e['nombre']}"
+        cuerpo = (f"Alerta «{a.get('nombre', aid)}» ({aid}) del clúster {e['nombre']}: {'DISPARADA' if est == 'firing' else 'resuelta'}.\n"
+                  f"Severidad: {sev} · regla {lab.get('alertname', '')} · desde {x.get('startsAt', '')}\n"
+                  f"{(x.get('annotations') or {}).get('description', '')}\n\n"
+                  f"Llega desde el Alertmanager del clúster (receptor de FaceOps); la acción automática está por definir.\n"
+                  f"Ficha del clúster: {_url_ficha(cliente, e)}\nLo envía FaceOps al grupo responsable ({quien}).")
+        res = enviar(para, asunto, cuerpo)
+        ej("INSERT INTO alerta_eventos(cliente_id, equipo, alerta, nombre, estado, severidad, inicio, fecha, para, resultado) VALUES (?,?,?,?,?,?,?,?,?,?)",
+           cliente["id"], e["nombre"], aid, lab.get("alertname", ""), est, sev, x.get("startsAt", ""),
+           datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"), para, res)
+        auditar("sistema", cliente["id"], "alerta de clúster", e["nombre"], {"alerta": aid, "estado": est, "para": para, "resultado": res})
+        n += 1
+    return n

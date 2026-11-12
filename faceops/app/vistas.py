@@ -8904,6 +8904,26 @@ def equipo_alerta_prueba(eid, pid):
     return {"estado": p_["estado"], "pasos": p_["pasos"], "inicio": p_["inicio"]}
 
 
+@bp.route("/api/alertas/ocp/<nombre>", methods=["POST"])
+def api_alertas_ocp(nombre):
+    """Webhook del Alertmanager de un clúster OpenShift (receptor que deja «Monitoreo · Grafana de OpenShift»): sus alertas de
+    FaceOps se registran y se avisan por correo al grupo responsable del clúster. Token: sha256 del token de la cuenta de solo
+    lectura del monitoreo (en la bóveda); sin él, 401. No ejecuta nada en el clúster."""
+    import hashlib
+    from .bd import q1 as _q1
+    from .boveda import leer
+    cred = leer(f"maquinas/{nombre}/grafana-monitoreo") or {}
+    esperado = hashlib.sha256((cred.get("token") or "").encode()).hexdigest() if cred.get("token") else None
+    if not esperado or request.headers.get("Authorization", "") != f"Bearer {esperado}":
+        return {"error": "no autorizado"}, 401
+    from .alerta_diagnostico import evento_cluster
+    e = _q1("SELECT * FROM equipos WHERE nombre=? AND estado!='retirado' ORDER BY id LIMIT 1", nombre)
+    c_ = _q1("SELECT * FROM clientes WHERE id=?", e["cliente_id"]) if e else None
+    if not c_:
+        return {"error": "clúster desconocido"}, 404
+    return {"ok": True, "avisos": evento_cluster(c_, e, request.get_json(silent=True) or {})}
+
+
 @bp.route("/inventario/<int:eid>/alertas/regla")
 @requiere_login
 def equipo_alerta_regla(eid):

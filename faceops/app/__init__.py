@@ -148,7 +148,7 @@ def create_app():
             ref = request.headers.get("Origin") or request.headers.get("Referer") or ""
             if not ref.startswith(request.host_url.rstrip("/")):
                 abort(400, "Origen no permitido")
-        elif request.method == "POST" and request.endpoint not in ("consola.ingresar", "consola.api_fabrica_ejecutar"):
+        elif request.method == "POST" and request.endpoint not in ("consola.ingresar", "consola.api_fabrica_ejecutar", "consola.api_alertas_ocp"):
             tok_ = request.form.get("_csrf") or request.headers.get("X-CSRF") or ((request.get_json(silent=True) or {}).get("_csrf") if request.is_json else None)
             if tok_ != session.get("csrf"):
                 abort(400, "Formulario vencido: recarga la página")
