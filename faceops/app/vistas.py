@@ -8580,6 +8580,8 @@ def menu_nav():
         out.append(it)
         EP_MENU.setdefault(ep, set()).add(t)
         for _, a_ in hijos or []:
+            if "_ancla" in a_:   # enlace a una sección de otra página (p. ej. Monitoreo › Productividad → el panel): no le impone este menú
+                continue
             EP_MENU.setdefault(a_.get("_ep", ep), set()).add(t)
     acc = g.get("acceso")
     if acc is not None:   # grupos y roles: solo las funcionalidades de sus espacios; Gobierno, solo cluster-admin/viewer

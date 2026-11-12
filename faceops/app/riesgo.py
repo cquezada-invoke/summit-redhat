@@ -72,8 +72,29 @@ def condicion_activa(p, dat):
     return None
 
 
+_memo = {}
+MEMO_S = 30   # s: el inventario y el panel evalúan cada máquina varias veces por página; se reutiliza mientras sus datos no cambien
+
+
 def evaluar(cliente_id, e, con_cobertura=True):
-    """Errores conocidos que aplican al equipo, su estado (activo / prevenido / en deuda / sin prevención) y el riesgo total."""
+    """Errores conocidos que aplican al equipo, su estado (activo / prevenido / en deuda / sin prevención) y el riesgo total.
+    Memoria corta por equipo (MEMO_S) atada a sus datos: si la recolección los cambia, se vuelve a evaluar al tiro."""
+    import copy
+    import hashlib
+    clave = (cliente_id, e.get("id"), e.get("nombre"), e.get("estado"), con_cobertura,
+             hashlib.sha1(str(e.get("datos") or "").encode()).hexdigest())
+    ahora_ = time.time()
+    m = _memo.get(clave)
+    if m and ahora_ - m[0] < MEMO_S:
+        return copy.deepcopy(m[1])
+    r = _evaluar(cliente_id, e, con_cobertura)
+    if len(_memo) > 2000:
+        _memo.clear()
+    _memo[clave] = (ahora_, r)
+    return copy.deepcopy(r)
+
+
+def _evaluar(cliente_id, e, con_cobertura=True):
     from . import kb
     if not kb.disponible():
         return None
