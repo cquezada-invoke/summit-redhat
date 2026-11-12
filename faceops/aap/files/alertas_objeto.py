@@ -12,7 +12,6 @@ import sys
 import yaml
 
 RUTA = "/etc/prometheus/faceops"
-FACEOPS = "192.168.122.1:8110"   # dónde escucha FaceOps en el anfitrión (el mismo de las demás integraciones del monitoreo)
 SEV = {"aviso": "warning", "critico": "critical"}
 
 
@@ -40,7 +39,7 @@ def _num(v):
 EXPORTADORES = {"redis": 9121, "postgresql": 9187, "nginx": 9113, "jboss": 9990}   # puerto del exportador de cada plataforma (/metrics)
 
 
-def preparar_prometheus(cfg):
+def preparar_prometheus(cfg, faceops=""):
     """Asegura en prometheus.yml las reglas y los dos trabajos de FaceOps (equipos con exportador y sondeo TCP vía blackbox)."""
     cambio = False
     rf = cfg.setdefault("rule_files", []) or []
@@ -70,9 +69,9 @@ def preparar_prometheus(cfg):
     if "faceops-exportadores" not in nombres:   # exportadores de plataforma (redis_exporter, postgres_exporter, nginx, métricas de JBoss)
         sc.append({"job_name": "faceops-exportadores", "file_sd_configs": [{"files": [f"{RUTA}/objetivos/plt-*.yml"]}]})
         cambio = True
-    if "faceops-plataformas" not in nombres:   # plataformas: lo que FaceOps midió sin agente (AAP por SSH/API), publicado en el anfitrión
+    if faceops and "faceops-plataformas" not in nombres:   # plataformas: lo que FaceOps midió sin agente (AAP por SSH/API), publicado en el anfitrión
         sc.append({"job_name": "faceops-plataformas", "metrics_path": "/metricas/plataformas", "scrape_interval": "60s", "honor_labels": True,
-                   "static_configs": [{"targets": [FACEOPS]}]})
+                   "static_configs": [{"targets": [faceops]}]})
         cambio = True
     cfg["scrape_configs"] = sc
     return cambio
@@ -222,7 +221,10 @@ def main():
     if not re.fullmatch(r"[A-Za-z0-9._-]{1,63}", ped["equipo"]):
         raise SystemExit("Nombre de equipo inválido")
     t = cat["tipos"][ped["tipo"]]
-    cambio = preparar_prometheus(cfg)
+    faceops = ped.get("faceops_metricas") or (cat.get("monitoreo") or {}).get("faceops_metricas") or ""   # configuración, no código
+    if faceops and not re.fullmatch(r"[A-Za-z0-9.-]+:\d{2,5}", faceops):
+        raise SystemExit(f"faceops_metricas inválido: {faceops}")
+    cambio = preparar_prometheus(cfg, faceops)
     retirar = ped.get("retirar") or not ped.get("alertas")
     rs, resumen = ([], []) if retirar else reglas(cat, ped)
     pref = "tcp" if t["job"] == "faceops-sondeo" else ("seg" if t["job"] == "faceops-segmentos" else "exp")

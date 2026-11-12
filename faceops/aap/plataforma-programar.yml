@@ -1,0 +1,34 @@
+---
+# Plataforma · Programar medición. Autoriza, con UN ticket y su aprobación, que la salud de todas las plataformas se mida sin
+# agente cada pm_frecuencia minutos: valida el plan que arma FaceOps (un grupo por inventario y credencial de AAP, con sus
+# máquinas y plataformas) y lo devuelve; aprobado y exitoso, FaceOps deja en AAP un schedule de «Plataforma · Medir salud» por
+# grupo (sin duplicar). No entra a ninguna máquina.
+# Variables: pm_frecuencia (minutos, 5 a 1440) · pm_grupos [{inventario_id, inventario, credenciales, limite, objetivos}]
+- name: Plataforma · Programar medición
+  hosts: localhost
+  gather_facts: false
+  vars:
+    validas: [data-lake, kafka, keycloak, jboss-eap, redis, postgresql, activemq, nginx, vault, satellite, red-hat-idm, 389-directory-server, iis, active-directory]
+  tasks:
+    - name: Plan válido
+      ansible.builtin.assert:
+        that:
+          - (pm_frecuencia | default(0) | int) >= 5 and (pm_frecuencia | int) <= 1440
+          - pm_grupos | default([]) | length > 0
+          - pm_grupos | map(attribute='objetivos') | flatten | map(attribute='plataforma') | reject('in', validas) | list | length == 0
+          - pm_grupos | map(attribute='limite') | reject('match', '^[A-Za-z0-9._:-]+$') | list | length == 0
+        fail_msg: "Plan de medición no válido: frecuencia entre 5 y 1440 minutos, al menos un grupo y solo plataformas medibles"
+        quiet: true
+
+    - name: Plan aprobado (FaceOps crea los schedules en AAP al terminar)
+      ansible.builtin.set_stats:
+        data:
+          faceops_programacion:
+            frecuencia: "{{ pm_frecuencia | int }}"
+            grupos: "{{ pm_grupos | length }}"
+            plataformas: "{{ pm_grupos | map(attribute='objetivos') | flatten | length }}"
+        per_host: false
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ pm_grupos | map(attribute='objetivos') | flatten | length }} plataformas en {{ pm_grupos | length }} grupo(s), cada {{ pm_frecuencia }} min"

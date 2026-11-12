@@ -81,7 +81,7 @@
       delegate_to: localhost
       become: false
       loop:
-        - {n: json, c: "{{ {'equipo': al_equipo, 'ip': al_ip | default(''), 'tipo': al_tipo, 'ambito': al_ambito | default('maquina'), 'alertas': al_alertas | default([]), 'retirar': retirar, 'inventario': al_inventario | default(''), 'credencial': al_credencial | default(''), 'objetivos': al_objetivos | default([])} | to_json }}"}
+        - {n: json, c: "{{ {'equipo': al_equipo, 'ip': al_ip | default(''), 'tipo': al_tipo, 'ambito': al_ambito | default('maquina'), 'alertas': al_alertas | default([]), 'retirar': retirar, 'inventario': al_inventario | default(''), 'faceops_metricas': al_faceops_metricas | default(''), 'credencial': al_credencial | default(''), 'objetivos': al_objetivos | default([])} | to_json }}"}
         - {n: prom, c: "{{ r_cfg.content | b64decode }}"}
       loop_control:
         label: "{{ item.n }}"

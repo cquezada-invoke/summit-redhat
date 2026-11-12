@@ -3,44 +3,54 @@
 # entra por SSH (Linux) o WinRM (Windows) y lee las APIs locales de la plataforma y comandos de consulta; no cambia nada,
 # no instala nada y no imprime secretos. Lo medido vuelve a FaceOps (faceops_salud_plat): la ficha de la plataforma arma
 # su salud y FaceOps publica los mismos valores como métricas (/metricas/plataformas) para sus alertas en Prometheus.
+# Programada (schedule de AAP cada 15 min, aprobado una sola vez con «Plataforma · Programar medición»): pm_objetivos =
+#   [{equipo, plataforma, puerto?}] y cada máquina del límite mide las suyas; lo que no responde se informa sin cortar a las demás.
 # Variables: pm_plataforma (código: data-lake, kafka, keycloak, jboss-eap, redis, postgresql, activemq, nginx, vault,
 #            satellite, red-hat-idm, 389-directory-server, iis, active-directory) · pm_puerto (opcional: puerto HTTP propio,
 #            p. ej. Keycloak en 8180)
 - name: Plataforma · Medir salud
   hosts: all:!localhost:!anfitrion-snapshots:!anfitrion_kvm
   gather_facts: false
+  ignore_unreachable: "{{ pm_objetivos is defined }}"
   become: "{{ (ansible_connection | default('ssh')) not in ['winrm', 'psrp'] }}"
   vars:
     windows: "{{ (ansible_connection | default('ssh')) in ['winrm', 'psrp'] }}"
     linux_ok: [data-lake, kafka, keycloak, jboss-eap, redis, postgresql, activemq, nginx, vault, satellite, red-hat-idm, 389-directory-server]
     windows_ok: [iis, active-directory]
+    programada: "{{ pm_objetivos is defined }}"
+    lista: >-
+      {{ (pm_objetivos | default([]) | selectattr('equipo', 'equalto', inventory_hostname) | list) if (pm_objetivos is defined)
+         else [{'plataforma': pm_plataforma | default(''), 'puerto': pm_puerto | default('')}] }}
   tasks:
     - name: Datos válidos
       ansible.builtin.assert:
         that:
-          - pm_plataforma | default('') in (windows_ok if windows else linux_ok)
-          - (pm_puerto | default('') | string) is match('^([0-9]{2,5})?$')
+          - lista | length > 0
+          - lista | map(attribute='plataforma') | reject('in', windows_ok if windows else linux_ok) | list | length == 0
+          - lista | map(attribute='puerto', default='') | map('string') | reject('match', '^([0-9]{2,5})?$') | list | length == 0
         fail_msg: >-
-          {{ pm_plataforma | default('(vacía)') }} no se mide por {{ 'WinRM' if windows else 'SSH' }} en esta máquina:
-          plataformas válidas {{ (windows_ok if windows else linux_ok) | join(', ') }}
+          {{ lista | map(attribute='plataforma') | join(', ') or '(vacía)' }} no se mide por {{ 'WinRM' if (windows | bool) else 'SSH' }} en esta
+          máquina: plataformas válidas {{ (windows_ok if (windows | bool) else linux_ok) | join(', ') }}
         quiet: true
 
-    - name: Medir {{ pm_plataforma }} (Linux, APIs locales y comandos de lectura)
+    - name: Medir (Linux, APIs locales y comandos de lectura)
       when: not windows
       ansible.builtin.script:
-        cmd: "medir_plataforma.py {{ pm_plataforma | quote }} {{ pm_puerto | default('') | string | quote }}"
+        cmd: "medir_plataforma.py {{ item.plataforma | quote }} {{ item.puerto | default('') | string | quote }}"
         executable: /usr/bin/python3
+      loop: "{{ lista }}"
+      loop_control: {label: "{{ item.plataforma }}"}
       register: r_lx
       changed_when: false
-      failed_when: r_lx.rc not in [0]
+      failed_when: r_lx.rc | default(1) != 0 and not (programada | bool)
 
-    - name: Medir {{ pm_plataforma }} (Windows, WinRM)
+    - name: Medir (Windows, WinRM)
       when: windows
       ansible.windows.win_shell: |
         $ErrorActionPreference = 'SilentlyContinue'
         $V = @{}; $T = @{}; $C = @(); $N = @()
         function Comp($n, $ok, $d) { $script:C += @{n = $n; ok = $ok; d = $d} }
-        if ('{{ pm_plataforma }}' -eq 'iis') {
+        if ('{{ item.plataforma }}' -eq 'iis') {
           $s = Get-Service W3SVC; $V.servicio_activo = [int]($s.Status -eq 'Running'); Comp 'w3svc' ($s.Status -eq 'Running') "$($s.Status)"
           $w = Get-Service WAS; Comp 'was' ($w.Status -eq 'Running') "$($w.Status)"
           Import-Module WebAdministration
@@ -60,25 +70,36 @@
           $T.dominio = (Get-CimInstance Win32_ComputerSystem).Domain
         }
         @{valores = $V; texto = $T; componentes = $C; notas = $N} | ConvertTo-Json -Depth 4 -Compress
+      loop: "{{ lista }}"
+      loop_control: {label: "{{ item.plataforma }}"}
       register: r_win
       changed_when: false
+      failed_when: r_win.rc | default(1) != 0 and not (programada | bool)
+
+    - name: Sin medición aún
+      ansible.builtin.set_fact:
+        medido: {}
 
     - name: Lo medido
       ansible.builtin.set_fact:
-        medido: "{{ ((r_win.stdout if windows else r_lx.stdout) | trim | from_json) }}"
+        medido: "{{ medido | combine({item.item.plataforma: (item.stdout | trim | from_json) | combine({'medido': lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ')})}) }}"
+      loop: "{{ (r_win if (windows | bool) else r_lx).results | selectattr('stdout', 'defined') | selectattr('stdout', 'match', '^\\s*\\{') | list }}"
+      loop_control: {label: "{{ item.item.plataforma }}"}
 
     - name: Sin medición útil
       ansible.builtin.fail:
-        msg: "{{ medido.error }}"
-      when: medido.error is defined
+        msg: "{{ medido.values() | selectattr('error', 'defined') | map(attribute='error') | join('; ') or 'la plataforma no respondió a la medición' }}"
+      when: not (programada | bool) and (medido | length == 0 or medido.values() | selectattr('error', 'defined') | list | length > 0)
 
     - name: Resultado para FaceOps (ficha y métricas de la plataforma)
       ansible.builtin.set_stats:
         data:
-          faceops_salud_plat: "{{ {inventory_hostname: {pm_plataforma: medido | combine({'medido': lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ')})}} }}"
+          faceops_salud_plat: "{{ {inventory_hostname: medido | dict2items | rejectattr('value.error', 'defined') | items2dict} }}"
         per_host: false
         aggregate: true
 
     - name: Resumen
       ansible.builtin.debug:
-        msg: "{{ pm_plataforma }} en {{ inventory_hostname }}: {{ medido.valores | dictsort | map('join', '=') | join(' · ') }}{{ (' · notas: ' ~ (medido.notas | join('; '))) if medido.notas else '' }}"
+        msg: "{{ item.key }} en {{ inventory_hostname }}: {{ (item.value.valores | default({})) | dictsort | map('join', '=') | join(' · ') }}{{ (' · notas: ' ~ (item.value.notas | join('; '))) if item.value.notas | default([]) else '' }}"
+      loop: "{{ medido | dict2items }}"
+      loop_control: {label: "{{ item.key }}"}

@@ -34,9 +34,15 @@ planes:
       - {id: C4, caso: "Deshabilitar y volver a habilitar una cuenta normal de la máquina", verificar: "tickets exitosos; passwd -S muestra L y luego P/NP; sus sesiones se cierran al deshabilitar"}
       - {id: C5, caso: "Revertir", verificar: "ticket exitoso; sin tabla faceops_contencion ni servicio; la máquina vuelve a responder a todos"}
       - {id: C6, caso: "Bloquear la IP de AAP (192.168.122.1) o deshabilitar root", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; la máquina no cambia"}
+  "Plataforma · Programar medición":
+    casos:
+      - {id: C1, caso: "Programar la medición de todas las plataformas cada 15 minutos (un ticket, una aprobación)", verificar: "ticket exitoso; en AAP queda un schedule de «Plataforma · Medir salud» por inventario y credencial, cada 15 min, con su límite, sus credenciales y pm_objetivos; su primera corrida deja lo medido en las fichas"}
+      - {id: C2, caso: "Repetir la programación", tipo: Idempotencia, verificar: "ticket exitoso; los schedules se actualizan sin duplicarse (misma cantidad)"}
+      - {id: C3, caso: "Frecuencia inválida (1 minuto)", tipo: Error controlado, verificar: "ticket fallido en «Plan válido»; los schedules quedan como estaban"}
   "Plataforma · Medir salud":
     casos:
       - {id: C1, caso: "Medir el data lake en nodo-storage (SeaweedFS: S3 :9000, master :9333, filer :8888, disco /srv/datalake)", verificar: "ticket exitoso de solo lectura; faceops_salud_plat trae s3_responde, comp_ok/comp_total (4 componentes), buckets y espacio_libre_pct, y el espacio coincide con df en la máquina (±2 puntos); la ficha PL-DATA-LAKE-0027 muestra la medición y su salud"}
+      - {id: C6, caso: "Medición programada: varias plataformas de una máquina en un solo trabajo (pm_objetivos, nodo-jboss: JBoss, Redis y Keycloak en 8180)", verificar: "ticket exitoso; faceops_salud_plat trae las tres plataformas de nodo-jboss"}
       - {id: C2, caso: "Medir Kafka en nodo-nginx (herramientas del broker contra su bootstrap)", verificar: "ticket exitoso; brokers_arriba ≥ 1 si el servicio kafka está activo en la máquina, particiones sub-replicadas y sin líder medidas, consumer lag sumado"}
       - {id: C3, caso: "Medir Redis (Valkey) en nodo-tomcat sin mostrar la clave", verificar: "ticket exitoso; ping y persistencia medidos; la salida del trabajo no contiene ninguna clave"}
       - {id: C4, caso: "Repetir la medición del data lake", tipo: Idempotencia, verificar: "ticket exitoso sin cambios en la máquina (changed=0); los mismos indicadores"}

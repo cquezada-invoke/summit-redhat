@@ -445,3 +445,115 @@ def _registrar_metricas(st):
 
 
 bp.record_once(_registrar_metricas)
+
+
+# ───────────────────────────────────────────── medición programada (schedule de AAP cada 15 minutos)
+PROGRAMAR = "Plataforma · Programar medición"
+MEDIBLES = ("data-lake", "kafka", "keycloak", "jboss-eap", "redis", "postgresql", "activemq", "nginx", "vault", "satellite",
+            "red-hat-idm", "389-directory-server", "iis", "active-directory")
+FRECUENCIA_MIN = 15
+
+
+def grupos_programables(cliente, aap):
+    """[{inventario_id, inventario, credenciales, limite, objetivos}]: todas las plataformas medibles por SSH/WinRM del cliente,
+    agrupadas por el inventario y la credencial de AAP con que se llega a sus máquinas (un schedule por grupo)."""
+    from .operacion import acceso_equipo
+    from .vistas import _plataformas_de, _riesgo_parque, familia, puerto_web
+    grupos = {}
+    for e, r in _riesgo_parque():
+        if (e.get("categoria") or "") in ("clúster openshift", "router", "switch", "firewall", "balanceador") or not e.get("ip"):
+            continue
+        cods = [c for c in dict.fromkeys(_plataformas_de(e, r)) if c in MEDIBLES]
+        if not cods:
+            continue
+        try:
+            inv_id, inv_n, creds = acceso_equipo(aap, cliente, e)
+        except Exception:  # noqa: BLE001  sin acceso en AAP: no se programa (su ficha lo muestra al medir)
+            continue
+        k = (inv_id, inv_n, tuple(creds))
+        x = grupos.setdefault(k, {"inventario_id": inv_id, "inventario": inv_n, "credenciales": list(creds), "equipos": [], "objetivos": []})
+        x["equipos"].append(e["nombre"])
+        for c in cods:
+            o = {"equipo": e["nombre"], "plataforma": c}
+            if familia(c) == "keycloak":
+                o["puerto"] = str(puerto_web(e, "keycloak", 8080))
+            x["objetivos"].append(o)
+    return [dict(v, limite=":".join(v.pop("equipos"))) for v in grupos.values()]
+
+
+@bp.route("/plataformas/medicion/programar", methods=["POST"])
+@requiere_login
+def plataformas_programar():
+    """Programa la medición sin agente de todas las plataformas cada 15 minutos: UN ticket con aprobación; aprobado, FaceOps deja
+    en AAP un schedule de «Plataforma · Medir salud» por inventario y credencial (solo lectura)."""
+    from .aap import AAP, ErrorAAP
+    from .operacion import solicitar
+    from .vistas import _escritura
+    _escritura()
+    a = _auto(PROGRAMAR)
+    try:
+        if not a:
+            raise ValueError(f"«{PROGRAMAR}» aún no está publicada en AAP")
+        gr = grupos_programables(g.cliente, AAP.de_cliente(g.cliente))
+        if not gr:
+            raise ValueError("No hay plataformas medibles con acceso en AAP")
+        t = solicitar(g.usuario, g.cliente, a, "", {"pm_frecuencia": FRECUENCIA_MIN, "pm_grupos": gr},
+                      f"Medir la salud de {sum(len(x['objetivos']) for x in gr)} plataformas cada {FRECUENCIA_MIN} minutos")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return _json_ticket(t, a)
+
+
+def programar_al_terminar(aap, c, t):
+    """Hook del ticket aprobado y exitoso de «Plataforma · Programar medición»: un schedule por grupo (sin duplicar)."""
+    p = j(t["parametros"], {}) or {}
+    med = q1("SELECT aap_id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", c["id"], MEDIR)
+    if not med:
+        return "\nFalta «Plataforma · Medir salud» en el catálogo"
+    frec = int(p.get("pm_frecuencia") or FRECUENCIA_MIN)
+    out = []
+    for gr in p.get("pm_grupos") or []:
+        nom = f"Medición de plataformas · {gr['inventario']}" + (f" · credencial {'-'.join(str(x) for x in gr['credenciales'])}" if gr.get("credenciales") else "")
+        datos = {"name": nom, "rrule": f"DTSTART;TZID=America/Santiago:20261112T000000 RRULE:FREQ=MINUTELY;INTERVAL={frec}",
+                 "inventory": gr["inventario_id"], "limit": gr["limite"], "extra_data": {"pm_objetivos": gr["objetivos"]},
+                 "description": f"Programado desde {t['numero']} (solo lectura, sin agente)", "enabled": True}
+        ya = aap.get(f"job_templates/{med['aap_id']}/schedules/", name=nom).get("results") or []
+        if ya:
+            s = aap.patch(f"schedules/{ya[0]['id']}/", datos)
+        else:
+            s = aap.post(f"job_templates/{med['aap_id']}/schedules/", datos)
+        tiene = {x["id"] for x in (aap.get(f"schedules/{s['id']}/credentials/").get("results") or [])}
+        for cr in gr.get("credenciales") or []:
+            if cr not in tiene:
+                aap.post(f"schedules/{s['id']}/credentials/", {"id": cr})
+        out.append(f"{nom}: {len(gr['objetivos'])} plataformas cada {frec} min")
+    return "\nProgramado en AAP: " + " · ".join(out)
+
+
+_ult_recogida = {}
+
+
+def recoger_programadas(c):
+    """Lo que midieron los trabajos programados (schedules) queda en las fichas y en sus métricas. Cada 60 s como máximo."""
+    from .aap import AAP
+    from .bd import con
+    if time.time() - _ult_recogida.get(c["id"], 0) < 60:
+        return 0
+    _ult_recogida[c["id"]] = time.time()
+    med = q1("SELECT aap_id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", c["id"], MEDIR)
+    if not med or not med["aap_id"]:
+        return 0
+    con().execute("CREATE TABLE IF NOT EXISTS plat_medicion_ult (cliente_id INTEGER PRIMARY KEY, job INTEGER)")
+    ult = (q1("SELECT job FROM plat_medicion_ult WHERE cliente_id=?", c["id"]) or {}).get("job") or 0
+    aap = AAP.de_cliente(c)
+    jobs = aap.get("jobs/", job_template=med["aap_id"], launch_type="scheduled", id__gt=ult, order_by="id",
+                   status__in="successful,failed", page_size=50).get("results") or []
+    for jb in jobs:
+        try:
+            registrar_medicion(c["id"], aap.get(f"jobs/{jb['id']}/").get("artifacts") or {}, f"programada · trabajo {jb['id']}")
+        except Exception:  # noqa: BLE001
+            pass
+        ult = jb["id"]
+    if jobs:
+        ej("INSERT INTO plat_medicion_ult(cliente_id, job) VALUES (?, ?) ON CONFLICT(cliente_id) DO UPDATE SET job=excluded.job", c["id"], ult)
+    return len(jobs)

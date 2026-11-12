@@ -10,6 +10,11 @@
 # pendiente: alerta que aún no se puede medir en el lab (falta su exportador); FaceOps la muestra deshabilitada con el motivo.
 #   __EQ__     → nombre del equipo (etiqueta faceops_equipo de sus métricas)
 #   __UMBRAL__ → umbral de aviso o crítico (una regla por severidad)
+# monitoreo: datos del entorno que usa Ansible al armar Prometheus. faceops_metricas: dónde escucha FaceOps en el anfitrión
+#   (host:puerto) para leer las métricas de plataformas medidas sin agente (/metricas/plataformas). Se puede reemplazar al
+#   lanzar con la variable al_faceops_metricas.
+monitoreo:
+  faceops_metricas: "192.168.122.1:8110"
 tipos:
   linux:   {nombre: "Servidor Linux", fuente: "node_exporter (:9100)", puerto: 9100, job: faceops-equipos}
   windows: {nombre: "Servidor Windows", fuente: "windows_exporter (:9182)", puerto: 9182, job: faceops-equipos}

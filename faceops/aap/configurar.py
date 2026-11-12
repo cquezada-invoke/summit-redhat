@@ -185,7 +185,8 @@ for f_ in ("red-respaldo.yml", "red-drift.yml", "red-config-leer.yml"):   # Red 
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/files/red_config.py", f"{tmp}/playbooks/files/red_config.py")
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
-shutil.copy(f"{AQUI}/plataforma-medir.yml", f"{tmp}/playbooks/plataforma-medir.yml")   # Plataforma · Medir salud (ficha de plataforma)
+shutil.copy(f"{AQUI}/plataforma-medir.yml", f"{tmp}/playbooks/plataforma-medir.yml")
+shutil.copy(f"{AQUI}/plataforma-programar.yml", f"{tmp}/playbooks/plataforma-programar.yml")   # Plataforma · Programar medición   # Plataforma · Medir salud (ficha de plataforma)
 shutil.copy(f"{AQUI}/files/medir_plataforma.py", f"{tmp}/playbooks/files/medir_plataforma.py")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
 shutil.copy(f"{AQUI}/escaneo-servidores.yml", f"{tmp}/playbooks/escaneo-servidores.yml")
@@ -463,6 +464,11 @@ jpm = asegurar("job_templates", "Plataforma · Medir salud", {   # solo lectura,
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 900,
     "description": "Mide sin agente los indicadores propios de una plataforma (S3, Kafka, Keycloak, JBoss, Redis, PostgreSQL…) por SSH o WinRM. Solo lectura"})
 paso(f"Plantilla «Plataforma · Medir salud» (id {jpm['id']})")
+jpp = asegurar("job_templates", "Plataforma · Programar medición", {   # no entra a máquinas: FaceOps crea los schedules al aprobarse
+    "organization": org["id"], "project": proy, "playbook": "playbooks/plataforma-programar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "timeout": 300,
+    "description": "Autoriza medir la salud de todas las plataformas cada 15 minutos (un schedule de «Plataforma · Medir salud» por inventario)"})
+paso(f"Plantilla «Plataforma · Programar medición» (id {jpp['id']})")
 
 jls = asegurar("job_templates", "Storage · Servicio S3 del data lake", {   # acción sobre un equipo de almacenamiento: inventario y credencial al lanzar
     "organization": org["id"], "project": proy, "playbook": "playbooks/storage-lake-s3.yml", "inventory": inv["id"],

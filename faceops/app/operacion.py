@@ -1401,6 +1401,13 @@ def actualizar_tickets():
                     reg_identidad(c["id"], artefactos_ticket(aap, t), t["numero"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error fuente de usuarios", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "Plataforma · Programar medición":
+                try:   # aprobado una vez: un schedule de «Plataforma · Medir salud» por inventario y credencial, cada 15 minutos
+                    from .ficha_plataforma import programar_al_terminar
+                    res += programar_al_terminar(aap, c, t)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error al programar la medición de plataformas", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "Plataforma · Medir salud":
                 try:   # lo medido sin agente queda en la ficha de la plataforma (y en sus métricas para las alertas)
                     from .ficha_plataforma import registrar_medicion
@@ -1917,6 +1924,12 @@ def vigia(intervalo=10):
                             lanzar_uso(c)
                         except Exception as e:  # noqa: BLE001
                             auditar("sistema", c["id"], "error uso por segmento", "inventario", {"error": str(e)[:300]})
+                from .ficha_plataforma import recoger_programadas   # lo medido por los schedules de plataformas
+                for c in q("SELECT * FROM clientes WHERE activo=1 AND aap_url!=''"):
+                    try:
+                        recoger_programadas(c)
+                    except Exception:  # noqa: BLE001
+                        pass
                 from .uso import recoger as recoger_uso
                 for c in q("SELECT * FROM clientes WHERE activo=1 AND aap_url!=''"):
                     try:
