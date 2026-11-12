@@ -204,8 +204,8 @@ def _salud_y_capacidad(aap):
             return False, "AAP sin capacidad (sin nodos de ejecución activos)", det
         if conc and all((x.get("percent_capacity_remaining") or 0) <= 0 for x in conc) and pend > 0:
             return False, "AAP sin capacidad", det
-        if pend >= MAX_PENDIENTES_AAP:
-            return False, f"AAP sin capacidad ({pend} trabajos pendientes)", det
+        if pend >= MAX_PENDIENTES_AAP and det["capacidad"] <= 0:   # «pending» solo no basta: AAP deja en espera trabajos de
+            return False, f"AAP sin capacidad ({pend} trabajos pendientes)", det   # una misma plantilla aunque tenga capacidad
     except aap_mod.AAPNoDisponible:
         return False, "AAP no disponible", det
     except Exception as x:  # noqa: BLE001 - sin permiso para leer la capacidad: se lanza igual (AAP la administra)
