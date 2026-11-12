@@ -5,7 +5,8 @@
 set -euo pipefail
 RAMA=${RAMA:-feature/faceops-awx}
 REPO=${REPO:-https://github.com/cquezada-invoke/summit-redhat.git}
-AWX_OP=${AWX_OP:-2.19.1}; EDA_OP=${EDA_OP:-main}; K3S=${K3S:-v1.30.6+k3s1}
+AWX_OP=${AWX_OP:-2.19.1}; EDA_OP=${EDA_OP:-9120da27dbd15c7d10245ecfbee5dd6d3df01c7e};   # commit de main fijado: su imagen exacta está en ghcr.io (la «main» de quay quedó atrás y entra en CrashLoop)
+ K3S=${K3S:-v1.30.6+k3s1}
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml PATH=$PATH:/usr/local/bin
 P=/root/prueba; install -d -m 700 $P
 umask 077
@@ -39,6 +40,9 @@ resources:
 images:
   - name: quay.io/ansible/awx-operator
     newTag: $AWX_OP
+  - name: gcr.io/kubebuilder/kube-rbac-proxy   # gcr.io/kubebuilder ya no existe
+    newName: quay.io/brancz/kube-rbac-proxy
+    newTag: v0.15.0
 K
 cat > /opt/prueba/awx/awx.yaml <<K
 apiVersion: awx.ansible.com/v1beta1
@@ -67,7 +71,7 @@ resources:
   - eda.yaml
 images:
   - name: controller
-    newName: quay.io/ansible/eda-server-operator
+    newName: ghcr.io/ansible/eda-server-operator
     newTag: $EDA_OP
 K
 cat > /opt/prueba/eda/eda.yaml <<K

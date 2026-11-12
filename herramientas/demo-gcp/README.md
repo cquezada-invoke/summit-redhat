@@ -1,7 +1,10 @@
 # Demo instantánea en GCP (AWX + EDA comunitarios, sin RHEL ni OpenShift)
 
-Estado: **fase 1**. FaceAdmin ya gobierna el ciclo de vida (faceadmin/demo_gcp.py + faceadmin/gcp.py, probado con la API simulada:
-`python3 herramientas/demo-gcp/prueba_demo_gcp.py`). **La imagen dorada y las VMs aún no se crean**: falta decidir lo de la última sección.
+Estado: **fase 2**. La demo se crea **solo desde FaceAdmin**: en la oportunidad, panel «Demo o PoC» › **Demo de FaceOps** crea la Demo y su VM
+en un paso (n2-standard-4, 1 semana por defecto y 14 días como máximo, horario hábil, apagado sin uso, eliminación al vencer).
+FaceAdmin usa la cuenta de servicio adjunta a su VM (`faceadmin-demos@…`, por metadatos: sin clave JSON). Imagen base: `construir-imagen.py`.
+
+Pruebas: `prueba_demo_gcp.py` (API simulada) y `prueba_real_demo.py` (crea UNA demo real, verifica acceso, apagado programado y eliminación, y limpia).
 
 ## 1. Factibilidad
 
@@ -49,7 +52,7 @@ Estimación: 1–2 días de adaptación + la regla de prueba de FaceOps sobre la
 | 3 VMs anidadas Rocky 9 | 6 GB |
 | **Total** | **~18 GB** |
 
-- **Recomendado: n2-standard-8** (8 vCPU = 4 cores físicos, 32 GB), disco 100 GB pd-balanced: **USD 0,5555/h** encendida.
+- **Elegido: n2-standard-4** (pedido de Cristian; 2 VMs anidadas de 1,5 GB y requests mínimos de AWX/EDA). Antes se recomendaba n2-standard-8 (8 vCPU = 4 cores físicos, 32 GB), disco 100 GB pd-balanced: **USD 0,5555/h** encendida.
   Mínimo: n2-standard-4 (2 cores físicos, 16 GB) a USD 0,2778/h con 2 VMs anidadas de 1,5 GB: justo, con riesgo de lentitud al correr trabajos.
 - Fijos aunque esté apagada: disco ~USD 0,143 GB-mes (100 GB ≈ USD 3,3/semana) + IP reservada (~USD 0,01/h sin uso).
 - **Tope por demo** (1 semana, L–V 8–19 = 55 h): ≈ USD 31 de cómputo + ≈ USD 5 fijos ≈ **USD 36**. Con uso real de ~15 h: ≈ USD 13.
@@ -96,10 +99,16 @@ gcloud iam service-accounts keys create /tmp/fa-demos.json --iam-account=$SA
 
 Reglas de firewall: tráfico 80/443 a las VMs con etiqueta `http-server`/`https-server` (80 solo para el certificado). La VM debe poder llegar a FaceAdmin por HTTPS (8843).
 
-## 5. Imagen dorada (no ejecutado)
+## 5. Imagen base (familia `faceops-demo`)
 
-`PROYECTO=master-ia-320218 bash herramientas/demo-gcp/construir-imagen.sh` → VM temporal Rocky 9 anidada (con tope de 6 h), `preparar-vm.sh`, generalizar,
-imagen en la familia `faceops-demo`, borrar la VM temporal. Tiempo de creación de una demo desde la imagen: ~3–5 min (VM) + ~3–5 min (arranque de AWX/EDA).
+SO: **Rocky Linux 9** (imagen pública de GCP sin costo de licencia, binariamente compatible con RHEL: los playbooks de FaceOps corren igual).
+
+Se construye desde la VM de FaceAdmin, con su cuenta de servicio: `python3 herramientas/demo-gcp/construir-imagen.py` → VM constructora
+`demo-constructor-<fecha>` (n2-standard-4, anidada, tope de 4 h con DELETE) cuyo startup-script clona la rama y corre `preparar-vm.sh`:
+k3s (nodo fijo en una interfaz ficticia, independiente de la IP de GCP) + AWX 24.6.1 + EDA comunitarios, FaceOps en modo awx con validador local,
+2 VMs Rocky anidadas (nodo-web, nodo-app) más la propia VM (nodo-prueba) en el inventario de AWX, Caddy, primer arranque y agente de uso.
+**Antes de generalizar corre la prueba real `prueba-awx/e2e.py`: si falla, no hay imagen.** Se guardan las 2 últimas imágenes de la familia.
+El primer arranque de cada demo renueva todas las claves internas (admin de AWX/EDA, token de FaceOps, credencial EDA→AWX) y crea el usuario del cliente. Tiempo de creación de una demo desde la imagen: ~3–5 min (VM) + ~3–5 min (arranque de AWX/EDA). Medido: ver `prueba_real_demo.py`.
 
 ## 6. Decisiones pendientes
 

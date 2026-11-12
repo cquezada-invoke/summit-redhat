@@ -74,7 +74,11 @@ if RAMA="__RAMA__" REPO=__REPO__ bash /opt/prueba/fuente/herramientas/demo-gcp/p
   install -d /var/lib/demo; touch /var/lib/demo/construida; sync
   s "CONSTRUCCION OK"; sleep 5; poweroff
 else
-  s "CONSTRUCCION FALLO"; tail -40 /var/log/demo-construccion.log | grep -viE 'clave|password|token|secret' > /dev/ttyS0
+  s "CONSTRUCCION FALLO"
+  export KUBECONFIG=/etc/rancher/k3s/k3s.yaml PATH=$PATH:/usr/local/bin
+  { echo "== DIAG pods"; kubectl get pods -A 2>&1; for ns in awx eda; do for d in $(kubectl -n $ns get deploy -o name 2>/dev/null); do
+      echo "== DIAG $ns $d"; kubectl -n $ns logs $d --all-containers --tail=15 2>&1; done; done
+    echo "== DIAG log"; tail -40 /var/log/demo-construccion.log; free -m; } 2>&1 | grep -viE 'clave|password|passwd|token|secret' | cut -c1-240 | sed 's/^/DIAG /' > /dev/ttyS0
 fi
 """
 
@@ -115,7 +119,7 @@ def main():
             pos = int(s.get("next", pos))
             for l in s.get("contents", "").splitlines():
                 l = l.split("startup-script: ", 1)[-1].strip()
-                if l.startswith("== ") or "CONSTRUCCION" in l or "✓" in l or "✗" in l or "verificaciones" in l or "FALL" in l or "rror" in l:
+                if l.startswith("== ") or l.startswith("DIAG") or "CONSTRUCCION" in l or "✓" in l or "✗" in l or "verificaciones" in l or "FALL" in l:
                     if not any(k in l.lower() for k in ("clave=", "password=", "token=")):
                         print("  " + l[:300], flush=True)
                     if "CONSTRUCCION OK" in l:

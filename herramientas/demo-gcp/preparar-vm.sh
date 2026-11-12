@@ -15,7 +15,7 @@ paso "nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)"
 nmcli -t -f NAME con show | grep -qx demo0 || nmcli -g UUID con add type dummy ifname demo0 con-name demo0 ipv4.method manual ipv4.addresses 10.254.254.1/32 ipv6.method disabled >/dev/null
 nmcli con up demo0 >/dev/null
 install -d /etc/rancher/k3s
-printf 'node-name: faceops-demo\nnode-ip: 10.254.254.1\nflannel-iface: demo0\ndisable: [metrics-server]\n' > /etc/rancher/k3s/config.yaml
+printf 'node-name: faceops-demo\nnode-ip: 10.254.254.1\nflannel-iface: demo0\ndisable: [metrics-server]\ndisable-network-policy: true\n' > /etc/rancher/k3s/config.yaml
 # AWX entra por SSH como root a esta misma máquina (nodo-prueba) y a las VMs anidadas: solo desde la red interna
 printf 'Match Address 192.168.122.0/24,10.42.0.0/16,10.254.254.1\n    PermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/90-demo-awx.conf
 systemctl reload sshd
