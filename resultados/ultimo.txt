@@ -1,39 +1,25 @@
-commit: 2f52ff9bfb2a9dadee0e143af8f71233338c0597
-inicio: 2026-11-11T23:55:49-03:00
+commit: a093c1876dbe93569ffe8c90fec314105b290a80
+inicio: 2026-11-11T23:54:21-03:00
 ---
-[gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8110 --access-logfile - wsgi:app] [container-entrypoint]
-/opt/app-root/bin/python3.11 /opt/app-root/bin/gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8110 --access-logfile - wsgi:app
-/opt/app-root/bin/python3.11 /opt/app-root/bin/gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8110 --access-logfile - wsgi:app
-404
-404
-[2026-11-11 23:56:06,095] ERROR in app: Exception on /metricas/plataformas [GET]
-Traceback (most recent call last):
-  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
-    response = self.full_dispatch_request()
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
-    rv = self.handle_user_exception(e)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
-    rv = self.dispatch_request()
-         ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/ficha_plataforma.py", line 438, in metricas_plataformas
-    return Response(_metricas(), mimetype="text/plain; version=0.0.4")
-                    ^^^^^^^^^^^
-  File "/opt/faceops/app/ficha_plataforma.py", line 411, in _metricas
-    for e in q("SELECT e.nombre, e.datos, e.categoria, e.energia, e.skills, c.codigo FROM equipos e JOIN clientes c ON c.id=e.cliente_id WHERE e.estado!='retirado'"):
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/bd.py", line 181, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: e.skills
-metricas tc 500 <!doctype html>
-<html lang=en>
-<title>500 Internal Server Error</title>
-<h1>Internal Server Error</h1>
-<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>
-
---- fin: 2026-11-11T23:56:06-03:00 · código: 0
+2b622f9 Seguridad · SIEM (Wazuh 4.9.2) e incidentes de segur
+  warnings.warn(
+SEG 1 App de pagos | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 4 Autoservicio de desarrollo | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 18 Banca · Banca digital | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 15 Banca · CRM y contact center | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 16 Banca · Core bancario | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 17 Banca · Originación de créditos | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 19 Banca · Tarjetas | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 14 Denuncias · Fiscalía (demo) | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 9 Gobierno de identidades | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 12 Plataforma OpenShift (SNO) | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 2 Portal de clientes | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 7 Red corporativa | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 5 Sitio web corporativo | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 21 Telco · BSS · facturación y planes | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 20 Telco · Mi cuenta y atención | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 23 Telco · OSS · calidad de red | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 22 Telco · Uso de red (CDR) | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+SEG 24 Telco · Ventas y recargas | HTTP 404 campana=False skills=False | alertas medibles [] de [] | skills hab 0/0 []
+TICKET 404 null
+--- fin: 2026-11-11T23:58:53-03:00 · código: 0
