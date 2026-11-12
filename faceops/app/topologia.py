@@ -558,20 +558,29 @@ _USO_LAKE = {}
 
 
 def _uso_lake(pref):
-    """MB enviados al lake por el segmento (acumulado) y MB que ocupa hoy en S3; lo cuenta el colector. Caché de 60 s."""
+    """MB enviados al lake por el segmento (acumulado) y MB que ocupa hoy en S3; lo cuenta el colector. Caché de 60 s,
+    renovada en segundo plano: la página nunca espera al colector (sin lectura previa devuelve {} y la pide)."""
+    import threading
     import time
-    import requests
     c = _USO_LAKE.get(pref)
     if c and time.time() - c[0] < 60:
         return c[1]
-    try:
-        j = requests.get(f"{LAKE['colector']}/estado/{pref}", timeout=3).json()
-        u = {"enviado_mb": round(j["enviado_bytes"] / 1048576, 1), "s3_mb": round(j["en_s3_bytes"] / 1048576, 1),
-             "desde": j.get("enviado_desde", "")} if "enviado_bytes" in j else {}
-    except Exception:  # noqa: BLE001 - informativo
-        u = {}
-    _USO_LAKE[pref] = (time.time(), u)
-    return u
+    if not _USO_LAKE_TH.get(pref) or not _USO_LAKE_TH[pref].is_alive():
+        def _leer(p_):
+            import requests
+            try:
+                j = requests.get(f"{LAKE['colector']}/estado/{p_}", timeout=(1, 3)).json()
+                u = {"enviado_mb": round(j["enviado_bytes"] / 1048576, 1), "s3_mb": round(j["en_s3_bytes"] / 1048576, 1),
+                     "desde": j.get("enviado_desde", "")} if "enviado_bytes" in j else {}
+            except Exception:  # noqa: BLE001 - informativo
+                u = (_USO_LAKE.get(p_) or (0, {}))[1]
+            _USO_LAKE[p_] = (time.time(), u)
+        _USO_LAKE_TH[pref] = threading.Thread(target=_leer, args=(pref,), daemon=True)
+        _USO_LAKE_TH[pref].start()
+    return c[1] if c else {}
+
+
+_USO_LAKE_TH = {}
 
 
 def prefijo_lake(segmento):

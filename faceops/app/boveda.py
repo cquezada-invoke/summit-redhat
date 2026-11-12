@@ -6,6 +6,18 @@ import time
 import requests
 
 _tok = {"t": None, "vence": 0}
+_caida = {"hasta": 0}     # cortacircuito: si la bóveda no responde, no se reintenta en 30 s (las páginas no esperan)
+_cache = {}               # ruta → (t, dict|None): 60 s, para no ir a la bóveda en cada carga de página
+TTL = 60
+TIMEOUT = (1, 2)
+
+
+def _no_responde():
+    _caida["hasta"] = time.time() + 30
+
+
+def responde():
+    return time.time() >= _caida["hasta"]
 
 
 def disponible():
@@ -15,7 +27,9 @@ def disponible():
 def _token():
     if _tok["t"] and _tok["vence"] > time.time() + 60:
         return _tok["t"]
-    r = requests.post(os.environ["FACEOPS_VAULT_ADDR"] + "/v1/auth/approle/login", timeout=5,
+    if not responde():
+        raise requests.ConnectionError("bóveda sin respuesta (reintento en 30 s)")
+    r = requests.post(os.environ["FACEOPS_VAULT_ADDR"] + "/v1/auth/approle/login", timeout=TIMEOUT,
                       json={"role_id": os.environ.get("FACEOPS_VAULT_ROLE_ID"), "secret_id": os.environ.get("FACEOPS_VAULT_SECRET_ID")})
     r.raise_for_status()
     a = r.json()["auth"]
@@ -27,11 +41,21 @@ def leer(ruta):
     """faceops/<ruta> → dict, o None si no está o la bóveda no responde."""
     if not disponible():
         return None
+    c = _cache.get(ruta)
+    if c and time.time() - c[0] < TTL:
+        return c[1]
+    if not responde():
+        return c[1] if c else None
     try:
-        r = requests.get(f"{os.environ['FACEOPS_VAULT_ADDR']}/v1/faceops/data/{ruta}", headers={"X-Vault-Token": _token()}, timeout=5)
-        return r.json()["data"]["data"] if r.ok else None
+        r = requests.get(f"{os.environ['FACEOPS_VAULT_ADDR']}/v1/faceops/data/{ruta}", headers={"X-Vault-Token": _token()}, timeout=TIMEOUT)
+        v = r.json()["data"]["data"] if r.ok else None
+    except (requests.ConnectionError, requests.Timeout):
+        _no_responde()
+        return c[1] if c else None
     except (requests.RequestException, KeyError, ValueError):
-        return None
+        v = None
+    _cache[ruta] = (time.time(), v)
+    return v
 
 
 def acceso(nombre):
@@ -66,10 +90,15 @@ def maquinas_con_credencial(nombres):
     if _lista["v"] is not None and time.time() - _lista["t"] < 300:
         return _lista["v"] & set(nombres)
     v = None
+    if not responde():
+        return (_lista["v"] or set()) & set(nombres)
     try:
-        r = requests.request("LIST", f"{os.environ['FACEOPS_VAULT_ADDR']}/v1/faceops/metadata/maquinas", headers={"X-Vault-Token": _token()}, timeout=5)
+        r = requests.request("LIST", f"{os.environ['FACEOPS_VAULT_ADDR']}/v1/faceops/metadata/maquinas", headers={"X-Vault-Token": _token()}, timeout=TIMEOUT)
         if r.ok:
             v = set(r.json()["data"]["keys"])
+    except (requests.ConnectionError, requests.Timeout):
+        _no_responde()
+        return (_lista["v"] or set()) & set(nombres)
     except (requests.RequestException, KeyError, ValueError):
         v = None
     if v is None:  # el AppRole puede no tener permiso de listar: se lee una por una
@@ -80,6 +109,7 @@ def maquinas_con_credencial(nombres):
 
 def escribir(ruta, datos):
     """Guarda datos en faceops/<ruta> (KV v2). Devuelve True si la bóveda lo aceptó (el rol de FaceOps puede no tener escritura)."""
+    _cache.pop(ruta, None)
     if not disponible():
         return False
     try:
