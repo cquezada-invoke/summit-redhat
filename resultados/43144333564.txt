@@ -1,0 +1,27 @@
+commit: a8325590f7e194b09e83aaa4ab1bb1ad6327c7c7
+inicio: 2026-11-12T00:22:33-03:00
+---
+== capacidad del anfitrión
+cores: 32 · RAM total 125.4 GB · disponible 21.1 GB
+disco libre imágenes: 3G
+VM encendidas: 37 vCPU · 68.0 GB asignados
+VM definidas: 51 · encendidas: 27
+== despliegue
+7d4aae7 Estaciones de trabajo: tampoco se arma el diálogo oculto de «C
+   · Plantilla «SIEM · Instalar Wazuh» (id 1222)
+   · Plantilla «SIEM · Enviar logs al SIEM» (id 1223)
+   · Plantilla «Seguridad · Contención de incidente» (id 1224)
+   · Plantilla «SIEM · Enviar logs de AAP» (id 1225)
+catálogo: 250
+  SIEM · Instalar Wazuh → {'id': 253, 'nombre': 'Habilitar SIEM (Wazuh)', 'categoria': 'Skills', 'habilita_skill': 'wazuh'}
+  SIEM · Enviar logs al SIEM → {'id': 251, 'nombre': 'Enviar logs al SIEM', 'categoria': 'Seguridad', 'habilita_skill': ''}
+  SIEM · Enviar logs de AAP → {'id': 252, 'nombre': 'Enviar logs de AAP al SIEM', 'categoria': 'Seguridad', 'habilita_skill': ''}
+  Seguridad · Contención de incidente → {'id': 250, 'nombre': 'Contener incidente de seguridad', 'categoria': 'Seguridad', 'habilita_skill': ''}
+ infra: {'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'ubicacion': 'Cloud GCP'}
+ infra: {'nombre': 'Dell · Centro de datos Santiago', 'tipo': 'fisico', 'ubicacion': 'Dell · Centro de datos Santiago'}
+ infra: {'nombre': 'KVM · Santiago', 'tipo': 'kvm', 'ubicacion': 'Centro de datos Santiago'}
+ infra: {'nombre': 'KVM · Valparaíso', 'tipo': 'kvm', 'ubicacion': 'Centro de datos Valparaíso'}
+ infra: {'nombre': 'OpenShift · SNO', 'tipo': 'openshift', 'ubicacion': 'OpenShift · SNO'}
+ infra: {'nombre': 'VMware · Santiago', 'tipo': 'vmware', 'ubicacion': 'VMware · Santiago'}
+CAPACIDAD INSUFICIENTE: 21 GB de RAM disponible (se necesitan 8 + 2 de margen) y 3 GB de disco (se necesitan 60): NO SE CREA
+--- fin: 2026-11-12T00:27:23-03:00 · código: 0
