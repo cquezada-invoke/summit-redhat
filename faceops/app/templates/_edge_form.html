@@ -3,6 +3,8 @@
 <style>#fi-cx .ed-eq{display:flex;flex-direction:row;gap:8px;align-items:baseline;font-weight:400;font-size:13px;margin:0}#fi-cx .ed-eq>*{margin:0}#fi-cx .ed-eq .sub{font-size:11.5px}#fi-cx .ed-eq input{align-self:center}#fi-cx .ed-otro{opacity:.55}</style>
 <aside id="fi-cx" class="cajon" hidden aria-label="{{ 'Editar sitio' if s else 'Agregar sitio' }}"><div class="cajon-barra"><b style="font-size:15px">{{ ('Editar sitio · ' ~ s.codigo) if s else 'Agregar sitio' }}</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
 <form method="post" action="{{ accion_url }}" class="form-infra" autocomplete="off" style="display:flex;flex-direction:column;gap:10px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Tipo{% if not s %} <span class="req" aria-hidden="true">*</span>{% endif %}<select {{ 'name=tipo required id=ed-tipo-sel'|safe if not s else 'disabled' }}>{% if not s %}<option value="">Elige el tipo…</option>{% endif %}{% for k, n in tipos.items() %}<option value="{{ k }}" {{ 'selected' if s and s.tipo == k }}>{{ n }} ({{ k }})</option>{% endfor %}</select></label>
+{% if s %}<p class="sub" style="margin:-6px 0 0;font-size:12px">El tipo es parte del código técnico, que no cambia.</p>{% endif %}
 {% if s %}<label>Código técnico<input value="{{ s.codigo }}" disabled class="mono"></label><p class="sub" style="margin:-6px 0 0;font-size:12px">El código no cambia: es la identidad del sitio en AAP (grupo <span class="mono">{{ s.codigo|lower|replace('-', '_') }}</span>).</p>
 {% else %}<label>Código técnico <span class="req" aria-hidden="true">*</span><input name="codigo" required class="mono" placeholder="CL-SCL-TDA-014" pattern="[A-Z]{2}-[A-Z]{3}-(TDA|SUC|BOD|CD)-[0-9]{3}" title="PAÍS-CIUDAD-TIPO-NNN en mayúsculas, p. ej. CL-SCL-TDA-014" id="ed-cod"></label>
 <p class="sub" style="margin:-6px 0 0;font-size:12px">PAÍS-CIUDAD-TIPO-NNN en mayúsculas. Tipos: TDA tienda · SUC sucursal · BOD bodega · CD centro de distribución. No se puede cambiar después.</p>{% endif %}
@@ -22,6 +24,11 @@
 <p class="sub" style="margin:0;font-size:12.5px">Registrar el sitio no crea infraestructura: las acciones sobre el sitio bajan por la malla de AAP con ticket y aprobación.</p>
 <div class="fila" style="gap:8px"><button class="btn">{{ 'Guardar' if s else 'Agregar sitio' }}</button><button type="button" class="btn gris" data-fi-cerrar="1">Cancelar</button></div></form>
 <script>(()=>{const f=document.getElementById('ed-filtro'),l=document.getElementById('ed-eqs');if(f)f.addEventListener('input',()=>{const v=f.value.toLowerCase().trim();l.querySelectorAll('label').forEach(x=>x.style.display=!v||x.textContent.toLowerCase().includes(v)?'':'none');});
-const c=document.getElementById('ed-cod'),n=document.getElementById('ed-nodo');if(c&&n)c.addEventListener('input',()=>{n.placeholder=(c.value||'CL-SCL-TDA-014').toLowerCase()+'-en01';});})();</script>
+const c=document.getElementById('ed-cod'),n=document.getElementById('ed-nodo'),t=document.getElementById('ed-tipo-sel');
+if(c&&n)c.addEventListener('input',()=>{n.placeholder=(c.value||'CL-SCL-TDA-014').toLowerCase()+'-en01';});
+// tipo ↔ código: elegir el tipo arma ese tramo del código; escribir el código elige el tipo
+if(c&&t){
+ t.addEventListener('change',()=>{const p=(c.value||'').split('-');if(!t.value)return;while(p.length<4)p.push('');if(!p[0])p[0]='CL';if(!p[1])p[1]='SCL';p[2]=t.value;c.value=p.slice(0,4).join('-');c.dispatchEvent(new Event('input'));c.focus();});
+ c.addEventListener('input',()=>{const p=(c.value||'').toUpperCase().split('-');if(p[2]&&[...t.options].some(o=>o.value===p[2]))t.value=p[2];});}})();</script>
 </aside>
 {% endmacro %}

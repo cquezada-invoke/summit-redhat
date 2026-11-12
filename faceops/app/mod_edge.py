@@ -111,6 +111,16 @@ def validar(cliente_id, f, actual=None):
         if q1("SELECT id FROM edge_sitios WHERE cliente_id=? AND codigo=?", cliente_id, codigo):
             raise ValueError(f"Ya existe un sitio con el código {codigo}")
     m = RE_CODIGO.match(codigo)
+    tipo_f = (f.get("tipo") or "").strip().upper()
+    if not actual:
+        if not tipo_f:
+            raise ValueError("Elige el tipo del sitio (tienda, sucursal, bodega o centro de distribución)")
+        if tipo_f not in TIPOS:
+            raise ValueError("Tipo no válido")
+        if tipo_f != m.group(3):
+            raise ValueError(f"El tipo elegido ({TIPOS[tipo_f]}, {tipo_f}) no coincide con el del código ({m.group(3)}): el código es PAÍS-CIUDAD-TIPO-NNN")
+    elif tipo_f and tipo_f != actual["tipo"]:
+        raise ValueError("El tipo es parte del código técnico, que no cambia: para otro tipo, da de alta un sitio nuevo")
     alias = (f.get("alias") or "").strip()[:80]
     ciudad = (f.get("ciudad") or "").strip()[:60] or m.group(2)
     nodo = (f.get("nodo") or "").strip().lower() or nodo_sugerido(codigo)
