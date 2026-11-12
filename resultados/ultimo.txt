@@ -1,21 +1,53 @@
-commit: 9882cdc6ed7f76453043b68ac65cf66bbf43597a
-inicio: 2026-11-12T02:14:55-03:00
+commit: 836a9ac7679f754f58f567bf9e961bc50d920bbd
+inicio: 2026-11-12T02:16:32-03:00
 ---
-a53610a
-SINCRONIZADO lab
-PUBLICADA {'visible': 1, 'por_inventario': 1}
-== plan exportador
-CASO C1 ok · JBoss
-CASO C2 falla · Redis (nodo-jboss)
-CASO C3 falla · nginx
-CASO C4 ok · PostgreSQL (nodo-postgres)
-CASO C5 ok · Repetir
-CASO C6 ok · Plataforma inválida
-EVIDENCIA [{"id": "C1", "caso": "JBoss", "resultado": "ok", "evidencia": "nodo-jboss :9990/metrics con heap (1) y Undertow (0)"}, {"id": "C2", "caso": "Redis (nodo-jboss)", "resultado": "falla", "evidencia": "exitoso redis_up=0 "}, {"id": "C3", "caso": "nginx", "resultado": "falla", "evidencia": "exitoso nginx_up=0 web=200 "}, {"id": "C4", "caso": "PostgreSQL (nodo-postgres)", "resultado": "ok", "evidencia": "postgres_exporter :9187 con pg_up 1"}, {"id": "C5", "caso": "Repetir", "resultado": "ok", "evidencia": "JBoss y Redis sin cambios; exportador de Redis sin reiniciar (PID 591590)"}, {"id": "C6", "caso": "Plataforma inválida", "resultado": "ok", "evidencia": "rechazada (fallido)"}]
-CERT FaceOps · Exportador de plataforma → sin probar
-FIN-EXPORTADOR
-== alertas de JBoss con exportador en nodo-jboss (J01 + J02)
-ALERTAS JBoss FO-LAB-02131 exitoso 
-PROM exportadores [('nodo-jboss', 'jboss', '1')]
-PROM heap JBoss % [19.8]
---- fin: 2026-11-12T02:36:08-03:00 · código: 0
+### RESPALDO
+R-C1 · fw: FO-LAB-02113 exitoso 26246 AAP terminó (successful): ejecución 24 s, espera de aprobación 31 s
+   fw.cfg: 61 líneas set · ocultos 1 · claro-sospechoso 0
+R-C2a · rtr-wan-01: FO-LAB-02117 exitoso 26265 AAP terminó (successful): ejecución 11 s, espera de aprobación 31 s
+   rtr-wan-01.cfg: 29 líneas · bgp 1
+R-C2b · sw-core-01: FO-LAB-02120 exitoso 26275 AAP terminó (successful): ejecución 14 s, espera de aprobación 31 s
+   sw-core-01.cfg: 42 líneas · tabla VLAN 1
+R-C3 · lb-sede-01: FO-LAB-02122 exitoso 26285 AAP terminó (successful): ejecución 8 s, espera de aprobación 38 s
+   lb-sede-01.cfg: 21 líneas · backend 1 · frontend 1 · ocultos 0
+R-C4 · fw: FO-LAB-02124 exitoso 26292 AAP terminó (successful): ejecución 16 s, espera de aprobación 30 s
+   commits fw.cfg antes 1 después 1
+R-C5 · suc1: FO-LAB-02127 fallido 26301 AAP terminó (failed): ejecución 6 s, espera de aprobación 28 s Falló en la tarea «Configuración · lectura por SSH (solo comandos de consulta)» de suc1: no se pudo conectar con el equipo (ap
+    fatal: [suc1]: UNREACHABLE! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}
+   suc1.cfg: NO-EXISTE
+### DRIFT
+D-C1 · rtr-wan-01: FO-LAB-02129 exitoso 26312 AAP terminó (successful): ejecución 8 s, espera de aprobación 31 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "rtr-wan-01: sin cambios contra la línea base"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+   línea quitada de la base: ip route 10.20.0.0/16 10.255.20.2
+D-C2 · rtr-wan-01: FO-LAB-02130 exitoso 26317 AAP terminó (successful): ejecución 9 s, espera de aprobación 63 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "rtr-wan-01: CAMBIOS contra la línea base · +1 / -0 líneas"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+    "msg": [
+    "+ ip route 10.20.0.0/16 10.255.20.2"
+D-C3a · fw: FO-LAB-02132 exitoso 26324 AAP terminó (successful): ejecución 22 s, espera de aprobación 31 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "fw: sin cambios contra la línea base"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+D-C3b · lb-sede-01: FO-LAB-02133 exitoso 26328 AAP terminó (successful): ejecución 7 s, espera de aprobación 63 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "lb-sede-01: sin cambios contra la línea base"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+D-C4-restablecer · rtr-wan-01: FO-LAB-02134 exitoso 26332 AAP terminó (successful): ejecución 8 s, espera de aprobación 31 s
+D-C4 · rtr-wan-01: FO-LAB-02135 exitoso 26337 AAP terminó (successful): ejecución 7 s, espera de aprobación 23 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "rtr-wan-01: sin cambios contra la línea base"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+D-C5 · sw-acc-01: FO-LAB-02136 fallido 26341 AAP terminó (failed): ejecución 10 s, espera de aprobación 31 s Falló en la tarea «Hay línea base» de sw-acc-01: sw-acc-01 no tiene línea base: ejecuta primero «Respaldo de configuración». 
+    TASK [Hay línea base] **********************************************************
+    fatal: [sw-acc-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "sw-acc-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se c
+   sw-acc-01.cfg: NO-EXISTE
+TICKETS FO-LAB-02113 FO-LAB-02117 FO-LAB-02120 FO-LAB-02122 FO-LAB-02124 FO-LAB-02127 FO-LAB-02129 FO-LAB-02130 FO-LAB-02132 FO-LAB-02133 FO-LAB-02134 FO-LAB-02135 FO-LAB-02136 
+--- fin: 2026-11-12T02:46:54-03:00 · código: 0
