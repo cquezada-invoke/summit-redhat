@@ -190,11 +190,13 @@ for f_ in ("openshift-regularizacion-diagnostico.yml", "openshift-etcd-respaldo.
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-preparar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-preparar.yml")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-instalar.yml")
+for f_ in ("openshift-gcp-crear.yml", "openshift-gcp-eliminar.yml"):   # Contenedores › Crear plataforma de contenedores (GCP)
+    shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/nube-simulada.yml", f"{tmp}/playbooks/nube-simulada.yml")
 shutil.copy(f"{AQUI}/incorporar-maquinas.yml", f"{tmp}/playbooks/incorporar-maquinas.yml")
 for f_ in ("ipi_vmware_vcenter.py",):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
-for f_ in ("jboss_eap8_analizar.py", "jboss_eap8_ajustar.py"):
+for f_ in ("jboss_eap8_analizar.py", "jboss_eap8_ajustar.py", "ocp_gcp.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 for f_ in ("weblogic-ocp-evaluar.yml", "weblogic-ocp-migrar.yml"):   # Migración · WebLogic a OpenShift (análisis, artefactos y dominio emulado de laboratorio)
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
@@ -796,8 +798,8 @@ if os.path.exists(PS):
     c_ps = asegurar("credentials", "OpenShift · Pull secret", {"organization": org["id"], "credential_type": ct_ps["id"],
                     "inputs": {"pull_secret": open(PS).read().strip()}})
     creds_ocp.append(c_ps["id"])
-OCM = os.path.expanduser("~/faceops/ocm-token")
-if os.path.exists(OCM):
+OCM = next((p_ for p_ in map(os.path.expanduser, ("~/faceops/ocm-token", "~/faceops/rh-offline-token")) if os.path.exists(p_)), "")   # offline token de Red Hat
+if OCM:
     creds_ocp.append(asegurar("credentials", "OpenShift · Red Hat OCM", {"organization": org["id"], "credential_type": ct_ocm["id"],
                                                                          "inputs": {"token": open(OCM).read().strip()}})["id"])
 # Instalación de OpenShift por método y plataforma: una automatización prepara los prerrequisitos y genera el manifiesto
@@ -1129,6 +1131,8 @@ mkdir -p {_mon}/grafana/dashboards/faceops && chown aap-kvm: {_mon}/grafana/dash
 setfacl -m u:aap-kvm:rwx {_mon}/prometheus {_mon}/alertmanager
 setfacl -m u:aap-kvm:rw {_mon}/prometheus/prometheus.yml {_mon}/alertmanager/alertmanager.yml
 setfacl -m u:aap-kvm:rwx {_mon}/grafana/provisioning/datasources
+# Grafana y FaceOps (red del anfitrión) llegan al Thanos Querier del SNO por su ruta (*.apps no tiene DNS en el lab)
+grep -q 'thanos-querier-openshift-monitoring.apps.sno.invoke.lab' /etc/hosts || echo '192.168.122.50 thanos-querier-openshift-monitoring.apps.sno.invoke.lab' >> /etc/hosts
 printf '%s\n' 'aap-kvm ALL=(root) NOPASSWD: /usr/bin/podman exec summit-prometheus promtool check config /etc/prometheus/prometheus.yml' 'aap-kvm ALL=(root) NOPASSWD: /usr/bin/systemctl restart summit-grafana' > /etc/sudoers.d/aap-kvm-monitoreo
 chmod 0440 /etc/sudoers.d/aap-kvm-monitoreo
 visudo -cq"""], capture_output=True, text=True)
@@ -1374,6 +1378,47 @@ if os.path.exists(ARCH_LEG):
         if j_leg and c_leg["id"] not in {c["id"] for c in aap("GET", f"job_templates/{j_leg['id']}/credentials/")["results"]}:
             aap("POST", f"job_templates/{j_leg['id']}/credentials/", {"id": c_leg["id"]})
     paso("Credencial «FaceOps · SSH para sistemas legados» en inventariar, recolectar y evaluar sistema operativo")
+
+# OpenShift en GCP (Contenedores › Crear plataforma de contenedores): crear (IPI, SNO por defecto) y eliminar/ciclo. El acceso del
+# clúster (kubeconfig, kubeadmin, llave SSH) lo guarda el playbook en una credencial cifrada de este tipo; nunca en disco ni en Git.
+ct_acc = uno("credential_types", name="OpenShift · Acceso de clúster") or aap("POST", "credential_types/", {
+    "name": "OpenShift · Acceso de clúster", "kind": "cloud", "description": "Acceso a un clúster creado por FaceOps: kubeconfig, clave de kubeadmin y llave SSH de los nodos",
+    "inputs": {"fields": [{"id": "api", "label": "API", "type": "string"}, {"id": "consola", "label": "Consola", "type": "string"},
+                          {"id": "version", "label": "Versión", "type": "string"},
+                          {"id": "kubeconfig", "label": "kubeconfig", "type": "string", "secret": True, "multiline": True},
+                          {"id": "kubeadmin", "label": "Clave de kubeadmin", "type": "string", "secret": True},
+                          {"id": "ssh_privada", "label": "Llave SSH de los nodos", "type": "string", "secret": True, "multiline": True},
+                          {"id": "metadata", "label": "metadata.json (para destruir)", "type": "string", "multiline": True}],
+               "required": ["api", "kubeconfig"]},
+    "injectors": {"file": {"template.kubeconfig": "{{ kubeconfig }}"}, "env": {"K8S_AUTH_KUBECONFIG": "{{ tower.filename.kubeconfig }}"}}})
+import yaml
+_pc = yaml.safe_load(open(os.path.join(os.path.dirname(AQUI), "datos", "plataformas-contenedores.yml"), encoding="utf-8")) or {}
+_gcp_pc = _pc.get("gcp") or {}
+c_gcp_ocp = uno("credentials", name=_gcp_pc.get("credencial", ""))
+SA_OCP = os.path.expanduser("~/faceops/gcp-ocp-ipi.json")   # cuenta de servicio del proyecto de OpenShift (solo en el anfitrión, 0600)
+if os.path.exists(SA_OCP):
+    _sa = json.load(open(SA_OCP))
+    c_gcp_ocp = asegurar("credentials", _gcp_pc.get("credencial"), {
+        "organization": org["id"], "credential_type": uno("credential_types", name="Google Compute Engine", managed=True)["id"],
+        "description": f"Cuenta de servicio para instalar OpenShift IPI en {_sa.get('project_id')}",
+        "inputs": {"username": _sa["client_email"], "project": _sa["project_id"], "ssh_key_data": _sa["private_key"]}})
+c_ocm = uno("credentials", name="OpenShift · Red Hat OCM")
+for nombre_g, pb_g, desc_g in (
+        ("OpenShift · Crear en GCP", "openshift-gcp-crear.yml", "Crea OpenShift (IPI) en GCP: SNO por defecto o completo 3+3, última estable de la rama; acceso solo en la credencial cifrada"),
+        ("OpenShift · Eliminar en GCP", "openshift-gcp-eliminar.yml", "Destruye un clúster OpenShift creado en GCP con sus metadatos; en modo ciclo destruye los vencidos y apaga o enciende por horario")):
+    jg = asegurar("job_templates", nombre_g, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_g}", "inventory": inv_inf["id"],
+        "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True, "timeout": 0, "description": desc_g})
+    ya = {c["id"] for c in aap("GET", f"job_templates/{jg['id']}/credentials/")["results"]}
+    for cr_ in [c_kvm, c_ocm if pb_g.endswith("crear.yml") else None, c_gcp_ocp, cr_gw]:
+        if cr_ and cr_["id"] not in ya:
+            aap("POST", f"job_templates/{jg['id']}/credentials/", {"id": cr_["id"]})
+    if pb_g.endswith("eliminar.yml") and c_gcp_ocp:   # ciclo de vencimiento y apagado: cada hora
+        asegurar("schedules", "OpenShift en GCP · vencimiento y apagado (cada hora)", {
+            "unified_job_template": jg["id"], "rrule": "DTSTART;TZID=America/Santiago:20261111T000700 RRULE:FREQ=HOURLY;INTERVAL=1",
+            "extra_data": {"ocg_modo": "ciclo", "ocg_proyecto": _gcp_pc.get("proyecto"), "ocg_region": _gcp_pc.get("region")},
+            "description": "Destruye los clústeres vencidos y apaga o enciende según su horario"})
+    paso(f"Plantilla «{nombre_g}» (id {jg['id']})" + ("" if c_gcp_ocp else " · FALTA la credencial de GCP " + _gcp_pc.get("credencial", "")))
 
 # Una aprobación pendiente no debe frenar a los demás pedidos de la misma automatización (las aprobaciones no vencen):
 # todos los workflows de FaceOps aceptan ejecuciones simultáneas.
