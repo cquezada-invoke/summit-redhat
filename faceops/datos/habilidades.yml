@@ -472,3 +472,195 @@ habilidades:
     nombre: Rotar PSK o certificados
     valor: Rota la clave compartida o el certificado del túnel en ambos extremos, sin corte.
     nombre_aap: ["Red · Rotar PSK o certificados"]
+  # ── Estaciones de trabajo (/lab/estaciones y su ficha): solo en equipos «estación de trabajo», por familia de SO.
+  # Las de servidor no se ofrecen en estaciones. Agentless (SSH en Linux y macOS, WinRM en Windows), ticket con aprobación.
+  # Foco: Linux y desarrolladores, apps de terceros, remediación y evidencia de cumplimiento unificada (en Windows, Intune o
+  # SCCM suelen cubrir lo básico). nombre_aap vacío = la acción aún no existe: se muestra deshabilitada «acción aún no disponible».
+  - id: est-dev
+    tipo: diferenciador
+    grupo: Ciclo de vida de la estación
+    categoria: "estación de trabajo"
+    nombre: Aprovisionar estación de desarrollador
+    valor: Deja el stack estándar del equipo (IDE, Git, runtimes, contenedores, accesos) listo el primer día.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-win11
+    tipo: diferenciador
+    grupo: Ciclo de vida de la estación
+    categoria: "estación de trabajo"
+    nombre: Migrar de Windows 10 a 11
+    valor: Verifica requisitos (TPM, Secure Boot, CPU) y actualiza en el lugar con respaldo del perfil y vuelta atrás.
+    por_so:
+      - {so: "(?i)windows ?10", nombre_aap: []}
+  - id: est-respaldo
+    tipo: diferenciador
+    grupo: Ciclo de vida de la estación
+    categoria: "estación de trabajo"
+    nombre: Respaldar carpeta del usuario
+    valor: Respalda documentos y configuración del usuario cifrados y versionados, restaurables en otra estación.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-inventario-sw
+    tipo: diferenciador
+    grupo: Ciclo de vida de la estación
+    categoria: "estación de trabajo"
+    nombre: Inventario de software y licencias
+    valor: Lista el software instalado y las licencias en uso para cuadrar contratos y detectar lo no autorizado.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: ["Sistema · Paquetes · inventario y respaldo"]}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-baja
+    tipo: diferenciador
+    grupo: Ciclo de vida de la estación
+    categoria: "estación de trabajo"
+    nombre: Borrado seguro al dar de baja
+    valor: Borra el disco con método certificado y deja el acta de borrado como evidencia.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-cis
+    tipo: diferenciador
+    grupo: Seguridad y cumplimiento
+    categoria: "estación de trabajo"
+    nombre: Cumplimiento CIS con evidencia
+    valor: Evalúa los controles CIS nivel 1 y deja la evidencia por control en FaceOps, igual para todo el parque.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: ["Estaciones · Cumplimiento CIS"]}
+      - {so: "(?i)windows", nombre_aap: ["Estaciones · Cumplimiento CIS"]}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-so-parches
+    tipo: quick win
+    grupo: Soporte al usuario
+    categoria: "estación de trabajo"
+    nombre: Parches del sistema operativo
+    valor: Instala los parches de seguridad pendientes del sistema; el reinicio se coordina con el usuario.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: ["Seguridad · Aplicar parches de seguridad"]}
+      - {so: "(?i)windows", nombre_aap: ["Windows · Aplicar actualizaciones"]}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-apps-parches
+    tipo: quick win
+    grupo: Soporte al usuario
+    categoria: "estación de trabajo"
+    nombre: Parches de apps de terceros
+    valor: Actualiza navegador, Java y herramientas de desarrollo, que el parcheo del sistema no cubre.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-software
+    tipo: quick win
+    grupo: Soporte al usuario
+    categoria: "estación de trabajo"
+    nombre: Instalar o desinstalar software
+    valor: Instala o quita software del catálogo estándar sin que el usuario necesite ser administrador.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-limpieza
+    tipo: quick win
+    grupo: Soporte al usuario
+    categoria: "estación de trabajo"
+    nombre: Limpieza de disco
+    valor: Libera espacio (cachés, temporales, papelera) sin tocar los documentos del usuario.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: ["Estaciones · Limpieza de disco"]}
+      - {so: "(?i)windows", nombre_aap: ["Estaciones · Limpieza de disco"]}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-reparar
+    tipo: quick win
+    grupo: Soporte al usuario
+    categoria: "estación de trabajo"
+    nombre: Reparar servicio o app con fallas
+    valor: Reinicia o repara un servicio, o reinstala la app que falla, sin visita a terreno.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-perfil
+    tipo: quick win
+    grupo: Soporte al usuario
+    categoria: "estación de trabajo"
+    nombre: Desbloquear o resetear perfil
+    valor: Desbloquea la cuenta local o reconstruye el perfil dañado del usuario, conservando sus datos.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-conectividad
+    tipo: quick win
+    grupo: Soporte al usuario
+    categoria: "estación de trabajo"
+    nombre: Configurar impresora, VPN o wifi
+    valor: Deja la impresora, la VPN o el wifi corporativo configurados con el perfil estándar.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-certificados
+    tipo: quick win
+    grupo: Soporte al usuario
+    categoria: "estación de trabajo"
+    nombre: Instalar certificados
+    valor: Instala los certificados raíz o de cliente de la organización en el almacén del sistema.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-cifrado
+    tipo: quick win
+    grupo: Seguridad y cumplimiento
+    categoria: "estación de trabajo"
+    nombre: Cifrado de disco
+    valor: Verifica el cifrado del disco (BitLocker, LUKS o FileVault) y lo activa con la llave en custodia.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-edr
+    tipo: quick win
+    grupo: Seguridad y cumplimiento
+    categoria: "estación de trabajo"
+    nombre: Revisar antivirus o EDR
+    valor: Verifica que el antivirus o EDR esté instalado, activo y con firmas al día; lo reactiva si está detenido.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-admins
+    tipo: quick win
+    grupo: Seguridad y cumplimiento
+    categoria: "estación de trabajo"
+    nombre: Quitar administradores locales
+    valor: Saca a los usuarios del grupo de administradores locales y deja solo las cuentas autorizadas.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-firewall
+    tipo: quick win
+    grupo: Seguridad y cumplimiento
+    categoria: "estación de trabajo"
+    nombre: Activar firewall
+    valor: Deja el firewall del sistema activo en todos los perfiles con la política estándar.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
+  - id: est-usb
+    tipo: quick win
+    grupo: Seguridad y cumplimiento
+    categoria: "estación de trabajo"
+    nombre: Bloquear almacenamiento USB
+    valor: Bloquea pendrives y discos USB; teclado, mouse y otros periféricos siguen funcionando.
+    por_so:
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: []}
+      - {so: "(?i)windows", nombre_aap: []}
+      - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}

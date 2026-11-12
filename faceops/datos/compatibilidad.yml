@@ -7,6 +7,9 @@
 reglas:   # (patrón sobre el nombre en AAP, compatibilidad) — gana la primera que calza
   - ["^SQL Server · (Levantamiento|Configurar alta|Conmutar)", {sistemas: [linux], tipos: [servidor], skills: [sqlserver]}]
   - ["^Certificados · OpenShift", {tipos: [clúster openshift]}]
+  - ["^Windows · Aplicar actualizaciones", {sistemas: [windows], tipos: [servidor, estacion]}]
+  - ["^Estaciones ·", {sistemas: [linux, windows], tipos: [estacion]}]
+  - ["^Seguridad · Aplicar parches", {sistemas: [rhel], tipos: [servidor, balanceador, estacion]}]   # también en estaciones RHEL (skill «Parches del sistema operativo»)
   - ["^Windows ·|^Monitoreo · Exportador en Windows|^Remediación · IIS|^Drift · Windows|^DC · Active Directory", {sistemas: [windows], tipos: [servidor]}]
   - ["^Red · (Respaldar configuración|Detectar cambios de configuración)", {tipos: [router, switch, firewall, balanceador]}]
   - ["^Red · Configurar VLAN", {tipos: [firewall, router], red: [vyos, fortios]}]

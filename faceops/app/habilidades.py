@@ -182,8 +182,8 @@ def _resolver(h, e):
         return None   # las del hipervisor viven en habilidades_hipervisor (ficha del hipervisor), no en una máquina
     if h.get("categoria") and not re.search(h["categoria"], e.get("categoria") or "servidor"):
         return None
-    if not h.get("categoria") and (e.get("categoria") or "") == "clúster openshift":
-        return None   # las skills de máquina (SO, plataformas) no se ofrecen en un clúster: tiene las suyas
+    if not h.get("categoria") and (e.get("categoria") or "") in ("clúster openshift", "estación de trabajo"):
+        return None   # las skills de servidor (SO, plataformas) no se ofrecen en un clúster ni en una estación: tienen las suyas
     if h.get("solo_sin_registro"):
         d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
         if d.get("registrado") is not False and d.get("licenciado") is not False:
@@ -229,10 +229,11 @@ def habilidades_maquina(e, rep=None):
             out.append(x)
             continue
         a, bloqueo = _auto(e, h)
-        if not a and h.get("por_so"):   # la acción de este sistema aún no existe: se muestra deshabilitada con su motivo
+        if not a and h.get("por_so"):   # la acción de este sistema aún no existe o no aplica: se muestra deshabilitada con su motivo
+            existe = any(q1("SELECT 1 FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], n_) for n_ in h["nombre_aap"])
             out.append({"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"],
-                        "valor": h.get("valor") or "", "ambito": h.get("ambito") or "Sistema operativo", "auto": h["nombre_aap"][0], "aid": None, "ui": "",
-                        "bloqueo": "aún no hay una acción del catálogo compatible y certificada para esta máquina",
+                        "valor": h.get("valor") or "", "ambito": h.get("ambito") or "Sistema operativo", "auto": (h["nombre_aap"] or [h["nombre"]])[0], "aid": None, "ui": "",
+                        "bloqueo": "aún no hay una acción del catálogo compatible y certificada para esta máquina" if existe else "acción aún no disponible",
                         "ticket": None, "escritura": bool(escritura), "url": "", "campos": []})
             continue
         if not a:

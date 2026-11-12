@@ -1,0 +1,116 @@
+---
+# Estaciones · Limpieza de disco: libera espacio en una estación de trabajo sin tocar los documentos del usuario.
+# Agentless: Linux por SSH, Windows por WinRM (se decide por la conexión del inventario).
+#   Linux:   caché de paquetes (dnf/yum/apt/zypper), journal sobre ld_dias_log días, /tmp y /var/tmp sobre ld_dias_tmp,
+#            papelera de cada usuario y miniaturas sobre ld_dias_papelera, volcados de memoria (coredump) sobre 7 días.
+#   Windows: temporales del sistema y de cada perfil sobre ld_dias_tmp, papelera sobre ld_dias_papelera, descargas de
+#            Windows Update ya aplicadas y limpieza de componentes (DISM /StartComponentCleanup).
+# Variables: ld_modo (evaluar = solo mide lo que se liberaría | limpiar, por defecto), ld_dias_tmp (10), ld_dias_papelera (30),
+#            ld_dias_log (14). Deja en set_stats «limpieza_disco» por equipo: libre antes, después y liberado (MB).
+- name: Estaciones · Limpieza de disco
+  hosts: all
+  gather_facts: false
+  become: "{{ (ansible_connection | default('ssh')) not in ['winrm', 'psrp'] }}"
+  vars:
+    windows: "{{ (ansible_connection | default('ssh')) in ['winrm', 'psrp'] }}"
+    modo: "{{ ld_modo | default('limpiar') }}"
+    dias_tmp: "{{ ld_dias_tmp | default(10) | int }}"
+    dias_pap: "{{ ld_dias_papelera | default(30) | int }}"
+    dias_log: "{{ ld_dias_log | default(14) | int }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'limpiar']
+          - dias_tmp | int >= 1
+          - dias_pap | int >= 1
+          - dias_log | int >= 1
+        fail_msg: "ld_modo debe ser evaluar o limpiar y los días, enteros mayores que 0"
+        quiet: true
+
+    # ── Linux ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+    - name: Linux · limpieza
+      when: not windows
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -u
+          MODO={{ modo }}; DT={{ dias_tmp }}; DP={{ dias_pap }}; DL={{ dias_log }}
+          libre() { df -Pk / | awk 'NR==2{print int($4/1024)}'; }
+          suma() { find "$@" -xdev -type f -printf '%s\n' 2>/dev/null | awk '{s+=$1} END{print int(s/1048576)}'; }
+          ANTES=$(libre)
+          CANDIDATO=0
+          for c in /var/cache/dnf /var/cache/yum /var/cache/apt/archives /var/cache/zypp/packages; do
+            [ -d "$c" ] && CANDIDATO=$((CANDIDATO + $(suma "$c")))
+          done
+          CANDIDATO=$((CANDIDATO + $(suma /tmp /var/tmp -mindepth 1 -mtime +"$DT")))
+          CANDIDATO=$((CANDIDATO + $(suma /home/*/.local/share/Trash /root/.local/share/Trash -mindepth 1 -mtime +"$DP")))
+          CANDIDATO=$((CANDIDATO + $(suma /home/*/.cache/thumbnails -mindepth 1 -mtime +"$DP")))
+          [ -d /var/lib/systemd/coredump ] && CANDIDATO=$((CANDIDATO + $(suma /var/lib/systemd/coredump -mindepth 1 -mtime +7)))
+          if [ "$MODO" = limpiar ]; then
+            command -v dnf >/dev/null && dnf -q clean all >/dev/null 2>&1
+            command -v yum >/dev/null && ! command -v dnf >/dev/null && yum -q clean all >/dev/null 2>&1
+            command -v apt-get >/dev/null && apt-get -qq clean >/dev/null 2>&1
+            command -v zypper >/dev/null && zypper -q clean -a >/dev/null 2>&1
+            command -v journalctl >/dev/null && journalctl --vacuum-time="${DL}d" >/dev/null 2>&1
+            find /tmp /var/tmp -xdev -mindepth 1 -type f -mtime +"$DT" ! -name '*.sock' ! -name '.X*' -delete 2>/dev/null
+            find /home/*/.local/share/Trash /root/.local/share/Trash -xdev -mindepth 1 -mtime +"$DP" -delete 2>/dev/null
+            find /home/*/.cache/thumbnails -xdev -mindepth 1 -type f -mtime +"$DP" -delete 2>/dev/null
+            [ -d /var/lib/systemd/coredump ] && find /var/lib/systemd/coredump -mindepth 1 -type f -mtime +7 -delete 2>/dev/null
+            sync
+          fi
+          DESPUES=$(libre)
+          echo "{\"modo\": \"$MODO\", \"libre_antes_mb\": $ANTES, \"libre_despues_mb\": $DESPUES, \"liberable_mb\": $CANDIDATO, \"liberado_mb\": $(( DESPUES > ANTES ? DESPUES - ANTES : 0 ))}"
+      register: r_lx
+      changed_when: modo == 'limpiar' and (r_lx.stdout | from_json).liberado_mb | int > 0
+
+    # ── Windows ───────────────────────────────────────────────────────────────────────────────────────────────────────
+    - name: Windows · limpieza
+      when: windows
+      ansible.windows.win_powershell:
+        parameters:
+          Modo: "{{ modo }}"
+          DiasTmp: "{{ dias_tmp | int }}"
+          DiasPap: "{{ dias_pap | int }}"
+        script: |
+          param([string]$Modo, [int]$DiasTmp, [int]$DiasPap)
+          $ErrorActionPreference = 'SilentlyContinue'
+          $Ansible.Changed = $false
+          function Libre { [int]((Get-PSDrive -Name ($env:SystemDrive.TrimEnd(':'))).Free / 1MB) }
+          $antes = Libre
+          $lim = (Get-Date).AddDays(-$DiasTmp); $limP = (Get-Date).AddDays(-$DiasPap)
+          $rutas = @("$env:windir\Temp") + (Get-ChildItem "$env:SystemDrive\Users" -Directory | ForEach-Object { Join-Path $_.FullName 'AppData\Local\Temp' })
+          $tmp = foreach ($r in $rutas) { if (Test-Path $r) { Get-ChildItem $r -Recurse -File -Force | Where-Object { $_.LastWriteTime -lt $lim } } }
+          # Papelera: cada elemento borrado deja un par $I (fecha de borrado) / $R (contenido) en $Recycle.Bin\<SID>
+          $pap = Get-ChildItem "$env:SystemDrive\`$Recycle.Bin" -Recurse -Force -Filter '$I*' | Where-Object { $_.LastWriteTime -lt $limP }
+          $wu = Get-ChildItem "$env:windir\SoftwareDistribution\Download" -Recurse -File -Force
+          $mb = { param($xs) [int](($xs | Measure-Object Length -Sum).Sum / 1MB) }
+          $papR = foreach ($i in $pap) { Get-Item (Join-Path $i.DirectoryName ('$R' + $i.Name.Substring(2))) -Force }
+          $liberable = (& $mb $tmp) + (& $mb $papR) + (& $mb $wu)
+          if ($Modo -eq 'limpiar') {
+            $tmp | Remove-Item -Force
+            foreach ($i in $pap) { Remove-Item (Join-Path $i.DirectoryName ('$R' + $i.Name.Substring(2))) -Recurse -Force; Remove-Item $i.FullName -Force }
+            Stop-Service wuauserv -Force; $wu | Remove-Item -Force; Start-Service wuauserv
+            Start-Process -FilePath dism.exe -ArgumentList '/Online', '/Cleanup-Image', '/StartComponentCleanup' -Wait -WindowStyle Hidden
+            $Ansible.Changed = $true
+          }
+          $despues = Libre
+          [ordered]@{ modo = $Modo; libre_antes_mb = $antes; libre_despues_mb = $despues; liberable_mb = $liberable
+                      liberado_mb = [math]::Max(0, $despues - $antes) } | ConvertTo-Json -Compress
+      register: r_win
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        res_: "{{ (r_lx.stdout | from_json) if not windows else (r_win.output | first | from_json) }}"
+
+    - name: Informe en FaceOps
+      ansible.builtin.set_stats:
+        data:
+          limpieza_disco: "{{ {inventory_hostname: res_} }}"
+        aggregate: true
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} · {{ res_.modo }}: libre {{ res_.libre_antes_mb }} MB → {{ res_.libre_despues_mb }} MB
+          (liberable {{ res_.liberable_mb }} MB, liberado {{ res_.liberado_mb }} MB)

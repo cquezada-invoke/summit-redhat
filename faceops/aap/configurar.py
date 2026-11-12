@@ -146,6 +146,8 @@ shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataf
 shutil.copy(f"{AQUI}/desinstalar-plataforma.yml", f"{tmp}/playbooks/desinstalar-plataforma.yml")
 shutil.copy(f"{AQUI}/windows-escritorio-remoto.yml", f"{tmp}/playbooks/windows-escritorio-remoto.yml")
 shutil.copy(f"{AQUI}/windows-licencia.yml", f"{tmp}/playbooks/windows-licencia.yml")
+for f_ in ("estaciones-limpieza-disco.yml", "estaciones-cis.yml", "windows-actualizaciones.yml"):   # skills de estaciones de trabajo
+    shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/paquetes-registro.yml", f"{tmp}/playbooks/paquetes-registro.yml")
 shutil.copy(f"{AQUI}/inventariar-maquina.yml", f"{tmp}/playbooks/inventariar-maquina.yml")
 shutil.copy(f"{AQUI}/origen-maquinas.yml", f"{tmp}/playbooks/origen-maquinas.yml")
@@ -695,6 +697,16 @@ jwl = asegurar("job_templates", "Windows · Activar licencia", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True,
     "description": "Instala la clave de producto y activa Windows (en línea o contra KMS); la clave nunca se imprime"})
 paso(f"Plantilla «Windows · Activar licencia» (id {jwl['id']})")
+# Estaciones de trabajo (skills de la ficha): agentless, Linux por SSH y Windows por WinRM (inventario y credencial al lanzar)
+for nombre_et, pb_et, desc_et, become_et in (
+        ("Estaciones · Limpieza de disco", "estaciones-limpieza-disco.yml", "Libera espacio en la estación (cachés, temporales, papelera, Windows Update) sin tocar los documentos del usuario", True),
+        ("Estaciones · Cumplimiento CIS", "estaciones-cis.yml", "Evalúa controles CIS nivel 1 de la estación y deja la evidencia por control (solo lectura)", True),
+        ("Windows · Aplicar actualizaciones", "windows-actualizaciones.yml", "Instala las actualizaciones de seguridad y críticas de Windows Update (reinicio solo si se pide)", False)):
+    asegurar("job_templates", nombre_et, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_et}", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": become_et, "forks": 10, "description": desc_et})
+paso("Plantillas de estaciones de trabajo (limpieza de disco, cumplimiento CIS, actualizaciones de Windows)")
 # Vincular máquinas a la bóveda: tipo de credencial que inyecta la dirección y un token de escritura acotado a maquinas/*
 ct_bov = asegurar("credential_types", "FaceOps · Bóveda (escritura)", {
     "kind": "cloud", "description": "Dirección y token de HashiCorp Vault con escritura solo en faceops/data/maquinas/*",

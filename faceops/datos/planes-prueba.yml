@@ -7,6 +7,27 @@
 excepciones:
   - {automatizacion: "Monitoreo · Configurar alertas del equipo", autoriza: "Cristian Quezada", fecha: "2026-11-11", motivo: "«ya bloquearemos caso a caso»: el flotante de alertas no se bloquea por la certificación; solo las acciones no certificadas del selector"}
 planes:
+  "Estaciones · Limpieza de disco":   # requiere estaciones reales del laboratorio (Linux y Windows)
+    casos:
+      - {id: C1, caso: "Modo evaluar en una estación Linux con caché de paquetes, temporales viejos y papelera", verificar: "ticket exitoso; limpieza_disco en set_stats con liberable_mb > 0; nada se borra (libre antes = después, archivos de prueba siguen)"}
+      - {id: C2, caso: "Limpiar en la estación Linux", verificar: "ticket exitoso; temporales y papelera más antiguos que el umbral borrados, los recientes y /home/<usuario>/Documentos intactos; liberado_mb > 0"}
+      - {id: C3, caso: "Evaluar y limpiar en una estación Windows (WinRM)", verificar: "tickets exitosos; Temp y papelera viejos y SoftwareDistribution\\Download vacíos; wuauserv vuelve a quedar en ejecución; Documentos intactos"}
+      - {id: C4, caso: "Repetir la limpieza", tipo: Idempotencia, verificar: "ticket exitoso; liberado ~0 MB; nada nuevo se borra"}
+      - {id: C5, caso: "ld_modo inválido (borrar)", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; no se toca la estación"}
+  "Estaciones · Cumplimiento CIS":   # requiere estaciones reales del laboratorio (Linux y Windows)
+    casos:
+      - {id: C1, caso: "Estación Linux sin endurecer", verificar: "ticket exitoso; cumplimiento_cis con 14 controles, cada uno con resultado y evidencia; los no endurecidos salen «no cumple»"}
+      - {id: C2, caso: "Estación Linux endurecida (LUKS, firewall, USB bloqueado, minlen 14)", verificar: "esos controles pasan a «cumple» con su evidencia; porcentaje mayor que en C1"}
+      - {id: C3, caso: "Estación Windows 11 (WinRM) con BitLocker y Defender", verificar: "ticket exitoso; 13 controles; BitLocker, firewall y antivirus «cumple» con su evidencia"}
+      - {id: C4, caso: "Repetir la evaluación", tipo: Idempotencia, verificar: "ticket exitoso sin changed; mismos resultados"}
+      - {id: C5, caso: "Control no disponible (Windows Home sin BitLocker)", tipo: Error controlado, verificar: "ticket exitoso; el control queda «no evaluable» con su evidencia, sin fallar el resto"}
+  "Windows · Aplicar actualizaciones":   # requiere una estación o servidor Windows del laboratorio con actualizaciones pendientes
+    casos:
+      - {id: C1, caso: "Modo evaluar", verificar: "ticket exitoso; actualizaciones_windows con encontradas y KB; nada instalado"}
+      - {id: C2, caso: "Instalar sin reinicio", verificar: "ticket exitoso; instaladas = encontradas; requiere_reinicio informado; la máquina no se reinicia"}
+      - {id: C3, caso: "Instalar con wu_reiniciar=si", verificar: "ticket exitoso; la máquina reinicia y vuelve por WinRM; requiere_reinicio false"}
+      - {id: C4, caso: "Repetir", tipo: Idempotencia, verificar: "ticket exitoso; 0 pendientes; sin cambios"}
+      - {id: C5, caso: "Máquina Linux (sin WinRM)", tipo: Error controlado, verificar: "FaceOps no la ofrece (incompatible); forzada por AAP falla en «Datos válidos» sin tocar nada"}
   "Redis · Instalar Redis Insight":
     casos:
       - {id: C1, caso: "Reinstalar en una máquina que lo tiene con la ruta antigua o sin acuerdos aceptados (nodo-nginx) con la ruta vigente con código de cliente", verificar: "ticket exitoso; Redis Insight responde en /faceops/lab/inventario/<id>/consola-web/redis/; acuerdos (EULA) aceptados; se puede dar de alta la conexión al Redis local y conectar; la consola carga completa por la URL pública"}
@@ -38,7 +59,7 @@ planes:
       - {id: C5, caso: "Ficha del equipo en FaceOps", verificar: "la ficha muestra plataforma, modelo, uptime, interfaces, VLAN, vecinos, rutas, BGP o balanceo; no muestra CPU, discos, usuarios ni puntos de restauración"}
       - {id: C6, caso: "Repetir la lectura", verificar: "solo lectura e idempotente: el equipo no cambia (sin changed), mismos conteos de interfaces y rutas"}
       - {id: C7, caso: "Equipo que no responde (borde, laboratorio detenido)", verificar: "FaceOps no lanza nada y avisa que el equipo está apagado; no se toca el equipo y su ficha anterior se conserva"}
-S  "Red · Respaldar configuración":
+  "Red · Respaldar configuración":
     casos:
       - {id: C1, caso: "Firewall VyOS (fw): colección vyos.vyos por network_cli", verificar: "ticket exitoso; respaldos/fw.cfg en Git (invoke/red-laboratorio) con «set …» del VyOS; ninguna clave en claro (secretos como <oculto:huella>); faceops_red_respaldo en set_stats con líneas y sha256"}
       - {id: C2, caso: "Router FRR (rtr-wan-01) y switch FRR con VLAN (sw-core-01)", verificar: "tickets exitosos; respaldos con el running-config de vtysh (BGP en el router) y la tabla de VLAN del puente en el switch"}

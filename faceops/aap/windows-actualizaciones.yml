@@ -1,0 +1,47 @@
+---
+# Windows · Aplicar actualizaciones: instala las actualizaciones de seguridad y críticas pendientes de Windows Update
+# (servidores y estaciones de trabajo), por WinRM. No reinicia salvo que se pida: en una estación el reinicio corta el
+# trabajo del usuario. Variables: wu_modo (evaluar = solo lista las pendientes | instalar, por defecto),
+#   wu_categorias (por defecto SecurityUpdates, CriticalUpdates), wu_reiniciar (no | si; por defecto no).
+# Deja en set_stats «actualizaciones_windows» por equipo: encontradas, instaladas, fallidas y si requiere reinicio.
+- name: Windows · Aplicar actualizaciones
+  hosts: all
+  gather_facts: false
+  become: false
+  vars:
+    modo: "{{ wu_modo | default('instalar') }}"
+    categorias: "{{ wu_categorias | default(['SecurityUpdates', 'CriticalUpdates']) }}"
+    reiniciar: "{{ (wu_reiniciar | default('no') | string | lower) in ['si', 'sí', 'true', 'yes', '1'] }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'instalar']
+          - (ansible_connection | default('ssh')) in ['winrm', 'psrp']
+        fail_msg: "wu_modo debe ser evaluar o instalar, y la máquina debe ser Windows (WinRM)"
+        quiet: true
+
+    - name: Actualizaciones de Windows
+      ansible.windows.win_updates:
+        category_names: "{{ categorias }}"
+        state: "{{ 'searched' if modo == 'evaluar' else 'installed' }}"
+        reboot: "{{ reiniciar and modo == 'instalar' }}"
+        reboot_timeout: 1800
+      register: r_wu
+
+    - name: Informe en FaceOps
+      ansible.builtin.set_stats:
+        data:
+          actualizaciones_windows: >-
+            {{ {inventory_hostname: {'modo': modo, 'encontradas': r_wu.found_update_count | default(0),
+                'instaladas': r_wu.installed_update_count | default(0), 'fallidas': r_wu.failed_update_count | default(0),
+                'requiere_reinicio': r_wu.reboot_required | default(false),
+                'kb': (r_wu.updates | default({})).values() | map(attribute='kb') | flatten | list}} }}
+        aggregate: true
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} · {{ modo }}: {{ r_wu.found_update_count | default(0) }} pendientes,
+          {{ r_wu.installed_update_count | default(0) }} instaladas, {{ r_wu.failed_update_count | default(0) }} fallidas
+          {{ '· requiere reinicio' if r_wu.reboot_required | default(false) else '' }}
