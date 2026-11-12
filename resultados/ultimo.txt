@@ -1,8 +1,19 @@
-commit: 8fdaf0cc9df13356ab9769f43404c54b490f75af
-inicio: 2026-11-11T20:59:15-03:00
+commit: 0814cf758da692930e3aab39af8ec1c1ff83bd3d
+inicio: 2026-11-11T20:57:10-03:00
 ---
-AAP ping 200
-CASO -- SIN ESCENARIO: no se pudo preparar faceops-prueba-mov (5 de 5 imágenes)
-/lab/inventario/29 HTTP 200 seccion True
-id="imagenes-movilidad"> Movilidad de imágenes a Quay evaluación 2026-11-11 23:55 · FO-LAB-01973 Solo imágenes del registro interno de OpenShift (ImageStreams); las de registros externos no se listan. 8 / 49 candidatas a Quay (sin uso hace 6 meses o más, o huérfanas) 1.36 GB de las candidatas · 8 capas se liberan solo con ellas — Quay de destino · organización (una por namespace) Rango Revisiones Tamaño en uso 9 3735 MB referenciada 3 1265 MB sin uso 0–3 meses 29 13106 MB huérfana 8 1391 MB Plan de movilidad Ola Imagen Sin uso Tamaño Riesgo Destino Referencias 1 huérfana@a2ed7803e1a1 0.0 meses 411 MB bajo — ninguna (no está en uso) 1 huérfana@0d191d0e6af9 0.0 meses 411 MB bajo — ninguna (no está en uso) 1 huérfana@5bc032f12475 0.0 meses 411 MB bajo — ninguna (no está en uso) 1 huérfana@eb9763766543 0.0 meses 39 MB bajo — ninguna (no está en uso) 1 huérfana@98d7a0ab74bd 0.0 meses 38 MB bajo — ninguna (no está en uso) 1 huérfana@c2fa6cd9b1c0 0.0 meses 38 MB bajo — ninguna (no está en uso
---- fin: 2026-11-11T21:02:06-03:00 · código: 0
+energía nodo-jboss-qa encender: sin respuesta del arnés 
+energía nodo-jboss-qa encender: exitoso FO-LAB-01975
+maquina nodo-jboss-qa
+prep respaldo: rechazado al solicitar  PermissionError: Esta acción no aplica a nodo-jboss-qa: el equipo ya tiene respaldo-git
+prep monitoreo: rechazado al solicitar  PermissionError: Esta acción no aplica a nodo-jboss-qa: el equipo ya tiene node-exporter
+antes: inactive active 
+CASO C1 falla · Quitar respaldo continuo
+CASO C2 ok · Quitar node_exporter
+CASO C3 ok · Agente desconocido
+EVIDENCIA [{"id": "C1", "caso": "Quitar respaldo continuo", "resultado": "falla", "evidencia": "exitoso archivos=0 skill=si node=active "}, {"id": "C2", "caso": "Quitar node_exporter", "resultado": "ok", "evidencia": "servicio inactive sinbin ; puerto 9100 cerrado (HTTP 000); skill=si"}, {"id": "C3", "caso": "Agente desconocido", "resultado": "ok", "evidencia": "fallido (Agente válido · Agente desconocido: agente-inexistente · ); la máquina no cambia (huella c7e4aa69df)"}]
+CERT Sistema · Quitar agente → sin probar
+restaurar respaldo: rechazado al solicitar 
+restaurar monitoreo: rechazado al solicitar 
+energía nodo-jboss-qa apagar: exitoso FO-LAB-01984
+FIN-QUITAR
+--- fin: 2026-11-11T21:17:44-03:00 · código: 0
