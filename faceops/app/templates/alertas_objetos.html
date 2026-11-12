@@ -1,22 +1,55 @@
-{% extends "base.html" %}{% from "_alertas.html" import campana %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Alertas{% endblock %}
+{% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Alertas{% endblock %}
 {% block cuerpo %}
-<div class="fila"><div><h1>Alertas</h1><p class="sub">Cada objeto configura sus alertas desde su propia ficha, con el botón «Alertas». La configuración queda en Ansible y Prometheus, no en FaceOps. Alertmanager entrega cada alerta a Event-Driven Ansible. Aquí ves qué objetos tienen alertas y cuáles no.</p></div></div>
+<div class="fila"><div><h1>Alertas</h1><p class="sub">Todas las alertas configuradas en máquinas, plataformas y clústeres, con su estado real en el monitoreo: encendida = regla cargada en Prometheus (o en el del clúster), disparando = firing ahora. Se configuran en la ficha de cada objeto o aquí, fila por fila, con un ticket.</p></div></div>
 {{ kpi_panel(kpi_de('alertas')) }}
-<div class="grid g4" style="margin:6px 0 14px">
-  <div class="card kpi"><div class="n" style="color:var(--ok)">{{ cuenta.con }}</div><div class="l">objetos con alertas configuradas</div></div>
-  <div class="card kpi"><div class="n" style="color:{{ 'var(--warn)' if cuenta.sin else 'var(--ok)' }}">{{ cuenta.sin }}</div><div class="l">objetos sin alertas</div></div>
-  <div class="card kpi"><div class="n">{{ cuenta.reglas }}</div><div class="l">alertas activas en total</div></div>
-  <div class="card kpi"><div class="n">{{ tipos|length }}</div><div class="l">tipos de objeto con catálogo de alertas</div></div>
+<div class="grid g4 alx-kpi" style="margin:6px 0 14px">
+  <button type="button" class="card kpi" data-f="todas"><div class="n">{{ cuenta.configuradas }}</div><div class="l">configuradas</div></button>
+  <button type="button" class="card kpi" data-f="encendida"><div class="n" style="color:var(--ok)">{{ cuenta.encendidas }}</div><div class="l">encendidas</div></button>
+  <button type="button" class="card kpi" data-f="apagada"><div class="n">{{ cuenta.apagadas }}</div><div class="l">apagadas</div></button>
+  <button type="button" class="card kpi" data-f="disparando"><div class="n" style="color:{{ 'var(--bad, #c9190b)' if cuenta.disparando else 'var(--ok)' }}">{{ cuenta.disparando }}</div><div class="l">disparando ahora</div></button>
 </div>
-<div class="fila" style="gap:6px;flex-wrap:wrap;margin:0 0 10px">
-  <a class="chip{{ ' s-ok' if not tipo }}" href="{{ url_for('consola.alertas', estado=estado_f or None) }}">Todos</a>
-  {% for k, t in tipos.items() %}<a class="chip{{ ' s-ok' if tipo == k }}" href="{{ url_for('consola.alertas', tipo=k, estado=estado_f or None) }}">{{ t.nombre }} · {{ por_tipo.get(k, 0) }}</a>{% endfor %}
-
+{% if cuenta.difieren %}<div class="flash">{{ cuenta.difieren }} alerta{{ 's' if cuenta.difieren != 1 }} donde FaceOps y Prometheus no coinciden (marcadas con ⚠): manda Prometheus.</div>{% endif %}
+<div class="fila alx-filtros" style="gap:8px;flex-wrap:wrap;margin:0 0 10px">
+  <input type="search" id="alx-q" placeholder="Buscar objeto, alerta, acción o grupo…" style="flex:1;min-width:220px">
+  <select id="alx-estado"><option value="">Todos los estados</option><option value="encendida">Encendidas</option><option value="apagada">Apagadas</option><option value="disparando">Disparando</option></select>
+  <select id="alx-clase"><option value="">Todo tipo de objeto</option>{% for c in filas|map(attribute='clase')|unique|sort %}<option>{{ c }}</option>{% endfor %}</select>
+  <select id="alx-sev"><option value="">Toda severidad</option><option value="aviso">Aviso</option><option value="crítico">Crítico</option></select>
+  <span class="sub" id="alx-n"></span>
 </div>
-<div class="card" style="padding:0"><table><tr><th style="width:70px"></th><th>Objeto</th><th>Tipo</th><th>Alertas configuradas en Ansible</th><th>Vigente desde</th></tr>
-{% for x in lista %}<tr><td><a href="{{ url_for('consola.equipo', eid=x.id) }}#alertas" class="al-mini al-{{ 'on' if x.n else 'off' }}" title="Abrir la ficha y configurar">{{ campana(16) }}{% if x.n %}<b>{{ x.n }}</b>{% endif %}</a></td>
-<td><a href="{{ url_for('consola.equipo', eid=x.id) }}" class="mono">{{ x.nombre }}</a></td><td style="font-size:12.5px">{{ tipos[x.tipo].nombre }}</td>
-<td style="font-size:12px">{% if x.n %}{{ x.resumen|join(' · ') }}{% else %}<span class="sub">sin alertas · <a href="{{ url_for('consola.equipo', eid=x.id) }}#alertas">configurar</a></span>{% endif %}</td>
-<td style="font-size:12px">{{ x.actualizado|fecha if x.actualizado else '—' }}{% if x.ticket %} · {{ x.ticket }}{% endif %}</td></tr>
-{% else %}<tr><td colspan="5" class="vacio">{{ "Aún no hay alertas configuradas. Se configuran desde el botón «Alertas» en la ficha de cada objeto." if not cuenta.con else "Sin objetos con alertas para este filtro." }}</td></tr>{% endfor %}</table></div>
+<div class="card" style="padding:0;overflow-x:auto"><table class="alx">
+<thead><tr><th>Objeto</th><th>Alerta</th><th>Severidad</th><th>Acción</th><th>Estado</th><th>Disparando</th><th>Último disparo</th><th>Responsable</th><th></th></tr></thead>
+<tbody>
+{% for x in filas %}<tr data-estado="{{ 'encendida' if x.encendida else 'apagada' }}{{ ' disparando' if x.disparando }}" data-clase="{{ x.clase }}" data-sev="{{ x.severidad }}"
+  data-txt="{{ (x.objeto_txt ~ ' ' ~ x.aid ~ ' ' ~ x.nombre ~ ' ' ~ x.accion ~ ' ' ~ x.tipo_accion ~ ' ' ~ x.responsable)|lower }}">
+<td><a href="{{ url_for('consola.equipo', eid=x.eid) }}#alertas" class="mono">{{ x.objeto_txt }}</a><br><span class="sub" style="font-size:11px">{{ x.clase }}</span></td>
+<td><b>{{ x.nombre }}</b> <span class="sub">{{ x.aid }}</span>{% if x.difiere %} <span title="{{ x.difiere_txt }}">⚠</span>{% endif %}{% if x.salud == 'err' %} <span class="chip s-alta" style="font-size:10px">regla con error</span>{% endif %}</td>
+<td>{{ x.severidad or '—' }}</td>
+<td style="font-size:12px"><span class="chip" style="font-size:10.5px">{{ x.tipo_accion }}</span><br>{{ x.accion }}</td>
+<td><span class="chip {{ 's-ok' if x.encendida else '' }}">{{ 'Encendida' if x.encendida else 'Apagada' }}</span>{% if x.sin_monitoreo %}<br><span class="sub" style="font-size:11px">sin lectura del monitoreo</span>{% endif %}</td>
+<td>{% if x.disparando %}<span class="chip s-alta">sí</span>{% elif x.pendiente %}<span class="chip">por dispararse</span>{% else %}no{% endif %}</td>
+<td style="font-size:12px">{{ x.ultimo or '—' }}</td>
+<td style="font-size:12px">{{ x.responsable }}{% if x.correo %}<br><span class="sub">{{ x.correo }}</span>{% endif %}</td>
+<td style="white-space:nowrap;font-size:12px">{% if x.encendida %}<a href="{{ url_for('consola.equipo_alerta_regla', eid=x.eid, aid=x.aid, ambito=x.ambito) }}" target="_blank" rel="noopener">Regla en el monitoreo ↗</a>{% endif %}
+  {% if puede %}<div class="fila" style="gap:4px;margin-top:4px">
+    {% if x.tipo != 'openshift' %}<button type="button" class="btn chico {{ 'gris' if x.encendida }}" onclick="alxConmutar(this, {{ x.eid }}, '{{ x.ambito }}', '{{ x.aid }}', {{ 0 if x.encendida else 1 }})">{{ 'Apagar' if x.encendida else 'Encender' }}</button>{% endif %}
+    {% if x.encendida %}<button type="button" class="btn chico gris" onclick="alxProbar(this, '{{ url_for('consola.equipo_alerta_probar', eid=x.eid) }}', '{{ x.ambito }}', '{{ x.aid }}')">Probar</button>{% endif %}
+  </div><div class="sub alx-res" style="font-size:11px;max-width:320px;white-space:normal"></div>{% endif %}</td></tr>
+{% else %}<tr><td colspan="9" class="vacio">Aún no hay alertas configuradas. Se configuran desde el botón «Alertas» en la ficha de cada objeto.</td></tr>{% endfor %}
+</tbody></table></div>
+<style>.alx td,.alx th{vertical-align:top;padding:8px 10px}.alx-kpi .kpi{text-align:left;cursor:pointer;border:1px solid var(--line);background:var(--card,#fff)}</style>
+<script>
+(()=>{const q=document.getElementById('alx-q'),es=document.getElementById('alx-estado'),cl=document.getElementById('alx-clase'),sv=document.getElementById('alx-sev'),n=document.getElementById('alx-n');
+ const filas=[...document.querySelectorAll('table.alx tbody tr[data-estado]')];
+ const f=()=>{const t=q.value.trim().toLowerCase();let v=0;filas.forEach(r=>{const ok=(!t||r.dataset.txt.includes(t))&&(!es.value||r.dataset.estado.split(' ').includes(es.value))&&(!cl.value||r.dataset.clase===cl.value)&&(!sv.value||r.dataset.sev.includes(sv.value));r.hidden=!ok;if(ok)v++;});n.textContent=v+' de '+filas.length;};
+ [q,es,cl,sv].forEach(x=>x.addEventListener('input',f));document.querySelectorAll('.alx-kpi [data-f]').forEach(b=>b.addEventListener('click',()=>{es.value=b.dataset.f==='todas'?'':b.dataset.f;f();}));f();})();
+const CSRF_ALX={{ csrf|tojson }};
+function alxConmutar(b,eid,amb,aid,on){const r=b.closest('td').querySelector('.alx-res');if(!confirm((on?'¿Encender':'¿Apagar')+' la alerta '+aid+'? Se crea un ticket con aprobación.'))return;b.disabled=true;r.textContent='creando ticket…';
+ const fd=new FormData();fd.append('_csrf',CSRF_ALX);fd.append('eid',eid);fd.append('ambito',amb);fd.append('aid',aid);fd.append('on',on);
+ fetch({{ url_for('consola.alertas_conmutar')|tojson }},{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(x=>x.json()).then(t=>{if(t.error){r.textContent='falló: '+t.error;b.disabled=false;return;}
+  r.innerHTML='Ticket <a href="'+t.url+'">'+t.numero+'</a> · '+(t.estado||'').replace('_',' ')+' (el estado cambia cuando Ansible lo aplique)';}).catch(()=>{r.textContent='falló: no se pudo enviar';b.disabled=false;});}
+function alxProbar(b,url,amb,aid){const r=b.closest('td').querySelector('.alx-res');b.disabled=true;r.textContent='enviando la alerta de prueba…';
+ const fd=new FormData();fd.append('_csrf',CSRF_ALX);fd.append('aid',aid);fd.append('ambito',amb);
+ fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(x=>x.json()).then(x=>{if(x.error){r.textContent='falló: '+x.error;b.disabled=false;return;}
+  const ver=()=>fetch(x.url,{headers:{'X-Requested-With':'fetch'}}).then(y=>y.json()).then(p=>{r.textContent=(p.pasos||[]).join(' → ')||'en curso…';if(p.estado==='en curso')setTimeout(ver,5000);else{r.textContent=(p.estado==='ok'?'✓ ':'✗ ')+r.textContent;b.disabled=false;}});ver();}).catch(()=>{r.textContent='falló';b.disabled=false;});}
+</script>
 {% endblock %}

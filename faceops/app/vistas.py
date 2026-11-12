@@ -4724,6 +4724,8 @@ def equipo(eid):
         h["auto"] = a
     acciones = []
     for a in sorted(autos, key=lambda x: (0 if x.get("demo") or x["categoria"] == "Skills" else 1, x.get("orden") or 999, x["nombre"])):
+        if re.search(r"\beliminar\b", (a.get("nombre_aap") or "") + " " + (a.get("nombre") or ""), re.I):
+            continue   # la ficha no ofrece eliminar la máquina (se hace desde el inventario, con su ticket)
         if aplica_a_equipo(g.usuario, g.cliente["id"], a, e):
             a["campos_l"] = [c for c in j(a["campos"], []) if c["tipo"] not in ("equipo", "equipos")]
             a["aprob"] = requiere_aprobacion(a, e.get("ambiente"))
@@ -4783,7 +4785,8 @@ def equipo(eid):
                                 if cw_ and g.perfil["modo"] == "escritura" else [], "lista": []})
     if not any(c["so"] for c in componentes) and (e.get("categoria") or "servidor") != "clúster openshift":
         # todas las fichas con el mismo formato: el sistema del equipo (Windows, VyOS, FortiOS…) es su primera «plataforma»
-        componentes.insert(0, {"codigo": "so", "nombre": e.get("so") or (e.get("categoria") or "Sistema").capitalize(), "so": True, "sintetico": True,
+        componentes.insert(0, {"codigo": "so", "nombre": e.get("so") or ("Sin detectar" if (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo")
+                                                                       else (e.get("categoria") or "Sistema").capitalize()), "so": True, "sintetico": True,
                                "errores": 0, "activos": 0, "prevenidos": 0, "integracion": None, "acciones": [], "lista": []})
     if (e.get("categoria") or "") == "clúster openshift":   # OpenShift es el «sistema» del clúster (arriba, como RHEL en una máquina)
         for c in componentes:
@@ -5030,7 +5033,7 @@ def equipo(eid):
     from .skills_maquina import ACTIVAS as _skills_on, armar as _skills_armar   # panel «Skills» (g.skills_maq; None = botones de siempre)
     _esc_ = g.perfil["modo"] == "escritura"
     g.skills_maq = None if not _skills_on else _skills_armar(e, acciones, _de_comp, next((c["codigo"] for c in comp_alias if c["so"]), None),
-                                 energia_ok=energia_posible(e) and _esc_, puede_eliminar=eliminable(e) and _esc_, recursos_ok=recursos_ok,
+                                 energia_ok=energia_posible(e) and _esc_, puede_eliminar=False, recursos_ok=recursos_ok,
                                  mover_ok=_esc_ and e.get("forma") == "virtual" and bool(_hipervisor(e)) and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo"),
                                  escritura=_esc_, lim_rec=lim_rec, componentes=componentes, desinstalando=desinstalando)
     # Salud de la ficha: la barra principal y su flotante son de la máquina y su SO; cada plataforma tiene la suya (radar_sal)
@@ -5045,7 +5048,7 @@ def equipo(eid):
             radar_mso["mix"] = salud_combinada(radar_mso, [(c_["nombre"], c_.get("radar_sal")) for c_ in componentes if not c_.get("so")])
     except Exception as x_:  # noqa: BLE001
         current_app.logger.warning("salud por plataforma: %s", x_)
-    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"], e), agente_salud=lambda a_: _salud_agente_detalle(e, a_), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"], e), agente_salud=lambda a_: _salud_agente_detalle(e, a_), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=False, autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -6888,20 +6891,59 @@ def facturacion():
 @bp.route("/alertas")
 @requiere_login
 def alertas():
-    """Monitoreo › Alertas: las alertas se configuran en cada objeto (botón «Alertas» de su ficha) y viven en Ansible y
-    Prometheus; aquí, el estado de todos los objetos: cuáles tienen alertas, cuáles no y los cambios en curso."""
+    """Monitoreo › Alertas: TODAS las alertas configuradas (máquinas, plataformas y clústeres) con su estado REAL en el
+    monitoreo (reglas cargadas en Prometheus o en el del clúster; disparando ahora y último disparo), su acción, el grupo
+    responsable y la regla. Si FaceOps (reflejo del último ticket) y el monitoreo difieren, se marca."""
     from . import alertas_objeto as ao
-    ids_vis = {e["id"] for e in equipos_visibles()}
-    filas = [x for x in ao.resumen_cliente(g.cliente["id"]) if x["id"] in ids_vis]
-    tipo = request.args.get("tipo", "")
-    estado_f = request.args.get("estado", "")
-    cuenta = {"con": sum(1 for x in filas if x["n"]), "sin": sum(1 for x in filas if not x["n"]), "reglas": sum(x["n"] for x in filas)}
-    # solo los objetos con alertas configuradas: mientras no haya ninguna, la lista queda vacía (se configuran en la ficha de cada objeto)
-    lista = [x for x in filas if x["n"] and (not tipo or x["tipo"] == tipo)]
-    lista.sort(key=lambda x: (-x["n"], x["nombre"]))
-    tipos = ao.catalogo()["tipos"]
-    return render_template("alertas_objetos.html", lista=lista, cuenta=cuenta, tipo=tipo, estado_f=estado_f, tipos=tipos,
-                           por_tipo={k: sum(1 for x in filas if x["tipo"] == k and x["n"]) for k in tipos})
+    filas = ao.tabla_cliente(g.cliente["id"], equipos_visibles())
+    cuenta = {"configuradas": len(filas), "encendidas": sum(1 for x in filas if x["encendida"]), "apagadas": sum(1 for x in filas if not x["encendida"]),
+              "disparando": sum(1 for x in filas if x["disparando"]), "difieren": sum(1 for x in filas if x["difiere"])}
+    return render_template("alertas_objetos.html", filas=filas, cuenta=cuenta, tipos=ao.catalogo()["tipos"],
+                           puede=g.perfil["modo"] == "escritura")
+
+
+@bp.route("/alertas/conmutar", methods=["POST"])
+@requiere_login
+def alertas_conmutar():
+    """Encender o apagar una alerta desde la tabla: un ticket con la configuración completa del ámbito (como el flotante)."""
+    from werkzeug.datastructures import MultiDict
+    from . import alertas_objeto as ao
+    _escritura()
+    eid = int(request.form.get("eid") or 0)
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or not ao.tipo_de(e):
+        abort(404)
+    amb_ = (request.form.get("ambito") or "maquina").strip()
+    aid, on = (request.form.get("aid") or "").strip(), request.form.get("on") == "1"
+    if ao.tipo_de(e) == "openshift":
+        return {"error": "Las alertas del clúster se cargan juntas desde su ficha («Generar ticket» del flotante)"}, 400
+    ctx = ao.contexto(g.cliente["id"], e, True, amb_)
+    if not ctx["disponible"]:
+        return {"error": ctx["por_que"]}, 400
+    f = MultiDict()
+    for xs in ctx["grupos"].values():
+        for x in xs:
+            if x.get("pendiente"):
+                continue
+            activa = (x["id"] == aid and on) or (x["id"] != aid and x.get("activa"))
+            if not activa:
+                continue
+            f[f"on_{x['id']}"] = "1"
+            f[f"acc_{x['id']}"] = x.get("valor_accion") or "avisar"
+            f[f"para_{x['id']}"] = str(x.get("valor_para") or 0)
+            if x.get("umbral", True) is False:
+                f[f"sev_{x['id']}"] = x.get("valor_sev") or "aviso"
+            else:
+                for k_ in ("aviso", "critico"):
+                    v_ = x.get(f"valor_{k_}")
+                    if v_ is not None:
+                        f[f"{k_}_{x['id']}"] = str(v_)
+    f["motivo"] = f"{'Encender' if on else 'Apagar'} la alerta {aid} de {e['nombre']} (Monitoreo › Alertas)"
+    try:
+        t, a = _alertas_pedir(e, amb_, f)
+    except (ValueError, PermissionError) as x:
+        return {"error": str(x)}, 400
+    return {"numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
 RAIZ_DATOS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos")
@@ -8740,6 +8782,34 @@ def deudas():
                            dias_total=int(sum(x["dias"] for x in pend)))
 
 
+def _alertas_pedir(e, amb_, form):
+    """Del formulario del flotante (o de la tabla de Monitoreo › Alertas) → un ticket a «Configurar alertas del equipo»."""
+    from . import alertas_objeto as ao
+    from .operacion import solicitar
+    par = ao.pedido_de_formulario(e, form, amb_)
+    _ya = {x["id"]: x.get("accion") for x in ao.aplicadas(e, amb_).get("alertas") or []}
+    for x_ in par["al_alertas"]:   # una acción bloqueada por la regla de prueba no se puede elegir (sí mantener la vigente)
+        bl_ = ao.bloqueo_accion(g.cliente["id"], ao.catalogo(), x_["accion"])
+        if bl_ and _ya.get(x_["id"]) != x_["accion"]:
+            raise ValueError(f"Alerta {x_['id']}: la acción elegida está bloqueada ({bl_})")
+    if ao.requiere_acceso(par):   # la respuesta entra a la máquina: con el inventario y la credencial de AAP del equipo
+        from .operacion import acceso_equipo
+        try:
+            aap_ = AAP.de_cliente(g.cliente)
+            _, inv_n, creds_ = acceso_equipo(aap_, g.cliente, e)
+            cr_n = aap_.get(f"credentials/{creds_[0]}/")["name"] if creds_ else ""
+        except ErrorAAP as x:
+            raise ValueError(f"La acción elegida entra a {e['nombre']} y no sé con qué credencial: {x}")
+        if not cr_n:
+            raise ValueError(f"La acción elegida entra a {e['nombre']}: su inventario «{inv_n}» no tiene credencial en el plan de recolección")
+        par.update(al_inventario=inv_n, al_credencial=cr_n)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ao.AUTO)
+    n_ = len(par["al_alertas"])
+    t = solicitar(g.usuario, g.cliente, a, "", par,
+                  form.get("motivo") or (f"Alertas de {e['nombre']}{(' · ' + amb_.split(':', 1)[1]) if amb_ != 'maquina' else ''}: {n_} activa{'s' if n_ != 1 else ''}, {len(par['al_retiradas'])} apagada{'s' if len(par['al_retiradas']) != 1 else ''}" if n_ else f"Retirar las alertas de {e['nombre']}"))
+    return t, a
+
+
 @bp.route("/inventario/<int:eid>/alertas", methods=["POST"])
 @requiere_login
 def equipo_alertas(eid):
@@ -8777,27 +8847,7 @@ def equipo_alertas(eid):
         flash(f"Pedido {t['numero']}: Ansible cargará las alertas de {e['nombre']} en su monitoreo y en Grafana", "ok")
         return redirect(vuelta)
     try:
-        par = ao.pedido_de_formulario(e, request.form, amb_)
-        _ya = {x["id"]: x.get("accion") for x in ao.aplicadas(e, amb_).get("alertas") or []}
-        for x_ in par["al_alertas"]:   # una acción bloqueada por la regla de prueba no se puede elegir (sí mantener la vigente)
-            bl_ = ao.bloqueo_accion(g.cliente["id"], ao.catalogo(), x_["accion"])
-            if bl_ and _ya.get(x_["id"]) != x_["accion"]:
-                raise ValueError(f"Alerta {x_['id']}: la acción elegida está bloqueada ({bl_})")
-        if ao.requiere_acceso(par):   # la respuesta entra a la máquina: con el inventario y la credencial de AAP del equipo
-            from .operacion import acceso_equipo
-            try:
-                aap_ = AAP.de_cliente(g.cliente)
-                _, inv_n, creds_ = acceso_equipo(aap_, g.cliente, e)
-                cr_n = aap_.get(f"credentials/{creds_[0]}/")["name"] if creds_ else ""
-            except ErrorAAP as x:
-                raise ValueError(f"La acción elegida entra a {e['nombre']} y no sé con qué credencial: {x}")
-            if not cr_n:
-                raise ValueError(f"La acción elegida entra a {e['nombre']}: su inventario «{inv_n}» no tiene credencial en el plan de recolección")
-            par.update(al_inventario=inv_n, al_credencial=cr_n)
-        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ao.AUTO)
-        n_ = len(par["al_alertas"])
-        t = solicitar(g.usuario, g.cliente, a, "", par,
-                      request.form.get("motivo") or (f"Alertas de {e['nombre']}{(' · ' + amb_.split(':', 1)[1]) if amb_ != 'maquina' else ''}: {n_} activa{'s' if n_ != 1 else ''}, {len(par['al_retiradas'])} apagada{'s' if len(par['al_retiradas']) != 1 else ''}" if n_ else f"Retirar las alertas de {e['nombre']}"))
+        t, a = _alertas_pedir(e, amb_, request.form)
     except (ValueError, PermissionError) as x:
         if js:
             return {"error": str(x)}, 400

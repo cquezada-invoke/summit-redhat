@@ -338,6 +338,112 @@ def registrar_resultado(cliente_id, art, numero):
     ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d, ensure_ascii=False), e["id"])
 
 
+def _reglas_todas(url, hdr=None):
+    """Todos los grupos de reglas de alerta de un Prometheus (None si no responde)."""
+    import requests
+    try:
+        r = requests.get(url.rstrip("/") + "/api/v1/rules", params={"type": "alert"}, headers=hdr or {}, timeout=5, verify=False)
+        r.raise_for_status()
+        return r.json()["data"]["groups"]
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _indexar(gs, grupo, url):
+    out, orden = {}, {"firing": 2, "pending": 1, "inactive": 0}
+    for g_ in gs or []:
+        if g_["name"] != grupo:
+            continue
+        for x in g_.get("rules") or []:
+            aid = (x.get("labels") or {}).get("faceops_alerta")
+            if not aid:
+                continue
+            d = out.setdefault(aid, {"reglas": [], "estado": "inactive", "salud": "ok", "grupo": grupo, "archivo": g_.get("file", ""), "fuente": url})
+            d["reglas"].append({k_: x.get(k_) for k_ in ("name", "query", "duration", "labels", "annotations", "health", "lastError", "state", "lastEvaluation")}
+                               | {"activas": len(x.get("alerts") or [])})
+            if orden.get(x.get("state"), 0) > orden.get(d["estado"], 0):
+                d["estado"] = x.get("state")
+            if x.get("health") == "err":
+                d["salud"] = "err"
+    return out
+
+
+def _ultimos_disparos(url, hdr=None):
+    """(equipo, alerta) → último instante en que estuvo disparada (7 días), leído de ALERTS del Prometheus."""
+    import requests
+    q_ = 'max by (faceops_equipo, faceops_alerta) (max_over_time(timestamp(ALERTS{alertstate="firing",faceops_alerta!=""})[7d:5m]))'
+    try:
+        r = requests.get(url.rstrip("/") + "/api/v1/query", params={"query": q_}, headers=hdr or {}, timeout=8, verify=False)
+        return {(x["metric"].get("faceops_equipo"), x["metric"].get("faceops_alerta")): float(x["value"][1]) for x in r.json()["data"]["result"]}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def tabla_cliente(cliente_id, equipos):
+    """Monitoreo › Alertas: una fila por alerta de cada objeto con alertas (máquina, cada plataforma y clúster), con su
+    estado REAL en el monitoreo (encendida = regla cargada; disparando = firing ahora; último disparo) y lo que dice
+    FaceOps (reflejo del último ticket), marcando si difieren."""
+    from datetime import datetime
+    from .alerta_diagnostico import destino
+    cat = catalogo()
+    acc_cat = cat.get("acciones") or {}
+    gs_host = _reglas_todas(PROMETHEUS)
+    ult_host = _ultimos_disparos(PROMETHEUS)
+    filas = []
+    for e in equipos:
+        t = tipo_de(e)
+        if not t:
+            continue
+        d = j(e.get("datos"), {}) or {}
+        ult = ult_host
+        if t == "openshift":
+            prom_by = {"maquina": reglas_monitoreo(e, "maquina", "openshift")}
+            from .boveda import leer
+            cr = leer(f"maquinas/{e['nombre']}/grafana-monitoreo") or {}
+            ult = _ultimos_disparos(cr["url"], {"Authorization": f"Bearer {cr['token']}"}) if cr.get("url") and cr.get("token") else {}
+        else:
+            ambs = {"maquina"} | set((d.get("alertas_plat") or {}).keys())
+            ambs |= {"plataforma:" + g_["name"].split("--", 1)[1] for g_ in gs_host or [] if g_["name"].startswith(f"faceops-{e['nombre']}--")}
+            prom_by = {amb: (_indexar(gs_host, grupo_monitoreo(e, amb), PROMETHEUS) if gs_host is not None else None) for amb in ambs}
+        resp = None
+        for amb, prom in prom_by.items():
+            refl = {x["id"]: x for x in aplicadas(e, amb).get("alertas") or []} if t != "openshift" else {}
+            if not (prom or refl):
+                continue
+            resp = resp or destino(cliente_id, e)
+            for a in cat["alertas"]:
+                if t not in a["tipos"] or a.get("ambito", "maquina") != amb or a.get("pendiente"):
+                    continue
+                m = (prom or {}).get(a["id"])
+                rf = refl.get(a["id"])
+                if t == "openshift" and not m:
+                    continue
+                encendida = bool(m) if prom is not None else bool(rf)
+                sevs = sorted({r_["labels"].get("severity", "") for r_ in (m or {}).get("reglas", [])}) or [
+                    ("critical" if (rf or {}).get("severidad", a.get("severidad")) == "critico" else "warning") if a.get("umbral", True) is False
+                    else ("warning" if (rf or a).get("aviso") is not None else "critical")]
+                acc = ((m or {}).get("reglas") or [{}])[0].get("labels", {}).get("faceops_accion") or (rf or {}).get("accion") or ("por definir" if t == "openshift" else "avisar")
+                tipo_acc = "avisar" if acc == "avisar" else ("por definir" if acc == "por definir" else
+                                                            ("diagnóstico" if acc_cat.get(acc, {}).get("informe") or "diagn" in acc else "remediación"))
+                ts = ult.get((e["nombre"], a["id"]))
+                filas.append({"eid": e["id"], "objeto": e["nombre"], "tipo": t, "ambito": amb,
+                              "objeto_txt": e["nombre"] + ("" if amb == "maquina" else f" · {amb.split(':', 1)[1]}"),
+                              "clase": "clúster" if t == "openshift" else ("plataforma" if amb != "maquina" else
+                                                                          {"linux": "máquina", "windows": "máquina", "storage": "storage", "red": "red"}.get(t, t)),
+                              "aid": a["id"], "nombre": a["nombre"], "grupo": a.get("grupo", ""), "severidad": "/".join(
+                                  {"warning": "aviso", "critical": "crítico"}.get(x_, x_) for x_ in sevs if x_),
+                              "accion": acc_cat.get(acc, {}).get("texto", acc), "tipo_accion": tipo_acc,
+                              "encendida": encendida, "disparando": bool(m and m["estado"] == "firing"), "pendiente": bool(m and m["estado"] == "pending"),
+                              "salud": (m or {}).get("salud", ""), "ultimo": datetime.fromtimestamp(ts).strftime("%d-%m %H:%M") if ts else "",
+                              "responsable": resp[1] if resp else "", "correo": resp[0] if resp else "",
+                              "difiere": (prom is not None and t != "openshift" and bool(m) != bool(rf)),
+                              "difiere_txt": ("FaceOps la tiene encendida pero no está cargada en Prometheus" if rf and not m else
+                                              "cargada en Prometheus sin reflejo en FaceOps" if m and not rf else ""),
+                              "sin_monitoreo": prom is None})
+    filas.sort(key=lambda x: (not x["disparando"], not x["encendida"], x["objeto_txt"], x["aid"]))
+    return filas
+
+
 def resumen_cliente(cliente_id):
     """Para Monitoreo › Alertas: cada objeto con alertas configuradas en Ansible."""
     out = []
