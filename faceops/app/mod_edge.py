@@ -290,17 +290,19 @@ def malla(cliente, nombres):
     k = (cliente["id"], tuple(nombres))
     if k in _malla_cache and time.time() - _malla_cache[k][0] < 60:
         return _malla_cache[k][1]
-    from .aap import AAP, ErrorAAP
-    try:
-        a = AAP.de_cliente(cliente)
-        r = a.s.get(a.base + "instances/", params={"hostname__in": ",".join(nombres), "page_size": 200}, timeout=5)
+    from . import sin_espera
+    cl_ = dict(cliente)
+
+    def leer():   # en segundo plano: la página no espera a AAP (sin dato: «sin lectura», nunca un estado inventado)
+        from .aap import AAP
+        a = AAP.de_cliente(cl_)
+        r = a.s.get(a.base + "instances/", params={"hostname__in": ",".join(nombres), "page_size": 200}, timeout=(1, 3))
         r.raise_for_status()
         res = {x["hostname"]: {"estado": x.get("node_state") or "", "tipo": x.get("node_type") or "", "visto": x.get("last_seen") or ""}
                for x in r.json().get("results", [])}
-    except (ErrorAAP, Exception):  # noqa: BLE001  sin lectura: se muestra «sin lectura», nunca un estado inventado
-        res = None
-    _malla_cache[k] = (time.time(), res)
-    return res
+        _malla_cache[k] = (time.time(), res)
+        return res
+    return sin_espera.valor(("malla",) + k, leer, ttl=60, dep=f"aap:{cliente['id']}")
 
 
 ESTADO_NODO = {"ready": ("Listo", "s-ok"), "installed": ("Instalado, sin enlace", "s-media"), "provisioning": ("Aprovisionando", "s-media"),

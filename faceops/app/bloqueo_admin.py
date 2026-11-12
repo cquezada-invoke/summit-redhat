@@ -11,12 +11,22 @@ from .bd import ajuste
 _c = {"t": 0, "v": None}
 
 
-def estado():
-    """{'bloqueado': bool, 'motivo': str, 'aviso': str, 'posible_bloqueo': str} o {} si la instancia no está conectada a FaceAdmin."""
+def estado(en_vivo=False):
+    """{'bloqueado': bool, 'motivo': str, 'aviso': str, 'posible_bloqueo': str} o {} si la instancia no está conectada a FaceAdmin.
+    Cada request lo lee sin esperar (memoria o lo último guardado en la base); la consulta a FaceAdmin la hacen el latido y,
+    si pasaron más de 15 s, un hilo de fondo (con cortacircuito): ninguna página espera a FaceAdmin."""
     url, tok = os.environ.get("FACEOPS_ADMIN_URL", "").rstrip("/"), os.environ.get("FACEOPS_ADMIN_TOKEN", "")
     if not url or not tok:
         return {}
-    if _c["v"] is not None and time.time() - _c["t"] < 15:
+    if not en_vivo:
+        if _c["v"] is None:
+            try:
+                _c["v"] = json.loads(ajuste("faceadmin_estado") or "{}")
+            except ValueError:
+                _c["v"] = {}
+        if time.time() - _c["t"] >= 15:
+            from . import sin_espera
+            sin_espera.refrescar("faceadmin-estado", _vivo, dep="faceadmin")
         return _c["v"]
     v = None
     try:
@@ -29,6 +39,7 @@ def estado():
                 pass
     except (requests.RequestException, ValueError):
         v = None
+        _c["caida"] = True
     if v is None:
         try:
             v = json.loads(ajuste("faceadmin_estado") or "{}")
@@ -47,6 +58,13 @@ def estado():
         except OSError:
             pass
     return v
+
+
+def _vivo():
+    _c.pop("caida", None)
+    estado(en_vivo=True)
+    if _c.pop("caida", None):
+        raise ConnectionError("FaceAdmin sin respuesta")   # corte compartido: no se reintenta en cada request
 
 
 _hechos = set()
@@ -178,8 +196,7 @@ def iniciar_latido():
     def ciclo():
         while True:
             try:
-                _c.update(t=0)
-                estado()
+                estado(en_vivo=True)
                 reportar_uso()
             except Exception:  # noqa: BLE001  el latido nunca debe botar FaceOps
                 pass

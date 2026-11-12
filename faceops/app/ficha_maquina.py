@@ -18,19 +18,19 @@ INCORPORAR = "FaceOps · Incorporar máquinas"   # con inc_maquina: solo esta m�
 _ALCANZA = {}
 
 
-def _alcanza(host, puerto):
-    """¿Responde el puerto desde FaceOps? Prueba TCP corta, con caché de 60 s (no frena la ficha)."""
-    k = (host, puerto)
-    t, v = _ALCANZA.get(k, (0, None))
-    if time.time() - t < 60:
-        return v
+def _probar(host, puerto):
     try:
-        with socket.create_connection((host, puerto), timeout=0.6):
-            v = True
+        with socket.create_connection((host, puerto), timeout=1):
+            return True
     except OSError:
-        v = False
-    _ALCANZA[k] = (time.time(), v)
-    return v
+        return False
+
+
+def _alcanza(host, puerto):
+    """¿Responde el puerto desde FaceOps? Nunca espera: responde lo último probado (60 s) y la prueba TCP (≤ 1 s) corre en
+    segundo plano. None: todavía no se sabe (la ficha muestra «comprobando…» y se rehidrata sola)."""
+    from . import sin_espera
+    return sin_espera.valor(("tcp", host, puerto), lambda: _probar(host, puerto), ttl=60)
 
 
 def _windows(e):
@@ -51,20 +51,27 @@ def acceso_directo(e):
     usuario = ""
     try:
         from .boveda import acceso
-        usuario = ((acceso(e["nombre"]) or {}).get("usuario") or "") if e.get("ip") else ""
+        usuario = ((acceso(e["nombre"], esperar=False) or {}).get("usuario") or "") if e.get("ip") else ""
+        from . import boveda as bv_
+        pend_bv = bool(e.get("ip")) and bv_.disponible() and bv_.responde() and f"maquinas/{e['nombre']}" not in bv_._cache
     except Exception:  # noqa: BLE001 - sin bóveda: el usuario se escribe a mano
-        usuario = ""
+        usuario, pend_bv = "", False
     d["usuario"] = usuario
+    d["pendiente"] = pend_bv
     if not proto:
         d.update(t="SSH / RDP", motivo="Sistema operativo sin detectar: no se sabe si se entra por SSH o RDP")
     elif not e.get("ip"):
         d["motivo"] = "La máquina no tiene IP en el inventario"
     elif e.get("energia") in ("apagado", "suspendido"):
         d["motivo"] = "La máquina está apagada"
-    elif not _alcanza(e["ip"], d["puerto"]):
-        d["motivo"] = f"{e['ip']}:{d['puerto']} no responde desde FaceOps (firewall o servicio {'de escritorio remoto' if win else 'SSH'} detenido)"
     else:
-        d["ok"] = True
+        al_ = _alcanza(e["ip"], d["puerto"])
+        if al_ is None:
+            d.update(motivo=f"comprobando {e['ip']}:{d['puerto']}…", pendiente=True)
+        elif not al_:
+            d["motivo"] = f"{e['ip']}:{d['puerto']} no responde desde FaceOps (firewall o servicio {'de escritorio remoto' if win else 'SSH'} detenido)"
+        else:
+            d["ok"] = True
     if proto == "ssh":
         d["cmd"] = f"ssh {usuario or '<usuario>'}@{d['host']}" + ("" if d["puerto"] == 22 else f" -p {d['puerto']}")
         d["url"] = f"ssh://{(usuario + '@') if usuario else ''}{d['host']}"

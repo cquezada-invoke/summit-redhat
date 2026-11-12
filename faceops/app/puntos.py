@@ -76,18 +76,26 @@ def origenes(cliente):
     return out
 
 
-def registro_generico():
-    """{sha256: (nombre, versión, archivo)} de los artefactos genéricos del registro propio (imágenes, ISO, instaladores)."""
+def registro_generico(esperar=True):
+    """{sha256: (nombre, versión, archivo)} de los artefactos genéricos del registro propio (imágenes, ISO, instaladores).
+    esperar=False (la ficha): responde lo último conocido ({} si aún no) y lo renueva en segundo plano."""
     if "gen" in _cache and time.time() - _cache["gen"][0] < 600:
         return _cache["gen"][1]
-    out = {}
+    if not esperar:
+        from . import sin_espera
+        return sin_espera.valor("registro-generico", _leer_generico, ttl=600, dep="gitea", defecto={})
     try:
-        for pq in requests.get(f"{GITEA}/api/v1/packages/repositorio", params={"type": "generic", "limit": 50}, headers=_h(), timeout=10).json() or []:
-            fs = requests.get(f"{GITEA}/api/v1/packages/repositorio/generic/{pq['name']}/{pq['version']}/files", headers=_h(), timeout=10).json() or []
-            for f in fs:
-                out[f.get("sha256", "")] = (pq["name"], pq["version"], f.get("name", ""))
-    except Exception:  # noqa: BLE001
-        pass
+        return _leer_generico()
+    except requests.RequestException:
+        return {}
+
+
+def _leer_generico():
+    out = {}
+    for pq in requests.get(f"{GITEA}/api/v1/packages/repositorio", params={"type": "generic", "limit": 50}, headers=_h(), timeout=10).json() or []:
+        fs = requests.get(f"{GITEA}/api/v1/packages/repositorio/generic/{pq['name']}/{pq['version']}/files", headers=_h(), timeout=10).json() or []
+        for f in fs:
+            out[f.get("sha256", "")] = (pq["name"], pq["version"], f.get("name", ""))
     _cache["gen"] = (time.time(), out)
     return out
 
@@ -264,15 +272,35 @@ def asegurar_repo_maquina(nombre):
     return requests.get(f"{GITEA}/api/v1/repos/{org}/{n}", headers=_h(), timeout=8).status_code == 200
 
 
-def paquetes_de_git(conf):
-    """Lista exacta de paquetes (meta/paquetes.txt) del commit del punto en Git: del agente o de la instantánea."""
+def paquetes_de_git(conf, esperar=True):
+    """Lista exacta de paquetes (meta/paquetes.txt) del commit del punto en Git: del agente o de la instantánea.
+    esperar=False (la ficha): nunca espera a Gitea; sin dato devuelve PENDIENTE y lo trae en segundo plano."""
     conf = conf or {}
     k_ = ("pqgit", conf.get("commit"), (conf.get("continuo") or {}).get("commit"))
+    if not k_[1] and not k_[2]:
+        return None
     if k_ in _cache and time.time() - _cache[k_][0] < 600:
         return _cache[k_][1]
+    from . import sin_espera
+
+    def leer():
+        from .paquetes import en_registro
+        if en_registro() is None:   # sin el registro no se sabe qué está respaldado: no se guarda un % equivocado
+            raise sin_espera.Reintentar()
+        r_ = _paquetes_de_git(conf)
+        _cache[k_] = (time.time(), r_)
+        return r_
+    if not esperar:
+        v = sin_espera.valor(k_, leer, ttl=600, dep="gitea", defecto=PENDIENTE)
+        return PENDIENTE if v is PENDIENTE and sin_espera.esperando(k_, "gitea") else (None if v is PENDIENTE else v)
     r_ = _paquetes_de_git(conf)
-    _cache[k_] = (time.time(), r_)
+    from .paquetes import en_registro
+    if en_registro() is not None:
+        _cache[k_] = (time.time(), r_)
     return r_
+
+
+PENDIENTE = {"pendiente": True}
 
 
 def _paquetes_de_git(conf):
@@ -300,9 +328,10 @@ def _paquetes_de_git(conf):
     return None
 
 
-def recuperacion(f):
+def recuperacion(f, esperar=True):
     """% de recuperación de un punto: qué tan completa volvería la máquina si se restaura desde él, con el porqué y cómo
-    mejorarlo. Con la cobertura medida (inventario con instantánea) es esa cobertura; sin ella, la suma de sus eslabones."""
+    mejorarlo. Con la cobertura medida (inventario con instantánea) es esa cobertura; sin ella, la suma de sus eslabones.
+    esperar=False (la ficha): si falta la lista de paquetes de Git, devuelve {'pendiente': True} y la trae en segundo plano."""
     f = f or {}
     if (f.get("maquina") or {}).get("categoria") == "clúster openshift" or f.get("tipo") == "ocp":
         return None
@@ -316,7 +345,10 @@ def recuperacion(f):
     conf = f.get("configuracion") or {}
     pq = f.get("paquetes") or {}
     if not pq.get("lista"):
-        pq = paquetes_de_git(conf) or pq
+        pq_ = paquetes_de_git(conf, esperar=esperar)
+        if pq_ is PENDIENTE:
+            return {"pendiente": True}
+        pq = pq_ or pq
     vols = [v for v in ((f.get("datos") or {}).get("volumenes") or []) if not v.get("sistema")]
     pasos = [("Imagen de nacimiento idéntica en el registro", 15, bool((o_.get("registro") or {}).get("igual")),
               "cargarla con «Infra · Cargar imágenes base al registro»"),
@@ -525,6 +557,10 @@ def dueno_git():
     """Usuario de Gitea dueño del repositorio de puntos (el de la credencial de respaldo)."""
     if "dueno" in _cache:
         return _cache["dueno"]
+    from . import sin_espera
+    if sin_espera.activa():   # la ficha no espera a Gitea: se usa el dueño por defecto mientras se lee en segundo plano
+        sin_espera.refrescar("gitea-dueno", lambda: _cache.setdefault("dueno", requests.get(f"{GITEA}/api/v1/user", headers=_h(), timeout=(1, 3)).json().get("login") or "repositorio"), dep="gitea")
+        return "repositorio"
     try:
         u = requests.get(f"{GITEA}/api/v1/user", headers=_h(), timeout=8).json().get("login") or "repositorio"
     except Exception:  # noqa: BLE001

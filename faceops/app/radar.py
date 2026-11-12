@@ -407,8 +407,8 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
                     rc["falta"].append(f"{x['que']}: {x['detalle']} → {x['mecanismo']}")
         else:
             from .puntos import recuperacion
-            rp = recuperacion(f) if punto else None
-            if rp:
+            rp = recuperacion(f, esperar=False) if punto else None   # sin esperar a Gitea: si falta, se completa en la próxima carga
+            if rp and not rp.get("pendiente"):
                 rc["pct"] = round(rp["pct"] * frescura)
                 rc["detalle"].append({"t": "Recuperación del último punto de restauración", "v": rp["pct"]})
                 rc["falta"] += [f"{m['t']} (+{m['d']} %): {m['como']}" for m in rp["mejorar"]]

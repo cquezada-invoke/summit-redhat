@@ -402,4 +402,12 @@ addEventListener('popstate',()=>ir(location.href,false));history.replaceState({p
 (()=>{const re=/(^|[\s(])(demo-[a-z0-9]|DEMO · |\[demo\]|DEMO-\d{4})/;const marcar=()=>document.querySelectorAll('main tr, main .card li, main .caja').forEach(el=>{if(re.test(el.textContent))el.classList.add('fila-demo')});
 marcar();document.addEventListener('faceops:pagina',marcar);})();</script>
 <style>body.navegando main{opacity:.55;transition:opacity .15s}body.navegando{cursor:progress}</style>
+<script>/* Sin esperas: lo que depende de un servicio externo o de la máquina en vivo se pinta primero como marcador
+   (elemento con id y data-pendiente) y se rehidrata aquí, trayendo de nuevo la página cuando el dato ya llegó en segundo plano. */
+(()=>{let n=0;const ciclo=()=>{const ps=[...document.querySelectorAll('[data-pendiente][id]')];if(!ps.length||n++>=8)return;
+fetch(location.href,{credentials:'same-origin',headers:{'X-Rehidratar':'1'}}).then(r=>r.ok?r.text():Promise.reject()).then(t=>{
+ const d=new DOMParser().parseFromString(t,'text/html');ps.forEach(el=>{const nu=d.getElementById(el.id);if(!nu||nu.hasAttribute('data-pendiente'))return;
+  const im=document.importNode(nu,true);im.querySelectorAll('script').forEach(s=>{const x=document.createElement('script');x.textContent=s.textContent;s.replaceWith(x);});el.replaceWith(im);});
+ setTimeout(ciclo,1200*n);}).catch(()=>setTimeout(ciclo,3000));};
+const ini=()=>setTimeout(ciclo,1000);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ini);else ini();})();</script>
 </body></html>

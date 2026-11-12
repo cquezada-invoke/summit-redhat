@@ -1075,18 +1075,24 @@ def _puntaje_salud(salud):
 
 def _metricas_app(url):
     """Métricas que publica la propia aplicación (tiempos del modelo de IA, estado del lake…) en su «metricas» de la
-    arquitectura. Se consulta por la red interna del clúster con el nombre de la route (sin depender del DNS público)."""
+    arquitectura. Nunca espera: lo último leído (30 s) y la lectura en segundo plano (None mientras llega o si no responde)."""
+    from . import sin_espera
+    return sin_espera.valor(("metricas-app", url), lambda: _leer_metricas_app(url), ttl=30, dep="app:" + url)
+
+
+def _leer_metricas_app(url):
+    """Se consulta por la red interna del clúster con el nombre de la route (sin depender del DNS público)."""
     import requests
     from urllib.parse import urlsplit
     p_ = urlsplit(url)
     for destino in (url, f"{p_.scheme}://192.168.122.50{p_.path}"):
         try:
-            r = requests.get(destino, headers={"Host": p_.netloc} if "192.168.122.50" in destino else {}, timeout=4, verify=False)
+            r = requests.get(destino, headers={"Host": p_.netloc} if "192.168.122.50" in destino else {}, timeout=(1, 2), verify=False)
             if r.ok:
                 return r.json()
         except Exception:  # noqa: BLE001
             continue
-    return None
+    raise ConnectionError("la aplicación no publica sus métricas")   # cortacircuito: no reintentar en cada carga
 
 
 def q1_seg(cliente, segmento):

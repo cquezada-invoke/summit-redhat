@@ -2897,22 +2897,20 @@ def familia(cod):
     return next((f for k, f in FAMILIAS if k in c), c)
 
 
-_PUERTOS = {}
+def _puerto_probar(ip, puerto, espera=1.0):
+    import socket
+    try:
+        socket.create_connection((ip, puerto), espera).close()
+        return True
+    except OSError:
+        return False
 
 
 def puerto_abierto(ip, puerto, espera=1.0):
-    """¿Responde ip:puerto desde FaceOps? (se guarda 60 s para no frenar la ficha ni el mapa)."""
-    import socket
-    k = (ip, puerto)
-    if k in _PUERTOS and time.time() - _PUERTOS[k][0] < 60:
-        return _PUERTOS[k][1]
-    try:
-        socket.create_connection(k, espera).close()
-        ok = True
-    except OSError:
-        ok = False
-    _PUERTOS[k] = (time.time(), ok)
-    return ok
+    """¿Responde ip:puerto desde FaceOps? Nunca espera: lo último probado (60 s) y la prueba TCP (≤ 1 s) en segundo plano.
+    None: aún no se sabe (quien pregunta decide; las consolas se ofrecen mientras tanto)."""
+    from . import sin_espera
+    return sin_espera.valor(("tcp", ip, puerto), lambda: _puerto_probar(ip, puerto, min(espera, 1.0)), ttl=60)
 
 
 def puerto_web(e, cod, defecto):
@@ -2928,7 +2926,7 @@ def puerto_web(e, cod, defecto):
 def jboss_solo_local(e):
     """Consola de administración de JBoss que FaceOps no alcanza (APP-02 v1 la dejaba en 127.0.0.1; desde v2 escucha en la
     máquina con firewall que solo deja entrar a FaceOps/AAP): el 9990 no responde desde FaceOps aunque JBoss esté arriba (su 8080 sí)."""
-    return bool(e.get("ip")) and not puerto_abierto(e["ip"], puerto_web(e, "jboss", 9990)) and puerto_abierto(e["ip"], 8080)
+    return bool(e.get("ip")) and puerto_abierto(e["ip"], puerto_web(e, "jboss", 9990)) is False and puerto_abierto(e["ip"], 8080) is True
 
 
 def abrir_web(e, w):
@@ -2945,34 +2943,33 @@ def abrir_web(e, w):
     return url_for("consola.web_equipo", eid=e["id"], sub="")
 
 
-_KC = {}
-_HTTP = {}
-
-
-def http_responde(url, espera=2.5):
-    """¿La consola contesta por HTTP (cualquier respuesta bajo 500) en poco tiempo? Se guarda 60 s."""
-    if url in _HTTP and time.time() - _HTTP[url][0] < 60:
-        return _HTTP[url][1]
+def _http_probar(url, espera=1):
     try:
-        ok = requests.get(url, timeout=espera, verify=False, allow_redirects=False, stream=True).status_code < 500
+        return requests.get(url, timeout=espera, verify=False, allow_redirects=False, stream=True).status_code < 500
     except requests.RequestException:
-        ok = False
-    _HTTP[url] = (time.time(), ok)
-    return ok
+        return False
+
+
+def http_responde(url, espera=1):
+    """¿La consola contesta por HTTP (cualquier respuesta bajo 500)? Nunca espera: lo último probado (60 s) y la prueba
+    (≤ 1 s) en segundo plano. None: aún no se sabe."""
+    from . import sin_espera
+    return sin_espera.valor(("http", url), lambda: _http_probar(url, espera), ttl=60)
+
+
+def _kc_probar(ip, puerto):
+    try:
+        r_ = requests.get(f"http://{ip}:{puerto}/", allow_redirects=False, timeout=1)
+        return r_.is_redirect or "keycloak" in r_.text[:20000].lower()
+    except requests.RequestException:
+        return False
 
 
 def keycloak_responde(ip, puerto=8080):
-    """¿Ese puerto de la máquina es Keycloak? (en una máquina JBoss el 8080 es JBoss aunque Keycloak esté declarado)."""
-    k = (ip, puerto)
-    if k in _KC and time.time() - _KC[k][0] < 60:
-        return _KC[k][1]
-    try:
-        r_ = requests.get(f"http://{ip}:{puerto}/", allow_redirects=False, timeout=2)
-        ok = r_.is_redirect or "keycloak" in r_.text[:20000].lower()
-    except requests.RequestException:
-        ok = False
-    _KC[k] = (time.time(), ok)
-    return ok
+    """¿Ese puerto de la máquina es Keycloak? (en una máquina JBoss el 8080 es JBoss aunque Keycloak esté declarado).
+    Sin esperar: None mientras la prueba corre en segundo plano."""
+    from . import sin_espera
+    return sin_espera.valor(("kc", ip, puerto), lambda: _kc_probar(ip, puerto), ttl=60)
 
 
 def consola_plataforma(e, cod, verificar=True):
@@ -2996,9 +2993,12 @@ def consola_plataforma(e, cod, verificar=True):
         sv_ = " ".join(j(e.get("servicios"), []) if isinstance(e.get("servicios"), str) else (e.get("servicios") or [])).lower()
         if "keycloak" not in sv_ and "rhbk" not in sv_:
             return None
-    if verificar and not http_responde(f"{esq}://{e['ip']}:{puerto}/"):   # plataforma caída, colgada o máquina sin respuesta
+    if verificar and e.get("energia") in ("apagado", "suspendido"):
         return None
-    if cod == "keycloak" and verificar and not keycloak_responde(e["ip"], puerto):
+    # plataforma caída, colgada o máquina sin respuesta (None = prueba en curso, en segundo plano: se ofrece mientras tanto)
+    if verificar and http_responde(f"{esq}://{e['ip']}:{puerto}/") is False:
+        return None
+    if cod == "keycloak" and verificar and keycloak_responde(e["ip"], puerto) is False:
         return None
     w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod in ("redis", "jenkins", "wazuh")}
     if cod == "keycloak":
@@ -3685,6 +3685,17 @@ def _gitea_respaldo(ruta, repo="repositorio/respaldo-servidores", **params):
     return r.json() if r.ok else None
 
 
+def _gitea_ultimo_commit(rama):
+    """Último commit de la rama del agente de respaldo ([] si la rama no existe). Levanta excepción si Gitea no responde."""
+    import requests
+    tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
+    r = requests.get("http://192.168.122.1:3000/api/v1/repos/repositorio/respaldo-servidores/commits", timeout=(1, 3),
+                     params={"sha": rama, "limit": 1, "stat": "false", "files": "false"}, headers={"Authorization": f"token {tok}"} if tok else {})
+    if r.status_code >= 500:
+        r.raise_for_status()
+    return (r.json() or []) if r.ok else []
+
+
 def _gitea_respaldo_archivo(rama, ruta):
     import requests
     tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
@@ -4104,10 +4115,12 @@ def _salud_agente(e, ag):
     d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
     det = {x.get("n", "").removesuffix(".service"): x.get("estado") for x in d_.get("servicios_det") or []}
     if ag["skill"] == "respaldo-git":
-        try:
-            cs = _gitea_respaldo("/commits", sha=e["nombre"], limit=1, stat="false", files="false") or []
-        except Exception:  # noqa: BLE001 - sin el repositorio no se puede medir
-            return {"ok": None, "estado": "sin dato", "detalle": "No se pudo consultar el repositorio"}
+        from . import sin_espera
+        nom_ = e["nombre"]
+        cs = sin_espera.valor(("gitea-ultimo-commit", nom_), lambda: _gitea_ultimo_commit(nom_), ttl=120, dep="gitea")   # la ficha no espera a Gitea
+        if cs is None:
+            return {"ok": None, "estado": "sin dato", "detalle": "Consultando el repositorio…" if sin_espera.esperando(("gitea-ultimo-commit", nom_), "gitea")
+                    else "No se pudo consultar el repositorio"}
         if not cs:
             return {"ok": False, "estado": "sin respaldos", "detalle": "No hay commits del agente en su rama"}
         from datetime import datetime as _d, timezone as _tz
@@ -4870,7 +4883,7 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
                 p_ = urlsplit(en_) if en_.startswith("http") else None
                 w_ = urlsplit(web_eq["url"]) if web_eq and web_eq["producto"] != "Redis" and web_eq["abrir"] != web_eq["url"] else None
                 if p_ and w_ and p_.hostname == e["ip"] and (p_.scheme, p_.port or {"http": 80, "https": 443}[p_.scheme]) == (w_.scheme, w_.port or {"http": 80, "https": 443}.get(w_.scheme)) \
-                        and puerto_abierto(e["ip"], p_.port or {"http": 80, "https": 443}[p_.scheme]):
+                        and puerto_abierto(e["ip"], p_.port or {"http": 80, "https": 443}[p_.scheme]) is not False:
                     agregar("app", "Aplicación", url_for("consola.web_equipo", eid=e["id"], sub=(p_.path or "/").lstrip("/")),
                             f"Aplicación de {sg_} · se abre a través de FaceOps")
         except Exception:  # noqa: BLE001 - sin arquitectura vigente no hay botón de aplicación
@@ -4890,7 +4903,7 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
         prod_ = web_eq["producto"].lower()
         u_ = urlsplit(web_eq["url"])
         por_proxy = web_eq["abrir"].startswith(request.script_root + "/inventario/")
-        responde = not por_proxy or puerto_abierto(u_.hostname, u_.port or (443 if u_.scheme == "https" else 80))
+        responde = not por_proxy or puerto_abierto(u_.hostname, u_.port or (443 if u_.scheme == "https" else 80)) is not False
         if web_eq["producto"] == "Redis":   # la consola Redis de FaceOps entra con la credencial de la bóveda
             responde = responde and bool(_web_b(e["nombre"], "redis"))
         if responde and not any(prod_ in x["t"].lower() or x["t"].lower() in prod_ for x in plat):
@@ -4906,7 +4919,7 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
                                  "title": "se abre a través de FaceOps" if por_proxy else "se abre directo"})
             else:
                 agregar("web", "Consola web", web_eq["abrir"], f"{web_eq['producto']} · " + ("se abre a través de FaceOps" if por_proxy else "se abre directo"))
-    if redis_eq and g.perfil["modo"] == "escritura" and _web_b(e["nombre"], "redis") and puerto_abierto(e["ip"], 6379):
+    if redis_eq and g.perfil["modo"] == "escritura" and _web_b(e["nombre"], "redis") and puerto_abierto(e["ip"], 6379) is not False:
         c_r = next((c for c in componentes if not c.get("so") and familia(c["codigo"]) == "redis"), None)
         if not any(x.get("c") is c_r for x in plat if c_r is not None):   # una sola consola en Redis: Redis Insight si responde; si no, la de FaceOps
             plat.append({"t": "Consola Redis", "url": redis_eq, "title": "Consola de Redis en FaceOps (entra con la credencial de la bóveda)", "c": c_r})
@@ -4926,6 +4939,9 @@ def _accesos_maquina(e, web_eq, redis_eq, componentes, consola_tipo, monit):
 @bp.route("/inventario/<int:eid>", methods=["GET", "POST"])
 @requiere_login
 def equipo(eid):
+    if request.method == "GET":   # la ficha no espera a nada externo: caché + segundo plano + marcadores que se rehidratan
+        from . import sin_espera
+        sin_espera.activar()
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
     if not e:
         abort(404)
@@ -5228,7 +5244,7 @@ def equipo(eid):
         _org = origenes(g.cliente)
         disco_origen = dict(_org.get(_nombre_vm(e, _org)) or {}) or None
         if disco_origen and disco_origen.get("sha256"):
-            _gen = registro_generico().get(disco_origen["sha256"])
+            _gen = registro_generico(esperar=False).get(disco_origen["sha256"])
             if _gen:
                 disco_origen["registro"] = {"artefacto": _gen[0], "version": _gen[1], "igual": True}
     except Exception:  # noqa: BLE001
@@ -5302,7 +5318,7 @@ def equipo(eid):
             radar_mso["mix"] = salud_combinada(radar_mso, [(c_["nombre"], c_.get("radar_sal")) for c_ in componentes if not c_.get("so")])
     except Exception as x_:  # noqa: BLE001
         current_app.logger.warning("salud por plataforma: %s", x_)
-    return render_template("equipo.html", costo_nube=__import__("app.nube_consumo", fromlist=["x"]).costo_de(g.cliente["id"], e["nombre"]), accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=__import__("app.puntos", fromlist=["x"]).recuperacion, autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"], e), agente_salud=lambda a_: _salud_agente_detalle(e, a_), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, ops_cluster=ops_cluster, ops_res=ops_res, ops_bloq=ops_bloq, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=False, autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", costo_nube=__import__("app.nube_consumo", fromlist=["x"]).costo_de(g.cliente["id"], e["nombre"]), accesos=accesos, eq_id_de=lambda n_: (q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", g.cliente["id"], n_) or {}).get("id"), horas_eq=horas_eq, recuperacion_pr=lambda f_: __import__("app.puntos", fromlist=["x"]).recuperacion(f_, esperar=False), autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=radar_mso, rep_maq=_rep_maq(e), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, git_ficha=_git_ficha(e, agentes_eq), agente_control=_agente_control(g.cliente["id"], e), agente_salud=lambda a_: _salud_agente_detalle(e, a_), area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), alertas_plat=lambda cod_, nom_: (lambda am_: alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura", am_, nom_) if am_ else None)(__import__("app.alertas_objeto", fromlist=["x"]).ambito_de_plataforma(familia(cod_))), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, recursos_bloq=recursos_bloq, servicio_bloq=servicio_bloq, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, ops_cluster=ops_cluster, ops_res=ops_res, ops_bloq=ops_bloq, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=False, autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

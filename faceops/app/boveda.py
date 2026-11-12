@@ -37,13 +37,24 @@ def _token():
     return _tok["t"]
 
 
-def leer(ruta):
-    """faceops/<ruta> → dict, o None si no está o la bóveda no responde."""
+def leer(ruta, esperar=None):
+    """faceops/<ruta> → dict, o None si no está o la bóveda no responde. esperar=False (páginas): lo último conocido al
+    instante; si falta o venció, se lee en segundo plano y aparece en la próxima carga (la página no espera a la bóveda)."""
     if not disponible():
         return None
     c = _cache.get(ruta)
     if c and time.time() - c[0] < TTL:
         return c[1]
+    if esperar is None:   # por defecto espera, salvo en las páginas que no esperan (la ficha de máquina)
+        from . import sin_espera
+        esperar = not sin_espera.activa()
+    if not esperar:
+        from . import sin_espera
+        if responde():
+            sin_espera.refrescar(("boveda", ruta), lambda: leer(ruta))
+            if not c:
+                sin_espera._marcar_pendiente()
+        return c[1] if c else None
     if not responde():
         return c[1] if c else None
     try:
@@ -58,18 +69,18 @@ def leer(ruta):
     return v
 
 
-def acceso(nombre):
-    return leer(f"maquinas/{nombre}")
+def acceso(nombre, esperar=None):
+    return leer(f"maquinas/{nombre}", esperar=esperar)
 
 
-def web(nombre, plataforma=None):
+def web(nombre, plataforma=None, esperar=None):
     """Credencial web de la máquina. Con plataforma: la propia de esa plataforma (web/<máquina>/<plataforma>) o, si no hay,
     la general de la máquina solo cuando corresponde a esa plataforma (una máquina puede tener JBoss y Redis a la vez)."""
     if plataforma:
-        d = leer(f"web/{nombre}/{plataforma}")
+        d = leer(f"web/{nombre}/{plataforma}", esperar)
         if d:
             return d
-    d = leer(f"web/{nombre}")
+    d = leer(f"web/{nombre}", esperar)
     if plataforma and d and ((d.get("sitio") or "").lower() == "redis") != (plataforma == "redis"):
         return None
     return d

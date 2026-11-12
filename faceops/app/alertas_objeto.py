@@ -153,14 +153,17 @@ AUTO_EXPORTADOR = "FaceOps · Exportador de plataforma"
 
 
 def exportador_estado(e, fam):
-    """¿Prometheus lee el exportador de la plataforma en este equipo? True / False (objetivo sin respuesta) / None (sin objetivo)."""
-    import requests
-    try:
-        r = requests.get(PROMETHEUS + "/api/v1/query", params={"query": f'up{{job="faceops-exportadores",faceops_equipo="{e["nombre"]}",faceops_plataforma="{fam}"}}'}, timeout=4)
+    """¿Prometheus lee el exportador de la plataforma en este equipo? True / False (objetivo sin respuesta) / None (sin objetivo,
+    o lectura aún en camino: nunca espera al Prometheus; lo lee en segundo plano con cortacircuito)."""
+    from . import sin_espera
+    nombre = e["nombre"]
+
+    def leer():
+        import requests
+        r = requests.get(PROMETHEUS + "/api/v1/query", params={"query": f'up{{job="faceops-exportadores",faceops_equipo="{nombre}",faceops_plataforma="{fam}"}}'}, timeout=(1, 2))
         res = r.json()["data"]["result"]
         return None if not res else res[0]["value"][1] == "1"
-    except Exception:  # noqa: BLE001
-        return None
+    return sin_espera.valor(("exportador", nombre, fam), leer, ttl=30, dep="prom:" + PROMETHEUS)
 PROMETHEUS = os.environ.get("FACEOPS_PROMETHEUS", "http://127.0.0.1:9090")   # Prometheus del anfitrión (FaceOps usa la red del host)
 _mon = {}
 
@@ -169,20 +172,24 @@ def grupo_monitoreo(e, ambito="maquina"):
     return f"faceops-{e['nombre']}{sufijo(ambito)}"
 
 
-def reglas_monitoreo(e, ambito="maquina", tipo=None):
+def reglas_monitoreo(e, ambito="maquina", tipo=None, esperar=True):
     """Lo que REALMENTE está cargado en el monitoreo para este objeto (no el reflejo del último ticket): por alerta del catálogo
     (etiqueta faceops_alerta), sus reglas con su expresión, duración, salud y estado (firing / pending / inactive). Fuente:
     Prometheus del anfitrión (grupo faceops-<equipo>[--plataforma]) o, para un clúster OpenShift, su Thanos Querier con la
-    cuenta de solo lectura que dejó «Monitoreo · Grafana de OpenShift» (token en la bóveda). None si no se pudo consultar."""
+    cuenta de solo lectura que dejó «Monitoreo · Grafana de OpenShift» (token en la bóveda). None si no se pudo consultar.
+    esperar=False (páginas): nunca espera al Prometheus/Thanos ni a la bóveda; lo último leído y la lectura en segundo plano."""
     import requests
     grupo = grupo_monitoreo(e, ambito)
     hdr, url = {}, PROMETHEUS
     if tipo == "openshift":
         from .boveda import leer
-        cred = leer(f"maquinas/{e['nombre']}/grafana-monitoreo") or {}
+        cred = leer(f"maquinas/{e['nombre']}/grafana-monitoreo", esperar=esperar) or {}
         if not cred.get("url") or not cred.get("token"):
             return None
         url, hdr = cred["url"], {"Authorization": f"Bearer {cred['token']}"}
+    if not esperar:
+        gs = reglas_todas_sin_espera(url, hdr)
+        return _indexar(gs, grupo, url) if gs is not None else None
     k = (url, grupo)
     if k in _mon and time.time() - _mon[k][0] < 15:
         return _mon[k][1]
@@ -283,7 +290,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     grupos = {}
     datos = j(e.get("datos"), {}) or {}
     g_ocp = grafana_ocp(cliente_id, e) if t == "openshift" else None
-    prom = reglas_monitoreo(e, ambito, t)   # lo realmente cargado en el monitoreo (None: no se pudo consultar → reflejo del último ticket)
+    prom = reglas_monitoreo(e, ambito, t, esperar=False)   # lo realmente cargado en el monitoreo (None: no se pudo consultar → reflejo del último ticket)
     trans = transito(cliente_id, e, ambito, (prom or {}).keys() if prom is not None else act.keys()) if t != "openshift" else {}
     for a in cat["alertas"]:
         if t in a["tipos"] and a.get("ambito", "maquina") == ambito and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
@@ -449,6 +456,33 @@ def _reglas_todas(url, hdr=None):
         return None
 
 
+def _leer_reglas(url, hdr):
+    import requests
+    r = requests.get(url.rstrip("/") + "/api/v1/rules", params={"type": "alert"}, headers=hdr or {}, timeout=(1, 2), verify=False)
+    r.raise_for_status()
+    return r.json()["data"]["groups"]
+
+
+def reglas_todas_sin_espera(url, hdr=None):
+    """Grupos de reglas de un Prometheus/Thanos sin esperar: lo leído hace < 15 s, o None mientras llega (segundo plano,
+    cortacircuito compartido por Prometheus si no responde)."""
+    from . import sin_espera
+    return sin_espera.valor(("prom-reglas", url), lambda: _leer_reglas(url, hdr), ttl=15, dep="prom:" + url)
+
+
+def _leer_disparos(url, hdr):
+    import requests
+    q_ = 'max by (faceops_equipo, faceops_alerta) (max_over_time(timestamp(ALERTS{alertstate="firing",faceops_alerta!=""})[7d:5m]))'
+    r = requests.get(url.rstrip("/") + "/api/v1/query", params={"query": q_}, headers=hdr or {}, timeout=(1, 4), verify=False)
+    r.raise_for_status()
+    return {(x["metric"].get("faceops_equipo"), x["metric"].get("faceops_alerta")): float(x["value"][1]) for x in r.json()["data"]["result"]}
+
+
+def ultimos_disparos_sin_espera(url, hdr=None):
+    from . import sin_espera
+    return sin_espera.valor(("prom-disparos", url), lambda: _leer_disparos(url, hdr), ttl=60, dep="prom:" + url, defecto={})
+
+
 def _indexar(gs, grupo, url):
     out, orden = {}, {"firing": 2, "pending": 1, "inactive": 0}
     for g_ in gs or []:
@@ -486,8 +520,8 @@ def tabla_cliente(cliente_id, equipos):
     from .alerta_diagnostico import destino
     cat = catalogo()
     acc_cat = cat.get("acciones") or {}
-    gs_host = _reglas_todas(PROMETHEUS)
-    ult_host = _ultimos_disparos(PROMETHEUS)
+    gs_host = reglas_todas_sin_espera(PROMETHEUS)   # la página no espera al Prometheus (segundo plano + cortacircuito)
+    ult_host = ultimos_disparos_sin_espera(PROMETHEUS)
     filas = []
     for e in equipos:
         t = tipo_de(e)
@@ -496,10 +530,10 @@ def tabla_cliente(cliente_id, equipos):
         d = j(e.get("datos"), {}) or {}
         ult = ult_host
         if t == "openshift":
-            prom_by = {"maquina": reglas_monitoreo(e, "maquina", "openshift")}
+            prom_by = {"maquina": reglas_monitoreo(e, "maquina", "openshift", esperar=False)}
             from .boveda import leer
-            cr = leer(f"maquinas/{e['nombre']}/grafana-monitoreo") or {}
-            ult = _ultimos_disparos(cr["url"], {"Authorization": f"Bearer {cr['token']}"}) if cr.get("url") and cr.get("token") else {}
+            cr = leer(f"maquinas/{e['nombre']}/grafana-monitoreo", esperar=False) or {}
+            ult = ultimos_disparos_sin_espera(cr["url"], {"Authorization": f"Bearer {cr['token']}"}) if cr.get("url") and cr.get("token") else {}
         else:
             ambs = {"maquina"} | set((d.get("alertas_plat") or {}).keys())
             ambs |= {"plataforma:" + g_["name"].split("--", 1)[1] for g_ in gs_host or [] if g_["name"].startswith(f"faceops-{e['nombre']}--")}

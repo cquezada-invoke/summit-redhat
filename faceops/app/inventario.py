@@ -1,5 +1,6 @@
 """Inventario inteligente: equipos desde AAP (hosts + facts del recolector diario), segmentos por reglas,
 skills automáticas y manuales, políticas de seguridad aplicables y condiciones de borde (hallazgos)."""
+import functools
 import json
 import re
 import unicodedata
@@ -12,8 +13,28 @@ CAMPOS_REGLA = ("inventario", "inventarios", "grupo", "proveedor", "ubicacion", 
 
 
 def normal(t):
-    t = unicodedata.normalize("NFKD", str(t or "")).encode("ascii", "ignore").decode().lower()
+    return _normal(str(t or ""))
+
+
+@functools.lru_cache(maxsize=32768)   # función pura y muy llamada (reglas de segmento × equipos en cada página)
+def _normal(t):
+    t = unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()
     return re.sub(r"\s+", " ", t).strip()
+
+
+_REGLAS = {}
+
+
+def _regla(txt):
+    """Regla de segmento ya interpretada (el mismo texto JSON se interpreta una vez, no por cada equipo)."""
+    if not isinstance(txt, str):
+        return txt or {}
+    r = _REGLAS.get(txt)
+    if r is None:
+        if len(_REGLAS) > 4096:
+            _REGLAS.clear()
+        r = _REGLAS[txt] = j(txt, {}) or {}
+    return r
 
 
 def skills_de(e):
@@ -62,7 +83,7 @@ def con_plataforma(e):
 def segmentos_candidatos(e, segmentos):
     """Segmentos a los que la regla asigna la máquina, aunque aún no corra una plataforma (no forma parte todavía)."""
     fijos = set(j(e.get("segmentos_fijos"), []))
-    return [s["nombre"] for s in segmentos if (s["nombre"] in fijos or cumple_regla(e, j(s["regla"], {})))
+    return [s["nombre"] for s in segmentos if (s["nombre"] in fijos or cumple_regla(e, _regla(s["regla"])))
             and (not s.get("sistema") or s["sistema"] == sistema_eq(e))]
 
 

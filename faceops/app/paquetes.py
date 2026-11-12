@@ -48,33 +48,73 @@ def _leer_registro():
     return out
 
 
+def _archivo():
+    import os
+    return os.path.join(os.path.dirname(os.environ.get("FACEOPS_BD", "/var/lib/faceops/faceops.db")), "registro-rpm.json")
+
+
+def _guardar_disco(t, out):
+    """La última lectura queda en disco: tras un reinicio o despliegue la primera ficha ya la tiene (no espera los ~25 s)."""
+    import json
+    import os
+    try:
+        tmp = _archivo() + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump({"t": t, "rpm": sorted(out)}, f)
+        os.replace(tmp, _archivo())
+    except (OSError, TypeError):
+        pass
+
+
+def _leer_disco():
+    import json
+    try:
+        with open(_archivo()) as f:
+            d = json.load(f)
+        return float(d["t"]), set(d["rpm"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
 def _refrescar():
     try:
         out = _leer_registro()
         if out is not None:
-            _cache["rpm"] = (time.time(), out)
+            t = time.time()
+            _cache["rpm"] = (t, out)
+            _guardar_disco(t, out)
+        else:   # registro sin respuesta: no reintentar en cada ficha (cortacircuito de 60 s)
+            _cache["caido"] = time.time()
     finally:
         _cache.pop("refrescando", None)
 
 
 def precargar():
-    """Lee el registro en segundo plano (al arrancar FaceOps) para que la primera ficha no espere."""
+    """Lee el registro en segundo plano (al arrancar FaceOps y cada 5 min) para que ninguna ficha espere."""
     import threading
-    if "refrescando" not in _cache:
+    if "refrescando" not in _cache and time.time() - _cache.get("caido", 0) >= 60:
         _cache["refrescando"] = True
-        threading.Thread(target=_refrescar, daemon=True).start()
+        threading.Thread(target=_refrescar, daemon=True, name="registro-rpm").start()
 
 
 def en_registro():
-    """{'nombre|versión-release'} de los RPM del registro propio. Responde siempre desde la caché y la renueva en segundo
-    plano cada 5 min; solo la primera vez de todas (sin caché) espera la lectura."""
+    """{'nombre|versión-release'} de los RPM del registro propio, o None si todavía no se sabe. Nunca espera: responde desde la
+    memoria (o la copia en disco de la última lectura) y la renueva en segundo plano cada 5 min."""
+    if "rpm" not in _cache:
+        d = _leer_disco()
+        if d:
+            _cache["rpm"] = d
     if "rpm" in _cache:
         if time.time() - _cache["rpm"][0] >= 300:
             precargar()
         return _cache["rpm"][1]
-    out = _leer_registro() or set()
-    _cache["rpm"] = (time.time(), out)
-    return out
+    precargar()
+    try:
+        from .sin_espera import _marcar_pendiente
+        _marcar_pendiente()
+    except Exception:  # noqa: BLE001
+        pass
+    return None
 
 
 def de_equipo(datos, skills=None):
@@ -84,13 +124,13 @@ def de_equipo(datos, skills=None):
         return None
     import re
     from .identidad import NOMBRES_PLAT
-    reg = en_registro()
+    reg = en_registro()   # None: registro aún sin leer (la columna «respaldo» queda sin dato, no en «no»)
     lista, fuentes = [], {}
     sk = set(skills or [])
     reglas = [(k, re.compile(rx)) for k, rx in PAQ_PLAT if k in sk]
     for x in p.get("lista") or []:
         rpm = x.get("r") != "apt"
-        resp = (f"{x['n']}|{x['v']}" in reg) if rpm else None
+        resp = (f"{x['n']}|{x['v']}" in reg) if rpm and reg is not None else None
         plat = next((k for k, rx in reglas if rx.search(x["n"])), "")
         if not x.get("r") and re.search(r"\.el\d+", x.get("v") or ""):   # vino en la imagen base de RHEL sin repositorio registrado
             x = dict(x, r="Red Hat · imagen base", b=True)
@@ -98,7 +138,7 @@ def de_equipo(datos, skills=None):
         fuentes[x.get("r") or "—"] = fuentes.get(x.get("r") or "—", 0) + 1
     lista.sort(key=lambda x: x["n"].lower())
     return {**{k: p.get(k) for k in ("fecha", "ticket", "gestor", "subidos", "errores", "pendientes")}, "lista": lista, "total": len(lista),
-            "respaldados": sum(1 for x in lista if x["respaldo"]), "rpm": any(x["respaldo"] is not None for x in lista),
+            "respaldados": sum(1 for x in lista if x["respaldo"]), "registro_pendiente": reg is None, "rpm": any(x["respaldo"] is not None for x in lista),
             "fuentes": dict(sorted(fuentes.items(), key=lambda kv: -kv[1])),
             "grupos": [("", "Sistema operativo", sum(1 for x in lista if not x["plat"]))] +
                       [(k, NOMBRES_PLAT.get(k) or k.capitalize(), n) for k, n in
