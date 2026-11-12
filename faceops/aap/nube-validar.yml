@@ -1,0 +1,76 @@
+---
+# Nube · Validar conexión e inventariar. Tras guardar la conexión de una nube en FaceOps (credencial cifrada en AAP),
+# prueba la API del proveedor con esa credencial sincronizando la fuente dinámica del inventario de la nube, y trae sus VM.
+# No toca la nube: solo lee. Corre detrás del nodo de aprobación del workflow «Nube · Validar conexión e inventariar».
+# Variables: nv_nube (nombre), nv_fuente_id (fuente dinámica), nv_inventario_id (inventario de la nube)
+# Credencial: «AAP · FaceOps (gateway)» (CONTROLLER_HOST/USERNAME/PASSWORD) para lanzar y leer la sincronización.
+- name: Nube · Validar conexión e inventariar
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    gw: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/api/controller/?$', '') | regex_replace('/$', '') }}"
+    api: "{{ gw }}/api/controller/v2"
+    auth: &auth
+      url_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+      url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+      force_basic_auth: true
+      validate_certs: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - nv_nube | default('') | length > 0
+          - nv_fuente_id | default('') | string | regex_search('^[0-9]+$')
+          - nv_inventario_id | default('') | string | regex_search('^[0-9]+$')
+          - gw | length > 0
+        fail_msg: "Falta la nube, su fuente dinámica o su inventario (o la credencial «AAP · FaceOps (gateway)»)"
+        quiet: true
+
+    - name: Sincronizar la fuente dinámica (prueba la API del proveedor con la credencial guardada)
+      ansible.builtin.uri:
+        <<: *auth
+        url: "{{ api }}/inventory_sources/{{ nv_fuente_id }}/update/"
+        method: POST
+        status_code: [200, 201, 202]
+      register: upd
+
+    - name: Esperar el resultado de la sincronización
+      ansible.builtin.uri:
+        <<: *auth
+        url: "{{ api }}/inventory_updates/{{ upd.json.inventory_update | default(upd.json.id) }}/"
+      register: est
+      until: est.json.status in ['successful', 'failed', 'error', 'canceled']
+      retries: 90
+      delay: 5
+
+    - name: Máquinas que la nube entrega
+      ansible.builtin.uri:
+        <<: *auth
+        url: "{{ api }}/inventories/{{ nv_inventario_id }}/"
+      register: inv
+
+    - name: Motivo de la falla (últimas líneas, sin credenciales)
+      ansible.builtin.uri:
+        <<: *auth
+        url: "{{ api }}/inventory_updates/{{ est.json.id }}/stdout/?format=txt"
+        return_content: true
+      register: salida
+      when: est.json.status != 'successful'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_nube:
+            nube: "{{ nv_nube }}"
+            estado: "{{ 'conectada' if est.json.status == 'successful' else 'error' }}"
+            maquinas: "{{ inv.json.total_hosts | default(0) }}"
+            sincronizacion: "{{ est.json.id }}"
+
+    - name: Conexión validada
+      ansible.builtin.assert:
+        that: est.json.status == 'successful'
+        success_msg: "{{ nv_nube }}: API del proveedor accesible; {{ inv.json.total_hosts | default(0) }} máquina(s) en el inventario"
+        fail_msg: >-
+          {{ nv_nube }}: la API del proveedor rechazó la conexión ({{ est.json.status }}).
+          {{ (salida.content | default('') | regex_replace('(?i)(private_key|password|secret)[^\n]*', '[oculto]')).splitlines()[-6:] | join(' · ') }}

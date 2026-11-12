@@ -126,7 +126,8 @@ def nube(iid):
     acciones = q("SELECT * FROM automatizaciones WHERE cliente_id=? AND (nombre_aap LIKE 'Nube ·%' OR nombre_aap LIKE 'Migración a GCP ·%') ORDER BY nombre", g.cliente["id"])
     for a in acciones:
         a["bloqueo"] = _accion_lista(g.cliente["id"], a["nombre_aap"])[1]
-    return render_template("nube.html", radar_n=radar_n, energia_no=energia_no, acciones=acciones, prov_ctx=ayudas_contexto(x, con), x=x, con=con or {}, err=err, maqs=maqs, zonas=zonas, redes=redes, discos=discos, publicas=publicas,
+    validar_no = _accion_lista(g.cliente["id"], VALIDAR_NUBE)[1]
+    return render_template("nube.html", validar_no=validar_no, radar_n=radar_n, energia_no=energia_no, acciones=acciones, prov_ctx=ayudas_contexto(x, con), x=x, con=con or {}, err=err, maqs=maqs, zonas=zonas, redes=redes, discos=discos, publicas=publicas,
                            clusters=clusters, ocp=ocp, res=_resumen_grupo(propias) if propias else None, fuente_tipo=FUENTE_NUBE.get(x["tipo"], ""),
                            cuenta=cuenta,
                            cuenta_t=cuenta_t, disco_gb=round(sum(float(d.get("gb") or 0) for d in discos)), costo_total=sum(m["costo_mes"] or 0 for m in maqs), con_costo=any(m["costo_mes"] is not None for m in maqs))
@@ -162,3 +163,81 @@ def nube_energia(iid):
     except (PermissionError, ErrorAAP, ValueError) as err:
         return {"error": str(err)}, 400
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"], "n": len(dest)}
+
+
+VALIDAR_NUBE = "Nube · Validar conexión e inventariar"
+
+
+@bp.route("/nubes/<int:iid>/conexion", methods=["POST"])
+@requiere_login
+def nube_conexion(iid):
+    """«Editar conexión» de la nube: guarda los datos y la credencial cifrada en AAP (los secretos nunca vuelven al HTML) y
+    abre el ticket con aprobación «Validar conexión e inventariar nube», que prueba la API del proveedor y trae sus VM.
+    Si esa acción no está publicada o certificada, lo dice: la conexión queda guardada y sin validar."""
+    from flask import flash, redirect
+    from .aap import ErrorAAP
+    from .infraestructuras import conectar, editar
+    if g.perfil["modo"] != "escritura":
+        abort(403)
+    try:
+        n = (editar if request.form.get("modo") == "editar" else conectar)(g.usuario, g.cliente, iid, request.form)
+    except (ValueError, ErrorAAP) as e:
+        flash(f"No se guardó la conexión: {e}", "error")
+        return redirect(url_for("consola.nube", iid=iid) + "?editar=1")
+    return _abrir_validacion(iid, f"Conexión de «{n}» guardada; la credencial queda cifrada en AAP.")
+
+
+@bp.route("/nubes/<int:iid>/validar", methods=["POST"])
+@requiere_login
+def nube_validar(iid):
+    """Vuelve a validar la conexión guardada (sin cambiarla): el mismo ticket con aprobación."""
+    if g.perfil["modo"] != "escritura":
+        abort(403)
+    return _abrir_validacion(iid, "")
+
+
+def _abrir_validacion(iid, guardado):
+    from flask import flash, redirect
+    from .aap import AAP, ErrorAAP
+    from .bd import ej
+    from .infraestructuras import _CACHE_NUBE, _fuente, estado_nube, lista
+    from .operacion import solicitar
+    volver = url_for("consola.nube", iid=iid)
+    cid = g.cliente["id"]
+    pre = (guardado + " ") if guardado else ""
+    x = next((i for i in lista(cid, equipos_visibles()) if i["id"] == iid and i["ambito"] == "nube"), None)
+    if not x:
+        abort(404)
+    try:
+        aap = AAP.de_cliente(g.cliente)
+        cred = (aap.get("credentials/", name=x["credencial"]).get("results") or [None])[0] if x.get("credencial") else None
+        if not cred:
+            flash(pre + "AAP no tiene la credencial de la nube: no se pudo abrir la validación.", "error")
+            return redirect(volver)
+        inv_nom = x.get("inventario") or f"Infra · {x['nombre']}"
+        inv = (aap.get("inventories/", name=inv_nom).get("results") or [None])[0]
+        if not inv:   # la nube se registró sin inventario en AAP: se crea con su fuente dinámica
+            org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
+            inv = aap.post("inventories/", {"name": inv_nom, "organization": org, "description": f"Máquinas de {x['nombre']} ({x['prov']['nombre']})"})
+            ej("UPDATE infraestructuras SET inventario=? WHERE id=?", inv_nom, iid)
+        _fuente(aap, inv, x["nombre"], x["tipo"], cred, dict(x["detalle_d"]))
+        _CACHE_NUBE.pop((cid, iid), None)
+        con = estado_nube(aap, dict(x, inventario=inv_nom), cid, guardar=False)
+    except ErrorAAP as e:
+        flash(pre + f"No se pudo preparar la validación en AAP: {str(e)[:200]}", "error")
+        return redirect(volver)
+    if not con.get("fuente") or not con.get("inv"):
+        flash(pre + "Falta la fuente dinámica o el inventario en AAP: no se pudo abrir la validación.", "error")
+        return redirect(volver)
+    a, motivo = _accion_lista(cid, VALIDAR_NUBE)
+    if motivo:
+        flash(pre + f"No se creó el ticket de validación. {motivo}.", "error")
+        return redirect(volver)
+    try:
+        t = solicitar(g.usuario, g.cliente, a, "", {"nv_nube": x["nombre"], "nv_fuente_id": con["fuente"]["id"], "nv_inventario_id": con["inv"]["id"]},
+                      f"Validar conexión e inventariar {x['nombre']}")
+    except (PermissionError, ErrorAAP, ValueError) as e:
+        flash(pre + f"No se creó el ticket de validación: {e}", "error")
+        return redirect(volver)
+    flash(pre + f"Ticket {t['numero']} creado: espera aprobación en AAP; al aprobarse prueba la API del proveedor y trae las VM.", "ok")
+    return redirect(volver)

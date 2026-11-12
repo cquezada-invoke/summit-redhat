@@ -365,6 +365,11 @@ planes:
     casos:
       - {id: C1, caso: "VM tamaño S en el proyecto GCP de laboratorio", verificar: "aprobación en AAP; VM creada con etiquetas de FaceOps; aparece en el inventario"}
       - {id: C2, caso: "Rechazar la aprobación", verificar: "no se crea nada"}
+  "Nube · Validar conexión e inventariar":
+    casos:
+      - {id: C1, caso: "Guardar la conexión de la nube GCP del laboratorio con la cuenta de servicio vigente y aprobar", verificar: "ticket exitoso; fuente dinámica sincronizada; la ficha de la nube muestra «Conectada» y sus VM"}
+      - {id: C2, caso: "Rechazar la aprobación", tipo: Error controlado, verificar: "no corre la sincronización; la conexión guardada no cambia"}
+      - {id: C3, caso: "Fuente dinámica inexistente (id inválido)", tipo: Error controlado, verificar: "ticket fallido con el motivo; no se toca la nube"}
   "Nube · Prueba: crear huérfanos":
     casos:
       - {id: C1, caso: "Crear recursos huérfanos de prueba (disco e IP sin uso)", verificar: "existen en el proyecto con la etiqueta de prueba"}

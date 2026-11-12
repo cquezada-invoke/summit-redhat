@@ -53,7 +53,7 @@
 {% for r_, zs in zonas.items() %}<dt>{{ r_ }}</dt><dd>{% for z_, ms in zs.items() %}<span class="chip">{{ z_ }} · {{ ms|length }}</span> {% endfor %}</dd>{% else %}<dt>—</dt><dd class="sub">Sin máquinas leídas todavía.</dd>{% endfor %}
 </dl></div>
 </div>
-{% set sin_ = 'Sin datos: ' ~ ('AAP no tiene credencial para leer esta nube; cárgala con «Conectar».' if not con.cred else ('la fuente dinámica aún no trae máquinas; usa «Probar acceso» en «Editar conexión».' if not ok_ else 'la nube no informa elementos de este tipo.')) %}
+{% set sin_ = 'Sin datos: ' ~ ('AAP no tiene credencial para leer esta nube; cárgala con «Conectar».' if not con.cred else ('la fuente dinámica aún no trae máquinas; usa «Validar conexión» en «Editar conexión».' if not ok_ else 'la nube no informa elementos de este tipo.')) %}
 
 <div class="card hv-lista" style="margin-top:14px;padding:0" id="maquinas"><div class="hv-lcab"><h2>Máquinas · {{ maqs|length }}</h2><input type="search" placeholder="Buscar máquina: nombre, zona, tipo, IP, estado…" aria-label="Buscar máquina"></div>
 <table class="sin-pag"><tr><th>Máquina</th><th>Región · zona</th><th>Estado</th><th>Tipo de máquina</th><th>IP interna</th><th>IP pública</th><th>Costo este mes</th></tr>
@@ -89,7 +89,7 @@
 <p class="sub" style="margin:4px 0 12px;font-size:12.5px">Solo lo que falta para subir la salud y cómo remediarlo. Lo que se cumple o no aplica no aparece.</p>
 {% if radar_n.remediables %}<ul class="nb-rem">{% for c in radar_n.remediables|sort(attribute='pct') %}<li class="{{ 'med' if c.pct >= 50 }}"><b>{{ c.nombre }} · {{ c.pct }} %</b><small>{{ c.principio }} · {{ c.explica }}</small><div class="acc">
 {% if c.rem == 'conexion' %}{% if esc_ %}<button type="button" class="btn chico" data-cx="1">{{ 'Editar conexión' if con.cred else 'Conectar' }}</button>{% else %}<span class="sub">Requiere perfil de escritura: editar la conexión.</span>{% endif %}
-{% elif c.rem == 'sincronizar' %}{% if esc_ and con.cred %}<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="{{ request.path }}"><button class="btn chico">Probar acceso y sincronizar</button></form>{% else %}<span class="sub">{{ 'Primero carga la credencial.' if not con.cred else 'Requiere perfil de escritura.' }}</span>{% endif %}
+{% elif c.rem == 'sincronizar' %}{% if esc_ and con.cred %}<form method="post" action="{{ url_for('consola.nube_validar', iid=x.id) }}" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico" {{ ('disabled title="' ~ validar_no ~ '"')|safe if validar_no }}>Validar conexión (ticket)</button></form>{% else %}<span class="sub">{{ 'Primero carga la credencial.' if not con.cred else 'Requiere perfil de escritura.' }}</span>{% endif %}
 {% elif c.rem == 'publicas' %}{% for p_ in publicas if not p_.on %}<span class="chip mono">{{ p_.ip }} · {{ p_.maquina }}</span>{% endfor %}<span class="sub" style="flex-basis:100%">Libera la IP o enciende la máquina.</span>
 {% else %}{% for f_ in c.faltan %}<a class="chip" href="{{ url_for('consola.equipo', eid=f_.id) }}">{{ f_.nombre }} ›</a>{% endfor %}{% if c.n_faltan > c.faltan|length %}<span class="sub">y {{ c.n_faltan - c.faltan|length }} más</span>{% endif %}<span class="sub" style="flex-basis:100%">Se remedia en la ficha de cada máquina.</span>{% endif %}
 </div></li>{% endfor %}</ul>{% else %}<p class="vacio">Nada que remediar: todo lo que aplica se cumple.</p>{% endif %}
@@ -98,15 +98,15 @@
 {# ---------- flotante: editar conexión ---------- #}
 {% if esc_ %}{% set p = prov_ctx %}{% set ed_ = con.cred and true %}
 <aside id="cx-cajon" class="cajon" hidden aria-label="Editar conexión"><div class="cajon-barra"><b style="font-size:15px">{{ 'Editar conexión' if ed_ else 'Conectar' }} · {{ x.nombre }}</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
-<form method="post" action="{{ url_for('consola.infraestructura_editar', iid=x.id) if ed_ else url_for('consola.infraestructura_conectar', iid=x.id) }}" class="form-infra" autocomplete="off" style="display:flex;flex-direction:column;gap:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="{{ request.path }}">
+<form method="post" action="{{ url_for('consola.nube_conexion', iid=x.id) }}" class="form-infra" autocomplete="off" style="display:flex;flex-direction:column;gap:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="modo" value="{{ 'editar' if ed_ else 'conectar' }}">
 <p class="sub" style="margin:0">{{ logo(x.tipo, 18) }} {{ p.nombre }} · {{ p.ayuda }}</p>{% if p.guia %}<p class="sub" style="margin:0;font-size:12.5px;border-left:3px solid var(--info,#2b9af3);padding-left:8px">{{ p.guia[0]|safe }} <a href="{{ p.guia[1] }}" target="_blank" rel="noopener">Guía ↗</a></p>{% endif %}
 {{ leyenda_obl() }}{% if ed_ %}<p class="sub" style="margin:0;font-size:12.5px">Los secretos no se muestran: déjalos vacíos para conservar los actuales o escribe uno nuevo para reemplazarlo.</p>{% endif %}
 {% if ed_ %}<label>Nombre <span class="req" aria-hidden="true">*</span><input name="nombre" required value="{{ x.nombre }}"></label>
 {% if not (p.campos|selectattr(0, 'equalto', 'region')|list) %}<label>Región (cómo se muestra)<input name="region_nombre" value="{{ x.region }}" placeholder="ej. southamerica-west1 (Santiago)"></label>{% endif %}{% endif %}
 {{ campos_form(p, x.detalle_d, editar=ed_) }}
-<p class="sub" style="margin:0;font-size:12.5px">{{ 'Al guardar se actualiza la credencial cifrada en AAP y se vuelve a probar el acceso.' if ed_ else 'La credencial se guarda cifrada en AAP; luego usa «Probar acceso».' }}</p>
-<div class="fila" style="gap:8px"><button class="btn">{{ 'Guardar y probar' if ed_ else 'Conectar' }}</button><button type="button" class="btn gris" data-cerrar="1">Cancelar</button></div></form>
-{% if con.cred %}<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}" style="margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="{{ request.path }}"><button class="btn chico gris">Probar acceso sin cambios</button> <span class="sub" style="font-size:12px">sincroniza el inventario dinámico en AAP</span></form>{% endif %}
+<p class="sub" style="margin:0;font-size:12.5px">La credencial se guarda cifrada en AAP y se abre el ticket «Validar conexión e inventariar nube» (con aprobación en AAP), que prueba la API del proveedor y trae las VM.{% if validar_no %} <b style="color:var(--bad)">{{ validar_no }}.</b>{% endif %}</p>
+<div class="fila" style="gap:8px"><button class="btn">Guardar y validar</button><button type="button" class="btn gris" data-cerrar="1">Cancelar</button></div></form>
+{% if con.cred %}<form method="post" action="{{ url_for('consola.nube_validar', iid=x.id) }}" style="margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line)"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris" {{ ('disabled title="' ~ validar_no ~ '"')|safe if validar_no }}>Validar sin cambios</button> <span class="sub" style="font-size:12px">abre el mismo ticket con la conexión guardada</span></form>{% endif %}
 </aside>{% endif %}
 
 <script>(()=>{const velo=document.getElementById('nb-velo');let abierto=null;

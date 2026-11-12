@@ -137,7 +137,7 @@ shutil.copy(f"{AQUI}/files/inventario-a-git.py", f"{tmp}/playbooks/files/inventa
 shutil.copytree(f"{AQUI}/files/lib", f"{tmp}/playbooks/files/lib", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
            "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "openshift-imagenes-evaluar.yml", "openshift-imagenes-quay.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
-           "fiscalia-aviso-complemento.yml", "storage-lake-s3.yml", "respaldo-restic.yml"):
+           "fiscalia-aviso-complemento.yml", "storage-lake-s3.yml", "respaldo-restic.yml", "nube-validar.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
@@ -1120,6 +1120,24 @@ jid = asegurar("job_templates", "Identidad · Fuente de usuarios de FaceOps", {
     "description": "Lee una fuente de usuarios (AD, LDAP o midPoint) con su credencial y deja su autenticador en el Gateway de AAP"})
 if cr_gw["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jid['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jid['id']}/credentials/", {"id": cr_gw["id"]})
+# Nube · Validar conexión e inventariar: al guardar la conexión de una nube, FaceOps abre un ticket con aprobación que
+# sincroniza su fuente dinámica (prueba la API del proveedor con la credencial guardada) y trae sus VM. Solo lectura.
+jnv = asegurar("job_templates", "Nube · Validar conexión e inventariar (ejecución)", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/nube-validar.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "timeout": 900,
+    "description": "Sincroniza la fuente dinámica de la nube con su credencial y cuenta sus VM (solo lectura)"})
+if cr_gw["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jnv['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jnv['id']}/credentials/", {"id": cr_gw["id"]})
+wnv = asegurar("workflow_job_templates", "Nube · Validar conexión e inventariar", {
+    "organization": org["id"], "ask_variables_on_launch": True,
+    "description": "Aprobación y luego la validación de la conexión de la nube y el inventario de sus VM"})
+if not aap("GET", f"workflow_job_templates/{wnv['id']}/workflow_nodes/")["results"]:
+    n1 = aap("POST", f"workflow_job_templates/{wnv['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{n1['id']}/create_approval_template/",
+        {"name": "¿Aprueba validar la conexión de la nube e inventariar sus VM?", "timeout": 0, "description": "Usa la credencial recién guardada (solo lectura)"})
+    n2 = aap("POST", f"workflow_job_templates/{wnv['id']}/workflow_nodes/", {"unified_job_template": jnv["id"]})
+    aap("POST", f"workflow_job_template_nodes/{n1['id']}/success_nodes/", {"id": n2["id"]})
+paso(f"Workflow «Nube · Validar conexión e inventariar» (id {wnv['id']})")
 # Monitoreo · Configurar alertas: la credencial del anfitrión (aap-kvm, sin sudo general) escribe solo la configuración de
 # FaceOps en Prometheus y Alertmanager (ACL), el tablero «Alertas de FaceOps» de Grafana (dashboards/faceops) y valida con promtool por un sudo acotado a ese comando.
 _mon = "/opt/summit-monitoreo"
@@ -1410,7 +1428,7 @@ for nombre_g, pb_g, desc_g in (
         "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_g}", "inventory": inv_inf["id"],
         "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True, "timeout": 0, "description": desc_g})
     ya = {c["id"] for c in aap("GET", f"job_templates/{jg['id']}/credentials/")["results"]}
-    for cr_ in [c_kvm, c_ocm if pb_g.endswith("crear.yml") else None, c_gcp_ocp, cr_gw]:
+    for cr_ in [c_kvm, c_gcp_ocp, cr_gw] + ([c_ocm, uno("credentials", name="OpenShift · Pull secret")] if pb_g.endswith("crear.yml") else []):
         if cr_ and cr_["id"] not in ya:
             aap("POST", f"job_templates/{jg['id']}/credentials/", {"id": cr_["id"]})
     if pb_g.endswith("eliminar.yml") and c_gcp_ocp:   # ciclo de vencimiento y apagado: cada hora
