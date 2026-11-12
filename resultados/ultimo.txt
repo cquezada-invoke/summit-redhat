@@ -1,13 +1,12 @@
-commit: b947253e0305b1a84e33452fc0b39668de9929cb
-inicio: 2026-11-12T01:32:12-03:00
+commit: b742eecdc18c513c57580e1900b61682bfd1c8c3
+inicio: 2026-11-12T01:32:34-03:00
 ---
-inicio espera: 2026-11-12T01:32:12-03:00
-objetivo: 8f87fcb6
-DESPLEGADO 8f87fcb6 (incluye 8f87fcb6) tras 0 s
-estado timer: 2026-11-12T01:25:35-03:00 ok: desplegado 8f87fcb6 · /ingresar 200 · configurar=sin cambios
-8f87fcb faceops-autodeploy: comentario (verificación del despliegue automático)
-fin espera: 2026-11-12T01:32:13-03:00 · /faceops/ingresar -> 200
-2026-11-12T01:20:37-03:00 ESTADO ok: desplegado c87ef50d · /ingresar 200 · configurar=0
-2026-11-12T01:24:57-03:00 == despliegue c87ef50d -> 8f87fcb6
-2026-11-12T01:25:35-03:00 ESTADO ok: desplegado 8f87fcb6 · /ingresar 200 · configurar=sin cambios
---- fin: 2026-11-12T01:32:13-03:00 · código: 0
+RES {"caso": "diag", "auto": "FaceOps · Exportador de plataforma", "estado": "rechazado al solicitar", "error": "PermissionError: Esta acción no aplica a nodo-jboss: la acción no está publicada en el catálogo"}
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+{'id': 243, 'nombre_aap': 'FaceOps · Exportador de plataforma', 'visible': 0, 'usa_limite': 1, 'inventario': 'Nodos demo', 'campos': '[{"var": "ex_plataforma", "etiqueta": "Plataforma", "tipo": "multiplechoice", "opciones": ["redis", "postgresql", "nginx", "jboss"], "requerido": true}]'}
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+TICKET FO-LAB-02094
+RES {"caso": "diag2", "auto": "Monitoreo · Configurar alertas del equipo", "ticket": "FO-LAB-02094", "estado": "en_ejecucion", "stats": {}, "detalle": "", "fallos": [], "resultado": ""}
+--- fin: 2026-11-12T01:34:21-03:00 · código: 0
