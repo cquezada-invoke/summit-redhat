@@ -558,6 +558,15 @@ def _acceso_servicio(infra, usuario_srv):
     from .boveda import disponible as bov_ok, escribir, leer
     ruta = f"infra/{infra}/maquinas"
     d = (leer(ruta) or {}) if bov_ok() else {}
+    # la clave Windows del usuario de servicio es una sola para todas las máquinas (nube y on-premise): una Windows de la nube
+    # creada por FaceOps queda también en «Servidores habilitados» y entra con la misma credencial del grupo windows
+    dw = (leer("infra/_windows/servicio") or {}) if bov_ok() else {}
+    if bov_ok() and not dw.get("clave") and d.get("clave_windows"):   # la primera clave ya en uso pasa a ser la compartida
+        dw = {"usuario": usuario_srv, "clave": d["clave_windows"]}
+        escribir("infra/_windows/servicio", dw)
+    if dw.get("clave") and d.get("clave_windows") != dw["clave"] and d.get("llave"):
+        d["clave_windows"] = dw["clave"]
+        escribir(ruta, d)
     if d.get("llave") and d.get("publica") and d.get("clave_windows") and d.get("usuario") == usuario_srv:
         return d["llave"], d["publica"], d["clave_windows"]
     k = Ed25519PrivateKey.generate()
@@ -566,7 +575,11 @@ def _acceso_servicio(infra, usuario_srv):
     alf = _st.ascii_letters + _st.digits
     clave = "".join(_sec.choice(alf) for _ in range(20)) + _sec.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") + _sec.choice("abcdefghijkmnpqrstuvwxyz") \
         + _sec.choice("23456789") + _sec.choice("-_.:+=")   # complejidad de Windows: mayúscula, minúscula, dígito y símbolo
+    if dw.get("clave"):
+        clave = dw["clave"]
     if bov_ok():
+        if not dw.get("clave"):
+            escribir("infra/_windows/servicio", {"usuario": usuario_srv, "clave": clave})
         escribir(ruta, {"usuario": usuario_srv, "llave": priv, "publica": pub, "clave_windows": clave})
     return priv, pub, clave
 
@@ -593,6 +606,14 @@ def registrar_incorporadas(aap, cliente, t):
             continue
         if m.get("so") == "windows" and bov_ok() and inf:
             _, _, clave = _acceso_servicio(inf["nombre"], usuario_srv)
+            for inv_n in dict.fromkeys([e["inventario"]] + j(e["inventarios"], [])):   # también en «Servidores habilitados» si FaceOps la creó
+                inv_ = (aap.get("inventories/", name=inv_n).get("results") or [None])[0]
+                h_ = (aap.get("hosts/", name=e["nombre"], inventory=inv_["id"]).get("results") or [None])[0] if inv_ else None
+                if h_ and not (inv_.get("kind") or "") and not h_.get("has_inventory_sources"):
+                    hv_ = j(h_.get("variables"), {}) if str(h_.get("variables") or "").strip().startswith("{") else (yaml.safe_load(h_.get("variables") or "") or {})
+                    hv_.update({"ansible_host": m.get("ip") or hv_.get("ansible_host"), "ansible_connection": "winrm", "ansible_port": 5986,
+                                "ansible_winrm_scheme": "https", "ansible_winrm_transport": "ntlm", "ansible_winrm_server_cert_validation": "ignore"})
+                    aap.patch(f"hosts/{h_['id']}/", {"variables": json.dumps(hv_, ensure_ascii=False)})
             escribir(f"maquinas/{e['nombre']}", {"usuario": usuario_srv, "clave": clave, "protocolo": "rdp", "metodo": "clave",
                                                "puerto": 5986, "conexion": "winrm", "origen": f"incorporada · {t['numero']}"})
         d_ = j(e["datos"], {})
@@ -811,6 +832,9 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             params["vo_tipo"] = "windows" if ("windows" in sistema_fino(e) or (e.get("so_familia") or "").lower() == "windows") else "linux"
             params.setdefault("vo_usuario", "faceops")
             if params["vo_tipo"] == "windows":
+                from .boveda import disponible as _bov_ok
+                if not _bov_ok():
+                    raise ErrorAAP("Sin bóveda conectada: la clave del usuario de servicio Windows no se puede guardar de forma segura")
                 params["inc_clave_windows"] = _acceso_servicio(INFRA_ONPREM, params["vo_usuario"])[2]   # secreto: solo en tareas no_log
             tipo, id_ = objetivo_aap(aap, a, amb)
             job = aap.lanzar(tipo, id_, extra_vars=params)
