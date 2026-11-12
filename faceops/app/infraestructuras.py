@@ -770,6 +770,18 @@ def _motivo_falla(aap, upd_id):
     return (lineas[-1] if lineas else "")[:220]
 
 
+def conocido_(x, err=None):
+    """AAP no respondió: la nube conserva su último estado verificado (guardado en FaceOps) y su hora; solo una verificación
+    que corrió y en la que el proveedor respondió error la marca con error. x["aap_caido"] lo avisa en la lista y la ficha."""
+    from .aap import AAPNoDisponible
+    g_ = q1("SELECT estado, mensaje, verificado FROM infraestructuras WHERE id=?", x["id"]) or {}
+    x["estado"] = g_.get("estado") or x.get("estado") or "sin verificar"
+    x["verificado"] = g_.get("verificado") or x.get("verificado")
+    x["aap_caido"] = True
+    x["mensaje"] = ("AAP no disponible" if (err is None or isinstance(err, AAPNoDisponible)) else f"No se pudo consultar AAP ({str(err)[:120]})") + \
+        ": se muestra el último estado conocido"
+
+
 def estado_nube(aap, x, cliente_id, guardar=True, ttl=60):
     """Estado de la conexión de una nube leído en AAP en este momento (no el valor guardado): credencial, inventario,
     fuente dinámica y su última sincronización. Deja el resultado en la infraestructura para que el resto de FaceOps lo vea."""
@@ -823,8 +835,11 @@ def estado_nube(aap, x, cliente_id, guardar=True, ttl=60):
             r["estado"], r["mensaje"] = "sin probar", "Sincronizando con la nube en AAP…"
         else:
             r["estado"], r["mensaje"] = "sin probar", "Credencial y fuente listas en AAP; nunca se ha sincronizado: falta «Probar acceso»"
-    except ErrorAAP as e:
-        r["estado"], r["mensaje"] = "sin verificar", f"No se pudo consultar AAP: {str(e)[:160]}"
+    except ErrorAAP as e:   # falla de AAP, no de la nube: se mantiene el último estado conocido con su hora
+        conocido_(x, e)
+        r.update(estado=x["estado"], mensaje=x["mensaje"], aap_caido=True)
+        _CACHE_NUBE[k_] = (time.time(), r)
+        return r
     if guardar and r["estado"] != "sin verificar" and (x.get("estado") != r["estado"] or x.get("mensaje") != r["mensaje"]):
         ej("UPDATE infraestructuras SET estado=?, mensaje=?, verificado=? WHERE id=?", r["estado"], r["mensaje"], ahora(), x["id"])
     x["estado"], x["mensaje"] = r["estado"], r["mensaje"]

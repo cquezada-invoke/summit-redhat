@@ -24,7 +24,7 @@
 {% set n_on = maqs|selectattr('on')|list|length %}
 <div class="eq-cab nb-eqcab">
   <div class="eq-estado">
-  <div class="eq-energia {{ 'on' if ok_ else ('off' if x.estado in ('error', 'sin credencial') else 'nd') }}"><i></i><div><b>{{ {'conectada': 'Conectada', 'error': 'Con error', 'sin credencial': 'Sin credencial', 'sin probar': 'Sin probar', 'sin verificar': 'Sin verificar'}.get(x.estado, x.estado|capitalize) }}</b>
+  <div class="eq-energia {{ 'on' if ok_ else ('off' if x.estado in ('error', 'sin credencial') else 'nd') }}"><i></i><div><b>{{ {'conectada': 'Conectada', 'error': 'Con error', 'sin credencial': 'Sin credencial', 'sin probar': 'Sin probar', 'sin verificar': 'Sin verificar'}.get(x.estado, x.estado|capitalize) }}</b>{% if x.aap_caido %}<span class="sub" style="display:block;font-size:11.5px;font-weight:normal">última verificación {{ x.verificado|fecha if x.verificado else '—' }} · AAP no disponible</span>{% endif %}
   <dl class="eq-tiempos"><dt>Máquinas</dt><dd>{{ n_on }} encendidas de {{ maqs|length }}</dd>
   <dt>Sincronizada</dt><dd>{{ con.ultima|fecha if con.ultima else 'nunca' }}</dd>
   <dt>Consumo</dt><dd>{{ nivel_c(nivel_nube) }}</dd></dl></div>
@@ -42,7 +42,7 @@
     <div class="eq-ancho nb-res"><dt>Recursos</dt><dd><span class="chip {{ 's-ok' if n_on }}">{{ maqs|length }} máquina{{ 's' if maqs|length != 1 }} · {{ n_on }} encendida{{ 's' if n_on != 1 }}</span><span class="chip">{{ discos|length }} disco{{ 's' if discos|length != 1 }}{{ (' · ' ~ disco_gb ~ ' GB') if discos }}</span><span class="chip">{{ redes|length }} red{{ 'es' if redes|length != 1 }}</span><span class="chip {{ 's-media' if publicas|rejectattr('on')|list }}">{{ publicas|length }} IP{{ 's' if publicas|length != 1 }} pública{{ 's' if publicas|length != 1 }}</span>{% for c_ in clusters %}<span class="chip">OpenShift {{ c_ }} · {{ clusters[c_]|length }} nodos</span>{% endfor %}{% for e in ocp %}<a class="chip" href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a>{% endfor %}</dd></div>
   </dl>
 </div>
-{% if x.mensaje or err %}<p class="sub" style="margin:-4px 0 10px;font-size:12.5px">{{ err or x.mensaje }}</p>{% endif %}
+{% if x.mensaje or err %}<p class="sub" style="margin:-4px 0 10px;font-size:12.5px">{{ x.mensaje if x.aap_caido else (err or x.mensaje) }}</p>{% endif %}
 
 {# ---------- consolidado: lo más relevante de la nube de un vistazo (lee solo de FaceOps) ---------- #}
 <div class="card" style="margin-top:6px" id="consolidado"><div class="fila" style="gap:10px;flex-wrap:wrap"><h2 style="margin:0">Consolidado</h2>

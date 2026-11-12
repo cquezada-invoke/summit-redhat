@@ -7789,9 +7789,10 @@ def _infras_con_salud(infras):
             aap_ = AAP.de_cliente(g.cliente)
             for x in nubes_:
                 estado_nube(aap_, x, g.cliente["id"])
-        except ErrorAAP as e_:   # sin AAP no se puede afirmar que la nube esté conectada
+        except ErrorAAP as e_:   # AAP caído: cada nube conserva su último estado verificado y su hora
+            from .infraestructuras import conocido_
             for x in nubes_:
-                x["estado"], x["mensaje"] = "sin verificar", f"No se pudo consultar AAP: {str(e_)[:120]}"
+                conocido_(x, e_)
     if nubes_:   # nivel de consumo de la última muestra (lo recupera FaceOps por AAP; aquí solo se lee de su base)
         from .nube_consumo import muestra
         for x in nubes_:

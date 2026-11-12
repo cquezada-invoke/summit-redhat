@@ -75,9 +75,10 @@ def nube(iid):
         con = estado_nube(aap, x, g.cliente["id"])
         if con.get("inv") and con["inv"]["hosts"]:
             hosts = maquinas_nube(aap, con["inv"]["id"])
-    except ErrorAAP as e:
+    except ErrorAAP as e:   # AAP caído: último estado conocido de la nube, con su hora (no «desconectada»)
+        from .infraestructuras import conocido_
         err = str(e)[:200]
-        x["estado"], x["mensaje"] = "sin verificar", f"No se pudo consultar AAP: {err}"
+        conocido_(x, e)
     # máquinas: las que AAP trae de la nube y las que FaceOps ya tiene en esa nube (unidas por nombre)
     propias = [e for e in eqs_ if (e.get("ubicacion") or "") == x["ubicacion"] or (con and con.get("inv") and e.get("inventario") == con["inv"]["nombre"])]
     por_nombre = {e["nombre"]: e for e in propias}
