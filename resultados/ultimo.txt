@@ -1,23 +1,32 @@
-commit: f2c139f6aa4962ea91720829438b90c533b673d4
-inicio: 2026-11-12T00:53:10-03:00
+commit: e84417505144ad67d86bc9deb06ac54bb178a27f
+inicio: 2026-11-12T00:43:52-03:00
 ---
-605c75b FaceOps: despliegue consolidado en el anfitrión (sys
-   · Plantilla «OpenShift · Evaluar imágenes (uso y antigüedad)» (id 1170)
-   · Plantilla «OpenShift · Mover imágenes a Quay» (id 1171)
-estado: sin probar 83f73c260926
-nube: 2 Cloud GCP · invoke-summit-cloud gcp Nube GCP cred: True {'proyecto': 'invoke-summit-cloud', 'zona': 'southamerica-west1-a', 'etiqueta': 'demo=summit-cloud'}
-7658a9a30e41b7a7001aac48faf13e8b41a8bec65fff4611e23d5211035e7e7d
-estado: sin probar 9deaafd472e7
-C4 sin máquina para el caso
-== C1 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=pendiente, energía=apagado)
-  no se lanzó: srv-windows-iis-01: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la acción
-== C2 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=pendiente, energía=apagado)
-  no se lanzó: srv-windows-iis-01: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la acción
-== C3 sobre nodo-jboss4 (so=Red Hat Enterprise Linux 9, ip=192.168.122.105, energía=encendido)
-  ticket FO-LAB-02067 exitoso | AAP terminó (successful): ejecución 25 s, espera de aprobación 39 s nodo-jboss4: IP 192.168.122.105 · vinculación SSH lanzada
-  siguiente: ('FO-LAB-02071', 'exitoso')
-  equipo ahora: so= Red Hat Enterprise Linux 9 | ip= 192.168.122.105 | recolectado= None | energía= encendido
-  bóveda: {'usuario': 'faceops', 'protocolo': 'ssh', 'puerto': None, 'conexion': None} False
-  => ok
-EVIDENCIA {"huella": "9deaafd472e7", "casos": {"C4": {"resultado": "fallido", "nota": "Esta acción no aplica a anfitrion-stand: la acción no está publicada en el catálogo"}, "C1": {"resultado": "fallido", "nota": "srv-windows-iis-01: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la acción"}, "C2": {"resultado": "fallido", "nota": "srv-windows-iis-01: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la acción"}, "C3": {"ticket": "FO-LAB-02067", "estado": "exitoso", "siguiente": ["FO-LAB-02071", "exitoso"], "so": "Red Hat Enterprise Linux 9", "ip": "192.168.122.105", "boveda": true, "resultado": "ok"}}}
---- fin: 2026-11-12T01:04:33-03:00 · código: 0
+1ded111
+   · Plantilla «FaceOps · Exportador de plataforma» (id 1221)
+   · Plantilla «Monitoreo · Grafana de OpenShift» (id 1176)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+SINCRONIZADO lab
+== plan exportador
+CASO C1 falla · JBoss
+CASO C2 falla · Redis (nodo-jboss)
+CASO C3 falla · nginx
+CASO C4 falla · PostgreSQL (nodo-postgres)
+CASO C5 falla · Repetir
+CASO C6 ok · Plataforma inválida
+EVIDENCIA [{"id": "C1", "caso": "JBoss", "resultado": "falla", "evidencia": "rechazado al solicitar heap=1 undertow=0 "}, {"id": "C2", "caso": "Redis (nodo-jboss)", "resultado": "falla", "evidencia": "rechazado al solicitar redis_up= "}, {"id": "C3", "caso": "nginx", "resultado": "falla", "evidencia": "rechazado al solicitar nginx_up= web=200 "}, {"id": "C4", "caso": "PostgreSQL (nodo-postgres)", "resultado": "falla", "evidencia": "rechazado al solicitar pg_up= "}, {"id": "C5", "caso": "Repetir", "resultado": "falla", "evidencia": "rechazado al solicitar/rechazado al solicitar pid 0→0"}, {"id": "C6", "caso": "Plataforma inválida", "resultado": "ok", "evidencia": "rechazada (rechazado al solicitar)"}]
+CERT FaceOps · Exportador de plataforma → sin probar
+FIN-EXPORTADOR
+== alertas de JBoss con exportador en nodo-jboss (J01 + J02)
+ALERTAS JBoss None sin respuesta del arnés 
+PROM exportadores []
+PROM heap JBoss % []
+== plan Grafana de OpenShift
+CASO C1 ok · Conectar ocp-sno
+CASO C2 ok · Repetir
+CASO C3 ok · Solo lectura
+CASO C5 ok · Reglas en el monitoreo del clúster
+CASO C6 ok · Cadena de aviso real (X10)
+CASO C4 ok · Nombre inválido
+CERT Monitoreo · Grafana de OpenShift → certificada
+FIN-GRAFANA-OCP
+--- fin: 2026-11-12T01:14:30-03:00 · código: 0
