@@ -1,0 +1,12 @@
+commit: b8b3f1254e36a1a389e6e7bb052ee2a44a6c01d6
+inicio: 2026-11-12T18:01:59-03:00
+---
+== FO-LAB-02337 fallido | Respaldo de las bases de AAP y FaceOps (aplicar) no terminó bien: otra acción de autocuidado está en curso; reintenta en unos minutos
+== FO-LAB-02340 fallido | Respaldo de las bases de AAP y FaceOps (aplicar) no terminó bien: otra acción de autocuidado está en curso; reintenta en unos minutos
+== FO-LAB-02345 fallido | Certificados de AAP y FaceOps (aplicar) no terminó bien: otra acción de autocuidado está en curso; reintenta en unos minutos
+{"cuando": "2026-11-12T20:36:32Z", "accion": "liberar-disco", "origen": "aap", "resultado": "ok", "detalle": {"ok": true, "modo": "profundo", "pasos": [{"paso": "journal del sistema", "ok": true, "liberado_mb": 1.0, "tope": "200M"}, {"paso": "imágenes y contenedores detenidos (root)", "ok": true, "l
+{"cuando": "2026-11-12T20:42:08Z", "accion": "reiniciar-aap", "origen": "aap", "resultado": "ok", "detalle": {"ok": true, "modo": "aplicar", "reiniciados": [{"contenedor": "automation-hub-web", "via": "systemd", "ok": true, "error": ""}], "api": 200, "malos_antes": ["automation-hub-web"], "siguen_ma
+{"cuando": "2026-11-12T20:49:56Z", "accion": "liberar-disco", "origen": "aap", "resultado": "ok", "detalle": {"ok": true, "modo": "seguro", "pasos": [{"paso": "journal del sistema", "ok": true, "liberado_mb": 0.4, "tope": "500M"}, {"paso": "imágenes y contenedores detenidos (root)", "ok": true, "lib
+{"cuando": "2026-11-12T20:51:26Z", "accion": "renovar-cert", "origen": "aap", "resultado": "ok", "detalle": {"ok": true, "modo": "aplicar", "acciones": [{"servicio": "faceops", "accion": "certbot renew + recarga del proxy", "ok": true, "error": ""}], "antes": [{"servicio": "aap", "dias": 3627.7, "ve
+{"cuando": "2026-11-12T20:52:32Z", "accion": "liberar-disco", "origen": "aap", "resultado": "ok", "detalle": {"ok": true, "modo": "seguro", "pasos": [{"paso": "journal del sistema", "ok": true, "liberado_mb": 0.9, "tope": "500M"}, {"paso": "imágenes y contenedores detenidos (root)", "ok": true, "lib
+--- fin: 2026-11-12T18:02:36-03:00 · código: 0
