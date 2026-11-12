@@ -1,16 +1,41 @@
-commit: 99dd329efd630a0eb8ef4bf302a6b235643f4f02
-inicio: 2026-11-12T17:45:24-03:00
+commit: 587317c94affa8df60136eafe5edfe944710116a
+inicio: 2026-11-12T17:24:08-03:00
 ---
-SNO: running
-which: no ansible-lint in (/sbin:/bin:/usr/sbin:/usr/bin)
-/bin/ansible-playbook
-/bin/python3
-ansible [core 2.14.18]
-  config file = /etc/ansible/ansible.cfg
-ModuleNotFoundError: No module named 'kubernetes'
-kubectl
-oc
-openshift-install
-README.md
-/dev/sda2       500G  484G   17G  97% /
---- fin: 2026-11-12T17:45:27-03:00 · código: 0
+desplegado 65107aec7
+   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 28 reglas en Prometheus y ruta a EDA :5023
+   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
+   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
+repo 65107ae
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Revisar estado
+  C1 → fallido FO-LAB-02324
+CASO C1 falla · Revisar el estado
+  C2 → fallido FO-LAB-02325
+CASO C2 falla · Repetir
+  C3 → fallido FO-LAB-02326
+CASO C3 ok · Herramienta distinta
+CERT Autocuidado · Revisar estado → sin probar
+== Autocuidado · Liberar disco
+  C1 → exitoso FO-LAB-02328
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02329
+CASO C2 ok · Modo seguro
+  C3 → exitoso FO-LAB-02331
+CASO C3 ok · Repetir
+  C4 → exitoso FO-LAB-02333
+CASO C4 ok · Modo profundo
+  C5 → fallido FO-LAB-02334
+CASO C5 ok · Modo inválido
+CERT Autocuidado · Liberar disco → certificada
+== Autocuidado · Reiniciar componentes de AAP
+  C1 → exitoso FO-LAB-02336
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02339
+CASO C2 ok · Componente detenido
+  C3 → exitoso FO-LAB-02341
+CASO C3 ok · Repetir con todo sano
+  C4 → fallido FO-LAB-02342
+CASO C4 ok · Modo inválido
+CERT Autocuidado · Reiniciar componentes de AAP → certificada
+--- fin: 2026-11-12T17:46:01-03:00 · código: 0
