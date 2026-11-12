@@ -93,6 +93,9 @@ def evaluar(cliente_id, segmento, eqs, arq=None, urls=None):
     prod_f, previos, por_maquina = [], defaultdict(list), {}
     hay_prod = any(c["por_amb"].get("produccion") for c in comps.values())
     acc_rep = _accion(cliente_id, [REPLICAR])
+    if not comps and ocp:   # todo corre en OpenShift: sus réplicas viven dentro del clúster, no hay máquinas que contar
+        return {"produccion": [], "previos": {}, "items": {}, "cumple": True, "sin_productivo": False, "por_maquina": {}, "ambientes": ambs,
+                "ocp": ocp, "componentes": 0}
     if not hay_prod:
         if comps or es:
             it = {"nivel": "media", "area": "Disponibilidad", "titulo": "Sin productivo de referencia",
