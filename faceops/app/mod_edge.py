@@ -32,7 +32,7 @@ ACCIONES = [  # área, nombre, texto, nombre en AAP
 EP_ALIAS.update({"consola.edge_ficha": "consola.edge", "consola.edge_guardar": "consola.edge", "consola.edge_accion": "consola.edge",
                  "consola.edge_energia": "consola.edge", "consola.edge_grupo_guardar": "consola.edge", "consola.edge_grupo_eliminar": "consola.edge", "consola.edge_estacion_asignar": "consola.estaciones",
                  "consola.edge_disp_guardar": "consola.edge", "consola.edge_disp_eliminar": "consola.edge",
-                 "consola.edge_diagrama_guardar": "consola.edge"})
+                 "consola.edge_diagrama_guardar": "consola.edge", "consola.edge_apertura": "consola.edge"})
 
 # Otros dispositivos del sitio (impresoras, POS, AP…): solo inventario. Principio agentless: el alta registra el dispositivo y, si
 # tiene IP, su estado se obtendrá sin agente (ping/SNMP, opción futura); la ficha no sondea nada en vivo. Iconos SVG propios (trazo).
@@ -65,10 +65,14 @@ def _tabla():
       id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, sitio_id INTEGER NOT NULL, tipo TEXT NOT NULL, nombre TEXT NOT NULL,
       ip TEXT DEFAULT '', fabricante TEXT DEFAULT '', modelo TEXT DEFAULT '', ubicacion TEXT DEFAULT '',
       estado TEXT DEFAULT '', estado_visto TEXT DEFAULT '',   -- lectura sin agente (ping/SNMP), cuando se habilite
+      puertos TEXT DEFAULT '',                                 -- interfaces y puertos de servicio conocidos: «Gi0/1, 9100/tcp»
       creado TEXT, actualizado TEXT, autor TEXT DEFAULT '', UNIQUE(cliente_id, sitio_id, nombre));
     CREATE TABLE IF NOT EXISTS edge_topologia_hist (
       id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, sitio_id INTEGER NOT NULL, anterior TEXT DEFAULT '', nueva TEXT DEFAULT '',
       autor TEXT DEFAULT '', fecha TEXT);""")
+    if "puertos" not in {r["name"] for r in con().execute("PRAGMA table_info(edge_dispositivos)")}:
+        con().execute("ALTER TABLE edge_dispositivos ADD COLUMN puertos TEXT DEFAULT ''")
+        con().commit()
     hay = {r["name"] for r in con().execute("PRAGMA table_info(edge_sitios)")}
     for col, tipo in (("grupo_id", "INTEGER"),                 # un grupo por sitio (para focalizar)
                       ("ubicaciones", "TEXT DEFAULT '[]'"),     # ubicaciones internas de una oficina: «Piso 1», «Ala norte»…
@@ -406,14 +410,52 @@ def _recorte(c, ox, oy):
 
 
 MALLA = ("central", "hop", "en")
+# Puertos de servicio que se deducen de los servicios inventariados de la máquina (caché de facts de AAP: no se consulta nada en vivo)
+SERV_PUERTO = {"sshd": ["22/tcp"], "httpd": ["80/tcp", "443/tcp"], "apache2": ["80/tcp", "443/tcp"], "nginx": ["80/tcp", "443/tcp"],
+               "postgresql": ["5432/tcp"], "mysqld": ["3306/tcp"], "mariadb": ["3306/tcp"], "redis": ["6379/tcp"], "redis-server": ["6379/tcp"],
+               "mongod": ["27017/tcp"], "named": ["53/udp", "53/tcp"], "dhcpd": ["67/udp"], "chronyd": ["123/udp"], "snmpd": ["161/udp"],
+               "cups": ["631/tcp"], "smb": ["445/tcp"], "nfs-server": ["2049/tcp"], "haproxy": ["80/tcp", "443/tcp"], "squid": ["3128/tcp"],
+               "jboss": ["8080/tcp", "9990/tcp"], "eap8-standalone": ["8080/tcp", "9990/tcp"], "tomcat": ["8080/tcp"], "keycloak": ["8443/tcp"],
+               "rabbitmq-server": ["5672/tcp"], "kafka": ["9092/tcp"], "cockpit": ["9090/tcp"], "node_exporter": ["9100/tcp"],
+               "termservice": ["3389/tcp"], "winrm": ["5985/tcp", "5986/tcp"], "w3svc": ["80/tcp", "443/tcp"], "mssqlserver": ["1433/tcp"]}
 
 
-def conector(cajas_d, a, b):
+def norm_puerto(p):
+    p = (p or "").strip().lower()
+    return p + "/tcp" if p.isdigit() else p
+
+
+def puertos_eq(e):
+    """Interfaces y puertos de servicio conocidos de una máquina (inventario en caché)."""
+    from .topologia_red import _datos, _itfs_eq
+    out = [i for i, _, _ in _itfs_eq(e)]
+    win = (e.get("so_familia") or "").lower() == "windows" or "windows" in (e.get("so") or "").lower()
+    out += ["5986/tcp", "3389/tcp"] if win else ["22/tcp"]
+    for sv in j(e.get("servicios"), []) or []:
+        out += SERV_PUERTO.get(str(sv).lower().removesuffix(".service"), [])
+    d = _datos(e)
+    out += [f"{v}/tcp" for v in (d.get("puertos_web") or {}).values() if str(v).isdigit()]
+    out += [norm_puerto(str(x)) for x in (d.get("puertos") or []) if isinstance(x, (str, int))]
+    return list(dict.fromkeys(x for x in out if x))
+
+
+def puertos_dv(d):
+    return list(dict.fromkeys(x.strip() for x in (d.get("puertos") or "").split(",") if x.strip()))
+
+
+def puerto_en(p, lista):
+    return norm_puerto(p) in {norm_puerto(x) for x in lista}
+
+
+def conector(cajas_d, a, b, pa="", pb="", puertos=None):
     ca, cb = cajas_d[a], cajas_d[b]
     x1, y1 = _recorte(ca, cb["x"] + cb["w"] / 2, cb["y"] + cb["h"] / 2)
     x2, y2 = _recorte(cb, ca["x"] + ca["w"] / 2, ca["y"] + ca["h"] / 2)
     tunel = a in MALLA and b in MALLA
-    return {"a": a, "b": b, "x1": x1, "y1": y1, "x2": x2, "y2": y2, "tunel": tunel, "txt": "malla 27199/tcp" if tunel else ""}
+    cerrado = bool(pb) and puertos is not None and not puerto_en(pb, puertos.get(b) or [])
+    txt = f"{pa or '·'} → {pb}" if pb else (f"{pa} →" if pa else ("malla 27199/tcp" if tunel else ""))
+    return {"a": a, "b": b, "pa": pa, "pb": pb, "x1": x1, "y1": y1, "x2": x2, "y2": y2, "tunel": tunel, "cerrado": cerrado,
+            "txt": txt + (" · puerto cerrado" if cerrado else ""), "clave": f"{a}>{b}:{norm_puerto(pb)}" if cerrado else ""}
 
 
 def topologia(s):
@@ -421,7 +463,7 @@ def topologia(s):
     return t if isinstance(t, dict) and t.get("conexiones") is not None else None
 
 
-def diagrama(s, eqs, m, pcts, disps=()):
+def diagrama(s, eqs, m, pcts, disps=(), vis=()):
     """Central (FaceOps → AAP), hop si aplica y, dentro del sitio, el execution node, los equipos REALES del inventario del
     sitio agrupados por clase (cada uno con su % y su color de salud) y los otros dispositivos registrados (impresoras, POS…).
     Si el sitio tiene un diagrama editado (posiciones y conexiones guardadas), se respeta; los nodos nuevos van en su lugar
@@ -500,6 +542,17 @@ def diagrama(s, eqs, m, pcts, disps=()):
         y += 30
     # diagrama editado: posiciones y conexiones guardadas (solo de nodos que siguen existiendo)
     topo = topologia(s)
+    base_ids = {c["id"] for c in cajas}
+    if topo:   # máquinas del inventario agregadas a mano al diagrama (fuera del sitio: p. ej. un servidor de la central)
+        por_id = {f"eq-{e['id']}": e for e in vis}
+        for nid in topo.get("extra") or []:
+            e = por_id.get(nid)
+            if e and nid not in base_ids:
+                pc = pcts.get(e["id"])
+                caja(nid, 40, y, BW, BH, e["nombre"], f"{e.get('ip') or 'sin IP'} · fuera del sitio", pc, url=url_for("consola.equipo", eid=e["id"]),
+                     info=f"{e['nombre']} · {e.get('categoria') or 'servidor'} · agregado al diagrama (no pertenece al sitio)")
+                cajas[-1]["extra"] = True
+                pares.append(("en", nid))
     cd = {c["id"]: c for c in cajas}
     if topo:
         pos = topo.get("nodos") or {}
@@ -507,16 +560,29 @@ def diagrama(s, eqs, m, pcts, disps=()):
             p_ = pos.get(nid)
             if isinstance(p_, dict) and nid != "central":
                 c["x"], c["y"] = float(p_.get("x", c["x"])), float(p_.get("y", c["y"]))
-        en_con = {n for x in topo["conexiones"] for n in x}
+        en_con = {n for x in topo["conexiones"] for n in x[:2]}
         nuevos = {nid for nid in cd if nid not in pos and nid not in en_con}
-        pares = [(a, b) for a, b in (tuple(x) for x in topo["conexiones"] if len(x) == 2) if a in cd and b in cd] + \
-                [(a, b) for a, b in pares if b in nuevos or a in nuevos]
+        pares = [tuple((list(x) + ["", ""])[:4]) for x in topo["conexiones"] if len(x) >= 2 and x[0] in cd and x[1] in cd] + \
+                [(a, b, "", "") for a, b in pares if b in nuevos or a in nuevos]
         textos = []   # los rótulos de sección valen solo para la disposición automática
         y = max([c["y"] + c["h"] for c in cajas if c["id"] not in ("central", "hop")] + [y - 46]) + 46
-    lineas = [conector(cd, a, b) for a, b in dict.fromkeys(pares)]
+    pmap = puertos_nodos(cajas, eqs, disps, vis)
+    lineas = [conector(cd, *(tuple(x) + ("", ""))[:4], puertos=pmap) for x in dict.fromkeys(tuple(x) for x in pares)]
     marco = {"x": 16, "y": marco_y, "w": W - 32, "h": y - marco_y - 10, "txt": f"Sitio {s['codigo']}" + (f" · {s['alias']}" if s.get("alias") else "")}
-    return {"w": W, "h": y + 6, "cajas": cajas, "lineas": lineas, "textos": textos, "marco": marco, "editado": topo,
+    return {"w": W, "h": y + 6, "cajas": cajas, "lineas": lineas, "textos": textos, "marco": marco, "editado": topo, "puertos": pmap,
             "huerfanos": [c["tit_full"] for c in cajas if c["id"] != "central" and not any(c["id"] in (l["a"], l["b"]) for l in lineas)]}
+
+
+def puertos_nodos(cajas, eqs, disps, vis=()):
+    """{id de nodo: [puertos e interfaces conocidos]} para el selector de puertos y la marca «puerto cerrado»."""
+    por = {f"eq-{e['id']}": e for e in list(vis) + list(eqs)}
+    dv = {f"dv-{d['id']}": d for d in disps}
+    out = {}
+    for c in cajas:
+        k = c["id"]
+        out[k] = (["443/tcp", "27199/tcp"] if k == "central" else ["27199/tcp", "22/tcp"] if k in ("hop", "en")
+                  else puertos_eq(por[k]) if k in por else puertos_dv(dv[k]) if k in dv else [])
+    return out
 
 
 def guardar_topologia(cliente_id, s, datos, quien, ids_validos):
@@ -528,23 +594,27 @@ def guardar_topologia(cliente_id, s, datos, quien, ids_validos):
     else:
         nodos = {}
         for nid, p_ in (datos.get("nodos") or {}).items():
-            if nid in ids_validos and isinstance(p_, dict):
+            if isinstance(p_, dict):
                 try:
                     nodos[nid] = {"x": max(0.0, min(2000.0, round(float(p_["x"]), 1))), "y": max(0.0, min(4000.0, round(float(p_["y"]), 1)))}
                 except (KeyError, TypeError, ValueError):
                     raise ValueError("Posición no válida") from None
+        extra = [x for x in dict.fromkeys(str(x) for x in (datos.get("extra") or [])) if x in ids_validos.get("inventario", set())][:60]
+        validos = ids_validos["sitio"] | set(extra)
+        nodos = {k: v for k, v in nodos.items() if k in validos}
         con = []
         for x in datos.get("conexiones") or []:
-            if not (isinstance(x, (list, tuple)) and len(x) == 2):
+            if not (isinstance(x, (list, tuple)) and 2 <= len(x) <= 4):
                 raise ValueError("Conexión no válida")
             a, b = str(x[0]), str(x[1])
-            if a not in ids_validos or b not in ids_validos:
-                raise ValueError("La conexión apunta a un nodo que no está en el sitio")
-            if a != b and [a, b] not in con and [b, a] not in con:
-                con.append([a, b])
+            pa, pb = (str(x[2]).strip()[:40] if len(x) > 2 and x[2] else ""), (str(x[3]).strip()[:40] if len(x) > 3 and x[3] else "")
+            if a not in validos or b not in validos:
+                raise ValueError("La conexión apunta a un nodo que no está en el diagrama")
+            if a != b and not any({c[0], c[1]} == {a, b} and c[2:] in ([pa, pb], [pb, pa]) for c in con):
+                con.append([a, b, pa, pb])
         if len(con) > 2000:
             raise ValueError("Demasiadas conexiones")
-        nuevo = {"nodos": nodos, "conexiones": con, "autor": quien, "fecha": ahora()}
+        nuevo = {"nodos": nodos, "conexiones": con, "extra": extra, "autor": quien, "fecha": ahora()}
     ej("INSERT INTO edge_topologia_hist(cliente_id, sitio_id, anterior, nueva, autor, fecha) VALUES (?,?,?,?,?,?)",
        cliente_id, s["id"], s.get("topologia") or "", json.dumps(nuevo, ensure_ascii=False) if nuevo else "", quien, ahora())
     ej("UPDATE edge_sitios SET topologia=? WHERE id=? AND cliente_id=?", json.dumps(nuevo, ensure_ascii=False) if nuevo else None, s["id"], cliente_id)
@@ -635,7 +705,12 @@ def edge_ficha(sid):
     on_ = sum(1 for e in eqs if e.get("energia") == "encendido")
     gr_ = q1("SELECT * FROM edge_grupos WHERE id=? AND cliente_id=?", s.get("grupo_id"), g.cliente["id"]) if s.get("grupo_id") else None
     ds = [dict(d, est=estado_disp(d)) for d in dispositivos(g.cliente["id"], s["id"])]
-    return render_template("edge_sitio.html", s=s, disps=ds, disp_grupos=dispositivos_por_tipo(ds), tipos_disp=TIPOS_DISP, diag=diagrama(s, eqs, m, salud_equipos(eqs), ds),
+    aperturas = {}
+    for t in reversed(tickets_visibles_sitio(s["codigo"])):   # el más reciente por conexión
+        k_ = (j(t["parametros"], {}) or {}).get("edge_apertura")
+        if k_:
+            aperturas[k_] = t
+    return render_template("edge_sitio.html", s=s, disps=ds, disp_grupos=dispositivos_por_tipo(ds), tipos_disp=TIPOS_DISP, diag=diagrama(s, eqs, m, salud_equipos(eqs), ds, vis), candidatos=candidatos_diagrama(s, eqs, ds, vis), aperturas=aperturas,
                            topo_hist=historial_topologia(g.cliente["id"], s["id"]), grupo_s=gr_, grupos=grupos(g.cliente["id"]), eqs=eqs, radar_s=r, nodo_t=nodo_t, nodo_c=nodo_c, hop_t=hop_t, hop_c=hop_c, m=m,
                            acciones=acciones, areas=list(dict.fromkeys(a["area"] for a in acciones)), energia_no=energia_no, esc=esc,
                            hallazgos=hs, tickets=tks, on_=on_, tipos=TIPOS, grupo=grupo_ansible(s["codigo"]), equipos=vis,
@@ -752,6 +827,92 @@ def edge_grupo_eliminar(gid):
     return redirect(url_for("consola.edge", grupos=1))
 
 
+
+# ------------------------------------------------------------------ diagrama: agregar elementos del inventario y apertura de puertos
+def candidatos_diagrama(s, eqs, ds, vis):
+    """Lo que se puede poner en el diagrama: las máquinas del inventario (las del sitio y otras, p. ej. de la central) y los otros
+    dispositivos del sitio, con su IP y tipo para el buscador."""
+    del_sitio = {e["id"] for e in eqs}
+    out = [{"id": f"dv-{d['id']}", "nombre": d["nombre"], "ip": d.get("ip") or "", "tipo": TIPOS_DISP_D.get(d["tipo"], d["tipo"]), "sitio": True} for d in ds]
+    out += [{"id": f"eq-{e['id']}", "nombre": e["nombre"], "ip": e.get("ip") or "", "tipo": e.get("categoria") or "servidor", "sitio": e["id"] in del_sitio}
+            for e in sorted(vis, key=lambda e: (e["id"] not in del_sitio, e["nombre"]))]
+    return out
+
+
+ACCION_APERTURA = {   # tipo de destino → acción de AAP que abre el puerto (pasa por la regla de prueba como toda acción)
+    "linux": "Edge · Abrir puerto en el firewall del servidor",
+    "windows": "Edge · Abrir puerto en el firewall de Windows",
+    "red": "Edge · Abrir puerto en el firewall de sucursal",
+    "dispositivo": "Edge · Abrir puerto en el dispositivo",
+}
+
+
+def clave_apertura(a, b, pb):
+    return f"{a}>{b}:{norm_puerto(pb)}"
+
+
+@bp.route("/edge/<int:sid>/apertura", methods=["POST"])
+@requiere_login
+def edge_apertura(sid):
+    """«Solicitar apertura» de un puerto cerrado del diagrama: es lo único nuevo (cambia la red), así que va con ticket. Si la
+    acción de apertura está publicada y certificada, sigue el flujo normal FaceOps → AAP con aprobación; si no, el ticket queda
+    manual (pendiente) y la acción bloqueada por la regla de prueba."""
+    s, err = _sitio_post(sid)
+    if err:
+        return err
+    a_, b_, pb = (request.form.get(k, "").strip() for k in ("a", "b", "pb"))
+    vis = equipos_visibles()
+    ds = dispositivos(g.cliente["id"], sid)
+    topo = topologia(s) or {}
+    con = next((c for c in topo.get("conexiones") or [] if c[0] == a_ and c[1] == b_ and len(c) > 3 and norm_puerto(c[3]) == norm_puerto(pb)), None)
+    if not con:
+        return {"error": "Esa conexión no está guardada en el diagrama"}, 400
+    por = {f"eq-{e['id']}": e for e in vis}
+    dv = {f"dv-{d['id']}": d for d in ds}
+    if b_ in por:
+        dest = por[b_]
+        from .vistas import RED_CATS
+        win = (dest.get("so_familia") or "").lower() == "windows" or "windows" in (dest.get("so") or "").lower()
+        tipo = "red" if (dest.get("categoria") or "").lower() in RED_CATS else ("windows" if win else "linux")
+        ya_abierto = puerto_en(pb, puertos_eq(dest))
+        nombre_d, ip_d = dest["nombre"], dest.get("ip") or ""
+    elif b_ in dv:
+        dest = dv[b_]
+        tipo = "red" if dest["tipo"] in ("router", "switch", "ap") else "dispositivo"
+        ya_abierto = puerto_en(pb, puertos_dv(dest))
+        nombre_d, ip_d = dest["nombre"], dest.get("ip") or ""
+    else:
+        return {"error": "El destino no admite apertura de puertos desde aquí"}, 400
+    if ya_abierto:
+        return {"error": f"{pb} ya figura abierto en {nombre_d}"}, 400
+    clave = clave_apertura(a_, b_, pb)
+    from .salud_acciones import ABIERTOS
+    for t in tickets_visibles_sitio(s["codigo"]):
+        if (j(t["parametros"], {}) or {}).get("edge_apertura") == clave and (t["estado"] in ABIERTOS or t["estado"] == "manual"):
+            return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "existente": True}
+    nom_aap = ACCION_APERTURA[tipo]
+    a, motivo = _accion_aap(nom_aap)
+    origen = next((c for c in [por.get(a_), dv.get(a_)] if c), None)
+    params = {"edge_apertura": clave, "edge_destino": nombre_d, "edge_destino_ip": ip_d, "edge_puerto": norm_puerto(pb),
+              "edge_origen": (origen or {}).get("nombre") or a_, "edge_origen_ip": (origen or {}).get("ip") or "", "edge_origen_puerto": con[2] or ""}
+    texto = f"Abrir {norm_puerto(pb)} en {nombre_d} desde {params['edge_origen']} ({s['codigo']})"
+    if not motivo:
+        return _lanzar(s, a, [dest] if b_ in por else None, params, texto)
+    from .operacion import numero_ticket
+    params.update(edge_sitio=s["codigo"], edge_grupo=grupo_ansible(s["codigo"]), edge_accion_aap=nom_aap, edge_bloqueo=motivo)
+    tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, motivo, creado) "
+             "VALUES (?,?,?,?,?,?,?,?,?,?)", g.cliente["id"], numero_ticket(g.cliente), (a or {}).get("id"), g.usuario["id"], "manual", "",
+             nombre_d if b_ in por else "", json.dumps(params, ensure_ascii=False), f"{texto} · manual: {motivo}", ahora())
+    t = q1("SELECT * FROM tickets WHERE id=?", tid)
+    auditar(g.usuario["usuario"], g.cliente["id"], "solicitar apertura de puerto (manual)", t["numero"], params)
+    return {"id": t["id"], "numero": t["numero"], "estado": "manual", "url": url_for("consola.ticket", tid=t["id"]), "auto": nom_aap, "bloqueo": motivo}
+
+
+def tickets_visibles_sitio(codigo):
+    from .vistas import tickets_visibles
+    return [t for t in tickets_visibles(400) if (j(t["parametros"], {}) or {}).get("edge_sitio") == codigo]
+
+
 # ------------------------------------------------------------------ otros dispositivos del sitio (solo inventario, sin agente)
 def dispositivos(cliente_id, sid):
     _tabla()
@@ -792,22 +953,25 @@ def guardar_dispositivo(cliente_id, s, f, quien, did=None):
     fab = (f.get("fabricante") or "").strip()[:60]
     mod = (f.get("modelo") or "").strip()[:60]
     ubic = (f.get("ubicacion") or "").strip()[:60]
+    pts = ", ".join(dict.fromkeys(x.strip()[:40] for x in re.split(r"[,\n;]", f.get("puertos") or "") if x.strip()))[:600]
     if s.get("ubicaciones_l") and ubic and ubic not in s["ubicaciones_l"]:
         raise ValueError("Ubicación no válida para el sitio")
     otro = q1("SELECT id FROM edge_dispositivos WHERE cliente_id=? AND sitio_id=? AND lower(nombre)=lower(?)", cliente_id, s["id"], nombre)
     if otro and otro["id"] != did:
         raise ValueError(f"Ya hay un dispositivo llamado «{nombre}» en el sitio")
-    det = {"tipo": tipo, "ip": ip, "fabricante": fab, "modelo": mod, "ubicacion": ubic}
+    det = {"tipo": tipo, "ip": ip, "fabricante": fab, "modelo": mod, "ubicacion": ubic, "puertos": pts}
     if did:
         act = q1("SELECT * FROM edge_dispositivos WHERE id=? AND cliente_id=? AND sitio_id=?", did, cliente_id, s["id"])
         if not act:
             raise ValueError("Dispositivo no válido")
+        ej("UPDATE edge_dispositivos SET puertos=? WHERE id=?", pts, did)
         ej("UPDATE edge_dispositivos SET tipo=?, nombre=?, ip=?, fabricante=?, modelo=?, ubicacion=?, estado=?, estado_visto=?, actualizado=?, autor=? WHERE id=?",
            tipo, nombre, ip, fab, mod, ubic, act["estado"] if ip == act["ip"] else "", act["estado_visto"] if ip == act["ip"] else "", ahora(), quien, did)
         auditar(quien, cliente_id, "editar dispositivo edge", f"{s['codigo']} · {nombre}", det)
         return did
     did = ej("INSERT INTO edge_dispositivos(cliente_id, sitio_id, tipo, nombre, ip, fabricante, modelo, ubicacion, creado, actualizado, autor) "
              "VALUES (?,?,?,?,?,?,?,?,?,?,?)", cliente_id, s["id"], tipo, nombre, ip, fab, mod, ubic, ahora(), ahora(), quien)
+    ej("UPDATE edge_dispositivos SET puertos=? WHERE id=?", pts, did)
     auditar(quien, cliente_id, "agregar dispositivo edge", f"{s['codigo']} · {nombre}", det)
     return did
 
@@ -846,16 +1010,18 @@ def edge_diagrama_guardar(sid):
     if not s:
         return {"error": "Sitio no válido"}, 400
     _con_listas(s)
-    eqs = _equipos_de(s, equipos_visibles())
+    vis = equipos_visibles()
+    eqs = _equipos_de(s, vis)
     ids = {"central", "en"} | ({"hop"} if s["hop"] else set()) | {f"eq-{e['id']}" for e in eqs} | \
           {f"dv-{x['id']}" for x in dispositivos(g.cliente["id"], sid)}
     try:
-        t = guardar_topologia(g.cliente["id"], s, None if d.get("restablecer") else d, g.usuario["usuario"], ids)
+        t = guardar_topologia(g.cliente["id"], s, None if d.get("restablecer") else d, g.usuario["usuario"],
+                              {"sitio": ids, "inventario": {f"eq-{e['id']}" for e in vis}})
     except ValueError as err:
         return {"error": str(err)}, 400
     if t:
-        con = {n for c in t["conexiones"] for n in c}
-        return {"ok": True, "huerfanos": sorted(ids - con - {"central"})}
+        con = {n for c in t["conexiones"] for n in c[:2]}
+        return {"ok": True, "huerfanos": sorted((ids | set(t["extra"])) - con - {"central"})}
     return {"ok": True}
 
 
