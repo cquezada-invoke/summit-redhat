@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block titulo %}{{ x.nombre }}{% endblock %}
-{% block cuerpo %}{% from "_infra.html" import logo, campos_form, leyenda_obl %}{% from "_radar.html" import barra_salud, col as rcol with context %}
+{% block cuerpo %}{% from "_infra.html" import logo, campos_form, leyenda_obl %}{% from "_radar.html" import barra_salud, col as rcol with context %}{% from "_consumo_nube.html" import usd as usd_c, nivel as nivel_c with context %}
 <style>.nb-cab{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:0 0 4px}.nb-cab h1{margin:0}.nb-cab .der{margin-left:auto}
 .hv-dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}.hv-dl dt{color:var(--muted)}.hv-dl dd{margin:0;word-break:break-word}
 .hv-lcab{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px 6px}.hv-lcab h2{margin:0;font-size:16px}.hv-lcab input{margin-left:auto;max-width:300px;width:100%}
@@ -10,7 +10,10 @@
 .nb-acc a:hover{border-color:var(--acc)}.nb-acc b{display:block;font-size:13.5px}.nb-acc .off{opacity:.65}
 @media (min-width:900px){.eq-cab.nb-eqcab{grid-template-columns:280px minmax(0,1fr)}}
 .nb-eqcab .eq-datos{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
-@media (max-width:720px){.hv-lcab input{margin-left:0;max-width:none}}</style>
+.cn-tab{width:100%;border-collapse:collapse;font-size:13px}.cn-tab td{padding:5px 8px;border-top:1px solid var(--line);vertical-align:top}.cn-tab td.cn-g{color:var(--muted);font-size:12px;white-space:nowrap}
+.cn-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}.cn-verde{background:var(--ok,#3e8635)}.cn-amarillo{background:var(--warn,#f0ab00)}.cn-rojo{background:var(--bad,#c9190b)}.cn-gris{background:var(--line,#ccc)}
+.cn-tab details summary{cursor:pointer;color:var(--muted);font-size:12px}.cn-tab details ul{margin:4px 0 0;padding-left:18px;font-size:12px}
+@media (max-width:720px){.hv-lcab input{margin-left:0;max-width:none}.cn-tab td.cn-g{display:none}}</style>
 {% set ok_ = x.estado == 'conectada' %}{% set esc_ = perfil_actual.modo == 'escritura' %}
 <div class="miga"><a href="{{ url_for('consola.nubes') }}">Nubes</a> › {{ x.nombre }}</div>
 <div class="nb-cab">{{ logo(x.tipo, 40) }}<div><h1>{{ x.nombre }}</h1><p class="sub" style="margin:0">{{ x.prov.nombre }} · {{ cuenta_t|lower }} {{ cuenta or '—' }} · {{ x.centro }} <span class="chip nat-nube">cloud</span> · última sincronización {{ con.ultima|fecha if con.ultima else 'nunca' }}</p></div>
@@ -24,7 +27,7 @@
   <div class="eq-energia {{ 'on' if ok_ else ('off' if x.estado in ('error', 'sin credencial') else 'nd') }}"><i></i><div><b>{{ {'conectada': 'Conectada', 'error': 'Con error', 'sin credencial': 'Sin credencial', 'sin probar': 'Sin probar', 'sin verificar': 'Sin verificar'}.get(x.estado, x.estado|capitalize) }}</b>
   <dl class="eq-tiempos"><dt>Máquinas</dt><dd>{{ n_on }} encendidas de {{ maqs|length }}</dd>
   <dt>Sincronizada</dt><dd>{{ con.ultima|fecha if con.ultima else 'nunca' }}</dd>
-  {% if con_costo %}<dt>Costo del mes</dt><dd title="Estimado con las horas encendidas">≈ CLP {{ '{:,.0f}'.format(costo_total).replace(',', '.') }}</dd>{% endif %}</dl></div>
+  <dt>Consumo</dt><dd>{{ nivel_c(nivel_nube) }}</dd></dl></div>
   <div class="eq-energia-acc" id="nb-energia">{% for ac, cls, ic, dis in [('encender', 'prender', '<path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/>', n_on == maqs|length), ('apagar', 'apagar', '<rect x="6" y="6" width="12" height="12" rx="1"/>', n_on == 0)] %}
   <button type="button" class="btn-energ {{ cls }}" data-energia="{{ ac }}" aria-label="{{ ac|capitalize }}" {{ 'disabled' if energia_no or dis }} title="{{ energia_no or (('Todas las máquinas ya están ' ~ ('encendidas' if ac == 'encender' else 'apagadas')) if dis else (ac|capitalize ~ ' las máquinas de ' ~ x.nombre ~ ': un ticket por máquina, con aprobación en AAP')) }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">{{ ic|safe }}</svg></button>{% endfor %}
   {% if energia_no %}<span class="sub" style="font-size:11.5px;flex-basis:100%">{{ energia_no }}</span>{% endif %}</div></div>
@@ -41,6 +44,18 @@
 </div>
 {% if x.mensaje or err %}<p class="sub" style="margin:-4px 0 10px;font-size:12.5px">{{ err or x.mensaje }}</p>{% endif %}
 
+{# ---------- consolidado: lo más relevante de la nube de un vistazo (lee solo de FaceOps) ---------- #}
+<div class="card" style="margin-top:6px" id="consolidado"><div class="fila" style="gap:10px;flex-wrap:wrap"><h2 style="margin:0">Consolidado</h2>
+<span class="sub" style="font-size:12.5px">{% if resumen %}última recuperación {{ resumen._ts|fecha }}{% if resumen.error %} · <span style="color:var(--bad)">{{ resumen.error }}</span>{% endif %}{% else %}FaceOps aún no recupera el consumo ni el estado de esta nube{% endif %} · se recupera a diario por AAP con la credencial de la conexión</span>
+<button type="button" class="btn chico der" id="cn-actualizar" {{ ('disabled title="' ~ recuperar_no ~ '"')|safe if recuperar_no else 'title="Crea un ticket de «Recuperar consumo y estado» (solo lectura)"'|safe }}>Actualizar ahora</button></div>
+{% if recuperar_no %}<p class="sub" style="margin:6px 0 0;font-size:12px">{{ recuperar_no }}</p>{% endif %}
+{% if cons %}<table class="cn-tab" style="margin-top:8px">{% for gr in cons %}{% for it in gr['items'] %}<tr><td class="cn-g">{{ gr.grupo if loop.first }}</td>
+<td><span class="cn-dot cn-{{ it.color }}" title="{{ {'verde': 'bien', 'amarillo': 'atención', 'rojo': 'crítico', 'gris': 'sin dato'}[it.color] }}"></span>{{ it.nombre }}</td>
+<td>{% if it.falta %}<span class="sub">{{ it.falta }}</span>{% if it.enlace %} <a class="sub" href="{{ it.enlace }}" target="_blank" rel="noopener">cómo habilitarlo ↗</a>{% endif %}{% else %}<b>{{ it.valor }}</b>{% if it.estimado %} <span class="chip" style="font-size:10.5px">estimado</span>{% endif %}{% endif %}
+{% if it.detalle %}<details><summary>ver detalle</summary><ul>{% for d_ in it.detalle %}<li>{{ d_ }}</li>{% endfor %}</ul></details>{% endif %}</td>
+<td style="white-space:nowrap;text-align:right">{% if it.accion %}{% set bq_ = bloqueo_rem.get(it.accion, '') %}<button type="button" class="btn chico gris" data-remediar="{{ it.accion }}" {{ ('disabled title="' ~ bq_ ~ '"')|safe if bq_ else '' }}>Remediar (ticket)</button>{% elif it.enlace and not it.falta %}<a class="btn chico gris" href="{{ it.enlace }}" target="_blank" rel="noopener">Abrir en la consola ↗</a>{% endif %}</td></tr>{% endfor %}{% endfor %}</table>
+{% else %}<p class="sub" style="margin:8px 0 0">Sin datos todavía: usa «Actualizar ahora» o espera el cálculo diario.</p>{% endif %}</div>
+
 <div class="grid g2" style="margin-top:6px">
 <div class="card"><h2>Conexión en AAP</h2><dl class="hv-dl">
 <dt>Credencial</dt><dd>{% if con.cred %}{{ con.cred.nombre }} <span class="sub">({{ con.cred.tipo }})</span>{% elif x.credencial %}{{ x.credencial }} <span class="chip s-alta">no existe en AAP</span>{% else %}—{% endif %}</dd>
@@ -56,10 +71,10 @@
 {% set sin_ = 'Sin datos: ' ~ ('AAP no tiene credencial para leer esta nube; cárgala con «Conectar».' if not con.cred else ('la fuente dinámica aún no trae máquinas; usa «Validar conexión» en «Editar conexión».' if not ok_ else 'la nube no informa elementos de este tipo.')) %}
 
 <div class="card hv-lista" style="margin-top:14px;padding:0" id="maquinas"><div class="hv-lcab"><h2>Máquinas · {{ maqs|length }}</h2><input type="search" placeholder="Buscar máquina: nombre, zona, tipo, IP, estado…" aria-label="Buscar máquina"></div>
-<table class="sin-pag"><tr><th>Máquina</th><th>Región · zona</th><th>Estado</th><th>Tipo de máquina</th><th>IP interna</th><th>IP pública</th><th>Costo este mes</th></tr>
+<table class="sin-pag"><tr><th>Máquina</th><th>Región · zona</th><th>Estado</th><th>Tipo de máquina</th><th>IP interna</th><th>IP pública</th><th>Consumo (USD)</th></tr>
 {% for m in maqs %}<tr><td>{% if m.equipo %}<a href="{{ url_for('consola.equipo', eid=m.equipo.id) }}">{{ m.nombre }}</a>{% else %}{{ m.nombre }}{% endif %}{% if m.solo_faceops %} <span class="chip" title="Está en el inventario de FaceOps pero AAP no la trae de la nube">solo FaceOps</span>{% endif %}</td>
 <td>{{ m.region or '—' }} · {{ m.zona or '—' }}</td><td><span class="chip {{ 's-ok' if m.on }}">{{ m.estado or '—' }}</span></td><td>{{ m.tipo or '—' }}</td><td class="mono">{{ m.ip or '—' }}</td>
-<td class="mono">{{ m.publicas|join(', ') or '—' }}</td><td title="{{ m.tarifa }}">{{ ('CLP ' ~ '{:,.0f}'.format(m.costo_mes).replace(',', '.')) if m.costo_mes is not none else '—' }}</td></tr>
+<td class="mono">{{ m.publicas|join(', ') or '—' }}</td><td style="font-size:12.5px">{{ nivel_c(costo_vm.get(m.nombre), compacto=true) }}</td></tr>
 {% else %}<tr><td colspan="7" class="sub">{{ sin_ }}</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
 
 <div class="card hv-lista" style="margin-top:14px;padding:0" id="redes"><div class="hv-lcab"><h2>Redes (VPC) y subredes · {{ redes|length }}</h2><input type="search" placeholder="Buscar red, subred o máquina…" aria-label="Buscar red"></div>
@@ -79,6 +94,12 @@
 {% for p_ in publicas %}<tr><td class="mono">{{ p_.ip }}</td><td>{{ p_.maquina }}</td><td>{{ p_.zona or '—' }}</td><td>{{ 'sí' if p_.on else 'no' }}</td></tr>
 {% else %}<tr><td colspan="4" class="sub">{{ sin_ }}</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
 
+<div class="card hv-lista" style="margin-top:14px;padding:0" id="productos"><div class="hv-lcab"><h2>Productos gestionados · {{ productos|length }}</h2>{% if productos|length > 10 %}<input type="search" placeholder="Buscar producto…" aria-label="Buscar producto">{% endif %}</div>
+<table class="sin-pag"><tr><th>Producto</th><th>Nombre</th><th>Región</th><th>Detalle</th><th>Consumo (USD)</th></tr>
+{% for p_ in productos %}<tr><td>{{ p_.tipo }}</td><td>{{ p_.nombre }}</td><td>{{ p_.region or '—' }}</td><td>{{ p_.detalle or '—' }}</td><td style="font-size:12.5px">{% if p_.costo and p_.costo.mes_actual_usd is not none %}{{ nivel_c(p_.costo, compacto=true) }}{% else %}<span class="sub" title="{{ (p_.costo or {}).nota or 'La fuente no entrega su costo' }}">sin datos</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="5" class="sub">{{ productos_falta or ('Sin productos gestionados (Cloud SQL, buckets) en la última recuperación.' if resumen else 'Sin datos todavía.') }}</td></tr>{% endfor %}</table><div class="pag-js"></div>
+{% if productos and productos_falta %}<p class="sub nb-vacio">{{ productos_falta }}</p>{% endif %}</div>
+
 <div class="card" style="margin-top:14px" id="acciones"><div class="fila"><h2 style="margin:0">Acciones</h2><span class="sub der" style="font-size:12px">sobre esta nube · cada una corre como ticket en AAP, con aprobación cuando corresponde</span></div>
 {% if acciones %}<div class="nb-acc">{% for a in acciones %}{% if a.bloqueo %}<div class="off" title="{{ a.bloqueo }}"><b>{{ a.nombre }}</b><span class="sub">{{ a.bloqueo }}</span></div>{% else %}<a href="{{ url_for('consola.automatizacion', aid=a.id) }}" target="_blank" rel="noopener" title="Abrir «{{ a.nombre }}» en una ventana nueva"><b>{{ a.nombre }}</b><span class="sub">{{ (j(a.guia, {}).proposito or a.descripcion or '')|truncate(100) }}</span></a>{% endif %}{% endfor %}</div>
 {% else %}<p class="vacio">Aún no hay acciones de nube publicadas en AAP.</p>{% endif %}</div>
@@ -92,6 +113,9 @@
 {% if radar_n.remediables %}<ul class="nb-rem">{% for c in radar_n.remediables|sort(attribute='pct') %}<li class="{{ 'med' if c.pct >= 50 }}"><b>{{ c.nombre }} · {{ c.pct }} %</b><small>{{ c.principio }} · {{ c.explica }}</small><div class="acc">
 {% if c.rem == 'conexion' %}{% if esc_ %}<button type="button" class="btn chico" data-cx="1">{{ 'Editar conexión' if con.cred else 'Conectar' }}</button>{% else %}<span class="sub">Requiere perfil de escritura: editar la conexión.</span>{% endif %}
 {% elif c.rem == 'sincronizar' %}{% if esc_ and con.cred %}<form method="post" action="{{ url_for('consola.nube_validar', iid=x.id) }}" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico" {{ ('disabled title="' ~ validar_no ~ '"')|safe if validar_no }}>Validar conexión (ticket)</button></form>{% else %}<span class="sub">{{ 'Primero carga la credencial.' if not con.cred else 'Requiere perfil de escritura.' }}</span>{% endif %}
+{% elif c.rem.startswith('accion:') %}{% set bq_ = bloqueo_rem.get(c.rem[7:], '') %}<button type="button" class="btn chico" data-remediar="{{ c.rem[7:] }}" {{ ('disabled title="' ~ bq_ ~ '"')|safe if bq_ else '' }}>Remediar (ticket)</button>{% if bq_ %}<span class="sub" style="flex-basis:100%">{{ bq_ }}</span>{% endif %}{% for f_ in c.faltan %}<span class="chip">{{ f_.nombre }}</span>{% endfor %}
+{% elif c.rem.startswith('enlace:') %}<a class="btn chico gris" href="{{ c.rem[7:] }}" target="_blank" rel="noopener">Abrir en la consola ↗</a>{% for f_ in c.faltan %}<span class="chip">{{ f_.nombre }}</span>{% endfor %}<span class="sub" style="flex-basis:100%">Se corrige en la consola del proveedor; FaceOps lo verá en la próxima recuperación.</span>
+{% elif c.rem == 'actualizar' %}<button type="button" class="btn chico" data-actualizar="1" {{ ('disabled title="' ~ recuperar_no ~ '"')|safe if recuperar_no }}>Actualizar ahora (ticket)</button>
 {% elif c.rem == 'publicas' %}{% for p_ in publicas if not p_.on %}<span class="chip mono">{{ p_.ip }} · {{ p_.maquina }}</span>{% endfor %}<span class="sub" style="flex-basis:100%">Libera la IP o enciende la máquina.</span>
 {% else %}{% for f_ in c.faltan %}<a class="chip" href="{{ url_for('consola.equipo', eid=f_.id) }}">{{ f_.nombre }} ›</a>{% endfor %}{% if c.n_faltan > c.faltan|length %}<span class="sub">y {{ c.n_faltan - c.faltan|length }} más</span>{% endif %}<span class="sub" style="flex-basis:100%">Se remedia en la ficha de cada máquina.</span>{% endif %}
 </div></li>{% endfor %}</ul>{% else %}<p class="vacio">Nada que remediar: todo lo que aplica se cumple.</p>{% endif %}
@@ -128,6 +152,12 @@ caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()
  const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('accion',ac);
  fetch({{ url_for('consola.nube_energia', iid=x.id)|tojson }},{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json().catch(()=>({error:'No se pudo crear el ticket (error '+r.status+')'}))).then(t=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');
   if(t.error){fxAviso(t.error,'error');return;}window.fxNuevoTicket?fxNuevoTicket(t):fxAviso('Ticket '+t.numero+' creado','ok');}).catch(()=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');fxAviso('No se pudo crear el ticket','error');});}));
+/* Consolidado: «Actualizar ahora» y «Remediar» crean un ticket (nunca se llama a la nube desde aquí) */
+function ticketNube(url,extra,b){if(b)b.disabled=true;const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
+ fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json().catch(()=>({error:'No se pudo crear el ticket (error '+r.status+')'}))).then(t=>{if(b)b.disabled=false;
+  if(t.error){fxAviso(t.error,'error');return;}window.fxNuevoTicket?fxNuevoTicket(t):fxAviso('Ticket '+t.numero+' creado','ok');}).catch(()=>{if(b)b.disabled=false;fxAviso('No se pudo crear el ticket','error');});}
+document.querySelectorAll('#cn-actualizar,[data-actualizar]').forEach(b=>b.addEventListener('click',()=>{if(confirm('¿Recuperar ahora el consumo y el estado de {{ x.nombre }}? Se crea un ticket (solo lectura).'))ticketNube({{ url_for('consola.nube_actualizar', iid=x.id)|tojson }},{},b);}));
+document.querySelectorAll('[data-remediar]').forEach(b=>b.addEventListener('click',()=>{if(confirm('¿Crear el ticket «'+b.dataset.remediar+'» para {{ x.nombre }}? Pasa por aprobación cuando corresponde.'))ticketNube({{ url_for('consola.nube_remediar', iid=x.id)|tojson }},{accion:b.dataset.remediar},b);}));
 /* buscador + paginador (10 por página) */
 document.querySelectorAll('.hv-lista').forEach(c=>{const tb=c.querySelector('table'),nav=c.querySelector('.pag-js'),q=c.querySelector('input[type=search]');
  const filas=[...tb.rows].filter(r=>r.querySelector('td')&&!r.querySelector('td[colspan]'));let p=0;const N=10;

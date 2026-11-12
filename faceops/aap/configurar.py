@@ -210,6 +210,8 @@ shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/opens
 for f_ in ("openshift-gcp-crear.yml", "openshift-gcp-eliminar.yml"):   # Contenedores › Crear plataforma de contenedores (GCP)
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/nube-simulada.yml", f"{tmp}/playbooks/nube-simulada.yml")
+shutil.copy(f"{AQUI}/nube-consumo.yml", f"{tmp}/playbooks/nube-consumo.yml")   # Nube · Recuperar consumo y estado
+shutil.copy(f"{AQUI}/files/nube_resumen.py", f"{tmp}/playbooks/files/nube_resumen.py")
 shutil.copy(f"{AQUI}/incorporar-maquinas.yml", f"{tmp}/playbooks/incorporar-maquinas.yml")
 for f_ in ("ipi_vmware_vcenter.py",):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
@@ -1224,6 +1226,13 @@ if not aap("GET", f"workflow_job_templates/{wnv['id']}/workflow_nodes/")["result
     n2 = aap("POST", f"workflow_job_templates/{wnv['id']}/workflow_nodes/", {"unified_job_template": jnv["id"]})
     aap("POST", f"workflow_job_template_nodes/{n1['id']}/success_nodes/", {"id": n2["id"]})
 paso(f"Workflow «Nube · Validar conexión e inventariar» (id {wnv['id']})")
+# Nube · Recuperar consumo y estado: solo lectura. FaceOps la lanza una vez al día por nube (y por ticket con «Actualizar
+# ahora») con la credencial cifrada de la conexión, que se elige al lanzar; guarda el resultado en su base.
+jnc = asegurar("job_templates", "Nube · Recuperar consumo y estado", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/nube-consumo.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True, "timeout": 900,
+    "description": "Consumo mensual (facturación real, API de costos o estimado con precios públicos) y estado de la nube: recursos, exposición, cuotas y recomendaciones. Solo lectura"})
+paso(f"Plantilla «Nube · Recuperar consumo y estado» (id {jnc['id']})")
 # Monitoreo · Configurar alertas: la credencial del anfitrión (aap-kvm, sin sudo general) escribe solo la configuración de
 # FaceOps en Prometheus y Alertmanager (ACL), el tablero «Alertas de FaceOps» de Grafana (dashboards/faceops) y valida con promtool por un sudo acotado a ese comando.
 _mon = "/opt/summit-monitoreo"

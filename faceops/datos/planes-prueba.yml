@@ -468,6 +468,13 @@ planes:
       - {id: C1, caso: "Guardar la conexión de la nube GCP del laboratorio con la cuenta de servicio vigente y aprobar", verificar: "ticket exitoso; fuente dinámica sincronizada; la ficha de la nube muestra «Conectada» y sus VM"}
       - {id: C2, caso: "Rechazar la aprobación", tipo: Error controlado, verificar: "no corre la sincronización; la conexión guardada no cambia"}
       - {id: C3, caso: "Fuente dinámica inexistente (id inválido)", tipo: Error controlado, verificar: "ticket fallido con el motivo; no se toca la nube"}
+  "Nube · Recuperar consumo y estado":
+    casos:
+      - {id: C1, caso: "Recuperar la nube GCP del laboratorio con la credencial cifrada de su conexión (ticket «Actualizar ahora»)", verificar: "ticket exitoso; faceops_nube_resumen trae consumo con su fuente (facturación, API o estimado) o «sin datos» con lo que falta, y cada sección leída o con «sin permiso: falta rol X»; FaceOps lo guarda con fecha y la lista y la ficha lo muestran"}
+      - {id: C2, caso: "Repetir la recuperación", tipo: Idempotencia, verificar: "ticket exitoso; mismos valores de inventario; solo lectura (la nube no cambia)"}
+      - {id: C3, caso: "Cálculo diario programado", verificar: "FaceOps lanza la plantilla sin ticket (una vez al día por nube, con la credencial de la conexión) y recoge el resultado en su caché"}
+      - {id: C4, caso: "Datos inválidos (proveedor desconocido)", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; no se llama a la nube"}
+      - {id: C5, caso: "Salida sin secretos", verificar: "la salida del trabajo no contiene private_key, client_secret ni el JSON de la cuenta de servicio"}
   "Nube · Prueba: crear huérfanos":
     casos:
       - {id: C1, caso: "Crear recursos huérfanos de prueba (disco e IP sin uso)", verificar: "existen en el proyecto con la etiqueta de prueba"}

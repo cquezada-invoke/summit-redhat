@@ -1,0 +1,57 @@
+---
+# Nube · Recuperar consumo y estado. Solo lectura: con la credencial cifrada de la conexión (la pone FaceOps al lanzar)
+# lee el consumo de la nube (facturación real en BigQuery, API de costos del proveedor o estimación con precios públicos)
+# y su estado (máquinas, discos, IPs, snapshots, firewall, cuotas, claves de cuentas de servicio y recomendaciones).
+# FaceOps lo guarda en su base: la ficha y la lista de nubes leen solo de ahí. No cambia nada en la nube.
+# Variables: nr_nube (nombre en FaceOps), nr_infra_id, nr_proveedor (gcp|aws|azure), nr_cuenta (proyecto, cuenta o suscripción),
+#            nr_zona (opcional), nr_tabla_bq (opcional: proyecto.dataset.tabla del export de facturación)
+- name: Nube · Recuperar consumo y estado
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    salida: "/tmp/nube-resumen-{{ nr_infra_id | default('x') }}-{{ 99999 | random }}.json"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - nr_nube | default('') | length > 0
+          - nr_infra_id | default('') | string | regex_search('^[0-9]+$')
+          - nr_proveedor | default('') in ['gcp', 'aws', 'azure']
+          - nr_cuenta | default('') | regex_search('^[A-Za-z0-9._:-]+$')
+          - nr_tabla_bq | default('') is match('^[A-Za-z0-9_.:-]*$')
+        fail_msg: "Falta la nube, su proveedor (gcp, aws o azure) o su proyecto/cuenta, o la tabla de facturación no es válida"
+        quiet: true
+
+    - name: Leer consumo y estado de la nube con la credencial de la conexión (solo lectura, sin secretos en la salida)
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/nube_resumen.py", "{{ nr_proveedor }}", "{{ nr_cuenta }}", "{{ salida }}", "{{ nr_tabla_bq | default('') }}"]
+      environment:
+        NR_ZONA: "{{ nr_zona | default('') }}"
+      register: lectura
+      changed_when: false
+      no_log: true
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        res: "{{ lookup('ansible.builtin.file', salida) | from_json }}"
+
+    - name: Borrar el archivo temporal
+      ansible.builtin.file:
+        path: "{{ salida }}"
+        state: absent
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_nube_resumen: "{{ {nr_infra_id | string: res | combine({'nube': nr_nube})} }}"
+        per_host: false
+
+    - name: Lectura completa
+      ansible.builtin.assert:
+        that: res.ok | bool
+        success_msg: >-
+          {{ nr_nube }}: consumo {{ (res.consumo | default({})).fuente | default('sin datos') }}
+          {% if (res.consumo | default({})).promedio_usd is not none and (res.consumo | default({})).promedio_usd is defined %}· promedio USD {{ res.consumo.promedio_usd }}/mes{% endif %}
+          · máquinas {{ (res.maquinas.lista | default([])) | length if res.maquinas.ok | default(false) else 'sin permiso' }}
+        fail_msg: "{{ nr_nube }}: no se pudo leer la nube ({{ res.error | default('sin detalle') }})"

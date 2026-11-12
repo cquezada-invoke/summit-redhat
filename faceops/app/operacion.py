@@ -819,6 +819,23 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
+        if a["nombre_aap"] == "Nube · Recuperar consumo y estado":   # la credencial cifrada de la conexión de esa nube
+            from .nube_consumo import credencial as cred_nube, parametros as par_nube
+            inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=? AND tipo IN ('gcp','aws','azure')", c["id"], params.get("nr_nube", ""))
+            if not inf:
+                raise ErrorAAP(f"No existe la nube «{params.get('nr_nube', '')}» en FaceOps")
+            for k_, v_ in par_nube(inf).items():
+                params.setdefault(k_, v_)
+            params["nr_infra_id"] = inf["id"]
+            cr_id = cred_nube(aap, inf)
+            if requiere_aprobacion(a, amb):
+                tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, credenciales=[cr_id], sufijo=inf["nombre"])
+                job = aap.lanzar(tipo, id_, extra_vars=params)
+            else:
+                tipo, id_ = "job", a["aap_id"]
+                job = aap.lanzar(tipo, id_, extra_vars=params, credenciales=[cr_id])
+            ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+            return
         if a["nombre_aap"] == VINCULAR_ONPREM:   # en el anfitrión KVM (credencial fija de la plantilla), no en la máquina
             from .compatibilidad import sistema_fino
             e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], params.get("vo_maquina") or (t["limite"] or "").split(":")[0])
@@ -1928,6 +1945,14 @@ def vigia(intervalo=10):
                 for c in q("SELECT * FROM clientes WHERE activo=1 AND aap_url!=''"):
                     try:
                         recoger_programadas(c)
+                    except Exception:  # noqa: BLE001
+                        pass
+                from . import nube_consumo   # consumo y estado de las nubes: recoger lo terminado y lanzar el cálculo diario
+                for c in q("SELECT * FROM clientes WHERE activo=1 AND aap_url!=''"):
+                    try:
+                        nube_consumo.recoger(c)
+                        if hoy.minute >= 20 and hoy.minute < 25:
+                            nube_consumo.lanzar_diario(c)
                     except Exception:  # noqa: BLE001
                         pass
                 from .uso import recoger as recoger_uso

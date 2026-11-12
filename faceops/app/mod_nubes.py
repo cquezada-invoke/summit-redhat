@@ -21,8 +21,9 @@ def _accion_lista(cliente_id, nombre_aap):
     return a, ""
 
 
-def _radar_nube(x, con, maqs, propias, publicas, cuenta):
-    """Salud de la nube con los 6 pilares: los criterios propios de la conexión y los de sus máquinas en FaceOps.
+def _radar_nube(x, con, maqs, propias, publicas, cuenta, resumen=None):
+    """Salud de la nube con los 6 pilares: los criterios propios de la conexión, los de sus máquinas en FaceOps y los del
+    consumo y estado recuperados por AAP (seguridad, exposición, ociosos, cuotas, optimización y presupuesto).
     Cada criterio no cumplido lleva cómo remediarlo («rem»)."""
     from .radar import _armar, radar_equipos
     r_eq = radar_equipos(propias, hallazgos_visibles(propias), g.cliente) if propias else None
@@ -42,6 +43,8 @@ def _radar_nube(x, con, maqs, propias, publicas, cuenta):
        (sum(1 for m in en_ff if m.get("equipo")) / len(en_ff)) if en_ff else None, "sincronizar")
     c_("NB6", "Costo", "Sin IPs públicas ociosas", "Ninguna IP pública reservada en máquinas apagadas (se cobra igual)",
        all(p_["on"] for p_ in publicas) if publicas else None, "publicas")
+    from .nube_consumo import criterios as crit_resumen
+    crit += crit_resumen(resumen)
     r = _armar(crit, max(1, len(propias)), g.cliente)
     r["remediables"] = [c for c in crit if c["pct"] is not None and c["pct"] < 100]
     return r
@@ -117,7 +120,23 @@ def nube(iid):
     cuenta_k, cuenta_t = DATO_CUENTA.get(x["tipo"], ("", "Cuenta"))
     cuenta = x["detalle_d"].get(cuenta_k) or ((con or {}).get("cred") or {}).get("proyecto") or ""
     from .infraestructuras import ayudas_contexto
-    radar_n = _radar_nube(x, con or {}, maqs, propias, publicas, cuenta)
+    from .nube_consumo import RECUPERAR, consolidado, de_nube, usd
+    resumen = de_nube(g.cliente["id"], iid)
+    radar_n = _radar_nube(x, con or {}, maqs, propias, publicas, cuenta, resumen)
+    cons = consolidado(resumen, x["tipo"])
+    from .nube_consumo import costo_recursos, muestra
+    costo_rec = costo_recursos(g.cliente["id"], iid)
+    costo_vm = {r["nombre"]: r for r in costo_rec if r["tipo"] == "vm"}
+    nivel_nube = muestra(g.cliente["id"], iid)
+    prods_ = ((resumen or {}).get("productos") or {})
+    vistos_ = {p_["nombre"] for p_ in prods_.get("lista") or []}
+    productos = [dict(p_, costo=next((r for r in costo_rec if r["nombre"] == p_["nombre"] and r["tipo"] != "vm"), None)) for p_ in prods_.get("lista") or []]
+    productos += [{"tipo": r["servicio"], "nombre": r["nombre"], "region": r["zona"], "detalle": "según la facturación", "costo": r}
+                  for r in costo_rec if r["tipo"] in ("producto", "servicio") and r["nombre"] not in vistos_]
+    recuperar_no = _accion_lista(g.cliente["id"], RECUPERAR)[1] or ("" if g.perfil["modo"] == "escritura" else "Tu perfil es de solo lectura")
+    bloqueo_rem = {}   # remediación por ticket: la acción debe estar publicada y certificada
+    for n_ in {it_["accion"] for gr_ in cons for it_ in gr_["items"] if it_.get("accion")} | {c_["rem"][7:] for c_ in radar_n["remediables"] if c_["rem"].startswith("accion:")}:
+        bloqueo_rem[n_] = _accion_lista(g.cliente["id"], n_)[1] or ("" if g.perfil["modo"] == "escritura" else "Tu perfil es de solo lectura")
     _, energia_no = _accion_lista(g.cliente["id"], ENERGIA_NUBE)
     if not energia_no and g.perfil["modo"] != "escritura":
         energia_no = "Tu perfil es de solo lectura"
@@ -128,7 +147,7 @@ def nube(iid):
         a["bloqueo"] = _accion_lista(g.cliente["id"], a["nombre_aap"])[1]
     validar_no = _accion_lista(g.cliente["id"], VALIDAR_NUBE)[1]
     from .infraestructuras import tickets_de
-    return render_template("nube.html", tks_infra=tickets_de(g.cliente["id"], x["nombre"]), validar_no=validar_no, radar_n=radar_n, energia_no=energia_no, acciones=acciones, prov_ctx=ayudas_contexto(x, con), x=x, con=con or {}, err=err, maqs=maqs, zonas=zonas, redes=redes, discos=discos, publicas=publicas,
+    return render_template("nube.html", costo_vm=costo_vm, nivel_nube=nivel_nube, productos=productos, productos_falta=prods_.get("falta") or "", resumen=resumen, cons=cons, usd=usd, recuperar_no=recuperar_no, bloqueo_rem=bloqueo_rem, tks_infra=tickets_de(g.cliente["id"], x["nombre"]), validar_no=validar_no, radar_n=radar_n, energia_no=energia_no, acciones=acciones, prov_ctx=ayudas_contexto(x, con), x=x, con=con or {}, err=err, maqs=maqs, zonas=zonas, redes=redes, discos=discos, publicas=publicas,
                            clusters=clusters, ocp=ocp, res=_resumen_grupo(propias) if propias else None, fuente_tipo=FUENTE_NUBE.get(x["tipo"], ""),
                            cuenta=cuenta,
                            cuenta_t=cuenta_t, disco_gb=round(sum(float(d.get("gb") or 0) for d in discos)), costo_total=sum(m["costo_mes"] or 0 for m in maqs), con_costo=any(m["costo_mes"] is not None for m in maqs))
@@ -167,6 +186,45 @@ def nube_energia(iid):
 
 
 VALIDAR_NUBE = "Nube · Validar conexión e inventariar"
+
+
+def _ticket_nube(iid, nombre_aap, parametros, motivo):
+    """Crea el ticket de una acción de nube desde la ficha (fetch): la acción debe estar publicada y certificada."""
+    from .aap import ErrorAAP
+    from .infraestructuras import lista
+    from .operacion import solicitar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    x = next((i for i in lista(g.cliente["id"], equipos_visibles()) if i["id"] == iid and i["ambito"] == "nube"), None)
+    if not x:
+        return {"error": "Nube no válida"}, 400
+    a, motivo_no = _accion_lista(g.cliente["id"], nombre_aap)
+    if motivo_no:
+        return {"error": motivo_no}, 400
+    try:
+        t = solicitar(g.usuario, g.cliente, a, "", dict(parametros(x)), motivo(x))
+    except (PermissionError, ErrorAAP, ValueError) as err:
+        return {"error": str(err)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"], "n": 1}
+
+
+@bp.route("/nubes/<int:iid>/actualizar", methods=["POST"])
+@requiere_login
+def nube_actualizar(iid):
+    """«Actualizar ahora»: ticket de «Nube · Recuperar consumo y estado» con la credencial de la conexión (solo lectura)."""
+    from .nube_consumo import RECUPERAR
+    return _ticket_nube(iid, RECUPERAR, lambda x: {"nr_nube": x["nombre"]}, lambda x: f"Recuperar consumo y estado de {x['nombre']}")
+
+
+@bp.route("/nubes/<int:iid>/remediar", methods=["POST"])
+@requiere_login
+def nube_remediar(iid):
+    """Remediación de un ítem de salud de la nube: ticket de la acción de nube indicada (con su aprobación en AAP)."""
+    from .nube_consumo import ACCION_FIREWALL, ACCION_OCIOSOS
+    n_ = request.form.get("accion", "")
+    if n_ not in (ACCION_FIREWALL, ACCION_OCIOSOS):
+        return {"error": "Acción no válida para la nube"}, 400
+    return _ticket_nube(iid, n_, lambda x: {"nube": x["nombre"]}, lambda x: f"{n_} en {x['nombre']} (desde la salud de la nube)")
 
 
 @bp.route("/nubes/<int:iid>/conexion", methods=["POST"])
