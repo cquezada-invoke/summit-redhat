@@ -310,6 +310,17 @@ def ciclo():
        ahora(), time.time() - TOMADO_VENCE)
     pend = q("SELECT * FROM cola_acciones WHERE estado='pendiente' AND proximo <= ? ORDER BY id", time.time())
     hechos = 0
+    for c in pend:   # primero el ticket en la herramienta del cliente (no depende de AAP)
+        d_ = json.loads(c["datos"] or "{}")
+        if c["tipo"] == "lanzar" and d_.get("externo") and not d_.get("externo_hecho"):
+            from .operacion import crear_externo
+            try:
+                crear_externo(c["ticket_id"])
+            except Exception as x:  # noqa: BLE001 - la herramienta del cliente no detiene la acción
+                auditar("sistema", c["cliente_id"], "ticket externo no creado", str(c["ticket_id"]), {"error": str(x)[:300]})
+            d_["externo_hecho"] = True
+            ej("UPDATE cola_acciones SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), c["id"])
+            c["datos"] = json.dumps(d_, ensure_ascii=False)
     for cid in dict.fromkeys(c["cliente_id"] for c in pend):
         suyos = [c for c in pend if c["cliente_id"] == cid]
         cl = q1("SELECT * FROM clientes WHERE id=?", cid)

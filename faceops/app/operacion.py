@@ -470,14 +470,8 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     auditar(usuario["usuario"], cliente["id"], "solicitar", t["numero"],
             {"automatizacion": auto["nombre"], "version": auto["version"], "segmento": segmento, "filtros": filtros,
              "limite": limite, "parametros": parametros})
-    if auto["aap_tipo"] == "faceops":
-        destino, mapeados = resolver_compuesta(auto, parametros)
-        extra = conector(cliente).crear(dict(t, parametros=json.dumps(mapeados, ensure_ascii=False)), destino, usuario) or {}
-    else:
-        extra = conector(cliente).crear(t, auto, usuario) or {}
-    if extra:
-        ej("UPDATE tickets SET parametros=? WHERE id=?", json.dumps(dict(parametros, **extra), ensure_ascii=False), tid)
-    ejecutar(tid, secretos)  # las claves van solo a AAP: en el ticket y la auditoría quedan enmascaradas
+    # el ticket en la herramienta del cliente (ServiceNow, Odoo…) también lo crea la cola: la petición no espera a nadie
+    ejecutar(tid, secretos, externo=True)  # las claves van solo a AAP: en el ticket y la auditoría quedan enmascaradas
     return q1("SELECT * FROM tickets WHERE id=?", tid)
 
 
@@ -497,8 +491,7 @@ def relanzar(usuario, cliente, t0, motivo=None):
              motivo or t0["motivo"], ahora(), a["minutos_manual"], a["tarifa"], a["aap_tipo"], t0.get("filtros") or "{}")
     t = q1("SELECT * FROM tickets WHERE id=?", tid)
     auditar(usuario["usuario"], cliente["id"], "volver a solicitar", t["numero"], {"origen": t0["numero"], "automatizacion": a["nombre"]})
-    conector(cliente).crear(t, a, usuario)
-    ejecutar(tid)
+    ejecutar(tid, externo=True)
     return q1("SELECT * FROM tickets WHERE id=?", tid)
 
 
@@ -717,8 +710,7 @@ def solicitar_apagado(usuario, cliente, equipo, motivo, prueba=False):
              a["minutos_manual"], a["tarifa"], "workflow", json.dumps({"ambientes": [equipo["ambiente"]]} if equipo["ambiente"] else {}))
     t = q1("SELECT * FROM tickets WHERE id=?", tid)
     auditar(usuario["usuario"], cliente["id"], "solicitar", t["numero"], {"automatizacion": a["nombre"], "equipo": equipo["nombre"]})
-    conector(cliente).crear(t, a, usuario)
-    ejecutar(tid)
+    ejecutar(tid, externo=True)
     return q1("SELECT * FROM tickets WHERE id=?", tid)
 
 
@@ -757,15 +749,31 @@ def _simular(ticket_id):
        f"Simulado en la maqueta: en la consola real lo ejecuta AAP (aprobación y ejecución, ~{d} s).", ticket_id)
 
 
-def ejecutar(ticket_id, secretos=None, aprobado=False):
+def ejecutar(ticket_id, secretos=None, aprobado=False, externo=False):
     """Encola el lanzamiento del ticket (app/cola.py): la petición web no llama a AAP y responde de inmediato. El proceso de la
     cola revisa la salud y la capacidad de AAP y lo lanza con lanzar_ahora(); las claves esperan cifradas en la cola."""
     if os.environ.get("FACEOPS_MAQUETA") == "1":
         return _simular(ticket_id)
     from .cola import encolar
     t = q1("SELECT usuario_id FROM tickets WHERE id=?", ticket_id) or {}
-    encolar(ticket_id, "lanzar", {"aprobado": bool(aprobado)}, secretos,
+    encolar(ticket_id, "lanzar", {"aprobado": bool(aprobado), "externo": bool(externo)}, secretos,
             usuario=(q1("SELECT usuario FROM usuarios WHERE id=?", t.get("usuario_id")) or {}).get("usuario", ""))
+
+
+def crear_externo(ticket_id):
+    """Crea el ticket en la herramienta del cliente (ServiceNow, Odoo…) y guarda su referencia (desde la cola de acciones)."""
+    t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
+    cliente = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
+    auto = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
+    usuario = q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"]) or {"usuario": "FaceOps", "nombre": "FaceOps"}
+    parametros = j(t["parametros"], {})
+    if auto["aap_tipo"] == "faceops":
+        destino, mapeados = resolver_compuesta(auto, parametros)
+        extra = conector(cliente).crear(dict(t, parametros=json.dumps(mapeados, ensure_ascii=False)), destino, usuario) or {}
+    else:
+        extra = conector(cliente).crear(t, auto, usuario) or {}
+    if extra:
+        ej("UPDATE tickets SET parametros=? WHERE id=?", json.dumps(dict(parametros, **extra), ensure_ascii=False), ticket_id)
 
 
 def lanzar_ahora(ticket_id, secretos=None, aprobado=False):

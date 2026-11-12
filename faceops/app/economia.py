@@ -14,11 +14,19 @@ UNIDADES = {"equipo": ("equipo", "equipos"), "servidor": ("servidor", "servidore
             "flujo": ("flujo", "flujos"), "segmento": ("segmento", "segmentos"), "ejecución": ("ejecución", "ejecuciones")}
 
 
+_CONF = {"mtime": None, "datos": {}}
+
+
 def conf():
+    """creditos.yml en memoria mientras no cambie (estimar() lo pide por cada ticket abierto al validar créditos)."""
+    import copy
     try:
-        return yaml.safe_load(open(RUTA, encoding="utf-8")) or {}
+        m = os.path.getmtime(RUTA)
+        if m != _CONF["mtime"]:
+            _CONF.update(datos=yaml.safe_load(open(RUTA, encoding="utf-8")) or {}, mtime=m)
     except OSError:
         return {}
+    return copy.deepcopy(_CONF["datos"])
 
 
 def cobro():
