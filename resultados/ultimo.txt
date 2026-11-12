@@ -1,14 +1,21 @@
-commit: c5ff01100b16d40f995b6ca53013008348e32c2a
-inicio: 2026-11-12T02:19:25-03:00
+commit: 9882cdc6ed7f76453043b68ac65cf66bbf43597a
+inicio: 2026-11-12T02:14:55-03:00
 ---
-lanzado
---- vuelta 1 02:19:26
-estado: sin probar 9deaafd472e7
-== C4 sobre srv-cisco-c240-01 (so=RedHat 9.6, ip=192.168.122.138, energía=encendido)
-  ticket FO-LAB-02116 exitoso | AAP terminó (successful): ejecución 11 s, espera de aprobación 49 s srv-cisco-c240-01: IP 192.168.122.138 · vinculación SSH lanzada
-  equipo ahora: so= RedHat 9.6 | ip= 192.168.122.138 | recolectado= 2026-11-10T06:03:45.504516Z | energía= encendido
-  bóveda: {'usuario': 'faceops', 'protocolo': 'ssh', 'puerto': None, 'conexion': None} False
-  => fallido
-== C1 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=pendiente, energía=apagado)
-  ticket FO-LAB-02119 exitoso | AAP terminó (successful): ejecución 60 s, espera de aprobación 49 s srv-windows-iis-01: IP 192.168.122.120 · WinRM HTTPS 5986 con «faceops» · credencial «Infra · on-premise Windows · máquinas» y bóveda · inventario lanzado
---- fin: 2026-11-12T02:29:26-03:00 · código: 0
+a53610a
+SINCRONIZADO lab
+PUBLICADA {'visible': 1, 'por_inventario': 1}
+== plan exportador
+CASO C1 ok · JBoss
+CASO C2 falla · Redis (nodo-jboss)
+CASO C3 falla · nginx
+CASO C4 ok · PostgreSQL (nodo-postgres)
+CASO C5 ok · Repetir
+CASO C6 ok · Plataforma inválida
+EVIDENCIA [{"id": "C1", "caso": "JBoss", "resultado": "ok", "evidencia": "nodo-jboss :9990/metrics con heap (1) y Undertow (0)"}, {"id": "C2", "caso": "Redis (nodo-jboss)", "resultado": "falla", "evidencia": "exitoso redis_up=0 "}, {"id": "C3", "caso": "nginx", "resultado": "falla", "evidencia": "exitoso nginx_up=0 web=200 "}, {"id": "C4", "caso": "PostgreSQL (nodo-postgres)", "resultado": "ok", "evidencia": "postgres_exporter :9187 con pg_up 1"}, {"id": "C5", "caso": "Repetir", "resultado": "ok", "evidencia": "JBoss y Redis sin cambios; exportador de Redis sin reiniciar (PID 591590)"}, {"id": "C6", "caso": "Plataforma inválida", "resultado": "ok", "evidencia": "rechazada (fallido)"}]
+CERT FaceOps · Exportador de plataforma → sin probar
+FIN-EXPORTADOR
+== alertas de JBoss con exportador en nodo-jboss (J01 + J02)
+ALERTAS JBoss FO-LAB-02131 exitoso 
+PROM exportadores [('nodo-jboss', 'jboss', '1')]
+PROM heap JBoss % [19.8]
+--- fin: 2026-11-12T02:36:08-03:00 · código: 0
