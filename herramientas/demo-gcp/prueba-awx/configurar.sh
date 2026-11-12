@@ -115,10 +115,13 @@ FACEOPS_ADMIN=prueba
 FACEOPS_ADMIN_NOMBRE=Prueba
 F
 if ! podman container exists faceops; then
-  podman run -d --name faceops --network host --env-file $P/faceops.env -v /var/lib/prueba/faceops:/var/lib/faceops:Z localhost/faceops:prueba >/dev/null
+  podman run -d --name faceops --restart=always --network host --env-file $P/faceops.env -v /var/lib/prueba/faceops:/var/lib/faceops:Z localhost/faceops:prueba >/dev/null
 fi
 for i in $(seq 1 60); do curl -s -o /dev/null -m 3 http://127.0.0.1:8110/ingresar && break; sleep 3; done
 echo "FaceOps: HTTP $(curl -s -o /dev/null -w '%{http_code}' -m 5 http://127.0.0.1:8110/ingresar)"
+if ! curl -sf -o /dev/null -m 5 http://127.0.0.1:8110/ingresar; then
+  echo "ERROR FaceOps no responde"; podman ps -a --format '{{.Names}} {{.Status}}'; podman logs --tail 40 faceops 2>&1 | grep -viE 'clave|token|password|secret'; exit 1
+fi
 # enrolar FaceOps con el validador local (código de un solo uso en archivo, nunca en pantalla)
 if ! podman exec faceops test -f /var/lib/faceops/confianza/instancia.json 2>/dev/null; then
   podman exec validador python validador.py codigo prueba /data/codigo >/dev/null

@@ -180,7 +180,7 @@ grep -qf $P/id_awx.pub /root/.ssh/authorized_keys 2>/dev/null || cat $P/id_awx.p
 chmod 600 /root/.ssh/authorized_keys
 
 paso "validador local y FaceOps ($RAMA) en modo awx"
-rm -rf /opt/prueba/repo && git clone -q --depth 1 -b "$RAMA" "$REPO" /opt/prueba/repo
+rm -rf /opt/prueba/repo && git clone -q --depth 1 -b "$RAMA" "$REPO" /opt/prueba/repo && chmod -R a+rX /opt/prueba/repo   # umask 077: sin esto el usuario 1001 del contenedor no lee el código
 podman build -q -t localhost/faceops-validador:prueba /opt/prueba/repo/faceops/validador >/dev/null
 podman build -q -t localhost/faceops:prueba -f /opt/prueba/repo/faceops/Containerfile /opt/prueba/repo/faceops >/dev/null
 install -d -m 777 /var/lib/prueba/validador /var/lib/prueba/faceops
