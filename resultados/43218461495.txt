@@ -1,0 +1,45 @@
+commit: b7a59649dc8767f711290d828926d12fbd49a06a
+inicio: 2026-11-12T09:30:33-03:00
+---
+1
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 392, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1895, in plataforma_detalle
+    return render_template("plataforma.html", dueno=dueno_de(g.cliente["id"], "plataforma", pid), dueno_maq=dueno_de(g.cliente["id"], "equipo", e["id"]),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/plataforma.html", line 1, in top-level template code
+    {% extends "base.html" %}{% block titulo %}{{ p.id }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 122, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/plataforma.html", line 43, in block 'cuerpo'
+    <dl class="fi-dl" style="margin-top:10px">{% for x in recursos %}<dt>{{ x.t }}</dt><dd>{{ x.v if x.v is not none and x.v != '' else '—' }}</dd>{% endfor %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'Macro' object is not iterable
+<!doctype html>
+<html lang=en>
+<title>500 Internal Server Error</title>
+<h1>Internal Server Error</h1>
+<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>
+
+PL-KEYCLOAK-0003 500 salud - · skills 0 ok - · campana no · remediables 0  
+metricas 31 líneas; 24 indicadores
+--- fin: 2026-11-12T09:31:20-03:00 · código: 0
