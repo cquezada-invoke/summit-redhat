@@ -1,6 +1,24 @@
-commit: 2789184a6b03d96ce5b18d36e2e33f4664df64c6
-inicio: 2026-11-11T23:13:06-03:00
+commit: 12b6240d9fc5c76451e1d3420b7ca958c137946e
+inicio: 2026-11-11T23:13:33-03:00
 ---
-lab 14 fw |so VyOS 2026.10.23-0026-rolling 2026 |ip 172.20.20.12 | con datos |inv ["Red \u00b7 laboratorio"] |skills [] |datos {'recolectado': '2026-11-10T20:46:48+00:00', 'hostname': 'fw', 'uptime_dias': '0.9'}
-   claves-datos: ['alertas', 'componentes_internos', 'hardware', 'hostname', 'recolectado', 'red', 'uptime_dias']
---- fin: 2026-11-11T23:13:13-03:00 · código: 0
+== corrida anterior
+  == 00:37:13 paquetes
+  == 00:37:21 k3s v1.30.6+k3s1
+  == 00:37:37 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  == 00:38:04 EDA comunitario (eda-server-operator main)
+  == 00:38:30 repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba
+  == 00:38:30 acceso SSH de AWX a esta misma máquina (host gestionado)
+  == 00:38:30 validador local y FaceOps (feature/faceops-awx) en modo awx
+  == 00:39:57 AWX responde:
+  == 00:59:57 EDA responde: 000
+  == 00:59:57 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
+  == 01:00:53 VMs anidadas con SSH: localhost localhost
+  == 01:00:53 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
+  CONSTRUCCION FALLO
+· construcción FALLIDA
+· constructora demo-constructor-202611120033 eliminada
+lanzada
+· constructora demo-constructor-202611120213 (n2-standard-4, Rocky Linux 9, anidada, 60 GB) · rama feature/faceops-awx
+  == CONSTRUCCION inicio 02:13:59
+== CONSTRUCCION inicio 02:13:59
+--- fin: 2026-11-11T23:14:53-03:00 · código: 0
