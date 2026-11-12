@@ -1,0 +1,45 @@
+commit: 1b6bdfae000478be0a663d0dac3e5c2366365b44
+inicio: 2026-11-11T22:04:05-03:00
+---
+  Nov 12 00:59:07 demo-constructor-202611120033 k3s[46424]: E1112 00:59:07.546386   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 00:59:10 demo-constructor-202611120033 k3s[46424]: E1112 00:59:10.295619   46424 remote_image.go:180] "PullImage from image service failed" err="rpc error: code = NotFound desc = failed to pull and unpack image \"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\": failed to resolve reference \"gcr.
+  Nov 12 00:59:10 demo-constructor-202611120033 k3s[46424]: E1112 00:59:10.295666   46424 kuberuntime_image.go:55] "Failed to pull image" err="rpc error: code = NotFound desc = failed to pull and unpack image \"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\": failed to resolve reference \"gcr.io/kubebuil
+  Nov 12 00:59:10 demo-constructor-202611120033 k3s[46424]: E1112 00:59:10.295784   46424 kuberuntime_manager.go:1258] container &Container{Name:kube-rbac-proxy,Image:gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0,Command:[],Args:[--secure-listen-address=0.0.0.0:8443 --upstream=http://127.0.0.1:8080/ --lo
+  Nov 12 00:59:10 demo-constructor-202611120033 k3s[46424]: E1112 00:59:10.295813   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ErrImagePull: \"rpc error: code = NotFound desc = failed to pull and unpack image \\\"gcr.io/kubeb
+  Nov 12 00:59:21 demo-constructor-202611120033 k3s[46424]: E1112 00:59:21.545708   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 00:59:21 demo-constructor-202611120033 k3s[46424]: E1112 00:59:21.546176   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ImagePullBackOff: \"Back-off pulling image \\\"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\\\"\"" p
+  Nov 12 00:59:36 demo-constructor-202611120033 k3s[46424]: E1112 00:59:36.545766   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ImagePullBackOff: \"Back-off pulling image \\\"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\\\"\"" p
+  Nov 12 00:59:36 demo-constructor-202611120033 k3s[46424]: E1112 00:59:36.624531   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 00:59:37 demo-constructor-202611120033 k3s[46424]: E1112 00:59:37.626754   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 00:59:47 demo-constructor-202611120033 k3s[46424]: E1112 00:59:47.946286   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 00:59:49 demo-constructor-202611120033 k3s[46424]: E1112 00:59:49.546531   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ImagePullBackOff: \"Back-off pulling image \\\"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\\\"\"" p
+  == 00:59:57 EDA responde: 000
+  == 00:59:57 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
+  Nov 12 01:00:00 demo-constructor-202611120033 k3s[46424]: E1112 01:00:00.545396   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 01:00:03 demo-constructor-202611120033 k3s[46424]: E1112 01:00:03.546766   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ImagePullBackOff: \"Back-off pulling image \\\"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\\\"\"" p
+  Nov 12 01:00:13 demo-constructor-202611120033 k3s[46424]: E1112 01:00:13.545742   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 01:00:18 demo-constructor-202611120033 k3s[46424]: E1112 01:00:18.546441   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ImagePullBackOff: \"Back-off pulling image \\\"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\\\"\"" p
+  Nov 12 01:00:26 demo-constructor-202611120033 k3s[46424]: E1112 01:00:26.546391   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 01:00:33 demo-constructor-202611120033 k3s[46424]: E1112 01:00:33.546296   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ImagePullBackOff: \"Back-off pulling image \\\"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\\\"\"" p
+  Nov 12 01:00:41 demo-constructor-202611120033 k3s[46424]: E1112 01:00:41.546073   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 01:00:47 demo-constructor-202611120033 k3s[46424]: E1112 01:00:47.547017   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ImagePullBackOff: \"Back-off pulling image \\\"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\\\"\"" p
+  Nov 12 01:00:52 demo-constructor-202611120033 k3s[46424]: E1112 01:00:52.546364   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  == 01:00:53 VMs anidadas con SSH: localhost localhost
+  == 01:00:53 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
+  Nov 12 01:01:02 demo-constructor-202611120033 k3s[46424]: E1112 01:01:02.546207   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ImagePullBackOff: \"Back-off pulling image \\\"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\\\"\"" p
+  Nov 12 01:01:05 demo-constructor-202611120033 k3s[46424]: E1112 01:01:05.546945   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  ConnectionRefusedError: [Errno 111] Connection refused
+  urllib.error.URLError: <urlopen error [Errno 111] Connection refused>
+  CONSTRUCCION FALLO
+  ConnectionRefusedError: [Errno 111] Connection refused
+  raise URLError(err)
+  urllib.error.URLError: <urlopen error [Errno 111] Connection refused>
+ConnectionRefusedError: [Errno 111] Connection refused
+urllib.error.URLError: <urlopen error [Errno 111] Connection refused>
+CONSTRUCCION FALLO
+  Nov 12 01:01:16 demo-constructor-202611120033 k3s[46424]: E1112 01:01:16.545583   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"eda-manager\" with CrashLoopBackOff: \"back-off 5m0s restarting failed container=eda-manager pod=eda-server-operator-cont
+  Nov 12 01:01:17 demo-constructor-202611120033 k3s[46424]: E1112 01:01:17.546069   46424 pod_workers.go:1298] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"kube-rbac-proxy\" with ImagePullBackOff: \"Back-off pulling image \\\"gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0\\\"\"" p
+· construcción FALLIDA
+· constructora demo-constructor-202611120033 eliminada
+(sigue corriendo)
+--- fin: 2026-11-11T22:04:06-03:00 · código: 0
