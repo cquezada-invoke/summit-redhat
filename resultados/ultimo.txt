@@ -1,26 +1,22 @@
-commit: e8067ab00eaaeda5a3f2249f0ae21eab60fc25d0
-inicio: 2026-11-12T20:22:04-03:00
+commit: 34f82fde7f69057f2db43cc0113aee3192eaff8e
+inicio: 2026-11-12T20:20:00-03:00
 ---
-12:  - receiver: faceops-autocuidado
-35:- name: faceops-autocuidado
-37:  - url: http://127.0.0.1:5023/endpoint
-alertas activas en AM: [('AC12', 'srv-prueba-rocky-01', 'active'), ('AC12', 'srv-mig-rocky-01', 'active'), ('AC23', 'faceops', 'active'), ('AC02', '/', 'active'), ('AC23', 'aap', 'active'), ('AC01', '/', 'active'), ('AC12', 'srv-mig-rhel8-01', 'active'), ('AC03', '/var/lib/containers/storage/overlay', 'active')]
-receptor en config: True
-5023 NO escucha
-activación FaceOps · autocuidado error 0 Activation 213 failed to start. Reason: 500 Server Error: Internal Server Error ({"message":"received unexpected HTTP status: 503 Service Unavailable"}
-)
-activación FaceOps · Alertas de objetos error 4 Activation 212 failed to start. Reason: 500 Server Error: Internal Server Error ({"message":"received unexpected HTTP status: 503 Service Unavailable"}
-)
-Atender alerta: 67 [(29466, 'failed', 'workflow', '2026-11-12T23:12'), (29461, 'successful', 'workflow', '2026-11-12T23:11'), (29453, 'successful', 'workflow', '2026-11-12T23:09'), (29441, 'successful', 'workflow', '2026-11-12T23:07'), (29417, 'successful', 'workflow', '2026-11-12T23:03'), (29405, 'successful', 'workflow', '2026-11-12T23:00')]
-regla EDA disparada: JBoss detenido (riesgo bajo) → reiniciar y validar successful 2026-11-12T21:02
-regla EDA disparada: JBoss detenido (riesgo bajo) → reiniciar y validar successful 2026-11-12T21:02
-regla EDA disparada: JBoss detenido (riesgo bajo) → reiniciar y validar successful 2026-11-12T21:01
-regla EDA disparada: Grafana · disco casi lleno failed 2026-11-12T21:01
-regla EDA disparada: JBoss detenido (riesgo bajo) → reiniciar y validar successful 2026-11-12T21:01
-evento 2026-11-12T23:12 eda AC22  | agrupada con FO-LAB-02389 (ya en curso)
-evento 2026-11-12T23:10 eda AC22  | riesgo bajo: se aprueba con «Aprobado por Claude (regla de Cristian)»
-evento 2026-11-12T23:08 eda AC07  | propuesta: «Ampliar disco del anfitrión (GCP)» necesita tamaño nuevo del disco (ac_gb) y a
-evento 2026-11-12T23:05 eda AC22  | riesgo bajo: se aprueba con «Aprobado por Claude (regla de Cristian)»
-evento 2026-11-12T23:02 eda AC01 / | solo aviso (campana y Monitoreo › Autocuidado)
-evento 2026-11-12T22:53 aap-directo AC20  | lanzada por AAP sin FaceOps (riesgo bajo)
---- fin: 2026-11-12T20:22:12-03:00 · código: 0
+faceops red: host · cgroup: system.slice/faceops.service/libpod-payload-cbf87dc8b8dc7241dbd10d3f5ccbc7badef9ec936c02e9cbb5d021b99b823e15
+desplegado: 69cd3730 2026-11-12 23:09
+antes · FaceOps→AAP: 200 · anfitrión→AAP: 200
+[  10.7s] ingreso ok · aviso AAP antes del corte: 0
+[  11.2s] CORTE FaceOps→AAP aplicado · ping desde FaceOps: ConnectionError
+[  12.4s] aviso global visible: True · ⚠ La base de automatización (AAP) no está disponible · las acciones quedan en espera · último contacto 20:20
+[  14.0s] aviso en otras pantallas: {'/': 1, '/tickets': 1, '/cola': 1, '/automatizaciones': 1}
+[  14.7s] solicitud jboss 200 {"auto":"Encender, apagar o reiniciar plataforma","estado":"en_cola","id":2392,"nombre_aap":"Plataforma \u00b7 Controlar servicio","numero":"FO-LAB-02392","url"
+[  14.7s] ticket FO-LAB-02392 creado con AAP caído · estado: {'cola': 'En cola (posición 1)', 'ejecucion_s': None, 'estado': 'en_cola', 'job': None, 'numero': 'FO-LAB-02392', 'resultado': ''}
+[  59.9s] tras 45 s con AAP caído · estado: {'cola': 'En cola (posición 1) · AAP no disponible', 'ejecucion_s': None, 'estado': 'en_cola', 'job': None, 'numero': 'FO-LAB-02392', 'resultado': ''} · en /cola: True · motivo visible: True
+[  67.5s] ficha del ticket muestra cola: ['En cola (posición 1) · AAP no disponible']
+[  68.0s] CORTE retirado · ping desde FaceOps: 200
+[  93.1s] tras volver AAP · estado: {'cola': '', 'ejecucion_s': None, 'estado': 'pendiente_aprobacion', 'job': 29483, 'numero': 'FO-LAB-02392', 'resultado': ''}
+[  96.7s] aprobado desde FaceOps (HTTP 200 ) · estado: {'cola': '', 'ejecucion_s': None, 'estado': 'en_ejecucion', 'job': 29483, 'numero': 'FO-LAB-02392', 'resultado': ''}
+[ 156.8s] final: {'cola': '', 'ejecucion_s': 10, 'estado': 'exitoso', 'job': 29483, 'numero': 'FO-LAB-02392', 'resultado': 'AAP terminó (successful): ejecución 10 s, espera de aprobación 4 s'}
+[ 157.9s] aviso global tras volver AAP: 0
+RESUMEN {"ticket": "FO-LAB-02392", "final": "exitoso", "job": 29483}
+después · FaceOps→AAP: 200 · regla presente: no
+--- fin: 2026-11-12T20:22:39-03:00 · código: 0
