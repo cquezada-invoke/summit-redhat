@@ -1,9 +1,155 @@
-commit: 537dabaf9c1804b6c869033c96cd08284f861a5e
-inicio: 2026-11-11T23:59:14-03:00
+commit: f74f2469b2bfcb25747c8e37e968c7f66c4458ad
+inicio: 2026-11-11T23:56:25-03:00
 ---
-6942698 Fichas de plataforma: métricas sin agente en /metric
-   · Workflow «Nube · Validar conexión e inventariar» (id 1203)
-PAGINA 200 estado ['Con error']
-MOTIVO ['La última sincronización con la nube falló']
-VALIDAR ['Aún no disponible: «Nube · Validar conexión e inventariar» no ha pasado su plan de prueba (no está certificada).']
---- fin: 2026-11-12T00:03:39-03:00 · código: 0
+  DIAG 2026-11-12 03:03:18,465 INFO     dispatcherd.brokers.pg_notify Set up pg_notify listening on channel 'reply_to_595dd753_0951_416d_9dbe_389b674f09b7'
+  DIAG 2026-11-12 03:03:18,467 INFO     dispatcherd.brokers.pg_notify pg_notify sync connection established in 0.000 seconds
+  DIAG 2026-11-12 03:03:18,468 INFO     dispatcherd.brokers.pg_notify Set up pg_notify listening on channel 'reply_to_454cf739_bfac_49e2_b3f9_1ed7b8816991'
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     RULEBOOK_READINESS_TIMEOUT_SECONDS: 60
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     RULEBOOK_LIVENESS_CHECK_SECONDS: 300
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     RULEBOOK_LIVENESS_TIMEOUT_SECONDS: 610
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     ACTIVATION_RESTART_SECONDS_ON_COMPLETE: 0
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     ACTIVATION_RESTART_SECONDS_ON_FAILURE: 60
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     ACTIVATION_MAX_RESTARTS_ON_FAILURE: 5
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     ANSIBLE_RULEBOOK_LOG_LEVEL: error
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     ALLOW_LOCAL_RESOURCE_MANAGEMENT: True
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     RESOURCE_JWT_USER_ID: None
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     ANSIBLE_BASE_JWT_VALIDATE_CERT: True
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     ANSIBLE_BASE_MANAGED_ROLE_REGISTRY: {}
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     ACTIVATION_DB_HOST: host.containers.internal
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     SAFE_PLUGINS_FOR_PORT_FORWARD: ['ansible.eda.webhook', 'eda.builtin.webhook', 'ansible.eda.alertmanager']
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     EVENT_STREAM_BASE_URL: None
+  DIAG 2026-11-12 03:02:30,599 ALWAYS     EVENT_STREAM_MTLS_BASE_URL: None
+  DIAG /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+  DIAG /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+  DIAG 10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf
+  DIAG 10-listen-on-ipv6-by-default.sh: info: Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
+  DIAG /docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+  DIAG 20-envsubst-on-templates.sh: Running envsubst on /etc/nginx/templates/default.conf.template to /etc/nginx/conf.d/default.conf
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
+  DIAG /docker-entrypoint.sh: Configuration complete; ready for start up
+  DIAG 10.42.0.17 - admin [12/Nov/2026:03:02:57 +0000] "GET /api/eda/v1/status/ HTTP/1.1" 401 39 "-" "curl/7.76.1" "10.42.0.1" rid=441e68387bb089b262f1df59d06aee03 - -
+  DIAG 10.42.0.17 - admin [12/Nov/2026:03:03:18 +0000] "GET /api/eda/v1/status/ HTTP/1.1" 200 17 "-" "curl/7.76.1" "10.42.0.1" rid=b149eab184e4540387ae34b3990b000c - -
+  DIAG 10.42.0.17 - admin [12/Nov/2026:03:03:19 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "10.42.0.1" rid=4b7258ea2583b8f3adaceca330d95293 - -
+  DIAG 10.42.0.17 - admin [12/Nov/2026:03:04:28 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "10.42.0.1" rid=de2ec51e4e925296eb1e448dbbfc6fad - -
+  DIAG 10.42.0.17 - admin [12/Nov/2026:03:04:29 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "10.42.0.1" rid=0dc163189965330f01bb39032f2e4bad - -
+  DIAG == DIAG eda deployment.apps/eda-default-worker
+  DIAG All migrations are applied.
+  DIAG 2026-11-12 03:02:46,369 INFO     aap_eda.tasks.project Task started: Monitor project tasks
+  DIAG 2026-11-12 03:02:46,375 INFO     aap_eda.tasks.project No stuck projects found
+  DIAG 2026-11-12 03:02:46,381 INFO     aap_eda.tasks.project Task complete: Monitor project tasks
+  DIAG 2026-11-12 03:02:58,387 INFO     dispatcherd.service.pool Scaling down worker id=1 (prior ct=2) due to demand
+  DIAG 2026-11-12 03:02:58,387 WARNING  dispatcherd.worker.target Worker 1 exiting main loop due to stop message.
+  DIAG 2026-11-12 03:03:16,370 INFO     aap_eda.tasks.project Task started: Monitor project tasks
+  DIAG 2026-11-12 03:03:16,374 INFO     aap_eda.tasks.project No stuck projects found
+  DIAG 2026-11-12 03:03:16,378 INFO     aap_eda.tasks.project Task complete: Monitor project tasks
+  DIAG 2026-11-12 03:03:18,466 INFO     dispatcherd.service.main Control action alive returned message len=51, sending back reply
+  DIAG 2026-11-12 03:03:46,371 INFO     aap_eda.tasks.project Task started: Monitor project tasks
+  DIAG 2026-11-12 03:03:46,385 INFO     aap_eda.tasks.project No stuck projects found
+  DIAG 2026-11-12 03:03:46,399 INFO     aap_eda.tasks.project Task complete: Monitor project tasks
+  DIAG 2026-11-12 03:04:16,383 INFO     aap_eda.tasks.project Task started: Monitor project tasks
+  DIAG 2026-11-12 03:04:16,401 INFO     aap_eda.tasks.project No stuck projects found
+  DIAG 2026-11-12 03:04:16,416 INFO     aap_eda.tasks.project Task complete: Monitor project tasks
+  DIAG == DIAG eda deployment.apps/eda-event-stream
+  DIAG All migrations are applied.
+  DIAG   RULEBOOK_READINESS_TIMEOUT_SECONDS: 60
+  DIAG   RULEBOOK_LIVENESS_CHECK_SECONDS: 300
+  DIAG   RULEBOOK_LIVENESS_TIMEOUT_SECONDS: 610
+  DIAG   ACTIVATION_RESTART_SECONDS_ON_COMPLETE: 0
+  DIAG   ACTIVATION_RESTART_SECONDS_ON_FAILURE: 60
+  DIAG   ACTIVATION_MAX_RESTARTS_ON_FAILURE: 5
+  DIAG   ANSIBLE_RULEBOOK_LOG_LEVEL: error
+  DIAG   ALLOW_LOCAL_RESOURCE_MANAGEMENT: True
+  DIAG   RESOURCE_JWT_USER_ID: None
+  DIAG   ANSIBLE_BASE_JWT_VALIDATE_CERT: True
+  DIAG   ANSIBLE_BASE_MANAGED_ROLE_REGISTRY: {}
+  DIAG   ACTIVATION_DB_HOST: eda-postgres-15.eda.svc
+  DIAG   SAFE_PLUGINS_FOR_PORT_FORWARD: ['ansible.eda.webhook', 'eda.builtin.webhook', 'ansible.eda.alertmanager']
+  DIAG   EVENT_STREAM_BASE_URL: None
+  DIAG   EVENT_STREAM_MTLS_BASE_URL: None
+  DIAG /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+  DIAG /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+  DIAG 10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf
+  DIAG 10-listen-on-ipv6-by-default.sh: info: Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
+  DIAG /docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+  DIAG 20-envsubst-on-templates.sh: Running envsubst on /etc/nginx/templates/default.conf.template to /etc/nginx/conf.d/default.conf
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
+  DIAG /docker-entrypoint.sh: Configuration complete; ready for start up
+  DIAG == DIAG eda deployment.apps/eda-server-operator-controller-manager
+  DIAG
+  DIAG --------------------------- Ansible Task StdOut -------------------------------
+  DIAG
+  DIAG task path: /opt/ansible/roles/eda/tasks/update_status.yml:25
+  DIAG
+  DIAG -------------------------------------------------------------------------------
+  DIAG
+  DIAG --------------------------- Ansible Task StdOut -------------------------------
+  DIAG
+  DIAG {"level":"info","ts":"2026-11-12T03:04:32Z","logger":"logging_event_handler","msg":"[playbook task start]","name":"eda","namespace":"eda","gvk":"eda.ansible.com/v1alpha1, Kind=EDA","event_type":"playbook_on_task_start","job":"41124084371710
+  DIAG TASK [eda : Retrieve instance version] *****************************************
+  DIAG task path: /opt/ansible/roles/eda/tasks/update_status.yml:36
+  DIAG
+  DIAG -------------------------------------------------------------------------------
+  DIAG == DIAG eda deployment.apps/eda-ui
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:03:33 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=85444ba4830757f5053ef4f043cf086f - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:03:43 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=e84be4d21d64794ff47a98abf96ea1a5 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:03:43 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=636a7c59866bef2bb533d97161bd879e - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:03:53 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=9fd32a3476254d0845bf8d590941c590 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:03:53 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=cab2365acff6c1f115246884ace2f6e0 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:04:03 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=eff3da1eed87d2f619dc41989c1fadf7 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:04:03 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=73933dbc0b67c46d09c9ef17a4b94d3d - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:04:13 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=046f4309f550460baa81b2001fa8efc2 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:04:13 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=0d58d2a32a256f821ebfba42211dbfa2 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:04:23 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=c0437f70de56cabdd97c12554b83e6d2 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:04:23 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=be728d4d73d3fe55f3d9e51128c6860a - -
+  DIAG 10.42.0.1 - admin [12/Nov/2026:03:04:28 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "-" rid=9567051157cbd2b7152125d18c4642a6 - -
+  DIAG 10.42.0.1 - admin [12/Nov/2026:03:04:29 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "-" rid=c9a9172100ba663677b01ee7fcb63ef3 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:04:33 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=73c6554f43ce0f0f184fc2d53cb17fdb - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:03:04:33 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=9e1c91bce3264120ae415e94c635c027 - -
+  DIAG == DIAG log
+  DIAG == 02:55:52 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
+  DIAG == 02:55:52 KVM/libvirt para las VMs anidadas
+  DIAG == 02:58:12 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
+  DIAG == 02:58:12 paquetes
+  DIAG == 02:58:21 k3s v1.30.6+k3s1
+  DIAG Created symlink /etc/systemd/system/multi-user.target.wants/k3s.service → /etc/systemd/system/k3s.service.
+  DIAG == 02:58:35 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  DIAG == 02:59:01 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
+  DIAG == 02:59:32 repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba
+  DIAG == 02:59:33 acceso SSH de AWX a esta misma máquina (host gestionado)
+  DIAG == 02:59:33 validador local y FaceOps (feature/faceops-awx) en modo awx
+  DIAG
+  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
+  DIAG [notice] To update, run: pip install --upgrade pip
+  DIAG
+  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
+  DIAG [notice] To update, run: pip install --upgrade pip
+  DIAG Imágenes listas
+  DIAG == 03:01:15 AWX responde:
+  DIAG == 03:03:19 EDA responde: 200
+  DIAG INSTALACION TERMINADA
+  DIAG == 03:03:19 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
+  DIAG == 03:04:27 VMs anidadas con SSH: localhost localhost
+  DIAG == 03:04:27 esperando AWX y EDA (hasta 30 min)
+  DIAG == 03:04:29 AWX  · EDA HTTP 200
+  DIAG == 03:04:29 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
+  DIAG Traceback (most recent call last):
+  DIAG   File "<stdin>", line 25, in <module>
+  DIAG   File "<stdin>", line 18, in uno
+  DIAG   File "<stdin>", line 11, in h
+  DIAG   File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+  DIAG     return _default_decoder.decode(s)
+  DIAG   File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+  DIAG     obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  DIAG   File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+  DIAG     raise JSONDecodeError("Expecting value", s, err.value) from None
+  DIAG json.decoder.JSONDecodeError: Expecting value: line 2 column 1 (char 1)
+  DIAG                total        used        free      shared  buff/cache   available
+  DIAG Mem:           15729        6295         398          52        9418        9434
+  DIAG Swap:              0           0           0
+· construcción FALLIDA
+(sigue corriendo)
+--- fin: 2026-11-12T00:04:45-03:00 · código: 0
