@@ -1,0 +1,22 @@
+commit: 1197a019b5e0ed284bfeb1233554e5b48a25f7a4
+inicio: 2026-11-12T19:00:36-03:00
+---
+== FO-LAB-02369 fallido
+AAP terminó (failed): ejecución 26 s, espera de aprobación 20 s
+Falló en la tarea «Avisos de seguridad pendientes» de nodo-so: non-zero return code
+
+TASK [Registrar en Red Hat con la llave de activación (no tenía repositorios)] ***
+skipping: [nodo-so]
+
+TASK [Repositorios después del registro] ***************************************
+skipping: [nodo-so]
+
+TASK [Hay de dónde traer los parches] ******************************************
+ok: [nodo-so]
+
+TASK [Avisos de seguridad pendientes] ******************************************
+fatal: [nodo-so]: FAILED! => {"changed": false, "cmd": ["dnf", "-q", "updateinfo", "list", "--security", "--cve=CVE-2026-8932"], "delta": "0:00:14.843898", "end": "2026-11-12 16:54:56.216311", "msg": "non-zero return code", "rc": 1, "start": "2026-11-12 16:54:41.372413", "stderr": "Error: Failed to download metadata for repo 'rhel-9-for-x86_64-baseos-rpms': Cannot download repomd.xml: Cannot download repodata/repomd.xml: All mirrors were tried", "stderr_lines": ["Error: Failed to download metadata for repo 'rhel-9-for-x86_64-baseos-rpms': Cannot download repomd.xml: Cannot download repodata/repomd.xml: All mirrors were tried"], "stdout": "", "stdout_lines": []}
+
+PLAY RECAP *********************************************************************
+nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0   
+--- fin: 2026-11-12T19:00:50-03:00 · código: 0
