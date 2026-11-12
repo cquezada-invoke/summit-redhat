@@ -428,6 +428,12 @@ def contexto(x, maqs):
     consumo_maq = {m["nombre"]: consumo(cid, x["id"], m["nombre"]) for m in maqs}
     mq = cat.get("maquinas") or {}
     faltan_roles = sorted({rol_de(tipo, p_) for p_ in (op or {}).get("permisos_faltan") or []})
+    err_ = (op or {}).get("errores") or {}
+    permisos_error = ""
+    if op and op.get("permisos_faltan") is None:   # sin lectura de permisos: se dice por qué (API deshabilitada o sin rol para leerlos)
+        api_ = re.findall(r"[a-z]+\.googleapis\.com", err_.get("permisos", ""))
+        permisos_error = (f"habilita {api_[0]} en el proyecto" if api_ else (err_.get("permisos") or "sin detalle")[:160])
+    apis_off = [k for k in ("cuentas", "precios") if err_.get(k)]
     det = _det(x)
     datos_js = {"region": _region(x), "zona": det.get("zona", ""), "red": det.get("red") or det.get("vpc") or "default",
                 "regiones": (op or {}).get("regiones") or [_region(x)], "zonas": (op or {}).get("zonas") or {},
@@ -439,7 +445,7 @@ def contexto(x, maqs):
                 "maquinas": {m["nombre"]: m for m in (op or {}).get("maquinas") or []}, "snapshots": (op or {}).get("snapshots") or [],
                 "regiones_nombre": mq.get("regiones_nombre") or {}, "bloqueos": bloq, "categorias": cats}
     return {"op": op, "lectura": lect, "bloq": bloq, "categorias": cats, "creados": creados, "por_maq": por_maq, "consumo_maq": consumo_maq,
-            "faltan_roles": faltan_roles, "datos_js": datos_js, "n_productos": sum(len(c["productos"]) for c in cats), "proveedor": cat.get("nombre", tipo)}
+            "faltan_roles": faltan_roles, "permisos_error": permisos_error, "lecturas_error": {k: (re.findall(r"[a-z]+\.googleapis\.com", err_[k]) or [err_[k][:80]])[0] for k in apis_off}, "datos_js": datos_js, "n_productos": sum(len(c["productos"]) for c in cats), "proveedor": cat.get("nombre", tipo)}
 
 
 @bp.app_context_processor
