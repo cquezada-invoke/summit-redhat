@@ -476,6 +476,12 @@ habilidades:
     nombre: Bloquear IP
     valor: Bloquea una IP sospechosa en el firewall y abre el incidente con la evidencia.
     nombre_aap: ["Red · Bloquear IP"]
+    so_accion: "(?i)vyos"
+    equipos: "^fw$"    # la acción actúa sobre el firewall perimetral del laboratorio (fw); en los demás aún no
+    sin_limite: true
+    parametros: {seg_fase: bloquear}
+    campos:
+      - {var: seg_ip, etiqueta: "IP a bloquear", tipo: text, requerido: true, ayuda: "IP pública sospechosa (nunca redes internas)"}
   - id: lb-drenaje
     tipo: diferenciador
     red: [balanceador]

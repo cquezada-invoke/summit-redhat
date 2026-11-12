@@ -149,6 +149,8 @@ def _red_auto(e, h):
     so = e.get("so") or ""
     if h.get("so_accion") and not re.search(h["so_accion"], so):
         return None, f"acción aún no disponible para {so.split(' ')[0] if so else 'este sistema'}"
+    if h.get("equipos") and not re.search(h["equipos"], e.get("nombre") or ""):
+        return None, "acción aún no disponible para este equipo"
     for n_ in h.get("nombre_aap") or []:
         a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], n_)
         if not a:
