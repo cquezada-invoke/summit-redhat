@@ -1,26 +1,28 @@
-commit: 0e2fae7de242703b9b18a33ad10b5ec390460bc7
-inicio: 2026-11-12T10:53:25-03:00
+commit: 24612020d165ab166a15e60475994f1e241216ed
+inicio: 2026-11-12T10:50:54-03:00
 ---
-INFRA {"id": 2, "cliente_id": 1, "nombre": "Cloud GCP · invoke-summit-cloud", "tipo": "gcp", "region": "southamerica-west1 (Santiago)", "credencial": "GCP · invoke-summit-cloud", "inventario": "Nube GCP", "ubicacion": "Cloud GCP", "estado": "conectada", "verificado": "2026-11-12T13:34:05+00:00"}
-INFRA {"id": 9, "cliente_id": 3, "nombre": "Cloud GCP · invoke-summit-cloud", "tipo": "gcp", "region": "southamerica-west1 (Santiago)", "credencial": "GCP · invoke-summit-cloud", "inventario": "Nube GCP", "ubicacion": "Cloud GCP", "estado": "conectada", "verificado": null}
-INFRA {"id": 13, "cliente_id": 4, "nombre": "Cloud GCP · invoke-summit-cloud", "tipo": "gcp", "region": "southamerica-west1 (Santiago)", "credencial": "GCP · invoke-summit-cloud", "inventario": "Nube GCP", "ubicacion": "Cloud GCP", "estado": "conectada", "verificado": null}
-INFRA {"id": 17, "cliente_id": 2, "nombre": "Cloud GCP · invoke-summit-cloud", "tipo": "gcp", "region": "southamerica-west1 (Santiago)", "credencial": "GCP · invoke-summit-cloud", "inventario": "Nube GCP", "ubicacion": "Cloud GCP", "estado": "conectada", "verificado": null}
-CLIENTE 1 lab
-CRED 20 AAP · Nube Red Hat Ansible Automation Platform ['host', 'password', 'username', 'verify_ssl'] None admin
-CRED 46 GCP · invoke-summit-cloud Google Compute Engine ['project', 'ssh_key_data', 'username'] invoke-summit-cloud demo-lab-faceops@invoke-summit-cloud.iam.gserviceaccount.com
-CRED 19 Nube · ssh (ansible) Machine ['become_method', 'ssh_key_data', 'username'] None ansible
-INJ {}
-JT 68 Nube · Avisar por correo 4
-JT 84 Nube · Cerrar ticket tras falla 4
-JT 64 Nube · Dar de baja VM 4
-JT 66 Nube · Limpiar huérfanos 4
-JT 69 Nube · Prueba: crear huérfanos 4
-JT 70 Nube · Prueba: regla peligrosa 4
-JT 65 Nube · Reporte de huérfanos 4
-JT 63 Nube · Solicitar VM 4
-JT 1202 Nube · Validar conexión e inventariar (ejecución) 4
-JT 67 Nube · Vigilar firewall 4
-EE 4 Default execution environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
-AUTOS ['Nube · Solicitar VM', 'Nube · Dar de baja VM', 'Nube · Reporte de huérfanos', 'Nube · Limpiar huérfanos', 'Nube · Vigilar firewall', 'Nube · Prueba: crear huérfanos', 'Nube · Prueba: regla peligrosa', 'Nube · Solicitar VM con aprobación', 'Nube · Reporte de huérfanos con limpieza', 'Nube · Validar conexión e inventariar']
-IMAGENES 
---- fin: 2026-11-12T10:55:30-03:00 · código: 0
+desplegado: 1
+cliente lab
+plantillas ['Plataforma · Controlar servicio', 'Plataforma · Desinstalar', 'Plataforma · Medir salud', 'Plataforma · Preparar dependencias', 'Plataforma · Programar medición']
+C1 rechazado al solicitar  · s3=None componentes=None/None libre=None (df 99.0) buckets=None · ficha: salud 61 % · S3
+CASO C1 falla · Medir el data lake en nodo-storage
+C2 fallido · servicio active · brokers=None subreplicadas=None offline=None lag=None
+CASO C2 falla · Medir Kafka en nodo-nginx
+C3 rechazado al solicitar · ping=None persistencia=None · rastros de clave en la salida: 0
+CASO C3 falla · Medir Redis (Valkey) en nodo-tomcat
+CASO C4 falla · Repetir la medición del data lake
+C5 rechazado al solicitar · 
+CASO C5 falla · Plataforma que no corresponde
+C6 exitoso · 
+CASO C6 falla · Medición programada de varias plataformas
+CERT Plataforma · Medir salud → sin probar
+grupos: 5 grupos · 25 plataformas
+C1 exitoso · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
+CASO C1 ok · Programar cada 15 minutos
+C2 exitoso · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
+CASO C2 ok · Repetir sin duplicar
+C3 fallido · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
+CASO C3 ok · Frecuencia inválida
+CERT Plataforma · Programar medición → certificada
+FIN-PLATAFORMA-SALUD
+--- fin: 2026-11-12T11:06:55-03:00 · código: 0
