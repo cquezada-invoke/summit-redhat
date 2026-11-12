@@ -26,7 +26,6 @@
     <dt>Topología</dt><dd>plano de control {{ d.topologia_control or '—' }} · infraestructura {{ d.topologia_infra or '—' }}{{ ' · Single Node OpenShift' if d.topologia_control == 'SingleReplica' }}</dd>
     <dt>Red</dt><dd>{{ d.red_tipo or '—' }} · pods {{ d.red_cluster|join(', ') or '—' }} · servicios {{ d.red_servicios|join(', ') or '—' }}</dd>
     <dt>API</dt><dd class="mono">{{ d.api_url or d.api }}</dd>
-    <dt>Consola</dt><dd>{% if d.consola %}<a href="{{ datos.openshift.consola if datos.openshift and datos.openshift.consola else d.consola }}" target="_blank" rel="noopener">{{ datos.openshift.consola if datos.openshift and datos.openshift.consola else d.consola }} ↗</a>{% else %}—{% endif %}</dd>
     <dt>ID del clúster</dt><dd class="mono" style="font-size:12px">{{ d.cluster_id or '—' }} · {{ d.nombre_infra }}</dd>
     <dt>Pools de máquinas</dt><dd>{% for p in d.pools or [] %}{% set x = p.split('|') %}<span class="chip {{ 's-ok' if x[1] == x[2] else 's-media' }}">{{ x[0] }} {{ x[1] }}/{{ x[2] }} listas</span>{% else %}—{% endfor %}</dd>
   </dl>
