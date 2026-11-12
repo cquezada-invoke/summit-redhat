@@ -1,18 +1,73 @@
-commit: 5ef6bb35eb319c7fbf7cc71fd2622f39cae663c3
-inicio: 2026-11-11T21:47:09-03:00
+commit: 004dde0ba6822b5c560eb09519225e8b27cf7b5f
+inicio: 2026-11-11T21:52:18-03:00
 ---
-d7f7ac3 Canal VM: omitir tareas que ya tienen resultado, cuy
-   · Plantilla «OpenShift · Evaluar imágenes (uso y antigüedad)» (id 1170)
-   · Plantilla «OpenShift · Mover imágenes a Quay» (id 1171)
-HTTP 404 seccion False
-UI HEAD d7f7ac3
-UI 6 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
-UI 1 200 falta= ['Disco (volumen más lleno) al 71 %'] botones= [] selected= ['20 GB', '2 vCPU (actual)', '2 GB (actual)'] nota= []
-UI 2 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
-UI 3 200 falta= ['CPU al 10 %'] botones= ['Bajar a 1 vCPU'] selected= ['40 GB (+10.0)', '20 GB (+10.0)', '20 GB', '1 vCPU (sugerido)', '4 GB (actual)'] nota= ['Sugerido: 1 vCPU']
-UI 4 200 falta= ['CPU al 3 %', 'Memoria al 8 %'] botones= ['Bajar a 1 vCPU', 'Bajar a 1 GB'] selected= ['50 GB (+10.0)', '20 GB', '1 vCPU (sugerido)', '1 GB (sugerido)'] nota= ['Sugerido: 1 GB', 'Sugerido: 1 vCPU']
-UI 5 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
-UI 7 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
-UI 8 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
-UI 9 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
---- fin: 2026-11-11T21:52:00-03:00 · código: 0
+== gcloud
+master-ia-320218
+== zonas DNS en master-ia-320218
+ERROR: (gcloud.dns.managed-zones.list) You do not currently have an active account selected.
+Please run:
+
+  $ gcloud auth login
+
+to obtain new credentials.
+
+If you have already logged in with a different account, run:
+
+  $ gcloud config set account ACCOUNT
+== zonas DNS en invoke-summit-cloud
+ERROR: (gcloud.dns.managed-zones.list) You do not currently have an active account selected.
+Please run:
+
+  $ gcloud auth login
+
+to obtain new credentials.
+
+If you have already logged in with a different account, run:
+
+  $ gcloud config set account ACCOUNT
+== proyectos visibles
+ERROR: (gcloud.projects.list) You do not currently have an active account selected.
+Please run:
+
+  $ gcloud auth login
+
+to obtain new credentials.
+
+If you have already logged in with a different account, run:
+
+  $ gcloud config set account ACCOUNT
+== roles de la cuenta activa en master-ia-320218
+ERROR: (gcloud.projects.get-iam-policy) You do not currently have an active account selected.
+Please run:
+
+  $ gcloud auth login
+
+to obtain new credentials.
+
+If you have already logged in with a different account, run:
+
+  $ gcloud config set account ACCOUNT
+
+to select an already authenticated account to use.
+== cuentas de servicio en master-ia-320218
+ERROR: (gcloud.iam.service-accounts.list) You do not currently have an active account selected.
+Please run:
+
+  $ gcloud auth login
+
+to obtain new credentials.
+
+If you have already logged in with a different account, run:
+
+  $ gcloud config set account ACCOUNT
+== APIs habilitadas (relevantes)
+
+== cuota southamerica-west1
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+== credenciales GCP en AAP (campos no secretos)
+  existe OpenShift · Pull secret
+  FALTA OpenShift · Red Hat OCM
+  existe AAP · FaceOps (gateway)
+== offline token de Red Hat → pull secret (solo códigos HTTP y cantidad de registros)
+  error: HTTPError HTTP Error 400: Bad Request
+--- fin: 2026-11-11T21:52:31-03:00 · código: 0
