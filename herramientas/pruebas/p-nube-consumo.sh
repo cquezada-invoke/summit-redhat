@@ -3,7 +3,11 @@
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="Nube · Recuperar consumo y estado"; NUBE="Cloud GCP · invoke-summit-cloud"
 sincronizar
-rec() { caso "$(python3 -c 'import json,sys;print(json.dumps({"auto":sys.argv[1],"params":json.loads(sys.argv[2]),"min":15,"caso":sys.argv[3]}))' "$N" "$1" "$2")"; }
+# FaceOps se reinicia con cada despliegue de main: si el arnés no responde, espera y repite el caso (hasta 4 veces)
+vivo() { for i in $(seq 1 30); do sudo podman exec faceops python3 -c 1 >/dev/null 2>&1 && break; sleep 10; done; sleep 20; }
+rec() { local k; for k in 1 2 3 4; do vivo
+  caso "$(python3 -c 'import json,sys;print(json.dumps({"auto":sys.argv[1],"params":json.loads(sys.argv[2]),"min":15,"caso":sys.argv[3]}))' "$N" "$1" "$2")"
+  case "$RES" in *'sin respuesta del arnés'*) sleep 60 ;; *'"fallido"'*'"fallos": []'*) [ $k -ge 2 ] && return; sleep 60 ;; *) return ;; esac; done; }
 res() { jq_ "json.dumps({k: ((v.get('consumo') or {}).get('fuente'), (v.get('consumo') or {}).get('promedio_usd'), (v.get('consumo') or {}).get('mes_actual_usd'), {s: (v.get(s) or {}).get('ok') if (v.get(s) or {}).get('ok') else (v.get(s) or {}).get('falta') for s in ('maquinas','discos','ips','snapshots','firewall','cuotas','claves','recomendaciones','productos','facturacion','presupuesto')}, (v.get('consumo') or {}).get('intentos'), v.get('error')) for k, v in (s.get('faceops_nube_resumen') or {}).items()}, ensure_ascii=False)"; }
 vista() { sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - 2>/dev/null <<'Q' | tail -3
 import re, html
@@ -29,7 +33,7 @@ Q
 }
 # C1: recuperar con la credencial de la conexión (ticket «Actualizar ahora»)
 rec "{\"nr_nube\":\"$NUBE\"}" C1; E1=$(estado); T1=$(ticket); R1=$(res); echo "C1 $E1 $T1 · $R1"
-V1=$(vista); echo "$V1"
+vivo; V1=$(vista); echo "$V1"
 F1=$(echo "$R1" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(iter(d.values()))[0] if d else "")' 2>/dev/null)
 [ "$E1" = exitoso ] && [ -n "$F1" ] && echo "$V1" | grep -q "^CACHE {'ok'" && echo "$V1" | grep -q "^FICHA" && ! echo "$V1" | grep -q "sin consolidado" && \
   anotar C1 "Recuperar la nube GCP del laboratorio" ok "fuente $F1 · $(echo "$V1" | head -1 | cut -c1-200)" || anotar C1 "Recuperar la nube GCP del laboratorio" falla "$E1 · $R1 · $V1"
@@ -39,7 +43,7 @@ M1=$(echo "$R1" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(json.
 M2=$(echo "$R2" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(json.dumps(next(iter(d.values()))[3]))' 2>/dev/null)
 [ "$E2" = exitoso ] && [ "$M1" = "$M2" ] && anotar C2 "Repetir la recuperación" ok "mismas secciones: $M2" || anotar C2 "Repetir la recuperación" falla "$E2 · $M1 → $M2"
 # C3: cálculo diario programado (FaceOps lanza la plantilla sin ticket con la credencial de la conexión y lo recoge)
-D3=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - 2>/dev/null <<'Q' | tail -1
+vivo; D3=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - 2>/dev/null <<'Q' | tail -1
 import time
 from app import create_app
 app = create_app()
@@ -70,7 +74,7 @@ rec "{\"nr_nube\":\"$NUBE\",\"nr_proveedor\":\"oci\"}" C4; E4=$(estado); F4=$(ec
 echo "C4 $E4 · $F4"
 [ "$E4" = fallido ] && [ -n "$F4" ] && anotar C4 "Datos inválidos" ok "fallido en «Datos válidos»" || anotar C4 "Datos inválidos" falla "$E4 · $F4"
 # C5: la salida del trabajo de C1 no trae secretos
-S5=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - "$T1" 2>/dev/null <<'Q' | tail -1
+vivo; S5=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - "$T1" 2>/dev/null <<'Q' | tail -1
 import sys
 from app import create_app
 app = create_app()
