@@ -24,18 +24,26 @@
   </dl>
 </div>
 
-<div class="card" style="margin-top:6px" id="diagrama"><div class="fila"><h2 style="margin:0">Arquitectura del sitio</h2><span class="sub der" style="font-size:12px">desde el inventario del sitio · clic en un equipo abre su ficha</span></div>
+<div class="card" style="margin-top:6px" id="diagrama"><div class="fila" style="flex-wrap:wrap;gap:8px"><h2 style="margin:0">Arquitectura del sitio</h2><span class="sub der" style="font-size:12px" id="ed-dg-nota">desde el inventario del sitio · clic en un equipo abre su ficha</span>
+{% if esc %}<span class="ed-ebar"><button type="button" class="btn chico gris" id="ed-editar">Editar diagrama</button><span id="ed-ebtn" hidden><button type="button" class="btn chico gris" id="ed-borrar" disabled>Eliminar conexión</button> <button type="button" class="btn chico" id="ed-guardar">Guardar</button> <button type="button" class="btn chico gris" id="ed-cancelar">Cancelar</button></span></span>{% endif %}</div>
+<p class="sub" id="ed-ayuda" hidden style="font-size:12.5px;margin:6px 0 0">Arrastra un nodo para moverlo · arrastra desde el punto azul de un nodo hasta otro para conectarlos · clic en una conexión para seleccionarla: arrastra sus extremos a otro nodo para reconectarla o elimínala. Es documentación del inventario: no cambia la red real.</p>
 <div class="ed-dg-ley sub"><span><i class="t-ok"></i>≥ 85 %</span><span><i class="t-med"></i>50–84 %</span><span><i class="t-mal"></i>&lt; 50 %</span><span><i class="t-nd"></i>sin lectura</span><span><i class="ed-tun"></i>túnel de la malla</span></div>
-<div class="ed-dg"><svg viewBox="0 0 {{ diag.w }} {{ diag.h }}" role="img" aria-label="Arquitectura del sitio {{ s.codigo }}" style="min-width:640px">
+<div class="ed-dg"><svg id="ed-svg" viewBox="0 0 {{ diag.w }} {{ diag.h }}" role="img" aria-label="Arquitectura del sitio {{ s.codigo }}" style="min-width:640px">
 <defs><marker id="ed-flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ed-fl"/></marker></defs>
-{% set mc = diag.marco %}<rect x="{{ mc.x }}" y="{{ mc.y }}" width="{{ mc.w }}" height="{{ mc.h }}" rx="10" class="ed-marco"/><text x="{{ mc.x + 14 }}" y="{{ mc.y + 20 }}" class="ed-mtx">{{ mc.txt }}</text>
-{% for l in diag.lineas %}<line x1="{{ l.x1 }}" y1="{{ l.y1 }}" x2="{{ l.x2 }}" y2="{{ l.y2 }}" class="{{ 'ed-tunel' if l.tunel else 'ed-con' }}" {% if l.tunel %}marker-end="url(#ed-flecha)"{% endif %} />{% if l.txt %}<text x="{{ l.x1 + 10 }}" y="{{ (l.y1 + l.y2) / 2 + 4 }}" class="ed-ltx">{{ l.txt }}</text>{% endif %}{% endfor %}
+{% set mc = diag.marco %}<rect id="ed-marco" x="{{ mc.x }}" y="{{ mc.y }}" width="{{ mc.w }}" height="{{ mc.h }}" rx="10" class="ed-marco"/><text x="{{ mc.x + 14 }}" y="{{ mc.y + 20 }}" class="ed-mtx">{{ mc.txt }}</text>
+<g id="ed-lns">{% for l in diag.lineas %}<line x1="{{ l.x1 }}" y1="{{ l.y1 }}" x2="{{ l.x2 }}" y2="{{ l.y2 }}" class="{{ 'ed-tunel' if l.tunel else 'ed-con' }}" {% if l.tunel %}marker-end="url(#ed-flecha)"{% endif %} />{% if l.txt %}<text x="{{ (l.x1 + l.x2) / 2 + 10 }}" y="{{ (l.y1 + l.y2) / 2 + 4 }}" class="ed-ltx">{{ l.txt }}</text>{% endif %}{% endfor %}</g>
 {% for t in diag.textos %}<text x="{{ t.x }}" y="{{ t.y }}" class="ed-stx" {% if t.centro %}text-anchor="middle"{% endif %}>{{ t.txt }}</text>{% endfor %}
-{% for c in diag.cajas %}{% if c.url %}<a href="{{ c.url }}" class="ed-link">{% endif %}<g class="ed-caja t-{{ c.tono }}"><title>{{ c.info or c.tit_full }}</title>
+{% for c in diag.cajas %}{% if c.url %}<a href="{{ c.url }}" class="ed-link">{% endif %}<g class="ed-caja t-{{ c.tono }}" data-id="{{ c.id }}"><title>{{ c.info or c.tit_full }}</title>
 <rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" rx="7"/>
 <text x="{{ c.x + 10 }}" y="{{ c.y + 22 }}" class="ed-ctit{{ ' mono' if c.mono }}">{{ c.tit }}</text><text x="{{ c.x + 10 }}" y="{{ c.y + 41 }}" class="ed-csub">{{ c.sub }}</text>
 {% if c.tono != 'central' %}<text x="{{ c.x + c.w - 8 }}" y="{{ c.y + 22 }}" text-anchor="end" class="ed-cpct">{{ (c.pct ~ ' %') if c.pct is not none else '—' }}</text>{% endif %}</g>{% if c.url %}</a>{% endif %}{% endfor %}
-</svg></div></div>
+<g id="ed-hdl"></g></svg></div>
+{% if diag.huerfanos %}<p class="sub" style="font-size:12.5px;margin:6px 0 0"><span class="chip s-media">Sin conexión</span> {{ diag.huerfanos|join(', ') }}</p>{% endif %}
+{% if diag.editado %}<p class="sub" style="font-size:12px;margin:6px 0 0">Diagrama editado por {{ diag.editado.autor or '—' }} · {{ (diag.editado.fecha|fecha) if diag.editado.fecha else '—' }}{% if esc %} · <button type="button" class="btn chico gris" id="ed-auto">Volver al automático</button>{% endif %}</p>{% endif %}
+{% if topo_hist %}<details style="margin-top:6px"><summary class="sub" style="font-size:12px;cursor:pointer">Historial del diagrama · {{ topo_hist|length }}</summary><ul class="sub" style="font-size:12px;margin:4px 0 0">
+{% for h in topo_hist %}<li>{{ (h.fecha|fecha) if h.fecha else '—' }} · {{ h.autor or '—' }} · {{ 'guardó el diagrama' if h.nueva else 'volvió a la disposición automática' }}</li>{% endfor %}</ul></details>{% endif %}
+<script type="application/json" id="ed-dg-datos">{{ {'cajas': diag.cajas|map(attribute='id')|list, 'lineas': diag.lineas, 'url': url_for('consola.edge_diagrama_guardar', sid=s.id)}|tojson }}</script>
+</div>
 <style>.ed-dg{overflow-x:auto;margin-top:8px}.ed-dg svg{width:100%;height:auto;display:block}
 .ed-marco{fill:none;stroke:var(--bad);stroke-width:1.5;stroke-dasharray:6 5}.ed-mtx{font-size:13px;font-weight:600;fill:var(--bad)}
 .ed-tunel{stroke:var(--info,#2b9af3);stroke-width:2;stroke-dasharray:7 5}.ed-fl{fill:var(--info,#2b9af3)}.ed-con{stroke:var(--muted);stroke-width:1;opacity:.55}
@@ -46,7 +54,65 @@
 .t-central rect{fill:var(--panel);stroke:var(--ink)}.ed-link:hover rect{stroke-width:3}.ed-link{cursor:pointer}
 .ed-dg-ley{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:6px}.ed-dg-ley i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px;border:1.5px solid}
 .ed-dg-ley .t-ok{background:var(--okbg);border-color:var(--ok)}.ed-dg-ley .t-med{background:var(--warnbg);border-color:var(--warn)}.ed-dg-ley .t-mal{background:var(--badbg);border-color:var(--bad)}.ed-dg-ley .t-nd{background:var(--soft);border-color:var(--muted)}
-.ed-dg-ley .ed-tun{width:22px;height:0;border:0;border-top:2px dashed var(--info,#2b9af3);vertical-align:3px}</style>
+.ed-dg-ley .ed-tun{width:22px;height:0;border:0;border-top:2px dashed var(--info,#2b9af3);vertical-align:3px}
+.ed-ebar{margin-left:auto;display:inline-flex;gap:6px;align-items:center}#diagrama .der{margin-left:auto}
+.ed-edit svg{touch-action:none;user-select:none}.ed-edit .ed-caja{cursor:move}.ed-edit .ed-caja[data-id=central]{cursor:default}
+.ed-hit{stroke:transparent;stroke-width:12;cursor:pointer}.ed-sel{stroke:var(--warn) !important;stroke-width:3 !important;opacity:1 !important}
+.ed-h{fill:var(--info,#2b9af3);stroke:var(--panel);stroke-width:2;cursor:crosshair}.ed-ep{fill:var(--warn);stroke:var(--panel);stroke-width:2;cursor:grab}
+.ed-tmp{stroke:var(--warn);stroke-width:2;stroke-dasharray:4 4}.ed-destino rect{stroke-width:3 !important;stroke:var(--warn) !important}</style>
+{% if esc %}<script>(()=>{const svg=document.getElementById('ed-svg'),D=JSON.parse(document.getElementById('ed-dg-datos').textContent),card=document.getElementById('diagrama');
+const btE=document.getElementById('ed-editar'),bar=document.getElementById('ed-ebtn'),btB=document.getElementById('ed-borrar'),ay=document.getElementById('ed-ayuda');
+const NS='http://www.w3.org/2000/svg',lns=document.getElementById('ed-lns'),hdl=document.getElementById('ed-hdl'),marco=document.getElementById('ed-marco');
+const MALLA=['central','hop','en'];let N={},O={},C=[],sel=-1,op=null,ed=false,vbH=svg.viewBox.baseVal.height;
+const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+const pt=ev=>{const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
+const clip=(n,ox,oy)=>{const cx=n.x+n.w/2,cy=n.y+n.h/2,dx=ox-cx,dy=oy-cy;if(!dx&&!dy)return[cx,cy];const t=Math.min(dx?n.w/2/Math.abs(dx):1e9,dy?n.h/2/Math.abs(dy):1e9);return[cx+dx*t,cy+dy*t];};
+const ctr=n=>[n.x+n.w/2,n.y+n.h/2];
+const enNodo=(p,excl)=>Object.keys(N).find(k=>k!==excl&&p.x>=N[k].x&&p.x<=N[k].x+N[k].w&&p.y>=N[k].y&&p.y<=N[k].y+N[k].h);
+function pintar(){lns.innerHTML='';hdl.innerHTML='';
+ C.forEach((c,i)=>{const a=N[c[0]],b=N[c[1]];if(!a||!b)return;const[x1,y1]=clip(a,...ctr(b)),[x2,y2]=clip(b,...ctr(a)),tun=MALLA.includes(c[0])&&MALLA.includes(c[1]);
+  const l=el('line',{x1,y1,x2,y2,class:(tun?'ed-tunel':'ed-con')+(i===sel?' ed-sel':'')});if(tun)l.setAttribute('marker-end','url(#ed-flecha)');lns.appendChild(l);
+  if(tun){const t=el('text',{x:(x1+x2)/2+10,y:(y1+y2)/2+4,class:'ed-ltx'});t.textContent='malla 27199/tcp';lns.appendChild(t);}
+  if(ed){const h=el('line',{x1,y1,x2,y2,class:'ed-hit','data-i':i});lns.appendChild(h);
+   if(i===sel){hdl.appendChild(el('circle',{cx:x1,cy:y1,r:7,class:'ed-ep','data-i':i,'data-end':0}));hdl.appendChild(el('circle',{cx:x2,cy:y2,r:7,class:'ed-ep','data-i':i,'data-end':1}));}}});
+ svg.querySelectorAll('g.ed-caja').forEach(g=>{const n=N[g.dataset.id];if(n)g.setAttribute('transform','translate('+(n.x-O[g.dataset.id].x)+' '+(n.y-O[g.dataset.id].y)+')');});
+ if(ed)Object.keys(N).forEach(k=>hdl.insertBefore(el('circle',{cx:N[k].x+N[k].w/2,cy:N[k].y+N[k].h,r:6,class:'ed-h','data-n':k}),hdl.firstChild));
+ btB.disabled=sel<0;
+ const mx=Math.max(...Object.values(N).map(n=>n.y+n.h))+40;if(mx>vbH){vbH=mx;const v=svg.viewBox.baseVal;svg.setAttribute('viewBox','0 0 '+v.width+' '+vbH);}
+ if(marco)marco.setAttribute('height',Math.max(+marco.getAttribute('height'),vbH-(+marco.getAttribute('y'))-16));}
+function cargar(){N={};O={};svg.querySelectorAll('g.ed-caja').forEach(g=>{const r=g.querySelector('rect'),n={x:+r.getAttribute('x'),y:+r.getAttribute('y'),w:+r.getAttribute('width'),h:+r.getAttribute('height')};N[g.dataset.id]=n;O[g.dataset.id]={x:n.x,y:n.y};});
+ C=D.lineas.map(l=>[l.a,l.b]);}
+btE.addEventListener('click',()=>{ed=true;cargar();card.classList.add('ed-edit');btE.hidden=true;bar.hidden=false;ay.hidden=false;svg.querySelectorAll('.ed-stx').forEach(t=>t.style.display='none');pintar();});
+document.getElementById('ed-cancelar').addEventListener('click',()=>location.reload());
+const borrar=()=>{if(sel<0)return;C.splice(sel,1);sel=-1;pintar();};btB.addEventListener('click',borrar);
+document.addEventListener('keydown',ev=>{if(ed&&(ev.key==='Delete'||ev.key==='Backspace')&&sel>=0&&!/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)){ev.preventDefault();borrar();}});
+svg.addEventListener('click',ev=>{if(ed&&ev.target.closest('a'))ev.preventDefault();});
+let tmp=null,dest=null;
+const marcar=k=>{if(dest)dest.classList.remove('ed-destino');dest=k?svg.querySelector('g.ed-caja[data-id="'+k+'"]'):null;if(dest)dest.classList.add('ed-destino');};
+svg.addEventListener('pointerdown',ev=>{if(!ed)return;const t=ev.target,p=pt(ev);
+ if(t.classList.contains('ed-h')){op={m:'nueva',de:t.dataset.n};}
+ else if(t.classList.contains('ed-ep')){const i=+t.dataset.i,e=+t.dataset.end;op={m:'reco',i,e,de:C[i][1-e]};}
+ else if(t.classList.contains('ed-hit')){sel=+t.dataset.i;pintar();return;}
+ else{const g=t.closest('g.ed-caja');if(g&&g.dataset.id!=='central'){const n=N[g.dataset.id];op={m:'mover',id:g.dataset.id,dx:p.x-n.x,dy:p.y-n.y};}else{sel=-1;pintar();return;}}
+ ev.preventDefault();svg.setPointerCapture(ev.pointerId);
+ if(op.m!=='mover'){const[ax,ay_]=ctr(N[op.de]);tmp=el('line',{x1:ax,y1:ay_,x2:p.x,y2:p.y,class:'ed-tmp'});hdl.appendChild(tmp);}});
+svg.addEventListener('pointermove',ev=>{if(!op)return;const p=pt(ev);
+ if(op.m==='mover'){const n=N[op.id];n.x=Math.max(0,Math.min(svg.viewBox.baseVal.width-n.w,p.x-op.dx));n.y=Math.max(0,p.y-op.dy);pintar();}
+ else{tmp.setAttribute('x2',p.x);tmp.setAttribute('y2',p.y);marcar(enNodo(p,op.de));}});
+svg.addEventListener('pointerup',ev=>{if(!op)return;const p=pt(ev),o=op;op=null;marcar(null);if(tmp){tmp.remove();tmp=null;}
+ if(o.m==='mover')return;const k=enNodo(p,o.de);if(!k)return pintar();
+ const ya=C.findIndex((c,i)=>(o.m!=='reco'||i!==o.i)&&((c[0]===o.de&&c[1]===k)||(c[1]===o.de&&c[0]===k)));
+ if(ya>=0){(window.fxAviso||alert)('Esa conexión ya existe','error');return pintar();}
+ if(o.m==='nueva'){C.push([o.de,k]);sel=C.length-1;}else{C[o.i][o.e]=k;sel=o.i;}pintar();});
+const enviar=d=>fetch(D.url,{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},body:JSON.stringify(Object.assign({_csrf:{{ csrf|tojson }}},d))})
+ .then(r=>r.json().catch(()=>({error:'No se pudo guardar (error '+r.status+')'}))).then(r=>{if(r.error){(window.fxAviso||alert)(r.error,'error');return;}location.reload();})
+ .catch(()=>(window.fxAviso||alert)('No se pudo guardar','error'));
+document.getElementById('ed-guardar').addEventListener('click',()=>{const usados=new Set(C.flat()),hu=Object.keys(N).filter(k=>k!=='central'&&!usados.has(k));
+ if(hu.length){const nom=hu.map(k=>{const g=svg.querySelector('g.ed-caja[data-id="'+k+'"] title');return g?g.textContent.split(' · ')[0]:k;});
+  if(!confirm('Quedan '+hu.length+' nodo(s) sin conexión: '+nom.join(', ')+'.\n¿Guardar igual?'))return;}
+ const nodos={};Object.keys(N).forEach(k=>{if(k!=='central')nodos[k]={x:Math.round(N[k].x),y:Math.round(N[k].y)};});enviar({nodos,conexiones:C});});
+const au=document.getElementById('ed-auto');if(au)au.addEventListener('click',()=>{if(confirm('¿Volver a la disposición automática? Se descarta el diagrama editado (queda en el historial).'))enviar({restablecer:true});});
+})();</script>{% endif %}
 
 <div class="card" style="margin-top:14px" id="malla"><div class="fila"><h2 style="margin:0">Execution node y hop</h2><span class="sub der" style="font-size:12px">Automation Mesh de AAP · {{ 'estado leído de AAP' if m is not none else 'AAP no respondió: estado sin lectura' }}</span></div>
 <table style="margin-top:8px" class="no-apilar"><tr><th>Rol</th><th>Nodo</th><th>Estado en la malla</th><th>Enlace</th></tr>
@@ -59,6 +125,33 @@
 {% for e in eqs %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a></td><td>{{ e.categoria or 'servidor' }}</td>{% if s.ubicaciones_l %}<td>{{ s.ubic_eq_d.get(e.id) or '—' }}</td>{% endif %}<td class="mono">{{ e.ip or '—' }}</td><td style="font-size:12px">{{ e.so or '—' }}</td>
 <td>{{ 'sí' if grupo in (j(e.grupos, []) or []) else 'no' }}</td><td><span class="chip {{ 's-ok' if e.energia == 'encendido' else ('s-alta' if e.energia == 'apagado' else '') }}">{{ e.energia or '—' }}</span></td></tr>
 {% else %}<tr><td colspan="7" class="sub">El sitio aún no tiene equipos asociados{{ ': «Editar sitio» para agregarlos' if esc }}.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
+
+<div class="card" style="margin-top:14px" id="dispositivos"><div class="fila" style="flex-wrap:wrap;gap:8px"><h2 style="margin:0">Otros dispositivos del sitio · {{ disps|length }}</h2><span class="sub" style="font-size:12px">impresoras, POS, red, cámaras… · sin agente</span>
+{% if esc %}<button type="button" class="btn chico der" data-fi-abrir="fi-dx" data-disp-nuevo="1">+ Agregar dispositivo</button>{% endif %}</div>
+{% for k, nom, ic, lista in disp_grupos %}<h3 class="ed-dtit"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ ic|safe }}</svg>{{ nom }} · {{ lista|length }}</h3>
+<table class="no-apilar ed-dtab"><tr><th>Nombre</th><th>IP</th><th>Fabricante · modelo</th><th>{{ 'Piso / ubicación' if s.ubicaciones_l else 'Ubicación' }}</th><th>Estado</th>{% if esc %}<th></th>{% endif %}</tr>
+{% for d in lista %}<tr><td>{{ d.nombre }}</td><td class="mono">{{ d.ip or '—' }}</td><td>{{ [d.fabricante, d.modelo]|select|join(' · ') or '—' }}</td><td>{{ d.ubicacion or '—' }}</td>
+<td><span class="chip {{ d.est[1] }}" title="{{ d.est[2] }}">{{ d.est[0] }}</span></td>
+{% if esc %}<td style="text-align:right;white-space:nowrap"><button type="button" class="btn chico gris" data-fi-abrir="fi-dx" data-disp="{{ {'id': d.id, 'tipo': d.tipo, 'nombre': d.nombre, 'ip': d.ip, 'fabricante': d.fabricante, 'modelo': d.modelo, 'ubicacion': d.ubicacion}|tojson|forceescape }}">Editar</button>
+<form method="post" action="{{ url_for('consola.edge_disp_eliminar', sid=s.id, did=d.id) }}" style="display:inline" onsubmit="return confirm('¿Quitar ' + {{ d.nombre|tojson|forceescape }} + ' del sitio? Solo se borra del inventario.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris">Quitar</button></form></td>{% endif %}</tr>{% endfor %}</table>
+{% else %}<p class="sub" style="margin:8px 0 0">El sitio aún no tiene otros dispositivos registrados{{ ': «+ Agregar dispositivo» para registrar impresoras, POS, access points, cámaras y otros' if esc }}.</p>{% endfor %}
+<p class="sub" style="margin:10px 0 0;font-size:12.5px">Registrar un dispositivo no instala nada en él: si tiene IP, su estado se obtiene sin agente (ping o SNMP, cuando se habilite el sondeo). Servidores y estaciones de trabajo se asocian desde «Editar sitio».</p></div>
+<style>.ed-dtit{display:flex;align-items:center;gap:8px;font-size:13px;margin:14px 0 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.ed-dtit svg{color:var(--ink)}.ed-dtab{margin:0}#dispositivos .der{margin-left:auto}</style>
+{% if esc %}<aside id="fi-dx" class="cajon" hidden aria-label="Dispositivo del sitio"><div class="cajon-barra"><b style="font-size:15px" id="dx-tit">Agregar dispositivo</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
+<form method="post" action="{{ url_for('consola.edge_disp_guardar', sid=s.id) }}" data-base="{{ url_for('consola.edge_disp_guardar', sid=s.id) }}" class="form-infra" autocomplete="off" style="display:flex;flex-direction:column;gap:10px" id="dx-form"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Tipo <span class="req" aria-hidden="true">*</span><select name="tipo" required><option value="">Elige el tipo…</option>{% for k, n, _ in tipos_disp %}<option value="{{ k }}">{{ n }}</option>{% endfor %}</select></label>
+<label>Nombre <span class="req" aria-hidden="true">*</span><input name="nombre" required maxlength="80" class="mono" placeholder="{{ s.codigo|lower }}-imp01"></label>
+<label>IP<input name="ip" class="mono" placeholder="10.20.30.40"></label><p class="sub" style="margin:-6px 0 0;font-size:12px">Opcional. Con IP, el estado se obtiene sin agente (ping o SNMP).</p>
+<label>Fabricante<input name="fabricante" maxlength="60" placeholder="HP, Zebra, Ubiquiti…"></label>
+<label>Modelo<input name="modelo" maxlength="60"></label>
+{% if s.ubicaciones_l %}<label>Piso / ubicación<select name="ubicacion"><option value="">sin ubicación</option>{% for u in s.ubicaciones_l %}<option>{{ u }}</option>{% endfor %}</select></label>
+{% else %}<label>Ubicación<input name="ubicacion" maxlength="60" placeholder="Caja 2, bodega, sala de servidores…"></label>{% endif %}
+<p class="sub" style="margin:0;font-size:12.5px">Solo registra el dispositivo en el inventario del sitio: no se conecta a él ni instala nada.</p>
+<div class="fila" style="gap:8px"><button class="btn" id="dx-btn">Agregar dispositivo</button><button type="button" class="btn gris" data-fi-cerrar="1">Cancelar</button></div></form>
+<script>(()=>{const f=document.getElementById('dx-form'),tt=document.getElementById('dx-tit'),bt=document.getElementById('dx-btn');
+document.addEventListener('click',ev=>{const b=ev.target.closest('[data-disp],[data-disp-nuevo]');if(!b)return;const d=b.dataset.disp?JSON.parse(b.dataset.disp):null;
+ f.reset();f.action=f.dataset.base+(d?'/'+d.id:'');tt.textContent=d?'Editar dispositivo · '+d.nombre:'Agregar dispositivo';bt.textContent=d?'Guardar':'Agregar dispositivo';
+ if(d)['tipo','nombre','ip','fabricante','modelo','ubicacion'].forEach(k=>{if(f.elements[k])f.elements[k].value=d[k]||'';});},true);})();</script></aside>{% endif %}
 
 <div class="card fi-lista" style="margin-top:14px;padding:0" id="alertas"><div class="fi-lcab"><h2>Alertas del sitio · {{ hallazgos|length }}</h2></div>
 <table class="sin-pag"><tr><th>Severidad</th><th>Alerta</th><th>Equipo</th></tr>
