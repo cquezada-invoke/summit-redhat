@@ -1,6 +1,12 @@
-commit: 2c73964ee1c7fda26714d3d8bda478a061fc5ee5
-inicio: 2026-11-11T23:10:59-03:00
+commit: 69ef71d447d5a5ce94942ae2b942be4d3047074c
+inicio: 2026-11-11T23:12:17-03:00
 ---
-16e4ade
-OCP interruptores encendidos: 19 de 19 | campana: ['19']
---- fin: 2026-11-11T23:11:58-03:00 · código: 0
+Traceback (most recent call last):
+  File "/tmp/redq.py", line 5, in <module>
+    cl = {c["id"]: c["slug"] for c in q("SELECT id, slug FROM clientes")}
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/bd.py", line 180, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: slug
+--- fin: 2026-11-11T23:12:24-03:00 · código: 0
