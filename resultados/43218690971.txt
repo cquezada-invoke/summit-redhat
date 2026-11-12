@@ -1,0 +1,25 @@
+commit: dd26cf6f1e3aa1059a01c84ff4d34ca71123e96a
+inicio: 2026-11-12T09:31:58-03:00
+---
+001060d Fichas de plataforma: la sección Recursos ya no choc
+== desplegado: 1 · FaceOps 401
+LIMPIEZA file-integrity-operator:openshift-file-integrity exitoso FO-LAB-02137
+LIMPIEZA netobserv-operator:openshift-netobserv-operator exitoso FO-LAB-02140
+CASO C1 ok · Instalar File Integrity (OwnNamespace)
+CASO C2 ok · Repetir File Integrity
+CASO C3 ok · Instalar Quay (AllNamespaces, OG global existente)
+CASO C7 falla · No cabe en el nodo: vuelta atrás
+CASO C4 ok · Paquete inexistente
+CASO C5 ok · Modo no soportado
+CASO C6 ok · ODF en un solo nodo desde la ficha
+EVIDENCIA [{"id": "C1", "caso": "Instalar File Integrity (OwnNamespace)", "resultado": "ok", "evidencia": "ns etiquetado; OG [\"openshift-file-integrity\"]; sub Manual/file-integrity-operator.v1.5.0; CSV Succeeded; pods file-integrity-operator-7f56d99554-kfbwg:Running ; ficha [('Succeeded', 1, 1, 'FO-LAB-02141')]"}, {"id": "C2", "caso": "Repetir File Integrity", "resultado": "ok", "evidencia": "changed=0; ya_estaba=True; 1 Subscription"}, {"id": "C3", "caso": "Instalar Quay (AllNamespaces, OG global existente)", "resultado": "ok", "evidencia": "OperatorGroups en openshift-operators: 1 (sin cambio); CSV Succeeded; pods quay-operator-tng-95fc45c56-f55pv:Running "}, {"id": "C7", "caso": "No cabe en el nodo: vuelta atrás", "resultado": "falla", "evidencia": "exitoso  · ns=namespace/openshift-netobserv-operator sub=1 csv=1 crd=3"}, {"id": "C4", "caso": "Paquete inexistente", "resultado": "ok", "evidencia": "El paquete existe en el catálogo · El paquete «no-existe-operator» no existe en el catálogo del clúster; nada se cambió · ; sin namespace"}, {"id": "C5", "caso": "Modo no soportado", "resultado": "ok", "evidencia": "Modo de instalación soportado · web-terminal (fast) no admite el modo OwnNamespace; admite: AllNamespaces. Nada se cambió · ; sin namespace"}, {"id": "C6", "caso": "ODF en un solo nodo desde la ficha", "resultado": "ok", "evidencia": "400 | OpenShift Data Foundation: Requiere al menos 3 nodos y el clúster tiene 1 (un solo nodo) | True | True"}]
+CERT OpenShift · Instalar operador → sin probar
+CASO D1 ok · Desinstalar File Integrity
+CASO D2 ok · Desinstalar Quay (openshift-operators)
+CASO D3 ok · Repetir
+CASO D4 ok · Namespace del sistema
+CASO D5 falla · El clúster queda como estaba
+EVIDENCIA [{"id": "D1", "caso": "Desinstalar File Integrity", "resultado": "ok", "evidencia": "ns= sub=0 csv=0 crd=0; ficha sin el operador · {'accion': 'desinstalar', 'paquete': 'file-integrity-operator', 'ns': 'openshift-file-integrity', 'estaba': True, 'csv': 'file-integrity-operator.v1.5.0', 'crd_borradas': ['fileintegrities.fileintegrity.openshift.io', 'fileintegritynodestatuses.fileinte"}, {"id": "D2", "caso": "Desinstalar Quay (openshift-operators)", "resultado": "ok", "evidencia": "ns=namespace/openshift-operators og=1 sub=0 csv=0 crd=0"}, {"id": "D3", "caso": "Repetir", "resultado": "ok", "evidencia": "changed=0; no estaba instalado"}, {"id": "D4", "caso": "Namespace del sistema", "resultado": "ok", "evidencia": "Datos · Indica el paquete y el namespace del operador (no uno del sistema); nada se cambió · "}, {"id": "D5", "caso": "El clúster queda como estaba", "resultado": "falla", "evidencia": "3a4 > openshift-netobserv-operator/netobserv-operator 9a11 > openshift-netobserv-operator/network-observability-operator.v2.0.0 11c13 < openshift-operators/datagrid-operator.v8.6.9 --- > openshift-operators/datagrid-operator.v8.6.10 "}]
+CERT OpenShift · Desinstalar operador → sin probar
+FIN-OPERADORES
+--- fin: 2026-11-12T10:26:24-03:00 · código: 0
