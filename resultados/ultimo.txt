@@ -1,36 +1,20 @@
-commit: 73fb077fb3223b2a142aceb318bdd174d72bb81d
-inicio: 2026-11-12T10:20:24-03:00
+commit: 8f1dbb3a8e9681372e7933f8e0c6c16f06ee7fbe
+inicio: 2026-11-12T10:42:45-03:00
 ---
---- vuelta 1 09:41:26
-estado: sin probar 94d485689388
-== C4 sobre prueba-vo-inexistente (so=Red Hat Enterprise Linux 9, ip=pendiente, energía=)
-  ticket FO-LAB-02138 fallido | ****** ok: [anfitrion-kvm] TASK [Máquina inexistente (falla controlada, sin tocar nada)] ****************** fatal: [anfitrion-kvm]: FAILED! => {"changed": false, "msg": "No existe la máquina prueba-vo-inexistente en el anfitrión KVM"} PLAY RECAP ********************************************************************* anfitrion-kvm : ok=2 changed=0 unreachable=0 failed=1 skipped=0 rescued=0 ignored=0 
-  equipo ahora: so= Red Hat Enterprise Linux 9 | ip= pendiente | recolectado= None | energía= apagado
-  bóveda: {'usuario': None, 'protocolo': None, 'puerto': None, 'conexion': None} False
-  => ok
-C3 sin máquina para el caso
-== C1 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=192.168.122.120, energía=encendido)
-  ticket FO-LAB-02139 exitoso | AAP terminó (successful): ejecución 38 s, espera de aprobación 35 s srv-windows-iis-01: IP 192.168.122.120 · WinRM HTTPS 5986 con «faceops» · credencial «Infra · on-premise Windows · máquinas» y bóveda · inventario lanzado
-Error: container has already been removed
---- vuelta 2 10:03:34
-estado: sin probar 94d485689388
-C4 ya ok: FO-LAB-02138
-C3 sin máquina para el caso
-== C1 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=192.168.122.120, energía=encendido)
-  reanuda FO-LAB-02139 exitoso
-  ticket FO-LAB-02139 exitoso | AAP terminó (successful): ejecución 38 s, espera de aprobación 35 s srv-windows-iis-01: IP 192.168.122.120 · WinRM HTTPS 5986 con «faceops» · credencial «Infra · on-premise Windows · máquinas» y bóveda · inventario lanzado
-Error: container has already been removed
---- vuelta 3 10:16:51
-estado: sin probar 94d485689388
-C4 ya ok: FO-LAB-02138
-C3 sin máquina para el caso
-== C1 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=192.168.122.120, energía=encendido)
-  reanuda FO-LAB-02139 exitoso
-  ticket FO-LAB-02139 exitoso | AAP terminó (successful): ejecución 38 s, espera de aprobación 35 s srv-windows-iis-01: IP 192.168.122.120 · WinRM HTTPS 5986 con «faceops» · credencial «Infra · on-premise Windows · máquinas» y bóveda · inventario lanzado
-  siguiente: None
-  equipo ahora: so= Windows Server 2022 | ip= 192.168.122.120 | recolectado= None | energía= encendido
-  bóveda: {'usuario': 'faceops', 'protocolo': 'rdp', 'puerto': 5986, 'conexion': 'winrm'} True
-  => fallido
-C2 espera a C1
-EVIDENCIA {"huella": "94d485689388", "casos": {"C4": {"ticket": "FO-LAB-02138", "estado": "fallido", "so": "Red Hat Enterprise Linux 9", "ip": "pendiente", "boveda": false, "resultado": "ok"}, "C1": {"ticket": "FO-LAB-02139", "estado": "exitoso", "siguiente": null, "so": "Windows Server 2022", "ip": "192.168.122.120", "boveda": true, "resultado": "fallido"}}}
---- fin: 2026-11-12T10:42:24-03:00 · código: 0
+== Ficha tras el despliegue
+PAG /lab/nubes/2 200 Tickets de esta nube filas 8 · primero FO-LAB-02165  · pie
+PAG /lab/hipervisores/1 200 Tickets de este hipervisor filas 46 · primero FO-LAB-01976  · pie
+DATOS {"nube": "Cloud GCP · invoke-summit-cloud", "fuente": 1199, "inv": 7, "cred": "GCP · invoke-summit-cloud", "detalle": "{\"proyecto\": \"invoke-summit-cloud\", \"zona\": \"southamerica-west1-a\", \"red\": \"default\", \"etiqueta\": \"demo=summit-cloud\"}", "estado": "conectada", "upd": null}
+RES {"caso": "C1", "auto": "Nube · Validar conexión e inventariar", "ticket": "FO-LAB-02171", "estado": "exitoso", "stats": {"faceops_nube": {"nube": "Cloud GCP · invoke-summit-cloud", "estado": "conectada", "maquinas": "0", "sincronizacion": "26805"}}, "detalle": "", "fallos": [], "resultado": "AAP terminó (successful): ejecución 18 s, espera de aprobación 33 s"}
+C1 stats: estado=conectada maquinas=0 · VMS ficha=conectada 0 
+CASO C1 falla · Validar conexión GCP vigente y aprobar
+C2: {"ticket": "FO-LAB-02172", "estado": "rechazado"} · conexión 24bfe9096407→24bfe9096407 · última sincronización  successful→ successful
+CASO C2 ok · Rechazar la aprobación
+RES {"caso": "C3", "auto": "Nube · Validar conexión e inventariar", "ticket": "FO-LAB-02175", "estado": "fallido", "stats": {}, "detalle": "Sincronizar la fuente dinámica (prueba la API del proveedor con la credencial guardada) · Status code was 404 and not [200, 201, 202]: HTTP Error 404: Not Found · ", "fallos": ["Sincronizar la fuente dinámica (prueba la API del proveedor con la credencial guardada) · Status code was 404 and not [200, 201, 202]: HTTP Error 404: Not Found"], "resultado": "e=63072000\", \"url\": \"https://192.168.122.1/api/controller/v2/inventory_sources/999999/update/\", \"vary\": \"Accept-Encoding,Accept, Accept-Language, origin\", \"x_api_node\": \"demo-ansible-summit\", \"x_api_product_name\": \"Red Hat Ansible Automation Platform\", \"x_api_product_version\": \"4.8.11\", \"x_api_request_id\": \"e9c2d8d0f227442ea3516289610a7d04\", \"x_api_time\": \"0.017s\", \"x_api_total_time\": \"0.048s\", \"x_content_type_options\": \"nosniff\", \"x_envoy_upstream_service_time\": \"49\", \"x_frame_options\": \"DENY\"}\n\nPLAY RECAP *********************************************************************\nlocalhost                  : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   "}
+C3: fallido · Sincronizar la fuente dinámica (prueba la API del proveedor con la credencial guardada) · Status code was 404 and not [200, 201, 202]: HTTP Error 404: Not Found ·  · sincronización  successful→ successful
+CASO C3 ok · Fuente dinámica inexistente
+CASOS [{"id": "C1", "caso": "Validar conexión GCP vigente y aprobar", "resultado": "falla", "evidencia": "exitoso conectada 0 "}, {"id": "C2", "caso": "Rechazar la aprobación", "resultado": "ok", "evidencia": "rechazado; sin sincronización nueva ( successful); conexión sin cambios (24bfe9096407)"}, {"id": "C3", "caso": "Fuente dinámica inexistente", "resultado": "ok", "evidencia": "fallido: Sincronizar la fuente dinámica (prueba la API del proveedor con la credencial guardada) · Status code was 404 and not [200, 201, 202]: HTTP Error 404: Not Found · "}]
+TKS ["FO-LAB-02171", "FO-LAB-02172", "FO-LAB-02175"]
+NO SE CERTIFICA: hay casos fallidos
+CERT Nube · Validar conexión e inventariar → fallida
+--- fin: 2026-11-12T10:50:22-03:00 · código: 0
