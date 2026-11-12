@@ -2,9 +2,9 @@
 {% block cuerpo %}
 <div class="fila"><div><h1>{{ titulo }}{% if sel %} · {{ sel_t }}{% endif %}</h1><p class="sub">{{ desc }}</p></div>
 {% if perfil_actual.modo == 'escritura' %}<div class="der fila" style="gap:8px">{% if servidores_inc is defined and ep == 'consola.sistemas_operativos' %}<button type="button" class="btn" onclick="document.getElementById('dlg-inc').showModal()">+ Agregar sistema operativo</button>
-{% elif servidores_inc is defined %}<button type="button" class="btn" onclick="document.getElementById('dlg-inc').showModal()">+ {{ 'Agregar base de datos' if ep == 'consola.bases_datos' else 'Incorporar plataforma' }}</button>{% endif %}</div>{% endif %}</div>
+{% elif servidores_inc is defined and ep != 'consola.plataformas_vista' %}<button type="button" class="btn" onclick="document.getElementById('dlg-inc').showModal()">+ {{ 'Agregar base de datos' if ep == 'consola.bases_datos' else 'Incorporar plataforma' }}</button>{% endif %}</div>{% endif %}</div>
 {% if servidores_inc is defined and perfil_actual.modo == 'escritura' %}<dialog id="dlg-inc" class="card" style="max-width:520px;width:94%"><form class="f" onsubmit="event.preventDefault();const u=this.srv.value;if(u)location.href=u+'{{ '' if ep == 'consola.sistemas_operativos' else '#incorporar-plataforma' }}';">
-<h3 style="margin:0 0 6px">{{ 'Agregar sistema operativo' if ep == 'consola.sistemas_operativos' else ('Agregar base de datos' if ep == 'consola.bases_datos' else 'Incorporar plataforma') }}</h3>
+<h3 style="margin:0 0 6px">{{ 'Agregar sistema operativo' if ep == 'consola.sistemas_operativos' else ('Agregar base de datos' if ep == 'consola.bases_datos' else 'Agregar plataforma') }}</h3>
 <p class="sub" style="font-size:12.5px;margin:0 0 10px">{% if ep == 'consola.sistemas_operativos' %}Elige la máquina nueva donde se instalará el sistema operativo (las que aún no tienen uno aparecen primero). En su ficha eliges el sistema aceptado por el manifiesto de arquitectura; la instalación es un ticket con su aprobación.{% else %}Elige la máquina donde se instala. En su ficha verás {{ 'los motores' if ep == 'consola.bases_datos' else 'las plataformas' }} compatibles aceptados por el manifiesto de arquitectura; cada instalación es un ticket con su aprobación.{% endif %}</p>
 <label>Máquina<select name="srv" required><option value="">—</option>{% for e in servidores_inc %}<option value="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }} · {{ e.so or 'sin sistema' }}{{ ' · ' ~ e.ubicacion if e.ubicacion }}</option>{% endfor %}</select></label>
 {% if not servidores_inc %}<p class="sub" style="margin:8px 0 0">Aún no hay servidores: agrega uno en <a href="{{ url_for('consola.inventario', alta=1) }}">Servidores</a>.</p>{% endif %}
@@ -12,7 +12,7 @@
 {{ radar_franja(radar_sec, (titulo ~ ' · ' ~ sel_t) if sel else titulo) }}
 {{ buscador('¿Qué buscas? nombre, versión, ambiente, ubicación…') }}
 {% if not sel %}
-{% macro tarjeta_(c) %}{% set r = c.res %}<a class="auto auto-hub plat-hub" href="{{ url_for(ep, p=c.clave) }}" title="Ver las instancias de {{ c.t }}">
+{% macro tarjeta_(c) %}{% set r = c.res %}<a class="auto auto-hub plat-hub" data-texto="{{ ([c.t, c.fab or ''] + (c.versiones or []) + (c.ambientes or []))|join(' ')|lower }}" href="{{ url_for(ep, p=c.clave) }}" title="Ver las instancias de {{ c.t }}">
 <span class="arriba"><img class="logo-auto" width="40" height="40" alt="" aria-hidden="true" src="{{ url_for('static', filename=c.logo or 'logos/generico.svg') }}">{% if c.mf is defined and c.mf not in ("aceptada", "evaluacion") %}<span class="chip {{ 's-alta' if c.mf in ('fuera', 'retirar') else 's-media' }}" style="font-size:11px" title="Manifiesto de arquitectura">{{ c.mf_t|lower if c.mf != 'fuera' else 'fuera del manifiesto' }}</span>{% elif r %}<span class="chip {{ 's-ok' if r.on == r.n else ('s-alta' if r.on == 0 else 's-media') }}" style="font-size:11px">● {{ r.on }}/{{ r.n }} encendidos</span>{% endif %}</span>
 <span class="t">{{ c.t }}</span>
 <span class="por">{{ c.fab ~ ' · ' if c.fab }}{{ c.n }} instancia{{ 's' if c.n != 1 }}{% if r and c.mf is defined and c.mf not in ("aceptada", "evaluacion") %} · {{ r.on }}/{{ r.n }} encendidos{% endif %}</span>
@@ -36,7 +36,8 @@
 .plat-hub .ph-fila{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}.plat-hub .ph-et{font-size:12px;color:var(--muted)}
 .plat-hub .ph-fila .compat{margin-top:0;padding-top:0}.plat-hub .ph-fila .chip{font-size:11px;padding:1px 7px}
 .plat-hub .ph-salud{margin-top:auto;padding-top:10px;border-top:1px solid var(--line);align-items:center;flex-wrap:nowrap}.plat-hub .ph-salud .salud-barra{flex:1}</style>
-<div class="autos">{% for c in cajas %}{{ tarjeta_(c) }}{% endfor %}</div>{% elif cajas %}{{ tabla_(cajas) }}{% else %}<p class="sub">Aún no hay datos: inventaría las máquinas para detectarlos.</p>{% endif %}</div>{% endif %}
+{% if perfil_actual.modo == 'escritura' and servidores_inc is defined %}<p style="margin:0 0 10px;text-align:right"><a class="btn" href="#" onclick="event.preventDefault();document.getElementById('dlg-inc').showModal()">+ Agregar plataforma</a></p>{% endif %}
+<div class="autos" data-buscable>{% for c in cajas %}{{ tarjeta_(c) }}{% endfor %}</div><p class="vacio busca-vacio" hidden>Sin resultados para la búsqueda.</p>{% elif cajas %}{{ tabla_(cajas) }}{% else %}<p class="sub">Aún no hay datos: inventaría las máquinas para detectarlos.</p>{% endif %}</div>{% endif %}
 {% else %}
 <p class="sub" style="margin:0 0 10px"><a href="{{ url_for(ep) }}">← Volver a la lista</a></p>
 {% if instancias %}<div class="card" style="padding:0"><table data-buscable><tr><th>ID de plataforma</th><th>Versión</th><th>Ambiente</th><th>Ubicación</th><th>Salud consolidada</th><th>Estado</th></tr>
