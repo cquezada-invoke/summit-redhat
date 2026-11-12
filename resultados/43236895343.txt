@@ -1,0 +1,24 @@
+commit: ccce2527f9a79a1d1f06704339a816a153464ef6
+inicio: 2026-11-12T11:24:55-03:00
+---
+DESPLEGADO
+PAR NO | App de pagos  | prod<2: ['Balanceador Nginx=1', 'PostgreSQL=1', 'Colas (Artemis) y caché (Valkey)=1'] | previos: {'qa': 6, 'desarrollo': 6} | ocp: 0
+PAR NO | Autoservicio de desarrollo  | prod<2: ['Nginx (publicación)=1', 'Keycloak (login único)=1'] | previos: {} | ocp: 0
+PAR NO | Banca · Banca digital | sin_prod | prod<2: [] | previos: {} | ocp: 2
+PAR NO | Banca · CRM y contact center | sin_prod | prod<2: [] | previos: {} | ocp: 2
+PAR NO | Banca · Core bancario | sin_prod | prod<2: [] | previos: {} | ocp: 2
+PAR NO | Banca · Originación de créditos | sin_prod | prod<2: [] | previos: {} | ocp: 2
+PAR NO | Banca · Tarjetas | sin_prod | prod<2: [] | previos: {} | ocp: 2
+PAR NO | Denuncias · Fiscalía (demo) | sin_prod | prod<2: [] | previos: {} | ocp: 4
+PAR NO | Gobierno de identidades  | prod<2: ['midPoint (gobierno de identidades)=1', 'Keycloak (acceso único)=1', '389 Directory Server=1', 'Red Hat IdM=1', 'Active Directory=1'] | previos: {} | ocp: 0
+PAR NO | Plataforma OpenShift (SNO)  | prod<2: ['Nodo sno · plano de control y trabajo=1'] | previos: {} | ocp: 3
+PAR NO | Portal de clientes  | prod<2: ['Portal JBoss=1', 'PostgreSQL de pedidos=1'] | previos: {} | ocp: 0
+PAR NO | Red corporativa | sin_prod | prod<2: [] | previos: {} | ocp: 0
+PAR NO | Sitio web corporativo  | prod<2: ['Sitio web (IIS)=1'] | previos: {} | ocp: 0
+PAR NO | Telco · BSS · facturación y planes | sin_prod | prod<2: [] | previos: {} | ocp: 2
+PAR NO | Telco · Mi cuenta y atención | sin_prod | prod<2: [] | previos: {} | ocp: 2
+PAR NO | Telco · OSS · calidad de red | sin_prod | prod<2: [] | previos: {} | ocp: 2
+PAR NO | Telco · Uso de red (CDR) | sin_prod | prod<2: [] | previos: {} | ocp: 2
+PAR NO | Telco · Ventas y recargas | sin_prod | prod<2: [] | previos: {} | ocp: 2
+D3 3 / 16
+--- fin: 2026-11-12T11:30:47-03:00 · código: 0
