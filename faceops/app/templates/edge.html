@@ -1,31 +1,67 @@
 {% extends "base.html" %}{% block titulo %}Edge{% endblock %}
 {% block cuerpo %}{% from "_ficha_infra.html" import recursos with context %}{% from "_edge_form.html" import cajon_sitio with context %}
+{% macro barra(p) %}{% if p is not none %}{% set nv = semaforo_salud(p) %}<span class="salud-barra s-{{ nv }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ p }}%"></span></span><b>{{ p }}%</b></span>{% else %}<span class="salud-barra s-gris"><span class="sb-pista"></span><b>—</b></span>{% endif %}{% endmacro %}
 <div class="fila" style="align-items:flex-start;gap:12px;flex-wrap:wrap"><div style="min-width:0;flex:1"><h1>Edge</h1>
 <p class="sub">Sitios remotos (tiendas, sucursales, bodegas, centros de distribución). Cada uno tiene su execution node en la malla de AAP; las acciones bajan por ese túnel con ticket y aprobación, sin abrir puertos en el sitio.</p></div>
-{% if esc %}<button type="button" class="btn" data-fi-abrir="fi-cx">+ Agregar sitio</button>{% endif %}</div>
+<div class="fila" style="gap:8px"><button type="button" class="btn gris" data-fi-abrir="fi-gr" title="Crear, editar o eliminar grupos de sitios">Grupos{% if grupos %} · {{ grupos|length }}{% endif %}</button>
+{% if esc %}<button type="button" class="btn" data-fi-abrir="fi-cx">+ Agregar sitio</button>{% endif %}</div></div>
 
 {% if not filas %}<div class="card" style="text-align:center;padding:36px 20px"><h2 style="margin:0 0 6px">Aún no hay sitios edge</h2>
 <p class="sub" style="max-width:560px;margin:0 auto 14px">Registra cada tienda o sucursal con su código técnico (p. ej. <span class="mono">CL-SCL-TDA-014</span>), su execution node y los equipos que tiene.</p>
 {% if esc %}<button type="button" class="btn" data-fi-abrir="fi-cx">Agregar sitio</button>{% else %}<p class="sub">Requiere perfil de escritura.</p>{% endif %}</div>
 {% else %}
-<div class="card" style="padding:0" id="edge-lista"><div class="fi-lcab"><select id="ed-tipo" aria-label="Filtrar por tipo" style="width:auto"><option value="">Todos los tipos</option>{% for k, n in tipos.items() %}<option value="{{ k }}" {{ 'selected' if tipo_sel == k }}>{{ n }}</option>{% endfor %}</select>
+{% if peores %}<div class="card ed-foco" style="margin:0 0 14px"><div class="fila"><h2 style="margin:0">Dónde focalizar</h2><span class="sub der" style="font-size:12px">grupos ordenados de peor a mejor salud</span></div>
+<div class="ed-foco-l">{% for r in peores %}<button type="button" class="ed-foco-i" data-grupo="{{ r.id if r.id is not none else 'sin' }}" title="Ver solo los sitios de {{ r.nombre }}">
+<span class="ed-foco-n"><b>{{ r.nombre }}</b>{% if r.demo %} <span class="chip s-media">demo</span>{% endif %}<small class="sub">{{ r.n }} sitio{{ 's' if r.n != 1 }}{% if r.criticos %} · <span style="color:var(--bad)">{{ r.criticos }} bajo 50 %</span>{% endif %}{% if r.nodos_mal %} · {{ r.nodos_mal }} nodo{{ 's' if r.nodos_mal != 1 }} sin malla{% endif %} · {{ r.alertas }} alerta{{ 's' if r.alertas != 1 }}</small></span>
+{{ barra(r.salud) }}</button>{% endfor %}</div></div>{% endif %}
+
+<div class="card" style="padding:0" id="edge-lista"><div class="fi-lcab"><select id="ed-grupo" aria-label="Filtrar por grupo" style="width:auto"><option value="">Todos los grupos</option>{% for r in res %}<option value="{{ r.id if r.id is not none else 'sin' }}" {{ 'selected' if grupo_sel == (r.id|string if r.id is not none else 'sin') }}>{{ r.nombre }}</option>{% endfor %}</select>
+<select id="ed-tipo" aria-label="Filtrar por tipo" style="width:auto"><option value="">Todos los tipos</option>{% for k, n in tipos.items() %}<option value="{{ k }}" {{ 'selected' if tipo_sel == k }}>{{ n }}</option>{% endfor %}</select>
 <span class="sub" id="ed-cuenta">{{ filas|length }} sitio{{ 's' if filas|length != 1 }}</span><input type="search" id="ed-q" placeholder="Buscar: código, nombre, ciudad, nodo…" aria-label="Buscar sitio"></div>
-<div style="overflow-x:auto"><table class="sin-pag edge-tab"><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>País / Ciudad</th><th>Execution node</th><th>Equipos</th><th style="min-width:150px">Salud</th></tr>
-{% for s in filas %}<tr class="ed-fila" data-tipo="{{ s.tipo }}" data-url="{{ url_for('consola.edge_ficha', sid=s.id) }}" tabindex="0">
+<div style="overflow-x:auto"><table class="sin-pag edge-tab"><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>País / Ciudad</th><th>Execution node</th><th>Equipos</th><th style="min-width:150px">Salud</th></tr></thead>
+{% for r in res if r.n %}{% set gk = r.id if r.id is not none else 'sin' %}<tbody class="ed-gr" data-grupo="{{ gk }}">
+<tr class="ed-cab"><td colspan="6"><button type="button" class="ed-pliega" aria-expanded="true"><i class="chev"></i><b>{{ r.nombre }}</b>{% if r.demo %} <span class="chip s-media">demo</span>{% endif %} <span class="sub ed-n">{{ r.n }} sitio{{ 's' if r.n != 1 }}</span>{% if r.descripcion %} <span class="sub" style="font-weight:400">· {{ r.descripcion }}</span>{% endif %}</button></td><td>{{ barra(r.salud) }}</td></tr>
+{% for s in r.filas %}<tr class="ed-fila" data-tipo="{{ s.tipo }}" data-url="{{ url_for('consola.edge_ficha', sid=s.id) }}" tabindex="0">
 <td><a class="mono" href="{{ url_for('consola.edge_ficha', sid=s.id) }}"><b>{{ s.codigo }}</b></a>{% if s.demo %} <span class="chip s-media" title="Sitio de laboratorio: agrupa máquinas existentes del lab, no es una tienda real">demo</span>{% endif %}</td>
 <td>{{ s.alias or '—' }}</td><td>{{ tipos.get(s.tipo, s.tipo) }}</td><td>{{ s.pais }} · {{ s.ciudad }}</td>
 <td><span class="mono" style="font-size:12px">{{ s.nodo or '—' }}</span><br><span class="chip {{ s.nodo_cls }}">{{ s.nodo_txt }}</span>{% if s.hop %} <span class="sub" style="font-size:11.5px">vía {{ s.hop }}</span>{% endif %}</td>
-<td>{{ s.eqs|length }}</td>
-<td>{% if s.salud is not none %}{% set nv = semaforo_salud(s.salud) %}<span class="salud-barra s-{{ nv }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ s.salud }}%"></span></span><b>{{ s.salud }}%</b></span>{% else %}<span class="salud-barra s-gris"><span class="sb-pista"></span><b>—</b></span>{% endif %}</td></tr>{% endfor %}
-<tr id="ed-nada" style="display:none"><td colspan="7" class="sub">Ningún sitio coincide con el filtro.</td></tr></table></div></div>
-<style>.edge-tab .ed-fila{cursor:pointer}.edge-tab .ed-fila:hover td{background:var(--soft)}</style>
-<script>(()=>{const q=document.getElementById('ed-q'),t=document.getElementById('ed-tipo'),fs=[...document.querySelectorAll('.ed-fila')],nada=document.getElementById('ed-nada'),cu=document.getElementById('ed-cuenta');
-function f(){const v=q.value.toLowerCase().trim(),tp=t.value;let n=0;fs.forEach(r=>{const ok=(!tp||r.dataset.tipo===tp)&&(!v||r.textContent.toLowerCase().includes(v));r.style.display=ok?'':'none';if(ok)n++;});nada.style.display=n?'none':'';cu.textContent=n+' sitio'+(n===1?'':'s');
- const u=new URL(location.href);tp?u.searchParams.set('tipo',tp):u.searchParams.delete('tipo');history.replaceState(null,'',u);}
-q.addEventListener('input',f);t.addEventListener('change',f);f();
-fs.forEach(r=>{r.addEventListener('click',e=>{if(!e.target.closest('a'))location.href=r.dataset.url;});r.addEventListener('keydown',e=>{if(e.key==='Enter')location.href=r.dataset.url;});});})();</script>
+<td>{{ s.eqs|length }}</td><td>{{ barra(s.salud) }}</td></tr>{% endfor %}</tbody>{% endfor %}
+<tbody><tr id="ed-nada" style="display:none"><td colspan="7" class="sub">Ningún sitio coincide con el filtro.</td></tr></tbody></table></div></div>
+<style>.edge-tab .ed-fila{cursor:pointer}.edge-tab .ed-fila:hover td{background:var(--soft)}
+.edge-tab .ed-cab td{background:var(--soft);border-top:1px solid var(--line)}.ed-pliega{border:0;background:none;padding:0;cursor:pointer;color:inherit;font:inherit;display:inline-flex;gap:6px;align-items:baseline;flex-wrap:wrap;text-align:left}
+.ed-pliega .chev{display:inline-block;width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-right:4px;transition:transform .15s}.ed-gr.plegado .ed-pliega .chev{transform:rotate(-45deg)}
+.ed-foco-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-top:10px}.ed-foco-i{display:flex;flex-direction:column;gap:6px;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:10px 12px;cursor:pointer;color:inherit;font:inherit}
+.ed-foco-i:hover,.ed-foco-i.on{border-color:var(--info,#2b9af3)}.ed-foco-n small{display:block;font-size:11.5px;margin-top:2px}</style>
+<script>(()=>{const q=document.getElementById('ed-q'),t=document.getElementById('ed-tipo'),gs=document.getElementById('ed-grupo'),nada=document.getElementById('ed-nada'),cu=document.getElementById('ed-cuenta');
+const grs=[...document.querySelectorAll('.ed-gr')];
+function f(){const v=q.value.toLowerCase().trim(),tp=t.value,gp=gs.value;let n=0;
+ grs.forEach(g=>{const okg=!gp||g.dataset.grupo===gp;let k=0;g.querySelectorAll('.ed-fila').forEach(r=>{const ok=okg&&(!tp||r.dataset.tipo===tp)&&(!v||r.textContent.toLowerCase().includes(v));r.dataset.ok=ok?'1':'';r.style.display=ok&&!g.classList.contains('plegado')?'':'none';if(ok)k++;});
+  g.style.display=k?'':'none';n+=k;});
+ nada.style.display=n?'none':'';cu.textContent=n+' sitio'+(n===1?'':'s');
+ document.querySelectorAll('.ed-foco-i').forEach(b=>b.classList.toggle('on',b.dataset.grupo===gp));
+ const u=new URL(location.href);tp?u.searchParams.set('tipo',tp):u.searchParams.delete('tipo');gp?u.searchParams.set('grupo',gp):u.searchParams.delete('grupo');u.searchParams.delete('grupos');history.replaceState(null,'',u);}
+q.addEventListener('input',f);t.addEventListener('change',f);gs.addEventListener('change',f);
+document.querySelectorAll('.ed-foco-i').forEach(b=>b.addEventListener('click',()=>{gs.value=gs.value===b.dataset.grupo?'':b.dataset.grupo;f();document.getElementById('edge-lista').scrollIntoView({behavior:'smooth',block:'start'});}));
+grs.forEach(g=>g.querySelector('.ed-pliega').addEventListener('click',e=>{const pl=g.classList.toggle('plegado');e.currentTarget.setAttribute('aria-expanded',pl?'false':'true');f();}));
+f();
+document.querySelectorAll('.ed-fila').forEach(r=>{r.addEventListener('click',e=>{if(!e.target.closest('a'))location.href=r.dataset.url;});r.addEventListener('keydown',e=>{if(e.key==='Enter')location.href=r.dataset.url;});});})();</script>
 {% endif %}
-{% if esc %}{{ cajon_sitio(None, equipos, ocupados, url_for('consola.edge_guardar')) }}{% endif %}
+
+<aside id="fi-gr" class="cajon" hidden aria-label="Grupos de sitios"><div class="cajon-barra"><b style="font-size:15px">Grupos de sitios</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
+<p class="sub" style="margin:4px 0 12px;font-size:12.5px">Agrupa los sitios (p. ej. «Zona Norte», «Mall», «Tiendas grandes») para ver dónde focalizar. Cada sitio va en un solo grupo y se asigna en «Editar sitio». Eliminar un grupo no borra sus sitios: quedan sin grupo.</p>
+{% for gr in grupos %}<details class="ed-gitem"><summary><b>{{ gr.nombre }}</b>{% if gr.demo %} <span class="chip s-media">demo</span>{% endif %} <span class="sub">· {{ n_por_grupo.get(gr.id, 0) }} sitio{{ 's' if n_por_grupo.get(gr.id, 0) != 1 }}</span>{% if gr.descripcion %}<small class="sub">{{ gr.descripcion }}</small>{% endif %}</summary>
+{% if esc %}<form method="post" action="{{ url_for('consola.edge_grupo_guardar', gid=gr.id) }}" class="form-infra" style="display:flex;flex-direction:column;gap:8px;margin:8px 0 0"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Nombre <span class="req" aria-hidden="true">*</span><input name="nombre" required maxlength="60" value="{{ gr.nombre }}"></label><label>Descripción<input name="descripcion" maxlength="240" value="{{ gr.descripcion }}"></label>
+<div class="fila" style="gap:8px"><button class="btn chico">Guardar</button></div></form>
+<form method="post" action="{{ url_for('consola.edge_grupo_eliminar', gid=gr.id) }}" style="margin:8px 0 0" onsubmit="return confirm('¿Eliminar el grupo «{{ gr.nombre|e }}»? Sus sitios quedarán sin grupo.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris" style="color:var(--bad)">Eliminar grupo</button></form>{% endif %}
+</details>{% else %}<p class="vacio">Aún no hay grupos.</p>{% endfor %}
+{% if esc %}<form method="post" action="{{ url_for('consola.edge_grupo_guardar') }}" class="form-infra" style="display:flex;flex-direction:column;gap:8px;margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line)"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<b>Nuevo grupo</b><label>Nombre <span class="req" aria-hidden="true">*</span><input name="nombre" required maxlength="60" placeholder="Zona Norte"></label><label>Descripción<input name="descripcion" maxlength="240" placeholder="Tiendas de Antofagasta a La Serena"></label>
+<div class="fila" style="gap:8px"><button class="btn">Crear grupo</button><button type="button" class="btn gris" data-fi-cerrar="1">Cerrar</button></div></form>{% else %}<p class="sub">Crear o editar grupos requiere perfil de escritura.</p>{% endif %}
+<style>.ed-gitem{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:0 0 8px}.ed-gitem summary{cursor:pointer}.ed-gitem summary small{display:block;font-size:12px;margin:2px 0 0 14px}</style>
+</aside>
+{% if esc %}{{ cajon_sitio(None, equipos, ocupados, url_for('consola.edge_guardar'), grupos) }}{% endif %}
 {{ recursos('el sitio') }}
 {% if request.args.get('nuevo') and esc %}<script>document.querySelector('[data-fi-abrir="fi-cx"]').click();</script>{% endif %}
+{% if request.args.get('grupos') %}<script>document.querySelector('[data-fi-abrir="fi-gr"]').click();</script>{% endif %}
 {% endblock %}

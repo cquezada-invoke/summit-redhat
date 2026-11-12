@@ -18,12 +18,37 @@
     <div><dt>Nombre comercial</dt><dd>{{ s.alias or '—' }}</dd></div>
     <div><dt>Tipo</dt><dd>{{ tipos.get(s.tipo, s.tipo) }} <span class="sub mono">{{ s.tipo }}</span></dd></div>
     <div><dt>País · ciudad</dt><dd>{{ s.pais }} · {{ s.ciudad }}</dd></div>
+    <div><dt>Grupo</dt><dd>{% if grupo_s %}<a href="{{ url_for('consola.edge', grupo=grupo_s.id) }}">{{ grupo_s.nombre }}</a>{% else %}Sin grupo{% endif %}</dd></div>
     <div><dt>Grupo en AAP</dt><dd class="mono">{{ grupo }}</dd></div>
     <div><dt>Actualizado</dt><dd>{{ (s.actualizado|fecha) if s.actualizado else '—' }}{% if s.autor %} <span class="sub">· {{ s.autor }}</span>{% endif %}</dd></div>
   </dl>
 </div>
 
-<div class="card" style="margin-top:6px" id="malla"><div class="fila"><h2 style="margin:0">Execution node y hop</h2><span class="sub der" style="font-size:12px">Automation Mesh de AAP · {{ 'estado leído de AAP' if m is not none else 'AAP no respondió: estado sin lectura' }}</span></div>
+<div class="card" style="margin-top:6px" id="diagrama"><div class="fila"><h2 style="margin:0">Arquitectura del sitio</h2><span class="sub der" style="font-size:12px">desde el inventario del sitio · clic en un equipo abre su ficha</span></div>
+<div class="ed-dg-ley sub"><span><i class="t-ok"></i>≥ 85 %</span><span><i class="t-med"></i>50–84 %</span><span><i class="t-mal"></i>&lt; 50 %</span><span><i class="t-nd"></i>sin lectura</span><span><i class="ed-tun"></i>túnel de la malla</span></div>
+<div class="ed-dg"><svg viewBox="0 0 {{ diag.w }} {{ diag.h }}" role="img" aria-label="Arquitectura del sitio {{ s.codigo }}" style="min-width:640px">
+<defs><marker id="ed-flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ed-fl"/></marker></defs>
+{% set mc = diag.marco %}<rect x="{{ mc.x }}" y="{{ mc.y }}" width="{{ mc.w }}" height="{{ mc.h }}" rx="10" class="ed-marco"/><text x="{{ mc.x + 14 }}" y="{{ mc.y + 20 }}" class="ed-mtx">{{ mc.txt }}</text>
+{% for l in diag.lineas %}<line x1="{{ l.x1 }}" y1="{{ l.y1 }}" x2="{{ l.x2 }}" y2="{{ l.y2 }}" class="{{ 'ed-tunel' if l.tunel else 'ed-con' }}" {% if l.tunel %}marker-end="url(#ed-flecha)"{% endif %} />{% if l.txt %}<text x="{{ l.x1 + 10 }}" y="{{ (l.y1 + l.y2) / 2 + 4 }}" class="ed-ltx">{{ l.txt }}</text>{% endif %}{% endfor %}
+{% for t in diag.textos %}<text x="{{ t.x }}" y="{{ t.y }}" class="ed-stx" {% if t.centro %}text-anchor="middle"{% endif %}>{{ t.txt }}</text>{% endfor %}
+{% for c in diag.cajas %}{% if c.url %}<a href="{{ c.url }}" class="ed-link">{% endif %}<g class="ed-caja t-{{ c.tono }}"><title>{{ c.info or c.tit_full }}</title>
+<rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" rx="7"/>
+<text x="{{ c.x + 10 }}" y="{{ c.y + 22 }}" class="ed-ctit{{ ' mono' if c.mono }}">{{ c.tit }}</text><text x="{{ c.x + 10 }}" y="{{ c.y + 41 }}" class="ed-csub">{{ c.sub }}</text>
+{% if c.tono != 'central' %}<text x="{{ c.x + c.w - 8 }}" y="{{ c.y + 22 }}" text-anchor="end" class="ed-cpct">{{ (c.pct ~ ' %') if c.pct is not none else '—' }}</text>{% endif %}</g>{% if c.url %}</a>{% endif %}{% endfor %}
+</svg></div></div>
+<style>.ed-dg{overflow-x:auto;margin-top:8px}.ed-dg svg{width:100%;height:auto;display:block}
+.ed-marco{fill:none;stroke:var(--bad);stroke-width:1.5;stroke-dasharray:6 5}.ed-mtx{font-size:13px;font-weight:600;fill:var(--bad)}
+.ed-tunel{stroke:var(--info,#2b9af3);stroke-width:2;stroke-dasharray:7 5}.ed-fl{fill:var(--info,#2b9af3)}.ed-con{stroke:var(--muted);stroke-width:1;opacity:.55}
+.ed-ltx{font-size:11.5px;fill:var(--info,#2b9af3)}.ed-stx{font-size:12px;font-weight:600;fill:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ed-caja rect{stroke-width:1.5}.ed-ctit{font-size:13px;font-weight:600;fill:var(--ink)}.ed-ctit.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.ed-csub{font-size:11px;fill:var(--muted)}.ed-cpct{font-size:13px;font-weight:700}
+.t-ok rect{fill:var(--okbg);stroke:var(--ok)}.t-ok .ed-cpct{fill:var(--ok)}.t-med rect{fill:var(--warnbg);stroke:var(--warn)}.t-med .ed-cpct{fill:var(--warn)}
+.t-mal rect{fill:var(--badbg);stroke:var(--bad)}.t-mal .ed-cpct{fill:var(--bad)}.t-nd rect{fill:var(--soft);stroke:var(--muted)}.t-nd .ed-cpct{fill:var(--muted)}
+.t-central rect{fill:var(--panel);stroke:var(--ink)}.ed-link:hover rect{stroke-width:3}.ed-link{cursor:pointer}
+.ed-dg-ley{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:6px}.ed-dg-ley i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px;border:1.5px solid}
+.ed-dg-ley .t-ok{background:var(--okbg);border-color:var(--ok)}.ed-dg-ley .t-med{background:var(--warnbg);border-color:var(--warn)}.ed-dg-ley .t-mal{background:var(--badbg);border-color:var(--bad)}.ed-dg-ley .t-nd{background:var(--soft);border-color:var(--muted)}
+.ed-dg-ley .ed-tun{width:22px;height:0;border:0;border-top:2px dashed var(--info,#2b9af3);vertical-align:3px}</style>
+
+<div class="card" style="margin-top:14px" id="malla"><div class="fila"><h2 style="margin:0">Execution node y hop</h2><span class="sub der" style="font-size:12px">Automation Mesh de AAP · {{ 'estado leído de AAP' if m is not none else 'AAP no respondió: estado sin lectura' }}</span></div>
 <table style="margin-top:8px" class="no-apilar"><tr><th>Rol</th><th>Nodo</th><th>Estado en la malla</th><th>Enlace</th></tr>
 <tr><td>Execution node <span class="sub">(en el sitio)</span></td><td class="mono">{{ s.nodo or '—' }}</td><td><span class="chip {{ nodo_c }}">{{ nodo_t }}</span></td><td class="sub" style="font-size:12.5px">{{ ('→ ' ~ s.hop) if s.hop else '→ central' }} · la conexión la inicia el sitio</td></tr>
 <tr><td>Hop node <span class="sub">(DMZ de la central)</span></td><td class="mono">{{ s.hop or '—' }}</td><td><span class="chip {{ hop_c }}">{{ hop_t }}</span></td><td class="sub" style="font-size:12.5px">{{ '→ central' if s.hop else 'no aplica: salida directa' }}</td></tr></table>
@@ -49,6 +74,6 @@
 {{ seccion_acciones(acciones, areas, url_acc) }}
 
 {{ cajon_salud(radar_s, s.codigo, url_acc) }}
-{% if esc %}{{ cajon_sitio(s, equipos, ocupados, url_for('consola.edge_guardar', sid=s.id)) }}{% endif %}
+{% if esc %}{{ cajon_sitio(s, equipos, ocupados, url_for('consola.edge_guardar', sid=s.id), grupos) }}{% endif %}
 {{ recursos(s.codigo) }}
 {% endblock %}

@@ -1,5 +1,5 @@
 {# Flotante lateral derecho de alta o edición de un sitio edge. El código técnico es inmutable: al editar no se cambia. #}
-{% macro cajon_sitio(s, equipos, ocupados, accion_url) %}
+{% macro cajon_sitio(s, equipos, ocupados, accion_url, grupos=[]) %}
 <style>#fi-cx .ed-eq{display:flex;flex-direction:row;gap:8px;align-items:baseline;font-weight:400;font-size:13px;margin:0}#fi-cx .ed-eq>*{margin:0}#fi-cx .ed-eq .sub{font-size:11.5px}#fi-cx .ed-eq input{align-self:center}#fi-cx .ed-otro{opacity:.55}</style>
 <aside id="fi-cx" class="cajon" hidden aria-label="{{ 'Editar sitio' if s else 'Agregar sitio' }}"><div class="cajon-barra"><b style="font-size:15px">{{ ('Editar sitio · ' ~ s.codigo) if s else 'Agregar sitio' }}</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
 <form method="post" action="{{ accion_url }}" class="form-infra" autocomplete="off" style="display:flex;flex-direction:column;gap:10px"><input type="hidden" name="_csrf" value="{{ csrf }}">
@@ -7,6 +7,8 @@
 {% else %}<label>Código técnico <span class="req" aria-hidden="true">*</span><input name="codigo" required class="mono" placeholder="CL-SCL-TDA-014" pattern="[A-Z]{2}-[A-Z]{3}-(TDA|SUC|BOD|CD)-[0-9]{3}" title="PAÍS-CIUDAD-TIPO-NNN en mayúsculas, p. ej. CL-SCL-TDA-014" id="ed-cod"></label>
 <p class="sub" style="margin:-6px 0 0;font-size:12px">PAÍS-CIUDAD-TIPO-NNN en mayúsculas. Tipos: TDA tienda · SUC sucursal · BOD bodega · CD centro de distribución. No se puede cambiar después.</p>{% endif %}
 <label>Nombre comercial (alias)<input name="alias" maxlength="80" value="{{ s.alias if s }}" placeholder="Tienda Mall Plaza Oeste"></label>
+<label>Grupo<select name="grupo_id"><option value="">Sin grupo</option>{% for gr in grupos %}<option value="{{ gr.id }}" {{ 'selected' if s and s.grupo_id == gr.id }}>{{ gr.nombre }}</option>{% endfor %}</select></label>
+<p class="sub" style="margin:-6px 0 0;font-size:12px">Un grupo por sitio (p. ej. «Zona Norte», «Mall»): sirve para ver dónde focalizar. Los grupos se gestionan en Edge › Grupos.</p>
 <label>Ciudad<input name="ciudad" maxlength="60" value="{{ s.ciudad if s }}" placeholder="Santiago"></label>
 <label>Execution node del sitio<input name="nodo" class="mono" value="{{ s.nodo if s }}" placeholder="{{ (s.codigo|lower ~ '-en01') if s else 'cl-scl-tda-014-en01' }}" id="ed-nodo"></label>
 <label>Hop node<input name="hop" class="mono" value="{{ s.hop if s }}" placeholder="hop-dmz-01"></label><p class="sub" style="margin:-6px 0 0;font-size:12px">Opcional: solo si el sitio no tiene salida directa a la central (normalmente en la DMZ).</p>
