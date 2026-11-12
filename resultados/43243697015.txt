@@ -1,0 +1,36 @@
+commit: f1a352cca2367977a65bff9c85b774446e6099bc
+inicio: 2026-11-12T12:14:34-03:00
+---
+objetivo: 7a33b8c4
+BUILD FALLÓ con 7a33b8c4 incluido: FaceOps sigue con la imagen anterior (ver ~/faceops-autodeploy/build.log)
+estado timer: 2026-11-12T12:05:36-03:00 error: build falló en b7c5f352; FaceOps sigue con 8fb8f324 (ver /home/cquezada/faceops-autodeploy/build.log) · configurar=sin cambios
+8fb8f32 Arquitectura · flujo: toda máquina queda dentro de un centro de datos y 
+  warnings.warn(
+INF {'id': 2, 'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'ubicacion': 'Cloud GCP', 'centro_datos': 'Cloud GCP'}
+INF {'id': 5, 'nombre': 'Dell · Centro de datos Santiago', 'tipo': 'fisico', 'ubicacion': 'Dell · Centro de datos Santiago', 'centro_datos': 'Centro de datos Santiago'}
+INF {'id': 1, 'nombre': 'KVM · Santiago', 'tipo': 'kvm', 'ubicacion': 'Centro de datos Santiago', 'centro_datos': 'Centro de datos Santiago'}
+INF {'id': 6, 'nombre': 'KVM · Valparaíso', 'tipo': 'kvm', 'ubicacion': 'Centro de datos Valparaíso', 'centro_datos': 'Centro de datos Valparaíso'}
+INF {'id': 3, 'nombre': 'OpenShift · SNO', 'tipo': 'openshift', 'ubicacion': 'OpenShift · SNO', 'centro_datos': 'Centro de datos Santiago'}
+INF {'id': 4, 'nombre': 'VMware · Santiago', 'tipo': 'vmware', 'ubicacion': 'VMware · Santiago', 'centro_datos': 'Centro de datos Santiago'}
+CENTROS Counter({'Centro de datos Santiago': 102, 'Sede Providencia · Sala de comunicaciones': 5, 'Centro de datos Valparaíso': 1})
+EQ 63 borde | Red corporativa · Centro de datos Santiago | Red · laboratorio | router → Centro de datos Santiago
+EQ 64 core | Red corporativa · Centro de datos Santiago | Red · laboratorio | switch → Centro de datos Santiago
+EQ 65 dns-dmz | Red corporativa · Centro de datos Santiago | Red · laboratorio | servidor → Centro de datos Santiago
+EQ 66 fw-interno | Red corporativa · Centro de datos Santiago | Red · laboratorio | firewall → Centro de datos Santiago
+EQ 67 fw-perimetral | Red corporativa · Centro de datos Santiago | Red · laboratorio | firewall → Centro de datos Santiago
+EQ 121 fw-sede-01 | Sede Providencia · Sala de comunicaciones | Red · laboratorio | firewall → Sede Providencia · Sala de comunicaciones
+EQ 68 lb-dmz | Red corporativa · Centro de datos Santiago | Red · laboratorio | balanceador → Centro de datos Santiago
+EQ 122 lb-sede-01 | Sede Providencia · Sala de comunicaciones | Red · laboratorio | balanceador → Sede Providencia · Sala de comunicaciones
+EQ 69 nas-01 | Red corporativa · Centro de datos Santiago | Red · laboratorio | almacenamiento → Centro de datos Santiago
+EQ 70 pc-campus-01 | Red corporativa · Centro de datos Santiago | Red · laboratorio | estación de trabajo → Centro de datos Santiago
+EQ 71 proxy-dmz | Red corporativa · Centro de datos Santiago | Red · laboratorio | servidor → Centro de datos Santiago
+EQ 123 rtr-wan-01 | Sede Providencia · Sala de comunicaciones | Red · laboratorio | router → Sede Providencia · Sala de comunicaciones
+EQ 72 srv-app-01 | Red corporativa · Centro de datos Santiago | Red · laboratorio | servidor → Centro de datos Santiago
+EQ 73 srv-bd-01 | Red corporativa · Centro de datos Santiago | Red · laboratorio | servidor → Centro de datos Santiago
+EQ 124 sw-acc-01 | Sede Providencia · Sala de comunicaciones | Red · laboratorio | switch → Sede Providencia · Sala de comunicaciones
+EQ 125 sw-core-01 | Sede Providencia · Sala de comunicaciones | Red · laboratorio | switch → Sede Providencia · Sala de comunicaciones
+GET 200 128209 ['Centro de datos Santiago · 40', 'Sede Providencia · Sala de comunicaciones · 5', 'Centro de datos Valparaíso · 1', 'Cloud GCP · 0 · Google Cloud · invoke-summit-cloud · southamerica-west1']
+  sin centro: [] | sin máquinas: 5 False
+GET 200 144362 ['Centro de datos Santiago · 40', 'Sede Providencia · Sala de comunicaciones · 5', 'Centro de datos Valparaíso · 1', 'Cloud GCP · 0 · Google Cloud · invoke-summit-cloud · southamerica-west1']
+  sin centro: [] | sin máquinas: 5 False
+--- fin: 2026-11-12T12:14:41-03:00 · código: 0
