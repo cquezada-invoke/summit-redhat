@@ -16,7 +16,19 @@ mk enuso $R/enuso:v1 1; mk cero $R/cero:v1 0
 if ! $OC -n $NS get deploy rollout >/dev/null 2>&1; then mk rollout $R/rollout:v1 1; sleep 40; $OC -n $NS set image deploy/rollout rollout=$R/rollout:v2 >/dev/null; fi
 $OC -n $NS rollout status deploy/rollout --timeout=180s >/dev/null 2>&1; $OC -n $NS rollout status deploy/enuso --timeout=180s >/dev/null 2>&1
 n=0; for t in sinuso:v1 enuso:v1 cero:v1 rollout:v1 rollout:v2; do $OC -n $NS get istag $t >/dev/null 2>&1 && n=$((n+1)); done
-[ $n = 5 ] && [ "$($OC -n $NS get pods --field-selector=status.phase=Running -o name 2>/dev/null | grep -vc build)" = 2 ] || { echo "CASO -- SIN ESCENARIO: no se pudo preparar $NS ($n de 5 imágenes)"; exit 1; }
+for i in $(seq 1 20); do [ "$($OC -n $NS get pods --field-selector=status.phase=Running -o name 2>/dev/null | grep -v build | wc -l)" -ge 2 ] && break; sleep 15; done
+[ $n = 5 ] && [ "$($OC -n $NS get pods --field-selector=status.phase=Running -o name 2>/dev/null | grep -v build | wc -l)" -ge 2 ] || { echo "CASO -- SIN ESCENARIO: no se pudo preparar $NS ($n de 5 imágenes)"; exit 1; }
+caso() {  # como el de comun.sh, pero si el arnés se corta (FaceOps reiniciado) sigue esperando el mismo ticket
+  local out tk
+  out=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 -u - "$1" < $P/lanzar.py 2>/dev/null)
+  RES=$(echo "$out" | grep '^RES ' | tail -1 | cut -c5-); tk=$(echo "$out" | grep '^TICKET ' | tail -1 | cut -d' ' -f2)
+  for k in 1 2 3; do
+    [ -n "$RES" ] || [ -z "$tk" ] && break
+    sleep 20; RES=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 -u - "{\"auto\":\"$N\",\"reanudar\":\"$tk\",\"min\":12}" < $P/lanzar.py 2>/dev/null | grep '^RES ' | tail -1 | cut -c5-)
+  done
+  [ -z "$RES" ] && RES='{"estado":"sin respuesta del arnés"}'
+  echo "RES $(echo "$RES" | cut -c1-300)"
+}
 foto() { $OC -n $NS get is,rs,deploy,pods -o name 2>/dev/null | sort | md5sum | cut -c1-8; }
 est_() { jq_ "next((x['estado'] for x in s.get('faceops_imagenes_movilidad',{}).get('detalle',[]) if x['id']=='$NS/$1' and x['rev']==0),'-')"; }
 
