@@ -314,8 +314,9 @@ jvo = asegurar("job_templates", "FaceOps · Vincular máquina on-premise", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/vincular-onprem.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True, "timeout": 3600,
     "description": "Máquina del anfitrión KVM: la enciende, lee su IP y deja el acceso SSH o WinRM HTTPS con el usuario de servicio (sin agentes). FaceOps la lanza con aprobación"})
-if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jvo['id']}/credentials/")["results"]}:
-    aap("POST", f"job_templates/{jvo['id']}/credentials/", {"id": c_kvm["id"]})
+for c_ in (c_kvm, uno("credentials", name="FaceOps · Bóveda (escritura)")):   # anfitrión KVM y escritura en la bóveda (maquinas/*)
+    if c_ and c_["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jvo['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{jvo['id']}/credentials/", {"id": c_["id"]})
 paso(f"Plantilla «FaceOps · Vincular máquina on-premise» (id {jvo['id']})")
 jri = asegurar("job_templates", "Infra · Cargar imágenes base al registro", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/registro-imagenes.yml", "inventory": inv_inf["id"],

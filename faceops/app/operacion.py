@@ -560,10 +560,8 @@ def _acceso_servicio(infra, usuario_srv):
     d = (leer(ruta) or {}) if bov_ok() else {}
     # la clave Windows del usuario de servicio es una sola para todas las máquinas (nube y on-premise): una Windows de la nube
     # creada por FaceOps queda también en «Servidores habilitados» y entra con la misma credencial del grupo windows
-    dw = (leer("infra/_windows/servicio") or {}) if bov_ok() else {}
-    if bov_ok() and not dw.get("clave") and d.get("clave_windows"):   # la primera clave ya en uso pasa a ser la compartida
-        dw = {"usuario": usuario_srv, "clave": d["clave_windows"]}
-        escribir("infra/_windows/servicio", dw)
+    # FaceOps solo LEE la bóveda: la clave compartida la escribe el trabajo de AAP (maquinas/_servicio-windows) la primera vez
+    dw = (leer("maquinas/_servicio-windows") or {}) if bov_ok() else {}
     if dw.get("clave") and d.get("clave_windows") != dw["clave"] and d.get("llave"):
         d["clave_windows"] = dw["clave"]
         escribir(ruta, d)
@@ -578,9 +576,7 @@ def _acceso_servicio(infra, usuario_srv):
     if dw.get("clave"):
         clave = dw["clave"]
     if bov_ok():
-        if not dw.get("clave"):
-            escribir("infra/_windows/servicio", {"usuario": usuario_srv, "clave": clave})
-        escribir(ruta, {"usuario": usuario_srv, "llave": priv, "publica": pub, "clave_windows": clave})
+        escribir(ruta, {"usuario": usuario_srv, "llave": priv, "publica": pub, "clave_windows": clave})   # si el rol de FaceOps puede escribir
     return priv, pub, clave
 
 
@@ -651,10 +647,13 @@ def registrar_vinculada_onprem(aap, cliente, t):
             hv = j(h.get("variables"), {}) if str(h.get("variables") or "").strip().startswith("{") else (yaml.safe_load(h.get("variables") or "") or {})
             hv.update(hv_ex)
             aap.patch(f"hosts/{h['id']}/", {"variables": json.dumps(hv, ensure_ascii=False)})
-    ej("UPDATE equipos SET ip=? WHERE id=?", ip, e["id"])
+    ej("UPDATE equipos SET ip=?, energia='encendido' WHERE id=?", ip, e["id"])   # la acción la encendió: el inventario no se frena por «apagada»
     txt = f"{nombre}: IP {ip}"
     if so == "windows":
-        _, _, clave = _acceso_servicio(INFRA_ONPREM, usuario_srv)
+        from .boveda import leer
+        clave = (leer("maquinas/_servicio-windows") or {}).get("clave")   # la dejó el trabajo; FaceOps no la regenera
+        if not clave:
+            return txt + " · sin la clave del usuario de servicio en la bóveda: no se registró la credencial (revisa «FaceOps · Bóveda (escritura)»)"
         org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
         cred = _credencial_maquinas(aap, org, "on-premise Windows", usuario_srv, clave=clave)
         cl_ = q1("SELECT recoleccion FROM clientes WHERE id=?", cliente["id"])
@@ -662,9 +661,6 @@ def registrar_vinculada_onprem(aap, cliente, t):
         filas = [x for x in plan.get(e["inventario"], []) if x.get("limite") != "windows"]
         plan[e["inventario"]] = [{"limite": "windows", "credencial": cred["name"]}] + filas   # Windows primero; el resto como estaba
         ej("UPDATE clientes SET recoleccion=? WHERE id=?", json.dumps(plan, ensure_ascii=False), cliente["id"])
-        if bov_ok():
-            escribir(f"maquinas/{nombre}", {"usuario": usuario_srv, "clave": clave, "protocolo": "rdp", "metodo": "clave", "puerto": 5986,
-                                            "conexion": "winrm", "origen": f"vinculada · {t['numero']}"})
         d_ = j(e["datos"], {})
         d_["vinculo"] = {"ok": True, "protocolo": "WinRM", "ticket": t["numero"], "cuando": ahora()}
         ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e["id"])

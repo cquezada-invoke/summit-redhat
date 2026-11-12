@@ -243,6 +243,13 @@
             memoria_asignable_gb: "{{ nodos | default([]) | map(attribute='memoria_asignable_gb') | map('float') | sum | round(1) }}"
             memoria_uso_gb: "{{ (uso | default({})).values() | map(attribute='mem_gb') | map('float') | sum | round(1) if uso is defined else none }}"
             pods_max: "{{ nodos | default([]) | map(attribute='pods_max') | map('int') | sum }}"
+            memoria_solicitada_gb: >-
+              {% set t = namespace(v=0.0) %}{% for p in (o.pods.get('items') or []) if p.status.phase | default('') not in ['Succeeded', 'Failed'] %}{% for c in p.spec.containers | default([]) %}
+              {%- set m = ((c.resources | default({})).requests | default({})).memory | default('0') | string %}{% set n = m | regex_replace('[^0-9.]', '') | float %}
+              {%- set t.v = t.v + (n / 1048576 if m.endswith('Ki') else n / 1024 if m.endswith('Mi') else n if m.endswith('Gi') else n / 1e6 if m.endswith('k') else n / 1e3 if m.endswith('M') else n * 0.931 if m.endswith('G') else n / 1073741824) %}{% endfor %}{% endfor %}{{ t.v | round(1) }}
+            cpu_solicitada: >-
+              {% set t = namespace(v=0.0) %}{% for p in (o.pods.get('items') or []) if p.status.phase | default('') not in ['Succeeded', 'Failed'] %}{% for c in p.spec.containers | default([]) %}
+              {%- set m = ((c.resources | default({})).requests | default({})).cpu | default('0') | string %}{% set t.v = t.v + ((m[:-1] | float / 1000) if m.endswith('m') else m | float) %}{% endfor %}{% endfor %}{{ t.v | round(2) }}
           storage:
             clases: >-
               {{ (o.clases_storage.get('items') or []) | map(attribute='metadata.name')

@@ -6,6 +6,7 @@
 #   3. crea el Namespace y el OperatorGroup si faltan (con la etiqueta de FaceOps, para que la desinstalación sepa qué retirar)
 #   4. crea la Subscription con aprobación Manual (política del clúster) y aprueba solo el plan de instalación de la versión pedida
 #   5. espera a que el CSV quede en Succeeded y reporta el resultado (set_stats faceops_operador)
+#   6. si no queda operativo y lo creó esta ejecución, vuelve atrás: retira lo creado (openshift-operador-retirar.yml)
 # Variables: oi_paquete, oi_ns, oi_modo (OwnNamespace | AllNamespaces), oi_canal (vacío = canal por defecto del catálogo),
 #            oi_fuente (redhat-operators), oi_nombre (nombre visible), oi_espera_min (10)
 - name: OpenShift · Instalar operador
@@ -15,6 +16,7 @@
   vars:
     fuente: "{{ oi_fuente | default('redhat-operators', true) }}"
     etiqueta: {faceops.invoke.cl/operador: "{{ oi_paquete | default('') }}"}
+    marca: faceops.invoke.cl/operador
     espera: "{{ ((oi_espera_min | default(10) | int) * 6) | int }}"
   module_defaults:
     kubernetes.core.k8s: {validate_certs: false}
@@ -213,10 +215,15 @@
             pods: "{{ pods_op | length }}"
             pods_listos: "{{ pods_op | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
 
+    - name: Vuelta atrás (el operador no quedó operativo)
+      ansible.builtin.include_tasks: openshift-operador-retirar.yml
+      vars: {od_paquete: "{{ oi_paquete }}", od_ns: "{{ oi_ns }}", espera: 30}
+      when: fase != 'Succeeded' and previa | length == 0
+
     - name: El operador quedó operativo
       ansible.builtin.assert:
         that: fase == 'Succeeded'
-        fail_msg: "{{ oi_paquete }}: el CSV {{ csv }} quedó en {{ fase }} {{ motivo_csv }}"
+        fail_msg: "{{ oi_paquete }}: el CSV {{ csv }} quedó en {{ fase }} {{ motivo_csv }}{{ ' · se volvió atrás: se retiró lo creado' if previa | length == 0 else '' }}"
         success_msg: >-
           {{ oi_paquete }} {{ 'ya estaba instalado' if previa else 'instalado' }} en {{ oi_ns }} ({{ oi_modo }}) · canal {{ canal }} ·
           {{ csv }} Succeeded · {{ pods_op | selectattr('status.phase', 'equalto', 'Running') | list | length }}/{{ pods_op | length }} pods en ejecución

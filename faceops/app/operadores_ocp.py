@@ -47,8 +47,10 @@ def disponibles(e, cliente_id=None):
     paq_ok = paq is not None and str(ocp.get("paquetes_completo")).lower() in ("true", "1")
     nodos = len(ocp.get("nodos") or []) or 1
     rec = ocp.get("recursos") or {}
-    asig, uso = _gb(rec.get("memoria_asignable_gb")), _gb(rec.get("memoria_uso_gb"))
-    libre = round(asig - uso, 1) if asig is not None and uso is not None else None
+    asig, uso, sol = _gb(rec.get("memoria_asignable_gb")), _gb(rec.get("memoria_uso_gb")), _gb(rec.get("memoria_solicitada_gb"))
+    # libre para programar pods: lo asignable menos lo que ya está reservado (requests) o en uso, lo que sea mayor
+    ocupada = max(x for x in (uso, sol, 0.0) if x is not None)
+    libre = round(max(asig - ocupada, 0.0), 1) if asig is not None and (uso is not None or sol is not None) else None
     clases = (ocp.get("storage") or {}).get("clases") or []
     en_curso = {}
     if cliente_id:
@@ -110,7 +112,7 @@ def disponibles(e, cliente_id=None):
                 continue
             mem, mem_i = _gb(o.get("memoria_gb")), _gb(o.get("instancia_gb"))
             if libre is not None and mem is not None and mem > libre:
-                x.update(estado="no disponible", motivo=f"Sus pods usan unos {mem:g} GB de memoria y el clúster tiene {libre:g} GB libres")
+                x.update(estado="no disponible", motivo=f"Sus pods piden unos {mem:g} GB de memoria y el clúster tiene {libre:g} GB libres (lo asignable menos lo ya reservado por otros pods)")
                 ops.append(x)
                 continue
             if libre is not None and mem_i is not None and mem_i > libre:

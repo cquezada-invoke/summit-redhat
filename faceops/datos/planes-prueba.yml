@@ -700,14 +700,15 @@ planes:
     casos:
       - {id: C1, caso: "Instalar File Integrity (OwnNamespace, namespace nuevo openshift-file-integrity) en ocp-sno", verificar: "aprobación respondida; ticket exitoso; Namespace, OperatorGroup (targetNamespaces propio) y Subscription con la etiqueta de FaceOps y aprobación Manual; CSV en Succeeded y pods del operador en ejecución; la ficha lo muestra como plataforma operativa con sus pods"}
       - {id: C2, caso: "Repetir la instalación de File Integrity", tipo: Idempotencia, verificar: "ticket exitoso sin cambios (changed=0, ya_estaba=true); una sola Subscription y el mismo CSV"}
-      - {id: C3, caso: "Instalar Network Observability (AllNamespaces, OperatorGroup global en namespace nuevo)", verificar: "ticket exitoso; OperatorGroup sin targetNamespaces; CSV en Succeeded; pods en ejecución"}
+      - {id: C3, caso: "Instalar Quay (AllNamespaces) en openshift-operators, que ya tiene su OperatorGroup global", verificar: "ticket exitoso; reutiliza el OperatorGroup global sin crear otro ni tocar el namespace; CSV en Succeeded; pods en ejecución"}
       - {id: C4, caso: "Paquete inexistente (no-existe-operator)", tipo: Error controlado, verificar: "ticket fallido en «El paquete existe en el catálogo» con el motivo; no se crea namespace ni Subscription"}
       - {id: C5, caso: "Modo no soportado: Web Terminal en OwnNamespace (solo admite AllNamespaces)", tipo: Error controlado, verificar: "ticket fallido en «Modo de instalación soportado» con los modos que admite; no se crea nada"}
+      - {id: C7, caso: "Operador que no cabe en el nodo: Network Observability con el nodo sin memoria reservable (sus pods quedan Pending)", tipo: Error controlado, verificar: "ticket fallido con la fase del CSV; vuelta atrás: Subscription, CSV, CRD, OperatorGroup y namespace creados se retiran"}
       - {id: C6, caso: "Desde la ficha: operador no disponible (OpenShift Data Foundation en un clúster de un solo nodo)", tipo: Error controlado, verificar: "FaceOps lo muestra deshabilitado con su motivo (requiere 3 nodos) y rechaza el pedido (400) sin crear ticket"}
   "OpenShift · Desinstalar operador":
     casos:
       - {id: D1, caso: "Desinstalar File Integrity (instalado por C1 de «Instalar operador»)", verificar: "aprobación respondida; ticket exitoso; Subscription, CSV, CRD propias sin recursos, OperatorGroup y Namespace creados por FaceOps retirados; la ficha ya no lo muestra"}
-      - {id: D2, caso: "Desinstalar Network Observability (AllNamespaces)", verificar: "ticket exitoso; Subscription, CSV, CRD y namespace openshift-netobserv-operator retirados"}
+      - {id: D2, caso: "Desinstalar Quay (AllNamespaces en openshift-operators)", verificar: "ticket exitoso; Subscription, CSV y CRD sin recursos retirados; openshift-operators y su OperatorGroup se conservan"}
       - {id: D3, caso: "Repetir la desinstalación de File Integrity", tipo: Idempotencia, verificar: "ticket exitoso sin cambios: no estaba instalado"}
       - {id: D4, caso: "Namespace del sistema (kube-system)", tipo: Error controlado, verificar: "ticket fallido en «Datos» con el motivo; nada se borra"}
       - {id: D5, caso: "El clúster queda como estaba", verificar: "mismas Subscriptions, CSV, namespaces y cantidad de CRD que antes del plan de instalación"}

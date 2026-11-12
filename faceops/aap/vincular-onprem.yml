@@ -128,3 +128,40 @@
         that: r_svc.rc == 0
         fail_msg: "WinRM HTTPS (5986) no aceptó al usuario de servicio en {{ inventory_hostname }}"
         success_msg: "{{ r_svc.stdout | default('') }} entra por WinRM HTTPS"
+
+- name: Vincular máquina on-premise · credencial en la bóveda (la escribe AAP; FaceOps solo la lee)
+  hosts: vo_windows
+  gather_facts: false
+  vars:
+    usuario: "{{ vo_usuario | default('faceops') }}"
+    bov_addr: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_ADDR') }}"
+    bov_token: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_TOKEN') }}"
+  tasks:
+    - name: Hay bóveda con escritura
+      ansible.builtin.assert:
+        that: [bov_addr | length > 0, bov_token | length > 0]
+        fail_msg: "Falta la credencial «FaceOps · Bóveda (escritura)» en la plantilla: la credencial no puede quedar solo en el anfitrión"
+        quiet: true
+
+    - name: Clave compartida del usuario de servicio Windows (maquinas/_servicio-windows, si aún no existe)
+      ansible.builtin.uri:
+        url: "{{ bov_addr }}/v1/faceops/data/maquinas/_servicio-windows"
+        method: POST
+        headers: {X-Vault-Token: "{{ bov_token }}"}
+        body_format: json
+        body: {options: {cas: 0}, data: {usuario: "{{ usuario }}", clave: "{{ inc_clave_windows }}"}}
+        status_code: [200, 204, 400]
+      delegate_to: localhost
+      no_log: true
+
+    - name: Acceso de la máquina (consola RDP de FaceOps y WinRM)
+      ansible.builtin.uri:
+        url: "{{ bov_addr }}/v1/faceops/data/maquinas/{{ inventory_hostname }}"
+        method: POST
+        headers: {X-Vault-Token: "{{ bov_token }}"}
+        body_format: json
+        body:
+          data: {usuario: "{{ usuario }}", clave: "{{ inc_clave_windows }}", protocolo: rdp, metodo: clave, puerto: 5986, conexion: winrm}
+        status_code: [200, 204]
+      delegate_to: localhost
+      no_log: true
