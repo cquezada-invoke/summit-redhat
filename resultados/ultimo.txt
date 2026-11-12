@@ -1,25 +1,47 @@
-commit: 34a9a54a24707157475615b7f2a81c344c1f06ab
-inicio: 2026-11-12T11:05:39-03:00
+commit: 14b282ae9176c9a2872a23ccb798acc756075cda
+inicio: 2026-11-12T11:16:35-03:00
 ---
-desplegado: be43a505 · 2026-11-12T11:11:40-03:00 ok: desplegado be43a505 · /ingresar 200 · configurar=0
-   · Plantilla «Nube · Recuperar consumo y estado» (id 1245)
-SINCRONIZADO lab
-RES {"caso": "C1", "auto": "Nube · Recuperar consumo y estado", "ticket": "FO-LAB-02183", "estado": "fallido", "stats": {}, "detalle": "Resultado · The 'file' lookup had an issue accessing the file '/tmp/nube-resumen-2-69670.json'. file not found, use -vvvvv to see paths searched · ", "fallos": ["Resultado · The 'file' lookup had an issue accessing the file '/tmp/nube-resumen-2-69670.json'. file not found, use -vvvvv to see paths searched"], "resultado": "Deprecation warnings can be disabled \nby setting deprecation_warnings=False in ansible.cfg.\nok: [localhost]\n\nTASK [Leer consumo y estado de la nube con la credencial de la conexión (solo lectura, sin secretos en la salida)] ***\nok: [localhost]\n\nTASK [Resultado] ***************************************************************\nfatal: [localhost]: FAILED! => {\"msg\": \"The 'file' lookup had an issue accessing the file '/tmp/nube-resumen-2-69670.json'. file not found, use -vvvvv to see paths searched\"}\n\nPLAY RECAP *********************************************************************\nlocalhost                  : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   "}
-C1 fallido FO-LAB-02183 · {}
-CACHE None · recursos 0
-LISTA id="infra-2" class=""> Cloud GCP · invoke-summit-cloud AAP lee la nube: 0 máquina(s) en su inventario Google Cloud · southamerica-west1 (Santiago) ● conectada — 0 sin datos cómo habilitarlo ↗ 
-FICHA id="consolidado"> Consolidado FaceOps aún no recupera el consumo ni el estado de esta nube · se recupera a diario por AAP con la credencial de la conexión Actualizar ahora Aún no disponible: «Nube · Recuperar consumo y estado» no ha pasado su plan de prueba (no está certificada) Sin datos todavía: usa «Actualizar ahora» o espera el cálculo diario. Conexión en AAP Credencial GCP · invoke-summit-cloud (Google Compute Engine) Inventario Nube GCP · 0 máquinas Fuente dinámica Cloud GCP · invoke-summit-cloud · Google Cloud (gce) Última sincronización 12-11-2026 13:44 UTC · successful Verificada 12-11-2026 13:34 UTC Regiones y zonas — Sin máquinas leídas todavía. Máquinas · 0 Máquina Región · zona Estado Tipo de máquina IP interna IP pública Consumo (USD) Sin datos: la nube no informa elementos de este tipo. 
-CASO C1 falla · Recuperar la nube GCP del laboratorio
-RES {"estado":"sin respuesta del arnés"}
-C2 sin respuesta del arnés · {}
-CASO C2 falla · Repetir la recuperación
-C3 
-CASO C3 falla · Cálculo diario programado
-RES {"estado":"sin respuesta del arnés"}
-C4 sin respuesta del arnés · 
-CASO C4 falla · Datos inválidos
-C5 SALIDA 83 caracteres · secretos: ninguno
-CASO C5 ok · Salida sin secretos
-CERT Nube · Recuperar consumo y estado → sin probar
-FIN-NUBE-CONSUMO
---- fin: 2026-11-12T11:16:36-03:00 · código: 0
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+/faceops/mapa - 0.03s[404,0KB] 0.00s[404,0KB]
+   PERFIL /faceops/mapa 0.00s pulsos.py:295:_pulso_fin | 0.00s pulsos.py:89:_ruta_real | 0.00s pulsos.py:136:encolar | 0.00s pulsos.py:114:_base | 0.00s pulsos.py:58:redactar | 0.00s pulsos.py:119:_contexto_usuario | 0.00s pulsos.py:74:_ua | 0.00s pulsos.py:101:_sesion_anon | 0.00s pulsos.py:109:_ahora | 0.00s pulsos.py:256:_excluir | 0.00s __init__.py:288:_perfil_fin | 0.00s pulsos.py:320:_eventos_request | 0.00s pulsos.py:40:activo | 0.00s pulsos.py:66:_ip | 0.00s pulsos.py:92:<listcomp>
+/faceops/mapa App de pagos 0.00s[404,0KB] 0.00s[404,0KB] 0.00s[404,0KB]
+   PERFIL /faceops/mapa/datos 0.00s pulsos.py:295:_pulso_fin | 0.00s pulsos.py:89:_ruta_real | 0.00s pulsos.py:58:redactar | 0.00s pulsos.py:136:encolar | 0.00s pulsos.py:114:_base | 0.00s pulsos.py:119:_contexto_usuario | 0.00s pulsos.py:101:_sesion_anon | 0.00s pulsos.py:74:_ua | 0.00s pulsos.py:109:_ahora | 0.00s pulsos.py:256:_excluir | 0.00s pulsos.py:320:_eventos_request | 0.00s __init__.py:288:_perfil_fin | 0.00s pulsos.py:92:<listcomp> | 0.00s pulsos.py:66:_ip | 0.00s pulsos.py:40:activo
+/faceops/mapa/datos App de pagos 0.00s[404,0KB] 0.00s[404,0KB] 0.00s[404,0KB]
+/faceops/mapa/datos - 0.00s[404,0KB] 0.00s[404,0KB]
+alertas_segmento 0.01s
+alertas_segmento 0.00s
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:1207(_handle_fromlist)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:405(parent)
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.hasattr}
+        1    0.000    0.000    0.000    0.000 {method 'rpartition' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+
+
+habilidades_segmento 0.00s
+habilidades_segmento 0.00s
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:405(parent)
+        2    0.000    0.000    0.000    0.000 {method 'rpartition' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+
+
+_accesos_apps 0.02s
+        1    0.000    0.000    0.019    0.019 /opt/faceops/app/vistas.py:5922(_accesos_apps)
+      3/2    0.000    0.000    0.018    0.009 <frozen importlib._bootstrap>:1165(_find_and_load)
+      3/2    0.000    0.000    0.018    0.009 <frozen importlib._bootstrap>:1120(_find_and_load_unlocked)
+      3/2    0.000    0.000    0.017    0.009 <frozen importlib._bootstrap>:666(_load_unlocked)
+      3/2    0.000    0.000    0.017    0.009 <frozen importlib._bootstrap_external>:934(exec_module)
+        3    0.000    0.000    0.017    0.006 <frozen importlib._bootstrap_external>:1007(get_code)
+      9/6    0.000    0.000    0.017    0.003 <frozen importlib._bootstrap>:233(_call_with_frames_removed)
+        2    0.000    0.000    0.016    0.008 <frozen importlib._bootstrap_external>:999(source_to_code)
+        2    0.016    0.008    0.016    0.008 {built-in method builtins.compile}
+        1    0.000    0.000    0.001    0.001 /opt/faceops/app/vistas.py:62(equipos_visibles)
+      3/2    0.000    0.000    0.001    0.000 {built-in method builtins.exec}
+        1    0.000    0.000    0.001    0.001 /opt/faceops/app/consola.py:1(<module>)
+      4/3    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap>:1207(_handle_fromlist)
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.__import__}
+        3    0.000    0.000    0.000    0.000 /opt/faceops/app/bd.py:180(q)
+
+
+--- fin: 2026-11-12T11:16:42-03:00 · código: 0
