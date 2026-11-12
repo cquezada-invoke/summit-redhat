@@ -1,0 +1,25 @@
+commit: c29aa9773228b080278773ae10c7eba9a7272788
+inicio: 2026-11-12T11:54:44-03:00
+---
+desplegado: e2fdce7c · 2026-11-12T11:45:55-03:00 ok: desplegado e2fdce7c · /ingresar 200 · configurar=sin cambios
+ERROR POST https://localhost/api/controller/v2/job_templates/ -> 400: {"playbook":["Playbook not found for project."]}
+RES {"caso": "C1", "auto": "Nube · Recuperar consumo y estado", "ticket": "FO-LAB-02187", "estado": "fallido", "stats": {}, "detalle": "", "fallos": [], "resultado": "AAP GET credentials/ → 503: no healthy upstream"}
+RES {"caso": "C1", "auto": "Nube · Recuperar consumo y estado", "ticket": "FO-LAB-02188", "estado": "fallido", "stats": {}, "detalle": "", "fallos": [], "resultado": "AAP GET credentials/ → 503: no healthy upstream"}
+C1 fallido FO-LAB-02188 · {}
+
+CASO C1 falla · Recuperar la nube GCP del laboratorio
+RES {"caso": "C2", "auto": "Nube · Recuperar consumo y estado", "ticket": "FO-LAB-02189", "estado": "fallido", "stats": {}, "detalle": "", "fallos": [], "resultado": "AAP GET credentials/ → 503: no healthy upstream"}
+RES {"caso": "C2", "auto": "Nube · Recuperar consumo y estado", "ticket": "FO-LAB-02190", "estado": "fallido", "stats": {}, "detalle": "", "fallos": [], "resultado": "AAP GET credentials/ → 503: no healthy upstream"}
+C2 fallido · {}
+CASO C2 falla · Repetir la recuperación
+C3 
+CASO C3 falla · Cálculo diario programado
+RES {"caso": "C4", "auto": "Nube · Recuperar consumo y estado", "ticket": "FO-LAB-02191", "estado": "fallido", "stats": {}, "detalle": "", "fallos": [], "resultado": "AAP GET credentials/ → 503: no healthy upstream"}
+RES {"caso": "C4", "auto": "Nube · Recuperar consumo y estado", "ticket": "FO-LAB-02192", "estado": "fallido", "stats": {}, "detalle": "", "fallos": [], "resultado": "AAP GET credentials/ → 503: no healthy upstream"}
+C4 fallido · 
+CASO C4 falla · Datos inválidos
+C5 SALIDA 19 caracteres · secretos: ninguno
+CASO C5 ok · Salida sin secretos
+CERT Nube · Recuperar consumo y estado → sin probar
+FIN-NUBE-CONSUMO
+--- fin: 2026-11-12T12:05:13-03:00 · código: 0
