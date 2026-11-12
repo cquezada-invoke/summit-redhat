@@ -49,6 +49,11 @@ for i in 11 12; do for t in $(seq 1 40); do
   ssh -q -i $P/id_awx -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 root@192.168.122.$i true && break; sleep 10; done; done
 paso "VMs anidadas con SSH: $(for i in 11 12; do ssh -q -i $P/id_awx -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 root@192.168.122.$i hostname 2>/dev/null || echo NO; done | xargs)"
 
+paso "esperando AWX y EDA (hasta 30 min)"
+for i in $(seq 1 90); do
+  curl -sf -m 5 http://127.0.0.1:30080/api/v2/ping/ >/dev/null && curl -s -m 5 -o /dev/null -w '%{http_code}' -u "admin:$(cat $P/clave)" \
+    http://127.0.0.1:30081/api/eda/v1/users/me/ | grep -q 200 && break; sleep 20; done
+paso "AWX $(curl -sf -m 5 http://127.0.0.1:30080/api/v2/ping/ | jq -r .version 2>/dev/null || echo NO) · EDA HTTP $(curl -s -m 5 -o /dev/null -w '%{http_code}' -u "admin:$(cat $P/clave)" http://127.0.0.1:30081/api/eda/v1/users/me/)"
 paso "AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx"
 HOSTS="nodo-prueba=192.168.122.1 nodo-web=192.168.122.11 nodo-app=192.168.122.12" bash "$D/prueba-awx/configurar.sh"
 

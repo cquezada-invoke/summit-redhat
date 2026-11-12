@@ -62,17 +62,29 @@ K
 paso "EDA comunitario (eda-server-operator $EDA_OP)"
 kubectl create ns eda --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 kubectl -n eda create secret generic eda-admin-password --from-literal=password="$CLAVE" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+# Sin config/default: su parche de métricas agrega --metrics-require-rbac, que la imagen publicada del operador no reconoce (CrashLoop)
+install -d /opt/prueba/eda/op
+cat > /opt/prueba/eda/op/kustomization.yaml <<K
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: eda
+namePrefix: eda-server-operator-
+resources:
+  - github.com/ansible/eda-server-operator/config/crd?ref=$EDA_OP
+  - github.com/ansible/eda-server-operator/config/rbac?ref=$EDA_OP
+  - github.com/ansible/eda-server-operator/config/manager?ref=$EDA_OP
+images:   # config/manager ya renombra «controller» a quay.io/ansible/eda-server-operator:0.0.1 (antigua): se reemplaza por la del commit
+  - name: quay.io/ansible/eda-server-operator
+    newName: ghcr.io/ansible/eda-server-operator
+    newTag: $EDA_OP
+K
 cat > /opt/prueba/eda/kustomization.yaml <<K
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: eda
 resources:
-  - github.com/ansible/eda-server-operator/config/default?ref=$EDA_OP
+  - op
   - eda.yaml
-images:
-  - name: controller
-    newName: ghcr.io/ansible/eda-server-operator
-    newTag: $EDA_OP
 K
 cat > /opt/prueba/eda/eda.yaml <<K
 apiVersion: eda.ansible.com/v1alpha1
