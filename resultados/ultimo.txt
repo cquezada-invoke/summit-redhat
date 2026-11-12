@@ -1,19 +1,9 @@
-commit: 0814cf758da692930e3aab39af8ec1c1ff83bd3d
-inicio: 2026-11-11T20:57:10-03:00
+commit: e702a02fb484bd1c558f17149a0e1dcdc48196f5
+inicio: 2026-11-11T21:01:13-03:00
 ---
-energía nodo-jboss-qa encender: sin respuesta del arnés 
-energía nodo-jboss-qa encender: exitoso FO-LAB-01975
-maquina nodo-jboss-qa
-prep respaldo: rechazado al solicitar  PermissionError: Esta acción no aplica a nodo-jboss-qa: el equipo ya tiene respaldo-git
-prep monitoreo: rechazado al solicitar  PermissionError: Esta acción no aplica a nodo-jboss-qa: el equipo ya tiene node-exporter
-antes: inactive active 
-CASO C1 falla · Quitar respaldo continuo
-CASO C2 ok · Quitar node_exporter
-CASO C3 ok · Agente desconocido
-EVIDENCIA [{"id": "C1", "caso": "Quitar respaldo continuo", "resultado": "falla", "evidencia": "exitoso archivos=0 skill=si node=active "}, {"id": "C2", "caso": "Quitar node_exporter", "resultado": "ok", "evidencia": "servicio inactive sinbin ; puerto 9100 cerrado (HTTP 000); skill=si"}, {"id": "C3", "caso": "Agente desconocido", "resultado": "ok", "evidencia": "fallido (Agente válido · Agente desconocido: agente-inexistente · ); la máquina no cambia (huella c7e4aa69df)"}]
-CERT Sistema · Quitar agente → sin probar
-restaurar respaldo: rechazado al solicitar 
-restaurar monitoreo: rechazado al solicitar 
-energía nodo-jboss-qa apagar: exitoso FO-LAB-01984
-FIN-QUITAR
---- fin: 2026-11-11T21:17:44-03:00 · código: 0
+eliminar srv-mig-rocky-01: exitoso FO-LAB-01974
+licencia AAP libres: 4
+habilitar mig-rocky (rocky9): exitoso FO-LAB-01976 
+inventariar srv-mig-rocky-01: fallido FO-LAB-01983
+FIN-ROCKY-NUEVA SIN-SSH
+--- fin: 2026-11-11T21:20:29-03:00 · código: 0
