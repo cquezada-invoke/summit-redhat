@@ -66,21 +66,19 @@
         quiet: true
 
     - name: Avisos de seguridad pendientes
-      ansible.builtin.shell: >-
-        set -o pipefail;
-        dnf -q updateinfo list --security --available
-        {{ lista | map('regex_replace', '^', '--cve=') | join(' ') if alcance == 'seleccion' else '' }} 2>/dev/null
-        | awk '$1 ~ /^[A-Z]+-[0-9]+:[0-9]+$/ {print $1}' | sort -u
-      args:
-        executable: /bin/bash
+      ansible.builtin.command: >-
+        dnf -q updateinfo list --security
+        {{ lista | map('regex_replace', '^', '--cve=') | join(' ') if alcance == 'seleccion' else '' }}
       register: r_av
       changed_when: false
-      failed_when: r_av.rc != 0
 
     - name: Lotes
       ansible.builtin.set_fact:
-        avisos: "{{ r_av.stdout_lines }}"
-        lotes: "{{ r_av.stdout_lines | batch(lote | int) | list }}"
+        avisos: "{{ r_av.stdout_lines | map('trim') | select('match', '^[A-Za-z]+-[0-9]+:[0-9]+\\s') | map('regex_replace', '\\s.*$', '') | unique | list }}"
+
+    - name: Lotes de avisos
+      ansible.builtin.set_fact:
+        lotes: "{{ avisos | batch(lote | int) | list }}"
 
     - name: Parches por lotes (dentro del límite de tiempo)
       ansible.builtin.command: "dnf -y -q upgrade {{ item | map('regex_replace', '^', '--advisory=') | join(' ') }}"
