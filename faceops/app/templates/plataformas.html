@@ -34,7 +34,7 @@
 {% if r %}<td><span class="chip {{ 's-ok' if r.on == r.n else ('s-alta' if r.on == 0 else 's-media') }}">● {{ r.on }}/{{ r.n }}</span></td>
 {% else %}<td class="sub" style="font-size:12.5px">{% if c.instalar %}Sin instancias · se instala con FaceOps ({{ c.instalar }}){% else %}—{% endif %}</td>{% endif %}
 </tr>{% endfor %}</table></div>{% endmacro %}
-{% if secciones %}{% for st, cs in secciones %}<h2 style="font-size:16px;margin:16px 0 8px">{{ st }} <span class="sub" style="font-weight:400;font-size:13px">· {{ cs|sum(attribute="n") }} máquina{{ "s" if cs|sum(attribute="n") != 1 }}</span></h2>{{ tabla_(cs) }}{% endfor %}{% else %}<div style="margin:0 0 14px">{% if cajas and ep == 'consola.plataformas_vista' %}<style>.plat-hub{min-height:220px}.plat-hub .logo-auto{border-radius:50%;background:#fff;box-shadow:0 0 0 1px #e3e6ea;object-fit:contain}
+{% if secciones %}{% for st, cs in secciones %}<h2 style="font-size:16px;margin:16px 0 8px">{{ st }} <span class="sub" style="font-weight:400;font-size:13px">· {{ cs|sum(attribute="n") }} máquina{{ "s" if cs|sum(attribute="n") != 1 }}</span></h2>{{ tabla_(cs) }}{% endfor %}{% else %}<div style="margin:0 0 14px">{% if cajas and ep == 'consola.plataformas_vista' %}<style>.plat-hub{min-height:220px}.plat-hub .logo-auto{object-fit:contain}
 .plat-hub .ph-fila{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}.plat-hub .ph-et{font-size:12px;color:var(--muted)}
 .plat-hub .ph-fila .compat{margin-top:0;padding-top:0}.plat-hub .ph-fila .chip{font-size:11px;padding:1px 7px}
 .plat-hub .por{margin-bottom:6px}.plat-hub .ph-on{white-space:nowrap}.plat-hub .on-ok{color:var(--ok)}.plat-hub .on-par{color:var(--warn)}.plat-hub .on-no{color:var(--bad)}
