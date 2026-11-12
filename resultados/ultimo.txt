@@ -1,25 +1,34 @@
-commit: 163b5598f0ac9b6ccd347a12920885975f22e16f
-inicio: 2026-11-11T21:33:45-03:00
+commit: 95a73627253a53ca60d42e20aa30ceaf7bccd2b7
+inicio: 2026-11-11T21:35:38-03:00
 ---
-lanzada pid 7049
-· constructora demo-constructor-202611120033 (n2-standard-4, Rocky Linux 9, anidada, 60 GB) · rama feature/faceops-awx
-  0m] Created slic[    1.603923] GPT: Use GNU Parted to correct GPT errors.
-  Nov 12 0== CONSTRUCCION inicio 00:34:11
-  Nov 12 00:34:02 demo-constructor-202611120033 kernel: GPT: Use GNU Parted to correct GPT errors.
-  Nov 12 00:34:11 demo-constructor-202611120033 google_metadata_script_runner[3098]: Metadata key("startup-script"), command("/bin/bash"): == CONSTRUCCION inicio 00:34:11
-  Nov 12 00:34:14 demo-constructor-202611120033 mwlid_extension[1420]: Cloud Logging Client Error: rpc error: code = Unauthenticated desc = transport: per-RPC creds failed due to error: credentials: cannot fetch token: metadata: GCE metadata "instance/service-accounts/default/token?scopes=https%3A%2F%
-  Nov 12 00:34:14 demo-constructor-202611120033 google_guest_agent_manager[858]: Cloud Logging Client Error: rpc error: code = Unauthenticated desc = transport: per-RPC creds failed due to error: credentials: cannot fetch token: metadata: GCE metadata "instance/service-accounts/default/token?scopes=ht
-  Nov 12 00:34:15 demo-constructor-202611120033 google_guest_agent[1409]: Cloud Logging Client Error: rpc error: code = Unauthenticated desc = transport: per-RPC creds failed due to error: credentials: cannot fetch token: metadata: GCE metadata "instance/service-accounts/default/token?scopes=https%3A%
-  Nov 12 00:34:16 demo-constructor-202611120033 google_metadata_script_runner[3098]: Cloud Logging Client Error: rpc error: code = Unauthenticated desc = transport: per-RPC creds failed due to error: credentials: cannot fetch token: metadata: GCE metadata "instance/service-accounts/default/token?scope
-faceadmin Up 8 seconds
-local 200
-contenedor faceadmin
-cuenta: {'proyecto': 'master-ia-320218', 'correo': 'faceadmin-demos@master-ia-320218.iam.gserviceaccount.com', 'id_clave': '', 'fuente': 'metadata'}
-config: {'proyecto': 'master-ia-320218', 'zona': 'southamerica-west1-a', 'tipo': 'n2-standard-4', 'disco_gb': 60, 'imagen': 'familia:faceops-demo', 'faceadmin_url': 'https://10.194.0.10:8843', 'dias_def': 7, 'dias_max': 14}
-  ✓ Cuenta de servicio aceptada por Google (cuenta de la VM, sin clave) 
-  ✓ Zona southamerica-west1-a 
-  ✓ Tipo de máquina n2-standard-4 
-  ✗ Imagen familia:faceops-demo no existe o sin permiso
-  ✓ Listar instancias de demo 
-instancias demo: []
---- fin: 2026-11-11T21:35:17-03:00 · código: 0
+== archivos de token/pull secret (nombres y tamaño)
+  /home/cquezada/faceops/pull-secret.txt 2771 bytes
+  hallado: /home/cquezada/faceops/pull-secret.txt 2771
+  hallado: /home/cquezada/faceops/rh-offline-token 698
+== herramientas
+  which: no oc in (/sbin:/bin:/usr/sbin:/usr/bin)
+  which: no openshift-install in (/sbin:/bin:/usr/sbin:/usr/bin)
+  /bin/gcloud
+  /bin/python3
+ModuleNotFoundError: No module named 'google'
+== cuentas de servicio GCP en el anfitrión
+  faceops: aap-kvm
+  faceops: aap-kvm.pub
+  faceops: acs-central.json
+  faceops: clientes
+  faceops: descargas
+  faceops: faceops.env
+  faceops: gitops-token
+  faceops: legado_rsa
+  faceops: legado_rsa.pub
+  faceops: nube-simulada-job
+  faceops: odoo.json
+  faceops: pull-secret.txt
+  faceops: repo-ee
+  faceops: respaldo-token
+  faceops: rh-offline-token
+  faceops: rhsm-activacion.json
+  faceops: transfer
+  faceops: transporte.key
+  faceops: vms-apagadas.txt
+--- fin: 2026-11-11T21:35:38-03:00 · código: 0
