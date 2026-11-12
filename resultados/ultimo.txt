@@ -1,21 +1,8 @@
-commit: 3f6613881e1efdffc01305f97b24185a22a96cdd
-inicio: 2026-11-12T11:07:15-03:00
+commit: 10dbb7b827eb4c32510c3e8c5a0fe50c5c7c282c
+inicio: 2026-11-12T11:00:55-03:00
 ---
-TICKET 2181 FO-LAB-02181 estado= fallido cliente= 1 limite= nodo-jboss creado= 2026-11-12T14:04:03+00:00
-motivo= Skill · Aplicar parches de seguridad en nodo-jboss
-parametros= {}
-filtros= {"ambientes": ["produccion"]}
-aap_job_id= 26855 tipo= workflow resultado= AAP terminó (failed): ejecución 15 s, espera de aprobación 46 s
-Falló en la tarea «Repositorios habilitados» de nodo-jboss: no se pudo conectar con el equipo (apagado o sin red): Failed to connect to the host via ssh: Connection timed out during banner exchange
-Connection to 192.168.122.15 port 22 
-ACCION 76 Aplicar parches de seguridad | Seguridad · Aplicar parches de seguridad job 132 aprob= 1
-campos_accion= [{"var": "cves", "etiqueta": "CVE (opcional)", "tipo": "text", "ayuda": "Vacío = todas las erratas de seguridad pendientes; o una lista: CVE-2026-1234, CVE-2026-5678"}]
-MAQUINA 6 nodo-jboss RedHat 9.8 produccion cve_pendientes= 0
-  otro 2181 FO-LAB-02181 fallido 2026-11-12T14:04:03+00:00
-  otro 1708 FO-LAB-01708 exitoso 2026-11-11T16:33:42+00:00
-  otro 1648 FO-LAB-01648 exitoso 2026-11-11T14:52:46+00:00
-  otro 766 FO-LAB-00766 exitoso 2026-11-04T00:15:20+00:00
-  otro 522 FO-LAB-00522 exitoso 2026-11-02T07:26:50+00:00
-  otro 454 FO-LAB-00454 fallido 2026-11-02T06:51:13+00:00
-JT 132 timeout= 0 survey= False ask_vars= True ask_limit= True forks= 10 playbook= playbooks/aplicar-parches-seguridad.yml extra_vars= 
-JOB 26855 failed FaceOps · Aprobar › Seguridad · Aplicar parches de seguridad · Nodos demo · credencial 3 [Sistemas operativos] extra_vars= {"faceops_ticket": "FO-LAB-02181", "faceops_solicitante": "cquezada", "solicitado_por": "cquezada", "faceops_autorizacion": "<REDACTADO>
+objetivo: 68b3cce0
+DESPLEGADO be43a505 (incluye 68b3cce0) tras 650 s
+estado timer: 2026-11-12T11:11:40-03:00 ok: desplegado be43a505 · /ingresar 200 · configurar=0
+be43a50 Nubes: consumo mensual en USD y consolidado de la nube («Nube · Recupera
+--- fin: 2026-11-12T11:11:48-03:00 · código: 0
