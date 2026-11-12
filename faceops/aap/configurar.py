@@ -1428,7 +1428,7 @@ for nombre_g, pb_g, desc_g in (
         "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_g}", "inventory": inv_inf["id"],
         "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True, "timeout": 0, "description": desc_g})
     ya = {c["id"] for c in aap("GET", f"job_templates/{jg['id']}/credentials/")["results"]}
-    for cr_ in [c_kvm, c_gcp_ocp, cr_gw] + ([c_ocm, uno("credentials", name="OpenShift · Pull secret")] if pb_g.endswith("crear.yml") else []):
+    for cr_ in [c_kvm, c_ocm if pb_g.endswith("crear.yml") else None, c_gcp_ocp, cr_gw]:
         if cr_ and cr_["id"] not in ya:
             aap("POST", f"job_templates/{jg['id']}/credentials/", {"id": cr_["id"]})
     if pb_g.endswith("eliminar.yml") and c_gcp_ocp:   # ciclo de vencimiento y apagado: cada hora
