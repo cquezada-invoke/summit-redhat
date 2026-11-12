@@ -1,13 +1,46 @@
-commit: e1f9c99e0740afaa5a7ddab6237514c538fbad1d
-inicio: 2026-11-12T00:18:45-03:00
+commit: 34c25c5c448fdf386a1faeb77c99afcb7a129367
+inicio: 2026-11-12T00:04:00-03:00
 ---
-== 14 HTTP 404 dlg=False skills=0 habilitadas=0 btn=False
-== 16 HTTP 404 dlg=False skills=0 habilitadas=0 btn=False
-== 121 HTTP 404 dlg=False skills=0 habilitadas=0 btn=False
-== 122 HTTP 404 dlg=False skills=0 habilitadas=0 btn=False
-== 123 HTTP 404 dlg=False skills=0 habilitadas=0 btn=False
-== 124 HTTP 404 dlg=False skills=0 habilitadas=0 btn=False
-== 125 HTTP 404 dlg=False skills=0 habilitadas=0 btn=False
-== 17 HTTP 404 dlg=False skills=0 habilitadas=0 btn=False
-== 27 HTTP 404 dlg=False skills=0 habilitadas=0 btn=False
---- fin: 2026-11-12T00:18:53-03:00 · código: 0
+== FaceOps antes: 401
+6942698 Fichas de plataforma: métricas sin agente en /metric
+   · Plantilla «OpenShift · Instalar operador» (id 1219)
+   · Plantilla «OpenShift · Desinstalar operador» (id 1220)
+== FaceOps después: 401
+SINCRONIZADO lab
+R1 
+CASO C1 falla · Recolectar ocp-sno
+CASO C2 ok · Coincide con el clúster
+CASO C3 ok · Repetir
+EVIDENCIA [{"id": "C1", "caso": "Recolectar ocp-sno", "resultado": "falla", "evidencia": "exitoso  "}, {"id": "C2", "caso": "Coincide con el clúster", "resultado": "ok", "evidencia": "subs: compliance-operator=compliance-operator.v1.10.0 datagrid=datagrid-operator.v8.6.9 hawtio-operator=hawtio-operator.v1.2.0 openshift-gitops-operator=openshift-gitops-operator.v1.22.2 openshift-pipelines-operator-rh=openshift-pipelines-operator-rh.v1.24.3 rhacs-operator=rhacs-operator.v4.11.6  · "}, {"id": "C3", "caso": "Repetir", "resultado": "ok", "evidencia": "changed=0; operadores y paquetes (6, 29)"}]
+CERT OpenShift · Recolectar clúster → cambiada
+FIN-RECOLECTAR
+HTTP /inventario/29 agregar True True
+RES {'total': 27, 'instalados': 5, 'disponibles': 20, 'no_disponibles': 2}
+OP no disponible | OpenShift Data Foundation | Requiere al menos 3 nodos y el clúster tiene 1 (un solo nodo) | En un clúster de un solo nodo usa LVM Storage
+OP disponible | LVM Storage |  | Su LVMCluster necesita un disco libre en el nodo
+OP disponible | OpenShift Virtualization |  | Con su instancia usa unos 4 GB y el clúster tiene 3.7 GB libres (un solo nodo); En un solo nodo no hay migración en vivo ni alta disponibilidad de VM; El clúste
+OP no disponible | Migration Toolkit for Virtualization | Instala antes OpenShift Virtualization | 
+OP instalado | OpenShift GitOps | Instalado en openshift-gitops-operator · openshift-gitops-operator.v1.22.2 · Succeeded | 
+OP instalado | OpenShift Pipelines | Instalado en openshift-operators · openshift-pipelines-operator-rh.v1.24.3 · Succeeded | 
+OP disponible | OpenShift Service Mesh |  | 
+OP disponible | OpenShift Serverless |  | 
+OP disponible | OpenShift Logging |  | Para guardar los logs en el clúster necesita Loki con almacenamiento de objetos
+OP disponible | Loki |  | Con su instancia usa unos 6 GB y el clúster tiene 3.7 GB libres (un solo nodo); Su LokiStack necesita almacenamiento de objetos (S3); El clúster no tiene clase 
+OP disponible | Cluster Observability |  | 
+OP disponible | Network Observability |  | Su FlowCollector usa Loki para guardar los flujos
+OP instalado | Advanced Cluster Security | Instalado en rhacs-operator · rhacs-operator.v4.11.6 · Succeeded | Central pide 4 núcleos y 8 GB; en este laboratorio el clúster se conecta a un Central externo
+OP disponible | cert-manager |  | 
+OP instalado | Compliance | Instalado en openshift-compliance · compliance-operator.v1.10.0 · Succeeded | 
+OP disponible | File Integrity |  | 
+OP disponible | Security Profiles |  | 
+OP disponible | Advanced Cluster Management |  | Con su instancia usa unos 16 GB y el clúster tiene 3.7 GB libres (un solo nodo); Su MultiClusterHub pide unos 16 GB y storage; El clúster no tiene clase de stor
+OP disponible | Quay |  | Con su instancia usa unos 8 GB y el clúster tiene 3.7 GB libres (un solo nodo); Su QuayRegistry necesita almacenamiento de objetos; El clúster no tiene clase de
+OP disponible | AMQ Streams (Kafka) |  | El clúster no tiene clase de storage: sus instancias no podrán crear volúmenes
+OP disponible | AMQ Broker |  | 
+OP disponible | Red Hat build of Keycloak |  | Keycloak necesita una base de datos PostgreSQL
+OP instalado | Data Grid | Instalado en openshift-operators · datagrid-operator.v8.6.9 · Succeeded | 
+OP disponible | OADP (respaldo) |  | Su DataProtectionApplication necesita un bucket S3
+OP disponible | Dev Spaces |  | El clúster no tiene clase de storage: sus instancias no podrán crear volúmenes
+OP disponible | Web Terminal |  | OLM instala también DevWorkspace como dependencia
+OP disponible | OpenShift AI |  | Con su instancia usa unos 8 GB y el clúster tiene 3.7 GB libres (un solo nodo); Usa Service Mesh y Serverless para servir modelos; El clúster no tiene clase de 
+--- fin: 2026-11-12T00:19:32-03:00 · código: 0
