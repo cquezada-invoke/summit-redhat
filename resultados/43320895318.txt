@@ -1,0 +1,73 @@
+commit: f8665d494a43351012dec0ff817394bb7628625f
+inicio: 2026-11-12T19:33:00-03:00
+---
+parche aplicado
+== ANTES (código desplegado, proceso nuevo, dependencias reales)
+[1] /inventario/6 -> 200 7091 ms · pendientes=0
+[1] /inventario/128 -> 200 429 ms · pendientes=0
+[1] /inventario/131 -> 200 857 ms · pendientes=0
+[1] /inventario/29 -> 200 522 ms · pendientes=0
+[1] /mapa -> 200 808 ms · pendientes=0
+[1] /plataformas -> 200 1440 ms · pendientes=0
+[1] /edge -> 200 286 ms · pendientes=0
+[1] /nubes -> 200 1010 ms · pendientes=0
+PEOR primera carga: 7091 ms
+== DESPUÉS (cambio aplicado, proceso nuevo, dependencias reales)
+[1] /inventario/6 -> 200 1730 ms · pendientes=12
+[1] /inventario/128 -> 200 429 ms · pendientes=1
+[1] /inventario/131 -> 200 264 ms · pendientes=1
+[1] /inventario/29 -> 200 412 ms · pendientes=0
+[1] /mapa -> 200 475 ms · pendientes=0
+[1] /plataformas -> 200 1500 ms · pendientes=0
+[1] /edge -> 200 134 ms · pendientes=0
+[1] /nubes -> 200 988 ms · pendientes=0
+[2] /inventario/6 -> 200 524 ms · pendientes=11
+[2] /inventario/128 -> 200 432 ms · pendientes=0
+[2] /inventario/131 -> 200 298 ms · pendientes=0
+[2] /inventario/29 -> 200 372 ms · pendientes=0
+[2] /mapa -> 200 325 ms · pendientes=0
+[2] /plataformas -> 200 1494 ms · pendientes=0
+[2] /edge -> 200 50 ms · pendientes=0
+[2] /nubes -> 200 840 ms · pendientes=0
+PEOR primera carga: 1730 ms
+== DESPUÉS con TODAS las dependencias caídas (cada llamada de red tarda 1.5 s y falla)
+[1] /plataformas -> 200 1455 ms · pendientes=0
+[1] /edge -> 200 109 ms · pendientes=0
+[1] /nubes -> 200 947 ms · pendientes=0
+[1] /inventario/1 -> 200 2386 ms · pendientes=0 · EN VIVO: http puntos.py:561:dueno_git x1
+[1] /inventario/2 -> 200 3936 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1
+[1] /inventario/3 -> 200 3664 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1
+[1] /inventario/4 -> 200 1970 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1
+[1] /inventario/5 -> 200 3427 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1
+[1] /inventario/6 -> 200 7991 ms · pendientes=1 · EN VIVO: tcp vistas.py:2910:puerto_abierto x2; http vistas.py:3684:_gitea_respaldo x1; http alertas_objeto.py:159:exportador_estado x2
+[1] /inventario/8 -> 200 6787 ms · pendientes=1 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1; http alertas_objeto.py:159:exportador_estado x2
+[1] /inventario/9 -> 200 3464 ms · pendientes=1 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; http alertas_objeto.py:159:exportador_estado x1
+[1] /inventario/10 -> 200 5006 ms · pendientes=12 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1; http alertas_objeto.py:159:exportador_estado x1
+[1] /inventario/11 -> 200 4979 ms · pendientes=1 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1; http alertas_objeto.py:159:exportador_estado x1
+[1] /inventario/12 -> 200 1801 ms · pendientes=1 · EN VIVO: tcp vistas.py:2910:puerto_abierto x1
+[1] /inventario/21 -> 200 6432 ms · pendientes=1 · EN VIVO: tcp vistas.py:2910:puerto_abierto x2; http vistas.py:3684:_gitea_respaldo x1; http alertas_objeto.py:159:exportador_estado x1
+[1] /inventario/22 -> 200 6449 ms · pendientes=0 · EN VIVO: tcp vistas.py:2910:puerto_abierto x2; http vistas.py:3684:_gitea_respaldo x1; http alertas_objeto.py:159:exportador_estado x1
+[1] /inventario/26 -> 200 3675 ms · pendientes=1 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1
+[1] /inventario/97 -> 200 1837 ms · pendientes=1 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1
+[1] /inventario/129 -> 200 747 ms · pendientes=0
+[2] /mapa -> 200 298 ms · pendientes=0
+[2] /plataformas -> 200 1282 ms · pendientes=0
+[2] /edge -> 200 48 ms · pendientes=0
+[2] /nubes -> 200 789 ms · pendientes=0
+[2] /inventario/2 -> 200 3356 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1
+[2] /inventario/3 -> 200 3415 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1
+[2] /inventario/4 -> 200 1890 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1
+[2] /inventario/5 -> 200 3365 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1
+[2] /inventario/6 -> 200 7984 ms · pendientes=0 · EN VIVO: tcp vistas.py:2910:puerto_abierto x2; http vistas.py:3684:_gitea_respaldo x1; http alertas_objeto.py:159:exportador_estado x2
+[2] /inventario/8 -> 200 6463 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1; http alertas_objeto.py:159:exportador_estado x2
+[2] /inventario/9 -> 200 3492 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; http alertas_objeto.py:159:exportador_estado x1
+[2] /inventario/10 -> 200 5002 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1; http alertas_objeto.py:159:exportador_estado x1
+[2] /inventario/11 -> 200 4880 ms · pendientes=5 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1; http alertas_objeto.py:159:exportador_estado x1
+[2] /inventario/12 -> 200 1793 ms · pendientes=0 · EN VIVO: tcp vistas.py:2910:puerto_abierto x1
+[2] /inventario/21 -> 200 6434 ms · pendientes=0 · EN VIVO: tcp vistas.py:2910:puerto_abierto x2; http vistas.py:3684:_gitea_respaldo x1; http alertas_objeto.py:159:exportador_estado x1
+[2] /inventario/22 -> 200 6398 ms · pendientes=0 · EN VIVO: tcp vistas.py:2910:puerto_abierto x2; http vistas.py:3684:_gitea_respaldo x1; http alertas_objeto.py:159:exportador_estado x1
+[2] /inventario/26 -> 200 3393 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1; tcp vistas.py:2910:puerto_abierto x1
+[2] /inventario/97 -> 200 1815 ms · pendientes=0 · EN VIVO: http vistas.py:3684:_gitea_respaldo x1
+[2] /inventario/128 -> 200 4991 ms · pendientes=0 · EN VIVO: tcp vistas.py:2910:puerto_abierto x2; http alertas_objeto.py:159:exportador_estado x1
+PEOR primera carga: 8199 ms
+--- fin: 2026-11-12T19:37:25-03:00 · código: 0
