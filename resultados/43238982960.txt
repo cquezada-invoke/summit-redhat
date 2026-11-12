@@ -1,0 +1,89 @@
+commit: a4d671e445776b62eab597206496412a31ddd6a4
+inicio: 2026-11-12T11:36:51-03:00
+---
+##### BASE (desplegado)
+== produccion datos 200 1.05 flot 404 0.0 pct 78 None eq None pend None None 
+== qa datos 200 0.24 flot 404 0.0 pct 73 None eq None pend None None 
+== desarrollo datos 200 0.22 flot 404 0.0 pct 85 None eq None pend None None 
+lista segmentos 200 1.27
+lista segmentos2 200 0.95
+TOP-HTML 200
+<main >
+
+
+<div class="contenido">
+
+<p style="margin:0"><a class="sub" style="font-size:12.5px" href="?vista=aplicaciones&amp;grupo=aplicaciones">‹ Aplicaciones</a></p><div class="fila seg-cab"><div cl
+...
+padding:6px 12px}.par-sec>summary{cursor:pointer}.par-tab{margin:8px 0 4px;font-size:13px}.par-tab td,.par-tab th{padding:4px 10px}.par-rem{margin:6px 0;padding-left:18px;font-size:13px}</style>
+<div id="salud-bar" class="salud-bar" title="Salud del segmento en este ambiente: clic para ver todo lo que hay que remediar"></div>
+<div class="tabs-pf" style="align-items:center"><a class="" href="?vista=aplicaciones&segmento=App%20de%20pagos&ambiente=produccion">Producción</a><a class="" href="?vista=aplicaciones&segmento=App%20de%20pagos&ambiente=qa">QA</a><a class="on" href="?vista=aplicaciones&segmento=App%20de%20pagos&ambiente=desarrollo">Desarrollo</a><a class="" href="?vista=aplicaciones&segmento=App%20de%20pagos&ambiente=homologacion">Homologación</a>
+</div>
+<div class="fila" style=display:none><div class="miga" id="miga"></div></div>
+
+<div class="mapa-vivo">
+  <div class="cy-env"><div id="cy"></div>
+    <div class="zoom-ctl" role="group" aria-label="Zoom"><button type="button" data-z="mas" title="Acercar">+</button><button type="button" data-z="menos" title="Alejar">−</button><button type="button" data-z="ajustar" title="Ajustar a la pantalla">⤢</button><button type="button" data-z="orden" title="Volver al orden original (descarta cómo moviste las cajas)">↺</button><button type="button" data-z="grupos" title="Agrupar o expandir las réplicas de un mismo componente">⊟</button></div></div>
+</div>
+<p class="sub" style="font-size:12px;margin:4px 0 0">Selecciona una red, un segmento o un equipo para ver su detalle a la derecha. Clic en el fondo: el segmento completo. Doble clic en una caja: su consola web.</p>
+<div id="panel-velo" class="cajon-velo" hidden></div>
+<div id="panel-cajon" class="cajon panel-cajon" hidden><div class="cajon-barra"><b style="font-size:14px">Detalle</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
+  <aside id="panel"></aside></div>
+<script>(()=>{const c=document.getElementById('panel-cajon'),v=document.getElementById('panel-velo'),p=document.getElementById('panel');let usuario=false;
+const ab=()=>{if(!c.hidden)return;c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'))},ce=()=>{c.classList.remove('abierto');v.hidden=true;setTimeout(()=>c.hidden=true,200);usuario=false};
+document.getElementById('cy').addEventListener('pointerdown',()=>{usuario=true},true);window.abrirCajon=()=>{usuario=true;ab();};
+new MutationObserver(()=>{if(usuario&&p.innerHTML.trim())ab()}).observe(p,{childList:true});
+v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!c.hidden)ce()});})();</script>
+<div class="leyenda" style="margin-top:6px"><span><i class="punto" style="display:inline-block"></i>operativa</span><span><i class="punto p3" style="display:inline-block"></i>con falla (un flujo hacia ella no responde)</span><span><i class="punto" style="display:inline-block;background:#8a8d90"></i>apagada</span>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<h2 style="margin:22px 0 6px;font-size:16px" id="actividad">Actividad lanzada en este segmento</h2>
+<div class="tabla-scroll"><table style="font-size:13px"><tr><th>Ticket</th><th>Fecha</th><th>Acción</th><th>Máquinas</th><th>Motivo</th><th>Estado</th></tr>
+<tr><td><a href="/tickets/2181">FO-LAB-02181</a></td><td style="white-space:nowrap"><time datetime="2026-11-12T14:04:03Z" data-local="fecha-hora" title="Hora UTC">12-11-2026 14:04 UTC</time></td>
+<td>Aplicar parches de seguridad</td><td>nodo-jboss</td><td class="sub">Skill · Aplicar parches de seguridad en nodo-jboss</td><td><span class="chip e-fallido">fallido</span></td></tr><tr><td><a href="/tickets/2177">FO-LAB-02177</a></td><td style="white-space:nowrap"><time datetime="2026-11-12T13:54:17Z" data-local="fecha-hora" title="Hora UTC">12-11-2026 13:54 UTC</time></td>
+<td>Medir salud de la plataforma</td><td>nodo-jboss</td><td class="sub">Plan de prueba C6 de «Plataforma · Medir salud» (regla de prueba)</td><td><span class="chip e-exitoso">exitoso</span></td></tr><tr><td><a href="/tickets/2176">FO-LAB-02176</a></td><td style="white-space:nowrap"><time datetime="2026-11-12T13:51:53Z" data-local="fecha-hora" title="Hora UTC">12-11-2026 13:51 UTC</time></td>
+<td>Medir salud de la plataforma</td><td>nodo-nginx</td><td class="sub">Plan de prueba C2 de «Plataforma · Medir salud» (regla de prueba)</td><td><span class="chip e-fallido">fallido</span></td></tr><tr><td><a href="/tickets/2168">FO-LAB-02168</a></td><td style="white-space:nowrap"><time datetime="2026-11-12T13:40:15Z" data-local="fecha-hora" title="Hora UTC">12-11-2026 13:40 UTC</time></td>
+<td>Medir salud de la plataforma</td><td>nodo-jboss</td><td class="sub">Plan de prueba C6 de «Plataforma · Medir salud» (regla de prueba)</td><td><span class="chip e-exitoso">exitoso</span></td></tr><tr><td><a href="/tickets/2167">FO-LAB-02167</a></td><td style="white-space:nowrap"><time datetime="2026-11-12T13:38:06Z" data-local="fecha-hora" title="Hora UTC">12-11-2026 13:38 UTC</time></td>
+<td>Medir salud de la plataforma</td><td>nodo-tomcat</td><td class="sub">Plan de prueba C3 de «Plataforma · Medir salud» (regla de prueba)</td><td><span class="chip e-fallido">fallido</span></td></tr><tr><td><a href="/tickets/2166">FO-LAB-02166</a></td><td style="white-space:nowrap"><time datetime="2026-11-12T13:35:30Z" data-local="fecha-hora" title="Hora UTC">12-11-2026 13:35 UTC</time></td>
+<td>Medir salud de la plataforma</td><td>nodo-nginx</td><td class="sub">Plan de prueba C2 de «Plataforma · Medir salud» (regla de prueba)</td><td><span class="chip e-fallido">f
+##### NUEVO
+cliente lab
+== produccion datos 200 1.04 flot 200 0.11 pct 78 78 eq 6 pend 33 None 
+  areas [('Disponibilidad', 82), ('Rendimiento', 100), ('Seguridad', 94), ('Recuperación', 94), ('Costo', 100), ('Excelencia operativa', 0)]
+  situaciones 16 casos 22 botones 10
+    Disponibilidad 82 % Agregar réplica de Balanceador Nginx Producción tiene 1 réplica (mínimo 2): nodo-nginx +6 % Replicar máquina Agregar réplica de PostgreSQL Producción tiene 1 réplica (mínimo 2): nodo-postgres +6 % Replicar máquina Agregar réplica de Colas (Artemis) y caché (Valkey) Producción tiene 1 réplica (mínimo 2): nodo-tomcat +6 % Replicar máquina Seguridad 94 % 6 flujo(s) sin TLS Emitir el certificado con ticket desde la línea del flujo («Certificados · Emitir para servicio», CA interna) +6 % 6 casos nodo-nginx → nodo-jboss Emitir certificado nodo-nginx → nodo-jboss2 Emitir certificado nodo-nginx → nodo-jboss4 Emitir certificado nodo-jboss → nodo-tomcat Emitir certificado nodo-jboss2 → nodo-tomcat Emitir certificado nodo-jboss4 → nodo-tomcat Emitir certificado Recuperación 94 % 1 máquina(s) sin respaldo continuo nodo-jboss4 +6 % Habilitar respaldo Excelencia operativa 0 % KE-0
+== qa datos 200 0.18 flot 200 0.1 pct 0 0 eq 1 pend 17 {'apagados': 4, 'componentes': 4} 
+  areas [('Disponibilidad', 0), ('Rendimiento', 100), ('Seguridad', 100), ('Recuperación', 100), ('Costo', 100), ('Excelencia operativa', 40)]
+  situaciones 17 casos 0 botones 1
+    Disponibilidad 0 % Balanceador Nginx: declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún JBoss EAP (app-jboss): sin ninguna instancia encendida nodo-jboss-qa +25 % Encender PostgreSQL: declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún Colas (Artemis) y caché (Valkey): declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún Alinear Balanceador Nginx con producción (QA no tiene el componente, prod tiene 1) QA: sin máquinas +6 % sin acción automática aún Alinear JBoss EAP (app-jboss) con producción (QA tiene RedHat 9.8, prod 
+== desarrollo datos 200 0.19 flot 200 0.06 pct 19 19 eq 1 pend 15 {'apagados': 3, 'componentes': 4} 
+  areas [('Disponibilidad', 5), ('Rendimiento', 100), ('Seguridad', 100), ('Recuperación', 100), ('Costo', 100), ('Excelencia operativa', 46)]
+  situaciones 15 casos 0 botones 0
+    Disponibilidad 5 % Balanceador Nginx: declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún PostgreSQL: declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún Colas (Artemis) y caché (Valkey): declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún Alinear Balanceador Nginx con producción (desarrollo no tiene el componente, prod tiene 1) desarrollo: sin máquinas +6 % sin acción automática aún Alinear JBoss EAP (app-jboss) con producción (desarrollo tiene RedHat 9.8, prod tiene RedHat 9.6 / RedHat 9.8) desarrollo: nodo-jboss-dev +6
+lista segmentos 200 1.35
+lista segmentos2 200 0.89
+pagina 200 True True
+TOP-HTML 200
+<main >
+
+
+<div class="contenido">
+
+<p style="margin:0"><a class="sub" style="font-size:12.5px" href="?vista=aplicaciones&amp;grupo=aplicaciones">‹ Aplicaciones</a></p><div class="fila seg-cab"><div cl
+...
+ pudo crear el ticket','error');});};
+})();</script></div></div><style>.seg-cab .al-titulo{flex:1 1 auto;width:100%}.seg-cab .al-titulo .hb-btn{width:52px;height:52px;margin-left:auto}</style>
+
+
+<div id="salud-bar" class="salud-bar" title="Salud del segmento en este ambiente: clic para ver todo lo que hay que remediar"><div class="sb-tit"><b>Salud del segmento · Desarrollo</b><span class="sb-pct" style="color:var(--muted)">— %</span><span class="sub">calculando…</span></div><div class="sb-barra"><i style="width:0"></i></div><div class="sb-areas"><span class="sb-area"><i style="background:#d2d2d2"></i>Disponibilidad <b>—</b></span><span class="sb-area"><i style="background:#d2d2d2"></i>Rendimiento <b>—</b></span><span class="sb-area"><i style="background:#d2d2d2"></i>Seguridad <b>—</b></span><span class="sb-area"><i style="background:#d2d2d2"></i>Recuperación <b>—</b></span><span class="sb-area"><i style="background:#d2d2d2"></i>Costo <b>—</b></span><span class="sb-area"><i style="background:#d2d2d2"></i>Excelencia operativa <b>—</b></span></div></div>
+<div class="tabs-pf" style="align-items:center"><a class="" href="?vista=aplicaciones&segmento=App%20de%20pagos&ambiente=produccion">Producción</a><a class="" href="?vista=aplicaciones&segmento=App%20de%20pagos&ambiente=qa">QA</a><a class="on" href="?vista=aplicaciones&segmento=App%20de%20pagos&ambiente=desarrollo">Desarrollo</a><a class="" href="?vista=aplicaciones&segmento=App%20de%20pagos&ambiente=homologacion">Homologación</a>
+</div>
+<details class="par-sec"><summary><b>Réplicas y paridad</b> <span class="chip s-media" style="font-size:11px">6 por remediar</span> <span class="sub" style="font-size:12px">producción: al menos 2 réplicas por componente · QA y desarrollo: misma arquitectura y versiones que producción</span></summary>
+<table class="no-apilar sin-pag par-tab"><tr><th>Componente</th><th>Producción</th><th>QA</th><th>Desarrollo</th></tr>
+<tr><td>Balanceador Nginx</td><td><span class="chip s-media" style="font-size:11px">1 réplica</span></td><td><span class="chip s-media" style="font-size:11px" title="Alinear Balanceador Nginx con producción (QA no tiene el componente, prod tiene 1)">1 diferencia</span></td><td><span class="chip s-media" style="font-size:11px" title="Alinear Balanceador Nginx con producción (desarrollo no tiene el componente, prod tiene 1)">1 diferencia</span></td></tr><tr><td>JBoss EAP (app-jboss)</td><td><span class="chip s-ok" style="font-size:11px">3 réplicas</span></td><td><span class="chip s-media" style="font-size:11px" title="Alinear JBoss EAP (app-jboss) con producción (QA tiene RedHat 9.8, prod tiene RedHat 9.6 / RedHat 9.8) · Alinear JBoss EAP (app-jboss) con producción (QA no tiene keycloak, prod tiene keycloak) · Alinear JBoss EAP (app-jboss) con producción (QA no tiene redis, prod tiene redis)">3 diferencias</span></td><td><span class="chip s-media" style="font-size:11px" title="Alinear JBoss EAP (app-jboss) con producción (desarrollo tiene RedHat 9.8, prod tiene RedHat 9.6 / RedHat 9.8) · Alinear JBoss EAP (app-jboss) con producción (desarrollo no tiene keycloak, prod tiene keycloak) 
+<ul class="par-rem"><li><b>Alinear Balanceador Nginx con producción (desarrollo no tiene el componente, prod tiene 1)</b> <span class="sub">· Crear el servidor del componente con «Habilitar servidor» (ticket con aprobación) · «Habilitar servidor» (sin plan de prueba aprobado)</span></li><li><b>Alinear JBoss EAP (app-jboss) con producción (desarrollo tiene RedHat 9.8, prod tiene RedHat 9.6 / RedHat 9.8)</b> <span class="sub">· Llevar el sistema operativo a la versión de producción · sin acción</span></li><li><b>Alinear JBoss EAP (app-jboss) con producción (desarrollo no tiene keycloak, prod tiene keycloak)</b> <span class="sub">· Instalar keycloak como en producción · «Habilitar servidor» (sin plan de prueba aprobado)</span> · <a href="/inventario/21#skills">Remediar</a></li><li><b>Alinear JBoss EAP (app-jboss) con producción (desarrollo no tiene redis, prod tiene redis)</b> <span class="sub">· Instalar redis como en producción · «Habilitar servidor» (sin plan de prueba aprobado)</span> · <a href="/inventario/21#skills">Remediar</a></li><li><b>Alinear PostgreSQL con producción (desarrollo no tiene el componente, prod tiene 1)</b> <span class="sub">· Crear el servidor del componente 
+<style>.par-sec{margin:6px 0 10px;border:1px solid var(--line);border-radius:10px;padding:6px 12px}.par-sec>summary{cursor:pointer}.par-tab{margin:8px 0 4px;font-size:13px}.par-tab td,.par-tab th{padding:4px 10px}.par-rem{margin:6px 0;padding-left:18px;font-size:13px}</style>
+<div class="fila" style=display:none><div class="miga" id="miga"></div></div>
+
+<div class="mapa-vivo">
+  <div c
+--- fin: 2026-11-12T11:37:17-03:00 · código: 0
