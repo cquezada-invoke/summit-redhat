@@ -1,50 +1,14 @@
-commit: aaea2c3ba915615cfcd1d82f64ffedf127c9f1bd
-inicio: 2026-11-11T23:15:12-03:00
+commit: 97e364a32f07cdcc98555bbda8ee0c886b246b2b
+inicio: 2026-11-11T23:15:39-03:00
 ---
-CATS Counter({('lab', 'servidor'): 86, ('lab', 'router'): 6, ('demo-banco', 'servidor'): 6, ('lab', 'firewall'): 5, ('demo-minera', 'servidor'): 5, ('demo-clinica', 'servidor'): 4, ('lab', 'switch'): 3, ('lab', 'estación de trabajo'): 2, ('lab', 'almacenamiento'): 2, ('lab', 'balanceador'): 2, ('demo-minera', 'red'): 2, ('demo-banco', 'plataforma'): 2, ('demo-banco', 'red'): 2, ('lab', 'otro'): 1, ('lab', 'clúster openshift'): 1, ('demo-minera', 'plataforma'): 1, ('demo-clinica', 'red'): 1})
-lab 13 fgt |cat firewall virtual |so FortiOS | Red |ip 172.20.20.12 | retirado |inv ["Red \u00b7 laboratorio"] |grp ["fortigate"] |desc  |hw None
-lab 14 fw |cat firewall virtual |so VyOS 2026.10.23-0026-rolling | Red |ip 172.20.20.12 | con datos |inv ["Red \u00b7 laboratorio"] |grp ["firewall"] |desc  |hw {'fabricante': 'VyOS'}
-lab 16 rtr |cat router virtual |so FRRouting 10.2.1_git | Red |ip 172.20.20.11 | con datos |inv ["Red \u00b7 laboratorio"] |grp ["gestionados"] |desc  |hw {}
-lab 17 suc1 |cat router virtual |so Linux (Alpine) | Red |ip 192.168.122.1 | inventariado |inv ["Red \u00b7 laboratorio"] |grp ["sucursales"] |desc  |hw {}
-lab 18 suc2 |cat router virtual |so Linux (Alpine) | Red |ip 192.168.122.1 | inventariado |inv ["Red \u00b7 laboratorio"] |grp ["sucursales"] |desc  |hw {}
-lab 19 suc3 |cat router virtual |so Linux (Alpine) | Red |ip 192.168.122.1 | inventariado |inv ["Red \u00b7 laboratorio"] |grp ["sucursales"] |desc  |hw {}
-lab 23 anfitrion-kvm |cat otro  |so  |  |ip 192.168.122.1 | retirado |inv ["FaceOps \u00b7 Infraestructura"] |grp ["anfitrion_kvm"] |desc  |hw None
-lab 27 nodo-storage |cat almacenamiento virtual |so RedHat 9.8 | RedHat |ip 192.168.122.167 | con datos |inv ["Servidores habilitados"] |grp ["linux_onpremise"] |desc  |hw {'fabricante': 'Red Hat', 'modelo': 'KVM', 'bios': '1.16.3-5.el9'}
-lab 63 borde |cat router virtual |so  |  |ip 172.20.20.52 | retirado |inv ["Red \u00b7 laboratorio"] |grp ["red-corporativa", "router"] |desc  |hw {}
-lab 64 core |cat switch virtual |so  |  |ip 172.20.20.58 | retirado |inv ["Red \u00b7 laboratorio"] |grp ["red-corporativa", "switch"] |desc  |hw {}
-lab 66 fw-interno |cat firewall virtual |so VyOS | Red |ip 172.20.20.57 | retirado |inv ["Red \u00b7 laboratorio"] |grp ["firewall", "red-corporativa"] |desc  |hw {}
-lab 67 fw-perimetral |cat firewall virtual |so VyOS | Red |ip 172.20.20.53 | retirado |inv ["Red \u00b7 laboratorio"] |grp ["firewall", "red-corporativa"] |desc  |hw {}
-lab 68 lb-dmz |cat balanceador virtual |so  |  |ip 172.20.20.54 | retirado |inv ["Red \u00b7 laboratorio"] |grp ["balanceador", "red-corporativa"] |desc  |hw {}
-lab 69 nas-01 |cat almacenamiento virtual |so  |  |ip 172.20.20.62 | retirado |inv ["Red \u00b7 laboratorio"] |grp ["red-corporativa", "storage"] |desc  |hw {}
-lab 121 fw-sede-01 |cat firewall virtual |so VyOS 2026.10.23-0026-rolling | Red |ip 172.20.20.72 | con datos |inv ["Red \u00b7 laboratorio"] |grp ["firewall", "red-sede"] |desc  |hw {'fabricante': 'VyOS (código abierto)', 'modelo': 'Firewall virtual VyOS'}
-lab 122 lb-sede-01 |cat balanceador virtual |so HAProxy 2.8.22-a6a7eb6dd | Red |ip 172.20.20.75 | con datos |inv ["Red \u00b7 laboratorio"] |grp ["balanceador", "red-sede"] |desc  |hw {'fabricante': 'HAProxy (código abierto)', 'modelo': 'Balanceador virtual HAProxy'}
-lab 123 rtr-wan-01 |cat router virtual |so FRRouting 10.2.1_git | Red |ip 172.20.20.71 | con datos |inv ["Red \u00b7 laboratorio"] |grp ["red-sede", "router"] |desc  |hw {'fabricante': 'FRRouting (código abierto)', 'modelo': 'Router virtual · 2 puertos de datos'}
-lab 124 sw-acc-01 |cat switch virtual |so FRRouting 10.2.1_git | Red |ip 172.20.20.74 | con datos |inv ["Red \u00b7 laboratorio"] |grp ["red-sede", "switch"] |desc  |hw {'fabricante': 'Switch abierto (FRRouting + puente Linux)', 'modelo': 'Switch de acceso virtual · 3 puertos'}
-lab 125 sw-core-01 |cat switch virtual |so FRRouting 10.2.1_git | Red |ip 172.20.20.73 | con datos |inv ["Red \u00b7 laboratorio"] |grp ["red-sede", "switch"] |desc  |hw {'fabricante': 'Switch abierto (FRRouting + puente Linux)', 'modelo': 'Switch L3 virtual · 5 puertos'}
-demo-minera 102 demo-mla-ocp-01 |cat plataforma virtual |so Red Hat OpenShift 4.16 | RedHat |ip 10.20.0.14 | con datos |inv [] |grp [] |desc  |hw None
-demo-minera 104 demo-mla-fw-01 |cat red virtual |so FortiOS 7.4 |  |ip 10.20.0.16 | con datos |inv [] |grp [] |desc  |hw None
-demo-minera 105 demo-mla-sw-01 |cat red virtual |so Cisco IOS XE 17 |  |ip 10.20.0.17 | con datos |inv [] |grp [] |desc  |hw None
-demo-banco 110 demo-bps-ocp-01 |cat plataforma virtual |so Red Hat OpenShift 4.17 | RedHat |ip 10.21.0.14 | con datos |inv [] |grp [] |desc  |hw None
-demo-banco 111 demo-bps-ocp-qa |cat plataforma virtual |so Red Hat OpenShift 4.17 | RedHat |ip 10.21.0.15 | con datos |inv [] |grp [] |desc  |hw None
-demo-banco 113 demo-bps-fw-01 |cat red virtual |so PAN-OS 11.1 |  |ip 10.21.0.17 | con datos |inv [] |grp [] |desc  |hw None
-demo-banco 114 demo-bps-lb-01 |cat red virtual |so F5 BIG-IP 17 |  |ip 10.21.0.18 | con datos |inv [] |grp [] |desc  |hw None
-demo-clinica 120 demo-csl-fw-01 |cat red virtual |so FortiOS 7.2 |  |ip 10.22.0.14 | con datos |inv [] |grp [] |desc  |hw None
-INV 4 Red · laboratorio
-   fw {'ansible_host': '172.20.20.12', 'ansible_connection': 'ansible.netcommon.network_cli', 'ansible_network_os': 'vyos.vyos.vyos', 'ansible_user': '{{ fw_usuario }}', 'descripcion': 'Firewall VyOS (eth1 WAN · eth2 LAN usuarios)'}
-   fw-sede-01 {'ansible_connection': 'ansible.netcommon.network_cli', 'ansible_network_os': 'vyos.vyos.vyos', 'ansible_user': '{{ fw_usuario }}', 'ansible_host': '172.20.20.72', 'faceops_categoria': 'firewall', 'faceops_forma': 'virtual', 'faceops_ubicacion': 'Sede Providencia · Sala de comunicaciones', 'faceops_ambiente': 'produccion', 'faceops_zona': 'perimetro', 'descripcion': 'Firewall de la sede · WAN ↔ red interna', 'faceops_fabricante': 'VyOS (código abierto)', 'faceops_modelo': 'Firewall virtual VyOS', 'faceops_plataforma': 'vyos', 'faceops_consola': 'ssh · netadmin (CLI del equipo)'}
-   lb-sede-01 {'ansible_connection': 'ssh', 'ansible_user': 'root', 'ansible_python_interpreter': '/usr/bin/python3', 'ansible_host': '172.20.20.75', 'faceops_categoria': 'balanceador', 'faceops_forma': 'virtual', 'faceops_ubicacion': 'Sede Providencia · Sala de comunicaciones', 'faceops_ambiente': 'produccion', 'faceops_zona': 'servidores', 'descripcion': 'Balanceador · VIP web 10.20.30.100 → srv-web-01/02', 'faceops_fabricante': 'HAProxy (código abierto)', 'faceops_modelo': 'Balanceador virtual HAProxy', 'faceops_plataforma': 'haproxy', 'faceops_consola': 'ssh · netadmin (CLI del equipo)'}
-   nodo-jboss {'ansible_host': '192.168.122.15', 'ansible_user': 'ansible', 'ansible_connection': 'ssh'}
-   nodo-nginx {'ansible_host': '192.168.122.11', 'ansible_user': 'ansible'}
-   nodo-postgres {'ansible_host': '192.168.122.13', 'ansible_user': 'ansible', 'ansible_connection': 'ssh'}
-   nodo-so {'ansible_host': '192.168.122.12', 'ansible_user': 'ansible'}
-   pc-usuario {'ansible_host': '172.20.20.22', 'ansible_python_interpreter': '/usr/bin/python3', 'descripcion': 'Equipo de usuario detrás del FortiGate'}
-   rtr {'ansible_host': '172.20.20.11', 'bgp_vecino': '10.0.0.1', 'descripcion': 'Router de borde (FRR)'}
-   rtr-wan-01 {'ansible_connection': 'ssh', 'ansible_user': 'root', 'ansible_python_interpreter': '/usr/bin/python3', 'ansible_host': '172.20.20.71', 'faceops_categoria': 'router', 'faceops_forma': 'virtual', 'faceops_ubicacion': 'Sede Providencia · Sala de comunicaciones', 'faceops_ambiente': 'produccion', 'faceops_zona': 'wan', 'descripcion': 'Router WAN · BGP con el proveedor (AS 64600)', 'faceops_fabricante': 'FRRouting (código abierto)', 'faceops_modelo': 'Router virtual · 2 puertos de datos', 'faceops_plataforma': 'frr', 'faceops_consola': 'ssh · netadmin (CLI del equipo)'}
-   suc1 {'ansible_host': '192.168.122.1', 'ansible_user': 'aap-lab', 'lab_nodo': 'suc1', 'lab_ip': '172.20.20.41', 'lab_red': '10.30.1.0/24'}
-   suc2 {'ansible_host': '192.168.122.1', 'ansible_user': 'aap-lab', 'lab_nodo': 'suc2', 'lab_ip': '172.20.20.42', 'lab_red': '10.30.2.0/24'}
-   suc3 {'ansible_host': '192.168.122.1', 'ansible_user': 'aap-lab', 'lab_nodo': 'suc3', 'lab_ip': '172.20.20.43', 'lab_red': '10.30.3.0/24'}
-   sw-acc-01 {'ansible_connection': 'ssh', 'ansible_user': 'root', 'ansible_python_interpreter': '/usr/bin/python3', 'ansible_host': '172.20.20.74', 'faceops_categoria': 'switch', 'faceops_forma': 'virtual', 'faceops_ubicacion': 'Sede Providencia · Sala de comunicaciones', 'faceops_ambiente': 'produccion', 'faceops_zona': 'acceso', 'descripcion': 'Switch de acceso piso 1 · troncal al core', 'faceops_fabricante': 'Switch abierto (FRRouting + puente Linux)', 'faceops_modelo': 'Switch de acceso virtual · 3 puertos', 'faceops_plataforma': 'frr', 'faceops_consola': 'ssh · netadmin (CLI del equipo)'}
-   sw-core-01 {'ansible_connection': 'ssh', 'ansible_user': 'root', 'ansible_python_interpreter': '/usr/bin/python3', 'ansible_host': '172.20.20.73', 'faceops_categoria': 'switch', 'faceops_forma': 'virtual', 'faceops_ubicacion': 'Sede Providencia · Sala de comunicaciones', 'faceops_ambiente': 'produccion', 'faceops_zona': 'core', 'descripcion': 'Switch core L3 · VLAN 10/20/30/99 y uplink al firewall', 'faceops_fabricante': 'Switch abierto (FRRouting + puente Linux)', 'faceops_modelo': 'Switch L3 virtual · 5 puertos', 'faceops_plataforma': 'frr', 'faceops_consola': 'ssh · netadmin (CLI del equipo)'}
-CREDS [(1, 'Demo Credential', 7), (16, 'Gitea · escritura red-laboratorio', 39), (47, 'OpenShift · Red Hat OCM', 43), (14, 'Red · firewall VyOS', 38), (12, 'Red · FortiGate (API)', 36), (39, 'Red Hat · Llave de activación', 48), (35, 'Red Hat · Offline token', 50), (8, 'Red · laboratorio (ssh)', 7)]
-COLS 
---- fin: 2026-11-11T23:15:19-03:00 · código: 0
+16e4ade Alertas del clúster: el interruptor se ve encendido 
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+cliente demo-banco
+== 110 demo-bps-ocp-01 | plataforma | Red Hat OpenShift 4.17 | apagado | skills []
+   plats ['PL-OPENSHIFT-0110']
+   datos {"demo": "True", "rol": "M\u00e1quina ficticia de la demo multicliente"}
+== 111 demo-bps-ocp-qa | plataforma | Red Hat OpenShift 4.17 | apagado | skills []
+   plats ['PL-OPENSHIFT-0111']
+   datos {"demo": "True", "rol": "M\u00e1quina ficticia de la demo multicliente"}
+--- fin: 2026-11-11T23:15:46-03:00 · código: 0
