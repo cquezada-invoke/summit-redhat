@@ -1,20 +1,173 @@
-commit: 7baf93de09b9cf9a0d7b79f12f0c1b23dd37dfc1
-inicio: 2026-11-11T21:53:19-03:00
+commit: dd06376e0714acb8fd40c66119b8f54429630d91
+inicio: 2026-11-11T21:54:13-03:00
 ---
-shut off
+== host
+demo-ansible-summit
+ 21:54:13 up  3:25,  0 users,  load average: 19.62, 17.30, 14.21
+cquezada
+== units usuario (aap/eda)
+== failed system
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+0 loaded units listed.
+== summit-lab
+● summit-lab.service - Laboratorio de red de la Demo 4 (containerlab) al encender la VM
+     Loaded: loaded (/etc/systemd/system/summit-lab.service; enabled; preset: disabled)
+     Active: active (exited) since Wed 2026-11-11 18:35:59 -03; 3h 18min ago
+    Process: 1335 ExecStart=/bin/bash /home/cquezada/summit-redhat/demo4-redes/herramientas/arrancar-lab.sh (code=exited, status=0/SUCCESS)
+   Main PID: 1335 (code=exited, status=0/SUCCESS)
+        CPU: 1.006s
 
-error: Failed to query for interfaces addresses
-error: Requested operation is not valid: domain is not running
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Amdocs · Órdenes de servicio
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: FaceOps · OpenShift
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: FaceOps · Certificados
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: JBoss · Configuración desde Git
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: ServiceNow · Solicitudes de nube
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Monitoreo · Alertas de Prometheus
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Seguridad · Bloqueo de IP
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Remediación · Eventos de JBoss
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Claro PR · Eventos (Odoo y Grafana)
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Amdocs · Órdenes de servicio
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: FaceOps · OpenShift
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: FaceOps · Certificados
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: JBoss · Configuración desde Git
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: ServiceNow · Solicitudes de nube
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Monitoreo · Alertas de Prometheus
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Seguridad · Bloqueo de IP
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Remediación · Eventos de JBoss
+Nov 11 18:35:59 demo-ansible-summit bash[46596]: reiniciada: Red · Drift por eventos
+== podman ps eda
+postgresql Up 3 hours
+redis-unix Up 3 hours
+redis-tcp Up 3 hours
+automation-gateway-proxy Up 3 hours
+automation-gateway Up 3 hours
+receptor Up 3 hours
+automation-eda-api Up 3 hours
+automation-eda-daphne Up 3 hours
+automation-eda-web Up 3 hours
+automation-eda-worker-1 Up 3 hours
+automation-eda-worker-2 Up 3 hours
+automation-eda-activation-worker-1 Up 3 hours
+automation-eda-activation-worker-2 Up 3 hours
+automation-hub-api Up 3 hours
+automation-hub-content Up 3 hours
+automation-hub-web Up 3 hours
+automation-hub-worker-1 Up 3 hours
+automation-hub-worker-2 Up 3 hours
+activaciones: 12
+212 running 4 FaceOps · Alertas de objetos | msg: Container running activation
+211 running 2 ServiceNow · Solicitudes de red | msg: Container running activation
+209 running 3 Claro PR · Eventos (Odoo y Grafana) | msg: Container running activation
+208 running 3 Amdocs · Órdenes de servicio | msg: Container running activation
+204 running 8 FaceOps · OpenShift | msg: Container running activation
+203 running 8 FaceOps · Certificados | msg: Container running activation
+30 running 12 JBoss · Configuración desde Git | msg: Container running activation
+26 running 16 ServiceNow · Solicitudes de nube | msg: Container running activation
+17 running 16 Monitoreo · Alertas de Prometheus | msg: Container running activation
+11 running 17 Seguridad · Bloqueo de IP | msg: Container running activation
+5 running 17 Remediación · Eventos de JBoss | msg: Container running activation
+4 running 17 Red · Drift por eventos | msg: Container running activation
+DE 1 Default Decision Environment registry.redhat.io/ansible-automation-platform-27/de-supported-rhel9:latest cred: None
+DE 2 Minimal Decision Environment registry.redhat.io/ansible-automation-platform-27/de-minimal-rhel9:latest cred: None
+DE 3 Hub Default Decision Environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/de-supported-rhel9:latest cred: 2
+DE 4 Hub Minimal Decision Environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/de-minimal-rhel9:latest cred: 2
+CRED 2 Hub Decision Environment Container Registry Container Registry {'host': 'demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal', 'username': 'admin', 'verify_ssl': True}
+CRED 3 AAP · lanzar plantillas de red Red Hat Ansible Automation Platform {'host': 'https://10.194.0.2/api/controller/', 'username': 'admin', 'verify_ssl': False}
+CRED 8 AAP · lanzar remediaciones Red Hat Ansible Automation Platform {'host': 'https://10.194.0.2/api/controller/', 'username': 'admin', 'verify_ssl': False}
+CRED 22 AAP · lanzar plantillas de JBoss Red Hat Ansible Automation Platform {'host': 'https://10.194.0.2/api/controller/', 'username': 'admin', 'verify_ssl': False}
+CRED 27 AAP · lanzar plantillas de nube Red Hat Ansible Automation Platform {'host': 'https://10.194.0.2/api/controller/', 'username': 'admin', 'verify_ssl': False}
+CRED 33 AAP · FaceOps (certificados) Red Hat Ansible Automation Platform {'host': 'https://192.168.122.1/api/controller/', 'username': 'admin', 'verify_ssl': False}
+CRED 213 AAP · portal (lanzar workflows) Red Hat Ansible Automation Platform {'host': 'https://10.194.0.2/api/controller/', 'username': 'admin', 'verify_ssl': False}
+== instancias de FaceOps · Alertas de objetos
+589 running 2026-11-11T23:53:28.059938Z None Container running activation
+577 error 2026-11-11T21:36:03.833973Z 2026-11-11T21:36:07.094114Z Activation 212 failed to start. Reason: 500 Server Error: Internal Server Error ({"message":"received unexpected HTTP status: 503 Service Unavailable"}
+)
+568 error 2026-11-11T21:34:49.334058Z 2026-11-11T21:34:54.800538Z Activation 212 failed to start. Reason: 500 Server Error: Internal Server Error ({"message":"received unexpected HTTP status: 503 Service Unavailable"}
+)
+  LOG Pulling image demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/de-supported-rhel9:latest
+  LOG Log tracking id: 8664f980-e09a-4626-927e-500a53c7b27c
+  LOG Starting Container
+  LOG Container args ['ansible-rulebook', '--worker', '--websocket-ssl-verify', 'yes', '--websocket-url', 'wss://demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal:8445/api/eda/ws/ansible-rulebook', '--websocket-access-token', '******', '--websocket-refresh-token', '******', '--websocket
+  LOG Container c6c02080c7ff0f106a950993c877820d9225c210f85a8f693f0a85d2f0725e45 is running.
+  LOG ansible_rulebook.app - INFO - ansible-rulebook [1.3.0.dev1]
+  LOG Executable location = /usr/local/bin/ansible-rulebook
+  LOG Drools_jpy version = 0.4.1
+  LOG Java home = /usr/lib/jvm/java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64
+  LOG Java version = 17.0.20.1
+  LOG Ansible core version = 2.16.19
+  LOG Python version = 3.12.14
+  LOG Python executable = /usr/bin/python3.12
+  LOG Platform = Linux-5.14.0-741.20.1.el9_9.x86_64-x86_64-with-glibc2.34
+  LOG ansible_rulebook.app - INFO - Starting worker mode
+  LOG ansible_rulebook.websocket - INFO - websocket wss://demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal:8445/api/eda/ws/ansible-rulebook
+  LOG ansible_rulebook.websocket - INFO - attempt websocket connection
+  LOG ansible_rulebook.websocket - INFO - workload websocket connected
+  LOG ansible_rulebook.app - INFO - max_concurrent_actions=25
+  LOG ansible_rulebook.job_template_runner - INFO - Attempting to connect to Controller https://192.168.122.1/api/controller/
+  LOG ansible_rulebook.app - INFO - AAP Version 4.8.11
+  LOG ansible_rulebook.app - INFO - Starting sources
+  LOG ansible_rulebook.app - INFO - Starting rules
+  LOG drools.ruleset - INFO - Using jar: /usr/local/lib/python3.12/site-packages/drools/jars/drools-ansible-rulebook-integration-runtime-2.0.1.redhat-00001-HA.jar
+  LOG ansible_rulebook.engine - INFO - load source ansible.eda.alertmanager
+  LOG ansible_rulebook.engine - INFO - loading source filter eda.builtin.insert_meta_info
+  LOG ansible_rulebook.websocket - INFO - websocket wss://demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal:8445/api/eda/ws/ansible-rulebook
+  LOG ansible_rulebook.websocket - INFO - attempt websocket connection
+  LOG [drools-async-evaluator-thread] INFO org.drools.ansible.rulebook.integration.api.io.RuleExecutorChannel - Async channel connected
+  LOG [main] INFO org.drools.ansible.rulebook.integration.api.rulesengine.RulesExecutorSession - Cancelled pseudo-clock job purge threshold set to 100
+  LOG [main] INFO org.drools.ansible.rulebook.integration.api.rulesengine.MemoryMonitorUtil - Memory occupation threshold set to 90%
+  LOG [main] INFO org.drools.ansible.rulebook.integration.api.rulesengine.MemoryMonitorUtil - Memory check event count threshold set to 64
+  LOG [main] INFO org.drools.ansible.rulebook.integration.api.rulesengine.MemoryMonitorUtil - Exit above memory occupation threshold set to false
+  LOG [main] INFO org.drools.ansible.rulebook.integration.api.rulesengine.AbstractRulesEvaluator - Start automatic pseudo clock with a tick every 100 milliseconds
+  LOG ansible_rulebook.engine - INFO - Waiting for all ruleset tasks to end
+  LOG ansible_rulebook.rule_set_runner - INFO - Waiting for actions on events from FaceOps · alertas de objetos
+  LOG ansible_rulebook.rule_set_runner - INFO - Waiting for events, ruleset: FaceOps · alertas de objetos
+  LOG ansible_rulebook.websocket - INFO - feedback websocket connected
+  LOG aiohttp.access - INFO - 127.0.0.1 [11/Nov/2026:23:54:03 +0000] "POST /endpoint HTTP/1.1" 202 166 "-" "Alertmanager/0.27.0"
+  LOG [debug] ******************************************
+== settings eda
+ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64
+automationmetrics
+cluster_host_id.py.orig
+containers
+controller
+eda
+gateway
+gatewayproxy
+hub
+instalacion-aap.log
+postgresql
+receptor
+receptor.conf.orig
+redis
+tls
+/home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/:
+aap_install.log
+ansible.cfg
+bundle
+collections
+inventory
+inventory-demo
+inventory-demo.antes-nodos-ejecucion
+inventory-growth
+README.md
 
- vnet37     52:54:00:a8:43:32    ipv4         192.168.122.233/24
+/home/cquezada/aap/automationmetrics/:
+config
+nginx
 
-FO-LAB-01983 fallido workflow 25242 a FaceOps (mismos nombres que los de Ansible)] ****************** / fatal: [srv-mig-rocky-01]: FAILED! => {"msg": "The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'. {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'\n\nThe error appears to be in '/runner/project/playbooks/recolectar.yml': line 40, column 11, but may\nbe elsewhere in the file depending on the exact syntax problem.\n\nThe offending line appears to be:\n\n\n        - name: Datos para FaceOps (mismos nombres que los de Ansible)\n          ^ here\n"} /  / PLAY RECAP ********************************************************************* / srv-mig-rocky-01           : ok=2    changed=0    unreachable=0    failed
-JOB 25247 Sistema · Inventariar máquina failed 34.8  timeout 3600
-FO-LAB-01983 25247 Datos estándar del sistema operativo | Failed to connect to the host via ssh: ssh: connect to host 192.168.122.231 port 22: Connection timed out |  | 
-FO-LAB-01983 25247 Datos del sistema por shell | Failed to connect to the host via ssh: ssh: connect to host 192.168.122.231 port 22: Connection timed out |  | 
-FO-LAB-01983 25247 Datos para FaceOps (mismos nombres que los de Ansible) | The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has  |  | 
-FO-LAB-01976 exitoso workflow 25213 AAP terminó (successful): ejecución 312 s, espera de aprobación 31 s / Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-mig-rocky-01 · pendiente
-JOB 25216 FaceOps · Habilitar servidor successful 312.875  timeout 0
-{'id': 129, 'nombre': 'srv-mig-rocky-01', 'estado': 'con datos', 'ip': '192.168.122.231'}
-{'id': 130, 'nombre': 'srv-mig-rhel8-01', 'estado': 'con datos', 'ip': '192.168.122.233'}
---- fin: 2026-11-11T21:53:37-03:00 · código: 0
+/home/cquezada/aap/containers/:
+podman
+storage
+storage.conf
+
+/home/cquezada/aap/controller/:
+data
+etc
+nginx
+rsyslog
+supervisor
+
+/home/cquezada/aap/eda/:
+etc
+nginx
+--- fin: 2026-11-11T21:54:15-03:00 · código: 0
