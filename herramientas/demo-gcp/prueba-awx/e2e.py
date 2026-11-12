@@ -65,7 +65,7 @@ with APP.app_context():
             chk(False, f"{etiqueta}: solicitar → {type(x).__name__}: {str(x)[:300]}")
             return None
         print(f"    ticket {t['numero']} estado {t['estado']} job {t['aap_job_id']}", flush=True)
-        vistos = set()
+        vistos, aprobo_awx = set(), False
         for _ in range(90):
             actualizar_tickets()
             t = q1("SELECT * FROM tickets WHERE id=?", t["id"])
@@ -80,9 +80,11 @@ with APP.app_context():
             if t["estado"] == "en_ejecucion":   # aprobación propia del workflow de AWX (anidada): se responde con la capa de FaceOps
                 for ap in a.get("workflow_approvals/", status="pending").get("results", []):
                     a.responder_aprobacion(ap["id"], True)
+                    aprobo_awx = True
                     print(f"    aprobación de AWX «{ap['name']}» respondida desde FaceOps", flush=True)
             time.sleep(5)
-        chk("pendiente_aprobacion" in vistos and t["estado"] == "exitoso",
+        # la aprobación puede verse en FaceOps (pendiente_aprobacion) o como nodo de aprobación del workflow de AWX respondido por FaceOps
+        chk(("pendiente_aprobacion" in vistos or aprobo_awx) and t["estado"] == "exitoso",
             f"{etiqueta}: ticket {t['numero']} {' → '.join(sorted(vistos))} · AWX {t['aap_job_tipo']} #{t['aap_job_id']} · {(t.get('resultado') or '')[:120]}")
         return t
 
