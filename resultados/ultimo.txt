@@ -1,13 +1,18 @@
-commit: c93c95daed8bc4de1ba66210c427014e0d946c67
-inicio: 2026-11-11T22:24:52-03:00
+commit: a1dbc5177683a17395aa8a166b823edbd6d30434
+inicio: 2026-11-11T22:25:32-03:00
 ---
-ad9ac4d Salud: un «Aplicada» de otro valor no ocul
-/opt/faceops/app/mod_hipervisores.py
-  warnings.warn(
-[(1, 'kvm', 'KVM · Santiago'), (6, 'kvm', 'KVM · Valparaíso'), (4, 'vmware', 'VMware · Santiago')]
-1 200 barra True energia True sal True cx True secreto_visible False False
-6 200 barra True energia True sal True cx True secreto_visible False False
-Salud de KVM · Valparaíso Radar de salud: los mismos 6 pilares de todo FaceOps. Cada punto se cumple, no se cumple o no aplica a este equipo (lo que no aplica no castiga). ✕ Disponibilidad 100 % meta 99.0 % ✓ Conexión verificada HV1 FaceOps llega al hipervisor por AAP con su credencial Rendimiento 100 % meta 90.0 % – Sobreasignación de CPU bajo 2× HV4 vCPU asignadas frente a 2 por core físico · no aplica ✓ Memoria libre sobre 10 % HV5 Hoy 26 % libre en el anfitrión Seguridad 100 % meta 95.0 % ✓ Credencial cifrada en AAP HV2 El acceso vive en una credencial cifrada de AAP, no en FaceOps Recuperación 47 % meta 85.0 % – Disco libre sobre 15 % HV6 Hoy 7 % libre en el pool de las máquinas (snapshots y traslados) Costo 0 % meta 85.0 % ✗ Encendido automático controlado HV7 Al reiniciar el anfitrión solo arranca sola la bóveda (hoy: srv-prueba-rhel9-01, srv-prueba-rhel8-01, srv-mig-rhel8-01, srv-prueba-resp-01, nodo-jboss4, srv-no-existe-99, nodo-vault, srv-mig-rocky-01, srv-prueba-rocky-01) E
-Encendido automático controlado HV7 Al reiniciar el anfitrión solo arranca sola la bóveda (hoy: srv-prueba-rhel9-01, srv-prueba-rhel8-01, srv-mig-rhel8-01, srv-prueba-resp-01, nodo-jboss4, srv-no-existe-99, nodo-vault, srv-mig-rocky-01, srv-prueba-rocky-01) Excelencia operativa 100 % meta 85.0 % ✓ Capacidad medida en las últimas 12 h HV3 CPU, memoria y disco libre leídos con «Probar acceso» Para s
-4 200 barra True energia True sal True cx True secreto_visible False False
---- fin: 2026-11-11T22:25:04-03:00 · código: 0
+142a4a7 Hora local en FaceOps y FaceAdmin: el servidor guard
+   · Plantilla «OpenShift · Crear en GCP» (id 1200)
+   · Plantilla «OpenShift · Eliminar en GCP» (id 1201)
+UI botón: True | sin 'Crear nueva máquina virtual': False | diálogo: True | conectar existente: True
+OPCION OpenShift 4 · IPI sobre GCP | 4.22.22 stable-4.22 | habilitada: False | prerrequisito pendiente: zona DNS pública en Cloud DNS (dominio base) del proyecto master-ia-320218
+OPCION OpenShift 5 · IPI sobre GCP | 5.0.1 stable-5.0 | habilitada: False | prerrequisito pendiente: zona DNS pública en Cloud DNS (dominio base) del proyecto master-ia-320218
+acciones: {'OpenShift · Crear en GCP': 238, 'OpenShift · Eliminar en GCP': 239}
+CASO crear C1 FO-LAB-02012 fallido OK · "La versión 4.99.0 no existe en el canal stable-4.99"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO crear C2 FO-LAB-02013 fallido OK · 3 · Región southamerica-west1: Compute respondió 403"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=6    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO crear C3 FO-LAB-02014 fallido OK · re» o días_horas como 1-5_8-19 · dominio base válido"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO crear C4 FO-LAB-02015 fallido OK · o": false, "msg": "aún sin versión estable publicada"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO eliminar C4 FO-LAB-02016 fallido OK · eliminar (el nombre con que se creó) o el modo ciclo"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO eliminar C2 FO-LAB-02017 fallido NO · ut_lines": ["{\"error\": \"Compute respondió 403\"}"]} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO eliminar C3 FO-LAB-02018 fallido NO · ut_lines": ["{\"error\": \"Compute respondió 403\"}"]} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+--- fin: 2026-11-11T22:33:59-03:00 · código: 0

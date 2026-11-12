@@ -1,0 +1,18 @@
+commit: a1dbc5177683a17395aa8a166b823edbd6d30434
+inicio: 2026-11-11T22:25:32-03:00
+---
+142a4a7 Hora local en FaceOps y FaceAdmin: el servidor guard
+   · Plantilla «OpenShift · Crear en GCP» (id 1200)
+   · Plantilla «OpenShift · Eliminar en GCP» (id 1201)
+UI botón: True | sin 'Crear nueva máquina virtual': False | diálogo: True | conectar existente: True
+OPCION OpenShift 4 · IPI sobre GCP | 4.22.22 stable-4.22 | habilitada: False | prerrequisito pendiente: zona DNS pública en Cloud DNS (dominio base) del proyecto master-ia-320218
+OPCION OpenShift 5 · IPI sobre GCP | 5.0.1 stable-5.0 | habilitada: False | prerrequisito pendiente: zona DNS pública en Cloud DNS (dominio base) del proyecto master-ia-320218
+acciones: {'OpenShift · Crear en GCP': 238, 'OpenShift · Eliminar en GCP': 239}
+CASO crear C1 FO-LAB-02012 fallido OK · "La versión 4.99.0 no existe en el canal stable-4.99"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO crear C2 FO-LAB-02013 fallido OK · 3 · Región southamerica-west1: Compute respondió 403"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=6    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO crear C3 FO-LAB-02014 fallido OK · re» o días_horas como 1-5_8-19 · dominio base válido"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO crear C4 FO-LAB-02015 fallido OK · o": false, "msg": "aún sin versión estable publicada"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO eliminar C4 FO-LAB-02016 fallido OK · eliminar (el nombre con que se creó) o el modo ciclo"} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO eliminar C2 FO-LAB-02017 fallido NO · ut_lines": ["{\"error\": \"Compute respondió 403\"}"]} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+CASO eliminar C3 FO-LAB-02018 fallido NO · ut_lines": ["{\"error\": \"Compute respondió 403\"}"]} |  | PLAY RECAP ********************************************************************* | localhost                  : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+--- fin: 2026-11-11T22:33:59-03:00 · código: 0
