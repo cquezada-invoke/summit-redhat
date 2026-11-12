@@ -1,17 +1,19 @@
-commit: 8820e49fed2f7e2106c0a3960848d6df3db7da47
-inicio: 2026-11-12T20:33:28-03:00
+commit: 4487df99f5d6306b3fe800000e70f906a2e7ae46
+inicio: 2026-11-12T20:35:03-03:00
 ---
-desplegado: 8a1df2ad 2026-11-12 23:25
-ALTA 400 0.0s {"error":"La b\u00f3veda no acept\u00f3 el s. (revisa los permisos de escritura de FaceOps)"}
-
-REPETIR (duplicado) 400 {"error":"La b\u00f3veda no acept\u00f3 el secreto (revisa los permisos de escritura de FaceOps)"}
-
-NOMBRE INVÁLIDO 400 {"error":"Nombre: min\u00fasculas, n\u00fameros, puntos o guiones (ej. fw-borde-01)"}
-
-LECTOR intenta encender JBoss: 403 <!doctype html> <html lang=en> <title>403 Forbidden</title> <h1>Forbidden</h1> <
-LECTOR intenta alta manual: 403 {"error":"Necesitas perfil de escritura"}
-
-VERIF equipo: None · host AAP: [] · secreto en bóveda: []
-VERIF equipo: None · host AAP: [] · secreto en bóveda: []
-LIMPIEZA host AAP borrados: 0 · bóveda: 403 · fila FaceOps: False → queda: 0
---- fin: 2026-11-12T20:33:49-03:00 · código: 0
+desplegado: d4ccca74 · incluye d4ccca74: sí
+EVID Infra · Encender o apagar equipo | certificada a8e38d679d00 | 2026-11-05 | Certificación inicial: ejecuciones exitosas previa | ["FO-LAB-00893", "FO-LAB-00828", "FO-LAB-00761"]
+EVID FaceOps · Apagar equipo | certificada 5a2fcf06b0a8 | 2026-11-07 | Plan apagar equipo · C1–C2 | ["FO-LAB-01242", "FO-LAB-01243"]
+EVID FaceOps · Vincular máquina a la bóveda | certificada a012dec7fcd6 | 2026-11-05 | Certificación inicial: ejecuciones exitosas previa | ["FO-LAB-00883", "FO-LAB-00849", "FO-LAB-00843"]
+EVID Plataforma · Controlar servicio | certificada fe096c0f55c4 | 2026-11-12 | planes-prueba.yml · Plataforma · Controlar servici | ["FO-LAB-01932", "FO-LAB-01934", "FO-LAB-01939", "FO-LAB-01942", "FO-LAB-01944", "FO-LAB-0
+EVID Sistema · Quitar agente | certificada d44ec5e8b5db | 2026-11-12 | Plan quitar agente · C1–C3 (planes-prueba.yml) | ["FO-LAB-02037", "FO-LAB-02038"]
+EVID Sistema · Inventariar máquina | cambiada b219fe40ea00 | 2026-11-05 | Certificación inicial: ejecuciones exitosas previa | ["FO-LAB-00889", "FO-LAB-00888", "FO-LAB-00887"]
+EVID Sistema · Paquetes · inventario y respaldo | cambiada 4f4643417826 | 2026-11-05 | Certificación inicial: ejecuciones exitosas previa | ["FO-LAB-00456", "FO-LAB-00435", "FO-LAB-00367"]
+EVID FaceOps · Vincular máquina on-premise | sin probar 94d485689388 |  |  | 
+MEDIDA / · dcl [980, 378, 363, 351] · mediana 363 · errores []
+MEDIDA /inventario · dcl [895, 131, 141, 140] · mediana 140 · errores []
+MEDIDA /inventario?forma=virtual · dcl [150, 122, 124, 126] · mediana 124 · errores []
+LISTA virtuales: nodo-vault False · nodo-jboss-qa (apagada) False · filas 30 · marcas encendido/apagado 13
+CONSOLAS WEB en ficha de nodo-vault: ['/lab/inventario/26/consola-web/vault/']
+  abre /lab/inventario/26/consola-web/vault/ → 200 4.8s · título Vault · errores ['Failed to load resource: the server responded with a status of 403 (FORBIDDEN)']
+--- fin: 2026-11-12T20:36:43-03:00 · código: 0
