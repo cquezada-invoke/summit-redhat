@@ -1,0 +1,82 @@
+commit: 8c59529a273c61e4ffaf68ec3132e4f31057fd72
+inicio: 2026-11-11T23:04:03-03:00
+---
+9710f1c Nube: motivo claro cuando el proveedor rechaza la si
+== faceops HTTP: 401
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+EQ ocp-sno clúster openshift OpenShift 4.19.51 encendido produccion
+REC 2026-11-12T01:47:26.566218Z nodos 1 recursos {'cpu_uso': '1.11', 'pods_max': '250', 'cpu_total': '8', 'cpu_asignable': '7.5', 'memoria_uso_gb': '18.1', 'memoria_total_gb': '23.5', 'memoria_asignable_gb': '22.4'}
+NODO sno ['control-plane', 'master', 'worker'] 8 23.5 1.11 18.1
+OP {"n": "hawtio-operator", "ns": "faceops", "csv": "hawtio-operator.v1.2.0", "sub": "hawtio-operator", "fase": "Succeeded", "aprob": "Manual", "canal": "stable-v1", "actual": "hawtio-operator.v1.2.0", "estado": "AtLatestKnown", "fuente": "community-operators", "nombre": "Hawtio Operator", "pendientes": []}
+OP {"n": "compliance-operator", "ns": "openshift-compliance", "csv": "compliance-operator.v1.10.0", "sub": "compliance-operator-sub", "fase": "Succeeded", "aprob": "Manual", "canal": "stable", "actual": "compliance-operator.v1.10.1", "estado": "UpgradePending", "fuente": "redhat-operators", "nombre": "Compliance Operator", "pendientes": ["compliance-operator.v1.10.1"]}
+OP {"n": "openshift-gitops-operator", "ns": "openshift-gitops-operator", "csv": "openshift-gitops-operator.v1.22.2", "sub": "openshift-gitops-operator", "fase": "Succeeded", "aprob": "Manual", "canal": "latest", "actual": "openshift-gitops-operator.v1.22.3", "estado": "UpgradePending", "fuente": "redhat-operators", "nombre": "Red Hat OpenShift GitOps", "pendientes": ["openshift-gitops-operator.v1.22.3"]}
+OP {"n": "datagrid", "ns": "openshift-operators", "csv": "datagrid-operator.v8.6.9", "sub": "datagrid", "fase": "Succeeded", "aprob": "Manual", "canal": "stable", "actual": "datagrid-operator.v8.6.10", "estado": "UpgradePending", "fuente": "redhat-operators", "nombre": "Data Grid", "pendientes": ["datagrid-operator.v8.6.10"]}
+OP {"n": "openshift-pipelines-operator-rh", "ns": "openshift-operators", "csv": "openshift-pipelines-operator-rh.v1.24.3", "sub": "openshift-pipelines-operator-rh", "fase": "Succeeded", "aprob": "Manual", "canal": "latest", "actual": "openshift-pipelines-operator-rh.v1.24.3", "estado": "AtLatestKnown", "fuente": "redhat-operators", "nombre": "Red Hat OpenShift Pipelines", "pendientes": ["datagrid-operator.v8.6.10"]}
+OP {"n": "rhacs-operator", "ns": "rhacs-operator", "csv": "rhacs-operator.v4.11.6", "sub": "rhacs-operator", "fase": "Succeeded", "aprob": "Manual", "canal": "stable", "actual": "rhacs-operator.v5.0.0", "estado": "UpgradePending", "fuente": "redhat-operators", "nombre": "Advanced Cluster Security for Kubernetes", "pendientes": ["rhacs-operator.v5.0.0"]}
+STORAGE {'pvs': '2', 'pvcs': '4', 'clases': [], 'pvs_gb': '102.0', 'pvcs_pendientes': '2'}
+AUTO OpenShift · Recolectar clúster ('certificada', 'lectura', 1, 'FaceOps', '{"playbook": "playbooks/openshift-recolectar.yml", "proyecto": "FaceOps · automatizaciones", "repositorio": "http://192.168.122.1:3000/invoke/faceops-automatizaciones.git", "rama": "main", "commit": "')
+AUTO OpenShift · Operador ('certificada', 'escritura', 1, 'FaceOps', '{"playbook": "playbooks/openshift-operador.yml", "proyecto": "FaceOps · automatizaciones", "repositorio": "http://192.168.122.1:3000/invoke/faceops-automatizaciones.git", "rama": "main", "commit": "8f')
+AUTO OpenShift · Agente de ACS ('certificada', 'escritura', 1, 'FaceOps', '{"playbook": "playbooks/openshift-acs.yml", "proyecto": "FaceOps · automatizaciones", "repositorio": "http://192.168.122.1:3000/invoke/faceops-automatizaciones.git", "rama": "main", "commit": "8f61b10')
+== oc
+NAME   STATUS   ROLES                         AGE   VERSION
+sno    Ready    control-plane,master,worker   12d   v1.32.13
+NAMESPACE                   NAME                              PACKAGE                           SOURCE                CHANNEL
+faceops                     hawtio-operator                   hawtio-operator                   community-operators   stable-v1
+openshift-compliance        compliance-operator-sub           compliance-operator               redhat-operators      stable
+openshift-gitops-operator   openshift-gitops-operator         openshift-gitops-operator         redhat-operators      latest
+openshift-operators         datagrid                          datagrid                          redhat-operators      stable
+openshift-operators         openshift-pipelines-operator-rh   openshift-pipelines-operator-rh   redhat-operators      latest
+rhacs-operator              rhacs-operator                    rhacs-operator                    redhat-operators      stable
+compliance-operator.v1.10.0 Succeeded
+datagrid-operator.v8.6.9 Succeeded
+hawtio-operator.v1.2.0 Succeeded
+NAME PHASE
+openshift-gitops-operator.v1.22.2 Succeeded
+openshift-pipelines-operator-rh.v1.24.3 Succeeded
+packageserver Succeeded
+rhacs-operator.v4.11.6 Succeeded
+NAME                  DISPLAY               TYPE   PUBLISHER   AGE
+certified-operators   Certified Operators   grpc   Red Hat     12d
+community-operators   Community Operators   grpc   Red Hat     12d
+redhat-marketplace    Red Hat Marketplace   grpc   Red Hat     12d
+redhat-operators      Red Hat Operators     grpc   Red Hat     12d
+odf-operator|redhat-operators|stable-4.19|stable-4.18,stable-4.19,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":false,"type":"AllNamespaces"}]
+lvms-operator|redhat-operators|stable-4.19|stable-4.18,stable-4.19,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":false,"type":"AllNamespaces"}]
+kubevirt-hyperconverged|redhat-operators|stable|candidate,stable,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":false,"type":"AllNamespaces"}]
+mtv-operator|redhat-operators|release-v2.11|release-v2.10,release-v2.11,release-v2.9,|[{"supported":true,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":false,"type":"AllNamespaces"}]
+openshift-gitops-operator|redhat-operators|latest|gitops-1.10,gitops-1.11,gitops-1.12,gitops-1.13,gitops-1.14,gitops-1.15,gitops-1.16,gitops-1.17,gitops-1.18,gitops-1.19,gitops-1.20,gitops-1.21,gitops-1.22,gitops-1.6,gitops-1.7,gitops-1.8,gitops-1.9,latest,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supporte
+openshift-pipelines-operator-rh|redhat-operators|latest|latest,pipelines-1.15,pipelines-1.16,pipelines-1.17,pipelines-1.18,pipelines-1.19,pipelines-1.20,pipelines-1.21,pipelines-1.22,pipelines-1.23,pipelines-1.24,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+servicemeshoperator3|redhat-operators|stable|candidates,stable,stable-3.0,stable-3.1,stable-3.2,stable-3.3,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+servicemeshoperator|redhat-operators|stable|1.0,stable,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+serverless-operator|redhat-operators|stable|stable,stable-1.29,stable-1.30,stable-1.31,stable-1.32,stable-1.33,stable-1.34,stable-1.35,stable-1.36,stable-1.37,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+cluster-logging|redhat-operators|stable-6.5|stable-6.2,stable-6.3,stable-6.4,stable-6.5,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":true,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+loki-operator|redhat-operators|stable-6.5|stable-6.2,stable-6.3,stable-6.4,stable-6.5,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+cluster-observability-operator|redhat-operators|stable|fast,stable,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+netobserv-operator|redhat-operators|stable|stable,v1.0.x,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+rhacs-operator|redhat-operators|stable|latest,rhacs-3.62,rhacs-3.63,rhacs-3.64,rhacs-3.65,rhacs-3.66,rhacs-3.67,rhacs-3.68,rhacs-3.69,rhacs-3.70,rhacs-3.71,rhacs-3.72,rhacs-3.73,rhacs-3.74,rhacs-4.0,rhacs-4.1,rhacs-4.10,rhacs-4.11,rhacs-4.2,rhacs-4.3,rhacs-4.4,rhacs-4.5,rhacs-4.6,rhacs-4.7,rhacs-4.8,rhacs-4.9,rhacs-5.0,stable,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"S
+openshift-cert-manager-operator|redhat-operators|stable-v1|stable-v1,stable-v1.15,stable-v1.16,stable-v1.17,stable-v1.18,stable-v1.19,stable-v1.20,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+compliance-operator|redhat-operators|stable|4.7,release-0.1,stable,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":true,"type":"MultiNamespace"},{"supported":false,"type":"AllNamespaces"}]
+file-integrity-operator|redhat-operators|stable|4.7,release-0.1,stable,v1,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":false,"type":"AllNamespaces"}]
+security-profiles-operator|redhat-operators|release-alpha-rhel-8|release-alpha-rhel-8,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":true,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+advanced-cluster-management|redhat-operators|release-2.17|release-2.13,release-2.14,release-2.15,release-2.16,release-2.17,|[{"supported":true,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":false,"type":"AllNamespaces"}]
+quay-operator|redhat-operators|stable-3.18|quay-v3.4,quay-v3.5,stable-3.10,stable-3.11,stable-3.12,stable-3.13,stable-3.14,stable-3.15,stable-3.16,stable-3.17,stable-3.18,stable-3.6,stable-3.7,stable-3.8,stable-3.9,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":true,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+amq-streams|redhat-operators|stable|amq-streams-2.2.x,amq-streams-2.3.x,amq-streams-2.4.x,amq-streams-2.5.x,amq-streams-2.6.x,amq-streams-2.7.x,amq-streams-2.8.x,amq-streams-2.9.x,amq-streams-2.x,amq-streams-3.0.x,amq-streams-3.1.x,amq-streams-3.2.x,amq-streams-3.x,amq-streams-lts,stable,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":true,"type"
+amq-broker-rhel8|redhat-operators|7.12.x|7.10.x,7.11.x,7.12.x,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":true,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+amq-broker-rhel9|redhat-operators|7.14.x|7.13.x,7.14.x,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":true,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+rhbk-operator|redhat-operators|stable-v26.6|stable-v22,stable-v22.0,stable-v24,stable-v24.0,stable-v26,stable-v26.0,stable-v26.2,stable-v26.4,stable-v26.6,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":false,"type":"AllNamespaces"}]
+datagrid|redhat-operators|stable|8.2.x,8.3.x,8.4.x,stable,|[{"supported":true,"type":"OwnNamespace"},{"supported":true,"type":"SingleNamespace"},{"supported":true,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+redhat-oadp-operator|redhat-operators|stable|stable,|[{"supported":true,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":false,"type":"AllNamespaces"}]
+devspaces|redhat-operators|stable|stable,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+web-terminal|redhat-operators|fast|fast,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNamespace"},{"supported":false,"type":"MultiNamespace"},{"supported":true,"type":"AllNamespaces"}]
+rhods-operator|redhat-operators|stable-3.x|3.2-exception-support,alpha,beta,embedded,eus-2.16,eus-2.25,eus-2.8,eus-3.5,fast,fast-3.x,stable,stable-2.10,stable-2.13,stable-2.16,stable-2.19,stable-2.22,stable-2.25,stable-2.8,stable-3.3,stable-3.4,stable-3.5,stable-3.x,support-required-upgrade,support-required-upgrade-3.5,|[{"supported":false,"type":"OwnNamespace"},{"supported":false,"type":"SingleNa
+== AAP creds
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+CRED 42 OpenShift · clúster (token)
+CRED 26 OpenShift · Pull secret
+CRED 47 OpenShift · Red Hat OCM
+CRED 30 OpenShift · SNO (despliegue)
+CRED 29 OpenShift · SNO (lectura)
+HOST ocp-sno OpenShift · clústeres
+--- fin: 2026-11-11T23:04:41-03:00 · código: 0
