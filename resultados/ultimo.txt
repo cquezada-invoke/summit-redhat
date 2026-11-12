@@ -1,71 +1,15 @@
-commit: 50dc6ee523866cd1239577fbacbebc1cc0dc6a94
-inicio: 2026-11-11T22:06:11-03:00
+commit: f750f842e391fc8e0d21b2ad6791d8a38a7cdd1d
+inicio: 2026-11-11T22:06:40-03:00
 ---
-== estado registro/hub ahora
-401 https://demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/v2/
-200 https://localhost/api/galaxy/pulp/api/v3/status/
-401 https://demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/v2/de-supported-rhel9/manifests/latest
-== summit-lab.service
-[Unit]
-Description=Laboratorio de red de la Demo 4 (containerlab) al encender la VM
-After=network-online.target libvirtd.service
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-User=cquezada
-ExecStart=/bin/bash /home/cquezada/summit-redhat/demo4-redes/herramientas/arrancar-lab.sh
-TimeoutStartSec=1200
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-== arranque
-UserspaceTimestamp=Wed 2026-11-11 18:29:12 -03
-Linger=yes
-== units de usuario
-  var-lib-containers-storage-overlay-f72b67f1610cc387b2ba910fe12258b0c739a9edad255e69134bea2ba0f0fb5a-merged.mount                              loaded    active   mounted   /var/lib/containers/storage/overlay/f72b67f1610cc387b2ba910fe12258b0c739a9edad255e69134bea2ba0f0fb5a/merged
-  automation-eda-activation-worker-1.service                                                                                                    loaded    active   running   Podman automation-eda-activation-worker-1.service
-  automation-eda-activation-worker-2.service                                                                                                    loaded    active   running   Podman automation-eda-activation-worker-2.service
-  automation-eda-api.service                                                                                                                    loaded    active   running   Podman automation-eda-api.service
-  automation-eda-daphne.service                                                                                                                 loaded    active   running   Podman automation-eda-daphne.service
-  automation-eda-web.service                                                                                                                    loaded    active   running   Podman automation-eda-web.service
-  automation-eda-worker-1.service                                                                                                               loaded    active   running   Podman automation-eda-worker-1.service
-  automation-eda-worker-2.service                                                                                                               loaded    active   running   Podman automation-eda-worker-2.service
-  automation-gateway-proxy.service                                                                                                              loaded    active   running   Podman automation-gateway-proxy.service
-  automation-gateway.service                                                                                                                    loaded    active   running   Podman automation-gateway.service
-  automation-hub-api.service                                                                                                                    loaded    active   running   Podman automation-hub-api.service
-  automation-hub-content.service                                                                                                                loaded    active   running   Podman automation-hub-content.service
-  automation-hub-web.service                                                                                                                    loaded    active   running   Podman automation-hub-web.service
-  automation-hub-worker-1.service                                                                                                               loaded    active   running   Podman automation-hub-worker-1.service
-  automation-hub-worker-2.service                                                                                                               loaded    active   running   Podman automation-hub-worker-2.service
-  postgresql.service                                                                                                                            loaded    active   running   Podman postgresql.service
-  redis-tcp.service                                                                                                                             loaded    active   running   Podman redis-tcp.service
-  redis-unix.service                                                                                                                            loaded    active   running   Podman redis-unix.service
-== journal arranque hub/gateway (este boot)
-== 503 en proxy gateway (primeros/últimos)
-[2026-11-11T21:33:37.190Z] "GET 503 NC 0 0
-[2026-11-11T21:33:39.138Z] "GET 503 NC 0 0
-[2026-11-11T21:33:39.307Z] "GET 503 NC 0 0
-grep: write error: Broken pipe
-grep: write error: Broken pipe
-1172
-[2026-11-11 21:33:45 +0000] [1] [INFO] Listening at: http://127.0.0.1:24816 (1)
-[2026-11-11 21:33:45 +0000] [7] [INFO] Booting worker with pid: 7
-[2026-11-11 21:33:45 +0000] [8] [INFO] Booting worker with pid: 8
-[2026-11-11 21:33:45 +0000] [9] [INFO] Booting worker with pid: 9
-[2026-11-11 21:33:45 +0000] [12] [INFO] Booting worker with pid: 12
-== restart policy
-212 running on-failure FaceOps · Alertas de objetos errores: 2 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpect']
-211 running on-failure ServiceNow · Solicitudes de red errores: 4 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpect']
-209 running on-failure Claro PR · Eventos (Odoo y Grafana) errores: 4 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpect']
-208 running on-failure Amdocs · Órdenes de servicio errores: 4 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpect']
-204 running on-failure FaceOps · OpenShift errores: 8 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpect']
-203 running on-failure FaceOps · Certificados errores: 8 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpect']
-30 running on-failure JBoss · Configuración desde Git errores: 14 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpecte']
-26 running on-failure ServiceNow · Solicitudes de nube errores: 21 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpecte']
-17 running on-failure Monitoreo · Alertas de Prometheus errores: 21 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpecte']
-11 running on-failure Seguridad · Bloqueo de IP errores: 20 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpecte']
-5 running on-failure Remediación · Eventos de JBoss errores: 21 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpected']
-4 running on-failure Red · Drift por eventos errores: 21 ['Activation N failed to start. Reason: N Server Error: Internal Server Error ({"message":"received unexpected']
---- fin: 2026-11-11T22:06:22-03:00 · código: 0
+faceadmin Up 8 seconds
+local 200
+contenedor faceadmin
+cuenta: {'proyecto': 'master-ia-320218', 'correo': 'faceadmin-demos@master-ia-320218.iam.gserviceaccount.com', 'id_clave': '', 'fuente': 'metadata'}
+config: {'proyecto': 'master-ia-320218', 'zona': 'southamerica-west1-a', 'tipo': 'n2-standard-4', 'disco_gb': 60, 'imagen': 'familia:faceops-demo', 'faceadmin_url': 'https://10.194.0.10:8843', 'dias_def': 7, 'dias_max': 14}
+  ✓ Cuenta de servicio aceptada por Google (cuenta de la VM, sin clave) 
+  ✓ Zona southamerica-west1-a 
+  ✓ Tipo de máquina n2-standard-4 
+  ✗ Imagen familia:faceops-demo no existe o sin permiso
+  ✓ Listar instancias de demo 
+instancias demo: []
+--- fin: 2026-11-11T22:07:10-03:00 · código: 0
