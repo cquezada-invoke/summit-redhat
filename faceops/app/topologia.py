@@ -887,7 +887,7 @@ def _ocp_de(cliente_id, segmento):
         return []
 
 
-def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
+def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente="", indicadores=True):
     """Información general del segmento para el panel del mapa: ficha, recursos totales, flujos, costo."""
     from .arquitectura import costo, vigente
     from .bd import q1
@@ -936,11 +936,11 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
                     for o in _ocp_de(cliente["id"], segmento)],
             "ocp_comps": [c["nombre"] for c in arq["m"]["componentes"] if c.get("plataforma") == "openshift"] if arq else [],
             **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq, disp,
-                                            ((paridad or {}).get("items") or {}).get(ambiente or "produccion", []) if paridad else None)),
+                                            ((paridad or {}).get("items") or {}).get(ambiente or "produccion", []) if paridad else None, ambiente)),
             "paridad": {k_: v for k_, v in (paridad or {}).items() if k_ not in ("items", "por_maquina")} if paridad else None,
             "disponibilidad": {k_: v for k_, v in disp.items() if k_ != "funciones"} | {"funciones": [{x_: f[x_] for x_ in ("funcion", "n", "on", "estado")} for f in disp["funciones"]]},
             "salud_meta": metas_salud(j(seg.get("ficha"), {})),
-            "metricas_app": _indicadores_app(arq)}
+            "metricas_app": _indicadores_app(arq) if indicadores else []}   # (consulta en vivo a la aplicación: solo donde se muestra)
 
 
 def _indicadores_app(arq):
@@ -1033,7 +1033,17 @@ def _puntaje_salud(salud):
             continue
         areas[x["area"]] = 0 if x.get("cero") else max(0, areas[x["area"]] - pen.get(x["nivel"], 0))
     total = round(sum(areas.values()) / len(areas)) if areas else 100   # promedio de las áreas: una sola área mala no lleva todo a 0
-    return {"salud": salud, "salud_pct": total, "salud_areas": [{"area": k, "pct": areas[k]} for k in PRINCIPIOS_SALUD]}
+    # componentes sin ninguna instancia encendida: cada uno vale 0, así que la salud del ambiente (y su pilar Disponibilidad)
+    # se multiplica por la fracción de componentes con al menos una instancia encendida (todo apagado = 0 %)
+    tot_c = next((x["comp_total"] for x in salud if x.get("comp_total")), 0)
+    off_c = sum(1 for x in salud if x.get("comp_apagado"))
+    enc = None
+    if tot_c:
+        f_ = max(0, tot_c - off_c) / tot_c
+        areas["Disponibilidad"] = round(areas["Disponibilidad"] * f_)
+        total = round(sum(areas.values()) / len(areas) * f_)
+        enc = {"componentes": tot_c, "apagados": off_c}
+    return {"salud": salud, "salud_pct": total, "salud_areas": [{"area": k, "pct": areas[k]} for k in PRINCIPIOS_SALUD], "salud_encendido": enc}
 
 
 def _metricas_app(url):
@@ -1087,19 +1097,67 @@ def disponibilidad_segmento(es, ficha=None, riesgos=None, exige=True):
             "rto": fi_.get("rto") or "", "rpo": fi_.get("rpo") or "", "exige": exige}
 
 
-def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None, paridad=None):
+def _componentes_amb(arq, es, eqs, ambiente=""):
+    """[(componente, [máquinas del ambiente])]: los de la arquitectura aprobada con máquinas en este ambiente (lo que
+    corre en OpenShift tiene sus réplicas dentro del clúster y no se cuenta); sin arquitectura, por el rol de cada máquina."""
+    nombres = {e["nombre"] for e in es}
+    if arq:
+        from .arquitectura import asignacion
+        asig = asignacion(arq["m"], eqs)
+        out = []
+        for c in arq["m"].get("componentes") or []:
+            if c.get("plataforma") == "openshift":
+                continue
+            ms = list({e["nombre"]: e for v in (asig.get(c["id"]) or {}).values() for e in v if e["nombre"] in nombres}.values())
+            rq_ = c.get("replicas") if isinstance(c.get("replicas"), dict) else {}
+            if ms or (ambiente and int(rq_.get(ambiente) or 0) > 0):   # declarado para este ambiente y sin máquinas: tampoco tiene instancia encendida
+                out.append((c.get("nombre") or c["id"], ms))
+        sin_ = [e for e in es if not any(e in ms for _, ms in out)]
+        return out + [(e["nombre"], [e]) for e in sin_]
+    por = defaultdict(list)
+    for e in es:
+        por[rol_de(e)[1]].append(e)
+    return list(por.items())
+
+
+def url_for_arq_(segmento):
+    try:
+        from flask import url_for
+        return url_for("consola.arquitectura", segmento=segmento)
+    except Exception:  # noqa: BLE001  (fuera de una petición)
+        return ""
+
+
+def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None, paridad=None, ambiente=""):
     """Salud consolidada del segmento con su mecanismo de remediación: máquinas apagadas, hallazgos, flujos cerrados,
     flujos sin TLS, latencias altas, métricas de la aplicación (p. ej. tiempos de respuesta del modelo de IA) y la
     [{nivel: alta|media|ok|info, area, titulo, detalle, remedio}]"""
     from .arquitectura import flujos_de
     out = []
-    apagadas = [e["nombre"] for e in es if e.get("energia") == "apagado"]
-    if apagadas and len(apagadas) == len(es):   # todo el segmento apagado: no hay servicio
-        out.append({"nivel": "alta", "area": "Disponibilidad", "cero": True, "titulo": "Segmento completamente apagado: sin servicio", "detalle": ", ".join(apagadas[:8]),
-                    "remedio": "Encender sus máquinas desde cada caja (ticket «Encender o apagar equipo» con aprobación)"})
-    elif apagadas:   # apagada no es falla: puede ser a propósito (advertencia)
+    # máquinas apagadas (estado de encendido del inventario, sin consultas en vivo): un componente de la arquitectura sin
+    # ninguna instancia encendida vale 0 (_puntaje_salud); las apagadas de un componente que sigue con otra encendida restan
+    # como advertencia. Cada máquina queda como caso «Encender <máquina>» en el flotante (ticket con aprobación).
+    apagado_ = lambda e: (e.get("energia") or "") in ("apagado", "suspendido")
+    comps_ = _componentes_amb(arq, es, eqs, ambiente)
+    caidas_ = set()
+    for nom_, ms_ in comps_:
+        if not ms_:   # declarado en la arquitectura para este ambiente, pero aún sin ninguna máquina
+            out.append({"nivel": "alta", "area": "Disponibilidad", "titulo": f"{nom_}: declarado en este ambiente y sin ninguna instancia",
+                        "detalle": "La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa)", "comp_apagado": True,
+                        "comp_total": len(comps_), "remedio": "Crearlo desde el plan de la arquitectura del segmento", "accion": None,
+                        "url": url_for_arq_(segmento)})
+            continue
+        if all(apagado_(e) for e in ms_):
+            caidas_ |= {e["nombre"] for e in ms_}
+            out.append({"nivel": "alta", "area": "Disponibilidad", "titulo": f"{nom_}: sin ninguna instancia encendida",
+                        "detalle": ", ".join(e["nombre"] for e in ms_[:8]), "comp_apagado": True, "comp_total": len(comps_),
+                        "remedio": "Encender sus máquinas (ticket «Encender o apagar equipo» con aprobación)",
+                        "maquinas": [e["nombre"] for e in ms_], "accion_k": "encender"})
+    apagadas = [e["nombre"] for e in es if apagado_(e) and e["nombre"] not in caidas_]
+    if apagadas:   # con otra instancia encendida no hay caída, pero sin redundancia (advertencia)
         out.append({"nivel": "media", "area": "Disponibilidad", "titulo": f"{len(apagadas)} máquina(s) apagada(s)", "detalle": ", ".join(apagadas[:8]),
-                    "remedio": "Encenderlas desde su caja si se necesitan (ticket «Encender o apagar equipo» con aprobación)"})
+                    "remedio": "Encenderlas si se necesitan (ticket «Encender o apagar equipo» con aprobación)",
+                    "maquinas": apagadas, "accion_k": "encender", "comp_total": len(comps_)})
     # sin alta disponibilidad: función con una sola instancia encendida en producción (la misma cuenta que la sección
     # «Disponibilidad» del segmento en el mapa: disponibilidad_segmento)
     if disp is None:
@@ -1114,7 +1172,8 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None, paridad=None)
     sin_resp = [e["nombre"] for e in es if (e.get("categoria") or "servidor") == "servidor" and "respaldo-git" not in (e.get("skills") or [])]
     if sin_resp:
         out.append({"nivel": "media", "area": "Recuperación", "titulo": f"{len(sin_resp)} máquina(s) sin respaldo continuo", "detalle": ", ".join(sin_resp[:8]),
-                    "remedio": "Habilitar «Respaldo continuo en Git» (configuración, paquetes y servicios para recuperarlas)"})
+                    "remedio": "Habilitar «Respaldo continuo en Git» (configuración, paquetes y servicios para recuperarlas)",
+                    "maquinas": sin_resp, "accion_k": "auto", "autos": ["FaceOps · Respaldo continuo en Git"], "boton": "Habilitar respaldo"})
     fi_ = j((q1_seg(cliente, segmento) or {}).get("ficha"), {})
     if not fi_.get("rto") or not fi_.get("rpo"):
         out.append({"nivel": "media", "area": "Recuperación", "titulo": "Sin RTO/RPO definidos en la ficha del segmento",
@@ -1125,7 +1184,8 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None, paridad=None)
     for (sev, tit), xs in sorted(por_t.items(), key=lambda x: {"alta": 0, "media": 1}.get(x[0][0], 2))[:8]:
         out.append({"nivel": "alta" if sev == "alta" else "media", "area": "Excelencia operativa", "titulo": tit,
                     "detalle": ", ".join(sorted({x.get("equipo") or "" for x in xs}))[:160],
-                    "remedio": (xs[0].get("sugerencia") or "Reparar desde la caja de cada máquina (botón Reparar)")[:200]})
+                    "remedio": (xs[0].get("sugerencia") or "Reparar desde la caja de cada máquina (botón Reparar)")[:200],
+                    "maquinas": sorted({x.get("equipo") for x in xs if x.get("equipo")}), "accion_k": "hallazgo", "sugerencia": xs[0].get("sugerencia") or ""})
     estados = _estados(cliente)
     nombres = {e["nombre"] for e in es}
     fl = [f for f in flujos_de(cliente, eqs) if f.get("desde") in nombres and f.get("hacia") in nombres and f.get("segmento") in (segmento, None, "")]
@@ -1133,12 +1193,14 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None, paridad=None)
     if cerrados:
         out.append({"nivel": "alta", "area": "Rendimiento", "titulo": f"{len(cerrados)} flujo(s) cerrado(s)",
                     "detalle": ", ".join(f"{f['desde']}→{f['hacia']}:{f.get('puerto')}" for f in cerrados[:4]),
-                    "remedio": "Abrirlos con ticket desde la línea del mapa (aprobación en AAP y ServiceNow)"})
+                    "remedio": "Abrirlos con ticket desde la línea del mapa (aprobación en AAP y ServiceNow)",
+                    "flujos": [{k_: str(f.get(k_) or "") for k_ in ("desde", "hacia", "puerto")} for f in cerrados], "accion_k": "abrir"})
     sin_tls = [f for f in fl if not tls_de(estados, f).get("tipo")]
     if sin_tls:
         out.append({"nivel": "media", "area": "Seguridad", "titulo": f"{len(sin_tls)} flujo(s) sin TLS",
                     "detalle": ", ".join(f"{f['desde']}→{f['hacia']}" for f in sin_tls[:4]),
-                    "remedio": "Emitir el certificado con ticket desde la línea del flujo («Certificados · Emitir para servicio», CA interna)"})
+                    "remedio": "Emitir el certificado con ticket desde la línea del flujo («Certificados · Emitir para servicio», CA interna)",
+                    "flujos": [{k_: str(f.get(k_) or "") for k_ in ("desde", "hacia", "puerto")} for f in sin_tls], "accion_k": "tls"})
     lentos = []
     from .rendimiento import umbral as _umbral
     um_ = _umbral(cliente["id"])

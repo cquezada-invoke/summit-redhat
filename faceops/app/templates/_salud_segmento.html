@@ -1,0 +1,17 @@
+{# Flotante de salud del segmento (mapa): misma lista y estados que la ficha de la máquina (_salud_acciones.html), solo con lo
+   que falta reparar, por pilar y caso a caso. Cada botón crea su ticket con aprobación (app/salud_segmento_acc.py); los
+   clics y el seguimiento del ticket los maneja _salud_acciones_js.html. #}
+{% from "_salud_fila.html" import sl_fila %}
+{% macro accion(c) %}<span class="sa-acc">{% if c.ticket and c.ticket.abierto %}<button type="button" class="btn chico" disabled title="{{ c.auto }} · {{ c.ticket.estado|replace('_', ' ') }}">En curso</button> <a class="ult-t e-{{ c.ticket.estado }}" href="{{ url_for('consola.ticket', tid=c.ticket.id) }}" data-sa-poll="{{ c.ticket.id }}">{{ c.ticket.numero }}</a>
+{% elif c.ticket %}<span class="chip e-exitoso" title="{{ c.auto }}">Aplicada · <a href="{{ url_for('consola.ticket', tid=c.ticket.id) }}">{{ c.ticket.numero }}</a></span>
+{% elif c.motivo_no %}{% if c.url %}<a class="btn chico gris" href="{{ c.url }}">Abrir ficha</a>{% endif %}<span class="sub sa-motivo">{{ c.motivo_no }}</span>
+{% elif c.bloqueo %}<button type="button" class="btn chico" disabled title="Regla de prueba: {{ c.bloqueo }}">{{ c.boton }}</button> <span class="sub sa-motivo">«{{ c.auto }}» bloqueada: {{ c.bloqueo }}</span>
+{% elif c.escritura %}<button type="button" class="btn chico" data-sa-url="{{ c.url_post }}" data-sa-sid="{{ c.clave }}" data-sa-aid="{{ c.aid }}" data-sa-n="" title="«{{ c.auto }}»: ticket con aprobación">{{ c.boton }}</button>
+{% else %}<span class="sub sa-motivo">requiere perfil de escritura</span>{% endif %}</span>{% endmacro %}
+<div class="sa-fijo">{% for gr in grupos %}{% set col_ = 'ok' if gr.pct >= 85 else ('med' if gr.pct >= 50 else 'mal') %}<div class="pil-grupo pg-{{ col_ }}"><div class="pil-cab"><h2>{{ gr.area }}</h2><span class="pct" style="color:var(--{{ {'ok': 'ok', 'med': 'warn', 'mal': 'bad'}[col_] }})">{{ gr.pct }} %</span></div>
+<table class="sl-tab sa-lista no-apilar">{% for it in gr['items'] %}{% set cs_ = it.casos %}
+{% if cs_|length == 1 and cs_[0].clave %}{% call sl_fila(it.titulo, it.detalle or it.remedio, it.sube, 'sa-it') %}{{ accion(cs_[0]) }}{% endcall %}
+{% elif cs_|length > 1 %}{% call sl_fila(it.titulo, it.remedio, it.sube, 'sa-it') %}<span class="sub sa-motivo">{{ cs_|length }} casos</span>{% endcall %}
+{% for c in cs_ %}{% call sl_fila(c.etiqueta, '', none, 'sa-caso') %}{{ accion(c) }}{% endcall %}{% endfor %}
+{% else %}{% call sl_fila(it.titulo, it.detalle or it.remedio, it.sube, 'sa-it') %}<span class="sa-acc">{% if cs_ and cs_[0].url %}<a class="btn chico gris" href="{{ cs_[0].url }}">Abrir</a>{% endif %}<span class="sub sa-motivo">sin acción automática aún</span></span>{% endcall %}{% endif %}
+{% endfor %}</table></div>{% else %}<p class="act-desc">Nada pendiente por reparar en este ambiente.</p>{% endfor %}</div>

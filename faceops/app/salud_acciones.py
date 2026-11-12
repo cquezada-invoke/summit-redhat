@@ -228,3 +228,6 @@ def rec_sugerido(k, cur, u, ops=None, minimo=None):
         return sugerido(k, int(cur or 0), u, ops, minimo)
     except (TypeError, ValueError):
         return None
+
+
+from . import salud_segmento_acc  # noqa: E402,F401  (flotante de salud del segmento en el mapa: la misma lógica, caso a caso)

@@ -30,14 +30,14 @@
   <p class="sub" style="font-size:12px;margin:8px 0 0">{% if t.arquitectura %}<b>arquitectura v{{ t.arquitectura.version }}</b>{% if t.costo %} · <b>{{ t.costo.mensual|dinero(t.costo.moneda) }}/mes</b>{% endif %} · {% else %}<span style="color:var(--warn)">sin arquitectura</span> · {% endif %}{{ t.componentes|length }} componentes · {{ t.flujos }} flujos de red{% if t.bloqueados %} · <b style="color:var(--bad)">{{ t.bloqueados }} bloqueados</b>{% endif %}{% if t.ambientes %} · {{ t.ambientes|join(', ') }}{% endif %}</p>
 </a>{% else %}<p class="vacio">No tienes segmentos de negocio con equipos.</p>{% endfor %}</div>{% endif %}
 {% else %}
-{% if seg_info and seg_info.paridad %}{% set P_ = seg_info.paridad %}{% set pi_ = (P_['items'] or {}).values()|sum(start=[]) %}<details class="par-sec"{{ ' open' if not P_.cumple }}><summary><b>Réplicas y paridad</b> <span class="chip {{ 's-ok' if P_.cumple else 's-media' }}" style="font-size:11px">{{ 'cumple' if P_.cumple else (pi_|length) ~ ' por remediar' }}</span> <span class="sub" style="font-size:12px">producción: al menos 2 réplicas por componente · QA y desarrollo: misma arquitectura y versiones que producción</span></summary>
+{% if seg_info %}<div id="salud-bar" class="salud-bar" title="Salud del segmento en este ambiente: clic para ver todo lo que hay que remediar"{{ ' hidden' if seg_info.ambiente == 'homologacion' }}><div class="sb-tit"><b>Salud del segmento · {{ {'produccion': 'Producción', 'qa': 'QA', 'desarrollo': 'Desarrollo'}.get(seg_info.ambiente, seg_info.ambiente) }}</b><span class="sb-pct" style="color:var(--muted)">— %</span><span class="sub">calculando…</span></div><div class="sb-barra"><i style="width:0"></i></div><div class="sb-areas">{% for a_ in ['Disponibilidad', 'Rendimiento', 'Seguridad', 'Recuperación', 'Costo', 'Excelencia operativa'] %}<span class="sb-area"><i style="background:#d2d2d2"></i>{{ a_ }} <b>—</b></span>{% endfor %}</div></div>
+<div class="tabs-pf" style="align-items:center">{% for a in seg_info.ambientes %}<a class="{{ 'on' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}<a class="{{ 'on' if seg_info.ambiente == 'homologacion' }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente=homologacion">Homologación</a>
+</div>{% endif %}
+{% if seg_info and seg_info.paridad %}{% set P_ = seg_info.paridad %}{% set pi_ = (P_['items'] or {}).values()|sum(start=[]) if seg_info.ambiente == 'homologacion' else (P_['items'] or {}).get(seg_info.ambiente) or [] %}<details class="par-sec"><summary><b>Réplicas y paridad</b> <span class="chip {{ 's-ok' if P_.cumple else 's-media' }}" style="font-size:11px">{{ 'cumple' if P_.cumple else (pi_|length) ~ ' por remediar' }}</span> <span class="sub" style="font-size:12px">producción: al menos 2 réplicas por componente · QA y desarrollo: misma arquitectura y versiones que producción</span></summary>
 {% if P_.sin_productivo %}<p class="sub" style="margin:6px 0">Sin productivo de referencia: el segmento no tiene máquinas en producción. <a href="{{ url_for('consola.arquitectura') }}">Definirlo en su arquitectura</a></p>{% else %}<table class="no-apilar sin-pag par-tab"><tr><th>Componente</th><th>Producción</th>{% for a in P_.ambientes if a != 'produccion' %}<th>{{ {'qa': 'QA', 'desarrollo': 'Desarrollo'}.get(a, a) }}</th>{% endfor %}</tr>
 {% for f in P_.produccion %}<tr><td>{{ f.componente }}</td><td><span class="chip {{ 's-ok' if f.ok else 's-media' }}" style="font-size:11px">{{ f.n }} réplica{{ 's' if f.n != 1 }}</span></td>{% for a in P_.ambientes if a != 'produccion' %}{% set d_ = (P_.previos.get(a) or [])|selectattr('componente', 'equalto', f.componente)|list %}<td>{% if d_ %}<span class="chip s-media" style="font-size:11px" title="{{ d_|map(attribute='titulo')|join(' · ') }}">{{ d_|length }} diferencia{{ 's' if d_|length != 1 }}</span>{% else %}<span class="chip s-ok" style="font-size:11px">igual</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</table>
 {% if pi_ %}<ul class="par-rem">{% for x in pi_ %}<li><b>{{ x.titulo }}</b> <span class="sub">· {{ x.remedio }}</span>{% if x.url %} · <a href="{{ x.url }}">{{ 'Replicar máquina' if x.titulo.startswith('Agregar réplica') else 'Remediar' }}</a>{% endif %}</li>{% endfor %}</ul>{% endif %}{% if P_.ocp %}<p class="sub" style="font-size:12px;margin:4px 0">En OpenShift (réplicas dentro del clúster, no se cuentan aquí): {{ P_.ocp|join(', ') }}</p>{% endif %}{% endif %}</details>
 <style>.par-sec{margin:6px 0 10px;border:1px solid var(--line);border-radius:10px;padding:6px 12px}.par-sec>summary{cursor:pointer}.par-tab{margin:8px 0 4px;font-size:13px}.par-tab td,.par-tab th{padding:4px 10px}.par-rem{margin:6px 0;padding-left:18px;font-size:13px}</style>{% endif %}
-{% if seg_info %}<div id="salud-bar" class="salud-bar" title="Salud del segmento en este ambiente: clic para ver todo lo que hay que remediar"{{ ' hidden' if seg_info.ambiente == 'homologacion' }}></div>
-<div class="tabs-pf" style="align-items:center">{% for a in seg_info.ambientes %}<a class="{{ 'on' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}<a class="{{ 'on' if seg_info.ambiente == 'homologacion' }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente=homologacion">Homologación</a>
-</div>{% endif %}
 <div class="fila" {{ 'style=display:none' if seg_info }}><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' and not seg_info %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
 {% if seg_info and seg_info.homolog %}{% set H = seg_info.homolog %}
 <div class="homo">
@@ -85,6 +85,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   function cargar(){
     const n=pila[pila.length-1];
     fetch(DATOS+'?vista='+VISTA+'&nivel='+n.nivel+'&valor='+encodeURIComponent(n.valor)+(n.nivel==='segmento'&&AMB?'&ambiente='+encodeURIComponent(AMB):'')).then(r=>r.json()).then(d=>{
+      if(!panel.isConnected) return;   // la página cambió (otro ambiente sin recargar): esta respuesta es de la anterior
       miga.innerHTML=pila.map((p,i)=>i<pila.length-1?'<a href="#" data-i="'+i+'">'+(p.texto||d.miga[0].texto)+'</a>':'<b>'+(p.texto||d.miga[d.miga.length-1].texto)+'</b>').join(' › ');
       miga.querySelectorAll('a').forEach(a=>a.onclick=e=>{e.preventDefault();const p=pila[+a.dataset.i];if(p.url){location.href=p.url;return;}pila=pila.slice(0,+a.dataset.i+1);cargar();});
       dibujar(d.elementos, n.nivel==='global');
@@ -293,7 +294,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   let pendiente=null, SEGINFO=null, REP_COMP=false;
   // barra de salud del segmento: consolidado de todo lo que tiene dentro (máquinas, hallazgos, red, TLS, latencias, app e IA)
   function barraSalud(s){
-    const b=document.getElementById('salud-bar'); if(!b) return;
+    const b=document.getElementById('salud-bar'); if(!b||!panel.isConnected) return;
     if(!s||s.salud_pct==null){ b.innerHTML=''; return; }
     const col=p=>p>=85?'#3e8635':(p>=50?'#f0ab00':'#c9190b');
     const n=(s.salud||[]).filter(x=>x.nivel==='alta'||x.nivel==='media').length;
@@ -301,7 +302,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     b.innerHTML='<div class="sb-tit"><b>Salud del segmento · '+AMBT+'</b><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">'+(n?n+' situación'+(n>1?'es':'')+' por atender':'sin problemas')+'</span></div>'
       +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div>'
       +'<div class="sb-areas">'+(s.salud_areas||[]).map(a=>'<span class="sb-area"><i style="background:'+col(a.pct)+'"></i>'+a.area+' <b>'+a.pct+' %</b></span>').join('')+'</div>';
-    b.onclick=()=>{ mostrarSalud(s, AMBT); if(window.abrirCajon) window.abrirCajon(); };
+    b.onclick=()=>{ mostrarSalud(); if(window.abrirCajon) window.abrirCajon(); };
   }
   // réplicas de un mismo componente (p. ej. dos JBoss): se comprimen en una caja «× N» o se ven una a una
   function comprimir(on){
@@ -511,23 +512,29 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
           out.push(x.error?'<span class="chip e-fallido" title="'+x.error.replace(/"/g,'&quot;')+'">'+(d.label||d.nombre)+': no</span>':'<a href="'+x.url+'" target="_blank">'+x.numero+'</a>');
         }catch(e){ out.push('<span class="chip e-fallido">'+(d.label||d.nombre)+': no se pudo enviar</span>'); } }
       res.innerHTML=out.join(' · '); }; }
-  // flotante de salud del segmento en el ambiente: cada área con su % y lo que hay que remediar
-  function mostrarSalud(s, ambt){
+  // flotante de salud del segmento: la misma lógica que el de la máquina (solo lo que falta reparar, por pilar, caso a caso
+  // con su ticket). Se trae al abrirlo y siempre con el ambiente que se está viendo (app/salud_segmento_acc.py)
+  const URL_SFLOT={{ url_for('consola.salud_segmento_flotante')|tojson }};
+  function ambActual(){ const a=new URLSearchParams(location.search).get('ambiente'); return a&&a!=='homologacion'?a:(AMB||'produccion'); }
+  function mostrarSalud(){
     panel.dataset.fijo='1';
-    const col=p=>p>=85?'#3e8635':(p>=50?'#f0ab00':'#c9190b'), IC={alta:SVG.mal,media:SVG.warn,ok:SVG.ok,info:SVG.gris};
-    let h=cab('Salud · '+ambt,'Página completa',URL_SALUD+'?segmento='+encodeURIComponent(s.nombre)+'&ambiente='+encodeURIComponent(AMB));
-    h+='<div class="act-acc"><div class="sb-tit"><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">promedio de sus áreas · '+s.equipos+' máquina'+(s.equipos===1?'':'s')+'</span></div>'
-      +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div></div>'+htmlEncenderTodas();
-    if(s.salud_meta) h+='<div style="text-align:center;padding:4px 8px">'+estrellaSVG(Object.fromEntries((s.salud_areas||[]).map(a=>[a.area,a.pct])), s.salud_meta)+'</div>';
-    (s.salud_areas||[]).forEach(a=>{
-      const xs=(s.salud||[]).filter(x=>x.area===a.area);
-      h+=sec(a.area,'<span class="act-n" style="color:'+col(a.pct)+'">'+a.pct+' %</span>');
-      xs.forEach((x,i)=>{ h+=fila({izq:x.nivel==='alta'?'grave':(x.nivel==='media'?'advertencia':''),ic:IC[x.nivel]||SVG.gris,txt:x.titulo,abierto:i===0&&x.nivel==='alta',
-        det:(x.detalle?'<span class="sub">'+x.detalle+'</span>':'')+(x.remedio?'<div style="margin-top:4px"><b>Remediación:</b> '+x.remedio+'</div>':'')}); });
-    });
-    if(!(s.salud_areas||[]).length) h+='<p class="act-desc">Sin situaciones por atender en este ambiente.</p>';
-    h+='<p class="sub" style="font-size:12px;padding:0 14px">Cada área parte en 100 %: −15 por situación grave y −6 por advertencia.</p>';
-    pintar(h); enlazarEncenderTodas();
+    const amb=ambActual(), ambt={produccion:'Producción',qa:'QA',desarrollo:'Desarrollo'}[amb]||amb;
+    const cb=cab('Salud · '+ambt,'Página completa',URL_SALUD+'?segmento='+encodeURIComponent(SEG)+'&ambiente='+encodeURIComponent(amb));
+    pintar(cb+'<p class="act-desc sf-cargando">Cargando lo que falta reparar…</p>');
+    fetch(URL_SFLOT+'?segmento='+encodeURIComponent(SEG)+'&ambiente='+encodeURIComponent(amb)).then(r=>r.json()).then(s=>{
+      if(!panel.isConnected||ambActual()!==amb||!panel.querySelector('.sf-cargando')) return;   // otro ambiente u otro panel abierto mientras cargaba
+      if(s.error){ pintar(cb+'<p class="act-desc">'+s.error+'</p>'); return; }
+      const col=p=>p>=85?'#3e8635':(p>=50?'#f0ab00':'#c9190b'), en=s.salud_encendido;
+      let h=cb+'<div class="act-acc"><div class="sb-tit"><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">'
+        +(s.pendientes?s.pendientes+' pendiente'+(s.pendientes===1?'':'s')+' por reparar':'nada pendiente')+' · '+s.equipos+' máquina'+(s.equipos===1?'':'s')+'</span></div>'
+        +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div>'
+        +(en&&en.apagados?'<p class="sub" style="font-size:12px;margin:6px 0 0"><b style="color:#c9190b">'+en.apagados+' de '+en.componentes+' componente'+(en.componentes===1?'':'s')+' sin ninguna instancia encendida</b>: cada uno vale 0 y baja la salud del ambiente hasta encenderlo.</p>':'')+'</div>';
+      if(s.salud_meta) h+='<div style="text-align:center;padding:4px 8px">'+estrellaSVG(Object.fromEntries((s.salud_areas||[]).map(a=>[a.area,a.pct])), s.salud_meta)+'</div>';
+      h+='<div style="padding:0 12px">'+s.html+'</div>';
+      h+='<p class="sub" style="font-size:12px;padding:0 14px">Cada área parte en 100 %: −15 por situación grave y −6 por advertencia; los componentes sin ninguna instancia encendida valen 0. Cada botón crea su propio ticket con aprobación.</p>';
+      pintar(h);
+      panel.querySelectorAll('[data-sa-poll]').forEach(a=>window.fxSaVigilar&&fxSaVigilar(a));
+    }).catch(()=>{ if(panel.isConnected) pintar(cb+'<p class="act-desc">No se pudo cargar la salud del segmento.</p>'); });
   }
   // data lake del segmento: la bifurcación vive en su punto de entrada; aquí se activa para todo el segmento
   function bifSegmento(){ const cy_=window._cy; if(!cy_) return null; const n=cy_.nodes().filter(x=>!!x.data('bif'))[0]; return n?{b:n.data('bif'),punto:n.data('nombre')||n.data('label')||''}:null; }
@@ -909,6 +916,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   cargar();
 })();
 </script>
+{% if segmento %}{% include "_salud_acciones_js.html" %}{% endif %}
 {% endif %}
 {% if archivados %}<h2 id="archivados" style="margin:22px 0 6px">Segmentos archivados</h2>
 <div class="card" style="padding:0"><table><tr><th>Segmento</th><th>Archivado</th><th>Motivo</th><th>Máquinas liberadas</th><th></th></tr>
