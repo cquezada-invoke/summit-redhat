@@ -2612,7 +2612,8 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
     if not sub:
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"url": w["url"]})
     cab = {k: v for k, v in request.headers if k.lower() in ("accept", "accept-language", "content-type", "user-agent")
-           or (w.get("vault") and k.lower().startswith("x-vault-"))}   # Vault: su token viaja en X-Vault-Token
+           or (w.get("vault") and k.lower().startswith("x-vault-"))   # Vault: su token viaja en X-Vault-Token
+           or k.lower() in (w.get("cabeceras") or ())}   # p. ej. Keycloak: su consola llama a su API con «Authorization: Bearer»
     if w.get("host"):
         cab["Host"] = w["host"]
         cab["Referer"] = w.get("referer") or f"{origen.split(':')[0]}://{w['host']}/"
@@ -2801,6 +2802,8 @@ def consola_plataforma(e, cod, verificar=True):
     if cod == "keycloak" and verificar and not keycloak_responde(e["ip"], puerto):
         return None
     w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod in ("redis", "jenkins")}
+    if cod == "keycloak":
+        w["cabeceras"] = ("authorization",)
     if cod == "jenkins":   # Jenkins vive bajo su ruta de FaceOps (--prefix) y arma sus enlaces con el Host público
         w["host_publico"] = True
     if cod == "red-hat-idm":   # IdM solo responde a su nombre (Host y Referer con su FQDN) y redirige a él
