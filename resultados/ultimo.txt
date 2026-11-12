@@ -1,34 +1,39 @@
-commit: 3ba07e5ff8cb150b4a5552d31f50775cc1377dfd
-inicio: 2026-11-12T16:36:53-03:00
+commit: b05e1fa2911226dfa8d2707bb94ba75e4e498972
+inicio: 2026-11-12T16:18:23-03:00
 ---
-PLAY RECAP *********************************************************************
-anfitrion-kvm              : ok=8    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-== FO-LAB-02269 fallido 28038
-o se pudo listar los contenedores de cquezada (podman)
-ok: [anfitrion-kvm]
-
-TASK [Resultado para FaceOps] **************************************************
-ok: [anfitrion-kvm]
-
-TASK [Resumen] *****************************************************************
-ok: [anfitrion-kvm] => {
-    "msg": "Reiniciar componentes de AAP (aplicar): con problemas · {\"ok\": false, \"error\": \"no se pudo listar los contenedores de cquezada (podman)\"}"
-}
-
-TASK [Falla controlada si la acción no terminó bien] ***************************
-fatal: [anfitrion-kvm]: FAILED! => {"changed": false, "msg": "Reiniciar componentes de AAP (aplicar) no terminó bien: no se pudo listar los contenedores de cquezada (podman)"}
-
-PLAY RECAP *********************************************************************
-anfitrion-kvm              : ok=8    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-después: FO-LAB-02274 exitoso Autocuidado · Respaldar bases de AAP y FaceOps
-después: FO-LAB-02276 fallido Autocuidado · Respaldar bases de AAP y FaceOps
-después: FO-LAB-02278 fallido Autocuidado · Respaldar bases de AAP y FaceOps
-después: FO-LAB-02280 fallido Autocuidado · Respaldar bases de AAP y FaceOps
-después: FO-LAB-02282 exitoso Autocuidado · Renovar certificados
-después: FO-LAB-02285 exitoso Autocuidado · Renovar certificados
-después: FO-LAB-02286 exitoso Autocuidado · Renovar certificados
-después: FO-LAB-02288 fallido Autocuidado · Renovar certificados
-después: FO-LAB-02290 exitoso Autocuidado · Purgar historial de AAP
-después: FO-LAB-02293 exitoso Autocuidado · Purgar historial de AAP
-después: FO-LAB-02294 fallido Autocuidado · Purgar historial de AAP
---- fin: 2026-11-12T16:37:24-03:00 · código: 0
+desplegado 8562fdf47
+   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 28 reglas en Prometheus y ruta a EDA :5023
+   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
+   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
+repo 8562fdf
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Respaldar bases de AAP y FaceOps
+  C1 → exitoso FO-LAB-02274
+CASO C1 ok · Evaluar
+  C2 → fallido FO-LAB-02276
+CASO C2 falla · Aplicar
+  C3 → fallido FO-LAB-02278
+CASO C3 falla · Repetir
+  C4 → fallido FO-LAB-02280
+CASO C4 ok · Sin espacio seguro
+CERT Autocuidado · Respaldar bases de AAP y FaceOps → sin probar
+== Autocuidado · Renovar certificados
+  C1 → exitoso FO-LAB-02282
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02285
+CASO C2 ok · Aplicar (vigente)
+  C3 → exitoso FO-LAB-02286
+CASO C3 ok · Repetir
+  C4 → fallido FO-LAB-02288
+CASO C4 ok · Modo inválido
+CERT Autocuidado · Renovar certificados → certificada
+== Autocuidado · Purgar historial de AAP
+  C1 → exitoso FO-LAB-02290
+CASO C1 ok · Conservar 365 días
+  C2 → exitoso FO-LAB-02293
+CASO C2 ok · Repetir
+  C3 → fallido FO-LAB-02294
+CASO C3 falla · Bajo el mínimo
+CERT Autocuidado · Purgar historial de AAP → fallida
+--- fin: 2026-11-12T16:37:49-03:00 · código: 0
