@@ -6,7 +6,7 @@
 {% macro estado_mon(al, a) %}{% if a.mon %}<small class="al-ver"><span class="chip {{ 's-alta' if a.mon.estado == 'firing' else ('s-media' if a.mon.estado == 'pending' else 's-ok') }}" style="font-size:10px">{{ {'firing': 'disparada', 'pending': 'por dispararse', 'inactive': 'activa en el monitoreo'}.get(a.mon.estado, a.mon.estado) }}</span>{% if a.mon.salud != 'ok' %} <span class="chip s-alta" style="font-size:10px">regla con error</span>{% endif %}
   · <a href="{{ url_for('consola.equipo_alerta_regla', eid=al.eid, aid=a.id, ambito=al.ambito or 'maquina') }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Regla en el monitoreo ↗</a>
   {% if al.puede %}· <button type="button" class="btn chico gris al-probar" data-url="{{ url_for('consola.equipo_alerta_probar', eid=al.eid) }}" data-aid="{{ a.id }}" data-ambito="{{ al.ambito or 'maquina' }}" onclick="event.preventDefault();event.stopPropagation();fxAlProbar(this)" title="Dispara una alerta de prueba por la cadena real (Alertmanager → EDA → acción) sin tocar la máquina">Probar</button>{% endif %}</small>
-  <small class="al-prueba" {{ 'hidden' if not a.prueba }}>{% if a.prueba %}Prueba {{ a.prueba.inicio|fecha }} · {{ a.prueba.estado }}: {{ (a.prueba.pasos or [])[-1] if a.prueba.pasos else '' }}{% endif %}</small>{% elif al.monitoreo and a.en_reflejo %}<small class="al-ver"><span class="chip s-alta" style="font-size:10px">no está cargada en el monitoreo</span></small>{% endif %}{% endmacro %}
+  <small class="al-prueba" {{ 'hidden' if not a.prueba }}>{% if a.prueba %}Prueba {{ a.prueba.inicio|fecha }} · {{ a.prueba.estado }}: {{ (a.prueba.pasos or [])[-1]|fechas_texto if a.prueba.pasos else '' }}{% endif %}</small>{% elif al.monitoreo and a.en_reflejo %}<small class="al-ver"><span class="chip s-alta" style="font-size:10px">no está cargada en el monitoreo</span></small>{% endif %}{% endmacro %}
 {% macro boton_alertas(al, accion, nombre, chico=false) %}{% if al %}{% set sx_ = al.sufijo or '' %}
 {% set est_ = 'curso' if al.en_curso else ('on' if al.n else 'off') %}
 <button type="button" id="alertas{{ sx_ }}" class="al-btn al-solo al-{{ est_ }}{{ ' al-chica' if chico }}" aria-label="Alertas{{ ' de ' ~ nombre if chico }}" onclick="event.stopPropagation();document.getElementById('al-dlg{{ sx_ }}').showModal()"
@@ -39,8 +39,10 @@
     <small>{% if a.umbral is sameas false %}Severidad {{ a.severidad }}{% else %}Aviso {{ a.aviso }} · crítico {{ a.critico }} {{ a.unidad or '' }}{% endif %} · durante {{ a.para }} · acciones: {{ a.acciones_txt|join(' / ') }}</small></span></div>
 {% elif a.pendiente or a.en_prueba %}<div class="al-fila al-pend" title="{{ a.pendiente or 'En prueba: se libera cuando pase su prueba de punta a punta' }}"><span class="al-sw"><input type="checkbox" disabled><i></i></span>
   <span class="al-def"><b>{{ a.nombre }}</b><small>{% if a.pendiente %}Pendiente de métrica: {{ a.pendiente }}{% else %}Bloqueada · en prueba: {{ a.descripcion }}{% endif %}</small></span></div>{% else %}<label class="al-fila{{ ' on' if a.activa }}">
-  <span class="al-sw"><input type="checkbox" name="on_{{ a.id }}" {{ 'checked' if a.activa }} {{ 'disabled' if not al.disponible }} onchange="this.closest('.al-fila').classList.toggle('on', this.checked)"><i></i></span>
-  <span class="al-def"><b>{{ a.nombre }}</b><small>{{ a.descripcion }}</small>
+  {% set tr_ = a.transito if a.transito and a.transito.curso else none %}
+  <span class="al-sw"><input type="checkbox" name="on_{{ a.id }}" {{ 'checked' if (a.activa if not tr_ else tr_.txt != 'Desactivando') }} {{ 'disabled' if not al.disponible or tr_ }} onchange="this.closest('.al-fila').classList.toggle('on', this.checked)"><i></i></span>
+  {% if tr_ and tr_.txt != 'Desactivando' %}<input type="hidden" name="on_{{ a.id }}" value="1">{% endif %}
+  <span class="al-def"><b>{{ a.nombre }}{% if a.transito %} <a class="chip {{ 's-alta' if not a.transito.curso else '' }} al-trans" style="font-size:10px" href="{{ url_for('consola.ticket', tid=a.transito.tid) }}" onclick="event.stopPropagation()" title="{{ 'El ticket aún no termina: el interruptor se libera cuando Ansible lo aplique' if a.transito.curso else 'El último ticket no se aplicó: la alerta quedó como estaba' }}">{% if a.transito.curso %}<span class="al-gira">⟳</span> {% endif %}{{ a.transito.txt }} · {{ a.transito.numero }}</a>{% endif %}</b><small>{{ a.descripcion }}</small>
     {% if a.activa %}<small class="al-ver"><a href="{{ a.grafana }}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Lo que evalúa la regla, su umbral y su historia (últimas 24 h)">Ver en Grafana ↗</a> · <code>{{ a.regla }}</code></small>{% endif %}{{ estado_mon(al, a) }}</span>
   <span class="al-acc"><small>Acción al dispararse</small><select name="acc_{{ a.id }}" {{ 'disabled' if not al.puede }} onclick="event.stopPropagation()" onchange="this.parentElement.querySelector('.al-diag').hidden=!{{ al.informe.acciones|tojson|forceescape }}.includes(this.value)">{% for k, t, bl in a.acciones_l %}<option value="{{ k }}" {{ 'selected' if a.valor_accion == k }} {{ 'disabled' if bl and a.valor_accion != k }} title="{{ bl }}">{{ t }}{{ ' — bloqueada: ' ~ bl if bl }}</option>{% endfor %}</select>
     <small class="al-diag" {{ 'hidden' if a.valor_accion not in al.informe.acciones }}>{% if al.informe.para %}El diagnóstico se envía a {{ al.informe.quien }} ({{ al.informe.para }}){% else %}El grupo {{ al.informe.quien }} no tiene correo: configúralo en Grupos dueños para recibir el diagnóstico{% endif %}</small></span>
@@ -66,13 +68,17 @@ window.fxAlProbar=window.fxAlProbar||function(b){ const out=b.closest('.al-def')
   const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('aid',b.dataset.aid); fd.append('ambito',b.dataset.ambito);
   fetch(b.dataset.url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(x=>{
     if(x.error){out.textContent='falló: '+x.error;b.disabled=false;return;}
-    const ver=()=>fetch(x.url,{headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(p=>{out.textContent=(p.pasos||[]).join(' → ')||'en curso…';
+    const ver=()=>fetch(x.url,{headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(p=>{out.textContent=(p.pasos||[]).map(s=>horaLocal.texto(s,'hora-seg')).join(' → ')||'en curso…';
       if(p.estado==='en curso'){setTimeout(ver,5000);}else{out.textContent=(p.estado==='ok'?'✓ ':'✗ ')+out.textContent;b.disabled=false;}});
     ver();}).catch(()=>{out.textContent='falló: no se pudo enviar';b.disabled=false;});};
 window.fxAlTicket=window.fxAlTicket||function(ev, f){ if(!window.fxNuevoTicket) return true; ev.preventDefault();
   const b=f.querySelector('.al-btns .btn'); b.disabled=true;
   fetch(f.action,{method:'POST',body:new FormData(f),headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{b.disabled=false;
     if(t.error){(window.fxAviso||alert)(t.error,'error');return;}
+    f.querySelectorAll('.al-sw input[type=checkbox]:not([disabled])').forEach(c=>{if(c.checked===c.defaultChecked)return;   // estado intermedio hasta que Ansible lo aplique
+      const b_=c.closest('.al-fila').querySelector('.al-def b');const ch=document.createElement('a');ch.className='chip al-trans';ch.style.fontSize='10px';ch.href=t.url;
+      ch.innerHTML='<span class="al-gira">⟳</span> '+(c.checked?'Activando':'Desactivando')+' · '+t.numero;b_.appendChild(ch);
+      if(c.checked){const h=document.createElement('input');h.type='hidden';h.name=c.name;h.value='1';c.after(h);}c.disabled=true;});
     f.closest('dialog').close(); window.fxAviso&&fxAviso(t.numero+' creado: alertas de '+(f.dataset.nombre||'la máquina')+(t.estado==='pendiente_aprobacion'?' (espera aprobación)':''),'ok');
     fxNuevoTicket(t);}).catch(()=>{b.disabled=false;(window.fxAviso||alert)('No se pudo crear el ticket','error');});
   return false;};

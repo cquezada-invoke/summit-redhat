@@ -110,6 +110,35 @@ def en_curso(cliente_id, e, ambito="maquina"):
     return None
 
 
+def transito(cliente_id, e, ambito="maquina", cargadas=None):
+    """Estado intermedio por alerta mientras su ticket está pendiente o en curso («Activando» / «Desactivando» /
+    «Actualizando» · ticket), o «Falló · ticket» si el último ticket del ámbito falló (vuelve a su estado anterior).
+    cargadas: ids realmente cargados en el monitoreo (para saber si el ticket activa o desactiva)."""
+    a = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, AUTO)
+    if not a:
+        return {}
+    cargadas = set(cargadas or [])
+    out = {}
+    ts = q("SELECT id, numero, estado, parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 80", cliente_id, a["id"])
+    mios = [t for t in ts if (j(t["parametros"], {}) or {}).get("al_equipo") == e["nombre"]
+            and ((j(t["parametros"], {}) or {}).get("al_ambito") or "maquina") == (ambito or "maquina")]
+    for t in mios:   # del más nuevo al más viejo
+        p_ = j(t["parametros"], {}) or {}
+        on = {x["id"] for x in p_.get("al_alertas") or []}
+        off = set(p_.get("al_retiradas") or [])
+        if t["estado"] in ("pendiente_aprobacion", "en_cola", "en_ejecucion"):
+            for aid in on:
+                out.setdefault(aid, {"txt": "Actualizando" if aid in cargadas else "Activando", "numero": t["numero"], "tid": t["id"], "curso": True})
+            for aid in off & cargadas:
+                out.setdefault(aid, {"txt": "Desactivando", "numero": t["numero"], "tid": t["id"], "curso": True})
+            continue
+        if t["estado"] in ("fallido", "error", "rechazado", "vencido", "cancelado"):
+            for aid in (on - cargadas) | (off & cargadas):
+                out.setdefault(aid, {"txt": "Falló" if t["estado"] in ("fallido", "error") else t["estado"].capitalize(), "numero": t["numero"], "tid": t["id"], "curso": False})
+        break   # el último ticket terminado manda: lo anterior ya quedó reflejado en el monitoreo
+    return out
+
+
 AUTO_GRAFANA_OCP = "Monitoreo · Grafana de OpenShift"
 PROMETHEUS = os.environ.get("FACEOPS_PROMETHEUS", "http://127.0.0.1:9090")   # Prometheus del anfitrión (FaceOps usa la red del host)
 _mon = {}
@@ -216,6 +245,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     datos = j(e.get("datos"), {}) or {}
     g_ocp = grafana_ocp(cliente_id, e) if t == "openshift" else None
     prom = reglas_monitoreo(e, ambito, t)   # lo realmente cargado en el monitoreo (None: no se pudo consultar → reflejo del último ticket)
+    trans = transito(cliente_id, e, ambito, (prom or {}).keys() if prom is not None else act.keys()) if t != "openshift" else {}
     for a in cat["alertas"]:
         if t in a["tipos"] and a.get("ambito", "maquina") == ambito and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
@@ -227,7 +257,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
                 continue
             accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k), bloqueo_accion(cliente_id, cat, k)) for k in (a.get("acciones") or ["avisar"])]
             grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x) if prom is None else a["id"] in prom, mon=(prom or {}).get(a["id"]),
-                                                                         en_reflejo=bool(x), acciones_l=accs, prueba=_ult_prueba(cliente_id, e, ambito, a["id"]) if prom and a["id"] in prom else None, grafana=url_grafana(e["nombre"], a["id"], ambito),
+                                                                         en_reflejo=bool(x), transito=trans.get(a["id"]), acciones_l=accs, prueba=_ult_prueba(cliente_id, e, ambito, a["id"]) if prom and a["id"] in prom else None, grafana=url_grafana(e["nombre"], a["id"], ambito),
                                                                          regla=nombre_regla(a), valor_accion=(x or {}).get("accion", "avisar"),
                                                                          valor_aviso=(x or {}).get("aviso", a.get("aviso")),
                                                                          valor_critico=(x or {}).get("critico", a.get("critico")),
@@ -408,7 +438,8 @@ def tabla_cliente(cliente_id, equipos):
         resp = None
         for amb, prom in prom_by.items():
             refl = {x["id"]: x for x in aplicadas(e, amb).get("alertas") or []} if t != "openshift" else {}
-            if not (prom or refl):
+            trans = transito(cliente_id, e, amb, (prom or {}).keys() if prom is not None else refl.keys()) if t != "openshift" else {}
+            if not (prom or refl or trans):
                 continue
             resp = resp or destino(cliente_id, e)
             for a in cat["alertas"]:
@@ -439,7 +470,7 @@ def tabla_cliente(cliente_id, equipos):
                               "difiere": (prom is not None and t != "openshift" and bool(m) != bool(rf)),
                               "difiere_txt": ("FaceOps la tiene encendida pero no está cargada en Prometheus" if rf and not m else
                                               "cargada en Prometheus sin reflejo en FaceOps" if m and not rf else ""),
-                              "sin_monitoreo": prom is None})
+                              "sin_monitoreo": prom is None, "transito": trans.get(a["id"])})
     filas.sort(key=lambda x: (not x["disparando"], not x["encendida"], x["objeto_txt"], x["aid"]))
     return filas
 
