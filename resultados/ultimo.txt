@@ -1,34 +1,16 @@
-commit: 7e99f674033ca57e3ce24c766f971682b4c688e7
-inicio: 2026-11-12T20:24:52-03:00
+commit: e521fcd1b02a1a9f78a1754f9dc828f0d8cfd9b2
+inicio: 2026-11-12T20:29:23-03:00
 ---
 desplegado: 69cd3730 2026-11-12 23:09
-objetivos: {"n_equipos": 111, "n_visibles": 48, "encendida": 26, "apagada": 22, "apagada_nombre": "nodo-jboss-qa", "apagada_energia": "apagado", "ticket": 2392, "ticket_num": "FO-LAB-02392", "auto": 95, "n_tickets": 2393, "lector": 23}
-ROL lector: [('monitoreo', 'auditor'), ('servidores', 'auditor')]
-login → {"sin_codigo_url": "/ingresar?siguiente=/inventario?", "codigo_malo_rechazado": true, "pide_codigo": true, "url_final": "http://192.168.122.1:8110/demo-banco/", "s": 1.43, "usuario_en_cabecera": true}
-/ → {"ruta": "/", "status": 200, "ttfb_ms": 586, "dcl_ms": 623, "primera_dcl_ms": 840, "errores": [], "datos": "productividad True · riesgo en cabecera False", "aviso_aap": 0}
-/riesgo/estado → {"ruta": "/riesgo/estado", "status": 200, "ttfb_ms": 11, "dcl_ms": 17, "primera_dcl_ms": 1090, "errores": [], "datos": "", "aviso_aap": 0}
-/buscar?q=nodo-vault → {"ruta": "/buscar?q=nodo-vault", "status": 200, "ttfb_ms": 84, "dcl_ms": 123, "primera_dcl_ms": 126, "errores": [], "datos": "encuentra nodo-vault True", "aviso_aap": 0}
-/automatizaciones → {"ruta": "/automatizaciones", "status": 200, "ttfb_ms": 109, "dcl_ms": 201, "primera_dcl_ms": 201, "errores": [], "datos": "acciones listadas 100 · bloqueadas marcadas 2", "aviso_aap": 0}
-/automatizaciones/95 → {"ruta": "/automatizaciones/95", "status": 200, "ttfb_ms": 45, "dcl_ms": 90, "primera_dcl_ms": 1204, "errores": [], "datos": "ficha acción «Encender» True", "aviso_aap": 0}
-/tickets → {"ruta": "/tickets", "status": 200, "ttfb_ms": 80, "dcl_ms": 217, "primera_dcl_ms": 217, "errores": [], "datos": "filas 520 · FO-LAB 10", "aviso_aap": 0}
-/tickets/2392 → {"ruta": "/tickets/2392", "status": 200, "ttfb_ms": 57, "dcl_ms": 103, "primera_dcl_ms": 103, "errores": [], "datos": "FO-LAB-02392 visible True · estado exitoso True", "aviso_aap": 0}
-/tickets/2392/estado → {"ruta": "/tickets/2392/estado", "status": 200, "ttfb_ms": 2, "dcl_ms": 10, "primera_dcl_ms": 13, "errores": [], "datos": "{\"cola\":\"\",\"ejecucion_s\":10,\"estado\":\"exitoso\",\"job\":29483,\"numero\":\"FO-LAB-0239", "aviso_aap": 0}
-/inventario → {"ruta": "/inventario", "status": 200, "ttfb_ms": 90, "dcl_ms": 125, "primera_dcl_ms": 694, "errores": [], "datos": "filas 19 · encendido 2 · apagado 0", "aviso_aap": 0}
-/inventario/26 → {"ruta": "/inventario/26", "status": 200, "ttfb_ms": 282, "dcl_ms": 364, "primera_dcl_ms": 1290, "errores": [], "datos": "nombre visible True · dueño True", "aviso_aap": 0}
-/inventario/22 → {"ruta": "/inventario/22", "status": 200, "ttfb_ms": 371, "dcl_ms": 462, "primera_dcl_ms": 2222, "errores": [], "datos": "nombre visible True · dueño True", "aviso_aap": 0}
-/inventario/26/consola → {"ruta": "/inventario/26/consola", "status": 200, "ttfb_ms": 3, "dcl_ms": 11, "primera_dcl_ms": 11, "errores": [["console", "Failed to load resource: the server responded with a status of 404 (NOT FOUND)"], ["console", "Failed to load resource: the server responded with a status of 404 (NOT FOUND)"], ["console", "Failed to load resource: the server responded with a status of 404 (NOT FOUND)"]], "datos": "terminal False", "aviso_aap": 0}
-/aprobaciones/trazabilidad → {"ruta": "/aprobaciones/trazabilidad", "status": 200, "ttfb_ms": 93, "dcl_ms": 126, "primera_dcl_ms": 134, "errores": [], "datos": "filas 19", "aviso_aap": 0}
-/monitoreo/eventos-aap → {"ruta": "/monitoreo/eventos-aap", "status": 200, "ttfb_ms": 46, "dcl_ms": 137, "primera_dcl_ms": 1232, "errores": [], "datos": "filas 220", "aviso_aap": 0}
-/cola → {"ruta": "/cola", "status": 200, "ttfb_ms": 39, "dcl_ms": 77, "primera_dcl_ms": 78, "errores": [], "datos": "lanzados/recientes 7 · latido True", "aviso_aap": 0}
-/configuracion/usuarios → {"ruta": "/configuracion/usuarios", "status": 200, "ttfb_ms": 40, "dcl_ms": 79, "primera_dcl_ms": 259, "errores": [], "datos": "qa.lector listado False · grupos 0", "aviso_aap": 0}
-/configuracion/pruebas → {"ruta": "/configuracion/pruebas", "status": 200, "ttfb_ms": 155, "dcl_ms": 253, "primera_dcl_ms": 253, "errores": [], "datos": "certificada 1 · sin probar 11", "aviso_aap": 0}
-/admin/catalogo → {"ruta": "/admin/catalogo", "status": 200, "ttfb_ms": 64, "dcl_ms": 470, "primera_dcl_ms": 412, "errores": [], "datos": "filas 0", "aviso_aap": 0}
-/auditoria → {"ruta": "/auditoria", "status": 200, "ttfb_ms": 37, "dcl_ms": 176, "primera_dcl_ms": 176, "errores": [], "datos": "ingreso de qa.nucleo registrado True", "aviso_aap": 0}
-/cuenta/doble-factor → {"ruta": "/cuenta/doble-factor", "status": 200, "ttfb_ms": 39, "dcl_ms": 75, "primera_dcl_ms": 153, "errores": [], "datos": "2FA activo True", "aviso_aap": 0}
-/admin/ → {"ruta": "/admin/", "status": 200, "ttfb_ms": 74, "dcl_ms": 99, "primera_dcl_ms": 381, "errores": [], "datos": "datos demo ofrecido True", "aviso_aap": 0}
-hora_local → "501 marcas de hora · ej. UTC 23:23 → muestra «12-11-2026 20:23» · esperado Santiago 20:23 · ok True"
-ver_como → {"post": 200, "muestra_lector": true, "texto": "Estás viendo FaceOps como | QA Lector Núcleo | (qa.lector) · solo lectura | Volver a mi usuario | ☰ | FaceOps | Managed Service · Invoke | v1.0.1801 | Clientes | Gobierno | ES | Móvi", "volvio": true}
-movil → {"/": {"sw": 390, "cw": 390, "bw": 563}, "/buscar?q=nodo-vault": {"sw": 390, "cw": 390, "bw": 563}, "/automatizaciones": {"sw": 390, "cw": 390, "bw": 563}, "/automatizaciones/95": {"sw": 390, "cw": 390, "bw": 563}, "/tickets": {"sw": 390, "cw": 390, "bw": 563}, "/tickets/2392": {"sw": 390, "cw": 390, "bw": 563}, "/inventario": {"sw": 390, "cw": 390, "bw": 563}, "/inventario/26": {"sw": 390, "cw": 390, "bw": 563}, "/inventario/22": {"sw": 390, "cw": 390, "bw": 563}, "/inventario/26/consola": {"sw": 980, "cw": 980, "bw": 964}, "/aprobaciones/trazabilidad": {"sw": 390, "cw": 390, "bw": 563}, "/monitoreo/eventos-aap": {"sw": 390, "cw": 390, "bw": 563}, "/cola": {"sw": 390, "cw": 390, "bw": 563}, "/configuracion/usuarios": {"sw": 390, "cw": 390, "bw": 563}, "/configuracion/pruebas": {"sw": 390, "cw": 390, "bw": 563}, "/admin/catalogo": {"sw": 390, "cw": 390, "bw": 527}, "/auditoria": {"sw": 390, "cw": 390, "bw": 563}, "/cuenta/doble-factor": {"sw": 390, "cw": 390, "bw": 563}, "/admin/": {"sw": 390, "cw": 390, "bw": 527}}
-login_publico_2fa → {"sin_codigo_url": "/ingresar?siguiente=/inventario?", "codigo_malo_rechazado": true, "pide_codigo": true, "url_final": "/demo-banco/", "entra": true, "status_final": 200}
-lector → {"/": 200, "/inventario": 200, "/inventario/26": 200, "/cola": 403, "/configuracion/usuarios": 403, "/admin/catalogo": 403, "/admin/usuarios": 403, "POST ejecutar como lector": [400, "{\"error\":\"Esta acci\\u00f3n no aplica a nodo-jboss-qa: esta acci\\u00f3n elige sus equipos en el formulario, no se lanza d"]}
---- fin: 2026-11-12T20:28:05-03:00 · código: 0
+
+
+NOMBRE INVÁLIDO 400 {"error":"Nombre: min\u00fasculas, n\u00fameros, puntos o guiones (ej. fw-borde-01)"}
+
+LECTOR intenta encender JBoss: 403 <!doctype html> <html lang=en> <title>403 Forbidden</title> <h1>Forbidden</h1> <
+LECTOR intenta alta manual: 403 {"error":"Necesitas perfil de escritura"}
+
+CONSOLA pública 403 8.0s /demo-banco/inventario/26/consola · canvas/terminal: 0 · frames: 1 · errores: ['Failed to load resource: the server responded with a status of 403 ()']
+VERIF equipo: None · host AAP: [] · secreto en bóveda: []
+VERIF equipo: None · host AAP: [] · secreto en bóveda: []
+LIMPIEZA host AAP borrados: 0 · bóveda: 403 · fila FaceOps: False → queda: 0
+--- fin: 2026-11-12T20:30:53-03:00 · código: 0
