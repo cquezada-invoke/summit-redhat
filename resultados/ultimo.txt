@@ -1,19 +1,32 @@
-commit: 2b0e858ddd954ff172c8fd089eb0c794d1bbd763
-inicio: 2026-11-12T15:16:45-03:00
+commit: af461537a7058f94c668900485fdd0fa3afb35d8
+inicio: 2026-11-12T15:08:46-03:00
 ---
-total pendientes 124
-nombres [('Etapa 1/1 · Operación y observabilidad · ¿Ejecutar «Inventariar máquina»?', 63), ('Etapa 1/1 · Operación y observabilidad · ¿Ejecutar «Encender, apagar o reiniciar plataform', 4), ('Etapa 1/1 · Operación y observabilidad · ¿Ejecutar «Pipeline Tekton (DevSecOps)»?', 2)]
-workflows [('FaceOps · Aprobar › Sistema · Inventariar máquina · Nodos demo · crede', 31), ('FaceOps · Aprobar › Sistema · Inventariar máquina · Servidores habilit', 16), ('FaceOps · Aprobar › Sistema · Inventariar máquina · Data center 1 · cr', 14), ('FaceOps · Aprobar › Plataforma · Controlar servicio · Nodos demo [Oper', 2), ('FaceOps · Aprobar › Plataforma · Controlar servicio · Data center 1 · ', 2), ('FaceOps · Aprobar › DevSecOps · Pipeline Tekton [Operación y observabi', 2), ('FaceOps · Aprobar › Sistema · Inventariar máquina · Servidores Windows', 2)]
-horas [('2026-11-03T07', 5), ('2026-11-04T00', 1), ('2026-11-04T04', 1), ('2026-11-04T07', 15), ('2026-11-05T07', 18), ('2026-11-06T17', 1), ('2026-11-07T07', 1), ('2026-11-12T18', 1)]
-FO 9 Nube · Recuperar consumo y estado | FaceOps | 2026-11-12T15:45 → 2026-11-12T17:02 | Plan de prueba C1 de «Nube · Recuperar consumo y estado» (regla de prueba)
-FO 6 FaceOps · Aplicar política de seguridad | Seguridad | 2026-11-12T16:54 → 2026-11-12T16:55 | Aplicar AUD-01 v1 · Auditoría del sistema activa
-FO 3 FaceOps · Habilitar servidor | Sistemas operativos | 2026-10-31T01:34 → 2026-10-31T01:34 | Arquitectura «Catálogo en línea» v1: Crear 1 servidor rhel9 para Base de datos d
-FO 3 OpenShift · Relevamiento de imágenes | Plataformas de contenedores | 2026-11-12T15:46 → 2026-11-12T16:10 | Plan de prueba C1 de «OpenShift · Relevamiento de imágenes» (regla de prueba)
-FO 2 Autoservicio · 1 Desplegar app | Cumplimiento y estado | 2026-08-06T11:28 → 2026-10-27T22:07 | 
-FO 2 FaceOps · Acceso de red | Redes | 2026-10-22T23:07 → 2026-10-28T23:07 | 
-FO 2 FaceOps · Ampliar disco | FaceOps | 2026-11-03T17:28 → 2026-11-05T04:50 | Ampliar disco vda de dc1-idm01 a 40 GB (/)
-FO 2 Plataforma · Medir salud | Operación y remediación | 2026-11-12T16:41 → 2026-11-12T16:48 | Medición de tiempos: camino anterior sin cola
-FO 1 Certificados · Emitir para servicio | Seguridad | 2026-11-12T17:10 → 2026-11-12T17:10 | Reemplazo del certificado nodo-tomcat.demo.local pedido desde su detalle
-FO 1 FaceOps · Agregar disco | FaceOps | 2026-11-02T22:59 → 2026-11-02T22:59 | Agregar disco de 20 GB del storage nodo-storage a nodo-jboss
-eventos autocuidado con ticket: 0
---- fin: 2026-11-12T15:16:54-03:00 · código: 0
+C1: FO-LAB-02230 creado · Prueba C1: agregar Cloud Storage (bucket) «fo-prueba-11121508-invoke»
+C1: ok · FO-LAB-02230 exitoso · ('operativo', 'activo')
+C2: FO-LAB-02231 creado · Prueba C2: repetir bucket fo-prueba-11121508-invoke
+C2: ok · FO-LAB-02231 exitoso · exitoso
+C3: FO-LAB-02232 creado · Prueba C3: eliminar bucket «fo-prueba-11121508-invoke»
+C3: ok · FO-LAB-02232 exitoso · ('no existe', 'eliminado')
+C4: FO-LAB-02233 creado · Prueba C4: URL que no es de Google
+C4: ok · FO-LAB-02233 fallido · fallido
+C5: ok · formularios [True, True, True, True, True, True, True, True] · sin certificar True
+C6: FO-LAB-02234 creado · Prueba C6: agregar Cloud Storage (bucket) «fo-prueba-11121508-invoke-r»
+C6: ok · FO-LAB-02234 rechazado · rechazado
+P-pubsub: ok · sin probar: API pubsub.googleapis.com deshabilitada
+P-pubsub-el: ok · no se creó
+P-bigquery: FO-LAB-02235 creado · Prueba P-bigquery: agregar BigQuery (dataset) «fo_prueba_ds»
+P-bigquery: ok · FO-LAB-02235 exitoso · exitoso ('operativo', 'activo')
+P-bigquery-el: FO-LAB-02238 creado · Prueba P-bigquery: eliminar bigquery «fo_prueba_ds»
+P-bigquery-el: ok · FO-LAB-02238 exitoso · eliminado True
+P-secretmanager: ok · sin probar: API secretmanager.googleapis.com deshabilitada
+P-secretmanager-el: ok · no se creó
+P-artifactregistry: ok · sin probar: API artifactregistry.googleapis.com deshabilitada
+P-artifactregistry-el: ok · no se creó
+P-dns: ok · sin probar: API dns.googleapis.com deshabilitada
+P-dns-el: ok · no se creó
+LIMPIEZA: ok · nada de prueba en GCP
+CERTIFICADA Nube · Producto de la nube {'C1': 'ok', 'C2': 'ok', 'C3': 'ok', 'C4': 'ok', 'C5': 'ok', 'C6': 'ok'}
+productos adicionales: {'pubsub': 'sin probar: API pubsub.googleapis.com deshabilitada', 'bigquery': 'certificado FO-LAB-02235, FO-LAB-02238', 'secretmanager': 'sin probar: API secretmanager.googleapis.com deshabilitada', 'artifactregistry': 'sin probar: API artifactregistry.googleapis.com deshabilitada', 'dns': 'sin probar: API dns.googleapis.com deshabilitada'}
+PLAN_FIN
+ESTADO fin paso 17 {'C1': True, 'C2': True, 'C3': True, 'C4': True, 'C5': True, 'C6': True, 'P-pubsub': True, 'P-pubsub-el': True, 'P-bigquery': True, 'P-bigquery-el': True, 'P-secretmanager': True, 'P-secretmanager-el': True, 'P-artifactregistry': True, 'P-artifactregistry-el': True, 'P-dns': True, 'P-dns-el': True, 'LIMPIEZA': True}
+--- fin: 2026-11-12T15:33:04-03:00 · código: 0

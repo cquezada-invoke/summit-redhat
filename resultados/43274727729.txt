@@ -1,0 +1,32 @@
+commit: af461537a7058f94c668900485fdd0fa3afb35d8
+inicio: 2026-11-12T15:08:46-03:00
+---
+C1: FO-LAB-02230 creado · Prueba C1: agregar Cloud Storage (bucket) «fo-prueba-11121508-invoke»
+C1: ok · FO-LAB-02230 exitoso · ('operativo', 'activo')
+C2: FO-LAB-02231 creado · Prueba C2: repetir bucket fo-prueba-11121508-invoke
+C2: ok · FO-LAB-02231 exitoso · exitoso
+C3: FO-LAB-02232 creado · Prueba C3: eliminar bucket «fo-prueba-11121508-invoke»
+C3: ok · FO-LAB-02232 exitoso · ('no existe', 'eliminado')
+C4: FO-LAB-02233 creado · Prueba C4: URL que no es de Google
+C4: ok · FO-LAB-02233 fallido · fallido
+C5: ok · formularios [True, True, True, True, True, True, True, True] · sin certificar True
+C6: FO-LAB-02234 creado · Prueba C6: agregar Cloud Storage (bucket) «fo-prueba-11121508-invoke-r»
+C6: ok · FO-LAB-02234 rechazado · rechazado
+P-pubsub: ok · sin probar: API pubsub.googleapis.com deshabilitada
+P-pubsub-el: ok · no se creó
+P-bigquery: FO-LAB-02235 creado · Prueba P-bigquery: agregar BigQuery (dataset) «fo_prueba_ds»
+P-bigquery: ok · FO-LAB-02235 exitoso · exitoso ('operativo', 'activo')
+P-bigquery-el: FO-LAB-02238 creado · Prueba P-bigquery: eliminar bigquery «fo_prueba_ds»
+P-bigquery-el: ok · FO-LAB-02238 exitoso · eliminado True
+P-secretmanager: ok · sin probar: API secretmanager.googleapis.com deshabilitada
+P-secretmanager-el: ok · no se creó
+P-artifactregistry: ok · sin probar: API artifactregistry.googleapis.com deshabilitada
+P-artifactregistry-el: ok · no se creó
+P-dns: ok · sin probar: API dns.googleapis.com deshabilitada
+P-dns-el: ok · no se creó
+LIMPIEZA: ok · nada de prueba en GCP
+CERTIFICADA Nube · Producto de la nube {'C1': 'ok', 'C2': 'ok', 'C3': 'ok', 'C4': 'ok', 'C5': 'ok', 'C6': 'ok'}
+productos adicionales: {'pubsub': 'sin probar: API pubsub.googleapis.com deshabilitada', 'bigquery': 'certificado FO-LAB-02235, FO-LAB-02238', 'secretmanager': 'sin probar: API secretmanager.googleapis.com deshabilitada', 'artifactregistry': 'sin probar: API artifactregistry.googleapis.com deshabilitada', 'dns': 'sin probar: API dns.googleapis.com deshabilitada'}
+PLAN_FIN
+ESTADO fin paso 17 {'C1': True, 'C2': True, 'C3': True, 'C4': True, 'C5': True, 'C6': True, 'P-pubsub': True, 'P-pubsub-el': True, 'P-bigquery': True, 'P-bigquery-el': True, 'P-secretmanager': True, 'P-secretmanager-el': True, 'P-artifactregistry': True, 'P-artifactregistry-el': True, 'P-dns': True, 'P-dns-el': True, 'LIMPIEZA': True}
+--- fin: 2026-11-12T15:33:04-03:00 · código: 0
