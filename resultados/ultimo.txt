@@ -1,34 +1,8 @@
-commit: 069cf70ce8032f075f85fe67489a311e8d9750a5
-inicio: 2026-11-12T12:47:00-03:00
+commit: 54b0d0ccb6d64e34a4a39f66291b9c4742e1c13d
+inicio: 2026-11-12T12:47:50-03:00
 ---
-datos prod 0.37s
-        1    0.013    0.013    0.362    0.362 /opt/faceops/app/__init__.py:391(envoltura)
-        1    0.004    0.004    0.348    0.348 /opt/faceops/app/vistas.py:6537(mapa_datos)
-        1    0.012    0.012    0.122    0.122 /opt/faceops/app/cves.py:112(por_equipo)
-       95    0.000    0.000    0.110    0.001 /opt/faceops/app/__init__.py:12(_safe_load)
-        5    0.000    0.000    0.108    0.022 /opt/faceops/app/arquitectura.py:149(vigentes)
-        1    0.000    0.000    0.091    0.091 /opt/faceops/app/topologia.py:899(resumen_segmento)
-      151    0.000    0.000    0.086    0.001 /opt/faceops/app/bd.py:180(q)
-        3    0.000    0.000    0.073    0.024 /opt/faceops/app/arquitectura.py:311(flujos_de)
-      151    0.062    0.000    0.062    0.000 {method 'fetchall' of 'sqlite3.Cursor' objects}
-        1    0.001    0.001    0.054    0.054 /opt/faceops/app/topologia.py:170(construir)
-        1    0.000    0.000    0.048    0.048 /opt/faceops/app/topologia.py:857(resumen_segmentos)
-     7169    0.011    0.000    0.030    0.000 /opt/faceops/app/inventario.py:14(normal)
-        1    0.000    0.000    0.028    0.028 /opt/faceops/app/vistas.py:62(equipos_visibles)
-        1    0.000    0.000    0.026    0.026 /opt/faceops/app/topologia.py:1140(salud_segmento)
-       46    0.000    0.000    0.025    0.001 /opt/faceops/app/inventario.py:69(segmentos_de)
-       46    0.000    0.000    0.025    0.001 /opt/faceops/app/inventario.py:62(segmentos_candidatos)
-       46    0.001    0.000    0.024    0.001 /opt/faceops/app/inventario.py:65(<listcomp>)
-      151    0.021    0.000    0.021    0.000 /opt/faceops/app/bd.py:181(<listcomp>)
-      827    0.003    0.000    0.020    0.000 /opt/faceops/app/inventario.py:33(cumple_regla)
-       21    0.000    0.000    0.014    0.001 /opt/faceops/app/vistas.py:109(auto_sugerida)
-       18    0.001    0.000    0.014    0.001 /opt/faceops/app/vistas.py:113(<genexpr>)
-        1    0.001    0.001    0.012    0.012 /opt/faceops/app/politicas_seg.py:336(tablero)
-     1263    0.001    0.000    0.011    0.000 /opt/faceops/app/bd.py:195(j)
-       60    0.001    0.000    0.010    0.000 /opt/faceops/app/arquitectura.py:247(asignacion)
-    21213    0.008    0.000    0.010    0.000 /opt/faceops/app/cves.py:145(<lambda>)
-    21259    0.008    0.000    0.009    0.000 /opt/faceops/app/cves.py:144(<genexpr>)
-      690    0.002    0.000    0.008    0.000 /opt/faceops/app/politicas_seg.py:299(aplica)
-        1    0.000    0.000    0.007    0.007 /opt/faceops/app/paridad.py:86(evaluar)
-       60    0.000    0.000    0.007    0.000 /opt/faceops/app/replicar_maquina.py:32(replicas)
---- fin: 2026-11-12T12:47:12-03:00 · código: 0
+produccion 0.70s :: 0.68s __init__.py:391:envoltura | 0.68s vistas.py:6537:mapa_datos | 0.17s cves.py:112:por_equipo | 0.16s __init__.py:12:_safe_load | 0.15s topologia.py:899:resumen_segmento | 0.15s vistas.py:74:autos_visibles | 0.14s pruebas.py:224:no_certificadas | 0.14s pruebas.py:204:estado | 0.13s bd.py:180:q | 0.13s pruebas.py:232:<setcomp> | 0.11s arquitectura.py:149:vigentes | 0.11s pruebas.py:176:huella | 0.07s arquitectura.py:311:flujos_de | 0.07s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects> | 0.06s topologia.py:170:construir
+produccion 0.43s :: 0.42s __init__.py:391:envoltura | 0.42s vistas.py:6537:mapa_datos | 0.17s cves.py:112:por_equipo | 0.13s __init__.py:12:_safe_load | 0.13s arquitectura.py:149:vigentes | 0.12s bd.py:180:q | 0.10s topologia.py:899:resumen_segmento | 0.09s arquitectura.py:311:flujos_de | 0.09s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects> | 0.07s topologia.py:170:construir | 0.07s topologia.py:857:resumen_segmentos | 0.03s inventario.py:14:normal | 0.03s vistas.py:62:equipos_visibles | 0.03s bd.py:181:<listcomp> | 0.03s topologia.py:1140:salud_segmento
+qa 0.40s :: 0.38s __init__.py:391:envoltura | 0.38s vistas.py:6537:mapa_datos | 0.15s cves.py:112:por_equipo | 0.12s bd.py:180:q | 0.12s __init__.py:12:_safe_load | 0.12s arquitectura.py:149:vigentes | 0.10s topologia.py:899:resumen_segmento | 0.10s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects> | 0.08s arquitectura.py:311:flujos_de | 0.06s topologia.py:170:construir | 0.05s topologia.py:857:resumen_segmentos | 0.03s vistas.py:62:equipos_visibles | 0.03s topologia.py:1140:salud_segmento | 0.03s inventario.py:69:segmentos_de | 0.03s inventario.py:62:segmentos_candidatos
+qa 0.39s :: 0.38s __init__.py:391:envoltura | 0.37s vistas.py:6537:mapa_datos | 0.16s cves.py:112:por_equipo | 0.13s bd.py:180:q | 0.12s arquitectura.py:149:vigentes | 0.12s __init__.py:12:_safe_load | 0.10s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects> | 0.09s topologia.py:899:resumen_segmento | 0.08s arquitectura.py:311:flujos_de | 0.07s topologia.py:170:construir | 0.05s topologia.py:857:resumen_segmentos | 0.03s vistas.py:62:equipos_visibles | 0.03s inventario.py:69:segmentos_de | 0.03s topologia.py:1140:salud_segmento | 0.03s inventario.py:62:segmentos_candidatos
+--- fin: 2026-11-12T12:47:59-03:00 · código: 0
