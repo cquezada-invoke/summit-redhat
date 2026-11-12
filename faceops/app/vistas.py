@@ -1571,7 +1571,7 @@ def _salud_cajas(cajas, grupos):
         k_ = c["clave"]
         c["fab"] = fab_.get(k_) or next((f for pre, f in _FABRICANTES if k_ == pre or k_.startswith(pre + "-") or k_.startswith(pre + ":")), "")
         # versiones en uso, peor fase de soporte y ambientes, solo con datos ya recolectados (sin consultar en vivo)
-        vers_, fases_, amb_ = set(), [], set()
+        vers_, fases_, amb_, vdet_ = set(), [], set(), {}
         for e_ in grupos.get(k_) or []:
             amb_.add((e_.get("ambiente") or "").strip() or "sin ambiente")
             try:
@@ -1585,13 +1585,17 @@ def _salud_cajas(cajas, grupos):
                     m_ = re.match(r"(\d+\.\d+)", v_)
                     my_ = m_.group(1) if m_ else v_
                     vers_.add(my_)
-                    fases_.append(cv_.evaluar_producto({"jboss": "jboss-eap"}.get(fam_, fam_), my_)["fase"])
+                    f_ = cv_.evaluar_producto({"jboss": "jboss-eap"}.get(fam_, fam_), my_)["fase"]
+                    fases_.append(f_)
+                    vd_ = vdet_.setdefault(my_, {"v": my_, "n": 0, "fase": f_})
+                    vd_["n"] += 1
             except Exception:  # noqa: BLE001
                 pass
         c["versiones"] = sorted(vers_, key=lambda x: [int(n) if n.isdigit() else 0 for n in re.split(r"\D+", x) if n])
         orden_ = ["fuera", "extendido", "mantencion", "completo"]
         c["soporte"] = next((f for f in orden_ if f in fases_), "desconocido" if vers_ else "")
         c["ambientes"] = sorted(amb_)
+        c["vers_det"] = [vdet_[v] for v in c["versiones"]]
 
 
 def _nombre_plat(c):
