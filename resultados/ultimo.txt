@@ -1,8 +1,16 @@
-commit: 149d549aae7ba0804a34e6dc89877b9df8464b0a
-inicio: 2026-11-11T23:04:51-03:00
+commit: 9303a12d2a18b36442433ebee90b40a37e72693d
+inicio: 2026-11-11T23:07:29-03:00
 ---
-9710f1c Nube: motivo claro cuando el proveedor rechaza la si
-   · Plantilla «OpenShift · Evaluar imágenes (uso y antigüedad)» (id 1170)
-   · Plantilla «OpenShift · Mover imágenes a Quay» (id 1171)
-HTTP 404 seccion False
---- fin: 2026-11-11T23:09:31-03:00 · código: 0
+CERT OpenShift · Recolectar clúster 2026-11-05T18:09:36+00:00 aprobada Certificación inicial: ejecuciones exitosas previas a la regla de prueba ["FO-LAB-00444", "FO-LAB-00412", "FO-LAB-00409"]
+  CASOS [{"caso": "ejecución exitosa previa", "resultado": "ok"}]
+CERT OpenShift · Operador 2026-11-05T18:09:36+00:00 aprobada Certificación inicial: ejecuciones exitosas previas a la regla de prueba ["FO-LAB-00573"]
+  CASOS [{"caso": "ejecución exitosa previa", "resultado": "ok"}]
+OPAUTO {'id': 111, 'nombre': 'Operador', 'tipo': 'escritura', 'usa_limite': 1, 'requiere_aprobacion': 0, 'aap_tipo': 'job', 'inventario': 'OpenShift · clústeres', 'visible': 1, 'categoria': 'FaceOps'}
+TICKS [{'numero': 'FO-LAB-00444', 'estado': 'exitoso', 'limite': 'ocp-sno', 'creado': '2026-11-02T06:11:19+00:00'}, {'numero': 'FO-LAB-00412', 'estado': 'exitoso', 'limite': 'ocp-sno', 'creado': '2026-11-02T03:51:02+00:00'}, {'numero': 'FO-LAB-00409', 'estado': 'exitoso', 'limite': 'ocp-sno', 'creado': '2026-11-02T03:38:28+00:00'}]
+SCHED OpenShift · recolectar cada 15 min DTSTART;TZID=America/Santiago:20261030T000000 RRULE:FREQ=MINUTELY;INTERVAL=15
+EE 5 Control Plane Execution Environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
+EE 4 Default execution environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
+EE 3 Minimal execution environment registry.redhat.io/ansible-automation-platform-27/ee-minimal-rhel9:2.16
+EE 2 Hub Default execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-supported-rhel9:latest
+EE 1 Hub Minimal execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-minimal-rhel9:2.16
+--- fin: 2026-11-11T23:10:22-03:00 · código: 0
