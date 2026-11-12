@@ -17,6 +17,10 @@ REVISAR_CADA = 30
 _SALUD = {}       # web → {"ok", "ultimo_ok", "desde", "error"}
 _CONOCIDOS = {}   # web → (url de ping, verify)
 _vigia = {"hilo": None}
+_SESIONES = {}    # web → requests.Session con el token (solo en memoria; el sincronizador la usa)
+TTL_LECTURA = 60  # s: cada cuánto el sincronizador renueva una lectura que alguna página usa
+USO_VIGENTE = 2 * 3600   # s: lecturas que ninguna página usó en este tiempo dejan de sincronizarse
+_pendientes = set()
 
 
 class ErrorAAP(Exception):
@@ -52,14 +56,125 @@ def _iniciar_vigia():
 
     def bucle():
         while True:
+            try:
+                _cargar_clientes()
+            except Exception:  # noqa: BLE001
+                pass
             for w in list(_CONOCIDOS):
                 try:
                     _ping(w)
                 except Exception:  # noqa: BLE001
                     pass
-            time.sleep(REVISAR_CADA)
+            fin = time.time() + REVISAR_CADA
+            while time.time() < fin:   # cada 2 s atiende lecturas nuevas; cada ciclo renueva las vencidas
+                try:
+                    sincronizar()
+                except Exception:  # noqa: BLE001
+                    pass
+                time.sleep(1)
     _vigia["hilo"] = threading.Thread(target=bucle, daemon=True, name="faceops-salud-aap")
     _vigia["hilo"].start()
+
+
+# ── Lecturas de AAP en la base de FaceOps ─────────────────────────────────────────────────────────────────────────────
+# Regla: una página (petición GET) nunca llama a AAP. Toda lectura (GET a la API) que se hace al pintar una página se sirve
+# desde la tabla aap_lecturas; el sincronizador de fondo (este vigía) la renueva cada TTL_LECTURA mientras alguna página la
+# use. A AAP solo se llama en vivo al lanzar una acción (peticiones POST de FaceOps) y desde las tareas de fondo.
+def _tabla():
+    from .bd import con
+    con().execute("CREATE TABLE IF NOT EXISTS aap_lecturas (clave TEXT PRIMARY KEY, web TEXT, url TEXT, params TEXT, datos TEXT, "
+                  "actualizado REAL, usado REAL, error TEXT DEFAULT '')")
+
+
+def _clave(web, url, params):
+    import json
+    return url + "?" + json.dumps(params or {}, sort_keys=True, default=str)
+
+
+def _guardar(web, url, params, datos=None, error=""):
+    import json
+    from .bd import ej
+    _tabla()
+    k = _clave(web, url, params)
+    if error:
+        ej("UPDATE aap_lecturas SET error=? WHERE clave=?", error[:300], k)
+        return
+    ej("INSERT INTO aap_lecturas(clave, web, url, params, datos, actualizado, usado, error) VALUES (?,?,?,?,?,?,?,'') "
+       "ON CONFLICT(clave) DO UPDATE SET datos=excluded.datos, actualizado=excluded.actualizado, error=''",
+       k, web, url, json.dumps(params or {}, default=str), json.dumps(datos, ensure_ascii=False, default=str), time.time(), time.time())
+
+
+def _leer_bd(web, url, params):
+    import json
+    from .bd import ej, q1
+    _tabla()
+    k = _clave(web, url, params)
+    f = q1("SELECT datos, actualizado, usado FROM aap_lecturas WHERE clave=?", k)
+    if f:
+        if time.time() - (f.get("usado") or 0) > 30:
+            ej("UPDATE aap_lecturas SET usado=? WHERE clave=?", time.time(), k)
+        return json.loads(f["datos"]) if f["datos"] else {}
+    return None
+
+
+def _traer(web, url, params):
+    """Lectura en vivo desde el sincronizador (fondo): la guarda en la base."""
+    ses = _SESIONES.get(web)
+    if not ses or not disponible(web):
+        return False
+    try:
+        r = ses.get(url, params=params or None, timeout=(2, 20))
+    except requests.RequestException as e:
+        if isinstance(e, (requests.ConnectionError, requests.ConnectTimeout)):
+            _marcar(web, False, type(e).__name__)
+        _guardar(web, url, params, error=type(e).__name__)
+        return False
+    if r.status_code in (502, 503, 504):
+        _marcar(web, False, f"GET → {r.status_code}")
+        return False
+    _marcar(web, True)
+    if r.status_code >= 400:
+        _guardar(web, url, params, error=f"{r.status_code}: {r.text[:200]}")
+        if r.status_code == 404:   # ya no existe: se guarda vacío para que la página no espere
+            _guardar(web, url, params, {"_no_existe": True, "results": [], "count": 0})
+        return False
+    es_json = "json" in (r.headers.get("Content-Type") or "")
+    _guardar(web, url, params, (r.json() if r.content else {}) if es_json else {"_txt": r.text[-200000:]})
+    return True
+
+
+def sincronizar(solo_pendientes=False):
+    """Trae las lecturas nuevas que pidió una página y renueva las vigentes (solo en el hilo de fondo)."""
+    import json
+    from .bd import q
+    for web, url, params in list(_pendientes):
+        _pendientes.discard((web, url, params))
+        _traer(web, url, json.loads(params))
+    if solo_pendientes:
+        return
+    _tabla()
+    ahora_ = time.time()
+    # lo que una página está mirando ahora (usado en los últimos 2 min) se renueva cada 5 s; el resto, cada TTL_LECTURA
+    for f in q("SELECT web, url, params FROM aap_lecturas WHERE (usado > ? AND actualizado < ?) OR (usado > ? AND actualizado < ?) "
+               "ORDER BY usado DESC LIMIT 300", ahora_ - 120, ahora_ - 5, ahora_ - USO_VIGENTE, ahora_ - TTL_LECTURA):
+        _traer(f["web"], f["url"], json.loads(f["params"] or "{}"))
+
+
+def _cargar_clientes():
+    """Sesiones de cada AAP configurado (tras un reinicio, el sincronizador no espera a que una página las cree)."""
+    from .bd import q
+    for c in q("SELECT * FROM clientes WHERE COALESCE(aap_url,'')<>'' AND COALESCE(aap_token,'')<>''"):
+        if c["aap_url"].rstrip("/") not in _SESIONES:
+            AAP.de_cliente(c)
+
+
+def _en_pagina():
+    """¿Estamos pintando una página (petición GET/HEAD de FaceOps)? Ahí no se llama a AAP."""
+    try:
+        from flask import has_request_context, request
+        return has_request_context() and request.method in ("GET", "HEAD")
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def salud():
@@ -81,6 +196,7 @@ class AAP:
         self.s = requests.Session()
         self.s.headers.update({"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
         self.s.verify = bool(verificar)
+        _SESIONES[self.web] = self.s
         if self.web not in _CONOCIDOS:
             _CONOCIDOS[self.web] = (self.base + "ping/", bool(verificar))
             _iniciar_vigia()
@@ -94,6 +210,29 @@ class AAP:
         return a
 
     def _r(self, metodo, ruta, **kw):
+        url_ = ruta if ruta.startswith("http") else self.base + ruta.lstrip("/")
+        if metodo == "GET" and _en_pagina() and not getattr(self, "en_vivo", False):
+            params_ = {k: v for k, v in (kw.get("params") or {}).items() if v is not None}
+            d = _leer_bd(self.web, url_, params_)
+            if d is None and not disponible(self.web):
+                raise AAPNoDisponible("AAP no disponible y el dato aún no está en FaceOps")
+            if d is None:   # primera vez: el sincronizador la trae; la página espera a lo más 1 s
+                import json
+                _pendientes.add((self.web, url_, json.dumps(params_, sort_keys=True, default=str)))
+                _iniciar_vigia()
+                from flask import g as _g
+                espera_ = 0 if _g.get("_aap_espero") else 10   # una sola espera de 1 s por página
+                _g._aap_espero = True
+                for _ in range(espera_):
+                    time.sleep(0.1)
+                    d = _leer_bd(self.web, url_, params_)
+                    if d is not None:
+                        break
+                if d is None:
+                    raise (ErrorAAP if disponible(self.web) else AAPNoDisponible)("Sincronizando con AAP: el dato aún no está en FaceOps")
+            if d.get("_no_existe"):
+                raise ErrorAAP(f"AAP GET {ruta} → 404")
+            return d
         if not disponible(self.web):   # cortacircuito abierto: no se espera a un AAP caído
             raise AAPNoDisponible(f"AAP no disponible desde las {time.strftime('%H:%M', time.localtime(_SALUD[self.web]['desde'] or time.time()))}")
         to = getattr(self, "timeout", None)
@@ -104,7 +243,7 @@ class AAP:
             except Exception:  # noqa: BLE001
                 to = (2, 20)
         try:
-            r = self.s.request(metodo, ruta if ruta.startswith("http") else self.base + ruta.lstrip("/"), timeout=to, **kw)
+            r = self.s.request(metodo, url_, timeout=to, **kw)
         except (requests.ConnectionError, requests.ConnectTimeout) as e:
             _marcar(self.web, False, type(e).__name__)
             raise AAPNoDisponible(f"AAP no responde: {type(e).__name__}") from e
@@ -115,6 +254,15 @@ class AAP:
             _marcar(self.web, False, f"{metodo} → {r.status_code}")
             raise AAPNoDisponible(f"AAP no disponible ({r.status_code})")
         _marcar(self.web, True)
+        if metodo == "GET" and r.status_code < 400:
+            try:
+                params_ = {k: v for k, v in (kw.get("params") or {}).items() if v is not None}
+                from .bd import q1
+                _tabla()
+                if q1("SELECT 1 FROM aap_lecturas WHERE clave=?", _clave(self.web, url_, params_)):
+                    _guardar(self.web, url_, params_, r.json() if r.content else {})
+            except Exception:  # noqa: BLE001
+                pass
         if r.status_code >= 400:
             raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
         return r.json() if r.content else {}
@@ -307,8 +455,19 @@ class AAP:
         return self.get(f"{'jobs' if tipo == 'job' else 'workflow_jobs'}/{id_}/")
 
     def salida(self, id_, lineas=40):
+        url_, p_ = self.base + f"jobs/{id_}/stdout/", {"format": "txt"}
+        if _en_pagina():   # en una página: la salida sincronizada en la base (se pide al sincronizador si aún no está)
+            d = _leer_bd(self.web, url_, p_)
+            if d is None:
+                import json
+                _pendientes.add((self.web, url_, json.dumps(p_, sort_keys=True)))
+                _iniciar_vigia()
+                return ""
+            return "\n".join((d.get("_txt") or "").splitlines()[-lineas:])
+        if not disponible(self.web):
+            return ""
         try:
-            r = self.s.get(self.base + f"jobs/{id_}/stdout/", params={"format": "txt"}, timeout=40)
+            r = self.s.get(url_, params=p_, timeout=(2, 20))
             return "\n".join(r.text.splitlines()[-lineas:])
         except requests.RequestException:
             return ""
