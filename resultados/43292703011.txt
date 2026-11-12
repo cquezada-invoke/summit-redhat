@@ -1,0 +1,24 @@
+commit: 8b4df955df96bc40e3defaed32016e6de71cdbd3
+inicio: 2026-11-12T16:41:31-03:00
+---
+== FO-LAB-02291 fallido
+AAP terminó (failed): ejecución 26 s, espera de aprobación 20 s
+Falló en la tarea «Avisos de seguridad pendientes» de nodo-so: non-zero return code
+
+TASK [Registrar en Red Hat con la llave de activación (no tenía repositorios)] ***
+skipping: [nodo-so]
+
+TASK [Repositorios después del registro] ***************************************
+skipping: [nodo-so]
+
+TASK [Hay de dónde traer los parches] ******************************************
+ok: [nodo-so]
+
+TASK [Avisos de seguridad pendientes] ******************************************
+fatal: [nodo-so]: FAILED! => {"changed": false, "cmd": "set -o pipefail; dnf -q updateinfo list --security --available --cve=CVE-2026-8932 2>/dev/null | awk '$1 ~ /^[A-Z]+-[0-9]+:[0-9]+$/ {print $1}' | sort -u", "delta": "0:00:14.875686", "end": "2026-11-12 14:32:24.422941", "failed_when_result": true, "msg": "non-zero return code", "rc": 1, "start": "2026-11-12 14:32:09.547255", "stderr": "", "stderr_lines": [], "stdout": "", "stdout_lines": []}
+
+PLAY RECAP *********************************************************************
+nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0   
+== FO-LAB-02295 fallido
+AAP terminó (failed): ejecución 0 s, espera de aprobación 14 s
+--- fin: 2026-11-12T16:41:40-03:00 · código: 0
