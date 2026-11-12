@@ -76,35 +76,49 @@
         (r_ins.stdout | from_json).instancias | selectattr('etiquetas.faceops-ocp', 'defined') | selectattr('etiquetas.faceops-ocp', 'equalto', cluster) | list | length > 0
 
     - name: Pull secret desde el offline token de Red Hat (sin mostrarlo)
-      when: ocp_pull_secret is not defined
+      when: ocp_ocm_token | default('') | length > 0
       no_log: true
       block:
-        - name: Token de acceso de Red Hat SSO
+        - name: Token de acceso de Red Hat SSO (offline token de console.redhat.com o de la API de RHSM)
           ansible.builtin.uri:
             url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
             method: POST
             body_format: form-urlencoded
-            body: {grant_type: refresh_token, client_id: cloud-services, refresh_token: "{{ ocp_ocm_token | default('') }}"}
+            body: {grant_type: refresh_token, client_id: "{{ item }}", refresh_token: "{{ ocp_ocm_token }}"}
+            status_code: [200, 400, 401]
+          loop: [cloud-services, rhsm-api]
           register: r_sso
         - name: Pull secret de la cuenta (api.openshift.com)
           ansible.builtin.uri:
             url: https://api.openshift.com/api/accounts_mgmt/v1/access_token
             method: POST
-            headers: {Authorization: "Bearer {{ r_sso.json.access_token }}"}
+            headers: {Authorization: "Bearer {{ (r_sso.results | selectattr('status', 'defined') | selectattr('status', 'equalto', 200) | first).json.access_token }}"}
           register: r_ps
         - name: Guardar en memoria
           ansible.builtin.set_fact:
             ps_json: "{{ r_ps.json | to_json }}"
+            ps_origen: offline token (api.openshift.com)
       rescue:
-        - name: Sin pull secret
-          ansible.builtin.fail:
-            msg: "No se pudo obtener el pull secret: falta la credencial «OpenShift · Red Hat OCM» (offline token) o no es válida"
+        - name: El offline token no sirvió
+          ansible.builtin.set_fact:
+            ps_aviso: "el offline token de Red Hat no entregó el pull secret ({{ (r_ps.status | default('')) and ('api.openshift.com ' ~ r_ps.status) or 'SSO lo rechazó' }})"
 
-    - name: Pull secret de la credencial
-      when: ocp_pull_secret is defined
+    - name: Pull secret de la credencial «OpenShift · Pull secret» (si el offline token no está o no sirvió)
+      when: ps_json is not defined and ocp_pull_secret is defined
       no_log: true
       ansible.builtin.set_fact:
         ps_json: "{{ (ocp_pull_secret | to_json) if ocp_pull_secret is mapping else ocp_pull_secret }}"
+        ps_origen: "credencial «OpenShift · Pull secret»"
+
+    - name: Hay pull secret
+      ansible.builtin.assert:
+        that: [ps_json is defined]
+        fail_msg: "Sin pull secret: {{ ps_aviso | default('falta la credencial «OpenShift · Red Hat OCM» (offline token)') }} y no hay credencial «OpenShift · Pull secret»"
+        quiet: true
+
+    - name: Origen del pull secret
+      ansible.builtin.debug:
+        msg: "Pull secret: {{ ps_origen }}{{ (' · ' ~ ps_aviso) if ps_aviso is defined else '' }}"
 
     - name: Para el anfitrión
       no_log: true
@@ -375,6 +389,7 @@
             api: "{{ api_url }}"
             consola: "{{ consola }}"
             credencial: "OpenShift · {{ d.cluster }} · acceso"
+            pull_secret: "{{ hostvars['localhost'].ps_origen | default('') }}"
             expira: "{{ d.expira }}"
             horario: "{{ d.horario }}"
             estado: "{{ estado }}"

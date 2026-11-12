@@ -1412,7 +1412,7 @@ ct_acc = uno("credential_types", name="OpenShift · Acceso de clúster") or aap(
 import yaml
 _pc = yaml.safe_load(open(os.path.join(os.path.dirname(AQUI), "datos", "plataformas-contenedores.yml"), encoding="utf-8")) or {}
 _gcp_pc = _pc.get("gcp") or {}
-c_gcp_ocp = uno("credentials", name=_gcp_pc.get("credencial", ""))
+c_gcp_ocp = uno("credentials", name=_gcp_pc.get("credencial", "")) or uno("credentials", name="GCP · invoke-summit-cloud")   # sin cuenta propia: la del laboratorio (sus permisos en el proyecto los revisa la acción)
 SA_OCP = os.path.expanduser("~/faceops/gcp-ocp-ipi.json")   # cuenta de servicio del proyecto de OpenShift (solo en el anfitrión, 0600)
 if os.path.exists(SA_OCP):
     _sa = json.load(open(SA_OCP))
@@ -1428,7 +1428,7 @@ for nombre_g, pb_g, desc_g in (
         "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_g}", "inventory": inv_inf["id"],
         "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True, "timeout": 0, "description": desc_g})
     ya = {c["id"] for c in aap("GET", f"job_templates/{jg['id']}/credentials/")["results"]}
-    for cr_ in [c_kvm, c_ocm if pb_g.endswith("crear.yml") else None, c_gcp_ocp, cr_gw]:
+    for cr_ in [c_kvm, c_gcp_ocp, cr_gw] + ([c_ocm, uno("credentials", name="OpenShift · Pull secret")] if pb_g.endswith("crear.yml") else []):
         if cr_ and cr_["id"] not in ya:
             aap("POST", f"job_templates/{jg['id']}/credentials/", {"id": cr_["id"]})
     if pb_g.endswith("eliminar.yml") and c_gcp_ocp:   # ciclo de vencimiento y apagado: cada hora

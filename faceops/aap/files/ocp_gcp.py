@@ -119,7 +119,9 @@ def prerrequisitos(proyecto, region, dominio, tipo, cpus):
     zonas = r.json().get("managedZones", []) if r.ok else []
     z = next((x for x in zonas if x.get("dnsName") == dominio.rstrip(".") + "." and x.get("visibility", "public") == "public"), None)
     ch("Zona DNS pública", z, f"{z['name']} ({dominio})" if z else
-       (f"no hay zona pública «{dominio}» en Cloud DNS de {proyecto}" if r.ok else f"Cloud DNS respondió {r.status_code}"))
+       (f"no hay zona pública «{dominio}» en Cloud DNS de {proyecto} (públicas: "
+        + (", ".join(x["dnsName"].rstrip(".") for x in zonas if x.get("visibility", "public") == "public") or "ninguna") + ")"
+        if r.ok else f"Cloud DNS respondió {r.status_code}"))
     r = s.post(f"https://cloudresourcemanager.googleapis.com/v1/projects/{proyecto}:testIamPermissions", json={"permissions": PERMISOS})
     tiene = set(r.json().get("permissions", [])) if r.ok else set()
     faltan = [p for p in PERMISOS if p not in tiene]
