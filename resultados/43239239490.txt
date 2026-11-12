@@ -1,0 +1,31 @@
+commit: d9ac28522985185acaeb47db6ac0c34e8689e32c
+inicio: 2026-11-12T11:39:07-03:00
+---
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+Error: saving container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: writing container 7c0315458f44e135583741ce72c7b1c6e9f3cb8079736b290f9679dc47e5201b state: unable to open database file: no such file or directory
+{"linea": "1.0", "build": 1767, "commit": "e2fdce7ccbaf53e4a54a012181d37d72fc23e467", "fecha": "2026-11-12 14:41", "rama": "main"}
+
+cliente lab
+== produccion datos 200 49.13 flot 200 0.13 pct 77 77 eq 6 pend 34 {'apagados': 0, 'componentes': 4} 
+  areas [('Disponibilidad', 76), ('Rendimiento', 100), ('Seguridad', 94), ('Recuperación', 94), ('Costo', 100), ('Excelencia operativa', 0)]
+  situaciones 17 casos 22 botones 11
+    Disponibilidad 76 % 1 máquina(s) apagada(s) nodo-jboss4 +6 % Encender Agregar réplica de Balanceador Nginx Producción tiene 1 réplica (mínimo 2): nodo-nginx +6 % Replicar máquina Agregar réplica de PostgreSQL Producción tiene 1 réplica (mínimo 2): nodo-postgres +6 % Replicar máquina Agregar réplica de Colas (Artemis) y caché (Valkey) Producción tiene 1 réplica (mínimo 2): nodo-tomcat +6 % Replicar máquina Seguridad 94 % 6 flujo(s) sin TLS Emitir el certificado con ticket desde la línea del flujo («Certificados · Emitir para servicio», CA interna) +6 % 6 casos nodo-nginx → nodo-jboss Emitir
+== qa datos 200 6.16 flot 200 0.07 pct 0 0 eq 1 pend 17 {'apagados': 4, 'componentes': 4} 
+  areas [('Disponibilidad', 0), ('Rendimiento', 100), ('Seguridad', 100), ('Recuperación', 100), ('Costo', 100), ('Excelencia operativa', 40)]
+  situaciones 17 casos 0 botones 1
+    Disponibilidad 0 % Balanceador Nginx: declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún JBoss EAP (app-jboss): sin ninguna instancia encendida nodo-jboss-qa +25 % Encender PostgreSQL: declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún Colas (Artemis) y caché (Valkey): declarado en este ambiente y sin ninguna instancia La arquitectura lo pide a
+== desarrollo datos 200 9.21 flot 200 0.09 pct 19 19 eq 1 pend 15 {'apagados': 3, 'componentes': 4} 
+  areas [('Disponibilidad', 5), ('Rendimiento', 100), ('Seguridad', 100), ('Recuperación', 100), ('Costo', 100), ('Excelencia operativa', 46)]
+  situaciones 15 casos 0 botones 0
+    Disponibilidad 5 % Balanceador Nginx: declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún PostgreSQL: declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción automática aún Colas (Artemis) y caché (Valkey): declarado en este ambiente y sin ninguna instancia La arquitectura lo pide aquí y no hay máquina que lo cumpla (caja punteada en el mapa) +25 % Abrir sin acción
+lab http 502
+--- fin: 2026-11-12T11:55:37-03:00 · código: 0
