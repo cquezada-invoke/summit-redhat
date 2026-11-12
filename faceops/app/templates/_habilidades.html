@@ -3,11 +3,11 @@
    datos/habilidades.yml + app/habilidades.py. Cada habilidad crea un ticket con aprobación en AAP en segundo plano: queda
    «En curso · número» (también al recargar) y al terminar «Aplicada · número», sin cerrar la ventana. Las no certificadas
    (regla de prueba) se muestran deshabilitadas con su motivo. #}
-{% set hb_ = habilidades_maquina(e, rep_maq) %}{% set hb_ok = hb_|rejectattr('bloqueo')|list|length %}
-<button type="button" class="hb-btn" id="hb-btn" aria-label="Skills" aria-haspopup="dialog" aria-controls="hb-dlg" onclick="document.getElementById('hb-dlg').showModal()" title="Skills · {{ hb_ok }} disponibles en {{ e.nombre }}">
+{% set hb_ = hb_lista if hb_lista is defined else habilidades_maquina(e, rep_maq) %}{% set hb_tit = hb_titulo if hb_titulo is defined else cod_eq(e) %}{# vista del segmento: hb_lista, hb_titulo y hb_sub (app/segmento_ops.py) #}{% set hb_ok = hb_|rejectattr('bloqueo')|list|length %}
+<button type="button" class="hb-btn" id="hb-btn" aria-label="Skills" aria-haspopup="dialog" aria-controls="hb-dlg" onclick="document.getElementById('hb-dlg').showModal()" title="Skills · {{ hb_ok }} disponibles en {{ hb_titulo if hb_titulo is defined else e.nombre }}">
 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M12.2 6.2L11 5"/><path d="M15 9h.01"/><path d="M3 21l9-9"/></svg>{% if hb_ok %}<b class="hb-n">{{ hb_ok }}</b>{% endif %}</button>
 <dialog id="hb-dlg" class="hb-dlg" onclick="if(event.target===this)this.close()" aria-labelledby="hb-tit">
-<header class="hb-cab"><div><h2 id="hb-tit">Skills de {{ cod_eq(e) }}</h2><p class="sub">{{ e.so or '' }} · cada skill crea un ticket con aprobación en AAP; FaceOps no toca la máquina directo</p></div>
+<header class="hb-cab"><div><h2 id="hb-tit">Skills de {{ hb_tit }}</h2><p class="sub">{{ hb_sub if hb_sub is defined else ((e.so or '') ~ ' · cada skill crea un ticket con aprobación en AAP; FaceOps no toca la máquina directo') }}</p></div>
 <button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button></header>
 {% if hb_ %}<div class="hb-filtro"><input type="search" class="hb-busca" placeholder="Buscar por skill, tipo, ámbito o valor…" aria-label="Buscar skill"><span role="group" aria-label="Filtrar por tipo"><button type="button" class="on" data-hb-f="">Todas <span>{{ hb_|length }}</span></button><button type="button" data-hb-f="diferenciador">Diferenciador <span>{{ hb_|selectattr('tipo', 'equalto', 'diferenciador')|list|length }}</span></button><button type="button" data-hb-f="quick win">Quick win <span>{{ hb_|selectattr('tipo', 'equalto', 'quick win')|list|length }}</span></button></span></div>
 <div class="hb-tabla"><table class="no-apilar sin-pag"><thead><tr><th>Skill</th><th>Tipo</th><th>Ámbito</th><th>Valor</th><th class="hb-a">Acción</th></tr></thead><tbody>{% for h in hb_ %}<tr class="hb-it{{ ' bloq' if h.bloqueo }}" data-hb-tipo="{{ h.tipo }}"{{ ' data-hb-ui=' ~ h.ui if h.ui }}>
@@ -25,7 +25,7 @@
 <tr class="hb-vacio" hidden><td colspan="5" class="sub">Ningún skill coincide con la búsqueda.</td></tr></tbody></table></div>
 <form class="hb-form" hidden autocomplete="off"><h3></h3><p class="sub">Las claves no se muestran ni quedan en FaceOps: viajan solo a AAP con el ticket (enmascaradas en el ticket y la auditoría; la acción no las escribe en sus registros).</p><div class="hb-campos"></div>
 <div class="hb-fbot"><button type="button" class="btn chico gris" data-hb-cancelar>Cancelar</button><button type="submit" class="btn chico">Solicitar con aprobación</button></div></form>
-{% else %}<div class="hb-sin"><b>Aún no hay skills para {{ cod_eq(e) }}.</b><span class="sub">Ninguna acción del catálogo aplica hoy a esta máquina (su sistema, sus plataformas o su tipo). Cuando se publique y certifique una, aparecerá aquí.</span></div>{% endif %}
+{% else %}<div class="hb-sin"><b>Aún no hay skills para {{ hb_tit }}.</b><span class="sub">Ninguna acción del catálogo aplica hoy a esta máquina (su sistema, sus plataformas o su tipo). Cuando se publique y certifique una, aparecerá aquí.</span></div>{% endif %}
 </dialog>
 <style>
 .fila:has(>.hb-btn){flex-wrap:nowrap;align-items:flex-start}.fila:has(>.hb-btn)>div:first-child{flex:1 1 auto;min-width:0}

@@ -337,6 +337,7 @@ def create_app():
     from . import salud_acciones   # noqa: F401  (flotante de salud: acciones para llegar al 100 %)
     from . import ficha_maquina   # noqa: F401  (ficha: acceso SSH/RDP, segmentos de negocio, vínculo y medición agentless)
     from . import habilidades   # noqa: F401  (ficha: botón «Habilidades», quick wins y diferenciadores)
+    from . import segmento_ops   # noqa: F401  (vista del segmento: campana de alertas y botón Skills)
     from . import ia_usos   # noqa: F401  (Administración › Uso de IA y distintivo «IA»)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo

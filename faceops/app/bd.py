@@ -147,7 +147,8 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
                 "codigo": "TEXT DEFAULT ''", "codigo_visto": "TEXT DEFAULT ''",
                 "infra_lab": "INTEGER DEFAULT 0"},   # infraestructura del laboratorio: oculta en la lista de servidores (sigue operativa)
     "skills": {"automatizacion": "TEXT DEFAULT ''"},
-    "segmentos": {"sistema": "TEXT DEFAULT ''", "ficha": "TEXT DEFAULT '{}'", "grupo": "TEXT DEFAULT ''", "area": "TEXT DEFAULT ''"},
+    "segmentos": {"sistema": "TEXT DEFAULT ''", "ficha": "TEXT DEFAULT '{}'", "grupo": "TEXT DEFAULT ''", "area": "TEXT DEFAULT ''",
+                  "datos": "TEXT DEFAULT '{}'"},   # reflejo de las alertas del segmento que dejó Ansible (app/segmento_ops.py)
     "flujos": {"latencia_ms": "REAL", "latencia_en": "TEXT DEFAULT ''", "tls": "TEXT DEFAULT ''"},
 }
 

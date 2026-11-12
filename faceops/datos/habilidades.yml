@@ -314,6 +314,93 @@ habilidades:
     nombre: Parchear el anfitrión
     valor: Parches del sistema y de la capa de virtualización con ventana y apagado o traslado ordenado de las máquinas.
     nombre_aap: ["Infra · Parchear anfitrión"]
+  # ── Segmento de negocio (vista del segmento en el mapa, junto a su campana): ámbito «Segmento» (app/segmento_ops.py).
+  #   requiere: entrada | https | balanceador | maquinas | vm → lo que el segmento debe tener; si no, deshabilitada con el motivo
+  #   por_plataforma: {familia: acción} → la acción de la plataforma que tenga el segmento · parametros_de: flujos → los tramos del segmento
+  #   Sin acción del catálogo (nombre_aap vacío) se muestra deshabilitada con su motivo (sin_accion).
+  - id: seg-verificar
+    tipo: quick win
+    grupo: Servicio
+    nombre: Verificar el servicio de punta a punta
+    valor: Prueba cada tramo del segmento (puerto, latencia y TLS) desde sus servidores, sin cambiar nada.
+    nombre_aap: ["FaceOps · Verificar flujos de red"]
+    categoria: segmento
+    ambito: Segmento
+    requiere: maquinas
+    parametros_de: flujos
+  - id: seg-dependencias
+    tipo: quick win
+    grupo: Servicio
+    nombre: Informe de dependencias
+    valor: Qué componentes, flujos y servicios externos usa el segmento y qué se cae si falla cada uno.
+    nombre_aap: []
+    sin_accion: "aún no hay una acción del catálogo que arme el informe (hoy se ve en el mapa del segmento)"
+    categoria: segmento
+    ambito: Segmento
+  - id: seg-certificado
+    tipo: quick win
+    grupo: Servicio
+    nombre: Renovar el certificado del VIP
+    valor: Renueva con la CA interna el certificado de la entrada del segmento antes de que venza, con recarga y verificación.
+    nombre_aap: ["Certificados · Renovar por vencer"]
+    categoria: segmento
+    ambito: Segmento
+    requiere: https
+  - id: seg-drenar
+    tipo: quick win
+    grupo: Servicio
+    nombre: Drenar un nodo del balanceador
+    valor: Saca un nodo del balanceo para mantenimiento sin cortar el servicio; el resto sigue atendiendo.
+    nombre_aap: ["FaceOps · Retirar del balanceo"]
+    categoria: segmento
+    ambito: Segmento
+    requiere: balanceador
+  - id: seg-dr
+    tipo: diferenciador
+    grupo: Continuidad
+    nombre: Replicar el segmento en otro sitio (DR)
+    valor: Deja una copia de las máquinas del segmento en otro centro de datos para recuperarse ante la pérdida del sitio.
+    nombre_aap: ["Infra · Replicar máquina"]
+    categoria: segmento
+    ambito: Segmento
+    requiere: vm
+  - id: seg-failover
+    tipo: diferenciador
+    grupo: Continuidad
+    nombre: Prueba de failover controlada
+    valor: Conmuta el servicio al sitio o nodo de respaldo en una ventana acordada y mide cuánto tarda en volver (RTO real).
+    nombre_aap: []
+    sin_accion: "aún no hay una acción del catálogo para conmutar el segmento completo de sitio"
+    categoria: segmento
+    ambito: Segmento
+  - id: seg-escalar
+    tipo: diferenciador
+    grupo: Capacidad
+    nombre: Escalar (agregar nodo)
+    valor: Agrega un servidor igual al de la aplicación y lo suma al balanceador (round robin), con aprobación.
+    nombre_aap: ["FaceOps · Replicar con alta disponibilidad"]
+    categoria: segmento
+    ambito: Segmento
+    requiere: balanceador
+  - id: seg-impacto
+    tipo: diferenciador
+    grupo: Cambios
+    nombre: Análisis de impacto de un cambio
+    valor: Antes de un cambio, qué componentes, flujos y usuarios del segmento se ven afectados y en qué ventana conviene hacerlo.
+    nombre_aap: []
+    sin_accion: "aún no hay una acción del catálogo para el análisis de impacto"
+    categoria: segmento
+    ambito: Segmento
+  - id: seg-ocp
+    tipo: diferenciador
+    grupo: Modernización
+    nombre: Mover el segmento a OpenShift
+    valor: Lleva las aplicaciones del segmento de máquinas virtuales a contenedores en OpenShift.
+    por_plataforma: {iis: "Migración · IIS a OpenShift", weblogic: "Migración · WebLogic a OpenShift"}
+    sin_accion: "sus plataformas aún no tienen una acción del catálogo para llevarlas a OpenShift (hoy: IIS y WebLogic)"
+    categoria: segmento
+    ambito: Segmento
+    requiere: vm
   # ── Equipos de red (ámbito «Red · …»): primero las de todos los equipos, luego las de cada categoría
   - id: red-respaldo
     tipo: quick win

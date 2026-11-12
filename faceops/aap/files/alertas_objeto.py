@@ -56,6 +56,13 @@ def preparar_prometheus(cfg):
                                        {"source_labels": ["__param_target"], "target_label": "instance"},
                                        {"target_label": "__address__", "replacement": "127.0.0.1:9115"}]})
         cambio = True
+    if "faceops-segmentos" not in nombres:   # segmentos de negocio: sondas del blackbox, el módulo viaja en cada objetivo
+        sc.append({"job_name": "faceops-segmentos", "metrics_path": "/probe", "scrape_interval": "30s",
+                   "file_sd_configs": [{"files": [f"{RUTA}/objetivos/seg-*.yml"]}],
+                   "relabel_configs": [{"source_labels": ["__address__"], "target_label": "__param_target"},
+                                       {"source_labels": ["__param_target"], "target_label": "instance"},
+                                       {"target_label": "__address__", "replacement": "127.0.0.1:9115"}]})
+        cambio = True
     cfg["scrape_configs"] = sc
     return cambio
 
@@ -172,6 +179,26 @@ def tablero(cat, ped):
             "templating": {"list": []}, "annotations": {"list": anot}, "panels": paneles}
 
 
+MODULOS = {"http_ok", "tcp_connect"}
+
+
+def objetivos_segmento(ped):
+    """Sondas de un segmento de negocio (blackbox): el VIP por HTTP (por el balanceador), los nodos del balanceador y los
+    componentes por TCP. Cada objetivo lleva su módulo (__param_module) y su rol (vip | backend | componente)."""
+    out = []
+    for p in ped.get("objetivos") or []:
+        tg, mod, rol = str(p.get("target") or ""), p.get("modulo"), p.get("rol")
+        if mod not in MODULOS or rol not in ("vip", "backend", "componente"):
+            raise SystemExit(f"Sonda inválida: {mod} / {rol}")
+        if not re.fullmatch(r"(https?://[A-Za-z0-9._:/%~+-]{3,200}|[A-Za-z0-9._-]{1,120}:[0-9]{1,5})", tg):
+            raise SystemExit(f"Objetivo inválido: {tg}")
+        out.append({"targets": [tg], "labels": {"__param_module": mod, "faceops_equipo": ped["equipo"], "faceops_tipo": "segmento",
+                                                "faceops_rol": rol, "faceops_componente": re.sub(r"[^A-Za-z0-9._ -]", "", str(p.get("componente") or ""))[:60]}})
+    if not out:
+        raise SystemExit("El segmento no tiene nada que medir (sin URL de entrada ni componentes con IP)")
+    return out
+
+
 def main():
     if sys.argv[1] == "--tablero":
         print(json.dumps(tablero(yaml.safe_load(open(sys.argv[2])), json.load(open(sys.argv[3]))), ensure_ascii=False, indent=1))
@@ -187,8 +214,9 @@ def main():
     cambio = preparar_prometheus(cfg)
     retirar = ped.get("retirar") or not ped.get("alertas")
     rs, resumen = ([], []) if retirar else reglas(cat, ped)
-    pref = "tcp" if t["job"] == "faceops-sondeo" else "exp"
-    obj = [] if retirar else [{"targets": [f"{ped['ip']}:{t['puerto']}"], "labels": {"faceops_equipo": ped["equipo"], "faceops_tipo": ped["tipo"]}}]
+    pref = "tcp" if t["job"] == "faceops-sondeo" else ("seg" if t["job"] == "faceops-segmentos" else "exp")
+    obj = [] if retirar else ([{"targets": [f"{ped['ip']}:{t['puerto']}"], "labels": {"faceops_equipo": ped["equipo"], "faceops_tipo": ped["tipo"]}}]
+                              if pref != "seg" else objetivos_segmento(ped))
     print(json.dumps({
         "prometheus": yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True) if cambio else "",
         "reglas": "" if retirar else yaml.safe_dump({"groups": [{"name": f"faceops-{ped['equipo']}{sufijo(ped)}", "rules": rs}]}, sort_keys=False, allow_unicode=True, width=1000),

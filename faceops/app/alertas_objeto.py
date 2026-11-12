@@ -72,6 +72,8 @@ def tipo_de(e):
     """linux | windows | storage | red | None (sin alertas para este objeto todavía)."""
     c = (e.get("categoria") or "").lower()
     so = (e.get("so") or "").lower()
+    if c == "segmento":
+        return "segmento"   # segmento de negocio (app/segmento_ops.py): alertas de nivel servicio, sondas blackbox
     if c == "hipervisor":   # ficha del hipervisor (mod_hipervisores.objeto_alertas): alertas propias del anfitrión y su virtualización
         return e.get("hv_tipo") if e.get("hv_tipo") in ("kvm", "vmware") else None
     if c in RED:
@@ -252,9 +254,10 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     for a in cat["alertas"]:
         if t in a["tipos"] and a.get("ambito", "maquina") == ambito and (not a.get("requiere") or datos.get(a["requiere"]) or a["id"] in act):
             x = act.get(a["id"])
-            if a.get("pendiente") or t == "openshift":   # pendiente de métrica, o alerta del clúster (se cargan juntas en su monitoreo)
+            pend_ = a.get("pendiente") or (datos.get("sin_medicion") or {}).get(a["id"], "")   # catálogo, o este objeto no tiene cómo medirla
+            if pend_ or t == "openshift":   # pendiente de métrica, o alerta del clúster (se cargan juntas en su monitoreo)
                 accs_ = [(cat.get("acciones") or {}).get(k, {}).get("texto", k) for k in (a.get("acciones") or ["avisar"])]
-                grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=False, acciones_l=[], pendiente=a.get("pendiente") or "",
+                grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=False, acciones_l=[], pendiente=pend_ or "",
                                                                             en_prueba=False, en_revision=t == "openshift",
                                                                             acciones_txt=accs_, mon=(prom or {}).get(a["id"]), prueba=_ult_prueba(cliente_id, e, ambito, a["id"]) if prom and a["id"] in prom else None, grafana_ocp=(f"{g_ocp}?" + urlencode({"orgId": 1, "from": "now-24h", "to": "now", "viewPanel": panel_id(a["id"])})) if g_ocp else "", expr_txt=(a.get("expr") or "").replace('{faceops_equipo="__EQ__"}', "").replace('faceops_equipo="__EQ__",', "")))
                 continue
@@ -315,12 +318,13 @@ def pedido_de_formulario(e, form, ambito="maquina"):
     if ambito != "maquina" and not ambito_de_plataforma(ambito.split(":", 1)[-1]):
         raise ValueError("Ámbito de alertas desconocido")
     out, fuera = [], []
+    sin_med = (j(e.get("datos"), {}) or {}).get("sin_medicion") or {}
     for a in cat["alertas"]:
         if t not in a["tipos"] or a.get("ambito", "maquina") != ambito:
             continue
-        if a.get("pendiente"):
+        if a.get("pendiente") or sin_med.get(a["id"]):
             if form.get(f"on_{a['id']}"):
-                raise ValueError(f"«{a['nombre']}» aún no se puede medir: {a['pendiente']}")
+                raise ValueError(f"«{a['nombre']}» aún no se puede medir: {a.get('pendiente') or sin_med[a['id']]}")
             continue
         if not form.get(f"on_{a['id']}"):
             fuera.append(a["id"])
@@ -352,13 +356,20 @@ def pedido_de_formulario(e, form, ambito="maquina"):
                 raise ValueError(f"«{a['nombre']}»: el aviso debe ser {'mayor' if a.get('menor') else 'menor'} que el crítico")
         out.append(x)
     # un solo ticket con el grupo completo: las activas con su configuración y las apagadas (quedan fuera de las reglas)
-    return {"al_equipo": e["nombre"], "al_ip": e.get("ip") or "", "al_tipo": t, "al_ambito": ambito, "al_alertas": out, "al_retiradas": fuera, "al_retirar": not out}
+    par = {"al_equipo": e["nombre"], "al_ip": e.get("ip") or "", "al_tipo": t, "al_ambito": ambito, "al_alertas": out, "al_retiradas": fuera, "al_retirar": not out}
+    if t == "segmento":   # lo que miden las sondas del segmento (VIP, nodos del balanceador, componentes)
+        par["al_objetivos"] = (j(e.get("datos"), {}) or {}).get("objetivos") or []
+    return par
 
 
 def registrar_resultado(cliente_id, art, numero):
     """Hook al terminar el ticket: el reflejo de lo aplicado queda en la ficha del equipo."""
     x = (art or {}).get("faceops_alertas") or {}
     e = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente_id, x.get("equipo") or "")
+    if not e and x.get("tipo") == "segmento":   # alertas de un segmento de negocio: el reflejo queda en el segmento
+        from .segmento_ops import registrar_alertas
+        registrar_alertas(cliente_id, x, numero)
+        return
     if not e and x.get("tipo") in ("kvm", "vmware"):   # alertas de un hipervisor: el reflejo queda en su infraestructura
         m_ = re.match(r"hv(\d+)-", x.get("equipo") or "")
         i_ = q1("SELECT id, detalle FROM infraestructuras WHERE cliente_id=? AND id=?", cliente_id, int(m_.group(1))) if m_ else None

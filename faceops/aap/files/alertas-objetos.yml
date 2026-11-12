@@ -15,6 +15,7 @@ tipos:
   windows: {nombre: "Servidor Windows", fuente: "windows_exporter (:9182)", puerto: 9182, job: faceops-equipos}
   storage: {nombre: "Almacenamiento", fuente: "node_exporter (:9100)", puerto: 9100, job: faceops-equipos}
   openshift: {nombre: "Clúster OpenShift", fuente: "monitoreo del propio clúster (Prometheus/Thanos de openshift-monitoring; se aplicarían como PrometheusRule con «OpenShift · Modelo de alertamiento»)", puerto: 6443, job: ""}
+  segmento: {nombre: "Segmento de negocio", fuente: "sondas blackbox_exporter (:9115): HTTP al VIP por el balanceador y TCP a sus nodos y componentes", puerto: 9115, job: faceops-segmentos}
   red:     {nombre: "Equipo de red", fuente: "sondeo TCP del puerto de administración (blackbox)", puerto: 22, job: faceops-sondeo}
   # Hipervisores (campana de su ficha /hipervisores/<id>): el objeto es el hipervisor; sus métricas vienen de su anfitrión o de su exportador
   kvm:     {nombre: "Hipervisor KVM", fuente: "node_exporter del anfitrión (:9100, con systemd)", puerto: 9100, job: faceops-equipos}
@@ -238,6 +239,31 @@ alertas:
   - {id: D05, tipos: [red], grupo: Disponibilidad, nombre: "Caídas intermitentes", unidad: "% de éxito", acciones: [avisar, diagnosticar],
      descripcion: "Sondeos exitosos en los últimos 15 minutos bajo el umbral (enlace inestable)",
      expr: '100 * avg_over_time(probe_success{job="faceops-sondeo",faceops_equipo="__EQ__"}[15m]) < __UMBRAL__', aviso: 99, critico: 95, para: 5m, menor: true}
+  # ───────── Segmento de negocio (vista del segmento en el mapa): nivel servicio, no máquina ─────────
+  # Sondas del blackbox (job faceops-segmentos, objetivos/seg-<segmento>.yml) que arma FaceOps desde la arquitectura del
+  # segmento: rol vip (entrada.url, HTTP por el balanceador), backend (nodos detrás del balanceador, TCP a su puerto) y
+  # componente (cada máquina de producción, TCP al puerto de su plataforma). Si al segmento le falta lo que la alerta
+  # necesita (URL de entrada, HTTPS, balanceador), FaceOps la muestra «requiere medición» con el motivo.
+  - {id: G01, tipos: [segmento], grupo: Disponibilidad, nombre: "Servicio no disponible", acciones: [avisar],
+     descripcion: "La URL de entrada del segmento no responde HTTP 200 a través del balanceador (sonda blackbox cada 30 s)",
+     expr: 'max by (faceops_equipo) (probe_http_status_code{job="faceops-segmentos",faceops_equipo="__EQ__",faceops_rol="vip"}) != 200', umbral: false, severidad: critico, para: 2m}
+  - {id: G02, tipos: [segmento], grupo: Rendimiento, nombre: "Latencia p95 alta", unidad: ms, acciones: [avisar],
+     descripcion: "Percentil 95 del tiempo de respuesta de la entrada en los últimos 15 minutos (sonda HTTP por el balanceador)",
+     expr: '1000 * max by (faceops_equipo) (quantile_over_time(0.95, probe_duration_seconds{job="faceops-segmentos",faceops_equipo="__EQ__",faceops_rol="vip"}[15m])) > __UMBRAL__', aviso: 800, critico: 2000, para: 10m}
+  - {id: G03, tipos: [segmento], grupo: Rendimiento, nombre: "Tasa de errores 5xx", unidad: "%",
+     pendiente: "requiere medición: falta el exportador de métricas del balanceador (códigos de respuesta del tráfico real, p. ej. nginx-vts o haproxy_exporter); la sonda sintética no mide la tasa de errores de los usuarios"}
+  - {id: G04, tipos: [segmento], grupo: Seguridad, nombre: "Certificado del VIP por vencer", unidad: días, acciones: [avisar],
+     descripcion: "Días que le quedan al certificado TLS que presenta la entrada del segmento",
+     expr: 'min by (faceops_equipo) (probe_ssl_earliest_cert_expiry{job="faceops-segmentos",faceops_equipo="__EQ__",faceops_rol="vip"} - time()) / 86400 < __UMBRAL__', aviso: 30, critico: 7, para: 10m, menor: true}
+  - {id: G05, tipos: [segmento], grupo: Disponibilidad, nombre: "Pérdida de redundancia", unidad: "nodos sanos", acciones: [avisar],
+     descripcion: "Nodos detrás del balanceador que responden en su puerto (N = réplicas de producción declaradas en la arquitectura)",
+     expr: '(count by (faceops_equipo) (probe_success{job="faceops-segmentos",faceops_equipo="__EQ__",faceops_rol="backend"} == 1) or on() vector(0)) < __UMBRAL__', aviso: 2, critico: 1, para: 3m, menor: true}
+  - {id: G06, tipos: [segmento], grupo: Disponibilidad, nombre: "Componente crítico caído", acciones: [avisar],
+     descripcion: "Alguna máquina o plataforma de producción del segmento no responde en su puerto (servidor de aplicaciones, base de datos, colas, balanceador…)",
+     expr: 'min by (faceops_equipo, faceops_componente) (probe_success{job="faceops-segmentos",faceops_equipo="__EQ__",faceops_rol="componente"}) == 0', umbral: false, severidad: critico, para: 2m}
+  - {id: G07, tipos: [segmento], grupo: Disponibilidad, nombre: "SLO en riesgo", unidad: "× presupuesto", acciones: [avisar],
+     descripcion: "Ritmo de consumo del error budget de un SLO de disponibilidad de 99,5 % en la última hora, medido con la sonda de la entrada (1 = lo agota justo en 30 días)",
+     expr: 'max by (faceops_equipo) (1 - avg_over_time(probe_success{job="faceops-segmentos",faceops_equipo="__EQ__",faceops_rol="vip"}[1h])) / 0.005 > __UMBRAL__', aviso: 2, critico: 10, para: 5m}
   # ───────── Hipervisor KVM / libvirt (ficha del hipervisor) ─────────
   - {id: H01, tipos: [kvm], grupo: Capacidad, nombre: "CPU del anfitrión alta", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Uso de CPU del anfitrión (todas sus máquinas virtuales juntas) en los últimos 2 minutos",
