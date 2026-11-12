@@ -1,7 +1,14 @@
-commit: 1382fcefa79aab42cd603c2b7afa2606232c3aa8
-inicio: 2026-11-12T12:36:29-03:00
+commit: 6db4baa8411ed28800947f1d9fa3216bf81d1534
+inicio: 2026-11-12T12:37:20-03:00
 ---
-Traceback (most recent call last):
-    raise PermissionError(f"Esta acción no aplica a {e['nombre']}: {no_}")
-PermissionError: Esta acción no aplica a nodo-storage: el equipo no está en el inventario de AAP de esta acción
---- fin: 2026-11-12T12:36:36-03:00 · código: 0
+A Plataforma · Medir salud inv= Nodos demo por_inv= 0 usa_limite= 1 visible= 1
+A Plataforma · Programar medición inv= Nodos demo por_inv= 0 usa_limite= 0 visible= 0
+E nodo-storage ["Servidores habilitados"] con datos el equipo no está en el inventario de AAP de esta acción
+E nodo-jboss ["Servidores de aplicaci\u00f3n", "Nodos demo", "Red \u00b7 laboratorio", "Drift \u00b7 Servidores"] con datos None
+E nodo-tomcat ["Servidores de aplicaci\u00f3n", "Nodos demo", "Drift \u00b7 Servidores"] con datos None
+E nodo-nginx ["Servidores de aplicaci\u00f3n", "Nodos demo", "Red \u00b7 laboratorio", "Drift \u00b7 Servidores"] con datos None
+696a2b1 Certificados: la página no llama a AAP; con AAP caído no muestra error
+d32b516 FaceOps no espera a un AAP caído: cortacircuito, vigía de salud y banner global
+282b444 Ficha de nube: crear y operar máquinas, productos adicionales (estilo OperatorHub), campana de alertas y Skills
+2026-11-12T12:35:44-03:00 ok: desplegado f680dd1b · /ingresar 200 · configurar=sin cambios
+--- fin: 2026-11-12T12:37:26-03:00 · código: 0
