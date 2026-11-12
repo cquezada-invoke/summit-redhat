@@ -1,17 +1,20 @@
-commit: 2ee4333e5b0f7d93a0fd89c43219bb2b08d56d7b
-inicio: 2026-11-11T23:38:04-03:00
+commit: 6c8fe5643a344ca84f9bf9fbd91134f618f4c2cc
+inicio: 2026-11-11T23:38:33-03:00
 ---
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-CLIENTE {'id': 1, 'codigo': 'lab', 'nombre': 'Invoke Lab'}
-Traceback (most recent call last):
-  File "<stdin>", line 8, in <module>
-  File "/opt/faceops/app/bd.py", line 180, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: datos
-{"status":"success","data":{"resultType":"vector","result":[]}}
-{"status":"success","data":{"resultType":"vector","result":[]}}
-{"status":"success","data":{"resultType":"vector","result":[]}}
-{"status":"success","data":{"resultType":"vector","result":[]}}
---- fin: 2026-11-11T23:38:11-03:00 · código: 0
+· constructora demo-constructor-202611120213 (n2-standard-4, Rocky Linux 9, anidada, 60 GB) · rama feature/faceops-awx
+  == CONSTRUCCION inicio 02:13:59
+== CONSTRUCCION inicio 02:13:59
+  == fuente 00aae68
+  == 02:14:50 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
+  == 02:14:50 KVM/libvirt para las VMs anidadas
+  == 02:17:07 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
+  == 02:17:07 paquetes
+  == 02:17:15 k3s v1.30.6+k3s1
+  == 02:17:30 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  == 02:17:55 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
+  == 02:18:22 repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba
+  == 02:18:22 acceso SSH de AWX a esta misma máquina (host gestionado)
+  == 02:18:22 validador local y FaceOps (feature/faceops-awx) en modo awx
+  == 02:19:53 AWX responde:
+(sigue corriendo)
+--- fin: 2026-11-11T23:39:13-03:00 · código: 0
