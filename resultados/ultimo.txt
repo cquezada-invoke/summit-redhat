@@ -1,24 +1,14 @@
-commit: 8b4df955df96bc40e3defaed32016e6de71cdbd3
-inicio: 2026-11-12T16:41:31-03:00
+commit: 7702c1b06fe9bc26d86b39f7d1d71d6e87c443ba
+inicio: 2026-11-12T16:38:22-03:00
 ---
-== FO-LAB-02291 fallido
-AAP terminó (failed): ejecución 26 s, espera de aprobación 20 s
-Falló en la tarea «Avisos de seguridad pendientes» de nodo-so: non-zero return code
-
-TASK [Registrar en Red Hat con la llave de activación (no tenía repositorios)] ***
-skipping: [nodo-so]
-
-TASK [Repositorios después del registro] ***************************************
-skipping: [nodo-so]
-
-TASK [Hay de dónde traer los parches] ******************************************
-ok: [nodo-so]
-
-TASK [Avisos de seguridad pendientes] ******************************************
-fatal: [nodo-so]: FAILED! => {"changed": false, "cmd": "set -o pipefail; dnf -q updateinfo list --security --available --cve=CVE-2026-8932 2>/dev/null | awk '$1 ~ /^[A-Z]+-[0-9]+:[0-9]+$/ {print $1}' | sort -u", "delta": "0:00:14.875686", "end": "2026-11-12 14:32:24.422941", "failed_when_result": true, "msg": "non-zero return code", "rc": 1, "start": "2026-11-12 14:32:09.547255", "stderr": "", "stderr_lines": [], "stdout": "", "stdout_lines": []}
-
-PLAY RECAP *********************************************************************
-nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0   
-== FO-LAB-02295 fallido
-AAP terminó (failed): ejecución 0 s, espera de aprobación 14 s
---- fin: 2026-11-12T16:41:40-03:00 · código: 0
+   ROLES de la cuenta de servicio: None
+   PERMISOS QUE FALTAN: None
+   ROLES QUE FALTAN: []
+   errores: {'cuentas': '403 Identity and Access Management (IAM) API has not been used in project 1054206660915 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/iam.googleapis.com/overview?project=1054206660915 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.', 'precios': 'no se leyeron los precios: 403 Cloud Billing API has not been used in project 1054206660915 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudbilling.googleapi
+   precios: {} | imágenes: {'rhel-10': True, 'rhel-9': True, 'rhel-8': True, 'rocky-9': True, 'rocky-8': True, 'ubuntu-2404': True, 'ubuntu-2204': True, 'debian-12': True, 'windows-2025': True, 'windows-2022': True, 'windows-2019': True}
+C1: FALLA · job 28344: {'tipos': 68, 'maquinas': 0, 'regiones': 43}
+  → falla: se salta a la limpieza
+NO certificada Nube · Leer opciones de la nube {'C1': 'falla', 'C2': 'falla', 'C3': 'falla', 'C4': 'falla'}
+PLAN_FIN
+ESTADO fin paso 4 {'C1': False}
+--- fin: 2026-11-12T16:42:08-03:00 · código: 0
