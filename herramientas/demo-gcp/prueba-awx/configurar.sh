@@ -28,7 +28,13 @@ import urllib.parse
 def asegurar(rec, nombre, datos, base=A):
     o = uno(rec, nombre, base)
     return h("PATCH", f"{base}{rec}/{o['id']}/", datos) if o else h("POST", f"{base}{rec}/", dict(datos, name=nombre))
-org = uno("organizations", "Default")
+org = None
+for _ in range(60):   # AWX recién levantado: la organización Default la crea el preload de su tarea
+    org = uno("organizations", "Default")
+    if org:
+        break
+    time.sleep(10)
+org = org or awx("POST", "organizations/", {"name": "Default"})
 # token del usuario de servicio (AWX: token personal OAuth2 del admin)
 if not os.path.exists(f"{P}/awx_token"):
     t = awx("POST", "users/1/personal_tokens/", {"description": "FaceOps prueba", "scope": "write"})["token"]
