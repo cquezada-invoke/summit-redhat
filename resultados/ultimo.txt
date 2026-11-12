@@ -1,42 +1,6 @@
-commit: 514a68167409c273515ee1bf4fbf6a3ccb74de33
-inicio: 2026-11-12T09:32:40-03:00
+commit: 5570faf6b7edd5a287386a0bb1b8ef321944af28
+inicio: 2026-11-12T09:33:00-03:00
 ---
-  DIAG == DIAG log
-  DIAG == 05:58:12 AWX 24.6.1 · EDA HTTP 200
-  DIAG == 05:58:12 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
-  DIAG proyecto AWX: successful
-  DIAG AWX: inventario, credencial, proyecto, 2 plantillas y workflow con aprobación
-  DIAG proyecto EDA: completed
-  DIAG EDA: activación 1 pending
-  DIAG FaceOps: HTTP 200
-  DIAG /opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  DIAG   warnings.warn(
-  DIAG FaceOps enrolado en el validador local
-  DIAG CONFIGURACION TERMINADA
-  DIAG == 05:58:47 PRUEBA REAL de FaceOps en modo awx (login, inventario, ticket con aprobación, workflow, EDA, licencia)
-  DIAG   ✓ FaceOps ve AWX 24.6.1 (modo awx)
-  DIAG   ✓ login (HTTP 302 → /)
-  DIAG   ✓ inventario: ['demo-constructor-202611120547', 'nodo-app', 'nodo-prueba', 'nodo-web']
-  DIAG   ✓ catálogo: ['FaceOps · Acceso de red', 'Prueba · Ping', 'Prueba · Responder alerta', 'Prueba · Workflow con aprobación']
-  DIAG     ticket FO-PRUEBA-00001 estado en_ejecucion job 2
-  DIAG     → en_ejecucion
-  DIAG     aprobación de AWX «Etapa 1/1 · Monitoreo · ¿Ejecutar «Ping»?» respondida desde FaceOps
-  DIAG     → exitoso
-  DIAG   ✗ acción con ticket: ticket FO-PRUEBA-00001 en_ejecucion → exitoso · AWX workflow #2 · AAP terminó (successful): ejecución 93 s
-  DIAG   ✓ workflow de aprobación creado en AWX (id 13) · http://127.0.0.1:30080/#/templates/workflow_job_template/13/details
-  DIAG   ✓ enlace: http://127.0.0.1:30080/#/jobs/workflow/2/output
-  DIAG     ticket FO-PRUEBA-00002 estado en_ejecucion job 5
-  DIAG     → pendiente_aprobacion
-  DIAG     aprobado desde FaceOps
-  DIAG   ✓ workflow con aprobación: ticket FO-PRUEBA-00002 en_ejecucion → exitoso → pendiente_aprobacion · AWX workflow #5 · AAP terminó (successful): ejecución 5 s, espera de aprobación 5 s
-  DIAG     activación EDA: running
-  DIAG     webhook → None
-  DIAG   ✗ EDA disparó la regla «Disco lleno» (None)
-  DIAG   ✗ respuesta en AWX lanzada por EDA: None
-  DIAG   ✗ FaceOps › Alertas: 0 alertas, EDA: [] · errores []
-  DIAG   ✓ Licencias: AWX sin suscripción (no bloquea)
-  DIAG
-  DIAG 8/12 verificaciones OK
-  DIAG PRUEBA REAL FALLIDA
-  DIAG == DIAG pods
---- fin: 2026-11-12T09:32:40-03:00 · código: 0
+Red · Respaldar configuración certificada
+Red · Detectar cambios de configuración certificada
+--- fin: 2026-11-12T09:33:08-03:00 · código: 0
