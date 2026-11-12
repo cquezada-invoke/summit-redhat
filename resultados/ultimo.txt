@@ -1,20 +1,18 @@
-commit: b4ffe9d05f87bb1b8122338d6bb36e62958f07ba
-inicio: 2026-11-11T21:40:11-03:00
+commit: d1cc78216658ec65be646603d467195912113c03
+inicio: 2026-11-11T21:54:31-03:00
 ---
-AAP ping 200
-SINCRONIZADO lab
-enuso=en uso cero=referenciada rollout:v1=sin uso 0–3 meses rollout:v2=en uso sinuso=sin uso 0–3 meses
-CASO C1 ok · Valores por defecto
-plan=['faceops-prueba-mov/rollout:v1|medio', 'faceops-prueba-mov/sinuso:v1|bajo'] · quay.lab.local/faceops-prueba-mov/sinuso:v1 · skopeo copy --all --preserve-digests docker://image-registry.openshift-image-registry.svc:5000/faceops-prueba-mov/sinuso@sha256:44ff9ca7f7ba58362ec841f8a8ef2588a6b2410dcbf2a6471b5c02ddd37a704c docker://quay.lab.local/faceops-prueba-mov/sinuso:v1 · rollout=historial · poda=True
-CASO C2 ok · Umbral 0, rangos 1,2 y Quay
-CASO C7 ok · Sin imágenes internas y con Quay
-CASO C8 ok · Sin imágenes internas ni Quay
-CASO C3 falla · Solo el namespace de prueba y organización fija
-git=True repositorio/openshift-manifiestos/imagenes-movilidad/ocp-sno/plan.md · ficha=FO-LAB-01998 7 · raw=404
-CASO C4 ok · Informe en Git y en la ficha del clúster
-CASO C5 ok · Repetir
-CASO C6 ok · Rangos no válidos
-CASO C9 ok · Evaluación por defecto sin el escenario
-CASOS [{"id": "C1", "caso": "Valores por defecto", "resultado": "ok", "evidencia": "enuso=en uso cero=referenciada rollout:v1=sin uso 0–3 meses rollout:v2=en uso sinuso=sin uso 0–3 meses; candidatas del ns de prueba 0; 4 rangos con tamaño; sin namespaces del sistema ni las imágenes base externas (ubi-*)"}, {"id": "C2", "caso": "Umbral 0, rangos 1,2 y Quay", "resultado": "ok", "evidencia": "candidatas ['faceops-prueba-mov/rollout:v1|medio', 'faceops-prueba-mov/sinuso:v1|bajo']; quay.lab.local/faceops-prueba-mov/sinuso:v1 · skopeo copy --all --preserve-digests docker://image-registry.openshift-i
-CERT OpenShift · Evaluar imágenes (uso y antigüedad) → sin probar
---- fin: 2026-11-11T21:58:30-03:00 · código: 0
+2307232 Edge · grupos de sitios y diagrama del sitio: grupos
+   · Plantilla «OpenShift · Evaluar imágenes (uso y antigüedad)» (id 1170)
+   · Plantilla «OpenShift · Mover imágenes a Quay» (id 1171)
+HTTP 404 seccion False
+UI HEAD 2307232
+UI 6 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
+UI 1 200 falta= ['Disco (volumen más lleno) al 71 %'] botones= [] selected= ['20 GB', '2 vCPU (actual)', '2 GB (actual)'] nota= []
+UI 2 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
+UI 3 200 falta= ['CPU al 10 %'] botones= ['Bajar a 1 vCPU'] selected= ['40 GB (+10.0)', '20 GB (+10.0)', '20 GB', '1 vCPU (sugerido)', '4 GB (actual)'] nota= ['Sugerido: 1 vCPU']
+UI 4 200 falta= ['CPU al 3 %', 'Memoria al 8 %'] botones= ['Bajar a 1 vCPU', 'Bajar a 1 GB'] selected= ['50 GB (+10.0)', '20 GB', '1 vCPU (sugerido)', '1 GB (sugerido)'] nota= ['Sugerido: 1 GB', 'Sugerido: 1 vCPU']
+UI 5 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
+UI 7 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
+UI 8 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
+UI 9 200 falta= [] botones= [] selected= ['30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '2 GB (actual)'] nota= []
+--- fin: 2026-11-11T21:59:32-03:00 · código: 0
