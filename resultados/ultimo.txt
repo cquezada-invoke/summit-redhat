@@ -1,20 +1,28 @@
-commit: 8f1dbb3a8e9681372e7933f8e0c6c16f06ee7fbe
-inicio: 2026-11-12T10:42:45-03:00
+commit: 522b9077b0d32d89af75777ffc76ef4df53517cc
+inicio: 2026-11-12T10:34:28-03:00
 ---
-== Ficha tras el despliegue
-PAG /lab/nubes/2 200 Tickets de esta nube filas 8 · primero FO-LAB-02165  · pie
-PAG /lab/hipervisores/1 200 Tickets de este hipervisor filas 46 · primero FO-LAB-01976  · pie
-DATOS {"nube": "Cloud GCP · invoke-summit-cloud", "fuente": 1199, "inv": 7, "cred": "GCP · invoke-summit-cloud", "detalle": "{\"proyecto\": \"invoke-summit-cloud\", \"zona\": \"southamerica-west1-a\", \"red\": \"default\", \"etiqueta\": \"demo=summit-cloud\"}", "estado": "conectada", "upd": null}
-RES {"caso": "C1", "auto": "Nube · Validar conexión e inventariar", "ticket": "FO-LAB-02171", "estado": "exitoso", "stats": {"faceops_nube": {"nube": "Cloud GCP · invoke-summit-cloud", "estado": "conectada", "maquinas": "0", "sincronizacion": "26805"}}, "detalle": "", "fallos": [], "resultado": "AAP terminó (successful): ejecución 18 s, espera de aprobación 33 s"}
-C1 stats: estado=conectada maquinas=0 · VMS ficha=conectada 0 
-CASO C1 falla · Validar conexión GCP vigente y aprobar
-C2: {"ticket": "FO-LAB-02172", "estado": "rechazado"} · conexión 24bfe9096407→24bfe9096407 · última sincronización  successful→ successful
-CASO C2 ok · Rechazar la aprobación
-RES {"caso": "C3", "auto": "Nube · Validar conexión e inventariar", "ticket": "FO-LAB-02175", "estado": "fallido", "stats": {}, "detalle": "Sincronizar la fuente dinámica (prueba la API del proveedor con la credencial guardada) · Status code was 404 and not [200, 201, 202]: HTTP Error 404: Not Found · ", "fallos": ["Sincronizar la fuente dinámica (prueba la API del proveedor con la credencial guardada) · Status code was 404 and not [200, 201, 202]: HTTP Error 404: Not Found"], "resultado": "e=63072000\", \"url\": \"https://192.168.122.1/api/controller/v2/inventory_sources/999999/update/\", \"vary\": \"Accept-Encoding,Accept, Accept-Language, origin\", \"x_api_node\": \"demo-ansible-summit\", \"x_api_product_name\": \"Red Hat Ansible Automation Platform\", \"x_api_product_version\": \"4.8.11\", \"x_api_request_id\": \"e9c2d8d0f227442ea3516289610a7d04\", \"x_api_time\": \"0.017s\", \"x_api_total_time\": \"0.048s\", \"x_content_type_options\": \"nosniff\", \"x_envoy_upstream_service_time\": \"49\", \"x_frame_options\": \"DENY\"}\n\nPLAY RECAP *********************************************************************\nlocalhost                  : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   "}
-C3: fallido · Sincronizar la fuente dinámica (prueba la API del proveedor con la credencial guardada) · Status code was 404 and not [200, 201, 202]: HTTP Error 404: Not Found ·  · sincronización  successful→ successful
-CASO C3 ok · Fuente dinámica inexistente
-CASOS [{"id": "C1", "caso": "Validar conexión GCP vigente y aprobar", "resultado": "falla", "evidencia": "exitoso conectada 0 "}, {"id": "C2", "caso": "Rechazar la aprobación", "resultado": "ok", "evidencia": "rechazado; sin sincronización nueva ( successful); conexión sin cambios (24bfe9096407)"}, {"id": "C3", "caso": "Fuente dinámica inexistente", "resultado": "ok", "evidencia": "fallido: Sincronizar la fuente dinámica (prueba la API del proveedor con la credencial guardada) · Status code was 404 and not [200, 201, 202]: HTTP Error 404: Not Found · "}]
-TKS ["FO-LAB-02171", "FO-LAB-02172", "FO-LAB-02175"]
-NO SE CERTIFICA: hay casos fallidos
-CERT Nube · Validar conexión e inventariar → fallida
---- fin: 2026-11-12T10:50:22-03:00 · código: 0
+desplegado: 1
+cliente lab
+plantillas ['Plataforma · Controlar servicio', 'Plataforma · Desinstalar', 'Plataforma · Medir salud', 'Plataforma · Preparar dependencias', 'Plataforma · Programar medición']
+C1 rechazado al solicitar  · s3=None componentes=None/None libre=None (df 99.0) buckets=None · ficha: salud 0 % · S3
+CASO C1 falla · Medir el data lake en nodo-storage
+C2 fallido · servicio active · brokers=None subreplicadas=None offline=None lag=None
+CASO C2 falla · Medir Kafka en nodo-nginx
+C3 fallido · ping=None persistencia=None · rastros de clave en la salida: 0
+CASO C3 falla · Medir Redis (Valkey) en nodo-tomcat
+CASO C4 falla · Repetir la medición del data lake
+C5 rechazado al solicitar · 
+CASO C5 falla · Plataforma que no corresponde
+C6 exitoso · 
+CASO C6 falla · Medición programada de varias plataformas
+CERT Plataforma · Medir salud → sin probar
+grupos: 5 grupos · 25 plataformas
+C1 exitoso · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
+CASO C1 ok · Programar cada 15 minutos
+C2 exitoso · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
+CASO C2 ok · Repetir sin duplicar
+C3 fallido · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
+CASO C3 ok · Frecuencia inválida
+CERT Plataforma · Programar medición → certificada
+FIN-PLATAFORMA-SALUD
+--- fin: 2026-11-12T10:50:36-03:00 · código: 0
