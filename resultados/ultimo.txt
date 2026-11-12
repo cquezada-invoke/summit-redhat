@@ -1,68 +1,64 @@
-commit: 58010b80380f340c4d518a050fda80bec7cec279
-inicio: 2026-11-11T23:17:28-03:00
+commit: 18f31dc5c2d01bfbf7bed513a2253e567af848a3
+inicio: 2026-11-11T23:18:15-03:00
 ---
-16e4ade Alertas del clúster: el interruptor se ve encendido 
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-cliente lab
-== 1 dc1-ad01 | servidor | Windows Server 2022 Standard Evaluation | apagado | skills ['active-directory']
-   plats ['PL-ACTIVE-DIRECTORY-0001']
-   datos {"kernel": "10.0.20348.0", "uptime_dias": "0.0", "selinux": "", "ram_libre_mb": "794", "ram_so_mb": "2048", "carga_1m": "None", "ram_disponible_mb": "None", "virtual": "kvm", "registrado": "None", "parches_seguridad": "None", "recolectado": "2026-11-08T05:10:54.090101", "hostname": "DC1-AD01.corp.invoke.lab", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[5] \"{5}\"", "dominios": "[1] \"{2}\"", "sudoers": "[0]"}, "servicios_det": "[0]", "logs": "[0]", "jboss": "[0]", "componentes_internos": "[0]"}
-== 2 dc1-ds01 | servidor | RedHat 9.8 | apagado | skills ['389-directory-server', 'respaldo-git']
-   plats ['PL-389-DIRECTORY-SERVER-0002']
-   datos {"kernel": "5.14.0-687.65.1.el9_8.x86_64", "uptime_dias": "0.5", "selinux": "enforcing", "ram_libre_mb": "553", "ram_so_mb": "1707", "carga_1m": "0.0", "ram_disponible_mb": "1419", "virtual": "kvm", "registrado": "True", "parches_seguridad": "7", "recolectado": "2026-11-05T11:19:06.394971", "hostname": "dc1-ds01.linux.invoke.lab", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[3] \"{5}\"", "dominios": "[0]", "sudoers": "[2] \"90-cloud-init-users\""}, "servicios_det": "[29] \"{7}\"", "logs": "[15] \"{3}\"", "jboss": "[0]", "red": {"gateway": "10.101.20.1", "interfaces": "[1] \"{2}\""}, "componentes_internos": "[0]"}
-== 3 dc1-idm01 | servidor | RedHat 9.8 | apagado | skills ['keycloak', 'node-exporter', 'red-hat-idm', 'respaldo-git']
-   plats ['PL-KEYCLOAK-0003', 'PL-RED-HAT-IDM-0003']
-   datos {"kernel": "5.14.0-687.64.1.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "1107", "ram_so_mb": "3655", "carga_1m": "0.0", "ram_disponible_mb": "2516", "virtual": "kvm", "registrado": "True", "parches_seguridad": "26", "recolectado": "2026-11-05T06:02:19.724202", "hostname": "dc1-idm01.linux.invoke.lab", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": "None", "servicios_det": "[36] \"{7}\"", "logs": "[33] \"{3}\"", "jboss": "[0]", "red": {"gateway": "10.101.20.1", "interfaces": "[1] \"{2}\""}, "componentes_internos": "[2] \"389-directory-server\""}
-== 77 dc1-sat01 | servidor | RedHat 9.6 | apagado | skills ['satellite']
-   plats ['PL-SATELLITE-0077']
-   datos {"kernel": "5.14.0-570.12.1.el9_6.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "1000", "ram_so_mb": "19741", "carga_1m": "None", "ram_disponible_mb": "5398", "virtual": "", "registrado": "True", "parches_seguridad": "1117", "recolectado": "2026-11-05T06:02:37.694347", "hostname": "dc1-sat01.invoke.lab", "virtual_rol": "", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": "None", "servicios_det": "[38] \"{7}\"", "logs": "[32] \"{3}\"", "jboss": "[0]", "red": {"gateway": "192.168.122.1", "interfaces": "[1] \"{2}\""}, "componentes_internos": "[4] \"httpd\""}
-== 5 dc1-sso01 | servidor | RedHat 9.8 | apagado | skills ['keycloak', 'respaldo-git']
-   plats ['PL-KEYCLOAK-0005']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "438", "ram_so_mb": "1707", "carga_1m": "0.01", "ram_disponible_mb": "1021", "virtual": "kvm", "registrado": "True", "parches_seguridad": "492", "recolectado": "2026-11-05T06:02:19.757241", "hostname": "dc1-sso01.linux.invoke.lab", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": "None", "servicios_det": "[29] \"{7}\"", "logs": "[13] \"{3}\"", "jboss": "[0]", "red": {"gateway": "10.101.20.1", "interfaces": "[2] \"{2}\""}, "componentes_internos": "[0]"}
-== 14 fw | firewall | VyOS 2026.10.23-0026-rolling | encendido | skills ['vyos-firewall']
-   plats ['PL-VYOS-FIREWALL-0014']
-   datos {"red": {"bgp": "[0]", "rol": "Firewall VyOS (eth1 WAN \u00b7 eth2 LAN usuarios)", "zona": "", "rutas": "{4}", "serie": "", "vlans": "[0]", "modelo": "", "detalle": "", "gestion": "{3}", "vecinos": "[0]", "version": "2026.10.23-0026-rolling", "balanceo": "None", "hostname": "fw", "subredes": "[5] \"10.60.20.0/24\"", "uptime_s": "75418", "fabricante": "VyOS", "interfaces": "[6] \"{12}\"", "plataforma": "VyOS", "descripcion": "Firewall VyOS (eth1 WAN \u00b7 eth2 LAN usuarios)", "recolectado": "2026-11-10T20:46:48+00:00"}, "recolectado": "2026-11-10T20:46:48+00:00", "hostname": "fw", "uptime_dias": "0.9", "hardware": {"fabricante": "VyOS"}, "componentes_internos": "[0]", "alertas": {"tipo": "red", "alertas": "[0]", "resumen": "[0]", "actualizado": "2026-11-11T23:56:23+00:00", "ticket": "FO-LAB-01972"}}
-== 6 nodo-jboss | servidor | RedHat 9.8 | encendido | skills ['jboss', 'keycloak', 'node-exporter', 'redis', 'redisinsight', 'respaldo-git']
-   plats ['PL-JBOSS-EAP-0006', 'PL-REDIS-0006', 'PL-KEYCLOAK-0006']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "109", "ram_so_mb": "1707", "carga_1m": "0.07", "ram_disponible_mb": "328", "virtual": "kvm", "registrado": "True", "parches_seguridad": "497", "recolectado": "2026-11-10T06:03:19.749352", "hostname": "nodo-jboss.demo.local", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[9] \"{5}\"", "dominios": "[0]", "sudoers": "[4] \"90-cloud-init-users\""}, "servicios_det": "[34] \"{7}\"", "logs": "[18] \"{3}\"", "jboss": "[1] \"{4}\"", "red": {"gateway": "192.168.122.1", "interfaces": "[2] \"{2}\""}, "componentes_internos": "[0]", "versiones": {"jboss": "{2}"}, "puertos_web": {"keycloak": "***"}, "alertas": {"tipo": "linux", "alertas": "[6] \"{3}\"", "resumen": "[6] \"D01 Sin respuesta (critico) \\u2192 avisar\"", "actualizado": "2026-11-12T02:17:20+00:00", "ticket": "FO-LAB-02039"}, "alertas_plat": {"plataforma:jboss": "{5}"}}
-== 21 nodo-jboss-dev | servidor | RedHat 9.8 | encendido | skills ['jboss', 'node-exporter', 'respaldo-git']
-   plats ['PL-JBOSS-EAP-0021']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "476", "ram_so_mb": "1707", "carga_1m": "0.15", "ram_disponible_mb": "885", "virtual": "kvm", "registrado": "False", "parches_seguridad": "0", "recolectado": "2026-11-10T06:03:19.797369", "hostname": "nodo-jboss-dev.demo.local", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[9] \"{5}\"", "dominios": "[0]", "sudoers": "[4] \"90-cloud-init-users\""}, "servicios_det": "[30] \"{7}\"", "logs": "[17] \"{3}\"", "jboss": "[2] \"{4}\"", "red": {"gateway": "192.168.122.1", "interfaces": "[1] \"{2}\""}, "componentes_internos": "[0]", "versiones": {"jboss": "{2}"}}
-== 22 nodo-jboss-qa | servidor | RedHat 9.8 | encendido | skills ['jboss']
-   plats ['PL-JBOSS-EAP-0022']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "427", "ram_so_mb": "1707", "carga_1m": "0.09", "ram_disponible_mb": "886", "virtual": "kvm", "registrado": "False", "parches_seguridad": "0", "recolectado": "2026-11-05T06:04:07.343044", "hostname": "nodo-jboss-qa.demo.local", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": "None", "servicios_det": "[30] \"{7}\"", "logs": "[17] \"{3}\"", "jboss": "[1] \"{4}\"", "red": {"gateway": "192.168.122.1", "interfaces": "[1] \"{2}\""}, "componentes_internos": "[0]"}
-== 7 nodo-jboss2 | servidor | RedHat 9.8 | encendido | skills ['jboss', 'node-exporter', 'respaldo-git']
-   plats ['PL-JBOSS-EAP-0007']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "434", "ram_so_mb": "1707", "carga_1m": "0.08", "ram_disponible_mb": "844", "virtual": "kvm", "registrado": "False", "parches_seguridad": "0", "recolectado": "2026-11-10T06:03:19.772694", "hostname": "nodo-jboss2.demo.local", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[9] \"{5}\"", "dominios": "[0]", "sudoers": "[4] \"90-cloud-init-users\""}, "servicios_det": "[31] \"{7}\"", "logs": "[17] \"{3}\"", "jboss": "[1] \"{4}\"", "red": {"gateway": "192.168.122.1", "interfaces": "[1] \"{2}\""}, "componentes_internos": "[0]", "versiones": {"jboss": "{2}"}}
-== 20 nodo-jboss3 | servidor | RedHat 9.8 | apagado | skills ['jboss', 'node-exporter', 'respaldo-git']
-   plats ['PL-JBOSS-EAP-0020']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "427", "ram_so_mb": "1707", "carga_1m": "0.17", "ram_disponible_mb": "886", "virtual": "kvm", "registrado": "False", "parches_seguridad": "0", "recolectado": "2026-11-05T06:04:07.318139", "hostname": "nodo-jboss3.demo.local", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": "None", "servicios_det": "[30] \"{7}\"", "logs": "[17] \"{3}\"", "jboss": "[1] \"{4}\"", "red": {"gateway": "192.168.122.1", "interfaces": "[1] \"{2}\""}, "componentes_internos": "[0]"}
-== 8 nodo-nginx | servidor | RedHat 9.8 | encendido | skills ['kafka', 'nginx', 'node-exporter', 'redis', 'redisinsight', 'respaldo-git']
-   plats ['PL-KAFKA-0008', 'PL-NGINX-0008', 'PL-REDIS-0008']
-   datos {"kernel": "5.14.0-687.61.1.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "221", "ram_so_mb": "1707", "carga_1m": "0.0", "ram_disponible_mb": "778", "virtual": "kvm", "registrado": "True", "parches_seguridad": "31", "recolectado": "2026-11-10T06:03:19.679771", "hostname": "nodo-nginx.demo.local", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[10] \"{5}\"", "dominios": "[0]", "sudoers": "[5] \"90-cloud-init-users\""}, "servicios_det": "[34] \"{7}\"", "logs": "[15] \"{3}\"", "jboss": "[0]", "red": {"gateway": "192.168.122.1", "interfaces": "[2] \"{2}\""}, "componentes_internos": "[0]"}
-== 9 nodo-postgres | servidor | RedHat 9.8 | encendido | skills ['node-exporter', 'postgres', 'respaldo-git']
-   plats ['PL-POSTGRESQL-0009']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "798", "ram_so_mb": "1707", "carga_1m": "0.01", "ram_disponible_mb": "1447", "virtual": "kvm", "registrado": "True", "parches_seguridad": "496", "recolectado": "2026-11-10T06:03:19.697116", "hostname": "nodo-postgres.demo.local", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[9] \"{5}\"", "dominios": "[0]", "sudoers": "[4] \"90-cloud-init-users\""}, "servicios_det": "[32] \"{7}\"", "logs": "[19] \"{3}\"", "jboss": "[0]", "red": {"gateway": "192.168.122.1", "interfaces": "[1] \"{2}\""}, "ram_asignada_estimada": "True", "componentes_internos": "[0]"}
-== 11 nodo-so | servidor | RedHat 9.8 | encendido | skills ['node-exporter', 'redis', 'respaldo-git']
-   plats ['PL-REDIS-0011']
-   datos {"kernel": "5.14.0-687.61.1.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "1195", "ram_so_mb": "1707", "carga_1m": "0.0", "ram_disponible_mb": "1494", "virtual": "kvm", "registrado": "False", "parches_seguridad": "20", "recolectado": "2026-11-10T06:03:19.725424", "hostname": "nodo-so.demo.local", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[9] \"{5}\"", "dominios": "[0]", "sudoers": "[4] \"90-cloud-init-users\""}, "servicios_det": "[31] \"{7}\"", "logs": "[14] \"{3}\"", "jboss": "[0]", "red": {"gateway": "192.168.122.1", "interfaces": "[1] \"{2}\""}, "ram_asignada_estimada": "True", "componentes_internos": "[0]"}
-== 27 nodo-storage | almacenamiento | RedHat 9.8 | encendido | skills ['storage-emulado']
-   plats ['PL-DATA-LAKE-0027']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "1189", "ram_so_mb": "1707", "carga_1m": "None", "ram_disponible_mb": "1490", "virtual": "", "registrado": "False", "parches_seguridad": "0", "recolectado": "2026-11-10T06:03:36.776919", "hostname": "localhost.localdomain", "virtual_rol": "", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[3] \"{5}\"", "dominios": "[0]", "sudoers": "[2] \"90-cloud-init-users\""}, "servicios_det": "[30] \"{7}\"", "logs": "[13] \"{3}\"", "jboss": "[0]", "red": {"gateway": "192.168.122.1", "interfaces": "[1] \"{2}\""}, "componentes_internos": "[0]", "alertas": {"tipo": "storage", "alertas": "[0]", "resumen": "[0]", "actualizado": "2026-11-11T23:54:17+00:00", "ticket": "FO-LAB-01969"}}
-== 10 nodo-tomcat | servidor | RedHat 9.8 | encendido | skills ['activemq', 'keycloak', 'node-exporter', 'redis', 'redisinsight', 'respaldo-git']
-   plats ['PL-ACTIVEMQ-0010', 'PL-REDIS-0010', 'PL-KEYCLOAK-0010']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "100", "ram_so_mb": "1707", "carga_1m": "0.45", "ram_disponible_mb": "343", "virtual": "kvm", "registrado": "True", "parches_seguridad": "492", "recolectado": "2026-11-05T06:04:07.289062", "hostname": "nodo-tomcat.demo.local", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": "None", "servicios_det": "[33] \"{7}\"", "logs": "[13] \"{3}\"", "jboss": "[0]", "red": {"gateway": "192.168.122.1", "interfaces": "[2] \"{2}\""}, "componentes_internos": "[0]"}
-== 26 nodo-vault | servidor | RedHat 9.8 | encendido | skills ['node-exporter', 'respaldo-git', 'vault']
-   plats ['PL-VAULT-0026']
-   datos {"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": "0.3", "selinux": "enforcing", "ram_libre_mb": "921", "ram_so_mb": "1707", "carga_1m": "None", "ram_disponible_mb": "1457", "virtual": "", "registrado": "False", "parches_seguridad": "0", "recolectado": "2026-11-10T06:03:36.765294", "hostname": "localhost.localdomain", "virtual_rol": "", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[2] \"{5}\"", "dominios": "[0]", "sudoers": "[1] \"90-cloud-init-users\""}, "servicios_det": "[31] \"{7}\"", "logs": "[13] \"{3}\"", "jboss": "[0]", "red": {"gateway": "192.168.122.1", "interfaces": "[1] \"{2}\""}, "componentes_internos": "[0]"}
-== 12 nodo-windows | servidor | Windows Server 2022 Standard Evaluation | encendido | skills ['iis', 'windows-exporter']
-   plats ['PL-IIS-0012']
-   datos {"kernel": "10.0.20348.0", "uptime_dias": "0.3", "selinux": "", "ram_libre_mb": "1035", "ram_so_mb": "2048", "carga_1m": "None", "ram_disponible_mb": "None", "virtual": "kvm", "registrado": "None", "parches_seguridad": "None", "recolectado": "2026-11-10T06:02:51.392172", "hostname": "NODO-WINDOWS", "virtual_rol": "guest", "hardware": {"fabricante": "Red Hat", "modelo": "KVM", "bios": "1.16.3-5.el9"}, "montajes_red": "[0]", "usuarios": {"usuarios": "[2] \"{5}\"", "dominios": "[0]", "sudoers": "[0]"}, "servicios_det": "[0]", "logs": "[0]", "jboss": "[0]", "componentes_internos": "[0]"}
-== 29 ocp-sno | clúster openshift | OpenShift 4.19.51 | encendido | skills ['openshift']
-   plats ['PL-OPENSHIFT-0029', 'PL-DATA-LAKE-0029']
-   datos {"ocp": {"api": "https://192.168.122.50:6443", "vms": "0", "pods": "262", "canal": "stable-4.19", "nodos": "[1] \"{20}\"", "pools": "[2] \"master|1|1\"", "cargas": "{3}", "api_url": "https://api.sno.invoke.lab:6443", "consola": "https://console.sno.34.176.42.56.sslip.io", "storage": "{5}", "version": "4.19.51", "recursos": "{7}", "red_tipo": "OVNKubernetes", "respaldo": "{12}", "proyectos": "100", "cluster_id": "13235ef1-9446-4d25-8a84-c37fd4a8713e", "operadores": "[6] \"{12}\"", "plataforma": "None", "recolectado": "2026-11-12T01:47:26.566218Z", "red_cluster": "[1] \"10.128.0.0/14\"", "nombre_infra": "sno-b8cfk", "actualizacion": "Completed", "red_servicios": "[1] \"172.30.0.0/16\"", "vms_corriendo": "0", "namespaces_app": "[20] \"{21}\""}, "recolectado": "2026-11-12T01:47:26.566218Z", "openshift": {"cluster": "sno", "dominio": "invoke.lab", "version": "4.19.51", "metodo": "agent", "plataforma": "kvm", "topologia": "sno", "nodos": "1", "api": "https://api.sno.invoke.lab:6443", "consola": "https://console.sno.34.176.42.56.sslip.io"}, "componentes_internos": "[0]", "imagenes_movilidad": {"cluster": "ocp-sno", "medido": "2026-11-12T02:03:19+00:00", "meses_umbral": "6", "rangos_meses": "[3] \"3\"", "revisiones": "56", "candidatas": "15", "mb_candidatas": "476", "capas_exclusivas": "5", "quay": "", "quay_org": "(una por namespace)", "quay_detectado": "{0}", "namespaces": "{2}", "rangos": "[4] \"{3}\"", "por_namespace": "[1] \"{3}\"", "plan": "[15] \"{12}\"", "detalle": "[56] \"{5
-== 16 rtr | router | FRRouting 10.2.1_git | encendido | skills ['frrouting']
-   plats ['PL-FRROUTING-0016']
-   datos {"red": {"bgp": "[4] \"{7}\"", "rol": "Router de borde (FRR)", "zona": "", "rutas": "{4}", "serie": "", "vlans": "[0]", "bgp_as": "65010", "modelo": "", "detalle": "", "gestion": "{3}", "vecinos": "[0]", "version": "10.2.1_git", "balanceo": "None", "hostname": "rtr", "subredes": "[3] \"10.0.0.0/30\"", "uptime_s": "75388", "fabricante": "", "interfaces": "[4] \"{12}\"", "plataforma": "FRRouting", "descripcion": "Router de borde (FRR)", "recolectado": "2026-11-10T20:46:18+00:00"}, "recolectado": "2026-11-10T20:46:18+00:00", "hostname": "rtr", "uptime_dias": "0.9", "hardware": {}, "componentes_internos": "[0]"}
---- fin: 2026-11-11T23:17:35-03:00 · código: 0
+EQ {'id': 81, 'cliente_id': 1, 'nombre': 'pc-oficina-01', 'categoria': 'servidor', 'so': '', 'estado': 'retirado', 'ip': 'pendiente', 'ambiente': 'produccion'}
+EQ {'id': 82, 'cliente_id': 1, 'nombre': 'pc-oficina-02', 'categoria': 'servidor', 'so': '', 'estado': 'retirado', 'ip': 'pendiente', 'ambiente': 'produccion'}
+CATS [{'categoria': 'almacenamiento', 'n': 2}, {'categoria': 'balanceador', 'n': 2}, {'categoria': 'clúster openshift', 'n': 1}, {'categoria': 'estación de trabajo', 'n': 2}, {'categoria': 'firewall', 'n': 5}, {'categoria': 'otro', 'n': 1}, {'categoria': 'plataforma', 'n': 3}, {'categoria': 'red', 'n': 5}, {'categoria': 'router', 'n': 6}, {'categoria': 'servidor', 'n': 101}, {'categoria': 'switch', 'n': 3}]
+SOS [{'so': '', 'n': 33}, {'so': 'CentOS 6', 'n': 1}, {'so': 'FRRouting 10.2.1_git', 'n': 4}, {'so': 'FortiOS', 'n': 1}, {'so': 'HAProxy 2.8.22-a6a7eb6dd', 'n': 1}, {'so': 'Linux (Alpine)', 'n': 3}, {'so': 'Linux (contenedor de pruebas)', 'n': 1}, {'so': 'OpenShift 4.19.51', 'n': 1}, {'so': 'Red Hat Enterprise Linux 6', 'n': 1}, {'so': 'Red Hat Enterprise Linux 8', 'n': 1}, {'so': 'Red Hat Enterprise Linux 9', 'n': 6}, {'so': 'Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow)', 'n': 1}, {'so': 'RedHat 5.11', 'n': 1}, {'so': 'RedHat 7.9', 'n': 1}, {'so': 'RedHat 8.10', 'n': 2}, {'so': 'RedHat 9.6', 'n': 18}, {'so': 'RedHat 9.8', 'n': 20}, {'so': 'Rocky 9.8', 'n': 2}, {'so': 'Ubuntu 24.04', 'n': 1}, {'so': 'VyOS', 'n': 2}, {'so': 'VyOS 2026.10.23-0026-rolling', 'n': 2}, {'so': 'Windows Server 2019', 'n': 2}, {'so': 'Windows Server 2022', 'n': 1}, {'so': 'Windows Server 2022 Standard Evaluation', 'n': 2}]
+AUTO Autoservicio · 1 Desplegar app
+AUTO Autoservicio · 2 Publicar en Nginx
+AUTO Autoservicio · 3 Validar
+AUTO Autoservicio · Retirar app
+AUTO Drift · Windows
+AUTO Monitoreo · Exportador en Windows
+AUTO Nube · Limpiar huérfanos
+AUTO Nube · Vigilar firewall
+AUTO Remediación · IIS en Windows
+AUTO Remediación · Limpiar logs
+AUTO Remediación · Renovar certificado
+AUTO Windows · Preparar IIS
+AUTO Windows · Provocar caída de IIS (demo)
+AUTO Autoservicio · Nuevo ambiente
+AUTO Nube · Reporte de huérfanos con limpieza
+AUTO FaceOps · Respaldo continuo en Git
+AUTO Seguridad · Aplicar parches de seguridad
+AUTO Certificados · Emitir para servicio
+AUTO Certificados · Renovar por vencer
+AUTO Certificados · Inventario
+AUTO Certificados · Renovar (EDA)
+AUTO Plataforma · Controlar servicio
+AUTO Sistema · Paquetes · inventario y respaldo
+AUTO Windows · Habilitar escritorio remoto
+AUTO Sistema · Inventariar máquina
+AUTO OpenShift · Respaldo de etcd
+AUTO Certificados · OpenShift
+AUTO Seguridad · Escaneo de servidores
+AUTO Homologación · Relevar entorno
+AUTO Storage · Servicio S3 del data lake
+AUTO Identidad · Fuente de usuarios de FaceOps
+AUTO Licencias · Levantar desde las plataformas
+AUTO Portal · Amdocs · Orden de servicio (plantilla)
+AUTO Portal · OpenShift · Certificado de aplicación de punta a punta (plantilla)
+AUTO Portal · OpenShift · Certificados (plantilla)
+AUTO Portal · OpenShift · Optimizar recursos y limpiar (plantilla)
+AUTO Portal · OpenShift · Respaldo de etcd (plantilla)
+AUTO Portal · Telco · Red del servicio (VLAN y BGP) (plantilla)
+AUTO Portal · Windows · Informe de seguridad (plantilla)
+AUTO Portal · Amdocs · Activar orden de servicio
+AUTO Portal · Infraestructura · Aplicar parches de seguridad
+AUTO Portal · Infraestructura · Escaneo de seguridad
+AUTO Portal · Infraestructura · Inventariar servidor
+AUTO Portal · Infraestructura · Inventario de certificados
+AUTO Portal · OpenShift · Certificado de aplicación de punta a punta
+AUTO Portal · OpenShift · Optimizar recursos y limpiar
+AUTO Portal · OpenShift · Respaldo de etcd
+AUTO Portal · Telco · Red del servicio (VLAN y BGP)
+AUTO Portal · Windows · Informe de seguridad
+AUTO Red · Inventariar equipo de red
+AUTO Migración · WebLogic a OpenShift
+AUTO Migración · WebLogic a OpenShift · Evaluar
+AUTO FaceOps · Alerta › Plataforma · Controlar servicio · Nodos demo (ansible)
+AUTO Recuperación · Respaldar volúmenes con restic
+AUTO Windows · Activar licencia
+AUTO Nube · Validar conexión e inventariar
+--- fin: 2026-11-11T23:18:21-03:00 · código: 0
