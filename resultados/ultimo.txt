@@ -1,35 +1,25 @@
-commit: 9983d76560b694950a053fc5292cb98fe44faafc
-inicio: 2026-11-12T02:16:11-03:00
+commit: e1cccb113cd13677a1c4fe147c57cbc05e03edb6
+inicio: 2026-11-12T01:31:23-03:00
 ---
-  DIAG == DIAG log
-  DIAG == 04:54:49 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
-  DIAG == 04:54:49 KVM/libvirt para las VMs anidadas
-  DIAG == 04:57:18 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
-  DIAG == 04:57:18 paquetes
-  DIAG == 04:57:27 k3s v1.30.6+k3s1
-  DIAG Created symlink /etc/systemd/system/multi-user.target.wants/k3s.service → /etc/systemd/system/k3s.service.
-  DIAG == 04:57:42 AWX (awx-operator 2.19.1 → AWX 24.6.1)
-  DIAG == 04:58:07 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
-  DIAG == 04:58:37 repositorio git local (HTTP inteligente con git http-backend en :8088) con playbook y rulebook de prueba
-  DIAG == 04:58:37 acceso SSH de AWX a esta misma máquina (host gestionado)
-  DIAG == 04:58:37 validador local y FaceOps (feature/faceops-awx) en modo awx
-  DIAG
-  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
-  DIAG [notice] To update, run: pip install --upgrade pip
-  DIAG Imágenes listas
-  DIAG == 05:00:35 AWX responde:
-  DIAG == 05:02:38 EDA responde: 200
-  DIAG INSTALACION TERMINADA
-  DIAG == 05:02:38 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
-  DIAG == 05:03:44 VMs anidadas con SSH: localhost localhost
-  DIAG == 05:03:44 esperando AWX y EDA (hasta 30 min)
-  DIAG == 05:06:38 AWX 24.6.1 · EDA HTTP 200
-  DIAG == 05:06:38 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
-  DIAG proyecto AWX: successful
-  DIAG AWX: inventario, credencial, proyecto, 2 plantillas y workflow con aprobación
-  DIAG proyecto EDA: completed
-  DIAG EDA: activación 1 pending
-  DIAG FaceOps: HTTP 000
-  DIAG Error: can only create exec sessions on running containers: container state improper
-  DIAG == DIAG pods
---- fin: 2026-11-12T02:16:12-03:00 · código: 0
+== FaceOps antes: 401
+a53610a Instalar operador: el mensaje de «ya instalado en ot
+   · Plantilla «OpenShift · Instalar operador» (id 1219)
+   · Plantilla «OpenShift · Desinstalar operador» (id 1220)
+== FaceOps después: 401
+CASO C1 ok · Instalar File Integrity (OwnNamespace)
+CASO C2 ok · Repetir File Integrity
+CASO C3 falla · Instalar Network Observability (AllNamespaces)
+CASO C4 ok · Paquete inexistente
+CASO C5 ok · Modo no soportado
+CASO C6 ok · ODF en un solo nodo desde la ficha
+EVIDENCIA [{"id": "C1", "caso": "Instalar File Integrity (OwnNamespace)", "resultado": "ok", "evidencia": "ns etiquetado; OG [\"openshift-file-integrity\"]; sub Manual/file-integrity-operator.v1.5.0; CSV Succeeded; pods file-integrity-operator-7f56d99554-7rdb4:Running ; ficha [('Succeeded', 1, 1, 'FO-LAB-02098')]"}, {"id": "C2", "caso": "Repetir File Integrity", "resultado": "ok", "evidencia": "changed=0; ya_estaba=True; 1 Subscription"}, {"id": "C3", "caso": "Instalar Network Observability (AllNamespaces)", "resultado": "falla", "evidencia": "fallido og=[] csv=Failed pods=netobserv-controller-manager-6f88448c86-ncxkp:Pending netobserv-plugin-static-7677c547b7-27f9b:Running  El operador quedó operativo · netobserv-operator: el CSV network-observability-operator.v2.0.0 quedó en Failed install failed: deployment netobserv-controller-manager"}, {"id": "C4", "caso": "Paquete inexistente", "resultado": "ok", "evidencia": "El paquete existe en el catálogo · El paquete «no-existe-operator» no existe en el catálogo del clúster; nada se cambió · ; sin namespace"}, {"id": "C5", "caso": "Modo no soportado", "resultado": "ok", "evidencia": "Modo de instalación soportado · web-terminal (fast) no admite el modo OwnNamespace; admite: AllNamespaces. Nada se cambió · ; sin namespace"}, {"id": "C6", "caso": "ODF en un solo nodo desde la ficha", "resultado": "ok", "evidencia": "400 | OpenShift Data Foundation: Requiere al menos 3 nodos y el clúster tiene 1 (un solo nodo) | True | True"}]
+CERT OpenShift · Instalar operador → sin probar
+CASO D1 falla · Desinstalar File Integrity
+CASO D2 falla · Desinstalar Network Observability
+CASO D3 ok · Repetir
+CASO D4 ok · Namespace del sistema
+CASO D5 falla · El clúster queda como estaba
+EVIDENCIA [{"id": "D1", "caso": "Desinstalar File Integrity", "resultado": "falla", "evidencia": "exitoso ns=namespace/openshift-file-integrity sub=0 csv=5 crd=0 ficha=[] "}, {"id": "D2", "caso": "Desinstalar Network Observability", "resultado": "falla", "evidencia": "exitoso ns=namespace/openshift-netobserv-operator sub=0 csv=4 crd=0 "}, {"id": "D3", "caso": "Repetir", "resultado": "ok", "evidencia": "changed=0; no estaba instalado"}, {"id": "D4", "caso": "Namespace del sistema", "resultado": "ok", "evidencia": "Datos · Indica el paquete y el namespace del operador (no uno del sistema); nada se cambió · "}, {"id": "D5", "caso": "El clúster queda como estaba", "resultado": "falla", "evidencia": "64a65 > namespace/openshift-file-integrity 87a89 > namespace/openshift-netobserv-operator 115a118 > operator.operators.coreos.com/netobserv-operator.openshift-netobserv-operator "}]
+CERT OpenShift · Desinstalar operador → sin probar
+FIN-OPERADORES
+--- fin: 2026-11-12T02:18:00-03:00 · código: 0
