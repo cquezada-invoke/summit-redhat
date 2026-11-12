@@ -1,4 +1,1 @@
-# Tarea de prueba del canal: muestra que el runner corre en la VM.
-set -e
-echo "Host: $(hostname) · Usuario: $(whoami) · $(date)"
-systemctl is-active panel-cumplimiento.service || true
+tail -15 ~/faceops-autodeploy/build.log | grep -v -i "token\|clave\|pass"; cat ~/faceops-autodeploy/estado; cd ~/summit-redhat && git log -3 --format="%h %s" | cut -c1-90
