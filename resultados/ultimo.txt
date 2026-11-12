@@ -1,23 +1,16 @@
-commit: d8bf7524a4658ed7d4d991783a4b5ea0c45a23e2
-inicio: 2026-11-12T11:59:40-03:00
+commit: 39c674a0db14b611c9b8ab71d6a50be44b0cfa7e
+inicio: 2026-11-12T11:56:22-03:00
 ---
-desplegado
-Traceback (most recent call last):
-  File "/tmp/m.py", line 10, in <module>
-    sincronizar_catalogo(cl)
-  File "/opt/faceops/app/operacion.py", line 96, in sincronizar_catalogo
-    items = [("job", t) for t in aap.plantillas()] + [("workflow", w) for w in aap.workflows()]
-                                 ^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 66, in plantillas
-    return self.todos("job_templates/")
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 51, in todos
-    datos = self.get(ruta, **params)
-            ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 41, in get
-    return self._r("GET", ruta, params=params)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 37, in _r
-    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
-app.aap.ErrorAAP: AAP GET job_templates/ → 503: no healthy upstream
---- fin: 2026-11-12T11:59:47-03:00 · código: 0
+{"linea": "1.0", "build": 1770, "commit": "8fb8f324a9988341c51deafcae1feedacbab3b5f", "fecha": "2026-11-12 14:54", "rama": "main"}
+
+lab http 302 0.479638s
+== produccion datos 200 49.12 flot 200 0.12 pct 77 77 eq 6 pend 34 {'apagados': 0, 'componentes': 4} 
+  situaciones 17 casos 22 botones 11
+== qa datos 200 6.14 flot 200 0.1 pct 0 0 eq 1 pend 17 {'apagados': 4, 'componentes': 4} 
+  situaciones 17 casos 0 botones 1
+== desarrollo datos 200 9.24 flot 200 0.11 pct 19 19 eq 1 pend 15 {'apagados': 3, 'componentes': 4} 
+  situaciones 15 casos 0 botones 0
+lista segmentos 200 92.29
+lista segmentos2 200 110.46
+pagina 200 True True
+--- fin: 2026-11-12T12:02:20-03:00 · código: 0
