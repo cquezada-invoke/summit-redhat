@@ -1,0 +1,34 @@
+commit: 3ba07e5ff8cb150b4a5552d31f50775cc1377dfd
+inicio: 2026-11-12T16:36:53-03:00
+---
+PLAY RECAP *********************************************************************
+anfitrion-kvm              : ok=8    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+== FO-LAB-02269 fallido 28038
+o se pudo listar los contenedores de cquezada (podman)
+ok: [anfitrion-kvm]
+
+TASK [Resultado para FaceOps] **************************************************
+ok: [anfitrion-kvm]
+
+TASK [Resumen] *****************************************************************
+ok: [anfitrion-kvm] => {
+    "msg": "Reiniciar componentes de AAP (aplicar): con problemas · {\"ok\": false, \"error\": \"no se pudo listar los contenedores de cquezada (podman)\"}"
+}
+
+TASK [Falla controlada si la acción no terminó bien] ***************************
+fatal: [anfitrion-kvm]: FAILED! => {"changed": false, "msg": "Reiniciar componentes de AAP (aplicar) no terminó bien: no se pudo listar los contenedores de cquezada (podman)"}
+
+PLAY RECAP *********************************************************************
+anfitrion-kvm              : ok=8    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+después: FO-LAB-02274 exitoso Autocuidado · Respaldar bases de AAP y FaceOps
+después: FO-LAB-02276 fallido Autocuidado · Respaldar bases de AAP y FaceOps
+después: FO-LAB-02278 fallido Autocuidado · Respaldar bases de AAP y FaceOps
+después: FO-LAB-02280 fallido Autocuidado · Respaldar bases de AAP y FaceOps
+después: FO-LAB-02282 exitoso Autocuidado · Renovar certificados
+después: FO-LAB-02285 exitoso Autocuidado · Renovar certificados
+después: FO-LAB-02286 exitoso Autocuidado · Renovar certificados
+después: FO-LAB-02288 fallido Autocuidado · Renovar certificados
+después: FO-LAB-02290 exitoso Autocuidado · Purgar historial de AAP
+después: FO-LAB-02293 exitoso Autocuidado · Purgar historial de AAP
+después: FO-LAB-02294 fallido Autocuidado · Purgar historial de AAP
+--- fin: 2026-11-12T16:37:24-03:00 · código: 0
