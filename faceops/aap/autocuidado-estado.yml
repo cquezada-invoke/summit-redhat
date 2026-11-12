@@ -1,12 +1,49 @@
 ---
 # Autocuidado · Revisar estado (solo lectura). Disco, inodos, memoria, carga, máquinas virtuales, contenedores de AAP, API de
 # AAP, FaceOps, despliegue automático, respaldos y certificados del anfitrión del laboratorio. No cambia nada.
+# Mismas verificaciones que autocuidado-comun.yml (herramienta instalada = la del proyecto, files/autocuidado.py); el estado
+# no trae «ok»: es válido si trae el disco del anfitrión.
 - name: Autocuidado · Revisar estado
   hosts: anfitrion_kvm
   gather_facts: false
   tasks:
-    - name: Estado del anfitrión
-      ansible.builtin.include_tasks: autocuidado-comun.yml
-      vars:
-        ac_args: [estado]
-        ac_titulo: Estado del anfitrión, AAP y FaceOps
+    - name: Herramienta de autocuidado instalada
+      ansible.builtin.stat:
+        path: /usr/local/sbin/faceops-autocuidado
+        checksum_algorithm: sha256
+      register: ac_stat
+
+    - name: Es la versión de este proyecto (la que pasó su plan de prueba)
+      ansible.builtin.assert:
+        that:
+          - ac_stat.stat.exists
+          - ac_stat.stat.checksum == (lookup('ansible.builtin.file', playbook_dir ~ '/files/autocuidado.py', rstrip=false) | hash('sha256'))
+        fail_msg: >-
+          La herramienta del anfitrión no corresponde a esta versión del proyecto (o no está instalada). La instala
+          «aap/autocuidado_configurar.py» con el despliegue de FaceOps; no se actúa con una versión distinta a la probada.
+        quiet: true
+
+    - name: Estado del anfitrión, AAP y FaceOps
+      ansible.builtin.command:
+        argv: [sudo, -n, /usr/local/sbin/faceops-autocuidado, estado]
+      register: ac_cmd
+      changed_when: false
+      failed_when: false
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        ac_res: "{{ ac_cmd.stdout | from_json if (ac_cmd.stdout | default('') | trim)[:1] == '{' else {'error': (ac_cmd.stderr | default('sin salida'))[-300:]} }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_autocuidado: "{{ {'accion': 'estado', 'modo': 'evaluar', 'resultado': ac_res} }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "Estado: disco raíz {{ (ac_res.disco | default([]) | selectattr('montaje', 'equalto', '/') | map(attribute='uso_pct') | first) | default('?') }} % · API de AAP {{ ac_res.aap_api | default('?') }} · FaceOps {{ (ac_res.faceops | default({})).codigo | default('?') }}"
+
+    - name: Falla controlada si no hubo lectura
+      ansible.builtin.fail:
+        msg: "No se pudo leer el estado del anfitrión: {{ ac_res.error | default('sin datos de disco') }}"
+      when: ac_res.disco is not defined
