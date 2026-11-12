@@ -1,12 +1,53 @@
-commit: b742eecdc18c513c57580e1900b61682bfd1c8c3
-inicio: 2026-11-12T01:32:34-03:00
+commit: da406d9f3d3a1850439b7e0924abe06548c6d72b
+inicio: 2026-11-12T01:34:39-03:00
 ---
-RES {"caso": "diag", "auto": "FaceOps · Exportador de plataforma", "estado": "rechazado al solicitar", "error": "PermissionError: Esta acción no aplica a nodo-jboss: la acción no está publicada en el catálogo"}
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-{'id': 243, 'nombre_aap': 'FaceOps · Exportador de plataforma', 'visible': 0, 'usa_limite': 1, 'inventario': 'Nodos demo', 'campos': '[{"var": "ex_plataforma", "etiqueta": "Plataforma", "tipo": "multiplechoice", "opciones": ["redis", "postgresql", "nginx", "jboss"], "requerido": true}]'}
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-TICKET FO-LAB-02094
-RES {"caso": "diag2", "auto": "Monitoreo · Configurar alertas del equipo", "ticket": "FO-LAB-02094", "estado": "en_ejecucion", "stats": {}, "detalle": "", "fallos": [], "resultado": ""}
---- fin: 2026-11-12T01:34:21-03:00 · código: 0
+aprobado FO-LAB-02091
+### RESPALDO
+R-C1 · fw: FO-LAB-02096 exitoso 26144 AAP terminó (successful): ejecución 41 s, espera de aprobación 41 s
+   fw.cfg: 61 líneas set · ocultos 1 · claro-sospechoso 0
+R-C2a · rtr-wan-01: - no-lanzado 'NoneType' object is not subscriptable | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ / File "/opt/faceops/app/operacion.py", line 308, in motivo_no_aplica / if auto["nombre_aap"] in (VI
+   rtr-wan-01.cfg: 29 líneas · bgp 1
+R-C2b · sw-core-01: - no-lanzado 'NoneType' object is not subscriptable | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ / File "/opt/faceops/app/operacion.py", line 308, in motivo_no_aplica / if auto["nombre_aap"] in (VI
+   sw-core-01.cfg: 1 líneas · tabla VLAN 0
+R-C3 · lb-sede-01: - no-lanzado 'NoneType' object is not subscriptable | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ / File "/opt/faceops/app/operacion.py", line 308, in motivo_no_aplica / if auto["nombre_aap"] in (VI
+   lb-sede-01.cfg: 1 líneas · backend 0 · frontend 0 · ocultos 0
+R-C4 · fw: - no-lanzado 'NoneType' object is not subscriptable | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ / File "/opt/faceops/app/operacion.py", line 308, in motivo_no_aplica / if auto["nombre_aap"] in (VI
+   commits fw.cfg antes 1 después 1
+R-C5 · suc1: - no-lanzado 'NoneType' object is not subscriptable | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ / File "/opt/faceops/app/operacion.py", line 308, in motivo_no_aplica / if auto["nombre_aap"] in (VI
+   suc1.cfg: NO-EXISTE
+### DRIFT
+D-C1 · rtr-wan-01: FO-LAB-02097 exitoso 26156 AAP terminó (successful): ejecución 9 s, espera de aprobación 39 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "rtr-wan-01: sin cambios contra la línea base"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+   línea quitada de la base: ip route 10.20.0.0/16 10.255.20.2
+D-C2 · rtr-wan-01: FO-LAB-02099 exitoso 26172 AAP terminó (successful): ejecución 6 s, espera de aprobación 54 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "rtr-wan-01: CAMBIOS contra la línea base · +1 / -0 líneas"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+    "msg": [
+    "+ ip route 10.20.0.0/16 10.255.20.2"
+D-C3a · fw: FO-LAB-02101 exitoso 26180 AAP terminó (successful): ejecución 19 s, espera de aprobación 62 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "fw: sin cambios contra la línea base"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+D-C3b · lb-sede-01: FO-LAB-02103 fallido 26188 AAP terminó (failed): ejecución 7 s, espera de aprobación 46 s Falló en la tarea «Hay línea base» de lb-sede-01: lb-sede-01 no tiene línea base: ejecuta primero «Respaldo de configuración».
+    TASK [Hay línea base] **********************************************************
+    fatal: [lb-sede-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "lb-sede-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se
+D-C4-restablecer · rtr-wan-01: - no-lanzado 'NoneType' object is not subscriptable | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ / File "/opt/faceops/app/operacion.py", line 308, in motivo_no_aplica / if auto["nombre_aap"] in (VI
+D-C4 · rtr-wan-01: FO-LAB-02104 exitoso 26192 AAP terminó (successful): ejecución 6 s, espera de aprobación 55 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "rtr-wan-01: CAMBIOS contra la línea base · +1 / -0 líneas"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+    "msg": [
+    "+ ip route 10.20.0.0/16 10.255.20.2"
+D-C5 · sw-acc-01: FO-LAB-02105 fallido 26197 AAP terminó (failed): ejecución 6 s, espera de aprobación 30 s Falló en la tarea «Hay línea base» de sw-acc-01: sw-acc-01 no tiene línea base: ejecuta primero «Respaldo de configuración». N
+    TASK [Hay línea base] **********************************************************
+    fatal: [sw-acc-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "sw-acc-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se c
+   sw-acc-01.cfg: NO-EXISTE
+TICKETS FO-LAB-02096 - - - - - FO-LAB-02097 FO-LAB-02099 FO-LAB-02101 FO-LAB-02103 - FO-LAB-02104 FO-LAB-02105 
+--- fin: 2026-11-12T01:53:04-03:00 · código: 0
