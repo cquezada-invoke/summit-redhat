@@ -118,9 +118,59 @@ def _ticket(e, aid, origen=None):
     return None
 
 
+SUB_RED = ("router", "switch", "firewall", "balanceador", "waf", "vpn", "wifi")
+_SUB_RED_SO = (("waf", r"(?i)fortiweb|\bwaf\b|modsecurity|imperva"), ("balanceador", r"(?i)big-?ip|\bf5\b|haproxy|netscaler|citrix adc|nginx|avi"),
+               ("firewall", r"(?i)fortios|fortigate|pan-?os|palo alto|\basa\b|checkpoint|gaia|sophos|pfsense|opnsense|vyos"),
+               ("wifi", r"(?i)aironet|meraki mr|aruba ?os|wlc|unifi"), ("vpn", r"(?i)\bvpn\b|openvpn|wireguard|ipsec"),
+               ("switch", r"(?i)nx-?os|cumulus|sonic|eos\b|comware|switch"))
+
+
+def subcategoria_red(e):
+    """router | switch | firewall | balanceador | waf | vpn | wifi si es un equipo de red; "" si no. Los de tipo «red»
+    (sin subcategoría) se clasifican por su sistema y, si no alcanza, por su nombre (sw-, fw-, lb-, rtr-)."""
+    c = (e.get("categoria") or "").lower()
+    if c in SUB_RED:
+        return c
+    if c != "red":
+        return ""
+    so, n = e.get("so") or "", (e.get("nombre") or "").lower()
+    for sub, rx in _SUB_RED_SO:
+        if re.search(rx, so):
+            return sub
+    for sub, rx in (("switch", r"(^|[-_])sw\d*([-_]|$)"), ("firewall", r"(^|[-_])fw\d*([-_]|$)"), ("balanceador", r"(^|[-_])lb\d*([-_]|$)"),
+                    ("vpn", r"(^|[-_])vpn"), ("wifi", r"(^|[-_])(ap|wlc)\d*([-_]|$)")):
+        if re.search(rx, n):
+            return sub
+    return "router"   # IOS/IOS XE, Junos, MikroTik… sin otra pista: enrutamiento
+
+
+def _red_auto(e, h):
+    """(acción, motivo de bloqueo) de una skill de red; (None, motivo) si la acción aún no existe o no es para su sistema."""
+    so = e.get("so") or ""
+    if h.get("so_accion") and not re.search(h["so_accion"], so):
+        return None, f"acción aún no disponible para {so.split(' ')[0] if so else 'este sistema'}"
+    for n_ in h.get("nombre_aap") or []:
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], n_)
+        if not a:
+            continue
+        a = dict(a)
+        if e.get("estado") == "retirado":
+            return a, "el equipo está retirado"
+        if a["usa_limite"] and a["inventario"] and a["inventario"] not in j(e.get("inventarios"), []):
+            return a, "el equipo no está en el inventario de AAP de esta acción"
+        return a, _motivo_prueba(a)
+    return None, "acción aún no disponible"
+
+
 def _resolver(h, e):
     """La habilidad para esta máquina: con «por_so» toma la acción y los campos del sistema que calce; con
-    «solo_sin_registro» solo si FaceOps sabe que la máquina NO está registrada o licenciada. None si no aplica."""
+    «solo_sin_registro» solo si FaceOps sabe que la máquina NO está registrada o licenciada. None si no aplica.
+    Un equipo de red solo recibe las skills «red» de su subcategoría."""
+    sub = subcategoria_red(e)
+    if h.get("red"):
+        return h if sub and (h["red"] == "todos" or sub in h["red"]) else None
+    if sub:
+        return None
     so = e.get("so") or ""
     if h.get("so") and not re.search(h["so"], so):
         return None
@@ -163,6 +213,20 @@ def habilidades_maquina(e, rep=None):
     for h in mapa():
         h = _resolver(h, e)
         if not h:
+            continue
+        if h.get("red"):   # equipo de red: la skill siempre se muestra; deshabilitada con su motivo si aún no se puede
+            a, bloqueo = _red_auto(e, h)
+            x = {"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"],
+                 "valor": h.get("valor") or "", "ambito": h.get("ambito") or "Red", "auto": a["nombre"] if a else h["nombre_aap"][0],
+                 "aid": a["id"] if a else None, "ui": "", "bloqueo": bloqueo or "", "ticket": None, "escritura": bool(escritura),
+                 "url": url_for("consola.habilidad_ejecutar", eid=e["id"]) if a else "", "campos": h.get("campos") or []}
+            if a and not bloqueo:
+                f_ = _faltan_datos(a, h)
+                if f_:
+                    x["bloqueo"] = "pide datos (" + ", ".join(f_[:2]) + "): lánzala desde Acciones"
+            if a:
+                x["ticket"] = _ticket(e, a["id"], h.get("origen"))
+            out.append(x)
             continue
         a, bloqueo = _auto(e, h)
         if not a and h.get("por_so"):   # la acción de este sistema aún no existe: se muestra deshabilitada con su motivo
@@ -208,9 +272,9 @@ def habilidad_ejecutar(eid):
     h = _resolver(h, e)
     if not h:
         return {"error": "Este skill no aplica a la máquina"}, 400
-    a, bloqueo = _auto(e, h)
+    a, bloqueo = _red_auto(e, h) if h.get("red") else _auto(e, h)
     if not a:
-        return {"error": "Ninguna acción de este skill aplica a la máquina"}, 400
+        return {"error": f"Ninguna acción de este skill aplica a la máquina{': ' + bloqueo if bloqueo else ''}"}, 400
     if bloqueo:
         return {"error": f"«{a['nombre']}» está bloqueada: {bloqueo}"}, 400
     if _faltan_datos(a, h):

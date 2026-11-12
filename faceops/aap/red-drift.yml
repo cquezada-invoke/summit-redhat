@@ -1,0 +1,63 @@
+# Red · Detectar cambios de configuración: compara la configuración vigente del equipo de red con su línea base (el último
+# respaldo en Git: invoke/red-laboratorio, respaldos/<equipo>.cfg, lo deja «Red · Respaldar configuración»). Solo lectura:
+# informa las líneas agregadas y quitadas a mano desde la línea base; no revierte ni cambia nada en el equipo.
+# Sin línea base, falla con el motivo (primero hay que respaldar). Los secretos se comparan por su huella, nunca en claro.
+# Credenciales: «Red · laboratorio (ssh)», «Red · firewall VyOS» y «Gitea · escritura red-laboratorio» (lectura del respaldo).
+# Requiere «Usar caché de facts» en la plantilla (deja faceops_red_drift por equipo).
+- name: Red · Detectar cambios de configuración
+  hosts: all
+  gather_facts: false
+  vars:
+    _repo: "{{ gitea_url | default('http://192.168.122.1:3000') | regex_replace('/+$', '') }}/api/v1/repos/invoke/red-laboratorio/contents/respaldos/{{ inventory_hostname }}.cfg"
+    _gh: {Authorization: "token {{ gitea_token | default('') }}", Accept: application/json}
+  tasks:
+    - name: Línea base en Git
+      ansible.builtin.uri:
+        url: "{{ _repo }}?ref=main"
+        headers: "{{ _gh }}"
+        status_code: [200, 404]
+      register: r_git
+      delegate_to: localhost
+      no_log: true
+      vars: {ansible_connection: local, ansible_python_interpreter: "{{ ansible_playbook_python }}"}
+
+    - name: Hay línea base
+      ansible.builtin.assert:
+        that: r_git.status == 200
+        fail_msg: "{{ inventory_hostname }} no tiene línea base: ejecuta primero «Respaldo de configuración». No se cambió nada."
+        quiet: true
+
+    - name: Leer la configuración vigente
+      ansible.builtin.include_tasks: red-config-leer.yml
+
+    - name: Comparar con la línea base (en el nodo de ejecución)
+      ansible.builtin.command:
+        cmd: "python3 {{ playbook_dir }}/files/red_config.py comparar"
+        stdin: "{{ {'actual': red_cfg.config, 'base': r_git.json.content | b64decode} | to_json }}"
+      delegate_to: localhost
+      register: r_cmp
+      changed_when: false
+      no_log: true
+      vars: {ansible_connection: local, ansible_python_interpreter: "{{ ansible_playbook_python }}"}
+
+    - name: Resultado de la comparación
+      ansible.builtin.set_fact:
+        faceops_red_drift: "{{ (r_cmp.stdout | from_json) | combine({'fecha': now(utc=true).isoformat(), 'sha256': red_cfg.sha256,
+                               'base': 'invoke/red-laboratorio · respaldos/' ~ inventory_hostname ~ '.cfg · ' ~ (r_git.json.last_commit_sha | default(r_git.json.sha))[:10]}) }}"
+        cacheable: true
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{ ('CAMBIOS contra la línea base · +' ~ faceops_red_drift.total_agregadas ~ ' / -' ~ faceops_red_drift.total_quitadas ~ ' líneas')
+             if faceops_red_drift.cambios else 'sin cambios contra la línea base' }}
+
+    - name: Líneas agregadas y quitadas desde la línea base
+      ansible.builtin.debug:
+        msg: "{{ (faceops_red_drift.agregadas | map('regex_replace', '^', '+ ') | list) + (faceops_red_drift.quitadas | map('regex_replace', '^', '- ') | list) }}"
+      when: faceops_red_drift.cambios
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_red_drift: "{{ {inventory_hostname: faceops_red_drift} }}"

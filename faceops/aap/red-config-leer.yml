@@ -1,0 +1,77 @@
+# Lectura de la configuración vigente de un equipo de red (la incluyen «Red · Respaldar configuración» y «Red · Detectar
+# cambios de configuración»). Solo lectura: no cambia nada en el equipo.
+#   · VyOS: colección vyos.vyos por network_cli («show configuration commands»); si la sesión CLI no está disponible,
+#     el mismo comando por SSH (mismo formato, así la línea base no depende del camino).
+#   · FRRouting (routers y switches abiertos): «show running-config» de vtysh y, si es switch, la tabla de VLAN del puente.
+#   · HAProxy: /etc/haproxy/haproxy.cfg.
+# El nodo de ejecución la normaliza (files/red_config.py): secretos enmascarados con su huella, sin líneas variables.
+# Deja red_cfg = {plataforma, config, sha256, lineas, secretos}.
+- name: Configuración · plataforma del equipo
+  ansible.builtin.set_fact:
+    red_plataforma: "{{ 'vyos' if (ansible_network_os | default('')) is search('vyos') else (faceops_plataforma | default('frr')) }}"
+
+- name: Configuración · VyOS con la colección del fabricante (network_cli)
+  vyos.vyos.vyos_command:
+    commands: [show configuration commands]
+  register: r_cfg_fab
+  ignore_errors: true
+  no_log: true
+  when: red_plataforma == 'vyos'
+
+- name: Configuración · lectura por SSH (solo comandos de consulta)
+  ansible.builtin.raw: |
+    S=""; [ "$(id -u)" = 0 ] || S="sudo -n"
+    case "{{ red_plataforma }}" in
+      vyos) /opt/vyatta/bin/vyatta-op-cmd-wrapper show configuration commands ;;
+      haproxy) cat /etc/haproxy/haproxy.cfg ;;
+      *) command -v vtysh >/dev/null 2>&1 || { echo "FACEOPS_ERROR sin vtysh en el equipo" >&2; exit 3; }
+         $S vtysh -c 'show running-config' || exit 4
+         if bridge vlan show >/dev/null 2>&1 && [ -n "$(bridge vlan show 2>/dev/null | tail -n +2)" ]; then
+           echo '! faceops: tabla de VLAN del puente'; bridge vlan show | tail -n +2
+         fi ;;
+    esac
+  register: r_cfg_ssh
+  changed_when: false
+  failed_when: false
+  no_log: true
+  when: red_plataforma != 'vyos' or r_cfg_fab is failed or not (r_cfg_fab.stdout | default([]))
+  vars:
+    ansible_connection: ssh
+    ansible_user: "{{ 'vyos' if red_plataforma == 'vyos' else (red_usuario_ssh | default('root')) }}"
+    ansible_password: ""
+    ansible_ssh_pass: ""
+    ansible_become: false
+
+- name: Configuración · se pudo leer
+  ansible.builtin.assert:
+    that: (r_cfg_ssh is skipped) or (r_cfg_ssh.rc | default(1)) == 0
+    fail_msg: >-
+      No se pudo leer la configuración de {{ inventory_hostname }} ({{ red_plataforma }}):
+      {{ (r_cfg_ssh.stderr | default('') | regex_search('FACEOPS_ERROR.*') or ('código ' ~ (r_cfg_ssh.rc | default('?')))) | replace('FACEOPS_ERROR ', '') }}.
+      No se cambió nada.
+    quiet: true
+
+- name: Configuración · normalizada (en el nodo de ejecución)
+  ansible.builtin.command:
+    cmd: "python3 {{ playbook_dir }}/files/red_config.py normalizar"
+    stdin: >-
+      {{ {'plataforma': red_plataforma,
+          'texto': ((r_cfg_fab.stdout | default([''])) | first) if (r_cfg_ssh is skipped) else r_cfg_ssh.stdout} | to_json }}
+  delegate_to: localhost
+  register: r_cfg_norm
+  changed_when: false
+  no_log: true
+  vars:
+    ansible_connection: local
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+- name: Configuración · lista
+  ansible.builtin.set_fact:
+    red_cfg: "{{ r_cfg_norm.stdout | from_json }}"
+  no_log: true
+
+- name: Configuración · no vacía
+  ansible.builtin.assert:
+    that: red_cfg.lineas | int > 0
+    fail_msg: "La configuración leída de {{ inventory_hostname }} está vacía: no se usa como respaldo ni línea base. No se cambió nada."
+    quiet: true

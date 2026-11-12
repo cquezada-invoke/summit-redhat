@@ -1,0 +1,76 @@
+# Red · Respaldar configuración: lee la configuración vigente del router, switch, firewall o balanceador (sin cambiar nada
+# en el equipo) y la guarda versionada en Git (invoke/red-laboratorio, respaldos/<equipo>.cfg). Ese respaldo es la línea
+# base de «Red · Detectar cambios de configuración». Si la configuración no cambió desde el último respaldo, no crea commit.
+# Los secretos quedan enmascarados con su huella (files/red_config.py): nunca se guardan ni se muestran en claro.
+# Credenciales: «Red · laboratorio (ssh)», «Red · firewall VyOS» y «Gitea · escritura red-laboratorio» (gitea_url, gitea_token).
+# Requiere «Usar caché de facts» en la plantilla (deja faceops_red_respaldo por equipo).
+- name: Red · Respaldar configuración
+  hosts: all
+  gather_facts: false
+  vars:
+    _repo: "{{ gitea_url | default('http://192.168.122.1:3000') | regex_replace('/+$', '') }}/api/v1/repos/invoke/red-laboratorio/contents/respaldos/{{ inventory_hostname }}.cfg"
+    _gh: {Authorization: "token {{ gitea_token | default('') }}", Accept: application/json}
+  tasks:
+    - name: Leer la configuración vigente
+      ansible.builtin.include_tasks: red-config-leer.yml
+
+    - name: Respaldo anterior en Git
+      ansible.builtin.uri:
+        url: "{{ _repo }}?ref=main"
+        headers: "{{ _gh }}"
+        status_code: [200, 404]
+      register: r_git
+      delegate_to: localhost
+      no_log: true
+      vars: {ansible_connection: local, ansible_python_interpreter: "{{ ansible_playbook_python }}"}
+
+    - name: ¿Cambió desde el último respaldo?
+      ansible.builtin.set_fact:
+        red_previo: "{{ (r_git.json.content | b64decode) if r_git.status == 200 else '' }}"
+        red_sha_git: "{{ r_git.json.sha | default('') if r_git.status == 200 else '' }}"
+      no_log: true
+
+    - name: Guardar el respaldo en Git
+      ansible.builtin.uri:
+        url: "{{ _repo }}"
+        method: "{{ 'PUT' if red_sha_git | length else 'POST' }}"
+        headers: "{{ _gh }}"
+        body_format: json
+        status_code: [200, 201]
+        body: >-
+          {{ {'branch': 'main',
+              'message': 'Respaldo de ' ~ inventory_hostname ~ ' (' ~ red_cfg.plataforma ~ ', ' ~ red_cfg.lineas ~ ' líneas)'
+                         ~ ((' · ticket ' ~ faceops_ticket) if faceops_ticket is defined else ''),
+              'author': {'name': 'Ansible Automation Platform', 'email': 'aap@invoke.cl'},
+              'content': red_cfg.config | b64encode}
+             | combine({'sha': red_sha_git} if red_sha_git | length else {}) }}
+      register: r_put
+      when: red_previo != red_cfg.config
+      changed_when: true
+      delegate_to: localhost
+      no_log: true
+      vars: {ansible_connection: local, ansible_python_interpreter: "{{ ansible_playbook_python }}"}
+
+    - name: Respaldo en la caché de facts de AAP
+      ansible.builtin.set_fact:
+        faceops_red_respaldo:
+          fecha: "{{ now(utc=true).isoformat() }}"
+          sha256: "{{ red_cfg.sha256 }}"
+          lineas: "{{ red_cfg.lineas }}"
+          secretos_enmascarados: "{{ red_cfg.secretos }}"
+          git: "invoke/red-laboratorio · respaldos/{{ inventory_hostname }}.cfg"
+          commit: "{{ (r_put.json.commit.sha | default(''))[:10] if r_put is not skipped else 'sin cambios' }}"
+        cacheable: true
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{ red_cfg.plataforma }} · {{ red_cfg.lineas }} líneas
+          ({{ red_cfg.secretos }} secretos enmascarados) ·
+          {{ ('nuevo respaldo ' ~ faceops_red_respaldo.commit) if r_put is not skipped else 'sin cambios desde el último respaldo' }}
+          · sha256 {{ red_cfg.sha256[:12] }}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_red_respaldo: "{{ {inventory_hostname: faceops_red_respaldo} }}"

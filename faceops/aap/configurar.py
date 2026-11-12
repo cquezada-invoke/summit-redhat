@@ -175,6 +175,9 @@ os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(f"{AQUI}/red-inventariar.yml", f"{tmp}/playbooks/red-inventariar.yml")   # Red · Inventariar equipo de red
 for f_ in ("red-lectura.sh", "red_normalizar.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
+for f_ in ("red-respaldo.yml", "red-drift.yml", "red-config-leer.yml"):   # Red · Respaldar configuración / Detectar cambios
+    shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
+shutil.copy(f"{AQUI}/files/red_config.py", f"{tmp}/playbooks/files/red_config.py")
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
 shutil.copy(f"{AQUI}/escaneo-servidores.yml", f"{tmp}/playbooks/escaneo-servidores.yml")
@@ -748,6 +751,22 @@ if inv_red:
         if c_ and c_["id"] not in ya_r:
             aap("POST", f"job_templates/{jrd['id']}/credentials/", {"id": c_["id"]})
     paso(f"Plantilla «Red · Inventariar equipo de red» (id {jrd['id']})")
+    # Red · Respaldar configuración y Red · Detectar cambios de configuración: respaldo versionado en Git (invoke/red-laboratorio)
+    for n_jt, pb_, desc_ in (("Red · Respaldar configuración", "red-respaldo.yml",
+                              "Lee la configuración del equipo de red (sin cambiarla) y la guarda versionada en Git, con los secretos enmascarados"),
+                             ("Red · Detectar cambios de configuración", "red-drift.yml",
+                              "Solo lectura: compara la configuración vigente del equipo de red con su línea base (último respaldo en Git)")):
+        jt_ = asegurar("job_templates", n_jt, {
+            "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_}", "inventory": inv_red["id"],
+            "execution_environment": ee["id"], "use_fact_cache": True, "ask_limit_on_launch": True, "ask_variables_on_launch": True,
+            "forks": 10, "description": desc_})
+        ya_ = {c["id"] for c in aap("GET", f"job_templates/{jt_['id']}/credentials/")["results"]}
+        for n_ in ("Red · laboratorio (ssh)", "Red · firewall VyOS", "Gitea · escritura red-laboratorio"):
+            c_ = uno("credentials", name=n_)
+            if c_ and c_["id"] not in ya_:
+                aap("POST", f"job_templates/{jt_['id']}/credentials/", {"id": c_["id"]})
+        paso(f"Plantilla «{n_jt}» (id {jt_['id']})")
+
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)
 jch = asegurar("job_templates", "Sistema · Cambio de hora del país", {

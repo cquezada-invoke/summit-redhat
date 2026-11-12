@@ -38,6 +38,20 @@ planes:
       - {id: C5, caso: "Ficha del equipo en FaceOps", verificar: "la ficha muestra plataforma, modelo, uptime, interfaces, VLAN, vecinos, rutas, BGP o balanceo; no muestra CPU, discos, usuarios ni puntos de restauración"}
       - {id: C6, caso: "Repetir la lectura", verificar: "solo lectura e idempotente: el equipo no cambia (sin changed), mismos conteos de interfaces y rutas"}
       - {id: C7, caso: "Equipo que no responde (borde, laboratorio detenido)", verificar: "FaceOps no lanza nada y avisa que el equipo está apagado; no se toca el equipo y su ficha anterior se conserva"}
+S  "Red · Respaldar configuración":
+    casos:
+      - {id: C1, caso: "Firewall VyOS (fw): colección vyos.vyos por network_cli", verificar: "ticket exitoso; respaldos/fw.cfg en Git (invoke/red-laboratorio) con «set …» del VyOS; ninguna clave en claro (secretos como <oculto:huella>); faceops_red_respaldo en set_stats con líneas y sha256"}
+      - {id: C2, caso: "Router FRR (rtr-wan-01) y switch FRR con VLAN (sw-core-01)", verificar: "tickets exitosos; respaldos con el running-config de vtysh (BGP en el router) y la tabla de VLAN del puente en el switch"}
+      - {id: C3, caso: "Balanceador HAProxy (lb-sede-01)", verificar: "ticket exitoso; respaldos/lb-sede-01.cfg con frontends y backends de haproxy.cfg"}
+      - {id: C4, caso: "Repetir el respaldo del firewall sin cambios", tipo: Idempotencia, verificar: "ticket exitoso «sin cambios desde el último respaldo»; no se crea commit nuevo en Git; el equipo no cambia"}
+      - {id: C5, caso: "Equipo sin configuración legible (suc1: no expone vtysh por SSH)", tipo: Error controlado, verificar: "ticket fallido con «No se pudo leer la configuración … No se cambió nada»; no se crea respaldos/suc1.cfg"}
+  "Red · Detectar cambios de configuración":
+    casos:
+      - {id: C1, caso: "Router FRR (rtr-wan-01) recién respaldado", verificar: "ticket exitoso «sin cambios contra la línea base»; faceops_red_drift.cambios = false"}
+      - {id: C2, caso: "Línea base distinta de la configuración vigente (se quita una línea del respaldo en Git para simular un cambio hecho a mano)", verificar: "ticket exitoso con CAMBIOS: la línea aparece como agregada (+1 / -0); el equipo no cambia"}
+      - {id: C3, caso: "Firewall VyOS (fw) y balanceador HAProxy (lb-sede-01) contra su respaldo", verificar: "tickets exitosos sin cambios; ningún secreto en claro en la salida"}
+      - {id: C4, caso: "Repetir tras restablecer la línea base (nuevo respaldo)", tipo: Idempotencia, verificar: "ticket exitoso sin cambios; solo lectura"}
+      - {id: C5, caso: "Equipo sin línea base (sw-acc-01 sin respaldo previo)", tipo: Error controlado, verificar: "ticket fallido «no tiene línea base: ejecuta primero «Respaldo de configuración»»; no se toca el equipo ni Git"}
   "Políticas de desarrollo · Evaluar aplicaciones":
     casos:
       - {id: C1, caso: "Evaluar todo el parque (con máquinas apagadas)", verificar: "ticket exitoso; las apagadas quedan fuera; aparecen las aplicaciones de JBoss (nodo-jboss, nodo-jboss-dev) y de IIS (srv-pn-win-01) con su plataforma y producto"}

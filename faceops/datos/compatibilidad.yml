@@ -8,6 +8,7 @@ reglas:   # (patrón sobre el nombre en AAP, compatibilidad) — gana la primera
   - ["^SQL Server · (Levantamiento|Configurar alta|Conmutar)", {sistemas: [linux], tipos: [servidor], skills: [sqlserver]}]
   - ["^Certificados · OpenShift", {tipos: [clúster openshift]}]
   - ["^Windows ·|^Monitoreo · Exportador en Windows|^Remediación · IIS|^Drift · Windows|^DC · Active Directory", {sistemas: [windows], tipos: [servidor]}]
+  - ["^Red · (Respaldar configuración|Detectar cambios de configuración)", {tipos: [router, switch, firewall, balanceador]}]
   - ["^Red · Configurar VLAN", {tipos: [firewall, router], red: [vyos, fortios]}]
   - ["^Red · (Aplicar configuración|Verificar drift|Actualizar firmware)|^Plataforma · Actualizar firmware", {tipos: [router, firewall, switch], red: [frr, vyos, fortios]}]
   - ["^Red · (Bloquear IP|Solicitar acceso|Revocar acceso|Revocar accesos vencidos)|^FaceOps · Acceso de red", {tipos: [firewall], red: [vyos, fortios]}]

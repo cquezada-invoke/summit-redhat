@@ -12,6 +12,11 @@
 # Una habilidad se muestra si su automatización aplica a la máquina (misma regla de la ficha: sistema, plataformas
 # instaladas, inventario de AAP; ámbito en datos/skills-ambito.yml). Si aplica pero no está certificada (regla de prueba,
 # app/pruebas.py) se muestra deshabilitada con su motivo. Todo se ejecuta vía AAP con ticket y aprobación.
+# Equipos de red: «red» lista las subcategorías a las que aplica (todos | router, switch, firewall, balanceador, waf, vpn,
+# wifi; la subcategoría sale del tipo del equipo o, en los de tipo «red», de su sistema: FortiOS/PAN-OS → firewall,
+# F5 BIG-IP/HAProxy → balanceador…). Un equipo de red solo muestra las skills de su categoría. «so_accion»: sistemas donde
+# la acción del catálogo funciona hoy; en los demás, y si la acción aún no existe, se muestra deshabilitada con el motivo
+# «acción aún no disponible».
 habilidades:
   # ── Migraciones (diferenciadores)
   - id: centos-rhel
@@ -310,3 +315,160 @@ habilidades:
     valor: Parches del sistema y de la capa de virtualización con ventana y apagado o traslado ordenado de las máquinas.
     nombre_aap: ["Infra · Parchear anfitrión"]
   # ── Equipos de red (ámbito «Red · …»): primero las de todos los equipos, luego las de cada categoría
+  - id: red-respaldo
+    tipo: quick win
+    red: todos
+    grupo: Todos los equipos de red
+    ambito: Red · Configuración
+    nombre: Respaldo de configuración
+    valor: Guarda la configuración vigente versionada en Git, con los secretos enmascarados; es la línea base del equipo.
+    nombre_aap: ["Red · Respaldar configuración"]
+    so_accion: "(?i)vyos|frrouting|haproxy"
+  - id: red-drift
+    tipo: diferenciador
+    red: todos
+    grupo: Todos los equipos de red
+    ambito: Red · Configuración
+    nombre: Detección de cambios (drift) contra la línea base
+    valor: Muestra lo que se cambió a mano desde el último respaldo, línea por línea, sin tocar el equipo.
+    nombre_aap: ["Red · Detectar cambios de configuración"]
+    so_accion: "(?i)vyos|frrouting|haproxy"
+  - id: red-cis
+    tipo: diferenciador
+    red: todos
+    grupo: Todos los equipos de red
+    ambito: Red · Seguridad
+    nombre: Cumplimiento CIS
+    valor: Contrasta la configuración con el benchmark CIS del fabricante y deja las brechas priorizadas.
+    nombre_aap: ["Red · Cumplimiento CIS"]
+  - id: red-firmware
+    tipo: diferenciador
+    red: todos
+    grupo: Todos los equipos de red
+    ambito: Red · Firmware
+    nombre: Actualización de firmware (evaluar y aplicar)
+    valor: Evalúa la versión contra la recomendada del fabricante y la aplica en ventana, con respaldo previo y vuelta atrás.
+    nombre_aap: ["Red · Actualizar firmware"]
+  - id: red-inventario
+    tipo: quick win
+    red: todos
+    grupo: Todos los equipos de red
+    ambito: Red · Topología
+    nombre: Inventario de interfaces y vecinos (LLDP/CDP)
+    valor: Lee interfaces con su estado, IP y VLAN y los vecinos LLDP/CDP, y los deja en la ficha (solo lectura).
+    nombre_aap: ["Red · Inventariar equipo de red"]
+    so_accion: "(?i)vyos|frrouting|haproxy"
+  - id: fw-auditoria
+    tipo: diferenciador
+    red: [firewall, waf]
+    grupo: Firewall
+    ambito: Red · Reglas
+    nombre: Auditoría de reglas
+    valor: Encuentra reglas sin uso, sombreadas o demasiado permisivas y propone su limpieza.
+    nombre_aap: ["Red · Auditar reglas de firewall"]
+  - id: fw-abrir-puerto
+    tipo: diferenciador
+    red: [firewall]
+    grupo: Firewall
+    ambito: Red · Reglas
+    nombre: Abrir puerto con ticket y expiración
+    valor: Abre el acceso pedido con su ticket y lo cierra solo al vencer; queda registrado en Git.
+    nombre_aap: ["Red · Solicitar acceso con aprobación"]
+    so_accion: "(?i)vyos"
+    sin_limite: true   # la acción aplica la regla en los firewalls del laboratorio (grupo «firewall»)
+    campos:
+      - {var: acceso_origen, etiqueta: "Desde dónde (red o alias)", tipo: text, requerido: true, ayuda: "p. ej. 10.40.40.0/24"}
+      - {var: acceso_destino, etiqueta: "Destino (IP)", tipo: text, requerido: true}
+      - {var: acceso_puerto, etiqueta: "Puertos", tipo: text, requerido: true, ayuda: "p. ej. 443 o 8080,8443"}
+      - {var: acceso_vigente_hasta, etiqueta: "Vigente hasta (AAAA-MM-DD)", tipo: text, requerido: true}
+  - id: fw-bloquear-ip
+    tipo: quick win
+    red: [firewall, waf]
+    grupo: Firewall
+    ambito: Red · Seguridad
+    nombre: Bloquear IP
+    valor: Bloquea una IP sospechosa en el firewall y abre el incidente con la evidencia.
+    nombre_aap: ["Red · Bloquear IP"]
+  - id: lb-drenaje
+    tipo: diferenciador
+    red: [balanceador]
+    grupo: Balanceador
+    ambito: Red · Balanceo
+    nombre: Agregar o retirar miembro del pool (drenaje)
+    valor: Saca un backend del pool drenando sus conexiones, o lo suma, sin cortar el servicio.
+    nombre_aap: ["Red · Miembro del pool"]
+  - id: lb-certificado
+    tipo: quick win
+    red: [balanceador, waf]
+    grupo: Balanceador
+    ambito: Red · Balanceo
+    nombre: Renovar certificado del VIP
+    valor: Renueva el certificado TLS del servicio publicado antes de que venza, sin corte.
+    nombre_aap: ["Red · Renovar certificado del VIP"]
+  - id: lb-salud
+    tipo: quick win
+    red: [balanceador]
+    grupo: Balanceador
+    ambito: Red · Balanceo
+    nombre: Ver salud de los backends
+    valor: Lee frontends y backends con el estado de chequeo de cada servidor y lo deja en la ficha (solo lectura).
+    nombre_aap: ["Red · Inventariar equipo de red"]
+    so_accion: "(?i)haproxy"
+  - id: sw-vlan
+    tipo: quick win
+    red: [switch]
+    grupo: Switch
+    ambito: Red · VLAN y puertos
+    nombre: VLANs (crear o asignar)
+    valor: Crea la VLAN o la asigna a un puerto, con verificación y registro en Git.
+    nombre_aap: ["Red · Configurar VLAN"]
+    so_accion: "(?i)vyos|fortios"
+  - id: sw-puertos-sin-uso
+    tipo: quick win
+    red: [switch]
+    grupo: Switch
+    ambito: Red · VLAN y puertos
+    nombre: Puertos sin uso
+    valor: Lista los puertos sin enlace ni tráfico en el período para recuperarlos o cerrarlos.
+    nombre_aap: ["Red · Puertos sin uso"]
+  - id: sw-plantilla
+    tipo: diferenciador
+    red: [switch]
+    grupo: Switch
+    ambito: Red · VLAN y puertos
+    nombre: Aplicar plantilla de puerto
+    valor: Deja el puerto con la plantilla estándar (acceso, troncal, seguridad de puerto) en un solo paso.
+    nombre_aap: ["Red · Aplicar plantilla de puerto"]
+  - id: rt-rutas
+    tipo: quick win
+    red: [router]
+    grupo: Router
+    ambito: Red · Enrutamiento
+    nombre: Rutas y vecinos BGP/OSPF
+    valor: Lee la tabla de rutas por protocolo y el estado de las sesiones BGP/OSPF (solo lectura).
+    nombre_aap: ["Red · Inventariar equipo de red"]
+    so_accion: "(?i)frrouting"
+  - id: rt-conectividad
+    tipo: quick win
+    red: [router]
+    grupo: Router
+    ambito: Red · Enrutamiento
+    nombre: Prueba de conectividad o MTR
+    valor: Mide alcance, latencia y pérdida salto a salto hacia un destino desde el router.
+    nombre_aap: ["Red · Prueba de conectividad"]
+  - id: vpn-tuneles
+    tipo: quick win
+    red: [vpn]
+    grupo: VPN
+    ambito: Red · VPN
+    nombre: Estado de túneles
+    valor: Muestra cada túnel con su estado, fase y tráfico, y avisa los caídos.
+    nombre_aap: ["Red · Estado de túneles VPN"]
+  - id: vpn-rotar
+    tipo: diferenciador
+    red: [vpn]
+    grupo: VPN
+    ambito: Red · VPN
+    nombre: Rotar PSK o certificados
+    valor: Rota la clave compartida o el certificado del túnel en ambos extremos, sin corte.
+    nombre_aap: ["Red · Rotar PSK o certificados"]
