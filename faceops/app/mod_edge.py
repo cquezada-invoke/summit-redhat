@@ -450,15 +450,28 @@ def puerto_en(p, lista):
     return norm_puerto(p) in {norm_puerto(x) for x in lista}
 
 
+def _junto(xf, yf, xo, yo, d=24, lado=11):
+    """Punto para el rótulo de un extremo: a d px del extremo (xf, yf) hacia el otro y corrido «lado» px en perpendicular."""
+    import math
+    dx, dy = xo - xf, yo - yf
+    L = math.hypot(dx, dy) or 1
+    ux, uy = dx / L, dy / L
+    return round(xf + ux * d - uy * lado, 1), round(yf + uy * d + ux * lado, 1)
+
+
 def conector(cajas_d, a, b, pa="", pb="", puertos=None):
+    """Flecha de a (origen: quien inicia la conexión) a b (destino: quien escucha), con la punta en el borde del destino y
+    «:puerto» junto a cada extremo que lo tenga."""
     ca, cb = cajas_d[a], cajas_d[b]
     x1, y1 = _recorte(ca, cb["x"] + cb["w"] / 2, cb["y"] + cb["h"] / 2)
     x2, y2 = _recorte(cb, ca["x"] + ca["w"] / 2, ca["y"] + ca["h"] / 2)
     tunel = a in MALLA and b in MALLA
     cerrado = bool(pb) and puertos is not None and not puerto_en(pb, puertos.get(b) or [])
-    txt = f"{pa or '·'} → {pb}" if pb else (f"{pa} →" if pa else ("malla 27199/tcp" if tunel else ""))
+    lb, la = _junto(x2, y2, x1, y1), _junto(x1, y1, x2, y2)
     return {"a": a, "b": b, "pa": pa, "pb": pb, "x1": x1, "y1": y1, "x2": x2, "y2": y2, "tunel": tunel, "cerrado": cerrado,
-            "txt": txt + (" · puerto cerrado" if cerrado else ""), "clave": f"{a}>{b}:{norm_puerto(pb)}" if cerrado else ""}
+            "tb": (f":{pb}" + (" · cerrado" if cerrado else "")) if pb else "", "tbx": lb[0], "tby": lb[1],
+            "ta": f":{pa}" if pa else "", "tax": la[0], "tay": la[1], "tm": "malla" if tunel else "",
+            "txt": (f"{pa or '·'} → {pb}" if pb else "") + (" · puerto cerrado" if cerrado else ""), "clave": f"{a}>{b}:{norm_puerto(pb)}" if cerrado else ""}
 
 
 def topologia(s):
@@ -494,14 +507,14 @@ def diagrama(s, eqs, m, pcts, disps=(), vis=()):
         hp = nodo_pct(s["hop"])
         t_, _, _ = estado_nodo(m, s["hop"])
         _, h_top, h_bot = caja("hop", cx - 150, y, 300, BH, s["hop"], f"hop node · DMZ · {t_}", hp, mono=True)
-        pares.append(("hop", sube))
+        pares.append(("hop", sube, "", "27199/tcp"))   # el hop inicia hacia la central (receptor de la malla)
         sube, y = "hop", h_bot + 52
     marco_y = y
     y += 34
     en_p = nodo_pct(s["nodo"])
     t_en, _, _ = estado_nodo(m, s["nodo"])
     _, en_top, en_bot = caja("en", cx - 150, y, 300, BH, s["nodo"] or "sin execution node", f"execution node · {t_en}", en_p, mono=True)
-    pares.append(("en", sube))
+    pares.append(("en", sube, "", "27199/tcp"))   # la conexión la inicia el sitio
     y = en_bot + 46
     ubq = s.get("ubic_eq_d") or {}
     secciones = []
@@ -531,7 +544,7 @@ def diagrama(s, eqs, m, pcts, disps=(), vis=()):
                     pc = pcts.get(e["id"])
                     caja(f"eq-{e['id']}", bx, y, BW, BH, e["nombre"], f"{e.get('ip') or 'sin IP'} · {proto}", pc, url=url_for("consola.equipo", eid=e["id"]),
                          info=f"{e['nombre']} · {e.get('categoria') or 'servidor'} · {e.get('so') or ''} · salud {pc if pc is not None else '—'} %")
-                    pares.append(("en", f"eq-{e['id']}"))
+                    pares.append(("en", f"eq-{e['id']}", "", "5986/tcp" if win else "22/tcp"))   # AAP entra por SSH o WinRM
                 else:
                     est = (e.get("est") or ("", "", ""))[0]
                     pc = 100 if est == "Responde" else (0 if est == "No responde" else None)
@@ -555,7 +568,7 @@ def diagrama(s, eqs, m, pcts, disps=(), vis=()):
                 caja(nid, 40, y, BW, BH, e["nombre"], f"{e.get('ip') or 'sin IP'} · fuera del sitio", pc, url=url_for("consola.equipo", eid=e["id"]),
                      info=f"{e['nombre']} · {e.get('categoria') or 'servidor'} · agregado al diagrama (no pertenece al sitio)")
                 cajas[-1]["extra"] = True
-                pares.append(("en", nid))
+                pares.append(("en", nid, "", "22/tcp"))
     cd = {c["id"]: c for c in cajas}
     if topo:
         pos = topo.get("nodos") or {}
@@ -566,7 +579,7 @@ def diagrama(s, eqs, m, pcts, disps=(), vis=()):
         en_con = {n for x in topo["conexiones"] for n in x[:2]}
         nuevos = {nid for nid in cd if nid not in pos and nid not in en_con}
         pares = [tuple((list(x) + ["", ""])[:4]) for x in topo["conexiones"] if len(x) >= 2 and x[0] in cd and x[1] in cd] + \
-                [(a, b, "", "") for a, b in pares if b in nuevos or a in nuevos]
+                [tuple((list(x) + ["", ""])[:4]) for x in pares if x[1] in nuevos or x[0] in nuevos]
         textos = []   # los rótulos de sección valen solo para la disposición automática
         y = max([c["y"] + c["h"] for c in cajas if c["id"] not in ("central", "hop")] + [y - 46]) + 46
     pmap = puertos_nodos(cajas, eqs, disps, vis)

@@ -31,13 +31,13 @@
 </div>
 
 <div class="card" style="margin-top:6px" id="diagrama"><div class="fila" style="flex-wrap:wrap;gap:8px"><h2 style="margin:0">Arquitectura del sitio</h2><span class="sub der" style="font-size:12px" id="ed-dg-nota">desde el inventario del sitio · clic en un equipo abre su ficha</span>
-{% if esc %}<span class="ed-ebar"><button type="button" class="btn chico gris" id="ed-editar">Editar diagrama</button><span id="ed-ebtn" hidden><button type="button" class="btn chico gris" id="ed-agregar">+ Agregar equipo</button> <button type="button" class="btn chico gris" id="ed-quitar" disabled title="Selecciona un equipo o dispositivo en el diagrama">Quitar del sitio</button> <button type="button" class="btn chico gris" id="ed-puertos" disabled>Puertos…</button> <button type="button" class="btn chico gris" id="ed-borrar" disabled>Eliminar conexión</button> <button type="button" class="btn chico" id="ed-guardar">Guardar</button> <button type="button" class="btn chico gris" id="ed-cancelar">Cancelar</button></span></span>{% endif %}</div>
+{% if esc %}<span class="ed-ebar"><button type="button" class="btn chico gris" id="ed-editar">Editar diagrama</button><span id="ed-ebtn" hidden><button type="button" class="btn chico gris" id="ed-agregar">+ Agregar equipo</button> <button type="button" class="btn chico gris" id="ed-quitar" disabled title="Selecciona un equipo o dispositivo en el diagrama">Quitar del sitio</button> <button type="button" class="btn chico gris" id="ed-puertos" disabled>Puertos…</button> <button type="button" class="btn chico gris" id="ed-invertir" disabled title="Da vuelta la flecha de la conexión seleccionada">⇄ Invertir</button> <button type="button" class="btn chico gris" id="ed-borrar" disabled>Eliminar conexión</button> <button type="button" class="btn chico" id="ed-guardar">Guardar</button> <button type="button" class="btn chico gris" id="ed-cancelar">Cancelar</button></span></span>{% endif %}</div>
 <p class="sub" id="ed-ayuda" hidden style="font-size:12.5px;margin:6px 0 0">Arrastra un nodo para moverlo · arrastra desde el punto azul de un nodo hasta otro para conectarlos y elige el puerto de cada extremo · clic en una conexión para seleccionarla: cambia sus puertos, arrastra sus extremos a otro nodo para reconectarla o elimínala · «+ Agregar equipo» asigna al sitio una máquina o dispositivo que ya existe en el inventario · clic en un nodo y «Quitar del sitio» (o Supr) lo desvincula sin borrarlo del inventario. Es documentación del inventario: no cambia la red real.</p>
 <div class="ed-dg-ley sub"><span><i class="t-ok"></i>≥ 85 %</span><span><i class="t-med"></i>50–84 %</span><span><i class="t-mal"></i>&lt; 50 %</span><span><i class="t-nd"></i>sin lectura</span><span><i class="ed-tun"></i>túnel de la malla</span></div>
 <div class="ed-dg"><svg id="ed-svg" viewBox="0 0 {{ diag.w }} {{ diag.h }}" role="img" aria-label="Arquitectura del sitio {{ s.codigo }}" style="min-width:640px">
-<defs><marker id="ed-flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ed-fl"/></marker></defs>
+<defs><marker id="ed-flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ed-fl"/></marker><marker id="ed-flecha-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ed-fl-n"/></marker><marker id="ed-flecha-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ed-fl-c"/></marker></defs>
 {% set mc = diag.marco %}<rect id="ed-marco" x="{{ mc.x }}" y="{{ mc.y }}" width="{{ mc.w }}" height="{{ mc.h }}" rx="10" class="ed-marco"/><text x="{{ mc.x + 14 }}" y="{{ mc.y + 20 }}" class="ed-mtx">{{ mc.txt }}</text>
-<g id="ed-lns">{% for l in diag.lineas %}<line x1="{{ l.x1 }}" y1="{{ l.y1 }}" x2="{{ l.x2 }}" y2="{{ l.y2 }}" class="{{ 'ed-cerrado' if l.cerrado else ('ed-tunel' if l.tunel else 'ed-con') }}" {% if l.tunel or l.pb %}marker-end="url(#ed-flecha)"{% endif %} />{% if l.txt %}<text x="{{ (l.x1 + l.x2) / 2 + 10 }}" y="{{ (l.y1 + l.y2) / 2 + 4 }}" class="ed-ltx{{ ' ed-ltx-c' if l.cerrado }}">{{ l.txt }}</text>{% endif %}{% endfor %}</g>
+<g id="ed-lns">{% for l in diag.lineas %}<line x1="{{ l.x1 }}" y1="{{ l.y1 }}" x2="{{ l.x2 }}" y2="{{ l.y2 }}" class="{{ 'ed-cerrado' if l.cerrado else ('ed-tunel' if l.tunel else 'ed-con') }}" marker-end="url(#{{ 'ed-flecha-c' if l.cerrado else ('ed-flecha' if l.tunel else 'ed-flecha-n') }})" />{% if l.tm %}<text x="{{ (l.x1 + l.x2) / 2 + 10 }}" y="{{ (l.y1 + l.y2) / 2 + 4 }}" class="ed-ltx">{{ l.tm }}</text>{% endif %}{% if l.tb %}<text x="{{ l.tbx }}" y="{{ l.tby }}" text-anchor="middle" class="ed-ltx ed-lp{{ ' ed-ltx-c' if l.cerrado }}">{{ l.tb }}</text>{% endif %}{% if l.ta %}<text x="{{ l.tax }}" y="{{ l.tay }}" text-anchor="middle" class="ed-ltx ed-lp ed-lpa">{{ l.ta }}</text>{% endif %}{% endfor %}</g>
 {% for t in diag.textos %}<text x="{{ t.x }}" y="{{ t.y }}" class="ed-stx" {% if t.centro %}text-anchor="middle"{% endif %}>{{ t.txt }}</text>{% endfor %}
 {% for c in diag.cajas %}{% if c.url %}<a href="{{ c.url }}" class="ed-link">{% endif %}<g class="ed-caja t-{{ c.tono }}" data-id="{{ c.id }}"><title>{{ c.info or c.tit_full }}</title>
 <rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" rx="7"/>
@@ -73,6 +73,7 @@
 .ed-hit{stroke:transparent;stroke-width:12;cursor:pointer}.ed-sel{stroke:var(--warn) !important;stroke-width:3 !important;opacity:1 !important}
 .ed-h{fill:var(--info,#2b9af3);stroke:var(--panel);stroke-width:2;cursor:crosshair}.ed-ep{fill:var(--warn);stroke:var(--panel);stroke-width:2;cursor:grab}
 .ed-tmp{stroke:var(--warn);stroke-width:2;stroke-dasharray:4 4}.ed-nsel rect{stroke:var(--warn)!important;stroke-width:3!important}.ed-lista button:disabled{opacity:.5;cursor:not-allowed}
+.ed-fl-n{fill:var(--muted)}.ed-fl-c{fill:var(--bad)}.ed-lp{font-weight:600;paint-order:stroke;stroke:var(--panel);stroke-width:3px}.ed-lpa{fill:var(--muted)}.ed-con{opacity:.8 !important}
 .ed-cerrado{stroke:var(--bad);stroke-width:2;stroke-dasharray:5 4}.ed-ltx-c{fill:var(--bad)}.ed-cerr{margin-top:10px;border:1px solid var(--bad);border-radius:8px;padding:8px 10px;background:var(--badbg)}
 .ed-panel{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:8px}
 .ed-panel .fila{gap:8px;flex-wrap:wrap;align-items:flex-end}.ed-panel label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;min-width:180px;flex:1}
@@ -88,19 +89,26 @@ const esc_=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;'
 const pt=ev=>{const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
 const clip=(n,ox,oy)=>{const cx=n.x+n.w/2,cy=n.y+n.h/2,dx=ox-cx,dy=oy-cy;if(!dx&&!dy)return[cx,cy];const t=Math.min(dx?n.w/2/Math.abs(dx):1e9,dy?n.h/2/Math.abs(dy):1e9);return[cx+dx*t,cy+dy*t];};
 const ctr=n=>[n.x+n.w/2,n.y+n.h/2],nombre=k=>D.nombres[k]||k;
+const junto=(xf,yf,xo,yo,d=24,lado=11)=>{const dx=xo-xf,dy=yo-yf,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;return[xf+ux*d-uy*lado,yf+uy*d+ux*lado];};
+/* dirección: va del que inicia (cliente) al que escucha (servidor). Si el destino no tiene puertos en escucha conocidos y el
+   origen sí, se invierte; «Invertir» la da vuelta a mano (puertos incluidos) */
+const invertir=i=>{const c=C[i];C[i]=[c[1],c[0],c[3]||'',c[2]||''];};
+const inferir=i=>{const c=C[i];if(!(D.puertos[c[1]]||[]).length&&(D.puertos[c[0]]||[]).length)invertir(i);};
 const np=p=>{p=(p||'').trim().toLowerCase();return /^\d+$/.test(p)?p+'/tcp':p;};
 const abierto=(k,p)=>(D.puertos[k]||[]).map(np).includes(np(p));
 const enNodo=(p,excl)=>Object.keys(N).find(k=>k!==excl&&p.x>=N[k].x&&p.x<=N[k].x+N[k].w&&p.y>=N[k].y&&p.y<=N[k].y+N[k].h);
 function pintar(){lns.innerHTML='';hdl.innerHTML='';
  C.forEach((c,i)=>{const a=N[c[0]],b=N[c[1]];if(!a||!b)return;const[x1,y1]=clip(a,...ctr(b)),[x2,y2]=clip(b,...ctr(a)),tun=MALLA.includes(c[0])&&MALLA.includes(c[1]),pa=c[2]||'',pb=c[3]||'',cer=!!pb&&!abierto(c[1],pb);
-  const l=el('line',{x1,y1,x2,y2,class:(cer?'ed-cerrado':(tun?'ed-tunel':'ed-con'))+(i===sel?' ed-sel':'')});if(tun||pb)l.setAttribute('marker-end','url(#ed-flecha)');lns.appendChild(l);
-  const tx=pb?(pa||'·')+' → '+pb:(pa?pa+' →':(tun?'malla 27199/tcp':''));
-  if(tx){const t=el('text',{x:(x1+x2)/2+10,y:(y1+y2)/2+4,class:'ed-ltx'+(cer?' ed-ltx-c':'')});t.textContent=tx+(cer?' · puerto cerrado':'');lns.appendChild(t);}
+  const l=el('line',{x1,y1,x2,y2,class:(cer?'ed-cerrado':(tun?'ed-tunel':'ed-con'))+(i===sel?' ed-sel':''),'marker-end':'url(#'+(cer?'ed-flecha-c':(tun?'ed-flecha':'ed-flecha-n'))+')'});lns.appendChild(l);
+  const rot=(tx,x,y,cl)=>{const t=el('text',{x,y,'text-anchor':'middle',class:cl});t.textContent=tx;lns.appendChild(t);};
+  if(tun)rot('malla',(x1+x2)/2+24,(y1+y2)/2+4,'ed-ltx');
+  if(pb){const[px,py]=junto(x2,y2,x1,y1);rot(':'+pb+(cer?' · cerrado':''),px,py,'ed-ltx ed-lp'+(cer?' ed-ltx-c':''));}
+  if(pa){const[px,py]=junto(x1,y1,x2,y2);rot(':'+pa,px,py,'ed-ltx ed-lp ed-lpa');}
   if(ed){lns.appendChild(el('line',{x1,y1,x2,y2,class:'ed-hit','data-i':i}));
    if(i===sel){hdl.appendChild(el('circle',{cx:x1,cy:y1,r:7,class:'ed-ep','data-i':i,'data-end':0}));hdl.appendChild(el('circle',{cx:x2,cy:y2,r:7,class:'ed-ep','data-i':i,'data-end':1}));}}});
  svg.querySelectorAll('g.ed-caja').forEach(g=>{const n=N[g.dataset.id];if(n)g.setAttribute('transform','translate('+(n.x-O[g.dataset.id].x)+' '+(n.y-O[g.dataset.id].y)+')');});
  if(ed)Object.keys(N).forEach(k=>hdl.insertBefore(el('circle',{cx:N[k].x+N[k].w/2,cy:N[k].y+N[k].h,r:6,class:'ed-h','data-n':k}),hdl.firstChild));
- btB.disabled=btP.disabled=sel<0;$('ed-quitar').disabled=!selN||MALLA.includes(selN);
+ btB.disabled=btP.disabled=$('ed-invertir').disabled=sel<0;$('ed-quitar').disabled=!selN||MALLA.includes(selN);
  svg.querySelectorAll('g.ed-caja').forEach(g=>g.classList.toggle('ed-nsel',g.dataset.id===selN));
  const mx=Math.max(...Object.values(N).map(n=>n.y+n.h))+40;if(mx>vbH){vbH=mx;const v=svg.viewBox.baseVal;svg.setAttribute('viewBox','0 0 '+v.width+' '+vbH);}
  if(marco)marco.setAttribute('height',Math.max(+marco.getAttribute('height'),vbH-(+marco.getAttribute('y'))-16));}
@@ -115,13 +123,14 @@ function nuevoNodo(c){const g0=svg.querySelector('g.ed-caja[data-id="'+c.id+'"]'
  svg.insertBefore(g,hdl);N[c.id]={x,y,w:170,h:58};O[c.id]={x,y};D.nombres[c.id]=c.nombre;if(!D.puertos[c.id])D.puertos[c.id]=c.puertos||[];}
 /* panel de puertos: origen:puerto → destino:puerto; avisa si el puerto no figura abierto en el destino */
 function panelPuertos(i,listo){const c=C[i],dl=(id,k)=>'<datalist id="'+id+'">'+(D.puertos[k]||[]).map(p=>'<option value="'+esc_(p)+'">').join('')+'</datalist>';
- pan.innerHTML='<b style="font-size:13px">Conexión · '+esc_(nombre(c[0]))+' → '+esc_(nombre(c[1]))+'</b><div class="fila">'
+ pan.innerHTML='<b style="font-size:13px">Conexión · '+esc_(nombre(c[0]))+' <span class="sub">(inicia)</span> → '+esc_(nombre(c[1]))+' <span class="sub">(escucha)</span></b><div class="fila">'
   +'<label>Puerto o interfaz en '+esc_(nombre(c[0]))+'<input id="ed-pa" list="ed-dla" placeholder="'+((D.puertos[c[0]]||[]).length?'elige de la lista':'sin puertos en el inventario')+'" value="'+esc_(c[2])+'"></label>'+dl('ed-dla',c[0])
   +'<label>Puerto en '+esc_(nombre(c[1]))+'<input id="ed-pb" list="ed-dlb" placeholder="'+((D.puertos[c[1]]||[]).length?'elige de la lista':'sin puertos en el inventario')+'" value="'+esc_(c[3])+'"></label>'+dl('ed-dlb',c[1])
-  +'</div><span id="ed-pv"></span><div class="fila"><button type="button" class="btn chico" id="ed-pok">Aceptar</button><button type="button" class="btn chico gris" id="ed-pno">'+(listo?'Sin puertos':'Cancelar')+'</button></div>';
+  +'</div><span id="ed-pv"></span><div class="fila"><button type="button" class="btn chico gris" id="ed-pinv" title="Da vuelta la flecha: el origen pasa a ser el destino">⇄ Invertir</button><button type="button" class="btn chico" id="ed-pok">Aceptar</button><button type="button" class="btn chico gris" id="ed-pno">'+(listo?'Sin puertos':'Cancelar')+'</button></div>';
  pan.hidden=false;const pb=$('ed-pb'),pv=$('ed-pv');
- const ver=()=>{const v=pb.value.trim();pv.className=v&&!abierto(c[1],v)?'ed-aviso-c':'ed-aviso-o';pv.textContent=!v?'':abierto(c[1],v)?'Puerto conocido en el destino: es documentación, se guarda directo.':'El puerto no figura abierto en '+nombre(c[1])+': la conexión quedará como «puerto cerrado» y podrás solicitar su apertura (ticket).';};
+ const ver=()=>{const v=pb.value.trim();pv.className=v&&!abierto(c[1],v)?'ed-aviso-c':'ed-aviso-o';pv.textContent=!v?'':abierto(c[1],v)?'Puerto conocido en el destino: es documentación, se guarda directo.':abierto(c[0],v)?'Ese puerto escucha en '+nombre(c[0])+': probablemente la dirección es al revés; usa «Invertir».':'El puerto no figura abierto en '+nombre(c[1])+': la conexión quedará como «puerto cerrado» y podrás solicitar su apertura (ticket).';};
  pb.addEventListener('input',ver);ver();$('ed-pa').focus();
+ $('ed-pinv').onclick=()=>{c[2]=$('ed-pa').value.trim();c[3]=pb.value.trim();invertir(i);pintar();panelPuertos(i,listo);};
  $('ed-pok').onclick=()=>{c[2]=$('ed-pa').value.trim();c[3]=pb.value.trim();pan.hidden=true;pintar();};$('ed-pno').onclick=()=>{pan.hidden=true;pintar();};}
 /* «+ Agregar dispositivo»: elegir algo YA existente del inventario, ponerlo en el diagrama y vincularlo con un nodo */
 function panelAgregar(){pan.innerHTML='<b style="font-size:13px">Agregar equipo al sitio</b><span class="sub" style="font-size:12px">Elige una máquina o dispositivo que ya existe en el inventario: queda asignado al sitio al guardar.</span><input type="search" id="ed-bus" placeholder="Buscar por nombre, IP o tipo…" aria-label="Buscar en el inventario"><div class="ed-lista" id="ed-cands"></div>'
@@ -134,11 +143,11 @@ function panelAgregar(){pan.innerHTML='<b style="font-size:13px">Agregar equipo 
  lista.addEventListener('click',e=>{const b=e.target.closest('button[data-c]');if(!b)return;const c=D.candidatos.find(x=>x.id===b.dataset.c);elegido=c;
   if(c.otro)return;if(!N[c.id]){nuevoNodo(c);if(Q.has(c.id))Q.delete(c.id);else if(!c.sitio)A.add(c.id);pintar();}lista.querySelectorAll('button').forEach(x=>x.style.borderColor=x===b?'var(--warn)':'');$('ed-vinc').hidden=false;
   [...$('ed-con').options].forEach(o=>o.disabled=o.value===c.id);if($('ed-con').value===c.id)$('ed-con').value='en';});
- $('ed-vok').onclick=()=>{if(!elegido)return;const k=$('ed-con').value;if(k===elegido.id)return;C.push([k,elegido.id,'','']);sel=C.length-1;pintar();panelPuertos(sel,true);};
+ $('ed-vok').onclick=()=>{if(!elegido)return;const k=$('ed-con').value;if(k===elegido.id)return;C.push([k,elegido.id,'','']);sel=C.length-1;inferir(sel);pintar();panelPuertos(sel,true);};
  $('ed-ano').onclick=()=>{pan.hidden=true;};}
 btE.addEventListener('click',()=>{ed=true;cargar();card.classList.add('ed-edit');btE.hidden=true;bar.hidden=false;ay.hidden=false;const cr=$('ed-cerradas');if(cr)cr.hidden=true;svg.querySelectorAll('.ed-stx').forEach(t=>t.style.display='none');pintar();});
 $('ed-cancelar').addEventListener('click',()=>location.reload());
-$('ed-agregar').addEventListener('click',panelAgregar);btP.addEventListener('click',()=>{if(sel>=0)panelPuertos(sel);});
+$('ed-agregar').addEventListener('click',panelAgregar);$('ed-invertir').addEventListener('click',()=>{if(sel<0)return;invertir(sel);pintar();if(!pan.hidden)panelPuertos(sel);});btP.addEventListener('click',()=>{if(sel>=0)panelPuertos(sel);});
 const borrar=()=>{if(sel<0)return;C.splice(sel,1);sel=-1;pan.hidden=true;pintar();};btB.addEventListener('click',borrar);
 document.addEventListener('keydown',ev=>{if(!ed||!(ev.key==='Delete'||ev.key==='Backspace')||/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName))return;if(selN&&!MALLA.includes(selN)){ev.preventDefault();$('ed-quitar').click();}else if(sel>=0){ev.preventDefault();borrar();}});
 /* «Quitar del sitio»: desvincula el equipo del sitio y del diagrama y borra sus conexiones; no lo borra del inventario */
@@ -162,7 +171,7 @@ svg.addEventListener('pointermove',ev=>{if(!op)return;const p=pt(ev);
  else{tmp.setAttribute('x2',p.x);tmp.setAttribute('y2',p.y);marcar(enNodo(p,op.de));}});
 svg.addEventListener('pointerup',ev=>{if(!op)return;const p=pt(ev),o=op;op=null;marcar(null);if(tmp){tmp.remove();tmp=null;}
  if(o.m==='mover'){if(!o.movio){selN=o.id;sel=-1;pintar();}return;}const k=enNodo(p,o.de);if(!k)return pintar();
- if(o.m==='nueva'){C.push([o.de,k,'','']);sel=C.length-1;pintar();panelPuertos(sel,true);}
+ if(o.m==='nueva'){C.push([o.de,k,'','']);sel=C.length-1;inferir(sel);pintar();panelPuertos(sel,true);}
  else{const c=C[o.i];c[o.e]=k;c[o.e?3:2]='';sel=o.i;pintar();panelPuertos(sel);}});
 const enviar=d=>fetch(D.url,{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},body:JSON.stringify(Object.assign({_csrf:{{ csrf|tojson }}},d))})
  .then(r=>r.json().catch(()=>({error:'No se pudo guardar (error '+r.status+')'}))).then(r=>{if(r.error){aviso(r.error,'error');return;}location.reload();})
