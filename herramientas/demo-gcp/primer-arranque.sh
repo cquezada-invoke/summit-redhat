@@ -49,7 +49,7 @@ fd = os.open("/root/prueba/awx_token", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o
 # credencial de EDA hacia AWX con la clave nueva
 for c in (h("GET", E + "eda-credentials/?page_size=100") or {}).get("results", []):
     if c["name"] == "Prueba AWX":
-        h("PATCH", E + f"eda-credentials/{c['id']}/", {"inputs": {"host": "http://awx-service.awx.svc.cluster.local/api/v2/", "username": "admin",
+        h("PATCH", E + f"eda-credentials/{c['id']}/", {"inputs": {"host": "http://awx-service.awx.svc.cluster.local/", "username": "admin",
                                                                  "password": Q, "verify_ssl": False}})
 # el usuario del cliente en AWX y EDA
 u = (h("GET", A + f"users/?username={U}") or {}).get("results") or []

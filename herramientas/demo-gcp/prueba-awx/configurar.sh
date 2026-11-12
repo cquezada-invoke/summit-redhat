@@ -81,7 +81,7 @@ de = uno("decision-environments", "Prueba DE", E) or h("POST", E + "decision-env
 tipos = {t["name"]: t["id"] for t in h("GET", E + "credential-types/?page_size=100")["results"]}
 cr = uno("eda-credentials", "Prueba AWX", E) or h("POST", E + "eda-credentials/", {"name": "Prueba AWX", "organization_id": 1,
      "credential_type_id": tipos["Red Hat Ansible Automation Platform"],
-     "inputs": {"host": "http://awx-service.awx.svc.cluster.local/api/v2/", "username": "admin", "password": CLAVE, "verify_ssl": False}})
+     "inputs": {"host": "http://awx-service.awx.svc.cluster.local/", "username": "admin", "password": CLAVE, "verify_ssl": False}})
 rb = [r for r in h("GET", f"{E}rulebooks/?project_id={ep['id']}")["results"] if r["name"] == "alerta.yml"][0]
 act = uno("activations", "Prueba alertas", E)
 if not act:
