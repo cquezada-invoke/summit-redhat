@@ -1555,6 +1555,32 @@ _FABRICANTES = [("rhel", "Red Hat"), ("jboss", "Red Hat"), ("eap", "Red Hat"), (
                 ("minio", "MinIO"), ("trino", "Trino"), ("datalake", "Trino"), ("vyos", "VyOS"), ("frr", "FRRouting"), ("frrouting", "FRRouting"),
                 ("wireguard", "WireGuard"), ("vpn", "WireGuard"), ("rocky", "Rocky Enterprise"), ("centos", "Red Hat")]
 
+# logo de cada producto (archivos locales en static): mismo criterio de prefijo que _FABRICANTES; sin calce, logos/generico.svg
+_LOGOS = [("openshift-ai", "logos/openshift-ai.svg"), ("openshift", "openshift.png"), ("ocp", "openshift.png"),
+          ("jboss", "logos/jboss.svg"), ("eap", "logos/jboss.svg"), ("wildfly", "logos/jboss.svg"),
+          ("aap", "logos/aap.png"), ("automation-hub", "logos/aap.png"), ("eda", "logos/eda.png"),
+          ("satellite", "logos/satellite.svg"), ("idm", "logos/idm.svg"), ("389", "logos/idm.svg"), ("keycloak", "logos/keycloak.svg"),
+          ("rhbk", "logos/keycloak.svg"), ("datagrid", "logos/datagrid.svg"), ("quay", "logos/quay.svg"), ("podman", "logos/podman.svg"),
+          ("docker", "logos/docker.svg"), ("kubernetes", "logos/kubernetes.svg"), ("amq", "logos/activemq.svg"),
+          ("activemq", "logos/activemq.svg"), ("artemis", "logos/activemq.svg"), ("kafka", "logos/kafka.svg"), ("rabbitmq", "logos/rabbitmq.svg"),
+          ("tomcat", "logos/tomcat.svg"), ("httpd", "logos/httpd.svg"), ("apache", "logos/httpd.svg"), ("nginx", "logos/nginx.svg"),
+          ("redis-insight", "logos/redis-insight.svg"), ("redisinsight", "logos/redis-insight.svg"), ("redis", "logos/redis.svg"),
+          ("postgresql", "logos/postgresql.svg"), ("postgres", "logos/postgresql.svg"), ("mysql", "logos/mysql.svg"),
+          ("mariadb", "logos/mariadb.svg"), ("oracle", "logos/oracle.svg"), ("weblogic", "logos/weblogic.svg"), ("mongodb", "logos/mongodb.svg"),
+          ("sqlserver", "logos/sqlserver.svg"), ("mssql", "logos/sqlserver.svg"), ("iis", "logos/iis.svg"), ("samba-ad", "logos/active-directory.svg"),
+          ("ad", "logos/active-directory.svg"), ("active-directory", "logos/active-directory.svg"), ("vault", "logos/vault.png"),
+          ("grafana", "logos/grafana.png"), ("prometheus", "logos/prometheus.png"), ("gitea", "logos/gitea.png"), ("tekton", "logos/tekton.png"),
+          ("jenkins", "logos/jenkins.svg"), ("minio", "logos/minio.svg"), ("trino", "logos/trino.svg"), ("datalake", "logos/trino.svg"),
+          ("data-lake", "logos/trino.svg"), ("haproxy", "logos/haproxy.svg"), ("bind", "logos/bind.svg"), ("vyos", "logos/vyos.svg"),
+          ("frr", "logos/frr.svg"), ("frrouting", "logos/frr.svg"), ("wireguard", "logos/wireguard.svg"), ("vpn", "logos/wireguard.svg"),
+          ("faceops", "logo-faceops.png"), ("odoo", "logos/odoo.png"), ("rhel", "logos/rhel.svg"), ("so:ubuntu", "logos/ubuntu.svg"),
+          ("windows", "logos/windows.svg"), ("so:windows", "logos/windows.svg")]
+
+
+def _logo_plat(k):
+    """Ruta en static del logo del producto (prefijo como en _FABRICANTES); genérico si no hay uno propio."""
+    return next((f for pre, f in _LOGOS if k == pre or k.startswith(pre + "-") or k.startswith(pre + ":")), "logos/generico.svg")
+
 
 def _salud_cajas(cajas, grupos):
     """Salud consolidada de cada caja: la línea que resume los 5 puntos del radar de salud de sus máquinas."""
@@ -1639,6 +1665,8 @@ def plataformas_vista():
         insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos.get(sel, [])),
                        key=lambda x: (x["estado"] != "encendido", x["id"]))
     _salud_cajas(cajas, grupos)
+    for c_ in cajas:
+        c_["logo"] = _logo_plat(c_["clave"])
     srv_inc = sorted([e for e in equipos_visibles() if seccion_eq(e) in ("inventario", "nubes") and not _propia_faceops(e)], key=lambda e: e["nombre"])
     return render_template("plataformas.html", servidores_inc=srv_inc, titulo="Plataformas", desc="Tecnologías instaladas en el parque: servidores de aplicación, bases de datos, caché, mensajería, contenedores y gestión.",
                            cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.plataformas_vista",
