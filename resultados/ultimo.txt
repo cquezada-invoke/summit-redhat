@@ -1,64 +1,21 @@
-commit: 18f31dc5c2d01bfbf7bed513a2253e567af848a3
-inicio: 2026-11-11T23:18:15-03:00
+commit: 36dee9e7b7134325bf23a3c606bf42fff528b25b
+inicio: 2026-11-11T23:18:58-03:00
 ---
-EQ {'id': 81, 'cliente_id': 1, 'nombre': 'pc-oficina-01', 'categoria': 'servidor', 'so': '', 'estado': 'retirado', 'ip': 'pendiente', 'ambiente': 'produccion'}
-EQ {'id': 82, 'cliente_id': 1, 'nombre': 'pc-oficina-02', 'categoria': 'servidor', 'so': '', 'estado': 'retirado', 'ip': 'pendiente', 'ambiente': 'produccion'}
-CATS [{'categoria': 'almacenamiento', 'n': 2}, {'categoria': 'balanceador', 'n': 2}, {'categoria': 'clúster openshift', 'n': 1}, {'categoria': 'estación de trabajo', 'n': 2}, {'categoria': 'firewall', 'n': 5}, {'categoria': 'otro', 'n': 1}, {'categoria': 'plataforma', 'n': 3}, {'categoria': 'red', 'n': 5}, {'categoria': 'router', 'n': 6}, {'categoria': 'servidor', 'n': 101}, {'categoria': 'switch', 'n': 3}]
-SOS [{'so': '', 'n': 33}, {'so': 'CentOS 6', 'n': 1}, {'so': 'FRRouting 10.2.1_git', 'n': 4}, {'so': 'FortiOS', 'n': 1}, {'so': 'HAProxy 2.8.22-a6a7eb6dd', 'n': 1}, {'so': 'Linux (Alpine)', 'n': 3}, {'so': 'Linux (contenedor de pruebas)', 'n': 1}, {'so': 'OpenShift 4.19.51', 'n': 1}, {'so': 'Red Hat Enterprise Linux 6', 'n': 1}, {'so': 'Red Hat Enterprise Linux 8', 'n': 1}, {'so': 'Red Hat Enterprise Linux 9', 'n': 6}, {'so': 'Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow)', 'n': 1}, {'so': 'RedHat 5.11', 'n': 1}, {'so': 'RedHat 7.9', 'n': 1}, {'so': 'RedHat 8.10', 'n': 2}, {'so': 'RedHat 9.6', 'n': 18}, {'so': 'RedHat 9.8', 'n': 20}, {'so': 'Rocky 9.8', 'n': 2}, {'so': 'Ubuntu 24.04', 'n': 1}, {'so': 'VyOS', 'n': 2}, {'so': 'VyOS 2026.10.23-0026-rolling', 'n': 2}, {'so': 'Windows Server 2019', 'n': 2}, {'so': 'Windows Server 2022', 'n': 1}, {'so': 'Windows Server 2022 Standard Evaluation', 'n': 2}]
-AUTO Autoservicio · 1 Desplegar app
-AUTO Autoservicio · 2 Publicar en Nginx
-AUTO Autoservicio · 3 Validar
-AUTO Autoservicio · Retirar app
-AUTO Drift · Windows
-AUTO Monitoreo · Exportador en Windows
-AUTO Nube · Limpiar huérfanos
-AUTO Nube · Vigilar firewall
-AUTO Remediación · IIS en Windows
-AUTO Remediación · Limpiar logs
-AUTO Remediación · Renovar certificado
-AUTO Windows · Preparar IIS
-AUTO Windows · Provocar caída de IIS (demo)
-AUTO Autoservicio · Nuevo ambiente
-AUTO Nube · Reporte de huérfanos con limpieza
-AUTO FaceOps · Respaldo continuo en Git
-AUTO Seguridad · Aplicar parches de seguridad
-AUTO Certificados · Emitir para servicio
-AUTO Certificados · Renovar por vencer
-AUTO Certificados · Inventario
-AUTO Certificados · Renovar (EDA)
-AUTO Plataforma · Controlar servicio
-AUTO Sistema · Paquetes · inventario y respaldo
-AUTO Windows · Habilitar escritorio remoto
-AUTO Sistema · Inventariar máquina
-AUTO OpenShift · Respaldo de etcd
-AUTO Certificados · OpenShift
-AUTO Seguridad · Escaneo de servidores
-AUTO Homologación · Relevar entorno
-AUTO Storage · Servicio S3 del data lake
-AUTO Identidad · Fuente de usuarios de FaceOps
-AUTO Licencias · Levantar desde las plataformas
-AUTO Portal · Amdocs · Orden de servicio (plantilla)
-AUTO Portal · OpenShift · Certificado de aplicación de punta a punta (plantilla)
-AUTO Portal · OpenShift · Certificados (plantilla)
-AUTO Portal · OpenShift · Optimizar recursos y limpiar (plantilla)
-AUTO Portal · OpenShift · Respaldo de etcd (plantilla)
-AUTO Portal · Telco · Red del servicio (VLAN y BGP) (plantilla)
-AUTO Portal · Windows · Informe de seguridad (plantilla)
-AUTO Portal · Amdocs · Activar orden de servicio
-AUTO Portal · Infraestructura · Aplicar parches de seguridad
-AUTO Portal · Infraestructura · Escaneo de seguridad
-AUTO Portal · Infraestructura · Inventariar servidor
-AUTO Portal · Infraestructura · Inventario de certificados
-AUTO Portal · OpenShift · Certificado de aplicación de punta a punta
-AUTO Portal · OpenShift · Optimizar recursos y limpiar
-AUTO Portal · OpenShift · Respaldo de etcd
-AUTO Portal · Telco · Red del servicio (VLAN y BGP)
-AUTO Portal · Windows · Informe de seguridad
-AUTO Red · Inventariar equipo de red
-AUTO Migración · WebLogic a OpenShift
-AUTO Migración · WebLogic a OpenShift · Evaluar
-AUTO FaceOps · Alerta › Plataforma · Controlar servicio · Nodos demo (ansible)
-AUTO Recuperación · Respaldar volúmenes con restic
-AUTO Windows · Activar licencia
-AUTO Nube · Validar conexión e inventariar
---- fin: 2026-11-11T23:18:21-03:00 · código: 0
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+EQ {'id': 15, 'cliente_id': 1, 'nombre': 'pc-usuario', 'categoria': 'estación de trabajo', 'so': 'Linux (contenedor de pruebas)', 'estado': 'inventariado', 'ip': '172.20.20.22', 'ambiente': 'produccion', 'ubicacion': 'Centro de datos Santiago', 'd': '{"kernel": "", "uptime_dias": 0.0, "selinux": "", "ram_libre_mb": null, "ram_so_mb": null, "carga_1m": null, "ram_disponible_mb": null, "virtual": "", "registrado": null, "parches_seguridad": null, "recolectado": "", "hostname": "", "virtual_rol": "", "hardware": {}, "montajes_red": [], "usuarios": '}
+EQ {'id': 23, 'cliente_id': 1, 'nombre': 'anfitrion-kvm', 'categoria': 'otro', 'so': '', 'estado': 'retirado', 'ip': '192.168.122.1', 'ambiente': '', 'ubicacion': '', 'd': '{"kernel": "", "uptime_dias": 0.0, "selinux": "", "ram_libre_mb": null, "virtual": "", "registrado": null, "parches_seguridad": null, "recolectado": "", "hostname": "", "virtual_rol": ""}'}
+EQ {'id': 70, 'cliente_id': 1, 'nombre': 'pc-campus-01', 'categoria': 'estación de trabajo', 'so': '', 'estado': 'retirado', 'ip': '172.20.20.61', 'ambiente': 'produccion', 'ubicacion': 'Red corporativa · Centro de datos Santiago', 'd': '{"kernel": "", "uptime_dias": 0.0, "selinux": "", "ram_libre_mb": null, "carga_1m": null, "ram_disponible_mb": null, "virtual": "", "registrado": null, "parches_seguridad": null, "recolectado": "", "hostname": "", "virtual_rol": "", "hardware": {}, "montajes_red": [], "usuarios": null, "servicios_de'}
+AUTO Seguridad · Aplicar parches de seguridad | visible 1 | so  | prueba certificada | playbook None
+AUTO Remediación · Limpiar logs | visible 1 | so  | prueba certificada | playbook None
+AUTO Seguridad · Escaneo de servidores | visible 1 | so  | prueba certificada | playbook None
+AUTO Plataforma · Controlar servicio | visible 1 | so  | prueba certificada | playbook None
+AUTO Sistema · Paquetes · inventario y respaldo | visible 1 | so  | prueba cambiada | playbook None
+AUTO Licencias · Levantar desde las plataformas | visible 1 | so  | prueba certificada | playbook None
+AUTO Drift · Windows | visible 1 | so  | prueba certificada | playbook None
+AUTO Portal · Windows · Informe de seguridad | visible 0 | so  | prueba sin probar | playbook None
+AUTO Recuperación · Respaldar volúmenes con restic | visible 1 | so  | prueba sin probar | playbook None
+AUTO Certificados · Emitir para servicio | visible 1 | so  | prueba certificada | playbook None
+AUTO Sistema · Inventariar máquina | visible 1 | so  | prueba cambiada | playbook None
+AUTO Windows · Habilitar escritorio remoto | visible 1 | so  | prueba certificada | playbook None
+--- fin: 2026-11-11T23:19:07-03:00 · código: 0
