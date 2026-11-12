@@ -1,23 +1,125 @@
-commit: 01a72a6f7ef3f010aeeff6bd1f23a0295d02323f
-inicio: 2026-11-12T00:20:57-03:00
+commit: c7833218ff9e47b67ec2d0a1f91332e383e4eea9
+inicio: 2026-11-12T00:26:47-03:00
 ---
-f33af34 Plan de operadores: el arnés muestra los errores de 
-correos: ['cquezada@redhat.com']
-SMTP configurado: True
-pagina 404
-Infraestructura: 44 % (46 obj) · Disp 39 · Rend 1 · Segu 70 · Recu 43 · Cost 58 · Exce 56
-Servidores: 40 % (31 obj) · Disp 34 · Rend 2 · Segu 58 · Recu 45 · Cost 54 · Exce 45
-Redes: 72 % (11 obj) · Disp 50 · Rend 0 · Segu 96 · Recu 100 · Cost 100 · Exce 85
-Storage: 30 % (1 obj) · Disp 50 · Rend 0 · Segu 50 · Recu 0 · Cost 50 · Exce 33
-Sistemas operativos: 40 % (33 obj) · Disp 35 · Rend 2 · Segu 60 · Recu 42 · Cost 53 · Exce 47
-Bases de datos: 61 % (1 obj) · Disp 50 · Rend 0 · Segu 50 · Recu 100 · Cost 100 · Exce 67
-Plataformas: 51 % (16 obj) · Disp 31 · Rend 3 · Segu 60 · Recu 75 · Cost 88 · Exce 50
-Contenedores: 57 % (1 obj) · Disp 50 · Rend 0 · Segu 100 · Recu None · Cost 100 · Exce 33
-Hipervisores: 44 % (1 obj) · Disp 50 · Rend 0 · Segu 100 · Recu 0 · Cost 50 · Exce 67
-Aplicaciones: 54 % (15 obj) · Disp 34 · Rend 4 · Segu 64 · Recu 79 · Cost 100 · Exce 44
-iniciativas: [{'seccion': 'aplicaciones', 'estado': 'abierta', 'n': 5}, {'seccion': 'bd', 'estado': 'abierta', 'n': 4}, {'seccion': 'contenedores', 'estado': 'abierta', 'n': 3}, {'seccion': 'hipervisores', 'estado': 'abierta', 'n': 5}, {'seccion': 'infraestructura', 'estado': 'abierta', 'n': 6}, {'seccion': 'plataformas', 'estado': 'abierta', 'n': 5}, {'seccion': 'redes', 'estado': 'abierta', 'n': 2}, {'seccion': 'servidores', 'estado': 'abierta', 'n': 6}, {'seccion': 'so', 'estado': 'abierta', 'n': 6}, {'seccion': 'storage', 'estado': 'abierta', 'n': 6}] total 48
-enviar 404
-envio: None
-ITIL Mejora continua |   False | medido: None
-ITIL Medición y reporte |   False | medido: None
---- fin: 2026-11-12T00:26:26-03:00 · código: 0
+== host
+demo-ansible-summit
+32
+               total        used        free      shared  buff/cache   available
+Mem:             125         104           1           3          24          21
+/dev/sda2       500G  498G  2.6G 100% /
+== vms
+srv-prueba-rhel9-01 running  1 2097152 
+srv-prueba-rhel8-01 running  1 2097152 
+srv-prueba-resp-01 running  1 2097152 
+nodo-jboss4 running  2 2097152 
+srv-no-existe-99 running  1 2097152 
+nodo-vault running  1 2097152 
+nodo-windows running  2 2097152 
+srv-dell-r660xs-01 running  1 1048576 
+srv-hpe-dl360-01 running  1 1048576 
+srv-lenovo-sr630-01 running  1 1048576 
+srv-fujitsu-rx2540-01 running  1 1048576 
+srv-xfusion-2288h-01 running  1 1048576 
+srv-dell-r760-01 running  1 1048576 
+srv-hpe-dl380-01 running  1 1048576 
+srv-lenovo-sr650-01 running  1 1048576 
+srv-cisco-c240-01 running  1 1048576 
+srv-supermicro-01 running  1 1048576 
+sno running  8 25165824 
+nodo-so running  1 2097152 
+nodo-tomcat running  1 2097152 
+nodo-postgres running  1 2097152 
+nodo-nginx running  1 2097152 
+nodo-jboss-dev running  1 2097152 
+nodo-storage running  1 2097152 
+nodo-jboss2 running  1 2097152 
+nodo-jboss running  1 2097152 
+srv-windows-iis-01 running  2 4194304 
+dc1-ad01 shut off 2 2097152 
+dc1-ds01 shut off 1 2097152 
+dc1-idm01 shut off 2 4194304 
+dc1-iga01 shut off 2 4194304 
+dc1-sat01 shut off 4 20971520 
+dc1-sso01 shut off 1 2097152 
+ee-centro-datos-prod shut off 2 4194304 
+nodo-jboss-qa shut off 1 2097152 
+nodo-jboss3 shut off 1 2097152 
+pc-oficina-01 shut off 1 2097152 
+pc-oficina-02 shut off 1 2097152 
+srv-jenkins-01 shut off 1 2097152 
+srv-legado-jboss5-01 shut off 1 2097152 
+srv-mig-rhel8-01 shut off 1 2097152 
+srv-mig-rocky-01 shut off 1 2097152 
+srv-odoo-demo-01 shut off 1 2097152 
+srv-pagos-app-01 shut off 1 2097152 
+srv-pn8-rhel6-01 shut off 1 2097152 
+srv-prueba-rocky-01 shut off 1 2097152 
+srv-rocky-demo-01 shut off 1 2097152 
+srv-rocky-prueba-01 shut off 1 2097152 
+srv-servidor-de-ejemplo-01 shut off 1 2097152 
+srv-test-ubuntu-01 shut off 1 2097152 
+srv-test-vinculacion-01 shut off 1 2097152 
+== suma corriendo
+vcpu 37 ram_gb 68
+== pools
+ Name        State     Autostart   Persistent   Capacity     Allocation   Available
+-------------------------------------------------------------------------------------
+ base        running   yes         yes          499.74 GiB   497.21 GiB   2.53 GiB
+ boot        running   yes         yes          499.74 GiB   497.21 GiB   2.53 GiB
+ dc-valpo    running   yes         yes          499.74 GiB   497.21 GiB   2.53 GiB
+ descargas   running   yes         yes          499.74 GiB   497.21 GiB   2.53 GiB
+ faceops     running   yes         yes          499.74 GiB   497.21 GiB   2.53 GiB
+ images      running   yes         yes          499.74 GiB   497.21 GiB   2.53 GiB
+ windows     running   yes         yes          499.74 GiB   497.21 GiB   2.53 GiB
+
+== podman
+summit-dns Up 6 hours
+summit-blackbox Up 6 hours
+faceops-vcsim Up 6 hours
+summit-alertmanager Up 6 hours
+kc-doble-factor Up 6 hours
+faceops-guacd Up 6 hours (healthy)
+faceops-validador Up 6 hours
+summit-prometheus Up 6 hours
+faceops-maqueta Up 6 hours
+faceops-kb Up 6 hours
+faceops-sni Up 6 hours
+faceops-publico Up 6 hours
+faceops-guacamole Up 6 hours
+clab-summit-red-fw Up 6 hours
+clab-summit-red-rtr Up 6 hours
+clab-summit-red-isp Up 6 hours
+clab-summit-red-srv-app Up 6 hours
+clab-summit-red-pc-usuario Up 6 hours
+suc1 Up 6 hours
+suc2 Up 6 hours
+suc3 Up 6 hours
+clab-red-sede-fw-sede-01 Up 6 hours
+clab-red-sede-pc-piso1 Up 6 hours
+clab-red-sede-pc-piso2 Up 6 hours
+clab-red-sede-srv-web-02 Up 6 hours
+clab-red-sede-srv-web-01 Up 6 hours
+clab-red-sede-sw-core-01 Up 6 hours
+clab-red-sede-pe-isp Up 6 hours
+clab-red-sede-lb-sede-01 Up 6 hours
+clab-red-sede-sw-acc-01 Up 6 hours
+clab-red-sede-rtr-wan-01 Up 6 hours
+summit-grafana Up 43 minutes
+faceops Up 11 seconds
+== faceops
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+infra {'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'ubicacion': 'Cloud GCP'}
+infra {'nombre': 'Dell · Centro de datos Santiago', 'tipo': 'fisico', 'ubicacion': 'Dell · Centro de datos Santiago'}
+infra {'nombre': 'KVM · Santiago', 'tipo': 'kvm', 'ubicacion': 'Centro de datos Santiago'}
+infra {'nombre': 'KVM · Valparaíso', 'tipo': 'kvm', 'ubicacion': 'Centro de datos Valparaíso'}
+infra {'nombre': 'OpenShift · SNO', 'tipo': 'openshift', 'ubicacion': 'OpenShift · SNO'}
+infra {'nombre': 'VMware · Santiago', 'tipo': 'vmware', 'ubicacion': 'VMware · Santiago'}
+tablas ['clientes', 'usuarios', 'perfiles', 'automatizaciones', 'tickets', 'auditoria', 'segmentos', 'skills', 'politicas', 'equipos', 'hallazgos', 'ajustes', 'flujos', 'arquitecturas', 'recorridos', 'politicas_def', 'politicas_estado', 'cves_equipo', 'cves_revision', 'infraestructuras', 'ingresos_fallidos', 'segmentos_archivados', 'segmentos_ocp', 'validaciones', 'validaciones_rechazos', 'creditos_mov', 'tareas_ajuste', 'deudas', 'evaluaciones_so', 'informes_so', 'uso_muestras', 'uso_trabajos', 'aprobadores', 'ticket_etapas', 'stack_eval', 'puntos_restauracion', 'politicas_retiradas', 'odoo_entrantes', 'alertas_descartadas', 'devsecops_corridas', 'agente_mensajes', 'devsecops_ajustes', 'devsecops_ajustes_sembrados', 'devsecops_herramientas', 'devsecops_etapas', 'escaneos', 'escaneo_hallazgos', 'stack_decisiones', 'conexiones', 'bp_aprobaciones', 'bp_recomendaciones', 'duenos', 'pruebas_automatizacion', 'licencias', 'flujos_latencia', 'bifurcaciones', 'fuentes_usuarios', 'gobierno_eval', 'grupos_dueno', 'grupo_miembros', 'avisos_aprobacion', 'manifiesto_ajustes', 'rbac_grupos', 'rbac_miembros', 'rbac_roles', 'rbac_enlaces', 'licencias_detectadas', 'politicas_desarrollo', 'politicas_desarrollo_hist', 'politicas_eval', 'rendimiento_canal', 'energia_historial', 'huellas_repo', 'kpi_okr', 'kpi_okr_valores', 'kpi_okr_sembrado', 'activaciones', 'replicas_maquina', 'cves_base', 'alerta_correos', 'alerta_pruebas', 'edge_sitios', 'edge_grupos', 'alerta_eventos', 'reporte_mediciones', 'reporte_iniciativas', 'reporte_programa', 'reporte_envios', 'sla_versiones', 'sla_mediciones', 'sla_alertas', 'sla_programa', 'sla_envios']
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "/opt/faceops/app/bd.py", line 181, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: estado_prueba
+--- fin: 2026-11-12T00:27:02-03:00 · código: 0
