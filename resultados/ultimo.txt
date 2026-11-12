@@ -1,6 +1,42 @@
-commit: d55456ed34090be697a621e90596ac0397b4e6e6
-inicio: 2026-11-12T00:29:38-03:00
+commit: 2fa6d0c32ca12d915a786132ca32112d54035e8e
+inicio: 2026-11-12T00:30:28-03:00
 ---
-lanzada
-· constructora demo-constructor-202611120329 (n2-standard-4, Rocky Linux 9, anidada, 60 GB) · rama feature/faceops-awx
---- fin: 2026-11-12T00:30:09-03:00 · código: 0
+### RESPALDO
+R-C1 · fw: 
+   fw.cfg: 0 líneas set · ocultos 0 · claro-sospechoso 0
+R-C2a · rtr-wan-01: 
+   rtr-wan-01.cfg: 1 líneas · bgp 0
+R-C2b · sw-core-01: 
+   sw-core-01.cfg: 1 líneas · tabla VLAN 0
+R-C3 · lb-sede-01: 
+   lb-sede-01.cfg: 1 líneas · backend 0 · frontend 0 · ocultos 0
+R-C4 · fw: 
+   commits fw.cfg antes 3 después 3
+R-C5 · suc1: 
+   suc1.cfg: NO-EXISTE
+### DRIFT
+D-C1 · rtr-wan-01: 
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
+    return opener.open(url, data, timeout)
+  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
+    response = self.parent.error(
+  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
+    return self._call_chain(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+D-C2 · rtr-wan-01: 
+D-C3a · fw: 
+D-C3b · lb-sede-01: 
+D-C4-restablecer · rtr-wan-01: 
+D-C4 · rtr-wan-01: 
+D-C5 · sw-acc-01: 
+   sw-acc-01.cfg: NO-EXISTE
+TICKETS              
+--- fin: 2026-11-12T00:31:29-03:00 · código: 0
