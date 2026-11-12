@@ -218,6 +218,19 @@ def muestra(cliente_id, infra_id):
             "detalle": c.get("detalle_fuente") or "", "falta": c.get("falta") or d.get("error") or "", "ts": d.get("_ts"), "desglose": c.get("desglose") or {}}
 
 
+def ultimo_intento(cliente_id, nube):
+    """Último pedido de recuperación de la nube (ticket o cálculo diario): {numero, estado, fecha, tid}. Sirve para mostrar un
+    estado claro mientras no hay muestra («sin datos aún · último intento …»), nunca una carga indefinida."""
+    _esquema()
+    t = q1("SELECT t.id, t.numero, t.estado, t.creado FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+           "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.parametros LIKE ? ORDER BY t.id DESC LIMIT 1", cliente_id, RECUPERAR, f'%{json.dumps(nube)[1:-1]}%')
+    inf = q1("SELECT id FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente_id, nube)
+    d = q1("SELECT job, creado, estado FROM nube_resumen_trabajos WHERE cliente_id=? AND infra_id=? ORDER BY id DESC LIMIT 1", cliente_id, inf["id"]) if inf else None
+    if d and (not t or (d["creado"] or "") > (t["creado"] or "")):
+        return {"numero": f"trabajo {d['job']} (diario)", "estado": d["estado"], "fecha": d["creado"], "tid": None}
+    return {"numero": t["numero"], "estado": t["estado"], "fecha": t["creado"], "tid": t["id"]} if t else None
+
+
 # ------------------------------------------------------------------ consolidado y salud
 def _sec(d, k):
     s = (d or {}).get(k) or {}

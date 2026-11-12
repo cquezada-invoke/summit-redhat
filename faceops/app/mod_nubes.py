@@ -147,7 +147,7 @@ def nube(iid):
         a["bloqueo"] = _accion_lista(g.cliente["id"], a["nombre_aap"])[1]
     validar_no = _accion_lista(g.cliente["id"], VALIDAR_NUBE)[1]
     from .infraestructuras import tickets_de
-    return render_template("nube.html", costo_vm=costo_vm, nivel_nube=nivel_nube, productos=productos, productos_falta=prods_.get("falta") or "", resumen=resumen, cons=cons, usd=usd, recuperar_no=recuperar_no, bloqueo_rem=bloqueo_rem, tks_infra=tickets_de(g.cliente["id"], x["nombre"]), validar_no=validar_no, radar_n=radar_n, energia_no=energia_no, acciones=acciones, prov_ctx=ayudas_contexto(x, con), x=x, con=con or {}, err=err, maqs=maqs, zonas=zonas, redes=redes, discos=discos, publicas=publicas,
+    return render_template("nube.html", intento=__import__("app.nube_consumo", fromlist=["x"]).ultimo_intento(g.cliente["id"], x["nombre"]) if not resumen else None, costo_vm=costo_vm, nivel_nube=nivel_nube, productos=productos, productos_falta=prods_.get("falta") or "", resumen=resumen, cons=cons, usd=usd, recuperar_no=recuperar_no, bloqueo_rem=bloqueo_rem, tks_infra=tickets_de(g.cliente["id"], x["nombre"]), validar_no=validar_no, radar_n=radar_n, energia_no=energia_no, acciones=acciones, prov_ctx=ayudas_contexto(x, con), x=x, con=con or {}, err=err, maqs=maqs, zonas=zonas, redes=redes, discos=discos, publicas=publicas,
                            clusters=clusters, ocp=ocp, res=_resumen_grupo(propias) if propias else None, fuente_tipo=FUENTE_NUBE.get(x["tipo"], ""),
                            cuenta=cuenta,
                            cuenta_t=cuenta_t, disco_gb=round(sum(float(d.get("gb") or 0) for d in discos)), costo_total=sum(m["costo_mes"] or 0 for m in maqs), con_costo=any(m["costo_mes"] is not None for m in maqs))

@@ -46,7 +46,7 @@
 
 {# ---------- consolidado: lo más relevante de la nube de un vistazo (lee solo de FaceOps) ---------- #}
 <div class="card" style="margin-top:6px" id="consolidado"><div class="fila" style="gap:10px;flex-wrap:wrap"><h2 style="margin:0">Consolidado</h2>
-<span class="sub" style="font-size:12.5px">{% if resumen %}última recuperación {{ resumen._ts|fecha }}{% if resumen.error %} · <span style="color:var(--bad)">{{ resumen.error }}</span>{% endif %}{% else %}FaceOps aún no recupera el consumo ni el estado de esta nube{% endif %} · se recupera a diario por AAP con la credencial de la conexión</span>
+<span class="sub" style="font-size:12.5px">{% if resumen %}última recuperación {{ resumen._ts|fecha }}{% if resumen.error %} · <span style="color:var(--bad)">{{ resumen.error }}</span>{% endif %}{% else %}<b>Sin datos aún</b>{% if intento %} · último intento {% if intento.tid %}<a href="{{ url_for('consola.ticket', tid=intento.tid) }}">{{ intento.numero }}</a>{% else %}{{ intento.numero }}{% endif %} ({{ intento.estado|replace('_', ' ') }}, {{ intento.fecha|fecha }}){% else %} · todavía no se ha pedido{% endif %}{% endif %} · se recupera a diario por AAP con la credencial de la conexión</span>
 <button type="button" class="btn chico der" id="cn-actualizar" {{ ('disabled title="' ~ recuperar_no ~ '"')|safe if recuperar_no else 'title="Crea un ticket de «Recuperar consumo y estado» (solo lectura)"'|safe }}>Actualizar ahora</button></div>
 {% if recuperar_no %}<p class="sub" style="margin:6px 0 0;font-size:12px">{{ recuperar_no }}</p>{% endif %}
 {% if cons %}<table class="cn-tab" style="margin-top:8px">{% for gr in cons %}{% for it in gr['items'] %}<tr><td class="cn-g">{{ gr.grupo if loop.first }}</td>
@@ -54,7 +54,7 @@
 <td>{% if it.falta %}<span class="sub">{{ it.falta }}</span>{% if it.enlace %} <a class="sub" href="{{ it.enlace }}" target="_blank" rel="noopener">cómo habilitarlo ↗</a>{% endif %}{% else %}<b>{{ it.valor }}</b>{% if it.estimado %} <span class="chip" style="font-size:10.5px">estimado</span>{% endif %}{% endif %}
 {% if it.detalle %}<details><summary>ver detalle</summary><ul>{% for d_ in it.detalle %}<li>{{ d_ }}</li>{% endfor %}</ul></details>{% endif %}</td>
 <td style="white-space:nowrap;text-align:right">{% if it.accion %}{% set bq_ = bloqueo_rem.get(it.accion, '') %}<button type="button" class="btn chico gris" data-remediar="{{ it.accion }}" {{ ('disabled title="' ~ bq_ ~ '"')|safe if bq_ else '' }}>Remediar (ticket)</button>{% elif it.enlace and not it.falta %}<a class="btn chico gris" href="{{ it.enlace }}" target="_blank" rel="noopener">Abrir en la consola ↗</a>{% endif %}</td></tr>{% endfor %}{% endfor %}</table>
-{% else %}<p class="sub" style="margin:8px 0 0">Sin datos todavía: usa «Actualizar ahora» o espera el cálculo diario.</p>{% endif %}</div>
+{% else %}<p class="sub" style="margin:8px 0 0">Sin datos aún: {{ 'usa «Actualizar ahora» o espera el cálculo diario' if not recuperar_no else 'la recuperación se habilita cuando su acción pase el plan de prueba' }}.</p>{% endif %}</div>
 
 <div class="grid g2" style="margin-top:6px">
 <div class="card"><h2>Conexión en AAP</h2><dl class="hv-dl">
