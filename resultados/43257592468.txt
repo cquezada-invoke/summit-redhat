@@ -1,0 +1,165 @@
+commit: d530ed22fe96416c86f2c03a56f75b462846bcf5
+inicio: 2026-11-12T13:25:51-03:00
+---
+
+def _en_pagina():
+    """¿Estamos pintando una página (petición GET/HEAD de FaceOps)? Ahí no se llama a AAP."""
+    try:
+        from flask import has_request_context, request
+        return has_request_context() and request.method in ("GET", "HEAD")
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def salud():
+    """None si todo AAP conocido responde; si no, {desde, ultimo_ok, error} del caído (para el banner global)."""
+    caidos = [s for s in _SALUD.values() if not s["ok"]]
+    return dict(caidos[0], inicio=INICIO) if caidos else None
+
+
+def disponible(web):
+    s = _SALUD.get((web or "").rstrip("/"))
+    return not s or s["ok"]
+
+
+class AAP:
+    def __init__(self, url, token, verificar=False):
+        self.base = url.rstrip("/") + "/api/controller/v2/"
+        self.web = url.rstrip("/")
+        self.publica = (os.environ.get("FACEOPS_AAP_PUBLICA") or self.web).rstrip("/")  # la que abre el navegador del usuario
+        self.s = requests.Session()
+        self.s.headers.update({"Authorization": <REDACTADO>"Bearer {token}", "Content-Type": "application/json"})
+        self.s.verify = bool(verificar)
+        _SESIONES[self.web] = self.s
+        if self.web not in _CONOCIDOS:
+            _CONOCIDOS[self.web] = (self.base + "ping/", bool(verificar))
+            _iniciar_vigia()
+
+    @classmethod
+    def de_cliente(cls, c):
+        if not c or not c.get("aap_url") or not c.get("aap_token"):
+            raise ErrorAAP("El cliente no tiene configurada la conexión con AAP")
+        a = cls(c["aap_url"], c["aap_token"], c.get("aap_verificar"))
+        a.cliente = c
+        return a
+
+    def _r(self, metodo, ruta, **kw):
+        url_ = ruta if ruta.startswith("http") else self.base + ruta.lstrip("/")
+        if metodo == "GET" and _en_pagina() and not getattr(self, "en_vivo", False):
+            params_ = {k: v for k, v in (kw.get("params") or {}).items() if v is not None}
+            d = _leer_bd(self.web, url_, params_)
+            if d is None and not disponible(self.web):
+                raise AAPNoDisponible("AAP no disponible y el dato aún no está en FaceOps")
+            if d is None:   # primera vez: el sincronizador la trae; la página espera a lo más 1 s
+                import json
+                _pendientes.add((self.web, url_, json.dumps(params_, sort_keys=True, default=str)))
+                _iniciar_vigia()
+                from flask import g as _g
+                espera_ = 0 if _g.get("_aap_espero") else 10   # una sola espera de 1 s por página
+                _g._aap_espero = True
+                for _ in range(espera_):
+                    time.sleep(0.1)
+                    d = _leer_bd(self.web, url_, params_)
+                    if d is not None:
+                        break
+                if d is None:
+                    raise (ErrorAAP if disponible(self.web) else AAPNoDisponible)("Sincronizando con AAP: el dato aún no está en FaceOps")
+            if d.get("_no_existe"):
+                raise ErrorAAP(f"AAP GET {ruta} → 404")
+            return d
+        if not disponible(self.web):   # cortacircuito abierto: no se espera a un AAP caído
+            raise AAPNoDisponible(f"AAP no disponible desde las {time.strftime('%H:%M', time.localtime(_SALUD[self.web]['desde'] or time.time()))}")
+        to = getattr(self, "timeout", None)
+        if to is None:
+            try:
+                from flask import has_request_context
+                to = (2, 5) if has_request_context() else (2, 20)
+            except Exception:  # noqa: BLE001
+                to = (2, 20)
+        try:
+            r = self.s.request(metodo, url_, timeout=to, **kw)
+        except (requests.ConnectionError, requests.ConnectTimeout) as e:
+            _marcar(self.web, False, type(e).__name__)
+            raise AAPNoDisponible(f"AAP no responde: {type(e).__name__}") from e
+        except requests.RequestException as e:   # lectura lenta: el vigía confirma en segundo plano si está caído
+            threading.Thread(target=_ping, args=(self.web,), daemon=True).start()
+            raise ErrorAAP(f"AAP no responde: {e}") from e
+        if r.status_code in (502, 503, 504):
+            _marcar(self.web, False, f"{metodo} → {r.status_code}")
+            raise AAPNoDisponible(f"AAP no disponible ({r.status_code})")
+        _marcar(self.web, True)
+        if metodo == "GET" and r.status_code < 400:
+            try:
+                params_ = {k: v for k, v in (kw.get("params") or {}).items() if v is not None}
+                from .bd import q1
+                _tabla()
+                if q1("SELECT 1 FROM aap_lecturas WHERE clave=?", _clave(self.web, url_, params_)):
+                    _guardar(self.web, url_, params_, r.json() if r.content else {})
+            except Exception:  # noqa: BLE001
+                pass
+        if r.status_code >= 400:
+            raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+        return r.json() if r.content else {}
+
+    def get(self, ruta, **params):
+        return self._r("GET", ruta, params=params)
+
+    def post(self, ruta, datos=None):
+        return self._r("POST", ruta, json=datos or {})
+
+    def patch(self, ruta, datos=None):
+        return self._r("PATCH", ruta, json=datos or {})
+
+    def todos(self, ruta, **params):
+        params.setdefault("page_size", 200)
+        datos = self.get(ruta, **params)
+        res = list(datos.get("results", []))
+        while datos.get("next"):
+            datos = self._r("GET", self.web + datos["next"]) if datos["next"].startswith("/") else self._r("GET", datos["next"])
+            res += datos.get("results", [])
+        return res
+
+    # --- consultas usadas por FaceOps
+    def ping(self):
+        return self.get("ping/")
+        ev = dict(extra_vars or {})
+        ctx = CONTEXTO.get() or {}
+        if ctx.get("ticket") and getattr(self, "cliente", None) and self.cliente.get("id"):   # sin créditos, nada sale a AAP
+            from .creditos import saldo
+            if saldo(self.cliente["id"]) <= 0:
+                raise ErrorAAP("El cliente no tiene créditos disponibles: no se lanzan automatizaciones hasta una recarga")
+        plantilla = f"{tipo}:{id_}"
+        token, _v = autorizar(getattr(self, "cliente", None) or {"nombre": "?"}, ctx.get("automatizacion") or self._nombre(tipo, id_), plantilla,
+                              dict(ev, _limite=limite or ""), ticket=ctx.get("ticket"), usuario=ctx.get("usuario", "FaceOps"),
+                              origen="ticket" if ctx.get("ticket") else "faceops")
+        ev["faceops_autorizacion"] = token
+        datos = {"extra_vars": ev}
+        if limite:
+            datos["limit"] = limite
+        if inventario:
+            datos["inventory"] = inventario
+        if credenciales:
+            if tipo == "job":  # AAP exige repetir las credenciales fijas de la plantilla de otro tipo (p. ej. el token de Gitea)
+                dadas = {(c.get("credential_type")) for c in (self.get(f"credentials/{cid}/") for cid in credenciales)}
+                credenciales = list(credenciales) + [c["id"] for c in self.todos(f"job_templates/{id_}/credentials/")
+                                                     if c["credential_type"] not in dadas and c["id"] not in credenciales]
+            datos["credentials"] = credenciales
+        ruta = f"{'job_templates' if tipo == 'job' else 'workflow_job_templates'}/{id_}/launch/"
+        r = self.post(ruta, datos)
+        return r.get("job") or r.get("workflow_job") or r.get("id")
+
+    def _nombre(self, tipo, id_):
+        try:
+            return self.get(f"{'job_templates' if tipo == 'job' else 'workflow_job_templates'}/{id_}/").get("name", str(id_))
+        except ErrorAAP:
+            return str(id_)
+
+    def nodos_workflow(self, id_):
+        """Nodos de una plantilla de workflow en orden de ejecución: [{nombre, tipo, cuando, ujt_id}]."""
+        nodos = {n["id"]: n for n in self.todos(f"workflow_job_templates/{id_}/workflow_nodes/")}
+        hijos = {h for n in nodos.values() for k in ("success_nodes", "failure_nodes", "always_nodes") for h in n.get(k, [])}
+196:def disponible(web):
+aap.py
+objetos_aap.py
+replicar_maquina.py
+--- fin: 2026-11-12T13:25:52-03:00 · código: 0
