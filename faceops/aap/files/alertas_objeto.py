@@ -12,6 +12,7 @@ import sys
 import yaml
 
 RUTA = "/etc/prometheus/faceops"
+FACEOPS = "192.168.122.1:8110"   # dónde escucha FaceOps en el anfitrión (el mismo de las demás integraciones del monitoreo)
 SEV = {"aviso": "warning", "critico": "critical"}
 
 
@@ -71,7 +72,7 @@ def preparar_prometheus(cfg):
         cambio = True
     if "faceops-plataformas" not in nombres:   # plataformas: lo que FaceOps midió sin agente (AAP por SSH/API), publicado en el anfitrión
         sc.append({"job_name": "faceops-plataformas", "metrics_path": "/metricas/plataformas", "scrape_interval": "60s", "honor_labels": True,
-                   "static_configs": [{"targets": ["127.0.0.1:8000"]}]})
+                   "static_configs": [{"targets": [FACEOPS]}]})
         cambio = True
     cfg["scrape_configs"] = sc
     return cambio

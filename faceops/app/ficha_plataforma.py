@@ -408,9 +408,13 @@ def _metricas():
            "# TYPE faceops_plataforma_medicion_edad_segundos gauge"]
     esc = lambda s: str(s).replace("\\", "\\\\").replace('"', '\\"')   # noqa: E731
     cods = {c: v for c, v in catalogo().items()}
-    for e in q("SELECT e.nombre, e.datos, e.categoria, e.energia, e.skills, c.codigo FROM equipos e JOIN clientes c ON c.id=e.cliente_id WHERE e.estado!='retirado'"):
+    from .inventario import skills_de
+    for e in q("SELECT e.*, c.codigo FROM equipos e JOIN clientes c ON c.id=e.cliente_id WHERE e.estado!='retirado'"):
         d = j(e["datos"], {})
-        sk = set(j(e["skills"], []) or [])
+        try:
+            sk = set(skills_de(e))
+        except Exception:  # noqa: BLE001
+            sk = set()
         fuentes = [(cod, medicion(e, cod)) for cod in (d.get("salud_plat") or {}) if cod in cods and (e["categoria"] or "") != "clúster openshift"]
         for cod, defn in cods.items():
             if defn.get("fuente") == "red" and cod in sk and d.get("red"):
@@ -431,9 +435,10 @@ def _metricas():
 
 
 def _registrar_metricas(st):
-    """/metricas/plataformas: solo desde el propio anfitrión (Prometheus local, sin pasar por el proxy) y sin sesión."""
+    """/metricas/plataformas: solo desde el propio anfitrión (Prometheus local contra la dirección en que escucha FaceOps, sin
+    pasar por el proxy) y sin sesión."""
     def metricas_plataformas():
-        if request.remote_addr not in ("127.0.0.1", "::1") or request.headers.get("X-Forwarded-For"):
+        if request.headers.get("X-Forwarded-For") or request.remote_addr not in ("127.0.0.1", "::1", request.environ.get("SERVER_NAME")):
             abort(404)
         return Response(_metricas(), mimetype="text/plain; version=0.0.4")
     st.app.add_url_rule("/metricas/plataformas", "metricas_plataformas", metricas_plataformas)
