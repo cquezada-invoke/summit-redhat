@@ -1,0 +1,22 @@
+commit: 34762b67d24155da882d00fed11e6aeccb7c3eff
+inicio: 2026-11-12T13:26:10-03:00
+---
+desplegado: 4a9e2f3d4 · 2026-11-12T13:40:38-03:00 ok: desplegado 4a9e2f3d · /ingresar 200 · configurar=124
+== salud previa
+cola_aap: {"ok": true, "motivo": "", "revisado": 1794501673.8224916, "capacidad": 1234, "grupos": 2, "pendientes": 32}
+pendientes en cola: 1
+== proceso de la cola
+pid 39 sh -c for p in /proc/[0-9]*; do c=$(tr "\0" " " < $p/cmdline 2>/dev/null); case "$c" in *app.cola*) echo "pid ${p#/proc/} $c";; esac; done 
+pid 8 /opt/app-root/bin/python3.11 -u -m app.cola 
+== camino anterior (sin cola)
+ANTES CREAR 4815 ms · FO-LAB-02206 job=27116
+ANTES FINAL FO-LAB-02206 en_ejecucion
+== con cola
+NORMAL CREAR 3149 ms · FO-LAB-02208 estado=en_cola job=None
+Error: container has already been removed
+Error: no container with name or ID "faceops" found: no such container
+== HTTP: la página de la cola y el estado de un ticket
+== log del proceso de la cola
+== planes de prueba
+PLANES OMITIDOS: el entorno no terminó bien los tickets de control (no se tocan certificaciones)
+--- fin: 2026-11-12T13:51:09-03:00 · código: 0
