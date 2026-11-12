@@ -1,0 +1,27 @@
+commit: 8ea062cbe4d484147eedeeb8497998709581b07b
+inicio: 2026-11-12T00:57:20-03:00
+---
+MOTIVO rtr-wan-01 con datos None
+MOTIVO sw-core-01 con datos None
+MOTIVO lb-sede-01 con datos None
+MOTIVO suc1 inventariado None
+MOTIVO fw con datos None
+TK FO-LAB-02056 exitoso 25896 fw AAP terminó (successful): ejecución 13 s, espera de aprobación 54 s
+JOB 25968 job Red · Detectar cambios de configuración failed sw-acc-01
+     fatal: [sw-acc-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "sw-acc-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se cambió nada."}
+JOB 25957 job Red · Detectar cambios de configuración failed rtr-wan-01
+     fatal: [rtr-wan-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "rtr-wan-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se cambió nada."}
+JOB 25948 job Red · Verificar drift successful 
+JOB 25946 job Red · Detectar cambios de configuración failed lb-sede-01
+     fatal: [lb-sede-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "lb-sede-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se cambió nada."}
+JOB 25943 job Red · Detectar cambios de configuración successful fw
+JOB 25925 job Red · Detectar cambios de configuración failed rtr-wan-01
+     fatal: [rtr-wan-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "rtr-wan-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se cambió nada."}
+JOB 25907 job Red · Detectar cambios de configuración failed rtr-wan-01
+     fatal: [rtr-wan-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "rtr-wan-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se cambió nada."}
+JOB 25900 job Red · Verificar drift successful 
+JOB 25898 job Red · Respaldar configuración successful fw
+JOB 25885 job Red · Respaldar configuración successful fw
+JOB 25881 job Red · Respaldar configuración successful fw
+JOB 25859 job Red · Verificar drift successful 
+--- fin: 2026-11-12T00:57:28-03:00 · código: 0
