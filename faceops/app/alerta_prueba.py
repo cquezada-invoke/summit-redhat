@@ -37,23 +37,25 @@ def leer(pid):
 
 
 def _pasos_utc(r):
-    """Los pasos se guardan como «HH:MM:SS · texto» (hora del contenedor, que corre en UTC, sin día ni zona). Al leerlos se
-    completan con el día de la prueba y la Z para que el navegador los muestre en su hora local; no se migra nada."""
+    """Los pasos se guardan como «HH:MM:SS · texto» con datetime.now() del proceso: hora local del contenedor (el servicio
+    corre con TZ=America/Santiago), sin día ni zona. Al leerlos se completan con el día local de la prueba, se pasan a UTC
+    (con Z) y el navegador los muestra en su hora local; no se migra nada."""
     from .hora_local import a_utc
     ps, base = json.loads(r["pasos"] or "[]"), a_utc(r.get("inicio"))
     if not base:
         return ps
-    out, dia = [], base.replace(hour=0, minute=0, second=0, microsecond=0)
-    prev = base.replace(microsecond=0) - timedelta(seconds=60)
+    loc = base.astimezone()   # inicio en la zona del proceso, la misma con que se escribieron los pasos
+    out, dia = [], loc.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+    prev = loc.replace(microsecond=0, tzinfo=None) - timedelta(seconds=60)
     for p in ps:
         h = p[:8]
         if len(p) > 10 and p[2] == ":" and p[5] == ":" and p[8:11] == " · " and h.replace(":", "").isdigit():
             t = dia + timedelta(hours=int(h[:2]), minutes=int(h[3:5]), seconds=int(h[6:8]))
-            if t < prev - timedelta(hours=1):   # pasó la medianoche UTC
+            if t < prev - timedelta(hours=1):   # pasó la medianoche local
                 dia += timedelta(days=1)
                 t += timedelta(days=1)
             prev = t
-            p = t.strftime("%Y-%m-%dT%H:%M:%SZ") + p[8:]
+            p = t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") + p[8:]
         out.append(p)
     return out
 
