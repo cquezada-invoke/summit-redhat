@@ -51,7 +51,7 @@
 <div style="display:none">{% endif %}
 <div class="mapa-vivo">
   <div class="cy-env"><div id="cy"></div>
-    <div class="zoom-ctl" role="group" aria-label="Zoom"><button type="button" data-z="mas" title="Acercar">+</button><button type="button" data-z="menos" title="Alejar">−</button><button type="button" data-z="ajustar" title="Ajustar a la pantalla">⤢</button><button type="button" data-z="orden" title="Volver al orden original (descarta cómo moviste las cajas)">↺</button><button type="button" data-z="grupos" title="Agrupar o expandir las réplicas de un mismo componente">⊟</button></div></div>
+    <div class="zoom-ctl" role="group" aria-label="Zoom"><button type="button" data-z="mas" title="Acercar">+</button><button type="button" data-z="menos" title="Alejar">−</button><button type="button" data-z="ajustar" title="Ajustar a la pantalla">⤢</button><button type="button" data-z="orden" class="z-orden" title="Reordenar: vuelve al dibujo automático (descarta el orden guardado)">Reordenar</button><button type="button" data-z="grupos" title="Agrupar o expandir las réplicas de un mismo componente">⊟</button></div></div>
 </div>
 <p class="sub" style="font-size:12px;margin:4px 0 0">Selecciona una red, un segmento o un equipo para ver su detalle a la derecha. Clic en el fondo: el segmento completo. Doble clic en una caja: su consola web.</p>{% if seg_info and seg_info.homolog %}</div>{% endif %}
 <div id="panel-velo" class="cajon-velo" hidden></div>
@@ -82,10 +82,24 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   const COL={3:v('--bad'),2:v('--warn'),1:v('--warn'),0:v('--ok')};  // semáforo: crítico rojo, no crítico amarillo, sano verde
   let cy=null, pila=SEG ? [{nivel:'global',valor:'',texto:'Segmentos de negocio',url:'?vista=aplicaciones'},{nivel:'segmento',valor:SEG,texto:SEG}] : [{nivel:'global',valor:''}];
   const panel=document.getElementById('panel'), miga=document.getElementById('miga');
+  // posiciones de las cajas: las guardadas en FaceOps (segmento + ambiente + vista, para todos) y, entre refrescos, las que
+  // hay en pantalla; el dibujo automático solo ubica las cajas nuevas
+  const URL_POS={{ url_for('consola.mapa_posiciones')|tojson }}, POS_QS=SEG?'?segmento='+encodeURIComponent(SEG)+'&ambiente='+encodeURIComponent(AMB_SEG||AMB||'')+'&vista='+encodeURIComponent(VISTA):'';
+  let POS_SRV=null, POS_MEM=null, VISTA_MEM=null, posT=null;
+  try{ localStorage.removeItem(POS_K); }catch(e){}   // (antes se guardaban solo en este navegador)
+  function posActuales(){ const g={}; if(cy) cy.nodes().filter(n=>n.isChildless()).forEach(n=>{ const p=n.position(); g[n.id()]={x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10}; }); return g; }
+  function guardarPos(){ clearTimeout(posT); POS_MEM=posActuales(); POS_SRV=Object.assign({},POS_SRV||{},POS_MEM);
+    if(!PUEDE||!SEG) return;   // sin perfil de escritura el orden queda solo en esta pantalla
+    posT=setTimeout(()=>{ const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG); fd.append('ambiente',AMB_SEG||AMB||''); fd.append('vista',VISTA);
+      fd.append('posiciones',JSON.stringify(POS_SRV)); fetch(URL_POS,{method:'POST',body:fd}).catch(()=>{}); },600); }
   function cargar(){
     const n=pila[pila.length-1];
+    const pPos=(n.nivel==='segmento'&&POS_QS&&POS_SRV===null)?fetch(URL_POS+POS_QS).then(r=>r.ok?r.json():{}).then(x=>{ POS_SRV=x.posiciones||{}; }).catch(()=>{ POS_SRV={}; }):Promise.resolve();
+    if(cy&&n.nivel==='segmento'){ POS_MEM=posActuales(); VISTA_MEM={zoom:cy.zoom(),pan:Object.assign({},cy.pan()),alto:document.getElementById('cy').style.height}; }   // refresco: no se reordena ni se mueve la vista
     fetch(DATOS+'?vista='+VISTA+'&nivel='+n.nivel+'&valor='+encodeURIComponent(n.valor)+(n.nivel==='segmento'&&AMB?'&ambiente='+encodeURIComponent(AMB):'')).then(r=>r.json()).then(d=>{
       if(!panel.isConnected) return;   // la página cambió (otro ambiente sin recargar): esta respuesta es de la anterior
+      return pPos.then(()=>d);
+    }).then(d=>{ if(!d||!panel.isConnected) return;
       miga.innerHTML=pila.map((p,i)=>i<pila.length-1?'<a href="#" data-i="'+i+'">'+(p.texto||d.miga[0].texto)+'</a>':'<b>'+(p.texto||d.miga[d.miga.length-1].texto)+'</b>').join(' › ');
       miga.querySelectorAll('a').forEach(a=>a.onclick=e=>{e.preventDefault();const p=pila[+a.dataset.i];if(p.url){location.href=p.url;return;}pila=pila.slice(0,+a.dataset.i+1);cargar();});
       dibujar(d.elementos, n.nivel==='global');
@@ -250,7 +264,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
           'text-background-color':v('--panel'),'text-background-opacity':1,'text-background-padding':3,'text-rotation':'none','arrow-scale':1.3}}]),
       maxZoom: global ? 1.4 : 2.2, minZoom:0.3,
       layout: global ? {name:'cose',animate:false,randomize:false,padding:20,nodeRepulsion:60000,idealEdgeLength:80,componentSpacing:50,nestingFactor:1.1,gravity:0.9}
-                     : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:16,spacingFactor:(AMB_SEG&&AMB_SEG!=='produccion')?1.15:0.78,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
+                     : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:16,spacingFactor:(AMB_SEG&&AMB_SEG!=='produccion')?0.9:0.7,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
     });
     if(!global){  // flujo compacto y a todo el ancho: si el gráfico sale alto y angosto se gira (izquierda → derecha) y se ajusta a una vista
       const caja=document.getElementById('cy'); let bb=cy.elements().boundingBox();
@@ -268,13 +282,24 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         let mov=false; Object.values(filas).forEach(f=>{ f.sort((a,b)=>a.position('x')-b.position('x'));
           for(let j=1;j<f.length;j++){ const min=f[j-1].position('x')+300; if(f[j].position('x')<min){ f[j].position({x:min,y:f[j].position('y')}); mov=true; } } });
         if(mov) bb=cy.elements().boundingBox(); }
-      // posiciones que el usuario dejó al mover las cajas (por segmento, solo para él)
-      try{ const g=JSON.parse(localStorage.getItem(POS_K)||'{}'); let n_=0; hojas.forEach(n=>{const p=g[n.id()]; if(p){n.position(p);n_++;}}); if(n_) bb=cy.elements().boundingBox(); }catch(e){}
-      cy.on('dragfree','node',()=>{ try{ const g={}; cy.nodes().filter(n=>n.isChildless()).forEach(n=>{g[n.id()]=n.position();}); localStorage.setItem(POS_K,JSON.stringify(g)); }catch(e){} });
+      // posiciones guardadas (FaceOps, para todos) o las de pantalla en un refresco: mandan sobre el dibujo automático;
+      // una caja nueva sin posición se ubica bajo sus vecinas ya ubicadas (sin encimarse)
+      const guard=Object.assign({},POS_SRV||{},POS_MEM||{}); let n_=0; const fijas=new Set();
+      hojas.forEach(n=>{ const p=guard[n.id()]; if(p&&isFinite(p.x)&&isFinite(p.y)){ n.position({x:p.x,y:p.y}); fijas.add(n.id()); n_++; } });
+      if(n_&&n_<hojas.length){ const ocup=()=>hojas.filter(m=>fijas.has(m.id())).map(m=>m.position());
+        hojas.filter(n=>!fijas.has(n.id())).forEach(n=>{ const vec=n.neighborhood('node').filter(m=>fijas.has(m.id()));
+          let p=vec.length?{x:vec.reduce((a,m)=>a+m.position('x'),0)/vec.length,y:Math.max(...vec.map(m=>m.position('y')))+130}
+                          :{x:Math.max(...ocup().map(q=>q.x))+320,y:Math.min(...ocup().map(q=>q.y))};
+          for(let k=0;k<40&&ocup().some(q=>Math.abs(q.x-p.x)<290&&Math.abs(q.y-p.y)<100);k++) p={x:p.x+300,y:p.y};
+          n.position(p); fijas.add(n.id()); }); }
+      if(n_) bb=cy.elements().boundingBox();
+      cy.on('dragfree','node',guardarPos);
       const w=caja.clientWidth, vh=Math.max(460, window.innerHeight-230);
       const z=Math.min((w-30)/Math.max(bb.w,1), (vh-30)/Math.max(bb.h,1), 1.1);
       const alto=Math.max(380, Math.min(vh, Math.round(bb.h*z)+40));
-      caja.style.height=alto+'px'; cy.resize(); cy.zoom(z); cy.center();
+      if(VISTA_MEM&&POS_MEM){ caja.style.height=VISTA_MEM.alto||(alto+'px'); cy.resize(); cy.zoom(VISTA_MEM.zoom); cy.pan(VISTA_MEM.pan); }   // refresco: la vista queda donde estaba
+      else { caja.style.height=alto+'px'; cy.resize(); cy.fit(cy.elements(),18); if(cy.zoom()>z) { cy.zoom(z); cy.center(); } }   // compacto y centrado en el lienzo
+      VISTA_MEM=null;
     } else { const caja=document.getElementById('cy'); cy.resize(); cy.fit(cy.elements(),20); }
     if(!global){ REP_COMP=false; if(cy.nodes('[grupo_rep]').length && cy.nodes('[tipo="equipo"]').length>10) comprimir(true); else cajasHTML();
       const bg=document.querySelector('.zoom-ctl [data-z="grupos"]'); if(bg){ bg.style.display=cy.nodes('[grupo_rep]').length?'':'none'; bg.textContent=REP_COMP?'⊞':'⊟'; } }
@@ -333,7 +358,10 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(!cy) return;
     const c=document.getElementById('cy'), centro={x:c.clientWidth/2,y:c.clientHeight/2};
     if(b.dataset.z==='ajustar'){ cy.fit(cy.elements(),24); return; }
-    if(b.dataset.z==='orden'){ try{ localStorage.removeItem(POS_K); }catch(e){} location.reload(); return; }
+    if(b.dataset.z==='orden'){ if(!confirm('¿Reordenar el mapa con el dibujo automático?'+(PUEDE?' Se descarta el orden guardado para todos.':''))) return;
+      POS_SRV={}; POS_MEM=null; VISTA_MEM=null; clearTimeout(posT);
+      if(PUEDE&&SEG){ const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG); fd.append('ambiente',AMB_SEG||AMB||''); fd.append('vista',VISTA); fd.append('accion','borrar'); fetch(URL_POS,{method:'POST',body:fd}).catch(()=>{}); }
+      cy.destroy(); cy=null; cargar(); return; }
     if(b.dataset.z==='grupos'){ comprimir(!REP_COMP); b.textContent=REP_COMP?'⊞':'⊟'; return; }
     const z=cy.zoom()*(b.dataset.z==='mas'?1.25:0.8);
     cy.zoom({level:Math.max(cy.minZoom(),Math.min(cy.maxZoom(),z)),renderedPosition:centro});
@@ -382,6 +410,8 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   }
   // ─────────── latencia del canal y prueba de rendimiento en vivo (controles en el flotante de la derecha) ───────────
   const URL_PERF={{ url_for('consola.mapa_rendimiento')|tojson }};
+  // la entrada HTTP de la prueba es la URL de la arquitectura (producción): en QA o desarrollo no se muestra ni se suma
+  const perfAmb=x=>{ if(x&&AMB&&AMB!=='produccion') x.entrada={}; return x; };
   let PERF=null, PERF_ON=false, perfTimer=null, perfFin=null, TABLA_ABIERTA=false;
   const PERF_MIN=5;   // minutos que los tiempos medidos quedan sobre la gráfica al terminar, antes de volver a lo normal
   const msDe=t=>{ const m=String(t||'').match(/([\d.]+)\s*ms/); return m?parseFloat(m[1]):null; };
@@ -433,15 +463,15 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   }
   function quitarPerf(){ flujo(false); PERF_ON=false; clearTimeout(perfFin); const cy_=window._cy; if(!cy_) return; cy_.edges().forEach(e=>{ e.removeData('perf'); e.removeData('perf_cuello'); e.removeData('perf_ruta'); }); cy_.style().update(); pintarTotal(); pintarControles(); }
   function postPerf(acc,extra){ const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG); fd.append('accion',acc); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
-    return fetch(URL_PERF,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){ const m=document.getElementById('perf-msg'); if(m) m.innerHTML='<span style="color:var(--bad)">'+x.error+'</span>'; return null; } PERF=x; return x; }); }
+    return fetch(URL_PERF,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){ const m=document.getElementById('perf-msg'); if(m) m.innerHTML='<span style="color:var(--bad)">'+x.error+'</span>'; return null; } PERF=perfAmb(x); return x; }); }
   function tickPerf(){ clearTimeout(perfTimer);
-    fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=x; const corre=['corriendo','pausado','preparando'].includes(x.estado);
+    fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=perfAmb(x); const corre=['corriendo','pausado','preparando'].includes(x.estado);
       if(corre||PERF_ON) ponerPerf();
       flujo(x.estado==='corriendo'||x.estado==='preparando');   // la entrada HTTP se mide desde el primer segundo; los tramos internos se suman cuando AAP arranca
       if(!corre&&PERF_ON&&!perfFin) perfFin=setTimeout(quitarPerf, PERF_MIN*60000);
       pintarControles(); if(TABLA_ABIERTA) pintarTabla();
       if(corre) perfTimer=setTimeout(tickPerf, x.estado==='pausado'?3000:2000); }).catch(()=>{ perfTimer=setTimeout(tickPerf,4000); }); }
-  function perfInicial(){ fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=x; if(['corriendo','pausado','preparando'].includes(x.estado)){ perfFin=null; tickPerf(); } pintarTotal(); pintarControles(); }).catch(()=>{}); }
+  function perfInicial(){ fetch(URL_PERF+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()).then(x=>{ PERF=perfAmb(x); if(['corriendo','pausado','preparando'].includes(x.estado)){ perfFin=null; tickPerf(); } pintarTotal(); pintarControles(); }).catch(()=>{}); }
   function htmlControles(){
     if(!PUEDE) return '';
     return sec('Rendimiento del canal')+'<div class="act-acc" id="perf-ctl" style="display:grid;gap:6px"></div>';
@@ -539,6 +569,8 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   // data lake del segmento: la bifurcación vive en su punto de entrada; aquí se activa para todo el segmento
   function bifSegmento(){ const cy_=window._cy; if(!cy_) return null; const n=cy_.nodes().filter(x=>!!x.data('bif'))[0]; return n?{b:n.data('bif'),punto:n.data('nombre')||n.data('label')||''}:null; }
   function htmlLakeSegmento(){ const x=bifSegmento(); if(!x) return ''; const b=x.b;
+    if(b.no_configurado) return sec('Data lake')+fila({izq:'Derivación',ic:SVG.gris,txt:b.no_configurado,abierto:true,
+      det:'La derivación al data lake de este segmento está configurada en <b>'+(AMBN[b.ambiente_lake]||b.ambiente_lake)+'</b>. Este ambiente no tiene un data lake propio: lo que se ve aquí no se copia a ninguna parte.'});
     return sec('Data lake')+fila({izq:'Derivación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
       det:(b.activa&&b.declarada&&b.medicion?'<div style="margin-top:4px"><b>Enviado al data lake:</b> <span id="lake-req">…</span> operaciones · <span id="lake-arch">…</span> archivos en <b>'+b.destino+'</b> <span class="sub">(lo informa la aplicación, que escribe directo en su zona del lake; cuenta desde su último arranque)</span></div>':b.activa&&b.declarada?'<div style="margin-top:4px"><b>Enviado al data lake:</b> escritura directa de la aplicación en <b>'+b.destino+'</b> (declarada en su arquitectura; no pasa por el colector, que solo mide los espejos de tráfico)</div>':b.activa?''+(b.activa?'<div style="margin-top:4px"><b>Enviado al data lake:</b> <span id="lake-req">…</span> requests · <span id="lake-mb">'+(b.enviado_mb!=null?n2(b.enviado_mb):'…')+'</span> MB <span class="sub" id="lake-desde"></span></div>':'')
           :'Al activarla (ticket con aprobación), cada request del segmento se copia al data lake en <b>'+b.destino+'</b> ('+b.como+'), sin tocar el camino del negocio, y arrancan flujos funcionales de prueba.')
@@ -798,7 +830,9 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(d.app_url){ h+=sec('Aplicación'); h+=fila({izq:'App web',ic:SVG.web,txt:'<a href="'+d.app_url+'" target="_blank" rel="noopener">'+d.app_url.replace(/^https?:\/\//,'')+'</a>'}); }
     if(d.proxy_rep){ h+=sec('Réplicas','<span class="act-n">'+d.miembros.length+'</span>'); d.miembros.forEach(x=>{ h+=fila({izq:'',ic:letra('R','#6753ac'),txt:x}); });
       h+='<div class="act-acc"><button class="btn chico gris" id="b-expandir">Ver las '+d.miembros.length+' réplicas</button></div>'; }
-    if(d.bif){ const b=d.bif;
+    if(d.bif&&d.bif.no_configurado){ h+=sec('Data lake')+fila({izq:'Bifurcación',ic:SVG.gris,txt:d.bif.no_configurado,abierto:true,
+      det:'La derivación al data lake de este segmento está configurada en <b>'+(AMBN[d.bif.ambiente_lake]||d.bif.ambiente_lake)+'</b>; este ambiente no tiene un data lake propio.'}); }
+    else if(d.bif){ const b=d.bif;
       h+=sec('Data lake');
       h+=fila({izq:'Bifurcación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
         det:'Punto: <b>'+b.como+'</b>.<br>'+(b.activa?'Cada request que pasa por aquí se copia al data lake'+(b.por?' (activada por '+b.por+', '+horaLocal.fmt(b.en||'')+')':'')+'.'

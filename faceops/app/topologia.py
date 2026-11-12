@@ -367,14 +367,14 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
                                  "origen_ip": a.get("ip"), "destino_ip": b.get("ip"), "puerto": str(f.get("puerto", "")),
                                  "desde": f["desde"], "hacia": f["hacia"]}})
     if _a and nivel == "segmento":
-        _componentes_ocp(els, _a["m"], _asg, cliente)
+        _componentes_ocp(els, _a["m"], _asg, cliente, ambiente)
     if nivel == "segmento":
         _fuentes_storage(els, dentro)
         _grupos_replicas(els, comp_de)
     if _a and ambiente:
         _planificados(els, _a["m"], _asg, ambiente, pasos_vistos)
     if nivel == "segmento":
-        _bifurcacion_lake(els, cliente, valor, _a["m"] if _a else None, _asg)
+        _bifurcacion_lake(els, cliente, valor, _a["m"] if _a else None, _asg, ambiente)
     return els, [{"texto": cliente["nombre"], "nivel": "global"}, {"texto": titulo}]
 
 
@@ -456,7 +456,7 @@ def bifurcacion_de(cliente_id, segmento):
         return None
 
 
-def _componentes_ocp(els, m, asg, cliente=None):
+def _componentes_ocp(els, m, asg, cliente=None, ambiente=""):
     """Componentes en OpenShift (no son máquinas): un marco «OpenShift» con la route (el balanceador de OpenShift) como
     caja de entrada y una caja por componente; lo que corre fuera del clúster (p. ej. una base de datos en VM) queda
     fuera del marco. «estilo: bifurcacion» en un flujo es la derivación al data lake: solo se dibuja si está activada."""
@@ -467,21 +467,25 @@ def _componentes_ocp(els, m, asg, cliente=None):
         els.append({"data": {"id": "p:seg", "label": m["segmento"], "tipo": "grupo"}})
     cid = cliente["id"] if cliente else 0
     b = bifurcacion_de(cid, m["segmento"]) if cliente else None
-    activa = bool(b and b["activa"])
+    activa = bool(b and b["activa"]) and (not ambiente or ambiente == (ambiente_bifurcacion(cid, b) or "produccion"))   # la derivación es de un ambiente
     solo_bif = {c["id"] for c in ocp if all(f.get("estilo") == "bifurcacion" for f in m["flujos"] if c["id"] in (f["desde"], f["hacia"]))
                 and any(f.get("estilo") == "bifurcacion" for f in m["flujos"] if c["id"] in (f["desde"], f["hacia"]))}
     if not activa:
         ocp = [c for c in ocp if c["id"] not in solo_bif]
     ids = {c["id"] for c in ocp}
     nodos_cl = sorted({x for c in ocp for x in (c.get("equipos") or [])})
-    ns = ""
-    try:
+    ns, rutas_amb = "", None
+    try:   # namespaces y routes solo del ambiente que se ve (los de producción no se muestran en QA ni desarrollo)
         from .segmentos_ocp import de_segmento
-        ns = ", ".join(sorted({o["namespace"] for o in de_segmento(cid, m["segmento"]) if o.get("namespace")}))
+        os_ = [o for o in de_segmento(cid, m["segmento"]) if not ambiente or (o.get("ambiente") or "produccion") == ambiente]
+        ns = ", ".join(sorted({o["namespace"] for o in os_ if o.get("namespace")}))
+        rutas_amb = next((u for o in os_ for u in (o.get("rutas_d") or {}).values()), "")
     except Exception:  # noqa: BLE001
         pass
+    sin_ns = bool(ambiente and ambiente != "produccion" and not ns)
     els.append({"data": {"id": "p:ocp", "parent": "p:seg", "tipo": "grupo_ocp",
-                         "label": "OpenShift · " + (", ".join(nodos_cl) or "clúster") + (f" · namespace {ns}" if ns else "")}})
+                         "label": "OpenShift · " + (", ".join(nodos_cl) or "clúster") + (f" · namespace {ns}" if ns else
+                                                                                         f" · no desplegado en {NOMBRE_AMB.get(ambiente, ambiente)}" if sin_ns else "")}})
     for c in ocp:
         icono, rol = rol_de({}, c)
         donde = " · ".join(c.get("equipos") or []) or "OpenShift"
@@ -495,7 +499,7 @@ def _componentes_ocp(els, m, asg, cliente=None):
     # si el componente de entrada ES el router de OpenShift (p. ej. la plataforma misma), no se agrega otra caja «Route»
     es_router = bool(c_ent and (c_ent.get("tipo") in ("balanceador", "proxy") or "ingress" in str(c_ent.get("producto") or "")))
     if entrada in ids and not es_router:   # la route de OpenShift es el balanceador de la aplicación: su propia caja
-        url = _url_app(cid, m["segmento"], m)
+        url = _url_app(cid, m["segmento"], m) if ambiente in ("", "produccion") else (rutas_amb or "")   # fuera de producción, la route de su propio namespace
         host = url.split("//")[-1].strip("/")
         route = "c:_route"
         els.append({"data": {"id": route, "parent": "p:ocp", "tipo": "equipo", "icono": "balanceo", "rol": "Balanceo de OpenShift (route)",
@@ -551,7 +555,8 @@ LAKE = {"nombre": "Data lake corporativo", "detalle": "S3 + Trino (demo-datalake
         "datos": os.environ.get("FACEOPS_LAKE_DATOS", "https://colector-lake.sno.34.176.42.56.sslip.io/datos/"),
         # máquina de control para las derivaciones declaradas: el ticket no la toca (todo corre en AAP), solo la usa de límite
         "control": os.environ.get("FACEOPS_LAKE_CONTROL", "nodo-nginx")}
-PRIORIDAD_PUNTO = ["balanceo", "web", "servicios", "base_datos"]   # dónde es más factible copiar cada request: el que la recibe primero
+PRIORIDAD_PUNTO = ["balanceo", "web", "servicios", "base_datos"]
+NOMBRE_AMB = {"produccion": "producción", "qa": "QA", "desarrollo": "desarrollo", "calidad": "calidad", "pruebas": "pruebas"}   # dónde es más factible copiar cada request: el que la recibe primero
 
 
 _USO_LAKE = {}
@@ -619,7 +624,17 @@ def params_derivacion(cliente_id, segmento, punto, accion):
     return p
 
 
-def _bifurcacion_lake(els, cliente, segmento, m, asg):
+def ambiente_bifurcacion(cliente_id, b, eqs=None):
+    """Ambiente al que pertenece la derivación al data lake registrada (una por segmento): el de la máquina donde se puso
+    el espejo; en una route de OpenShift o sin máquina conocida, producción."""
+    if not b:
+        return None
+    from .bd import q1
+    e = q1("SELECT ambiente FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente_id, b.get("punto") or "")
+    return (e or {}).get("ambiente") or "produccion"
+
+
+def _bifurcacion_lake(els, cliente, segmento, m, asg, ambiente=""):
     """Todo segmento aplicativo tiene un punto factible para copiar cada request hacia el data lake: el que la recibe
     primero (la route en OpenShift, el balanceador o proxy; si no, la capa web o de servicios; en una base de datos, captura
     de cambios). Ese punto lleva en su flotante la opción «Data lake»: la bifurcación solo se dibuja cuando está activada."""
@@ -655,14 +670,17 @@ def _bifurcacion_lake(els, cliente, segmento, m, asg):
         return
     pref = prefijo_lake(segmento)
     b = bifurcacion_de(cliente["id"], segmento)
-    activa = bool(b and b["activa"])
-    url = _url_app(cliente["id"], segmento, m)
+    amb_b = ambiente_bifurcacion(cliente["id"], b) or "produccion"
+    propio = not ambiente or ambiente == amb_b   # la derivación registrada es de un ambiente: en los otros no está configurada
+    activa = bool(b and b["activa"]) and propio
+    url = _url_app(cliente["id"], segmento, m) if ambiente in ("", "produccion") else ""   # la URL de la arquitectura es la de producción
     uso = _uso_lake(pref) if activa else {}
     for n in punto:
         nodos[n]["bif"] = {"enviado_mb": uso.get("enviado_mb"), "s3_mb": uso.get("s3_mb"), "desde": uso.get("desde", ""),"segmento": segmento, "destino": ((b or {}).get("destino") if declarada and (b or {}).get("destino") else f"s3://lake/{pref}/"), "activa": activa,
                            "medicion": bool(declarada and (declaracion_lake(m) or {}).get("medicion_url")), "como": como, "declarada": declarada,
                            "por": (b or {}).get("por") or "", "en": (b or {}).get("en") or "", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"],
-                           "datos": LAKE["datos"] + pref}
+                           "datos": LAKE["datos"] + pref, "ambiente": ambiente or amb_b, "ambiente_lake": amb_b,
+                           "no_configurado": "" if propio else f"no configurado en {NOMBRE_AMB.get(ambiente, ambiente)}"}
         if url and not nodos[n].get("app_url"):
             nodos[n]["app_url"] = url
     if not activa or declarada:
@@ -942,14 +960,14 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente="", indicadores
             "arquitectura": arq["version"] if arq else None, "entrada": (arq["m"].get("entrada") or {}) if arq else {},
             "costo_mensual": k["mensual"] if k else None, "incremental": k["incremental"] if k else None, "moneda": k["moneda"] if k else "USD",
             "ocp": [{"ambiente": o["ambiente"], "namespace": o["namespace"], "rutas": o["rutas_d"], "gitops": o["gitops"], "version": o["version"]}
-                    for o in _ocp_de(cliente["id"], segmento)],
+                    for o in _ocp_de(cliente["id"], segmento) if not ambiente or (o.get("ambiente") or "produccion") == ambiente],   # solo los del ambiente que se ve
             "ocp_comps": [c["nombre"] for c in arq["m"]["componentes"] if c.get("plataforma") == "openshift"] if arq else [],
             **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq, disp,
                                             ((paridad or {}).get("items") or {}).get(ambiente or "produccion", []) if paridad else None, ambiente)),
             "paridad": {k_: v for k_, v in (paridad or {}).items() if k_ not in ("items", "por_maquina")} if paridad else None,
             "disponibilidad": {k_: v for k_, v in disp.items() if k_ != "funciones"} | {"funciones": [{x_: f[x_] for x_ in ("funcion", "n", "on", "estado")} for f in disp["funciones"]]},
             "salud_meta": metas_salud(j(seg.get("ficha"), {})),
-            "metricas_app": _indicadores_app(arq) if indicadores else []}   # (consulta en vivo a la aplicación: solo donde se muestra)
+            "metricas_app": _indicadores_app(arq) if indicadores and ambiente in ("", "produccion") else []}   # la aplicación de la arquitectura es la de producción   # (consulta en vivo a la aplicación: solo donde se muestra)
 
 
 def _indicadores_app(arq):
@@ -1183,8 +1201,9 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None, paridad=None,
         out.append({"nivel": "media", "area": "Recuperación", "titulo": f"{len(sin_resp)} máquina(s) sin respaldo continuo", "detalle": ", ".join(sin_resp[:8]),
                     "remedio": "Habilitar «Respaldo continuo en Git» (configuración, paquetes y servicios para recuperarlas)",
                     "maquinas": sin_resp, "accion_k": "auto", "autos": ["FaceOps · Respaldo continuo en Git"], "boton": "Habilitar respaldo"})
+    prod_ = ambiente in ("", "produccion")   # RTO/RPO y SLA son del servicio productivo: no se arrastran a QA ni desarrollo
     fi_ = j((q1_seg(cliente, segmento) or {}).get("ficha"), {})
-    if not fi_.get("rto") or not fi_.get("rpo"):
+    if prod_ and (not fi_.get("rto") or not fi_.get("rpo")):
         out.append({"nivel": "media", "area": "Recuperación", "titulo": "Sin RTO/RPO definidos en la ficha del segmento",
                     "remedio": "Definir en la ficha cuánto puede estar caído (RTO) y cuántos datos se pueden perder (RPO)"})
     por_t = defaultdict(list)
@@ -1226,9 +1245,9 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None, paridad=None,
         out.append({"nivel": "media", "area": "Rendimiento", "titulo": f"Latencia sobre el umbral ({um_:.0f} ms) en {len(lentos)} flujo(s): cuello de botella",
                     "detalle": ", ".join(f"{f['desde']}→{f['hacia']} ⌀ {ms:.0f} ms" for ms, f in lentos[:4]),
                     "remedio": "Revisar red y carga del destino; medir de nuevo con «Probar latencia» en la línea"})
-    try:   # SLA del servicio (Gobierno › SLA): incumplimiento, «SLA en riesgo» por error budget y tiempos de atención
+    try:   # SLA del servicio (Gobierno › SLA): incumplimiento, «SLA en riesgo» por error budget y tiempos de atención (solo producción)
         from .sla import salud_items
-        out += salud_items(cliente, segmento)
+        out += salud_items(cliente, segmento) if prod_ else []
     except Exception:  # noqa: BLE001  sin SLA o sin tablas: nada que agregar
         pass
     orden = {"alta": 0, "media": 1, "info": 2, "ok": 3}

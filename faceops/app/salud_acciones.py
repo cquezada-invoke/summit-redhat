@@ -231,3 +231,4 @@ def rec_sugerido(k, cur, u, ops=None, minimo=None):
 
 
 from . import salud_segmento_acc  # noqa: E402,F401  (flotante de salud del segmento en el mapa: la misma lógica, caso a caso)
+from . import mapa_posiciones  # noqa: E402,F401  (posiciones guardadas de las cajas del mapa de cada segmento)
