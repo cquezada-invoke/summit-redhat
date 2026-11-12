@@ -5,7 +5,13 @@
 <div class="fi-cab"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted)"><path d="M3 10l2-5h14l2 5"/><path d="M4 10v10h16V10"/><path d="M3 10h18"/><path d="M9 20v-5h6v5"/></svg>
 <div style="min-width:0"><h1>{{ s.codigo }}{% if s.demo %} <span class="chip s-media" style="vertical-align:4px" title="Sitio de laboratorio: agrupa máquinas existentes del lab, no es una tienda real">demo</span>{% endif %}</h1>
 <p class="sub" style="margin:0">{{ s.alias or 'Sin nombre comercial' }} · {{ tipos.get(s.tipo, s.tipo) }} · {{ s.pais }} · {{ s.ciudad }}</p></div>
-{% if esc %}<button type="button" class="btn chico gris fi-der" data-fi-abrir="fi-cx"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Editar sitio</button>{% endif %}</div>
+{% if esc %}<button type="button" class="btn chico gris fi-der" data-fi-abrir="fi-cx"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Editar sitio</button>{% endif %}
+{% from "_alertas.html" import boton_alertas with context %}<div class="eg-iconos">{% if al_sitio %}{{ boton_alertas(al_sitio, url_for('consola.edge_alertas', sid=s.id), s.codigo) }}{% endif %}
+{% set hb_lista = hb_sitio %}{% set hb_titulo = s.codigo %}{% set hb_sub = 'Sitio ' ~ tipos.get(s.tipo, s.tipo)|lower ~ ' · cada skill crea un ticket con aprobación en AAP que baja al sitio por la malla; FaceOps no toca los equipos directo' %}{% include "_habilidades.html" %}</div></div>
+<style>.fi-cab .eg-iconos{display:flex;gap:10px;align-items:center;margin-left:10px}.fi-cab .eg-iconos .hb-btn,.fi-cab .eg-iconos .al-btn{width:52px;height:52px;margin:0}
+.fi-cab>.fi-der+.eg-iconos{margin-left:10px}.fi-cab>.eg-iconos:not(.fi-der+.eg-iconos){margin-left:auto}
+#equipos table,#dispositivos table,#alertas table,#tickets table,#malla table,#ed-cerradas table{width:100%;max-width:none}
+@media (min-width:721px){ #equipos table,#dispositivos table,#alertas table,#tickets table,#malla table,#ed-cerradas table{display:table}}</style>
 {{ salud(radar_s, s.codigo) }}
 
 <div class="eq-cab">
@@ -25,8 +31,8 @@
 </div>
 
 <div class="card" style="margin-top:6px" id="diagrama"><div class="fila" style="flex-wrap:wrap;gap:8px"><h2 style="margin:0">Arquitectura del sitio</h2><span class="sub der" style="font-size:12px" id="ed-dg-nota">desde el inventario del sitio · clic en un equipo abre su ficha</span>
-{% if esc %}<span class="ed-ebar"><button type="button" class="btn chico gris" id="ed-editar">Editar diagrama</button><span id="ed-ebtn" hidden><button type="button" class="btn chico gris" id="ed-agregar">+ Agregar dispositivo</button> <button type="button" class="btn chico gris" id="ed-puertos" disabled>Puertos…</button> <button type="button" class="btn chico gris" id="ed-borrar" disabled>Eliminar conexión</button> <button type="button" class="btn chico" id="ed-guardar">Guardar</button> <button type="button" class="btn chico gris" id="ed-cancelar">Cancelar</button></span></span>{% endif %}</div>
-<p class="sub" id="ed-ayuda" hidden style="font-size:12.5px;margin:6px 0 0">Arrastra un nodo para moverlo · arrastra desde el punto azul de un nodo hasta otro para conectarlos y elige el puerto de cada extremo · clic en una conexión para seleccionarla: cambia sus puertos, arrastra sus extremos a otro nodo para reconectarla o elimínala · «+ Agregar dispositivo» pone en el diagrama algo que ya existe en el inventario. Es documentación del inventario: no cambia la red real.</p>
+{% if esc %}<span class="ed-ebar"><button type="button" class="btn chico gris" id="ed-editar">Editar diagrama</button><span id="ed-ebtn" hidden><button type="button" class="btn chico gris" id="ed-agregar">+ Agregar equipo</button> <button type="button" class="btn chico gris" id="ed-quitar" disabled title="Selecciona un equipo o dispositivo en el diagrama">Quitar del sitio</button> <button type="button" class="btn chico gris" id="ed-puertos" disabled>Puertos…</button> <button type="button" class="btn chico gris" id="ed-borrar" disabled>Eliminar conexión</button> <button type="button" class="btn chico" id="ed-guardar">Guardar</button> <button type="button" class="btn chico gris" id="ed-cancelar">Cancelar</button></span></span>{% endif %}</div>
+<p class="sub" id="ed-ayuda" hidden style="font-size:12.5px;margin:6px 0 0">Arrastra un nodo para moverlo · arrastra desde el punto azul de un nodo hasta otro para conectarlos y elige el puerto de cada extremo · clic en una conexión para seleccionarla: cambia sus puertos, arrastra sus extremos a otro nodo para reconectarla o elimínala · «+ Agregar equipo» asigna al sitio una máquina o dispositivo que ya existe en el inventario · clic en un nodo y «Quitar del sitio» (o Supr) lo desvincula sin borrarlo del inventario. Es documentación del inventario: no cambia la red real.</p>
 <div class="ed-dg-ley sub"><span><i class="t-ok"></i>≥ 85 %</span><span><i class="t-med"></i>50–84 %</span><span><i class="t-mal"></i>&lt; 50 %</span><span><i class="t-nd"></i>sin lectura</span><span><i class="ed-tun"></i>túnel de la malla</span></div>
 <div class="ed-dg"><svg id="ed-svg" viewBox="0 0 {{ diag.w }} {{ diag.h }}" role="img" aria-label="Arquitectura del sitio {{ s.codigo }}" style="min-width:640px">
 <defs><marker id="ed-flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ed-fl"/></marker></defs>
@@ -41,7 +47,7 @@
 {% if diag.huerfanos %}<p class="sub" style="font-size:12.5px;margin:6px 0 0"><span class="chip s-media">Sin conexión</span> {{ diag.huerfanos|join(', ') }}</p>{% endif %}
 {% if diag.editado %}<p class="sub" style="font-size:12px;margin:6px 0 0">Diagrama editado por {{ diag.editado.autor or '—' }} · {{ (diag.editado.fecha|fecha) if diag.editado.fecha else '—' }}{% if esc %} · <button type="button" class="btn chico gris" id="ed-auto">Volver al automático</button>{% endif %}</p>{% endif %}
 {% if topo_hist %}<details style="margin-top:6px"><summary class="sub" style="font-size:12px;cursor:pointer">Historial del diagrama · {{ topo_hist|length }}</summary><ul class="sub" style="font-size:12px;margin:4px 0 0">
-{% for h in topo_hist %}<li>{{ (h.fecha|fecha) if h.fecha else '—' }} · {{ h.autor or '—' }} · {{ 'guardó el diagrama' if h.nueva else 'volvió a la disposición automática' }}</li>{% endfor %}</ul></details>{% endif %}
+{% for h in topo_hist %}<li>{{ (h.fecha|fecha) if h.fecha else '—' }} · {{ h.autor or '—' }} · {{ 'guardó el diagrama' if h.nueva else 'volvió a la disposición automática' }}{% if h.cambios.agregados %} · agregó {{ h.cambios.agregados|join(', ') }}{% endif %}{% if h.cambios.quitados %} · quitó del sitio {{ h.cambios.quitados|join(', ') }}{% endif %}</li>{% endfor %}</ul></details>{% endif %}
 {% set cerradas = diag.lineas|selectattr('cerrado')|list %}{% set nom = {} %}{% for c in diag.cajas %}{% set _ = nom.update({c.id: c.tit_full}) %}{% endfor %}
 {% if cerradas %}<div class="ed-cerr" id="ed-cerradas"><b style="font-size:13px">Conexiones con puerto cerrado · {{ cerradas|length }}</b>
 <table class="no-apilar" style="margin-top:4px"><tr><th>Origen</th><th>Destino</th><th>Puerto</th><th>Apertura</th></tr>
@@ -66,7 +72,7 @@
 .ed-edit svg{touch-action:none;user-select:none}.ed-edit .ed-caja{cursor:move}.ed-edit .ed-caja[data-id=central]{cursor:default}
 .ed-hit{stroke:transparent;stroke-width:12;cursor:pointer}.ed-sel{stroke:var(--warn) !important;stroke-width:3 !important;opacity:1 !important}
 .ed-h{fill:var(--info,#2b9af3);stroke:var(--panel);stroke-width:2;cursor:crosshair}.ed-ep{fill:var(--warn);stroke:var(--panel);stroke-width:2;cursor:grab}
-.ed-tmp{stroke:var(--warn);stroke-width:2;stroke-dasharray:4 4}
+.ed-tmp{stroke:var(--warn);stroke-width:2;stroke-dasharray:4 4}.ed-nsel rect{stroke:var(--warn)!important;stroke-width:3!important}.ed-lista button:disabled{opacity:.5;cursor:not-allowed}
 .ed-cerrado{stroke:var(--bad);stroke-width:2;stroke-dasharray:5 4}.ed-ltx-c{fill:var(--bad)}.ed-cerr{margin-top:10px;border:1px solid var(--bad);border-radius:8px;padding:8px 10px;background:var(--badbg)}
 .ed-panel{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:8px}
 .ed-panel .fila{gap:8px;flex-wrap:wrap;align-items:flex-end}.ed-panel label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;min-width:180px;flex:1}
@@ -76,7 +82,7 @@
 {% if esc %}<script>(()=>{const svg=document.getElementById('ed-svg'),D=JSON.parse(document.getElementById('ed-dg-datos').textContent),card=document.getElementById('diagrama');
 const $=id=>document.getElementById(id),btE=$('ed-editar'),bar=$('ed-ebtn'),btB=$('ed-borrar'),btP=$('ed-puertos'),ay=$('ed-ayuda'),pan=$('ed-panel'),aviso=(t,k)=>(window.fxAviso||alert)(t,k);
 const NS='http://www.w3.org/2000/svg',lns=$('ed-lns'),hdl=$('ed-hdl'),marco=$('ed-marco');
-const MALLA=['central','hop','en'];let N={},O={},C=[],X=new Set(D.extra||[]),sel=-1,op=null,ed=false,vbH=svg.viewBox.baseVal.height;
+const MALLA=['central','hop','en'];let N={},O={},C=[],X=new Set(D.extra||[]),A=new Set(),Q=new Set(),selN=null,sel=-1,op=null,ed=false,vbH=svg.viewBox.baseVal.height;
 const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
 const esc_=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pt=ev=>{const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
@@ -94,17 +100,19 @@ function pintar(){lns.innerHTML='';hdl.innerHTML='';
    if(i===sel){hdl.appendChild(el('circle',{cx:x1,cy:y1,r:7,class:'ed-ep','data-i':i,'data-end':0}));hdl.appendChild(el('circle',{cx:x2,cy:y2,r:7,class:'ed-ep','data-i':i,'data-end':1}));}}});
  svg.querySelectorAll('g.ed-caja').forEach(g=>{const n=N[g.dataset.id];if(n)g.setAttribute('transform','translate('+(n.x-O[g.dataset.id].x)+' '+(n.y-O[g.dataset.id].y)+')');});
  if(ed)Object.keys(N).forEach(k=>hdl.insertBefore(el('circle',{cx:N[k].x+N[k].w/2,cy:N[k].y+N[k].h,r:6,class:'ed-h','data-n':k}),hdl.firstChild));
- btB.disabled=btP.disabled=sel<0;
+ btB.disabled=btP.disabled=sel<0;$('ed-quitar').disabled=!selN||MALLA.includes(selN);
+ svg.querySelectorAll('g.ed-caja').forEach(g=>g.classList.toggle('ed-nsel',g.dataset.id===selN));
  const mx=Math.max(...Object.values(N).map(n=>n.y+n.h))+40;if(mx>vbH){vbH=mx;const v=svg.viewBox.baseVal;svg.setAttribute('viewBox','0 0 '+v.width+' '+vbH);}
  if(marco)marco.setAttribute('height',Math.max(+marco.getAttribute('height'),vbH-(+marco.getAttribute('y'))-16));}
 function cargar(){N={};O={};svg.querySelectorAll('g.ed-caja').forEach(g=>{const r=g.querySelector('rect'),n={x:+r.getAttribute('x'),y:+r.getAttribute('y'),w:+r.getAttribute('width'),h:+r.getAttribute('height')};N[g.dataset.id]=n;O[g.dataset.id]={x:n.x,y:n.y};});
  C=D.lineas.map(l=>[l.a,l.b,l.pa||'',l.pb||'']);}
 /* nodo nuevo en el diagrama (máquina del inventario fuera del sitio): se dibuja aquí y queda como «extra» al guardar */
-function nuevoNodo(c){const g=el('g',{class:'ed-caja t-nd','data-id':c.id}),y=vbH-20,x=40;
+function nuevoNodo(c){const g0=svg.querySelector('g.ed-caja[data-id="'+c.id+'"]');if(g0){g0.style.display='';const r=g0.querySelector('rect');N[c.id]={x:+r.getAttribute('x'),y:+r.getAttribute('y'),w:+r.getAttribute('width'),h:+r.getAttribute('height')};O[c.id]={x:N[c.id].x,y:N[c.id].y};return;}
+ const g=el('g',{class:'ed-caja t-nd','data-id':c.id}),y=vbH-20,x=40;
  g.appendChild(el('title',{}));g.firstChild.textContent=c.nombre+' · agregado al diagrama';g.appendChild(el('rect',{x,y,width:170,height:58,rx:7}));
  const t1=el('text',{x:x+10,y:y+22,class:'ed-ctit mono'});t1.textContent=c.nombre.length>15?c.nombre.slice(0,14)+'…':c.nombre;g.appendChild(t1);
- const t2=el('text',{x:x+10,y:y+41,class:'ed-csub'});t2.textContent=(c.ip||'sin IP')+' · fuera del sitio';g.appendChild(t2);
- svg.insertBefore(g,hdl);N[c.id]={x,y,w:170,h:58};O[c.id]={x,y};D.nombres[c.id]=c.nombre;X.add(c.id);if(!D.puertos[c.id])D.puertos[c.id]=[];}
+ const t2=el('text',{x:x+10,y:y+41,class:'ed-csub'});t2.textContent=(c.ip||'sin IP')+' · '+c.tipo;g.appendChild(t2);
+ svg.insertBefore(g,hdl);N[c.id]={x,y,w:170,h:58};O[c.id]={x,y};D.nombres[c.id]=c.nombre;if(!D.puertos[c.id])D.puertos[c.id]=c.puertos||[];}
 /* panel de puertos: origen:puerto → destino:puerto; avisa si el puerto no figura abierto en el destino */
 function panelPuertos(i,listo){const c=C[i],dl=(id,k)=>'<datalist id="'+id+'">'+(D.puertos[k]||[]).map(p=>'<option value="'+esc_(p)+'">').join('')+'</datalist>';
  pan.innerHTML='<b style="font-size:13px">Conexión · '+esc_(nombre(c[0]))+' → '+esc_(nombre(c[1]))+'</b><div class="fila">'
@@ -116,15 +124,15 @@ function panelPuertos(i,listo){const c=C[i],dl=(id,k)=>'<datalist id="'+id+'">'+
  pb.addEventListener('input',ver);ver();$('ed-pa').focus();
  $('ed-pok').onclick=()=>{c[2]=$('ed-pa').value.trim();c[3]=pb.value.trim();pan.hidden=true;pintar();};$('ed-pno').onclick=()=>{pan.hidden=true;pintar();};}
 /* «+ Agregar dispositivo»: elegir algo YA existente del inventario, ponerlo en el diagrama y vincularlo con un nodo */
-function panelAgregar(){pan.innerHTML='<b style="font-size:13px">Agregar al diagrama</b><input type="search" id="ed-bus" placeholder="Buscar por nombre, IP o tipo…" aria-label="Buscar en el inventario"><div class="ed-lista" id="ed-cands"></div>'
+function panelAgregar(){pan.innerHTML='<b style="font-size:13px">Agregar equipo al sitio</b><span class="sub" style="font-size:12px">Elige una máquina o dispositivo que ya existe en el inventario: queda asignado al sitio al guardar.</span><input type="search" id="ed-bus" placeholder="Buscar por nombre, IP o tipo…" aria-label="Buscar en el inventario"><div class="ed-lista" id="ed-cands"></div>'
   +'<div class="fila" id="ed-vinc" hidden><label>Vincular con<select id="ed-con">'+Object.keys(N).map(k=>'<option value="'+esc_(k)+'"'+(k==='en'?' selected':'')+'>'+esc_(nombre(k))+'</option>').join('')+'</select></label><button type="button" class="btn chico" id="ed-vok">Vincular</button></div>'
   +'<div class="fila"><button type="button" class="btn chico gris" id="ed-ano">Cerrar</button></div>';pan.hidden=false;
  const lista=$('ed-cands'),bus=$('ed-bus');let elegido=null;
  const pintarL=()=>{const v=bus.value.toLowerCase().trim(),cs=D.candidatos.filter(c=>!v||(c.nombre+' '+c.ip+' '+c.tipo).toLowerCase().includes(v)).slice(0,60);
-  lista.innerHTML=cs.map(c=>'<button type="button" data-c="'+esc_(c.id)+'"><span class="mono">'+esc_(c.nombre)+'</span><span class="sub">'+esc_(c.tipo)+(c.ip?' · '+esc_(c.ip):'')+(c.sitio?' · del sitio':'')+(N[c.id]?' · ya en el diagrama':'')+'</span></button>').join('')||'<p class="sub" style="margin:0">Sin resultados</p>';};
+  lista.innerHTML=cs.map(c=>'<button type="button" data-c="'+esc_(c.id)+'"'+(c.otro?' disabled title="Pertenece a otro sitio: quítalo primero de allí"':'')+'><span class="mono">'+esc_(c.nombre)+'</span><span class="sub">'+esc_(c.tipo)+(c.ip?' · '+esc_(c.ip):'')+(c.sitio&&!Q.has(c.id)?' · del sitio':'')+(c.otro?' · en '+esc_(c.otro):'')+(N[c.id]?' · ya en el diagrama':'')+'</span></button>').join('')||'<p class="sub" style="margin:0">Sin resultados</p>';};
  bus.addEventListener('input',pintarL);pintarL();bus.focus();
  lista.addEventListener('click',e=>{const b=e.target.closest('button[data-c]');if(!b)return;const c=D.candidatos.find(x=>x.id===b.dataset.c);elegido=c;
-  if(!N[c.id]){nuevoNodo(c);pintar();}lista.querySelectorAll('button').forEach(x=>x.style.borderColor=x===b?'var(--warn)':'');$('ed-vinc').hidden=false;
+  if(c.otro)return;if(!N[c.id]){nuevoNodo(c);if(Q.has(c.id))Q.delete(c.id);else if(!c.sitio)A.add(c.id);pintar();}lista.querySelectorAll('button').forEach(x=>x.style.borderColor=x===b?'var(--warn)':'');$('ed-vinc').hidden=false;
   [...$('ed-con').options].forEach(o=>o.disabled=o.value===c.id);if($('ed-con').value===c.id)$('ed-con').value='en';});
  $('ed-vok').onclick=()=>{if(!elegido)return;const k=$('ed-con').value;if(k===elegido.id)return;C.push([k,elegido.id,'','']);sel=C.length-1;pintar();panelPuertos(sel,true);};
  $('ed-ano').onclick=()=>{pan.hidden=true;};}
@@ -132,22 +140,28 @@ btE.addEventListener('click',()=>{ed=true;cargar();card.classList.add('ed-edit')
 $('ed-cancelar').addEventListener('click',()=>location.reload());
 $('ed-agregar').addEventListener('click',panelAgregar);btP.addEventListener('click',()=>{if(sel>=0)panelPuertos(sel);});
 const borrar=()=>{if(sel<0)return;C.splice(sel,1);sel=-1;pan.hidden=true;pintar();};btB.addEventListener('click',borrar);
-document.addEventListener('keydown',ev=>{if(ed&&(ev.key==='Delete'||ev.key==='Backspace')&&sel>=0&&!/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)){ev.preventDefault();borrar();}});
+document.addEventListener('keydown',ev=>{if(!ed||!(ev.key==='Delete'||ev.key==='Backspace')||/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName))return;if(selN&&!MALLA.includes(selN)){ev.preventDefault();$('ed-quitar').click();}else if(sel>=0){ev.preventDefault();borrar();}});
+/* «Quitar del sitio»: desvincula el equipo del sitio y del diagrama y borra sus conexiones; no lo borra del inventario */
+function quitar(){const k=selN;if(!k||MALLA.includes(k))return;const n=C.filter(c=>c[0]===k||c[1]===k).length;
+ if(!confirm('¿Quitar '+nombre(k)+' del sitio? Se desvincula del sitio y del diagrama'+(n?' y se eliminan sus '+n+' conexión(es)':'')+'. No se borra del inventario. Se aplica al guardar.'))return;
+ C=C.filter(c=>c[0]!==k&&c[1]!==k);delete N[k];const g=svg.querySelector('g.ed-caja[data-id="'+k+'"]');if(g)g.style.display='none';
+ if(A.has(k))A.delete(k);else if(X.has(k))X.delete(k);else Q.add(k);selN=null;sel=-1;pan.hidden=true;pintar();}
+$('ed-quitar').addEventListener('click',quitar);
 svg.addEventListener('click',ev=>{if(ed&&ev.target.closest('a'))ev.preventDefault();});
 let tmp=null,dest=null;
 const marcar=k=>{if(dest)dest.classList.remove('ed-destino');dest=k?svg.querySelector('g.ed-caja[data-id="'+k+'"]'):null;if(dest)dest.classList.add('ed-destino');};
 svg.addEventListener('pointerdown',ev=>{if(!ed)return;const t=ev.target,p=pt(ev);
  if(t.classList.contains('ed-h')){op={m:'nueva',de:t.dataset.n};}
  else if(t.classList.contains('ed-ep')){const i=+t.dataset.i,e=+t.dataset.end;op={m:'reco',i,e,de:C[i][1-e]};}
- else if(t.classList.contains('ed-hit')){sel=+t.dataset.i;pintar();return;}
- else{const g=t.closest('g.ed-caja');if(g&&g.dataset.id!=='central'){const n=N[g.dataset.id];op={m:'mover',id:g.dataset.id,dx:p.x-n.x,dy:p.y-n.y};}else{sel=-1;pintar();return;}}
+ else if(t.classList.contains('ed-hit')){sel=+t.dataset.i;selN=null;pintar();return;}
+ else{const g=t.closest('g.ed-caja');if(g&&g.dataset.id!=='central'){const n=N[g.dataset.id];op={m:'mover',id:g.dataset.id,dx:p.x-n.x,dy:p.y-n.y,x0:p.x,y0:p.y,movio:false};}else{sel=-1;selN=null;pintar();return;}}
  ev.preventDefault();svg.setPointerCapture(ev.pointerId);
  if(op.m!=='mover'){const[ax,ay_]=ctr(N[op.de]);tmp=el('line',{x1:ax,y1:ay_,x2:p.x,y2:p.y,class:'ed-tmp'});hdl.appendChild(tmp);}});
 svg.addEventListener('pointermove',ev=>{if(!op)return;const p=pt(ev);
- if(op.m==='mover'){const n=N[op.id];n.x=Math.max(0,Math.min(svg.viewBox.baseVal.width-n.w,p.x-op.dx));n.y=Math.max(0,p.y-op.dy);pintar();}
+ if(op.m==='mover'){if(Math.abs(p.x-op.x0)+Math.abs(p.y-op.y0)>3)op.movio=true;if(!op.movio)return;const n=N[op.id];n.x=Math.max(0,Math.min(svg.viewBox.baseVal.width-n.w,p.x-op.dx));n.y=Math.max(0,p.y-op.dy);pintar();}
  else{tmp.setAttribute('x2',p.x);tmp.setAttribute('y2',p.y);marcar(enNodo(p,op.de));}});
 svg.addEventListener('pointerup',ev=>{if(!op)return;const p=pt(ev),o=op;op=null;marcar(null);if(tmp){tmp.remove();tmp=null;}
- if(o.m==='mover')return;const k=enNodo(p,o.de);if(!k)return pintar();
+ if(o.m==='mover'){if(!o.movio){selN=o.id;sel=-1;pintar();}return;}const k=enNodo(p,o.de);if(!k)return pintar();
  if(o.m==='nueva'){C.push([o.de,k,'','']);sel=C.length-1;pintar();panelPuertos(sel,true);}
  else{const c=C[o.i];c[o.e]=k;c[o.e?3:2]='';sel=o.i;pintar();panelPuertos(sel);}});
 const enviar=d=>fetch(D.url,{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},body:JSON.stringify(Object.assign({_csrf:{{ csrf|tojson }}},d))})
@@ -155,7 +169,7 @@ const enviar=d=>fetch(D.url,{method:'POST',headers:{'Content-Type':'application/
  .catch(()=>aviso('No se pudo guardar','error'));
 $('ed-guardar').addEventListener('click',()=>{const usados=new Set(C.flatMap(c=>c.slice(0,2))),hu=Object.keys(N).filter(k=>k!=='central'&&!usados.has(k));
  if(hu.length&&!confirm('Quedan '+hu.length+' nodo(s) sin conexión: '+hu.map(nombre).join(', ')+'.\n¿Guardar igual?'))return;
- const nodos={};Object.keys(N).forEach(k=>{if(k!=='central')nodos[k]={x:Math.round(N[k].x),y:Math.round(N[k].y)};});enviar({nodos,conexiones:C,extra:[...X]});});
+ const nodos={};Object.keys(N).forEach(k=>{if(k!=='central')nodos[k]={x:Math.round(N[k].x),y:Math.round(N[k].y)};});enviar({nodos,conexiones:C,extra:[...X],agregar:[...A],quitar:[...Q]});});
 const au=$('ed-auto');if(au)au.addEventListener('click',()=>{if(confirm('¿Volver a la disposición automática? Se descarta el diagrama editado (queda en el historial).'))enviar({restablecer:true});});
 /* «Solicitar apertura»: lo único nuevo (cambia la red) va con ticket */
 document.addEventListener('click',ev=>{const b=ev.target.closest('[data-apertura]');if(!b)return;const d=JSON.parse(b.dataset.apertura);

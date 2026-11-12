@@ -32,7 +32,9 @@ ACCIONES = [  # área, nombre, texto, nombre en AAP
 EP_ALIAS.update({"consola.edge_ficha": "consola.edge", "consola.edge_guardar": "consola.edge", "consola.edge_accion": "consola.edge",
                  "consola.edge_energia": "consola.edge", "consola.edge_grupo_guardar": "consola.edge", "consola.edge_grupo_eliminar": "consola.edge", "consola.edge_estacion_asignar": "consola.estaciones",
                  "consola.edge_disp_guardar": "consola.edge", "consola.edge_disp_eliminar": "consola.edge",
-                 "consola.edge_diagrama_guardar": "consola.edge", "consola.edge_apertura": "consola.edge"})
+                 "consola.edge_diagrama_guardar": "consola.edge", "consola.edge_apertura": "consola.edge",
+                 "consola.edge_alertas": "consola.edge", "consola.edge_alerta_probar": "consola.edge", "consola.edge_alerta_prueba": "consola.edge",
+                 "consola.edge_alerta_regla": "consola.edge", "consola.edge_habilidad": "consola.edge"})
 
 # Otros dispositivos del sitio (impresoras, POS, AP…): solo inventario. Principio agentless: el alta registra el dispositivo y, si
 # tiene IP, su estado se obtendrá sin agente (ping/SNMP, opción futura); la ficha no sondea nada en vivo. Iconos SVG propios (trazo).
@@ -77,7 +79,8 @@ def _tabla():
     for col, tipo in (("grupo_id", "INTEGER"),                 # un grupo por sitio (para focalizar)
                       ("ubicaciones", "TEXT DEFAULT '[]'"),     # ubicaciones internas de una oficina: «Piso 1», «Ala norte»…
                       ("ubic_eq", "TEXT DEFAULT '{}'"),         # equipo_id → ubicación
-                      ("topologia", "TEXT")):                    # diagrama editado: posiciones y conexiones (None = automático)
+                      ("topologia", "TEXT"),                     # diagrama editado: posiciones y conexiones (None = automático)
+                      ("alertas", "TEXT DEFAULT '{}'")):         # reflejo de las alertas aplicadas (campana del sitio)
         if col not in hay:
             con().execute(f"ALTER TABLE edge_sitios ADD COLUMN {col} {tipo}")
             con().commit()
@@ -585,7 +588,7 @@ def puertos_nodos(cajas, eqs, disps, vis=()):
     return out
 
 
-def guardar_topologia(cliente_id, s, datos, quien, ids_validos):
+def guardar_topologia(cliente_id, s, datos, quien, ids_validos, cambios=None):
     """Guarda posiciones y conexiones del diagrama del sitio (documentación del inventario: no cambia la red real) y deja la
     versión anterior en el historial. datos=None vuelve a la disposición automática."""
     _tabla()
@@ -614,7 +617,8 @@ def guardar_topologia(cliente_id, s, datos, quien, ids_validos):
                 con.append([a, b, pa, pb])
         if len(con) > 2000:
             raise ValueError("Demasiadas conexiones")
-        nuevo = {"nodos": nodos, "conexiones": con, "extra": extra, "autor": quien, "fecha": ahora()}
+        nuevo = {"nodos": nodos, "conexiones": con, "extra": extra, "autor": quien, "fecha": ahora(),
+                 "cambios": {k: v for k, v in (cambios or {}).items() if v}}
     ej("INSERT INTO edge_topologia_hist(cliente_id, sitio_id, anterior, nueva, autor, fecha) VALUES (?,?,?,?,?,?)",
        cliente_id, s["id"], s.get("topologia") or "", json.dumps(nuevo, ensure_ascii=False) if nuevo else "", quien, ahora())
     ej("UPDATE edge_sitios SET topologia=? WHERE id=? AND cliente_id=?", json.dumps(nuevo, ensure_ascii=False) if nuevo else None, s["id"], cliente_id)
@@ -625,7 +629,7 @@ def guardar_topologia(cliente_id, s, datos, quien, ids_validos):
 
 def historial_topologia(cliente_id, sid, n=8):
     _tabla()
-    return q("SELECT autor, fecha, nueva FROM edge_topologia_hist WHERE cliente_id=? AND sitio_id=? ORDER BY id DESC LIMIT ?", cliente_id, sid, n)
+    return [dict(h, cambios=((j(h["nueva"], {}) or {}).get("cambios") or {}) if h["nueva"] else {}) for h in q("SELECT autor, fecha, nueva FROM edge_topologia_hist WHERE cliente_id=? AND sitio_id=? ORDER BY id DESC LIMIT ?", cliente_id, sid, n)]
 
 
 def _filas(ss, vis, m, esc):
@@ -711,6 +715,7 @@ def edge_ficha(sid):
         if k_:
             aperturas[k_] = t
     return render_template("edge_sitio.html", s=s, disps=ds, disp_grupos=dispositivos_por_tipo(ds), tipos_disp=TIPOS_DISP, diag=diagrama(s, eqs, m, salud_equipos(eqs), ds, vis), candidatos=candidatos_diagrama(s, eqs, ds, vis), aperturas=aperturas,
+                           al_sitio=alertas_edge(s), hb_sitio=habilidades_edge(s, eqs),
                            topo_hist=historial_topologia(g.cliente["id"], s["id"]), grupo_s=gr_, grupos=grupos(g.cliente["id"]), eqs=eqs, radar_s=r, nodo_t=nodo_t, nodo_c=nodo_c, hop_t=hop_t, hop_c=hop_c, m=m,
                            acciones=acciones, areas=list(dict.fromkeys(a["area"] for a in acciones)), energia_no=energia_no, esc=esc,
                            hallazgos=hs, tickets=tks, on_=on_, tipos=TIPOS, grupo=grupo_ansible(s["codigo"]), equipos=vis,
@@ -830,13 +835,74 @@ def edge_grupo_eliminar(gid):
 
 # ------------------------------------------------------------------ diagrama: agregar elementos del inventario y apertura de puertos
 def candidatos_diagrama(s, eqs, ds, vis):
-    """Lo que se puede poner en el diagrama: las máquinas del inventario (las del sitio y otras, p. ej. de la central) y los otros
-    dispositivos del sitio, con su IP y tipo para el buscador."""
+    """Lo que se puede poner en el diagrama (y asignar al sitio): las máquinas del inventario y los otros dispositivos del sitio o
+    sin sitio, con su IP, tipo y puertos conocidos para el buscador. Los que ya están en otro sitio se muestran sin poder elegirse."""
     del_sitio = {e["id"] for e in eqs}
-    out = [{"id": f"dv-{d['id']}", "nombre": d["nombre"], "ip": d.get("ip") or "", "tipo": TIPOS_DISP_D.get(d["tipo"], d["tipo"]), "sitio": True} for d in ds]
-    out += [{"id": f"eq-{e['id']}", "nombre": e["nombre"], "ip": e.get("ip") or "", "tipo": e.get("categoria") or "servidor", "sitio": e["id"] in del_sitio}
-            for e in sorted(vis, key=lambda e: (e["id"] not in del_sitio, e["nombre"]))]
+    otros = {i: x["codigo"] for x in sitios(s["cliente_id"]) if x["id"] != s["id"] for i in x["equipos_l"]}
+    sueltos = q("SELECT * FROM edge_dispositivos WHERE cliente_id=? AND sitio_id=0 ORDER BY nombre", s["cliente_id"])
+    out = [{"id": f"dv-{d['id']}", "nombre": d["nombre"], "ip": d.get("ip") or "", "tipo": TIPOS_DISP_D.get(d["tipo"], d["tipo"]),
+            "sitio": d["sitio_id"] == s["id"], "otro": "", "puertos": puertos_dv(d)} for d in list(ds) + sueltos]
+    out += [{"id": f"eq-{e['id']}", "nombre": e["nombre"], "ip": e.get("ip") or "", "tipo": e.get("categoria") or "servidor",
+             "sitio": e["id"] in del_sitio, "otro": otros.get(e["id"], ""), "puertos": puertos_eq(e)}
+            for e in sorted(vis, key=lambda e: (e["id"] not in del_sitio, e["id"] in otros, e["nombre"]))]
     return out
+
+
+def cambiar_miembros(cliente_id, s, agregar, quitar, vis, quien):
+    """Asigna al sitio o desvincula de él máquinas (eq-N) y dispositivos (dv-N) desde el diagrama. No borra nada del inventario:
+    una máquina quitada sigue en el inventario; un dispositivo quitado queda sin sitio y se puede volver a agregar. Valida todo
+    antes de escribir (todo o nada)."""
+    por = {e["id"]: e for e in vis}
+    otros = {i: x["codigo"] for x in sitios(cliente_id) if x["id"] != s["id"] for i in x["equipos_l"]}
+    eqs, ub = list(s["equipos_l"]), {str(k): v for k, v in s["ubic_eq_d"].items()}
+    dv_sitio, dv_libres = [], []
+    hechos = {"agregados": [], "quitados": []}
+
+    def partir(nid):
+        tipo, _, n = nid.partition("-")
+        return (tipo, int(n)) if n.isdigit() else (None, None)
+    for nid in quitar:
+        tipo, n = partir(nid)
+        if tipo == "eq" and n in eqs:
+            eqs.remove(n)
+            ub.pop(str(n), None)
+            hechos["quitados"].append(por[n]["nombre"] if n in por else nid)
+        elif tipo == "dv":
+            d = q1("SELECT * FROM edge_dispositivos WHERE id=? AND cliente_id=? AND sitio_id=?", n, cliente_id, s["id"])
+            if d:
+                dv_libres.append(n)
+                hechos["quitados"].append(d["nombre"])
+    for nid in agregar:
+        tipo, n = partir(nid)
+        if tipo == "eq":
+            if n not in por:
+                raise ValueError("Máquina no válida")
+            if n in otros:
+                raise ValueError(f"{por[n]['nombre']} ya pertenece a {otros[n]}: quítala primero de ese sitio")
+            if n not in eqs:
+                eqs.append(n)
+                hechos["agregados"].append(por[n]["nombre"])
+        elif tipo == "dv":
+            d = q1("SELECT * FROM edge_dispositivos WHERE id=? AND cliente_id=?", n, cliente_id)
+            if not d or d["sitio_id"] not in (0, s["id"]):
+                raise ValueError("Dispositivo no válido o de otro sitio")
+            if d["sitio_id"] == 0:
+                if q1("SELECT id FROM edge_dispositivos WHERE cliente_id=? AND sitio_id=? AND lower(nombre)=lower(?)", cliente_id, s["id"], d["nombre"]):
+                    raise ValueError(f"Ya hay un dispositivo llamado «{d['nombre']}» en el sitio")
+                dv_sitio.append(n)
+                hechos["agregados"].append(d["nombre"])
+        elif tipo is None:
+            raise ValueError("Elemento no válido")
+    for n in dv_libres:
+        ej("UPDATE edge_dispositivos SET sitio_id=0, actualizado=?, autor=? WHERE id=?", ahora(), quien, n)
+    for n in dv_sitio:
+        ej("UPDATE edge_dispositivos SET sitio_id=?, actualizado=?, autor=? WHERE id=?", s["id"], ahora(), quien, n)
+    if eqs != s["equipos_l"] or ub != {str(k): v for k, v in s["ubic_eq_d"].items()}:
+        ej("UPDATE edge_sitios SET equipos=?, ubic_eq=?, actualizado=?, autor=? WHERE id=?", json.dumps(eqs), json.dumps(ub, ensure_ascii=False), ahora(), quien, s["id"])
+    if hechos["agregados"] or hechos["quitados"]:
+        auditar(quien, cliente_id, "cambiar equipos del sitio edge (diagrama)", s["codigo"], hechos)
+    s["equipos_l"], s["ubic_eq_d"] = eqs, {int(k): v for k, v in ub.items()}
+    return hechos
 
 
 ACCION_APERTURA = {   # tipo de destino → acción de AAP que abre el puerto (pasa por la regla de prueba como toda acción)
@@ -1011,17 +1077,29 @@ def edge_diagrama_guardar(sid):
         return {"error": "Sitio no válido"}, 400
     _con_listas(s)
     vis = equipos_visibles()
+    hechos = {"agregados": [], "quitados": []}
+    if not d.get("restablecer"):
+        ag = [str(x) for x in d.get("agregar") or []][:100]
+        qu = [str(x) for x in d.get("quitar") or []][:100]
+        try:
+            hechos = cambiar_miembros(g.cliente["id"], s, [x for x in ag if x not in qu], qu, vis, g.usuario["usuario"])
+        except ValueError as err:
+            return {"error": str(err)}, 400
     eqs = _equipos_de(s, vis)
     ids = {"central", "en"} | ({"hop"} if s["hop"] else set()) | {f"eq-{e['id']}" for e in eqs} | \
           {f"dv-{x['id']}" for x in dispositivos(g.cliente["id"], sid)}
+    datos = None if d.get("restablecer") else dict(d, extra=[x for x in d.get("extra") or [] if x not in ids and x not in (d.get("quitar") or [])])
+    if datos is not None:
+        datos["conexiones"] = [c for c in datos.get("conexiones") or [] if isinstance(c, (list, tuple)) and len(c) >= 2
+                               and not ({str(c[0]), str(c[1])} & set(map(str, d.get("quitar") or [])))]
     try:
-        t = guardar_topologia(g.cliente["id"], s, None if d.get("restablecer") else d, g.usuario["usuario"],
-                              {"sitio": ids, "inventario": {f"eq-{e['id']}" for e in vis}})
+        t = guardar_topologia(g.cliente["id"], s, datos, g.usuario["usuario"],
+                              {"sitio": ids, "inventario": {f"eq-{e['id']}" for e in vis}}, hechos)
     except ValueError as err:
         return {"error": str(err)}, 400
     if t:
         con = {n for c in t["conexiones"] for n in c[:2]}
-        return {"ok": True, "huerfanos": sorted((ids | set(t["extra"])) - con - {"central"})}
+        return {"ok": True, "huerfanos": sorted((ids | set(t["extra"])) - con - {"central"}), **hechos}
     return {"ok": True}
 
 
@@ -1114,3 +1192,164 @@ def edge_estacion_asignar():
        g.usuario["usuario"], s["id"])
     auditar(g.usuario["usuario"], g.cliente["id"], "asignar estación a sitio edge", s["codigo"], {"equipo": e["nombre"], "ubicacion": u})
     return {"ok": True}
+
+
+# ------------------------------------------------------------------ campana de alertas y Skills del sitio (como hipervisores y nube)
+AMBITO_EDGE = "plataforma:edge"
+MARCA_SKILL = "Skill · "
+
+
+def objeto_edge(s):
+    """El sitio como objeto de la campana de alertas (app/alertas_objeto.py): nombre estable para Prometheus
+    (eg<id>-<código>); sus indicadores los publica FaceOps en el anfitrión (sin agente, 127.0.0.1). El reflejo de lo aplicado
+    vive en el sitio (columna alertas). Nunca lleva secretos."""
+    return {"id": s["id"], "nombre": f"eg{s['id']}-{s['codigo'].lower()}"[:63], "categoria": "sitio edge", "so": "Sitio Edge", "ip": "127.0.0.1",
+            "ambiente": "", "segmentos": [], "edge_codigo": s["codigo"],
+            "datos": json.dumps({"hostname": s["codigo"], "alertas_plat": {AMBITO_EDGE: j(s.get("alertas"), {}) or {}}}, ensure_ascii=False),
+            "url_probar": url_for("consola.edge_alerta_probar", sid=s["id"]), "url_regla": url_for("consola.edge_alerta_regla", sid=s["id"])}
+
+
+def alertas_edge(s):
+    from . import alertas_objeto as ao
+    try:
+        return ao.contexto(g.cliente["id"], objeto_edge(s), g.perfil["modo"] == "escritura", AMBITO_EDGE, "sitio")
+    except Exception:  # noqa: BLE001 - la ficha se ve igual sin la campana
+        return None
+
+
+def _skills_edge():
+    import os
+    import yaml
+    ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "edge-skills.yml")
+    try:
+        return (yaml.safe_load(open(ruta, encoding="utf-8")) or {}).get("skills") or []
+    except OSError:
+        return []
+
+
+def _skill_auto(s, h, eqs):
+    """(automatización, motivo) de una skill del sitio: la primera acción publicada; motivo vacío si se puede pedir."""
+    from .pruebas import estado, exceptuada
+    a = next((r for n_ in h.get("nombre_aap") or [] for r in [q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], n_)] if r), None)
+    if not a:
+        return None, "acción aún no disponible (no está publicada en AAP)"
+    ep = estado(dict(a, cliente_id=g.cliente["id"]))["estado"]
+    if ep != "certificada" and not exceptuada(a["nombre_aap"]):
+        return a, {"cambiada": "cambió desde su última prueba; debe probarse de nuevo", "fallida": "su última prueba falló"}.get(ep, "sin plan de prueba aprobado")
+    if not eqs and h["id"] != "edge-conectividad":
+        return a, "el sitio aún no tiene equipos asociados"
+    return a, ""
+
+
+def _ticket_skill(s, aid):
+    from .salud_acciones import ABIERTOS
+    for t in q("SELECT id, numero, estado FROM tickets WHERE cliente_id=? AND automatizacion_id=? AND motivo LIKE ? ORDER BY id DESC LIMIT 20",
+               g.cliente["id"], aid, f"{MARCA_SKILL}% en {s['codigo']}"):
+        abierto = t["estado"] in ABIERTOS
+        return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": abierto} if abierto or t["estado"] == "exitoso" else None
+    return None
+
+
+def habilidades_edge(s, eqs):
+    """Skills del sitio (datos/edge-skills.yml), mismas columnas y estados que las de máquinas, hipervisores y nubes. Las que no
+    tienen acción publicada o plan de prueba aprobado se muestran deshabilitadas con su motivo."""
+    esc = g.perfil["modo"] == "escritura"
+    out = []
+    for h in _skills_edge():
+        a, mot = _skill_auto(s, h, eqs)
+        out.append({"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"], "valor": h.get("valor") or "",
+                    "ambito": "Sitio", "auto": (a or {}).get("nombre") or h["nombre_aap"][0], "aid": (a or {}).get("id"), "ui": "", "bloqueo": mot,
+                    "ticket": _ticket_skill(s, a["id"]) if a else None, "escritura": esc, "url": url_for("consola.edge_habilidad", sid=s["id"]), "campos": []})
+    out.sort(key=lambda x: (x["tipo"] != "diferenciador", bool(x["bloqueo"])))
+    return out
+
+
+def _sitio(sid):
+    _tabla()
+    s = q1("SELECT * FROM edge_sitios WHERE id=? AND cliente_id=?", sid, g.cliente["id"])
+    if not s:
+        abort(404)
+    return _con_listas(s)
+
+
+@bp.route("/edge/<int:sid>/habilidad", methods=["POST"])
+@requiere_login
+def edge_habilidad(sid):
+    """Botón Skills del sitio: ticket con aprobación en AAP (baja al sitio por la malla); si ya hay uno abierto, devuelve ese."""
+    s, err = _sitio_post(sid)
+    if err:
+        return err
+    eqs = _equipos_de(s, equipos_visibles())
+    h = next((x for x in _skills_edge() if x["id"] == request.form.get("hid")), None)
+    if not h:
+        return {"error": "Skill no válida"}, 400
+    a, mot = _skill_auto(s, h, eqs)
+    if mot:
+        return {"error": f"«{h['nombre']}»: {mot}"}, 400
+    t0 = _ticket_skill(s, a["id"])
+    if t0 and t0["abierto"]:
+        return dict(t0, existente=True, url=url_for("consola.ticket", tid=t0["id"]))
+    r = _lanzar(s, a, eqs, dict(h.get("parametros") or {}), f"{MARCA_SKILL}{h['nombre']} en {s['codigo']}")
+    return r
+
+
+@bp.route("/edge/<int:sid>/alertas", methods=["POST"])
+@requiere_login
+def edge_alertas(sid):
+    """Campana del sitio: un ticket a «Monitoreo · Configurar alertas del equipo» con las alertas marcadas (sin agente).
+    On/off no se bloquea por la regla de prueba; sí las acciones de respuesta no certificadas."""
+    from . import alertas_objeto as ao
+    from .vistas import _alertas_pedir
+    s, err = _sitio_post(sid)
+    if err:
+        return err
+    e = objeto_edge(s)
+    ctx = ao.contexto(g.cliente["id"], e, True, AMBITO_EDGE)
+    if not ctx or not ctx["disponible"]:
+        return {"error": (ctx or {}).get("por_que") or "Sitio sin alertas"}, 400
+    try:
+        t, a = _alertas_pedir(e, AMBITO_EDGE, request.form)
+    except (ValueError, PermissionError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
+
+
+@bp.route("/edge/<int:sid>/alertas/probar", methods=["POST"])
+@requiere_login
+def edge_alerta_probar(sid):
+    from flask import current_app
+    from .alerta_prueba import lanzar as lanzar_prueba
+    s, err = _sitio_post(sid)
+    if err:
+        return err
+    try:
+        pid = lanzar_prueba(current_app._get_current_object(), g.cliente, objeto_edge(s), AMBITO_EDGE, (request.form.get("aid") or "").strip(), g.usuario)
+    except ValueError as x:
+        return {"error": str(x)}, 400
+    return {"id": pid, "url": url_for("consola.edge_alerta_prueba", sid=sid, pid=pid)}
+
+
+@bp.route("/edge/<int:sid>/alertas/prueba/<int:pid>")
+@requiere_login
+def edge_alerta_prueba(sid, pid):
+    from .alerta_prueba import leer
+    e = objeto_edge(_sitio(sid))
+    p_ = leer(pid)
+    if not p_ or p_["cliente_id"] != g.cliente["id"] or p_["equipo"] != e["nombre"]:
+        abort(404)
+    return {"estado": p_["estado"], "pasos": p_["pasos"], "inicio": p_["inicio"]}
+
+
+@bp.route("/edge/<int:sid>/alertas/regla")
+@requiere_login
+def edge_alerta_regla(sid):
+    """La regla de una alerta del sitio tal como está cargada en Prometheus (solo lectura)."""
+    from . import alertas_objeto as ao
+    e = objeto_edge(_sitio(sid))
+    aid = (request.args.get("aid") or "").strip()
+    a = next((y for y in ao.catalogo()["alertas"] if y["id"] == aid and "edge" in y.get("tipos", [])), None)
+    if not a:
+        abort(404)
+    mon = ao.reglas_monitoreo(e, AMBITO_EDGE, "edge")
+    return render_template("alerta_regla.html", e=e, a=a, aid=aid, ambito=AMBITO_EDGE, mon=mon, d=(mon or {}).get(aid), grafana=ao.url_grafana(e["nombre"], aid, AMBITO_EDGE),
+                           grupo=ao.grupo_monitoreo(e, AMBITO_EDGE), archivo=f"{ao.REGLAS}/{e['nombre']}{ao.sufijo(AMBITO_EDGE)}.yml", volver=url_for("consola.edge_ficha", sid=sid))

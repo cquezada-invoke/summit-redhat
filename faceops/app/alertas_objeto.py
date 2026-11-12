@@ -74,6 +74,8 @@ def tipo_de(e):
     so = (e.get("so") or "").lower()
     if c == "segmento":
         return "segmento"   # segmento de negocio (app/segmento_ops.py): alertas de nivel servicio, sondas blackbox
+    if c == "sitio edge":   # ficha del sitio Edge (mod_edge.objeto_edge): alertas sin agente del sitio (WAN, equipos, UPS…)
+        return "edge"
     if c == "nube":   # ficha de la nube (nube_recursos.objeto_nube): alertas sin agente de la cuenta o proyecto
         return "nube"
     if c == "hipervisor":   # ficha del hipervisor (mod_hipervisores.objeto_alertas): alertas propias del anfitrión y su virtualización
@@ -409,6 +411,12 @@ def registrar_resultado(cliente_id, art, numero):
             d_ = j(i_["detalle"], {})
             d_["alertas_nube"] = {"tipo": "nube", "alertas": x.get("alertas") or [], "resumen": x.get("resumen") or [], "actualizado": ahora(), "ticket": numero}
             ej("UPDATE infraestructuras SET detalle=? WHERE id=?", json.dumps(d_, ensure_ascii=False), i_["id"])
+        return
+    if not e and x.get("tipo") == "edge":   # alertas de un sitio Edge: el reflejo queda en el sitio
+        m_ = re.match(r"eg(\d+)-", x.get("equipo") or "")
+        if m_:
+            ej("UPDATE edge_sitios SET alertas=? WHERE cliente_id=? AND id=?", json.dumps({"tipo": "edge", "alertas": x.get("alertas") or [],
+               "resumen": x.get("resumen") or [], "actualizado": ahora(), "ticket": numero}, ensure_ascii=False), cliente_id, int(m_.group(1)))
         return
     if not e and x.get("tipo") in ("kvm", "vmware"):   # alertas de un hipervisor: el reflejo queda en su infraestructura
         m_ = re.match(r"hv(\d+)-", x.get("equipo") or "")

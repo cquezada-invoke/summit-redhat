@@ -1,0 +1,41 @@
+# Ficha del sitio Edge › botón Skills (a la derecha del título, junto a la campana). Mismo formato que datos/habilidades.yml:
+#   tipo: diferenciador | quick win · valor: lo que gana el cliente · nombre_aap: acción(es) de AAP, en orden de preferencia
+# Cada skill crea un ticket con aprobación en AAP que baja al sitio por la malla (execution node). Sin acción publicada o sin
+# plan de prueba aprobado (regla de prueba) se muestra deshabilitada con su motivo.
+skills:
+  - id: edge-respaldo-red
+    tipo: diferenciador
+    grupo: Red
+    nombre: Respaldar configuración de red del sitio
+    valor: Deja copia versionada de routers, switches y access points del sitio; ante una falla o un cambio mal hecho se vuelve atrás en minutos.
+    nombre_aap: ["Edge · Respaldar configuración de red del sitio", "Red · Respaldar configuración"]
+  - id: edge-parches-estaciones
+    tipo: quick win
+    grupo: Estaciones
+    nombre: Aplicar parches a estaciones del sitio
+    valor: Parcha todas las estaciones de la sucursal en la ventana definida, sin enviar técnicos y con reporte por equipo.
+    nombre_aap: ["Edge · Aplicar parches a estaciones del sitio", "Estaciones · Aplicar parches"]
+  - id: edge-inventario-drift
+    tipo: quick win
+    grupo: Inventario
+    nombre: Inventario y drift del sitio
+    valor: Levanta qué hay realmente en el sitio y lo compara con lo registrado y con la plantilla de sucursal; muestra lo que cambió.
+    nombre_aap: ["Edge · Inventario y drift del sitio"]
+  - id: edge-conectividad
+    tipo: quick win
+    grupo: Red
+    nombre: Validar conectividad hacia la central
+    valor: Prueba desde el sitio el túnel, la latencia y los puertos hacia la central sin cambiar nada; aísla en minutos si la falla es local o del enlace.
+    nombre_aap: ["Edge · Verificar ruta de la malla"]
+  - id: edge-plantilla
+    tipo: diferenciador
+    grupo: Estandarización
+    nombre: Estandarizar plantilla de sucursal
+    valor: Aplica la configuración base de sucursal (red, seguridad, agentes, nombres) para que todos los sitios queden iguales y se operen igual.
+    nombre_aap: ["Edge · Aplicar plantilla de sucursal"]
+  - id: edge-credenciales
+    tipo: quick win
+    grupo: Seguridad
+    nombre: Rotación de credenciales locales
+    valor: Cambia las claves locales de equipos y dispositivos del sitio y las guarda en la bóveda; elimina claves compartidas o por defecto.
+    nombre_aap: ["Edge · Rotar credenciales locales del sitio"]

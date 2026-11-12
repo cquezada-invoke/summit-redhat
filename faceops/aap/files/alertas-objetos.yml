@@ -27,6 +27,9 @@ tipos:
   vmware:  {nombre: "VMware vSphere", fuente: "vmware_exporter apuntando al vCenter (:9272)", puerto: 9272, job: faceops-equipos}
   # Nube (campana de su ficha /nubes/<id>): lo que AAP lee de la nube con la credencial de la conexión (consumo, cuotas, llaves,
   # máquinas y APIs), publicado por FaceOps en el anfitrión sin agente (/metricas/plataformas)
+  # Sitio Edge (campana de su ficha /edge/<id>): sondeo sin agente desde el execution node del sitio (ping, SNMP, TCP) e
+  # inventario de AAP, publicado por FaceOps en el anfitrión (/metricas/plataformas)
+  edge:    {nombre: "Sitio Edge (sucursal, tienda, oficina)", fuente: "sondeo sin agente desde el execution node del sitio (ping, SNMP, TCP) publicado por FaceOps (/metricas/plataformas)", puerto: 8110, job: faceops-plataformas}
   nube:    {nombre: "Nube (GCP, AWS, Azure)", fuente: "lecturas de la nube por AAP con la credencial de la conexión, publicadas por FaceOps (/metricas/plataformas, sin agente)", puerto: 8110, job: faceops-plataformas}
 # Acciones: lo que la automatización hará cuando la alerta se dispare (se elige una por alerta en el flotante). «avisar»
 # solo registra el evento en Event-Driven Ansible; las demás piden la automatización indicada, siempre con aprobación.
@@ -339,6 +342,32 @@ alertas:
   - {id: NB07, tipos: [nube], ambito: "plataforma:nube", sin_agente: true, grupo: Operación, nombre: "Lectura de la nube atrasada", unidad: "horas", acciones: [avisar],
      descripcion: "Horas desde la última lectura de la nube por AAP: si crece, la credencial o la conexión dejaron de funcionar",
      expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="nube",indicador="lectura_edad_horas"}) > __UMBRAL__', aviso: 26, critico: 50, para: 0m}
+  # ───────── Sitio Edge (ficha /edge/<id>, campana junto a Skills). Medidas SIN agente: sondeo ping/SNMP/TCP desde el execution
+  #   node del sitio e inventario de AAP, publicado por FaceOps como faceops_plataforma_indicador{faceops_plataforma="edge"}.
+  - {id: EG01, tipos: [edge], ambito: "plataforma:edge", sin_agente: true, grupo: Conectividad, nombre: "Enlace WAN caído", umbral: false, severidad: critico, acciones: [avisar],
+     descripcion: "El sitio no responde por su enlace hacia la central (túnel de la malla o enlace WAN)",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="edge",indicador="wan_caido"}) > 0', para: 5m}
+  - {id: EG02, tipos: [edge], ambito: "plataforma:edge", sin_agente: true, grupo: Conectividad, nombre: "Latencia alta hacia la central", unidad: "ms", aviso: 150, critico: 400, para: 10m, acciones: [avisar],
+     descripcion: "Latencia del sitio hacia la central medida desde el execution node",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="edge",indicador="latencia_ms"}) > __UMBRAL__'}
+  - {id: EG03, tipos: [edge], ambito: "plataforma:edge", sin_agente: true, grupo: Disponibilidad, nombre: "Equipo del sitio sin respuesta", umbral: false, severidad: aviso, acciones: [avisar],
+     descripcion: "Equipos del inventario del sitio que no responden al sondeo sin agente (ping o puerto de administración)",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="edge",indicador="equipos_sin_respuesta"}) > 0', para: 5m}
+  - {id: EG04, tipos: [edge], ambito: "plataforma:edge", sin_agente: true, grupo: Disponibilidad, nombre: "Impresora o POS fuera de línea", umbral: false, severidad: critico, acciones: [avisar],
+     descripcion: "Impresoras y puntos de venta registrados en el sitio que no responden",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="edge",indicador="impresoras_pos_fuera"}) > 0', para: 5m}
+  - {id: EG05, tipos: [edge], ambito: "plataforma:edge", sin_agente: true, grupo: Energía, nombre: "UPS en batería o batería baja", unidad: "% de carga", aviso: 60, critico: 30, para: 2m, acciones: [avisar],
+     descripcion: "La UPS del sitio pasó a batería o su carga está bajo el umbral (SNMP UPS-MIB)",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="edge",indicador="ups_bateria_pct_restante"}) < __UMBRAL__'}
+  - {id: EG06, tipos: [edge], ambito: "plataforma:edge", sin_agente: true, grupo: Seguridad, nombre: "Puerto crítico cerrado", umbral: false, severidad: aviso, acciones: [avisar],
+     descripcion: "Conexiones del diagrama del sitio cuyo puerto no figura abierto en el destino",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="edge",indicador="puertos_cerrados"}) > 0', para: 5m}
+  - {id: EG07, tipos: [edge], ambito: "plataforma:edge", sin_agente: true, grupo: Seguridad, nombre: "Certificado por vencer", unidad: "días", aviso: 30, critico: 7, para: 0m, acciones: [avisar],
+     descripcion: "Días para el vencimiento del certificado más próximo de los equipos del sitio",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="edge",indicador="cert_dias_min"}) < __UMBRAL__'}
+  - {id: EG08, tipos: [edge], ambito: "plataforma:edge", sin_agente: true, grupo: Operación, nombre: "Sin respaldo de configuración de red", unidad: "horas", aviso: 72, critico: 168, para: 0m, acciones: [avisar],
+     descripcion: "Horas desde el último respaldo de configuración de los routers y switches del sitio",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="edge",indicador="respaldo_red_horas"}) > __UMBRAL__'}
   # ───────── Plataformas · indicadores propios medidos SIN agente («Plataforma · Medir salud» por SSH/WinRM/API, inventario de red
   #   o recolección del clúster). FaceOps publica lo medido en /metricas/plataformas (job faceops-plataformas de Prometheus);
   #   sin_agente: la alerta no exige el exportador de la máquina. Ámbito plataforma:<familia>: van a la campana global agrupadas.
