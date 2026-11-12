@@ -73,4 +73,9 @@
         success_msg: "{{ nv_nube }}: API del proveedor accesible; {{ inv.json.total_hosts | default(0) }} máquina(s) en el inventario"
         fail_msg: >-
           {{ nv_nube }}: la API del proveedor rechazó la conexión ({{ est.json.status }}).
-          {{ (salida.content | default('') | regex_replace('(?i)(private_key|password|secret)[^\n]*', '[oculto]')).splitlines()[-6:] | join(' · ') }}
+          {% set t = salida.content | default('') | regex_replace('\x1b\[[0-9;]*m', '') | regex_replace('\s*\n\s*', '') %}
+          {% set p = t | regex_search('API has not been used in project ([\w-]+) before or it is disabled', '\\1') %}
+          {% if p %}La API de Compute Engine está deshabilitada en el proyecto {{ p[0] }}: actívala en https://console.cloud.google.com/apis/library/compute.googleapis.com?project={{ p[0] }} y vuelve a validar.
+          {% elif t is search('invalid_grant|Invalid JWT') %}Google rechazó la llave de la cuenta de servicio: genera una llave nueva.
+          {% elif t is search('PERMISSION_DENIED|forbidden') %}La cuenta de servicio no tiene permiso para listar máquinas (rol Compute Viewer).
+          {% else %}{{ (t | regex_replace('(?i)(private_key|password|secret)\S*', '[oculto]'))[-400:] }}{% endif %}

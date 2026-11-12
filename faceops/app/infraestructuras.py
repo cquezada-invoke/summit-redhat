@@ -2,6 +2,7 @@
 llega FaceOps a cada una. Al incorporar una, sus secretos van directo a una credencial cifrada de AAP (FaceOps no los
 guarda), se crea su inventario en AAP (con fuente dinámica en las nubes) y sus equipos entran al inventario de FaceOps."""
 import json
+import re
 import shlex
 
 from .bd import ahora, auditar, ej, j, q, q1
@@ -736,6 +737,23 @@ def _motivo_falla(aap, upd_id):
         u = aap.get(f"inventory_updates/{upd_id}/")
     except Exception:  # noqa: BLE001
         return ""
+    try:   # la salida trae el error real del proveedor (el traceback solo dice «No inventory was parsed»)
+        sal = re.sub(r"\x1b\[[0-9;]*m", "", aap.get(f"inventory_updates/{upd_id}/stdout/", format="json").get("content", "") or "")
+    except Exception:  # noqa: BLE001
+        sal = ""
+    plano = re.sub(r"\s*\n\s*", "", sal)
+    m_ = re.search(r"API has not been used in project ([\w-]+) before or it is disabled", plano)
+    if m_:
+        return (f"la API de Compute Engine está deshabilitada en el proyecto {m_.group(1)}: actívala en "
+                f"https://console.cloud.google.com/apis/library/compute.googleapis.com?project={m_.group(1)} y vuelve a validar")
+    if re.search(r"invalid_grant|Invalid JWT|account not found", plano, re.I):
+        return "Google rechazó la llave de la cuenta de servicio (revocada, vencida o de otra cuenta): genera una llave nueva"
+    if re.search(r"PERMISSION_DENIED|Required 'compute\.\w+\.list' permission|forbidden", plano, re.I):
+        return "la cuenta de servicio no tiene permiso para listar las máquinas: dale el rol Compute Viewer en el proyecto"
+    if re.search(r"AuthFailure|InvalidClientTokenId|SignatureDoesNotMatch", plano):
+        return "AWS rechazó la clave de acceso (inválida o desactivada)"
+    if re.search(r"AADSTS\d+", plano):
+        return "Azure rechazó el service principal: " + re.search(r"AADSTS\d+[^.]*", plano).group(0)[:160]
     lineas = [l_.strip() for l_ in ((u.get("result_traceback") or "") + "\n" + (u.get("job_explanation") or "")).splitlines() if l_.strip()]
     lineas = [l_ for l_ in lineas if "private_key" not in l_.lower() and "BEGIN" not in l_]
     return (lineas[-1] if lineas else "")[:220]
