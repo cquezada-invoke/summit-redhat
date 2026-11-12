@@ -1,155 +1,39 @@
-commit: ccd31d8438ce911179e1eb2c11deb280cfe037bd
-inicio: 2026-11-12T09:54:50-03:00
+commit: 39319fca530f4271bda59fc50480336598e7abb9
+inicio: 2026-11-12T09:57:12-03:00
 ---
-  DIAG 2026-11-12 12:55:45,899 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.services.activation.engine.kubernetes Pod activation-job-1-1-58t2f - Running
-  DIAG 2026-11-12 12:55:45,904 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.services.activation.engine.kubernetes Created request ports: [5000]
-  DIAG 2026-11-12 12:55:45,912 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.services.activation.engine.kubernetes Created Service: prueba-alertas
-  DIAG 2026-11-12 12:55:45,912 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.services.activation.engine.kubernetes Job activation-job-1-1 is running
-  DIAG 2026-11-12 12:55:45,000 INFO     [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] [aiid: 1] Job activation-job-1-1 is running
-  DIAG 2026-11-12 12:55:45,000 INFO     [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] [aiid: 1] Activation 1 (name='Prueba alertas'), instance 1: Job started in namespace 'eda'.
-  DIAG 2026-11-12 12:55:45,926 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.services.activation.activation_manager Container start successful, updating logs for activation instance: 1
-  DIAG All migrations are applied.
-  DIAG == DIAG eda deployment.apps/eda-api
-  DIAG   Applying dab_resource_registry.0005_resource_is_partially_migrated_and_more... OK
-  DIAG   Applying dab_resource_registry.0006_alter_resource_service_id... OK
-  DIAG   Applying dab_resource_registry.0007_alter_resource_ansible_id_and_more... OK
-  DIAG   Applying dab_resource_registry.0008_resource_covering_index_ansible_id... OK
-  DIAG   Applying flags.0012_replace_migrations_for_wagtail_independence... OK
-  DIAG   Applying flags.0013_add_required_field... OK
-  DIAG   Applying sessions.0001_initial... OK
-  DIAG 2026-11-12 12:50:43,065 INFO     ansible_base.rbac.management.create_types Updated the parent reference of 10 content types
-  DIAG 2026-11-12 12:50:43,074 INFO     ansible_base.rbac.management Updating the serial sequence of DABContentType model
-  DIAG 2026-11-12 12:50:43,135 INFO     ansible_base.resource_registry.apps updating resource types
-  DIAG 2026-11-12 12:50:43,243 INFO     ansible_base.resource_registry.apps adding unmigrated resources for shared.user
-  DIAG 2026-11-12 12:50:43,268 INFO     ansible_base.resource_registry.apps adding unmigrated resources for shared.team
-  DIAG 2026-11-12 12:50:43,294 INFO     ansible_base.resource_registry.apps adding unmigrated resources for shared.organization
-  DIAG 2026-11-12 12:50:43,353 INFO     ansible_base.resource_registry.apps adding unmigrated resources for shared.roledefinition
-  DIAG 2026-11-12 12:50:43,375 INFO     ansible_base.resource_registry.apps adding unmigrated resources for shared.aapflag
-  DIAG Added role Credential Input Source Use with 1 permissions to itself
-  DIAG Added role Organization Credential Input Source Admin with 5 permissions to itself
-  DIAG Added role Decision Environment Admin with 3 permissions to itself
-  DIAG Added role Decision Environment Use with 1 permissions to itself
-  DIAG Added role Organization Decision Environment Admin with 5 permissions to itself
-  DIAG Added role Team Admin with 4 permissions to itself
-  DIAG Added role Team Member with 2 permissions to itself
-  DIAG Added role Activation Admin with 8 permissions to itself
-  DIAG Added role Activation Use with 3 permissions to itself
-  DIAG Added role Organization Activation Admin with 10 permissions to itself
-  DIAG Added role EDA Project Admin with 5 permissions to itself
-  DIAG Added role EDA Project Use with 2 permissions to itself
-  DIAG Added role EDA Organization Project Admin with 7 permissions to itself
-  DIAG 27 static files copied to '/var/lib/eda/static'.
-  DIAG 2026-11-12 12:55:22,754 INFO     dispatcherd.brokers.pg_notify pg_notify sync connection established in 0.000 seconds
-  DIAG 2026-11-12 12:55:22,754 INFO     dispatcherd.brokers.pg_notify Set up pg_notify listening on channel 'reply_to_c9d58f9a_fac2_4acd_abca_da087703b0bb'
-  DIAG 2026-11-12 12:55:22,775 INFO     ansible_base.rbac.api.related User 1 has project related permissions {'organization': 'add_project'}, unchanged: []
-  DIAG 2026-11-12 12:55:22,775 INFO     dispatcherd.brokers.pg_notify pg_notify sync connection established in 0.000 seconds
-  DIAG 2026-11-12 12:55:22,783 INFO     [rid:205c102f-ca03-4d90-b824-e29be223f10b] aap_eda.api.views.project Action: Create / ResourceType: Project / ResourceName: Prueba / ResourceID: 1 / Organization: Default
-  DIAG 2026-11-12 12:55:23,609 INFO     [rid:2d108b54-4f35-4ea7-b4ac-f80d83584752] aap_eda.api.views.project Action: Read / ResourceType: Project / ResourceName: Prueba / ResourceID: 1 / Organization: Default
-  DIAG 2026-11-12 12:55:29,114 INFO     [rid:d673c37b-b67d-45c1-8d1e-070a54b2b142] aap_eda.api.views.project Action: Read / ResourceType: Project / ResourceName: Prueba / ResourceID: 1 / Organization: Default
-  DIAG /app/src/src/aap_eda/core/validators.py:138: FutureWarning: Possible nested set at position 1
-  DIAG   if not re.fullmatch(
-  DIAG 2026-11-12 12:55:30,128 INFO     ansible_base.rbac.api.related User 1 has decisionenvironment related permissions {'organization': 'add_decisionenvironment'}, unchanged: []
-  DIAG 2026-11-12 12:55:30,131 INFO     [rid:78ba9ea0-d053-42b7-9816-f113f420835b] aap_eda.api.views.decision_environment Action: Create / ResourceType: DecisionEnvironment / ResourceName: Prueba DE / ResourceID: 1 / Organization: Default
-  DIAG 2026-11-12 12:55:31,661 INFO     ansible_base.rbac.api.related User 1 has edacredential related permissions {'organization': 'add_edacredential'}, unchanged: []
-  DIAG 2026-11-12 12:55:32,661 INFO     [rid:8098bdbe-97c8-4c39-9047-1bad8a66cc70] aap_eda.api.views.activation Action: ListActivations / ResourceType: RulebookActivation / ResourceName: * / ResourceID: * / Organization: *
-  DIAG 2026-11-12 12:55:33,214 INFO     ansible_base.rbac.api.related User 1 has activation related permissions {'organization': 'add_activation', 'decision_environment': 'view_decisionenvironment', 'project': 'view_project', 'rulebook': 'view_rul
-  DIAG 2026-11-12 12:55:33,219 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] aap_eda.api.views.activation Action: Create / ResourceType: RulebookActivation / ResourceName: Prueba alertas / ResourceID: 1 / Organization: Default
-  DIAG 2026-11-12 12:51:12,227 ALWAYS     ACTIVATION_RESTART_SECONDS_ON_FAILURE: 60
-  DIAG 2026-11-12 12:51:12,227 ALWAYS     ACTIVATION_MAX_RESTARTS_ON_FAILURE: 5
-  DIAG 2026-11-12 12:51:12,227 ALWAYS     ANSIBLE_RULEBOOK_LOG_LEVEL: error
-  DIAG 2026-11-12 12:51:12,227 ALWAYS     ALLOW_LOCAL_RESOURCE_MANAGEMENT: True
-  DIAG 2026-11-12 12:51:12,228 ALWAYS     RESOURCE_JWT_USER_ID: None
-  DIAG 2026-11-12 12:51:12,228 ALWAYS     ANSIBLE_BASE_JWT_VALIDATE_CERT: True
-  DIAG 2026-11-12 12:51:12,228 ALWAYS     ANSIBLE_BASE_MANAGED_ROLE_REGISTRY: {}
-  DIAG 2026-11-12 12:51:12,228 ALWAYS     ACTIVATION_DB_HOST: host.containers.internal
-  DIAG 2026-11-12 12:51:12,228 ALWAYS     SAFE_PLUGINS_FOR_PORT_FORWARD: ['ansible.eda.webhook', 'eda.builtin.webhook', 'ansible.eda.alertmanager']
-  DIAG 2026-11-12 12:51:12,228 ALWAYS     EVENT_STREAM_BASE_URL: None
-  DIAG 2026-11-12 12:51:12,228 ALWAYS     EVENT_STREAM_MTLS_BASE_URL: None
-  DIAG ::ffff:10.42.0.18:48262 - - [12/Nov/2026:12:55:46] "WSCONNECTING /api/eda/ws/ansible-rulebook" - -
-  DIAG ::ffff:10.42.0.18:48262 - - [12/Nov/2026:12:55:46] "WSCONNECT /api/eda/ws/ansible-rulebook" - -
-  DIAG 2026-11-12 12:55:46,071 INFO     [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.wsapi.consumers Start to handle workers: activation_instance_id: 1
-  DIAG ::ffff:10.42.0.18:48262 - - [12/Nov/2026:12:55:47] "WSDISCONNECT /api/eda/ws/ansible-rulebook" - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:51:50 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "10.42.0.1" rid=197bb5118c40b5ca993c2fc75d104cbd - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:52:57 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "10.42.0.1" rid=b88a9241cabcfc971d97305f2d1a2b6e - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:02 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "10.42.0.1" rid=f57607b5aa4f6b5fdcfe784162965177 - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:22 +0000] "GET /api/eda/v1/projects/?name=Prueba HTTP/1.1" 200 76 "-" "Python-urllib/3.9" "10.42.0.1" rid=55175f441620aefb3b1145f2e0aeafa0 - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:22 +0000] "POST /api/eda/v1/projects/ HTTP/1.1" 201 627 "-" "Python-urllib/3.9" "10.42.0.1" rid=f92ed407ccea593ccf8db53e81358deb - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:23 +0000] "GET /api/eda/v1/projects/1/ HTTP/1.1" 200 683 "-" "Python-urllib/3.9" "10.42.0.1" rid=dbee657210a688cdd7b4cf503de10d88 - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:29 +0000] "GET /api/eda/v1/projects/1/ HTTP/1.1" 200 750 "-" "Python-urllib/3.9" "10.42.0.1" rid=774c60b51c3e60a371878d17c17701a4 - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:29 +0000] "GET /api/eda/v1/decision-environments/?name=Prueba%20DE HTTP/1.1" 200 76 "-" "Python-urllib/3.9" "10.42.0.1" rid=a207f62f6061545210a583d375f02e39 - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:30 +0000] "POST /api/eda/v1/decision-environments/ HTTP/1.1" 201 396 "-" "Python-urllib/3.9" "10.42.0.1" rid=ac2f2c27f94e2f2d17b4f6fecbb90f67 - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:30 +0000] "GET /api/eda/v1/credential-types/?page_size=100 HTTP/1.1" 200 43325 "-" "Python-urllib/3.9" "10.42.0.1" rid=87ee7d7ede2eb67c03b71ed39367b86d - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:31 +0000] "GET /api/eda/v1/eda-credentials/?name=Prueba%20AWX HTTP/1.1" 200 76 "-" "Python-urllib/3.9" "10.42.0.1" rid=2ed79f755b382f7a2cd23c5b86556f7c - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:31 +0000] "POST /api/eda/v1/eda-credentials/ HTTP/1.1" 201 653 "-" "Python-urllib/3.9" "10.42.0.1" rid=3510b5f05f3004d683cab3ad37116310 - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:32 +0000] "GET /api/eda/v1/rulebooks/?project_id=1 HTTP/1.1" 200 583 "-" "Python-urllib/3.9" "10.42.0.1" rid=2f42d25a80a7056f9f60de1db8bfc39d - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:32 +0000] "GET /api/eda/v1/activations/?name=Prueba%20alertas HTTP/1.1" 200 76 "-" "Python-urllib/3.9" "10.42.0.1" rid=d252096f312234e4070889bf6680f153 - -
-  DIAG 10.42.0.17 - admin [12/Nov/2026:12:55:33 +0000] "POST /api/eda/v1/activations/ HTTP/1.1" 201 2457 "-" "Python-urllib/3.9" "10.42.0.1" rid=0adbcf6f4ba77081621c062ade7f673b - -
-  DIAG == DIAG eda deployment.apps/eda-default-worker
-  DIAG 2026-11-12 12:55:22,755 INFO     dispatcherd.service.main Control action alive returned message len=51, sending back reply
-  DIAG 2026-11-12 12:55:22,778 INFO     aap_eda.tasks.project Task started: Import project (project_id=1)
-  DIAG 2026-11-12 12:55:22,785 INFO     aap_eda.services.project.scm Cloning repository: http://10.254.254.1:8088/prueba.git
-  DIAG 2026-11-12 12:55:23,979 INFO     dispatcherd.service.pool Started worker id=2 (prior ct=1) to handle queue pressure
-  DIAG 2026-11-12 12:55:24,336 INFO     aap_eda.tasks.project Task complete: Import project (project_id=1)
-  DIAG 2026-11-12 12:55:30,324 INFO     aap_eda.tasks.project Task started: Monitor project tasks
-  DIAG 2026-11-12 12:55:30,327 INFO     aap_eda.tasks.project No stuck projects found
-  DIAG 2026-11-12 12:55:30,330 INFO     aap_eda.tasks.project Task complete: Monitor project tasks
-  DIAG 2026-11-12 12:55:33,988 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.tasks.orchestrator Dispatching request start for activation 1
-  DIAG 2026-11-12 12:55:33,989 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.tasks.orchestrator Dispatching activation 1 as new process.
-  DIAG 2026-11-12 12:55:33,997 INFO     dispatcherd.brokers.pg_notify pg_notify sync connection established in 0.000 seconds
-  DIAG 2026-11-12 12:55:33,999 INFO     dispatcherd.brokers.pg_notify Set up pg_notify listening on channel 'reply_to_d1f31161_4480_4af8_bc99_1c1f62e7f160'
-  DIAG 2026-11-12 12:55:34,004 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.tasks.orchestrator Trying to enqueue activation 1 request start to queue activation
-  DIAG 2026-11-12 12:55:34,004 INFO     dispatcherd.brokers.pg_notify pg_notify sync connection established in 0.000 seconds
-  DIAG 2026-11-12 12:55:34,005 INFO     [rid:955df569-dfc5-4a86-9da5-5ab48d86f898] [tid:73870c88-3265-41d6-9ddd-e5b4476666b7] aap_eda.tasks.orchestrator _manage(activation-1) submitted to queue activation request=start
-  DIAG == DIAG eda deployment.apps/eda-event-stream
-  DIAG   RULEBOOK_READINESS_TIMEOUT_SECONDS: 60
-  DIAG   RULEBOOK_LIVENESS_CHECK_SECONDS: 300
-  DIAG   RULEBOOK_LIVENESS_TIMEOUT_SECONDS: 610
-  DIAG   ACTIVATION_RESTART_SECONDS_ON_COMPLETE: 0
-  DIAG   ACTIVATION_RESTART_SECONDS_ON_FAILURE: 60
-  DIAG   ACTIVATION_MAX_RESTARTS_ON_FAILURE: 5
-  DIAG   ANSIBLE_RULEBOOK_LOG_LEVEL: error
-  DIAG   ALLOW_LOCAL_RESOURCE_MANAGEMENT: True
-  DIAG   RESOURCE_JWT_USER_ID: None
-  DIAG   ANSIBLE_BASE_JWT_VALIDATE_CERT: True
-  DIAG   ANSIBLE_BASE_MANAGED_ROLE_REGISTRY: {}
-  DIAG   ACTIVATION_DB_HOST: eda-postgres-15.eda.svc
-  DIAG   SAFE_PLUGINS_FOR_PORT_FORWARD: ['ansible.eda.webhook', 'eda.builtin.webhook', 'ansible.eda.alertmanager']
-  DIAG   EVENT_STREAM_BASE_URL: None
-  DIAG   EVENT_STREAM_MTLS_BASE_URL: None
-  DIAG /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
-  DIAG /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
-  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
-  DIAG 10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf
-  DIAG 10-listen-on-ipv6-by-default.sh: info: Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
-  DIAG /docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
-  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
-  DIAG 20-envsubst-on-templates.sh: Running envsubst on /etc/nginx/templates/default.conf.template to /etc/nginx/conf.d/default.conf
-  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
-  DIAG /docker-entrypoint.sh: Configuration complete; ready for start up
-  DIAG == DIAG eda deployment.apps/eda-server-operator-controller-manager
-  DIAG task path: /opt/ansible/roles/eda/tasks/update_status.yml:87
-  DIAG {"level":"info","ts":"2026-11-12T12:53:19Z","logger":"runner","msg":"Ansible-runner exited successfully","job":"7674842419557053593","name":"eda","namespace":"eda"}
-  DIAG ----- Ansible Task Status Event StdOut (eda.ansible.com/v1alpha1, Kind=EDA, eda/eda) -----
-  DIAG localhost                  : ok=97   changed=3    unreachable=0    failed=0    skipped=64   rescued=0    ignored=0
-  DIAG {"level":"info","ts":"2026-11-12T12:53:19Z","msg":"unknown field \"status.conditions[0].message\"","controller":"eda-v1alpha1-controller","object":{"name":"eda","namespace":"eda"},"namespace":"eda","name":"eda","reconcileID":"e183e38c-5c5e-
-  DIAG {"level":"info","ts":"2026-11-12T12:53:19Z","msg":"unknown field \"status.conditions[1].message\"","controller":"eda-v1alpha1-controller","object":{"name":"eda","namespace":"eda"},"namespace":"eda","name":"eda","reconcileID":"e183e38c-5c5e-
-  DIAG {"level":"info","ts":"2026-11-12T12:53:19Z","msg":"unknown field \"status.conditions[2].message\"","controller":"eda-v1alpha1-controller","object":{"name":"eda","namespace":"eda"},"namespace":"eda","name":"eda","reconcileID":"e183e38c-5c5e-
-  DIAG == DIAG eda deployment.apps/eda-ui
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:23 +0000] "GET /api/eda/v1/projects/1/ HTTP/1.1" 200 683 "-" "Python-urllib/3.9" "-" rid=0cc305de0bf5b0d397669427cca98882 - -
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:29 +0000] "GET /api/eda/v1/projects/1/ HTTP/1.1" 200 750 "-" "Python-urllib/3.9" "-" rid=bf7f5a620adf78cc57bc0cdfcb4f4ee7 - -
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:29 +0000] "GET /api/eda/v1/decision-environments/?name=Prueba%20DE HTTP/1.1" 200 76 "-" "Python-urllib/3.9" "-" rid=f1f9a82ac64d7242822f3d956deaafe4 - -
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:30 +0000] "POST /api/eda/v1/decision-environments/ HTTP/1.1" 201 396 "-" "Python-urllib/3.9" "-" rid=0fc50aca4dc07f35a9aec75542fce28d - -
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:30 +0000] "GET /api/eda/v1/credential-types/?page_size=100 HTTP/1.1" 200 43325 "-" "Python-urllib/3.9" "-" rid=09837dc6743a377735a26b38d98c205e - -
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:31 +0000] "GET /api/eda/v1/eda-credentials/?name=Prueba%20AWX HTTP/1.1" 200 76 "-" "Python-urllib/3.9" "-" rid=e6d2a33de886ab1e81b4d5c3cc0df9d7 - -
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:31 +0000] "POST /api/eda/v1/eda-credentials/ HTTP/1.1" 201 653 "-" "Python-urllib/3.9" "-" rid=86537f19880d40197cee8c84a554b750 - -
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:32 +0000] "GET /api/eda/v1/rulebooks/?project_id=1 HTTP/1.1" 200 583 "-" "Python-urllib/3.9" "-" rid=fd9926019e021ae7d57863946fd5cf90 - -
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:32 +0000] "GET /api/eda/v1/activations/?name=Prueba%20alertas HTTP/1.1" 200 76 "-" "Python-urllib/3.9" "-" rid=9ba856b08e359265680e681b2ae96ea9 - -
-  DIAG 10.42.0.1 - admin [12/Nov/2026:12:55:33 +0000] "POST /api/eda/v1/activations/ HTTP/1.1" 201 2457 "-" "Python-urllib/3.9" "-" rid=1550d792397f41203dc86516dd37496d - -
-  DIAG                total        used        free      shared  buff/cache   available
-  DIAG Mem:           15729        8073         254          56        7788        7656
-  DIAG Swap:              0           0           0
-  CONSTRUCCION FALLO
-· construcción FALLIDA
-· constructora demo-constructor-202611121243 eliminada
-(sigue corriendo)
---- fin: 2026-11-12T09:56:30-03:00 · código: 0
+  DIAG == DIAG log
+  DIAG == 12:44:51 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
+  DIAG == 12:44:51 KVM/libvirt para las VMs anidadas
+  DIAG == 12:47:02 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
+  DIAG == 12:47:02 paquetes
+  DIAG == 12:47:10 k3s v1.30.6+k3s1
+  DIAG Created symlink /etc/systemd/system/multi-user.target.wants/k3s.service → /etc/systemd/system/k3s.service.
+  DIAG == 12:47:25 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  DIAG == 12:47:50 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
+  DIAG == 12:48:22 repositorio git local (HTTP inteligente con git http-backend en :8088) con playbook y rulebook de prueba
+  DIAG == 12:48:23 acceso SSH de AWX a esta misma máquina (host gestionado)
+  DIAG == 12:48:23 validador local y FaceOps (feature/faceops-awx) en modo awx
+  DIAG
+  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
+  DIAG [notice] To update, run: pip install --upgrade pip
+  DIAG Imágenes listas
+  DIAG == 12:49:47 AWX responde:
+  DIAG == 12:51:50 EDA responde: 200
+  DIAG INSTALACION TERMINADA
+  DIAG == 12:51:50 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
+  DIAG == 12:52:56 VMs anidadas con SSH: localhost localhost
+  DIAG == 12:52:56 esperando AWX y EDA (hasta 30 min)
+  DIAG == 12:55:02 AWX 24.6.1 · EDA HTTP 200
+  DIAG == 12:55:02 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
+  DIAG proyecto AWX: successful
+  DIAG AWX: inventario, credencial, proyecto, 2 plantillas y workflow con aprobación
+  DIAG proyecto EDA: completed
+  DIAG EDA: activación 1 pending
+  DIAG FaceOps: HTTP 200
+  DIAG /opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  DIAG   warnings.warn(
+  DIAG FaceOps enrolado en el validador local
+  DIAG CONFIGURACION TERMINADA
+  DIAG == 12:55:37 PRUEBA REAL de FaceOps en modo awx (login, inventario, ticket con aprobación, workflow, EDA, licencia)
+  DIAG == DIAG pods
+--- fin: 2026-11-12T09:57:12-03:00 · código: 0

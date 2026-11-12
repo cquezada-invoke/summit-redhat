@@ -1,0 +1,39 @@
+commit: 39319fca530f4271bda59fc50480336598e7abb9
+inicio: 2026-11-12T09:57:12-03:00
+---
+  DIAG == DIAG log
+  DIAG == 12:44:51 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
+  DIAG == 12:44:51 KVM/libvirt para las VMs anidadas
+  DIAG == 12:47:02 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
+  DIAG == 12:47:02 paquetes
+  DIAG == 12:47:10 k3s v1.30.6+k3s1
+  DIAG Created symlink /etc/systemd/system/multi-user.target.wants/k3s.service → /etc/systemd/system/k3s.service.
+  DIAG == 12:47:25 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  DIAG == 12:47:50 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
+  DIAG == 12:48:22 repositorio git local (HTTP inteligente con git http-backend en :8088) con playbook y rulebook de prueba
+  DIAG == 12:48:23 acceso SSH de AWX a esta misma máquina (host gestionado)
+  DIAG == 12:48:23 validador local y FaceOps (feature/faceops-awx) en modo awx
+  DIAG
+  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
+  DIAG [notice] To update, run: pip install --upgrade pip
+  DIAG Imágenes listas
+  DIAG == 12:49:47 AWX responde:
+  DIAG == 12:51:50 EDA responde: 200
+  DIAG INSTALACION TERMINADA
+  DIAG == 12:51:50 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
+  DIAG == 12:52:56 VMs anidadas con SSH: localhost localhost
+  DIAG == 12:52:56 esperando AWX y EDA (hasta 30 min)
+  DIAG == 12:55:02 AWX 24.6.1 · EDA HTTP 200
+  DIAG == 12:55:02 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
+  DIAG proyecto AWX: successful
+  DIAG AWX: inventario, credencial, proyecto, 2 plantillas y workflow con aprobación
+  DIAG proyecto EDA: completed
+  DIAG EDA: activación 1 pending
+  DIAG FaceOps: HTTP 200
+  DIAG /opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  DIAG   warnings.warn(
+  DIAG FaceOps enrolado en el validador local
+  DIAG CONFIGURACION TERMINADA
+  DIAG == 12:55:37 PRUEBA REAL de FaceOps en modo awx (login, inventario, ticket con aprobación, workflow, EDA, licencia)
+  DIAG == DIAG pods
+--- fin: 2026-11-12T09:57:12-03:00 · código: 0
