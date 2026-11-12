@@ -1,6 +1,26 @@
-commit: 5570faf6b7edd5a287386a0bb1b8ef321944af28
-inicio: 2026-11-12T09:33:00-03:00
+commit: 77be7ae9f76683b7c945709447e7be68bf669b2a
+inicio: 2026-11-12T09:31:48-03:00
 ---
-Red · Respaldar configuración certificada
-Red · Detectar cambios de configuración certificada
---- fin: 2026-11-12T09:33:08-03:00 · código: 0
+3
+2:  podman cp /tmp/arnes_vo.py faceops:/opt/faceops/arnes_vo.py 2>/dev/null
+4:  podman exec -w /opt/faceops -e PYTHONPATH=/opt/faceops -e FACEOPS_VIGIA=0 faceops python3 arnes_vo.py C4 C3 C1 C2 >> /tmp/arnes-vo.log 2>&1
+rm: cannot remove '/tmp/arnes-vo.log': Operation not permitted
+lanzado
+--- vuelta 1 02:19:26
+estado: sin probar 9deaafd472e7
+== C4 sobre srv-cisco-c240-01 (so=RedHat 9.6, ip=192.168.122.138, energía=encendido)
+  ticket FO-LAB-02116 exitoso | AAP terminó (successful): ejecución 11 s, espera de aprobación 49 s srv-cisco-c240-01: IP 192.168.122.138 · vinculación SSH lanzada
+  equipo ahora: so= RedHat 9.6 | ip= 192.168.122.138 | recolectado= 2026-11-10T06:03:45.504516Z | energía= encendido
+  bóveda: {'usuario': 'faceops', 'protocolo': 'ssh', 'puerto': None, 'conexion': None} False
+  => fallido
+== C1 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=pendiente, energía=apagado)
+  ticket FO-LAB-02119 exitoso | AAP terminó (successful): ejecución 60 s, espera de aprobación 49 s srv-windows-iis-01: IP 192.168.122.120 · WinRM HTTPS 5986 con «faceops» · credencial «Infra · on-premise Windows · máquinas» y bóveda · inventario lanzado
+  siguiente: None
+  equipo ahora: so= Windows Server 2022 | ip= 192.168.122.120 | recolectado= None | energía= encendido
+  bóveda: {'usuario': None, 'protocolo': None, 'puerto': None, 'conexion': None} False
+  => fallido
+C2 espera a C1
+EVIDENCIA {"huella": "9deaafd472e7", "casos": {"C4": {"ticket": "FO-LAB-02116", "estado": "exitoso", "so": "RedHat 9.6", "ip": "192.168.122.138", "boveda": true, "resultado": "fallido"}, "C1": {"ticket": "FO-LAB-02119", "estado": "exitoso", "siguiente": null, "so": "Windows Server 2022", "ip": "192.168.122.120", "boveda": false, "resultado": "fallido"}, "C2": {"resultado": "fallido", "nota": "srv-windows-iis-01: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la acción"}, "C3": {"ticket": "FO-LAB-02067", "estado": "exitoso", "siguiente": ["FO-LAB-02071", "exitoso"], "so": "Red Hat Enterprise Linux 9", "ip": "192.168.122.105", "boveda": true, "resultado": "ok"}}}
+FIN-TODO
+FIN-LOOP
+--- fin: 2026-11-12T09:41:26-03:00 · código: 0
