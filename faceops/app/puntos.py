@@ -11,7 +11,7 @@ import time
 import requests
 
 from .bd import ahora, ej, j, q, q1
-from .hora_local import texto_utc
+from .hora_local import a_utc, texto_utc
 
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS puntos_restauracion (id INTEGER PRIMARY KEY, cliente_id INTEGER, equipo_id INTEGER, equipo TEXT,
@@ -638,7 +638,7 @@ def frecuencia(e):
 
 def programados():
     """Crea los puntos que tocan según la frecuencia de cada máquina (lo llama un hilo de fondo cada 5 minutos)."""
-    from datetime import datetime
+    from datetime import datetime, timezone
     iniciar()
     for c in q("SELECT * FROM clientes WHERE activo=1"):
         for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado'", c["id"]):
@@ -648,8 +648,8 @@ def programados():
                 continue
             ult = q1("SELECT creado FROM puntos_restauracion WHERE cliente_id=? AND equipo_id=? ORDER BY id DESC LIMIT 1", c["id"], e["id"])
             try:
-                edad = (datetime.now() - datetime.fromisoformat(str(ult["creado"])[:19].replace("T", " "))).total_seconds() if ult else None
-            except ValueError:
+                edad = (datetime.now(timezone.utc) - a_utc(ult["creado"])).total_seconds() if ult else None   # creado viene en UTC; now() es hora de Santiago
+            except (ValueError, TypeError):
                 edad = None
             if edad is None or edad >= seg - 60:
                 try:
