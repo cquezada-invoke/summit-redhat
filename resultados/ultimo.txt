@@ -1,82 +1,66 @@
-commit: 681dcc5a1c10bc987460e4699b72720f12b0a8a9
-inicio: 2026-11-11T23:22:58-03:00
+commit: e2743fe2fdb55d91887c76a87362a44f0c0bc76c
+inicio: 2026-11-11T23:45:49-03:00
 ---
-== corrida anterior
-· constructora demo-constructor-202611120213 (n2-standard-4, Rocky Linux 9, anidada, 60 GB) · rama feature/faceops-awx
-  == CONSTRUCCION inicio 02:13:59
-  == fuente 00aae68
-  == 02:14:50 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
-  == 02:14:50 KVM/libvirt para las VMs anidadas
-  == 02:17:07 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
-  == 02:17:07 paquetes
-  == 02:17:15 k3s v1.30.6+k3s1
-  == 02:17:30 AWX (awx-operator 2.19.1 → AWX 24.6.1)
-  == 02:17:55 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
-  == 02:18:22 repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba
-  == 02:18:22 acceso SSH de AWX a esta misma máquina (host gestionado)
-  == 02:18:22 validador local y FaceOps (feature/faceops-awx) en modo awx
-  == 02:19:53 AWX responde:
-ya corre
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
+  DIAG Added role EDA Credential Admin with 3 permissions to itself
+  DIAG Added role EDA Credential Use with 1 permissions to itself
+  DIAG Added role Organization EDA Credential Admin with 5 permissions to itself
+  DIAG Added role Credential Input Source Admin with 3 permissions to itself
+  DIAG Added role Credential Input Source Use with 1 permissions to itself
+  DIAG Added role Organization Credential Input Source Admin with 5 permissions to itself
+  DIAG Added role Decision Environment Admin with 3 permissions to itself
+  DIAG Added role Decision Environment Use with 1 permissions to itself
+  DIAG Added role Organization Decision Environment Admin with 5 permissions to itself
+  DIAG
+  DIAG 27 static files copied to '/var/lib/eda/static'.
+  DIAG   EVENT_STREAM_BASE_URL: None
+  DIAG   EVENT_STREAM_MTLS_BASE_URL: None
+  DIAG 2026-11-12 02:51:29,216 ERROR    [rid:6adf0949-58be-4c6e-8141-b6c709ac7d5f] aap_eda.api.exceptions /app/venv/lib64/python3.12/site-packages/rest_framework/authentication.py:101 authenticate_credentials
+  DIAG 2026-11-12 02:51:29,216 ERROR    [rid:6adf0949-58be-4c6e-8141-b6c709ac7d5f] aap_eda.api.exceptions /app/venv/lib64/python3.12/site-packages/rest_framework/authentication.py:87 authenticate
+  DIAG 2026-11-12 02:51:29,216 ERROR    [rid:6adf0949-58be-4c6e-8141-b6c709ac7d5f] aap_eda.api.exceptions /app/venv/lib64/python3.12/site-packages/rest_framework/request.py:393 _authenticate
+  DIAG 2026-11-12 02:51:29,216 ERROR    [rid:6adf0949-58be-4c6e-8141-b6c709ac7d5f] aap_eda.api.exceptions /app/venv/lib64/python3.12/site-packages/rest_framework/request.py:236 user
+  DIAG 2026-11-12 02:51:29,216 ERROR    [rid:6adf0949-58be-4c6e-8141-b6c709ac7d5f] aap_eda.api.exceptions /app/venv/lib64/python3.12/site-packages/rest_framework/views.py:329 perform_authentication
+  DIAG 2026-11-12 02:51:29,216 ERROR    [rid:6adf0949-58be-4c6e-8141-b6c709ac7d5f] aap_eda.api.exceptions /app/venv/lib64/python3.12/site-packages/rest_framework/views.py:419 initial
+  DIAG 2026-11-12 02:51:29,216 ERROR    [rid:6adf0949-58be-4c6e-8141-b6c709ac7d5f] aap_eda.api.exceptions /app/venv/lib64/python3.12/site-packages/rest_framework/views.py:514 dispatch
+  DIAG 2026-11-12 02:51:29,217 WARNING  django.request Unauthorized: /api/eda/v1/status/
+  DIAG 2026-11-12 02:51:50,196 INFO     dispatcherd.brokers.pg_notify pg_notify sync connection established in 0.000 seconds
+  DIAG 2026-11-12 02:51:50,201 INFO     dispatcherd.brokers.pg_notify Set up pg_notify listening on channel 'reply_to_fcc34ed5_6f45_47e3_877d_e02a76ca9abd'
+  DIAG 2026-11-12 02:51:50,210 INFO     dispatcherd.brokers.pg_notify pg_notify sync connection established in 0.000 seconds
+  DIAG 2026-11-12 02:51:50,215 INFO     dispatcherd.brokers.pg_notify Set up pg_notify listening on channel 'reply_to_300bdcc8_56b5_4ed7_88ff_47b7f442afe7'
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     RULEBOOK_READINESS_TIMEOUT_SECONDS: 60
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     RULEBOOK_LIVENESS_CHECK_SECONDS: 300
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     RULEBOOK_LIVENESS_TIMEOUT_SECONDS: 610
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     ACTIVATION_RESTART_SECONDS_ON_COMPLETE: 0
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     ACTIVATION_RESTART_SECONDS_ON_FAILURE: 60
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     ACTIVATION_MAX_RESTARTS_ON_FAILURE: 5
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     ANSIBLE_RULEBOOK_LOG_LEVEL: error
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     ALLOW_LOCAL_RESOURCE_MANAGEMENT: True
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     RESOURCE_JWT_USER_ID: None
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     ANSIBLE_BASE_JWT_VALIDATE_CERT: True
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     ANSIBLE_BASE_MANAGED_ROLE_REGISTRY: {}
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     ACTIVATION_DB_HOST: host.containers.internal
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     SAFE_PLUGINS_FOR_PORT_FORWARD: ['ansible.eda.webhook', 'eda.builtin.webhook', 'ansible.eda.alertmanager']
+  DIAG 2026-11-12 02:50:57,707 ALWAYS     EVENT_STREAM_BASE_URL: None
+  DIAG 2026-11-12 02:50:57,708 ALWAYS     EVENT_STREAM_MTLS_BASE_URL: None
+  DIAG == DIAG eda deployment.apps/eda-default-worker
+  DIAG All migrations are applied.
+  DIAG 2026-11-12 02:51:15,417 INFO     aap_eda.tasks.project Task started: Monitor project tasks
+  DIAG 2026-11-12 02:51:15,422 INFO     aap_eda.tasks.project No stuck projects found
+  DIAG 2026-11-12 02:51:15,428 INFO     aap_eda.tasks.project Task complete: Monitor project tasks
+  DIAG 2026-11-12 02:51:27,025 INFO     dispatcherd.service.pool Scaling down worker id=1 (prior ct=2) due to demand
+  DIAG 2026-11-12 02:51:27,026 WARNING  dispatcherd.worker.target Worker 1 exiting main loop due to stop message.
+  DIAG 2026-11-12 02:51:45,416 INFO     aap_eda.tasks.project Task started: Monitor project tasks
+  DIAG 2026-11-12 02:51:45,419 INFO     aap_eda.tasks.project No stuck projects found
+  DIAG 2026-11-12 02:51:45,423 INFO     aap_eda.tasks.project Task complete: Monitor project tasks
+  DIAG 2026-11-12 02:51:50,203 INFO     dispatcherd.service.main Control action alive returned message len=51, sending back reply
+  DIAG 2026-11-12 02:52:15,417 INFO     aap_eda.tasks.project Task started: Monitor project tasks
+  DIAG 2026-11-12 02:52:15,421 INFO     aap_eda.tasks.project No stuck projects found
+  DIAG 2026-11-12 02:52:15,426 INFO     aap_eda.tasks.project Task complete: Monitor project tasks
+  DIAG 2026-11-12 02:52:45,418 INFO     aap_eda.tasks.project Task started: Monitor project tasks
+  DIAG 2026-11-12 02:52:45,428 INFO     aap_eda.tasks.project No stuck projects found
+  DIAG 2026-11-12 02:52:45,439 INFO     aap_eda.tasks.project Task complete: Monitor project tasks
+  DIAG == DIAG eda deployment.apps/eda-event-stream
+  DIAG All migrations are applied.
+  DIAG   RULEBOOK_READINESS_TIMEOUT_SECONDS: 60
   DIAG   RULEBOOK_LIVENESS_CHECK_SECONDS: 300
   DIAG   RULEBOOK_LIVENESS_TIMEOUT_SECONDS: 610
   DIAG   ACTIVATION_RESTART_SECONDS_ON_COMPLETE: 0
@@ -167,4 +151,5 @@ grep: imagen.log: No such file or directory
   DIAG Swap:              0           0           0
 · construcción FALLIDA
 · constructora demo-constructor-202611120243 eliminada
---- fin: 2026-11-11T23:53:18-03:00 · código: 0
+(sigue corriendo)
+--- fin: 2026-11-11T23:53:29-03:00 · código: 0
