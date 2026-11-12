@@ -216,6 +216,12 @@ def plantillas():
     if not all((org, proy, ee, inv, creds["kvm"], creds["gw"])):
         paso("ERROR: falta la organización, el proyecto, el entorno, el inventario o las credenciales base de FaceOps (corre configurar.py completo)")
         return False
+    # el proyecto trae los playbooks «autocuidado-*.yml» recién subidos a Gitea: se actualiza antes de crear las plantillas
+    upd = aap("POST", f"projects/{proy['id']}/update/", {})
+    for _ in range(100):
+        if aap("GET", f"project_updates/{upd['id']}/")["status"] in ("successful", "failed", "error", "canceled"):
+            break
+        time.sleep(3)
     # credencial de eventos: FaceOps la valida con el token del anfitrión (sha256, como los demás webhooks)
     tok = sudo(f"cat {DIR}/token").stdout.strip()
     ct = uno("credential_types", name="Autocuidado · FaceOps (eventos)") or aap("POST", "credential_types/", {

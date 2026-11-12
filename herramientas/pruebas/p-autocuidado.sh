@@ -10,7 +10,7 @@ pedir() {  # pedir <plantilla> <caso> '<params json>' [min] [cambios]
   caso "{\"auto\":\"$1\",\"equipo\":\"\",\"segmento\":\"\",\"params\":$3,\"min\":${4:-15},\"caso\":\"$2\"$extra}" >/dev/null
   echo "  $2 → $(estado) $(ticket)"
 }
-lineas_registro() { sudo wc -l < /var/lib/faceops/autocuidado/registro.jsonl 2>/dev/null || echo 0; }
+lineas_registro() { sudo cat /var/lib/faceops/autocuidado/registro.jsonl 2>/dev/null | wc -l; }
 mover_herramienta() { sudo mv $H $H.prueba; }
 volver_herramienta() { sudo mv $H.prueba $H; }
 trap '[ -f $H.prueba ] && sudo mv $H.prueba $H; sudo systemctl is-active -q faceops || sudo systemctl start faceops; sudo systemctl is-active -q faceops-autodeploy.timer || sudo systemctl start faceops-autodeploy.timer' EXIT
