@@ -56,6 +56,9 @@ for i in $(seq 1 90); do   # AWX responde HTML mientras migra: se espera JSON co
     http://127.0.0.1:30081/api/eda/v1/users/me/ | grep -q 200 && break; sleep 20; done
 for d in awx/awx-task awx/awx-web eda/eda-api eda/eda-activation-worker; do
   kubectl -n ${d%%/*} rollout status deploy/${d#*/} --timeout=1200s >/dev/null 2>&1 || echo "· $d no quedó lista"; done
+for i in $(seq 1 60); do   # sin una instancia de tarea «ready» AWX responde 500 al crear hosts o lanzar trabajos
+  curl -sf -m 10 -u "admin:$(cat $P/clave)" http://127.0.0.1:30080/api/v2/instances/ \
+    | jq -e '[.results[] | select(.node_state == "ready" and .enabled)] | length > 0' >/dev/null 2>&1 && break; sleep 20; done
 paso "AWX $(curl -sf -m 5 http://127.0.0.1:30080/api/v2/ping/ | jq -r .version 2>/dev/null || echo NO) · EDA HTTP $(curl -s -m 5 -o /dev/null -w '%{http_code}' -u "admin:$(cat $P/clave)" http://127.0.0.1:30081/api/eda/v1/users/me/)"
 paso "AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx"
 HOSTS="nodo-prueba=192.168.122.1 nodo-web=192.168.122.11 nodo-app=192.168.122.12" bash "$D/prueba-awx/configurar.sh"
