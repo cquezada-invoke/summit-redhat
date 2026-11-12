@@ -1,39 +1,31 @@
-commit: ba4ba796c13591fce3b8fa67f6b7e5d91e28deea
-inicio: 2026-11-12T12:40:33-03:00
+commit: 941980d0de9ccd0ac7e57408d26d95c887d3dfec
+inicio: 2026-11-12T13:19:35-03:00
 ---
-desplegado: f680dd1b6 · 2026-11-12T12:35:44-03:00 ok: desplegado f680dd1b · /ingresar 200 · configurar=sin cambios
-== proceso de la cola
-pid 8 /opt/app-root/bin/python3.11 -u -m app.cola 
-pid 94 sh -c for p in /proc/[0-9]*; do c=$(tr "\0" " " < $p/cmdline 2>/dev/null); case "$c" in *app.cola*) echo "pid ${p#/proc/} $c";; esac; done 
-== camino anterior (sin cola)
+desplegado
+plantillas en AAP: ['Nube · Leer opciones de la nube', 'Nube · Crear máquina', 'Nube · Operar máquina', 'Nube · Producto de la nube']
+credencial de la nube disponible
+  lectura no lanzada: No se pudo lanzar la lectura en AAP: Sincronizando con AAP: el dato aún no está en FaceOps
+C1 job None None | regiones 0 | zonas sw1 None | tipos 0 | imágenes ok 0 / 0 | redes [] | subredes 0 | cuentas 0 | firewall 0 | máquinas [] | precios {} | errores None
+   ROLES de la cuenta de servicio: None
+   PERMISOS QUE FALTAN: None
+   ROLES QUE FALTAN: []
+   APIs: None []
+  lectura no lanzada: No se pudo lanzar la lectura en AAP: Sincronizando con AAP: el dato aún no está en FaceOps
+C2 job None None mismos conteos: False
 Traceback (most recent call last):
-    raise PermissionError(f"«{auto['nombre']}» está bloqueada: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep_["estado"] == "cambiada"
-PermissionError: «Medir salud de la plataforma» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado
-== con cola
-Traceback (most recent call last):
-    raise PermissionError(f"«{auto['nombre']}» está bloqueada: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep_["estado"] == "cambiada"
-PermissionError: «Medir salud de la plataforma» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado
-== HTTP: la página de la cola y el estado de un ticket
-cola 200 496 ms True
-== log del proceso de la cola
-cola de acciones: proceso 8 atendiendo
-== planes de prueba
--- Plataforma · Programar medición
-grupos: 0 grupos · 0 plataformas
-C1 fallido · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
-CASO C1 falla · Programar cada 15 minutos
-C2 fallido · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
-CASO C2 falla · Repetir sin duplicar
-C3 sin respuesta del arnés · 
-CASO C3 falla · Frecuencia inválida
-CERT Plataforma · Programar medición → fallida
-FIN-PLATAFORMA-SALUD
--- OpenShift · Relevamiento de imágenes
-en uso informe=None real(oc)=126 · registro=None · caché=None · antiguas=0 · muchas_rev=0
-CASO C1 falla · Relevamiento por defecto
-CASO C2 falla · ImageStream de prueba sin uso
-antiguas 0→0 · muchas_rev 0→0 · IS 72→72
-CASO C3 falla · Umbral 30 días y 1 revisión
-CASO C4 falla · Umbral no válido (10 días)
-CERT OpenShift · Relevamiento de imágenes → fallida
---- fin: 2026-11-12T13:19:15-03:00 · código: 0
+  File "/tmp/m.py", line 86, in <module>
+    j3 = aap.lanzar("job", ao_["aap_id"], extra_vars={"nb_infra_id": IID, "nb_proyecto": "X_no_valido", "nb_entrada": {}}, credenciales=[N.credencial(aap, INF)])
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 359, in lanzar
+    credenciales = list(credenciales) + [c["id"] for c in self.todos(f"job_templates/{id_}/credentials/")
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 291, in todos
+    datos = self.get(ruta, **params)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 281, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 242, in _r
+    raise (ErrorAAP if disponible(self.web) else AAPNoDisponible)("Sincronizando con AAP: el dato aún no está en FaceOps")
+app.aap.ErrorAAP: Sincronizando con AAP: el dato aún no está en FaceOps
+--- fin: 2026-11-12T13:20:01-03:00 · código: 0

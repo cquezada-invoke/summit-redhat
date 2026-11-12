@@ -1,0 +1,31 @@
+commit: 941980d0de9ccd0ac7e57408d26d95c887d3dfec
+inicio: 2026-11-12T13:19:35-03:00
+---
+desplegado
+plantillas en AAP: ['Nube · Leer opciones de la nube', 'Nube · Crear máquina', 'Nube · Operar máquina', 'Nube · Producto de la nube']
+credencial de la nube disponible
+  lectura no lanzada: No se pudo lanzar la lectura en AAP: Sincronizando con AAP: el dato aún no está en FaceOps
+C1 job None None | regiones 0 | zonas sw1 None | tipos 0 | imágenes ok 0 / 0 | redes [] | subredes 0 | cuentas 0 | firewall 0 | máquinas [] | precios {} | errores None
+   ROLES de la cuenta de servicio: None
+   PERMISOS QUE FALTAN: None
+   ROLES QUE FALTAN: []
+   APIs: None []
+  lectura no lanzada: No se pudo lanzar la lectura en AAP: Sincronizando con AAP: el dato aún no está en FaceOps
+C2 job None None mismos conteos: False
+Traceback (most recent call last):
+  File "/tmp/m.py", line 86, in <module>
+    j3 = aap.lanzar("job", ao_["aap_id"], extra_vars={"nb_infra_id": IID, "nb_proyecto": "X_no_valido", "nb_entrada": {}}, credenciales=[N.credencial(aap, INF)])
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 359, in lanzar
+    credenciales = list(credenciales) + [c["id"] for c in self.todos(f"job_templates/{id_}/credentials/")
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 291, in todos
+    datos = self.get(ruta, **params)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 281, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 242, in _r
+    raise (ErrorAAP if disponible(self.web) else AAPNoDisponible)("Sincronizando con AAP: el dato aún no está en FaceOps")
+app.aap.ErrorAAP: Sincronizando con AAP: el dato aún no está en FaceOps
+--- fin: 2026-11-12T13:20:01-03:00 · código: 0
