@@ -16,7 +16,8 @@
 {% set PL = (request.args.get('plegar', '') ~ '').split(',')|select|list %}
 <div class="fila" id="flujo"><h2 style="margin:0">Flujo de interacciones</h2><span class="sub der">{{ F.total }} equipos · de Internet hacia los datos ·
 <a href="{{ url_for('consola.ecosistema') }}#flujo" class="fl-todo" data-plegar="">Expandir todo</a> ·
-<a href="{{ url_for('consola.ecosistema', plegar=F.bandas|map(attribute='k')|join(',')) }}#flujo" class="fl-todo" data-plegar="{{ F.bandas|map(attribute='k')|join(',') }}">Comprimir todo</a></span></div>
+{% set TODO = F.bandas|map(attribute='k')|list + F.todo_centros %}
+<a href="{{ url_for('consola.ecosistema', plegar=TODO|join(',')) }}#flujo" class="fl-todo" data-plegar="{{ TODO|join(',') }}">Comprimir todo</a></span></div>
 <div class="plano-scroll"><svg class="plano fl" viewBox="0 0 {{ F.ancho }} {{ F.alto }}" width="{{ F.ancho }}" role="img" aria-label="Flujo de interacciones del ecosistema">
 <defs><marker id="fl-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="p-flecha"/></marker></defs>
 <g><rect x="{{ F.inet.x - 130 }}" y="{{ F.inet.y }}" width="260" height="50" rx="25" class="p-faceops"/>
@@ -24,12 +25,14 @@
 <text x="{{ F.inet.x + 8 }}" y="{{ F.inet.y + 22 }}" text-anchor="middle" class="p-t2">Usuarios de Internet</text>
 <text x="{{ F.inet.x + 8 }}" y="{{ F.inet.y + 39 }}" text-anchor="middle" class="p-t4">clientes, canales digitales y socios</text></g>
 {% for c in F.columnas %}<g class="fl-col"><rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" rx="12" class="fl-infra{{ ' fl-nube' if c.nube }}"/>
-<text x="{{ c.x + c.w / 2 }}" y="{{ c.y + 22 }}" text-anchor="middle" class="p-t2 fl-infra-t">{{ '☁ ' if c.nube else '🏢 ' }}{{ c.nombre }} · {{ c.n }}</text></g>{% endfor %}
+<text x="{{ c.x + (c.w - 36) / 2 + 4 }}" y="{{ c.y + 22 }}" text-anchor="middle" class="p-t2 fl-infra-t"><title>{{ c.nombre }} · {{ c.n }}</title>{{ '☁ ' if c.nube else '🏢 ' }}{% if c.plegada %}{{ c.nombre|truncate(11, true, '…') }}{% else %}{{ c.nombre|truncate(14 + (c.w // 9), true, '…') }} · {{ c.n }}{% endif %}</text>
+{% set CK = 'centro:' ~ c.id %}{% set PL2 = (PL | reject('equalto', CK) | list) if c.plegada else (PL + [CK]) %}
+<a href="{{ url_for('consola.ecosistema', plegar=PL2|join(',')) if PL2 else url_for('consola.ecosistema') }}#flujo" class="fl-toggle" data-plegar="{{ PL2|join(',') }}"><title>{{ 'Expandir' if c.plegada else 'Comprimir' }} {{ c.nombre }}</title>
+<rect x="{{ c.x + c.w - 36 }}" y="{{ c.y + 7 }}" width="28" height="22" rx="5" class="fl-btn"/><text x="{{ c.x + c.w - 22 }}" y="{{ c.y + 23 }}" text-anchor="middle" class="p-t2">{{ '+' if c.plegada else '−' }}</text></a></g>{% endfor %}
 {% for b in F.buses %}
 {% for x in b.desde %}<path d="M{{ x }} {{ b.y_desde }} V{{ b.y }}" class="fl-bus"/>{% endfor %}
 <path d="M{{ b.x1 }} {{ b.y }} H{{ b.x2 }}" class="fl-bus"/>
 {% for x in b.hacia %}<path d="M{{ x }} {{ b.y }} V{{ b.y_hacia - 2 }}" class="fl-bus" marker-end="url(#fl-f)"/>{% endfor %}
-{% if b.proto %}<g><rect x="{{ (b.x1 + b.x2) / 2 - 75 }}" y="{{ b.y - 10 }}" width="150" height="20" rx="10" class="fl-proto"/><text x="{{ (b.x1 + b.x2) / 2 }}" y="{{ b.y + 4 }}" text-anchor="middle" class="p-t4">{{ b.proto }}</text></g>{% endif %}
 {% endfor %}
 {% for b in F.bandas %}
 <g><rect x="{{ F.x_etq }}" y="{{ b.y }}" width="{{ F.ancho - F.x_etq - 10 }}" height="{{ b.h }}" rx="10" class="fl-banda fl-{{ b.k }}"/>
@@ -56,9 +59,19 @@
 {% if n.on is not none %}<circle cx="{{ n.x + F.nodo.w - 10 }}" cy="{{ n.y + 10 }}" r="4.5" fill="{{ '#3e8635' if n.on else '#8a8d90' }}"><title>{{ 'encendido' if n.on else 'apagado' }}</title></circle>{% endif %}
 </g></a>{% endif %}{% endfor %}
 {% endfor %}
+{% for c in F.columnas if c.caja %}{% set CK = 'centro:' ~ c.id %}{% set PL2 = PL | reject('equalto', CK) | list %}{% set K = c.caja %}
+<a href="{{ url_for('consola.ecosistema', plegar=PL2|join(',')) if PL2 else url_for('consola.ecosistema') }}#flujo" class="fl-toggle fl-centro-pl" data-plegar="{{ PL2|join(',') }}"><g class="eco-caja"><title>{{ c.nombre }} · {{ c.n }} equipo{{ 's' if c.n != 1 }} · {{ c.on_n }} encendido{{ 's' if c.on_n != 1 }} · clic para expandir</title>
+<rect x="{{ K.x }}" y="{{ K.y }}" width="{{ K.w }}" height="{{ K.h }}" rx="8" class="fl-nodo" stroke-dasharray="5 3"/>
+{{ icono('servidor', K.x + 8, K.y + 9) }}
+<text x="{{ K.x + 40 }}" y="{{ K.y + 18 }}" class="p-t3" font-weight="700">{{ c.nombre|truncate(13, true, '…') }}</text>
+<text x="{{ K.x + 40 }}" y="{{ K.y + 33 }}" class="p-t4">{{ c.n }} equipo{{ 's' if c.n != 1 }}</text>
+<text x="{{ K.x + 40 }}" y="{{ K.y + 48 }}" class="p-t4">{{ c.on_n }} encendido{{ 's' if c.on_n != 1 }}</text>
+<text x="{{ K.x + 40 }}" y="{{ K.y + 62 }}" class="p-t4" fill="#0066cc">clic para expandir</text></g></a>{% endfor %}
+{% for b in F.buses %}{% for l in b.lados %}<path d="M{{ l.x + l.d }} {{ b.y }} H{{ l.x }}" class="fl-bus" marker-end="url(#fl-f)"/>{% endfor %}
+{% if b.proto %}<g><rect x="{{ (b.x1 + b.x2) / 2 - 75 }}" y="{{ b.y - 10 }}" width="150" height="20" rx="10" class="fl-proto"/><text x="{{ (b.x1 + b.x2) / 2 }}" y="{{ b.y + 4 }}" text-anchor="middle" class="p-t4">{{ b.proto }}</text></g>{% endif %}{% endfor %}
 </svg></div>
 <script>
-(function () {   // recuerda en este navegador qué capas dejaste comprimidas
+(function () {   // recuerda en este navegador qué capas y centros (centro:<id>) dejaste comprimidos
   var K = "faceops.arq.plegar";
   function guardar(v) { try { localStorage.setItem(K, v); } catch (e) {} }
   document.querySelectorAll(".fl-toggle, .fl-todo").forEach(function (a) {
