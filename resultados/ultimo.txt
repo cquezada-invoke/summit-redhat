@@ -1,15 +1,34 @@
-commit: 2a05210f60bf49c0c9fb02f37bd489eec6b5e204
-inicio: 2026-11-11T22:09:11-03:00
+commit: e2bb302482da26cd9306d790192d7325cd9094a2
+inicio: 2026-11-11T22:10:25-03:00
 ---
-a8ab581 EDA: al encender la VM las activaciones esperan al r
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-demo nuevo: None
-[{'id': 1, 'codigo': 'CL-SCL-TDA-001', 'alias': 'Tienda de laboratorio (demo)', 'nodo': 'cl-scl-tda-001-en01', 'equipos': '[24, 6, 21]', 'demo': 1}]
-[{'id': 2, 'nombre': 'Mall (demo)', 'demo': 1}, {'id': 1, 'nombre': 'Zona Centro (demo)', 'demo': 1}]
-/edge 200 menu-edge True barra False cx True grupos True foco True svg False 0
-   Código Nombre Tipo País / Ciudad Execution node Equipos Salud Zona Centro (demo) demo 1 sitio · Grupo de prueba del laboratorio: sitios de la Región Metropolitana 47% CL-SCL-TDA-001 demo Tienda de laboratorio (demo) Tienda CL · Santiago cl-scl-tda-001-en01 No registrado en la malla 3 47% Ningún sitio coincide con el filtro. Grupos de sitios × Agrupa los sitios (p. ej. «Zona Norte», «Mall», «Tiendas grandes») para ver dónde focalizar. Cada sitio va en un solo grupo y se asigna en «Editar sitio». 
-/edge/1 200 menu-edge True barra True cx True grupos False foco False svg True 3
-   Execution node y hop Automation Mesh de AAP · estado leído de AAP Rol Nodo Estado en la malla Enlace Execution node (en el sitio) cl-scl-tda-001-en01 No registrado en la malla → central · la conexión la inicia el sitio Hop node (DMZ de la central) — Salida directa a la central no aplica: salida directa FaceOps no se conecta a las máquinas del sitio: cada acción es un ticket en AAP, pasa por aprobación y baja al sitio por este túnel. Equipos del sitio · 3 Equipo Tipo IP Sistema En el grupo del si
-ocp 29 200
---- fin: 2026-11-11T22:10:05-03:00 · código: 0
+id = 131
+nombre = srv-windows-iis-01
+cliente_id = 1
+categoria = servidor
+forma = virtual
+so = 
+so_familia = Windows
+so_version = 
+estado = sin datos
+inventario = Servidores habilitados
+inventarios = ["Servidores habilitados"]
+grupos = ["windows"]
+proveedor = kvm
+ubicacion = Centro de datos Valparaíso
+aap_host_id = 173
+ultima_recoleccion = None
+skills_manual = []
+creado = -
+datos keys ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'ram_so_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
+virtual  hostname 
+host srv-windows-iis-01 inv 10 facts_mod None
+hv keys ['ansible_connection', 'ansible_host', 'ansible_port', 'ansible_winrm_transport', 'faceops_ambiente', 'faceops_forma', 'faceops_segmento', 'faceops_so_pedido', 'faceops_ticket', 'faceops_ubicacion']
+hv so None
+hv faceops_so None
+hv sourceImage None
+hv platform None
+hv platform_details None
+hv os_profile None
+facts {'ansible_os_family': None, 'ansible_distribution': None, 'ansible_os_name': None, 'ansible_distribution_version': None, 'ansible_os_product_type': None}
+ticket {'id': 2002, 'estado': 'exitoso', 'creado': '2026-11-12T00:57:04+00:00', 'automatizacion_id': 95, 'p': '{"en_equipo": "srv-windows-iis-01", "en_accion": "encender"}'}
+--- fin: 2026-11-11T22:10:31-03:00 · código: 0
