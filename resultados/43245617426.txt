@@ -1,0 +1,182 @@
+commit: adc0647b0ea50d8827cf2f5ab61046ce2f1eb6f8
+inicio: 2026-11-12T12:14:33-03:00
+---
+== host
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda2       500G  500G  134M 100% /
+/dev/sda2       500G  500G  134M 100% /
+               total        used        free      shared  buff/cache   available
+Mem:          128386      104252        5303        4796       24750       24133
+ 12:14:33 up 17:45,  0 users,  load average: 5.16, 5.06, 5.49
+== contenedores no Up
+vyos-prueba Exited (130) 2 weeks ago
+h-usr Exited (137) 12 days ago
+h-srv Exited (137) 12 days ago
+sw-srv Exited (143) 12 days ago
+sw-usr Exited (143) 12 days ago
+sw-core Exited (143) 12 days ago
+clab-red-corporativa-fw-perimetral Exited (0) 292 years ago
+clab-red-corporativa-fw-interno Exited (0) 292 years ago
+clab-red-corporativa-nas-01 Exited (0) 292 years ago
+clab-red-corporativa-srv-bd-01 Exited (0) 292 years ago
+clab-red-corporativa-pc-campus-01 Exited (0) 292 years ago
+clab-red-corporativa-isp-b Exited (0) 292 years ago
+clab-red-corporativa-isp-a Exited (0) 292 years ago
+clab-red-corporativa-proxy-dmz Exited (0) 292 years ago
+clab-red-corporativa-core Exited (0) 292 years ago
+clab-red-corporativa-dns-dmz Exited (0) 292 years ago
+clab-red-corporativa-borde Exited (0) 292 years ago
+clab-red-corporativa-srv-app-01 Exited (0) 292 years ago
+clab-red-corporativa-lb-dmz Exited (0) 292 years ago
+== VMs
+ 4    srv-prueba-resp-01           paused
+ 5    nodo-jboss4                  paused
+ 9    nodo-vault                   paused
+ 11   srv-dell-r660xs-01           paused
+ 12   srv-hpe-dl360-01             paused
+ 16   srv-dell-r760-01             paused
+ 17   srv-hpe-dl380-01             paused
+ 18   srv-lenovo-sr650-01          paused
+ 19   srv-cisco-c240-01            paused
+ 20   srv-supermicro-01            paused
+ 28   nodo-storage                 paused
+ 40   srv-windows-iis-01           paused
+ -    dc1-ad01                     shut off
+ -    dc1-ds01                     shut off
+ -    dc1-idm01                    shut off
+ -    dc1-iga01                    shut off
+ -    dc1-sat01                    shut off
+ -    dc1-sso01                    shut off
+ -    ee-centro-datos-prod         shut off
+ -    nodo-jboss-qa                shut off
+AAP host: 127.0.0.1
+  ping api/controller/v2/ping/: 503 0.02s
+  ping api/v2/ping/: 404 0.32s
+  ping api/gateway/v1/ping/: 200 0.08s
+## /lab/mapa produccion: 1a 7.68s · 2a 5.10s [200]
+        1    0.000    0.000    7.668    7.668 /opt/faceops/app/__init__.py:380(envoltura)
+        1    0.001    0.001    7.668    7.668 /opt/faceops/app/vistas.py:5863(mapa)
+        1    0.000    0.000    6.372    6.372 /opt/faceops/app/vistas.py:6059(_accesos_apps)
+        2    0.000    0.000    5.956    2.978 /opt/faceops/app/vistas.py:6136(_cred_app)
+        3    0.000    0.000    5.949    1.983 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:14(request)
+        2    0.000    0.000    5.942    2.971 /opt/faceops/app/boveda.py:26(leer)
+        2    0.000    0.000    5.942    2.971 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:103(post)
+        1    0.000    0.000    2.836    2.836 /opt/faceops/app/vistas.py:6143(_url_app)
+     2424    0.001    0.000    0.902    0.000 /opt/faceops/app/templates/mapa.html:4(root)
+     2424    0.001    0.000    0.671    0.000 /opt/faceops/app/templates/base.html:4(root)
+     1336    0.001    0.000    0.351    0.000 /opt/faceops/app/templates/mapa.html:39(block_cuerpo)
+        2    0.000    0.000    0.311    0.156 /opt/faceops/app/__init__.py:210(_menu)
+        2    0.002    0.001    0.311    0.156 /opt/faceops/app/vistas.py:8406(menu_nav)
+      310    0.002    0.000    0.303    0.001 /opt/faceops/app/pruebas.py:181(estado)
+       88    0.000    0.000    0.281    0.003 /opt/faceops/app/__init__.py:12(_safe_load)
+  387/310    0.007    0.000    0.273    0.001 /opt/faceops/app/pruebas.py:153(huella)
+        1    0.000    0.000    0.236    0.236 /opt/faceops/app/vistas.py:1438(_radar_de)
+      368    0.001    0.000    0.227    0.001 /opt/faceops/app/inventario.py:69(segmentos_de)
+        1    0.000    0.000    0.227    0.227 /opt/faceops/app/radar.py:93(radar_equipos)
+        8    0.000    0.000    0.226    0.028 /opt/faceops/app/radar.py:61(casos_equipo)
+## /lab/mapa/datos produccion: 1a 52.63s · 2a 49.10s [200]
+        1    0.006    0.006   52.625   52.625 /opt/faceops/app/__init__.py:380(envoltura)
+        1    0.004    0.004   52.619   52.619 /opt/faceops/app/vistas.py:6537(mapa_datos)
+       17    0.000    0.000   52.135    3.067 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:14(request)
+       16    0.000    0.000   49.129    3.071 /opt/faceops/app/boveda.py:26(leer)
+       16    0.000    0.000   49.129    3.071 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:103(post)
+       11    0.000    0.000   33.769    3.070 /opt/faceops/app/boveda.py:37(acceso)
+        5    0.000    0.000   15.360    3.072 /opt/faceops/app/boveda.py:41(web)
+        6    0.000    0.000   15.341    2.557 /opt/faceops/app/consola.py:23(tipo_consola)
+        1    0.001    0.001    3.149    3.149 /opt/faceops/app/topologia.py:170(construir)
+        1    0.000    0.000    3.007    3.007 /opt/faceops/app/topologia.py:613(_bifurcacion_lake)
+        1    0.000    0.000    3.007    3.007 /opt/faceops/app/topologia.py:560(_uso_lake)
+        1    0.000    0.000    3.007    3.007 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:62(get)
+        1    0.000    0.000    3.003    3.003 /usr/lib64/python3.11/socket.py:704(readinto)
+        1    0.015    0.015    0.135    0.135 /opt/faceops/app/cves.py:112(por_equipo)
+      110    0.000    0.000    0.120    0.001 /opt/faceops/app/__init__.py:12(_safe_load)
+        5    0.000    0.000    0.113    0.023 /opt/faceops/app/arquitectura.py:149(vigentes)
+        1    0.000    0.000    0.111    0.111 /opt/faceops/app/topologia.py:890(resumen_segmento)
+      151    0.000    0.000    0.095    0.001 /opt/faceops/app/bd.py:180(q)
+        1    0.000    0.000    0.081    0.081 /opt/faceops/app/topologia.py:118(_candado_entrada)
+        3    0.000    0.000    0.079    0.026 /opt/faceops/app/arquitectura.py:311(flujos_de)
+## /lab/mapa qa: 1a 6.42s · 2a 5.86s [200]
+        1    0.000    0.000    6.390    6.390 /opt/faceops/app/__init__.py:380(envoltura)
+        1    0.001    0.001    6.390    6.390 /opt/faceops/app/vistas.py:5863(mapa)
+        1    0.000    0.000    5.998    5.998 /opt/faceops/app/vistas.py:6059(_accesos_apps)
+        4    0.000    0.000    5.839    1.460 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:14(request)
+        2    0.000    0.000    5.807    2.903 /opt/faceops/app/vistas.py:6136(_cred_app)
+        2    0.000    0.000    5.807    2.903 /opt/faceops/app/boveda.py:26(leer)
+        2    0.000    0.000    5.807    2.903 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:103(post)
+        1    0.000    0.000    3.004    3.004 /opt/faceops/app/vistas.py:6143(_url_app)
+     2437    0.001    0.000    0.321    0.000 /opt/faceops/app/templates/mapa.html:4(root)
+     2437    0.001    0.000    0.320    0.000 /opt/faceops/app/templates/base.html:4(root)
+        2    0.000    0.000    0.223    0.111 /opt/faceops/app/__init__.py:210(_menu)
+        2    0.002    0.001    0.223    0.111 /opt/faceops/app/vistas.py:8406(menu_nav)
+      368    0.001    0.000    0.209    0.001 /opt/faceops/app/inventario.py:69(segmentos_de)
+      368    0.001    0.000    0.203    0.001 /opt/faceops/app/inventario.py:62(segmentos_candidatos)
+      368    0.006    0.000    0.201    0.001 /opt/faceops/app/inventario.py:65(<listcomp>)
+        7    0.001    0.000    0.201    0.029 /opt/faceops/app/vistas.py:62(equipos_visibles)
+     6616    0.023    0.000    0.163    0.000 /opt/faceops/app/inventario.py:33(cumple_regla)
+      310    0.002    0.000    0.157    0.001 /opt/faceops/app/pruebas.py:181(estado)
+        2    0.000    0.000    0.155    0.077 /opt/faceops/app/vistas.py:74(autos_visibles)
+        2    0.000    0.000    0.146    0.073 /opt/faceops/app/pruebas.py:201(no_certificadas)
+## /lab/mapa/datos qa: 1a 9.55s · 2a 6.08s [200]
+        1    0.003    0.003    9.541    9.541 /opt/faceops/app/__init__.py:380(envoltura)
+        1    0.002    0.002    9.538    9.538 /opt/faceops/app/vistas.py:6537(mapa_datos)
+        3    0.000    0.000    9.184    3.061 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:14(request)
+        2    0.000    0.000    6.179    3.089 /opt/faceops/app/boveda.py:26(leer)
+        2    0.000    0.000    6.179    3.089 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:103(post)
+        1    0.000    0.000    3.107    3.107 /opt/faceops/app/boveda.py:37(acceso)
+        1    0.000    0.000    3.072    3.072 /opt/faceops/app/boveda.py:41(web)
+        1    0.000    0.000    3.068    3.068 /opt/faceops/app/topologia.py:170(construir)
+        1    0.000    0.000    3.006    3.006 /opt/faceops/app/topologia.py:613(_bifurcacion_lake)
+        1    0.000    0.000    3.006    3.006 /opt/faceops/app/topologia.py:560(_uso_lake)
+        1    0.000    0.000    3.006    3.006 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:62(get)
+        1    0.000    0.000    3.003    3.003 /usr/lib64/python3.11/socket.py:704(readinto)
+        1    0.012    0.012    0.136    0.136 /opt/faceops/app/cves.py:112(por_equipo)
+       95    0.000    0.000    0.126    0.001 /opt/faceops/app/__init__.py:12(_safe_load)
+        5    0.000    0.000    0.125    0.025 /opt/faceops/app/arquitectura.py:149(vigentes)
+      151    0.000    0.000    0.102    0.001 /opt/faceops/app/bd.py:180(q)
+        1    0.000    0.000    0.095    0.095 /opt/faceops/app/topologia.py:890(resumen_segmento)
+        3    0.000    0.000    0.082    0.027 /opt/faceops/app/arquitectura.py:311(flujos_de)
+      151    0.075    0.000    0.075    0.000 {method 'fetchall' of 'sqlite3.Cursor' objects}
+        1    0.000    0.000    0.054    0.054 /opt/faceops/app/topologia.py:848(resumen_segmentos)
+## /lab/mapa desarrollo: 1a 6.30s · 2a 6.14s [200]
+        1    0.000    0.000    6.295    6.295 /opt/faceops/app/__init__.py:380(envoltura)
+        1    0.001    0.001    6.295    6.295 /opt/faceops/app/vistas.py:5863(mapa)
+        1    0.000    0.000    6.049    6.049 /opt/faceops/app/vistas.py:6059(_accesos_apps)
+        3    0.000    0.000    5.928    1.976 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:14(request)
+        2    0.000    0.000    5.924    2.962 /opt/faceops/app/vistas.py:6136(_cred_app)
+        2    0.000    0.000    5.924    2.962 /opt/faceops/app/boveda.py:26(leer)
+        2    0.000    0.000    5.924    2.962 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:103(post)
+        1    0.000    0.000    3.068    3.068 /opt/faceops/app/vistas.py:6143(_url_app)
+        7    0.001    0.000    0.204    0.029 /opt/faceops/app/vistas.py:62(equipos_visibles)
+      322    0.001    0.000    0.185    0.001 /opt/faceops/app/inventario.py:69(segmentos_de)
+      322    0.000    0.000    0.180    0.001 /opt/faceops/app/inventario.py:62(segmentos_candidatos)
+      322    0.005    0.000    0.178    0.001 /opt/faceops/app/inventario.py:65(<listcomp>)
+     2437    0.001    0.000    0.167    0.000 /opt/faceops/app/templates/mapa.html:4(root)
+     2437    0.001    0.000    0.167    0.000 /opt/faceops/app/templates/base.html:4(root)
+     5789    0.019    0.000    0.144    0.000 /opt/faceops/app/inventario.py:33(cumple_regla)
+    23975    0.038    0.000    0.096    0.000 /opt/faceops/app/inventario.py:14(normal)
+        1    0.000    0.000    0.087    0.087 /opt/faceops/app/topologia.py:890(resumen_segmento)
+     1349    0.001    0.000    0.087    0.000 /opt/faceops/app/templates/mapa.html:39(block_cuerpo)
+       63    0.000    0.000    0.078    0.001 /opt/faceops/app/__init__.py:12(_safe_load)
+        2    0.000    0.000    0.075    0.038 /opt/faceops/app/__init__.py:210(_menu)
+## /lab/mapa/datos desarrollo: 1a 9.09s · 2a 9.17s [200]
+        1    0.005    0.005    8.895    8.895 /opt/faceops/app/__init__.py:380(envoltura)
+        1    0.002    0.002    8.889    8.889 /opt/faceops/app/vistas.py:6537(mapa_datos)
+        4    0.000    0.000    8.785    2.196 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:14(request)
+        3    0.000    0.000    8.590    2.863 /opt/faceops/app/boveda.py:26(leer)
+        3    0.000    0.000    8.589    2.863 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:103(post)
+        2    0.000    0.000    5.518    2.759 /opt/faceops/app/boveda.py:37(acceso)
+        1    0.000    0.000    3.072    3.072 /opt/faceops/app/boveda.py:41(web)
+        1    0.000    0.000    2.446    2.446 /opt/faceops/app/consola.py:23(tipo_consola)
+        1    0.001    0.001    0.197    0.197 /opt/faceops/app/__init__.py:103(cargar_usuario)
+        1    0.000    0.000    0.195    0.195 /opt/faceops/app/bloqueo_admin.py:14(estado)
+        1    0.000    0.000    0.195    0.195 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:62(get)
+        4    0.000    0.000    0.168    0.042 /usr/lib64/python3.11/socket.py:957(getaddrinfo)
+        1    0.011    0.011    0.113    0.113 /opt/faceops/app/cves.py:112(por_equipo)
+       95    0.000    0.000    0.108    0.001 /opt/faceops/app/__init__.py:12(_safe_load)
+        5    0.000    0.000    0.106    0.021 /opt/faceops/app/arquitectura.py:149(vigentes)
+        1    0.000    0.000    0.083    0.083 /opt/faceops/app/topologia.py:890(resumen_segmento)
+      151    0.000    0.000    0.079    0.001 /opt/faceops/app/bd.py:180(q)
+        3    0.000    0.000    0.072    0.024 /opt/faceops/app/arquitectura.py:311(flujos_de)
+      151    0.057    0.000    0.057    0.000 {method 'fetchall' of 'sqlite3.Cursor' objects}
+        1    0.000    0.000    0.051    0.051 /opt/faceops/app/topologia.py:170(construir)
+--- fin: 2026-11-12T12:17:34-03:00 · código: 0
