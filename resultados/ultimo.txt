@@ -1,31 +1,40 @@
-commit: 941980d0de9ccd0ac7e57408d26d95c887d3dfec
-inicio: 2026-11-12T13:19:35-03:00
+commit: 0503b323cba525ba351d25c9c3076f3a73bf1989
+inicio: 2026-11-12T13:19:56-03:00
 ---
-desplegado
-plantillas en AAP: ['Nube · Leer opciones de la nube', 'Nube · Crear máquina', 'Nube · Operar máquina', 'Nube · Producto de la nube']
-credencial de la nube disponible
-  lectura no lanzada: No se pudo lanzar la lectura en AAP: Sincronizando con AAP: el dato aún no está en FaceOps
-C1 job None None | regiones 0 | zonas sw1 None | tipos 0 | imágenes ok 0 / 0 | redes [] | subredes 0 | cuentas 0 | firewall 0 | máquinas [] | precios {} | errores None
-   ROLES de la cuenta de servicio: None
-   PERMISOS QUE FALTAN: None
-   ROLES QUE FALTAN: []
-   APIs: None []
-  lectura no lanzada: No se pudo lanzar la lectura en AAP: Sincronizando con AAP: el dato aún no está en FaceOps
-C2 job None None mismos conteos: False
-Traceback (most recent call last):
-  File "/tmp/m.py", line 86, in <module>
-    j3 = aap.lanzar("job", ao_["aap_id"], extra_vars={"nb_infra_id": IID, "nb_proyecto": "X_no_valido", "nb_entrada": {}}, credenciales=[N.credencial(aap, INF)])
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 359, in lanzar
-    credenciales = list(credenciales) + [c["id"] for c in self.todos(f"job_templates/{id_}/credentials/")
-                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 291, in todos
-    datos = self.get(ruta, **params)
-            ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 281, in get
-    return self._r("GET", ruta, params=params)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 242, in _r
-    raise (ErrorAAP if disponible(self.web) else AAPNoDisponible)("Sincronizando con AAP: el dato aún no está en FaceOps")
-app.aap.ErrorAAP: Sincronizando con AAP: el dato aún no está en FaceOps
---- fin: 2026-11-12T13:20:01-03:00 · código: 0
+T {'id': 2204, 'numero': 'FO-LAB-02204', 'estado': 'en_cola', 'aap_job_id': None, 'aap_job_tipo': 'job', 'r': '', 'n': 'Nube · Recuperar consumo y estado', 'creado': '2026-11-12T16:11:43+00:00'}
+T {'id': 2203, 'numero': 'FO-LAB-02203', 'estado': 'en_cola', 'aap_job_id': None, 'aap_job_tipo': 'job', 'r': '', 'n': 'OpenShift · Relevamiento de imágenes', 'creado': '2026-11-12T16:10:23+00:00'}
+T {'id': 2202, 'numero': 'FO-LAB-02202', 'estado': 'en_cola', 'aap_job_id': None, 'aap_job_tipo': 'job', 'r': '', 'n': 'Nube · Recuperar consumo y estado', 'creado': '2026-11-12T16:10:05+00:00'}
+T {'id': 2201, 'numero': 'FO-LAB-02201', 'estado': 'en_ejecucion', 'aap_job_id': 27085, 'aap_job_tipo': 'workflow', 'r': '', 'n': 'Nube · Recuperar consumo y estado', 'creado': '2026-11-12T16:03:39+00:00'}
+T {'id': 2200, 'numero': 'FO-LAB-02200', 'estado': 'en_ejecucion', 'aap_job_id': 27081, 'aap_job_tipo': 'workflow', 'r': '', 'n': 'OpenShift · Relevamiento de imágenes', 'creado': '2026-11-12T15:59:01+00:00'}
+T {'id': 2199, 'numero': 'FO-LAB-02199', 'estado': 'en_ejecucion', 'aap_job_id': 27079, 'aap_job_tipo': 'workflow', 'r': '', 'n': 'Nube · Recuperar consumo y estado', 'creado': '2026-11-12T15:47:14+00:00'}
+T {'id': 2198, 'numero': 'FO-LAB-02198', 'estado': 'en_ejecucion', 'aap_job_id': 27078, 'aap_job_tipo': 'workflow', 'r': '', 'n': 'OpenShift · Relevamiento de imágenes', 'creado': '2026-11-12T15:46:32+00:00'}
+T {'id': 2197, 'numero': 'FO-LAB-02197', 'estado': 'en_ejecucion', 'aap_job_id': 27070, 'aap_job_tipo': 'workflow', 'r': '', 'n': 'Nube · Recuperar consumo y estado', 'creado': '2026-11-12T15:45:23+00:00'}
+T {'id': 2196, 'numero': 'FO-LAB-02196', 'estado': 'en_ejecucion', 'aap_job_id': 27069, 'aap_job_tipo': 'workflow', 'r': '', 'n': 'Plataforma · Programar medición', 'creado': '2026-11-12T15:44:26+00:00'}
+T {'id': 2195, 'numero': 'FO-LAB-02195', 'estado': 'fallido', 'aap_job_id': None, 'aap_job_tipo': 'job', 'r': 'FaceOps Admin no está disponible (500): no se lanza ninguna automatización', 'n': 'Nube · Recuperar consumo y estado', 'creado': '2026-11-12T15:43:17+00:00'}
+T {'id': 2194, 'numero': 'FO-LAB-02194', 'estado': 'fallido', 'aap_job_id': None, 'aap_job_tipo': 'job', 'r': 'FaceOps Admin no está disponible (500): no se lanza ninguna automatización', 'n': 'Plataforma · Programar medición', 'creado': '2026-11-12T15:43:13+00:00'}
+T {'id': 2193, 'numero': 'FO-LAB-02193', 'estado': 'fallido', 'aap_job_id': None, 'aap_job_tipo': 'job', 'r': 'FaceOps Admin no está disponible (500): no se lanza ninguna automatización', 'n': 'Plataforma · Programar medición', 'creado': '2026-11-12T15:41:59+00:00'}
+T {'id': 2192, 'numero': 'FO-LAB-02192', 'estado': 'fallido', 'aap_job_id': None, 'aap_job_tipo': 'job', 'r': 'AAP GET credentials/ → 503: no healthy upstream', 'n': 'Nube · Recuperar consumo y estado', 'creado': '2026-11-12T15:03:54+00:00'}
+T {'id': 2191, 'numero': 'FO-LAB-02191', 'estado': 'fallido', 'aap_job_id': None, 'aap_job_tipo': 'job', 'r': 'AAP GET credentials/ → 503: no healthy upstream', 'n': 'Nube · Recuperar consumo y estado', 'creado': '2026-11-12T15:02:05+00:00'}
+Q {'id': 12, 'ticket_id': 2204, 'tipo': 'lanzar', 'estado': 'pendiente', 'intentos': 0, 'esperas': 7, 'm': 'AAP sin capacidad (25 trabajos pendientes)', 'job_id': None, 'creado': '2026-11-12T16:11:45+00:00'}
+Q {'id': 11, 'ticket_id': 2203, 'tipo': 'lanzar', 'estado': 'pendiente', 'intentos': 0, 'esperas': 8, 'm': 'AAP sin capacidad (25 trabajos pendientes)', 'job_id': None, 'creado': '2026-11-12T16:10:25+00:00'}
+Q {'id': 10, 'ticket_id': 2202, 'tipo': 'lanzar', 'estado': 'pendiente', 'intentos': 0, 'esperas': 8, 'm': 'AAP sin capacidad (25 trabajos pendientes)', 'job_id': None, 'creado': '2026-11-12T16:10:07+00:00'}
+Q {'id': 9, 'ticket_id': 2201, 'tipo': 'lanzar', 'estado': 'lanzado', 'intentos': 1, 'esperas': 0, 'm': '', 'job_id': 27085, 'creado': '2026-11-12T16:03:41+00:00'}
+Q {'id': 8, 'ticket_id': 2200, 'tipo': 'lanzar', 'estado': 'lanzado', 'intentos': 1, 'esperas': 0, 'm': '', 'job_id': 27081, 'creado': '2026-11-12T15:59:03+00:00'}
+Q {'id': 7, 'ticket_id': 2199, 'tipo': 'lanzar', 'estado': 'lanzado', 'intentos': 1, 'esperas': 0, 'm': '', 'job_id': 27079, 'creado': '2026-11-12T15:47:16+00:00'}
+Q {'id': 6, 'ticket_id': 2198, 'tipo': 'lanzar', 'estado': 'lanzado', 'intentos': 1, 'esperas': 0, 'm': '', 'job_id': 27078, 'creado': '2026-11-12T15:46:34+00:00'}
+Q {'id': 5, 'ticket_id': 2197, 'tipo': 'lanzar', 'estado': 'lanzado', 'intentos': 0, 'esperas': 0, 'm': '', 'job_id': 27070, 'creado': '2026-11-12T15:45:25+00:00'}
+Q {'id': 4, 'ticket_id': 2196, 'tipo': 'lanzar', 'estado': 'lanzado', 'intentos': 0, 'esperas': 0, 'm': '', 'job_id': 27069, 'creado': '2026-11-12T15:44:28+00:00'}
+Q {'id': 3, 'ticket_id': 2195, 'tipo': 'lanzar', 'estado': 'fallido', 'intentos': 0, 'esperas': 0, 'm': 'FaceOps Admin no está disponible (500): no se lanza ninguna automatización', 'job_id': None, 'creado': '2026-11-12T15:43:20+00:00'}
+Q {'id': 2, 'ticket_id': 2194, 'tipo': 'lanzar', 'estado': 'fallido', 'intentos': 0, 'esperas': 0, 'm': 'FaceOps Admin no está disponible (500): no se lanza ninguna automatización', 'job_id': None, 'creado': '2026-11-12T15:43:16+00:00'}
+Q {'id': 1, 'ticket_id': 2193, 'tipo': 'lanzar', 'estado': 'fallido', 'intentos': 0, 'esperas': 0, 'm': 'FaceOps Admin no está disponible (500): no se lanza ninguna automatización', 'job_id': None, 'creado': '2026-11-12T15:42:02+00:00'}
+Q aap {"ok": false, "motivo": "AAP sin capacidad (25 trabajos pendientes)", "revisado": 1794500343.7157238, "capacidad": 1234, "grupos": 2, "pendientes": 25} simulado None
+P Plataforma · Medir salud sin probar
+P Plataforma · Programar medición fallida
+P OpenShift · Relevamiento de imágenes fallida
+H cola de acciones: proceso 13 atendiendo
+H 33708a5 Autocuidado de la plataforma: AAP se cuida a sí mismo, al anfitrión del laboratorio y a FaceOps
+H d32b516 FaceOps no espera a un AAP caído: cortacircuito, vigía de salud y banner global
+H 282b444 Ficha de nube: crear y operar máquinas, productos adicionales (estilo OperatorHub), campana de alertas y Skills
+H 6b30cfd FaceOps: «Aplicar parches de seguridad» nunca sin parámetros
+H be43a50 Nubes: consumo mensual en USD y consolidado de la nube («Nube · Recuperar consumo y estado», solo lectura por AAP con la credencial cifrada de la conexión; diario y con «Actualizar ahora» por ticket). Fuente en orden: export de facturación a BigQuery (promedio de 3 meses cerrados, por proyecto y por recurso), API de costos del proveedor (Cost Explorer / Cost Management; en GCP solo la cuenta de facturación) o estimado con precios públicos del catálogo (rotulado). Lista de nubes con la columna «Consumo promedio mensual (USD)», ficha con consolidado (costo, recursos, exposición, optimización, cuotas y regiones), productos gestionados y consumo por máquina; los temas de salud alimentan la barra y el flotante. Costo por recurso en nube_costo_recurso (nube_consumo.costo_recursos / costo_de / costo_maquinas / muestra). Plan de prueba C1–C5
+--- fin: 2026-11-12T13:20:04-03:00 · código: 0
