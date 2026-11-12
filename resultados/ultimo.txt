@@ -1,24 +1,41 @@
-commit: c7ff9fc9ffd007c62da2afa06ceca4ffbab4fd34
-inicio: 2026-11-12T16:42:32-03:00
+commit: f9a18f0bfd0f1b31e45f2de6461ce5b645c8ba20
+inicio: 2026-11-12T16:55:33-03:00
 ---
-desplegado: 8562fdf47 · 2026-11-12T14:53:33-03:00 ok: desplegado 8562fdf4 · /ingresar 200 · configurar=0
-== salud previa
-cola_aap: {"ok": true, "motivo": "", "revisado": 1794512251.5715363, "capacidad": 1216, "grupos": 2, "pendientes": 9}
-== planes de prueba
--- OpenShift · Relevamiento de imágenes
-en uso informe=126 real(oc)=126 · registro=334 · caché=50 · antiguas=0 · muchas_rev=2
-CASO C1 ok · Relevamiento por defecto
-CASO C2 ok · ImageStream de prueba sin uso
-antiguas 0→1 · muchas_rev 2→10 · IS 72→72
-CASO C3 ok · Umbral 30 días y 1 revisión
-CASO C4 ok · Umbral no válido (10 días)
-CERT OpenShift · Relevamiento de imágenes → certificada
--- Ciclo de vida · Evaluar destino
-energía nodo-jboss-dev encender: exitoso FO-LAB-02303
-C1 []
-CASO C1 falla · Java 17 → 21
-C2 [{"equipo": "nodo-jboss-dev", "producto": "java", "actual": "17.0.20.1", "destino": "99", "repositorio": "no", "servicio": "-", "datos_mb": 0, "disco_libre_gb": 16070.8, "memoria_libre_mb": 421, "semaforo": "amarillo", "hallazgos": [{"nivel": "amarillo", "texto": "java 99 no está en los repositorios
-CASO C2 ok · Destino inexistente
-CASO C3 falla · Repetir
-CERT Ciclo de vida · Evaluar destino → fallida
---- fin: 2026-11-12T16:55:11-03:00 · código: 0
+desplegado 65107aec7
+   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 28 reglas en Prometheus y ruta a EDA :5023
+   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
+   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
+repo 65107ae
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Revisar estado
+  C1 → fallido FO-LAB-02307
+CASO C1 falla · Revisar el estado
+  C2 → fallido FO-LAB-02308
+CASO C2 falla · Repetir
+  C3 → fallido FO-LAB-02309
+CASO C3 ok · Herramienta distinta
+CERT Autocuidado · Revisar estado → sin probar
+== Autocuidado · Liberar disco
+  C1 → exitoso FO-LAB-02310
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02311
+CASO C2 ok · Modo seguro
+  C3 → exitoso FO-LAB-02312
+CASO C3 ok · Repetir
+  C4 → exitoso FO-LAB-02313
+CASO C4 ok · Modo profundo
+  C5 → fallido FO-LAB-02314
+CASO C5 ok · Modo inválido
+CERT Autocuidado · Liberar disco → certificada
+== Autocuidado · Reiniciar componentes de AAP
+  C1 → exitoso FO-LAB-02315
+CASO C1 ok · Evaluar
+  C2 → fallido FO-LAB-02317
+CASO C2 falla · Componente detenido
+  C3 → exitoso FO-LAB-02319
+CASO C3 ok · Repetir con todo sano
+  C4 → fallido FO-LAB-02322
+CASO C4 ok · Modo inválido
+CERT Autocuidado · Reiniciar componentes de AAP → sin probar
+--- fin: 2026-11-12T17:23:44-03:00 · código: 0
