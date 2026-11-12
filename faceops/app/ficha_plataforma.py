@@ -286,7 +286,7 @@ def contexto(e, rsk, cod, pid):
     return {"puerto_editable": editable, "puerto_defecto": CONSOLAS[fam][1] if editable else "", "puerto_actual": (d_.get("puertos_web") or {}).get(fam),
             "inventarios": j(e.get("inventarios"), []) if isinstance(e.get("inventarios"), str) else (e.get("inventarios") or []),
             "p": p, "defn": defn, "m": m, "radar_p": r, "esc": esc, "al": al, "otras": sorted(otras, key=lambda x: x["nombre"]),
-            "comps": comps, "recursos": recursos, "est_s": est_s, "motivo_e": motivo_e, "unidades": unidades, "consola": consola,
+            "comps": comps, "recursos_p": recursos, "est_s": est_s, "motivo_e": motivo_e, "unidades": unidades, "consola": consola,
             "acc_medir": acc_medir(e, cod, esc), "e": e, "cod": cod, "pid": pid, "ambito_txt": defn.get("ambito") or p["nombre"]}
 
 

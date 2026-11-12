@@ -40,7 +40,7 @@
 {% else %}<tr><td colspan="3" class="sub">Sin componentes medidos.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
 
 <div class="card" style="margin-top:14px" id="recursos"><div class="fila"><h2 style="margin:0">Recursos</h2><span class="sub der" style="font-size:12px">{{ ('medido ' ~ (m.medido|fecha)) if m.medido else 'sin medición: «Medir ahora» en Acciones' }}</span></div>
-<dl class="fi-dl" style="margin-top:10px">{% for x in recursos %}<dt>{{ x.t }}</dt><dd>{{ x.v if x.v is not none and x.v != '' else '—' }}</dd>{% endfor %}
+<dl class="fi-dl" style="margin-top:10px">{% for x in recursos_p %}<dt>{{ x.t }}</dt><dd>{{ x.v if x.v is not none and x.v != '' else '—' }}</dd>{% endfor %}
 <dt>Máquina</dt><dd>{{ e.cpu or '—' }} vCPU · {{ ((e.ram_mb / 1024)|round(1) ~ ' GB') if e.ram_mb else '—' }} de memoria</dd>
 {% for k, v in (m.texto or {}).items() if k not in ('version',) and v %}<dt>{{ k|replace('_', ' ')|capitalize }}</dt><dd class="mono" style="font-size:12px">{{ v }}</dd>{% endfor %}</dl></div>
 
