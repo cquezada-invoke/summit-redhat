@@ -1,0 +1,25 @@
+commit: 34a9a54a24707157475615b7f2a81c344c1f06ab
+inicio: 2026-11-12T11:05:39-03:00
+---
+desplegado: be43a505 · 2026-11-12T11:11:40-03:00 ok: desplegado be43a505 · /ingresar 200 · configurar=0
+   · Plantilla «Nube · Recuperar consumo y estado» (id 1245)
+SINCRONIZADO lab
+RES {"caso": "C1", "auto": "Nube · Recuperar consumo y estado", "ticket": "FO-LAB-02183", "estado": "fallido", "stats": {}, "detalle": "Resultado · The 'file' lookup had an issue accessing the file '/tmp/nube-resumen-2-69670.json'. file not found, use -vvvvv to see paths searched · ", "fallos": ["Resultado · The 'file' lookup had an issue accessing the file '/tmp/nube-resumen-2-69670.json'. file not found, use -vvvvv to see paths searched"], "resultado": "Deprecation warnings can be disabled \nby setting deprecation_warnings=False in ansible.cfg.\nok: [localhost]\n\nTASK [Leer consumo y estado de la nube con la credencial de la conexión (solo lectura, sin secretos en la salida)] ***\nok: [localhost]\n\nTASK [Resultado] ***************************************************************\nfatal: [localhost]: FAILED! => {\"msg\": \"The 'file' lookup had an issue accessing the file '/tmp/nube-resumen-2-69670.json'. file not found, use -vvvvv to see paths searched\"}\n\nPLAY RECAP *********************************************************************\nlocalhost                  : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   "}
+C1 fallido FO-LAB-02183 · {}
+CACHE None · recursos 0
+LISTA id="infra-2" class=""> Cloud GCP · invoke-summit-cloud AAP lee la nube: 0 máquina(s) en su inventario Google Cloud · southamerica-west1 (Santiago) ● conectada — 0 sin datos cómo habilitarlo ↗ 
+FICHA id="consolidado"> Consolidado FaceOps aún no recupera el consumo ni el estado de esta nube · se recupera a diario por AAP con la credencial de la conexión Actualizar ahora Aún no disponible: «Nube · Recuperar consumo y estado» no ha pasado su plan de prueba (no está certificada) Sin datos todavía: usa «Actualizar ahora» o espera el cálculo diario. Conexión en AAP Credencial GCP · invoke-summit-cloud (Google Compute Engine) Inventario Nube GCP · 0 máquinas Fuente dinámica Cloud GCP · invoke-summit-cloud · Google Cloud (gce) Última sincronización 12-11-2026 13:44 UTC · successful Verificada 12-11-2026 13:34 UTC Regiones y zonas — Sin máquinas leídas todavía. Máquinas · 0 Máquina Región · zona Estado Tipo de máquina IP interna IP pública Consumo (USD) Sin datos: la nube no informa elementos de este tipo. 
+CASO C1 falla · Recuperar la nube GCP del laboratorio
+RES {"estado":"sin respuesta del arnés"}
+C2 sin respuesta del arnés · {}
+CASO C2 falla · Repetir la recuperación
+C3 
+CASO C3 falla · Cálculo diario programado
+RES {"estado":"sin respuesta del arnés"}
+C4 sin respuesta del arnés · 
+CASO C4 falla · Datos inválidos
+C5 SALIDA 83 caracteres · secretos: ninguno
+CASO C5 ok · Salida sin secretos
+CERT Nube · Recuperar consumo y estado → sin probar
+FIN-NUBE-CONSUMO
+--- fin: 2026-11-12T11:16:36-03:00 · código: 0
