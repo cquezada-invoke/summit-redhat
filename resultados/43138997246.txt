@@ -1,0 +1,36 @@
+commit: c86c3f1c029bb2d646e5433df81af71124c0ad61
+inicio: 2026-11-11T23:10:00-03:00
+---
+16e4ade
+   · Plantilla «Monitoreo · Grafana de OpenShift» (id 1176)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+SINCRONIZADO lab
+== diagnóstico ocp-sno en el contenedor
+192.168.122.50  thanos-querier-openshift-monitoring.apps.sno.invoke.lab
+OCPDIAG bóveda: ['rol', 'token', 'url', 'usuario'] | url: https://thanos-querier-openshift-monitoring.apps.sno.invoke.lab
+OCPDIAG thanos rules: 200 1
+OCPDIAG reglas_monitoreo: 19
+ACTIVAR máquina → 200 {'numero': 'FO-LAB-02039', 'estado': 'en_ejecucion', 'error': None} | tickets nuevos: 1
+ACTIVAR máquina ticket FO-LAB-02039 exitoso
+ACTIVAR JBoss → 200 {'numero': 'FO-LAB-02041', 'estado': 'en_ejecucion', 'error': None} | tickets nuevos: 1
+ACTIVAR JBoss ticket FO-LAB-02041 exitoso
+PROM máquina [('B05', 'avisar'), ('C01', 'avisar'), ('C02', 'avisar'), ('C03', 'avisar'), ('D01', 'avisar'), ('S01', 'avisar')]
+PROM jboss [('J01', 'diagnosticar')]
+PROBAR J01 200 
+PROBAR J01 falló | 2026-11-12T23:19:49Z · alerta de prueba enviada a Alertmanager → 2026-11-12T23:19:49Z · Alertmanager la recibió y la entrega a faceops-objetos (Event-Driven Ansible) → 2026-11-12T23:20:25Z · EDA lanzó «Monitoreo · Responder alerta» (trabajo 25688: successful) → 2026-11-12T23:20:26Z · workflow «FaceOps · Alerta › Incidentes · Verificar error conocido» (25689) esperando aprobación → 2026-11-12T23:22:44Z · aprobada (PRUEBA, solo lectura · regla de Cristian); corriendo el diagnóstico → 2026-11-12T23:32:54Z · diagnóstico running; correo a cquezada@redhat.com: enviado a cquezada@redhat.com
+== FaceOps alcanzable desde el clúster
+
+== plan Grafana de OpenShift (C1–C6)
+CASO C1 ok · Conectar ocp-sno
+CASO C2 falla · Repetir
+CASO C3 ok · Solo lectura
+CASO C5 ok · Reglas en el monitoreo del clúster
+CASO C6 ok · Cadena de aviso real (X10)
+CASO C4 ok · Nombre inválido
+EVIDENCIA [{"id": "C1", "caso": "Conectar ocp-sno", "resultado": "ok", "evidencia": "datasource faceops-ocp-sno responde (up apiserver: 1 series; nodos Ready: 1); tablero con 19 paneles"}, {"id": "C2", "caso": "Repetir", "resultado": "falla", "evidencia": "exitoso grafana 2026-11-11 23:35:09.942917233 -0300 -03→2026-11-11 23:37:11.160667346 -0300 -03"}, {"id": "C3", "caso": "Solo lectura", "resultado": "ok", "evidencia": "faceops-grafana: create pods=no, delete nodes=no, leer el monitoreo=no"}, {"id": "C5", "caso": "Reglas en el monitoreo del clúster", "resultado": "ok", "evidencia": "grupo faceops-ocp-sno con 29 reglas sanas, todas con faceops_alerta"}, {"id": "C6", "caso": "Cadena de aviso real (X10)", "resultado": "ok", "evidencia": "disparada → FaceOps: 2026-11-12T02:41:13 cquezada@redhat.com enviado a cquezada@redhat.com · umbral restablecido → resuelta: 2026-11-12T02:46:14 cquezada@redhat.com enviado a cquezada@redhat.com"}, {"id": "C4", "caso": "Nombre inválido", "resultado": "ok", "evidencia": "falla en la validación; Grafana sin cambios"}]
+CERT Monitoreo · Grafana de OpenShift → sin probar
+FIN-GRAFANA-OCP
+4
+TABLA 200 | filas: 43 | encendidas: 26 | disparando: 3 | objetos: ['nodo-jboss', 'nodo-jboss · jboss', 'ocp-sno']
+TABLA contadores: [('43', 'configuradas'), ('26', 'encendidas'), ('17', 'apagadas'), ('3', 'disparando ahora')]
+--- fin: 2026-11-11T23:49:13-03:00 · código: 0
