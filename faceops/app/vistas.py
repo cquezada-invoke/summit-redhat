@@ -1577,6 +1577,99 @@ _LOGOS = [("openshift-ai", "logos/openshift-ai.svg"), ("openshift", "openshift.p
           ("windows", "logos/windows.svg"), ("so:windows", "logos/windows.svg")]
 
 
+# qué hace cada tecnología, en una línea (si la base de conocimiento no trae su descripción)
+_DESCRIPCIONES = [
+    ("openshift", "Plataforma de contenedores Kubernetes empresarial para construir, desplegar y operar aplicaciones."),
+    ("ocp", "Plataforma de contenedores Kubernetes empresarial para construir, desplegar y operar aplicaciones."),
+    ("kubernetes", "Orquestador de contenedores: despliega, escala y mantiene aplicaciones en clúster."),
+    ("jboss", "Servidor de aplicaciones Java EE / Jakarta EE para aplicaciones empresariales."),
+    ("eap", "Servidor de aplicaciones Java EE / Jakarta EE para aplicaciones empresariales."),
+    ("tomcat", "Contenedor de servlets Java liviano para aplicaciones web."),
+    ("weblogic", "Servidor de aplicaciones Java empresarial de Oracle."),
+    ("httpd", "Servidor web HTTP y proxy inverso."), ("apache", "Servidor web HTTP y proxy inverso."),
+    ("nginx", "Servidor web, proxy inverso y balanceador de carga HTTP."), ("iis", "Servidor web de Windows para sitios y aplicaciones .NET."),
+    ("haproxy", "Balanceador de carga y proxy TCP/HTTP de alta disponibilidad."),
+    ("postgresql", "Base de datos relacional de código abierto, transaccional y extensible."),
+    ("postgres", "Base de datos relacional de código abierto, transaccional y extensible."),
+    ("mysql", "Base de datos relacional de código abierto muy usada en aplicaciones web."),
+    ("mariadb", "Base de datos relacional compatible con MySQL."), ("oracle", "Base de datos relacional empresarial de Oracle."),
+    ("sqlserver", "Base de datos relacional de Microsoft."), ("mssql", "Base de datos relacional de Microsoft."),
+    ("mongodb", "Base de datos NoSQL orientada a documentos JSON."),
+    ("redis-insight", "Consola gráfica para explorar y monitorear bases Redis."), ("redisinsight", "Consola gráfica para explorar y monitorear bases Redis."),
+    ("redis", "Base de datos en memoria para caché, sesiones y colas de alta velocidad."),
+    ("datagrid", "Caché distribuida en memoria para aplicaciones Java (Infinispan)."),
+    ("kafka", "Plataforma de streaming de eventos distribuida y tolerante a fallos."),
+    ("activemq", "Broker de mensajería JMS/AMQP para integrar aplicaciones."), ("artemis", "Broker de mensajería JMS/AMQP para integrar aplicaciones."),
+    ("amq", "Broker de mensajería JMS/AMQP para integrar aplicaciones."), ("rabbitmq", "Broker de mensajería AMQP para colas entre aplicaciones."),
+    ("keycloak", "Gestión de identidades y acceso: inicio de sesión único (SSO), OIDC y SAML."),
+    ("rhbk", "Gestión de identidades y acceso: inicio de sesión único (SSO), OIDC y SAML."),
+    ("idm", "Gestión centralizada de identidades, políticas y DNS para Linux (FreeIPA)."),
+    ("samba-ad", "Directorio activo compatible con Windows sobre Samba."), ("ad", "Directorio de usuarios, equipos y políticas de Windows."),
+    ("satellite", "Gestión del ciclo de vida de RHEL: parches, contenido, suscripciones y aprovisionamiento."),
+    ("aap", "Plataforma de automatización empresarial con Ansible."), ("automation-hub", "Repositorio privado de colecciones y contenido Ansible."),
+    ("eda", "Automatización por eventos: reacciona a alertas y señales ejecutando Ansible."),
+    ("quay", "Registro privado de imágenes de contenedores con escaneo de seguridad."),
+    ("podman", "Motor de contenedores sin demonio, compatible con Docker."), ("docker", "Motor para construir y ejecutar contenedores."),
+    ("vault", "Gestión de secretos, credenciales y certificados."), ("grafana", "Tableros de visualización de métricas y registros."),
+    ("prometheus", "Recolección y almacenamiento de métricas con alertas."), ("jenkins", "Servidor de integración y entrega continua (CI/CD)."),
+    ("gitea", "Servidor Git liviano para repositorios de código."), ("tekton", "Pipelines CI/CD nativos de Kubernetes."),
+    ("minio", "Almacenamiento de objetos compatible con S3."), ("trino", "Motor SQL distribuido para consultar el data lake."),
+    ("data-lake", "Lago de datos sobre almacenamiento S3 consultado con Trino."), ("datalake", "Lago de datos sobre almacenamiento S3 consultado con Trino."),
+    ("bind", "Servidor DNS autoritativo y de resolución."), ("vyos", "Sistema operativo de enrutamiento y firewall."),
+    ("frr", "Enrutamiento dinámico (BGP, OSPF) para Linux."), ("wireguard", "VPN moderna, rápida y cifrada."), ("vpn", "VPN moderna, rápida y cifrada."),
+    ("faceops", "Consola de operación y automatización de Invoke."), ("odoo", "Suite de gestión empresarial (ERP)."),
+]
+
+
+def _desc_plat(k):
+    return next((d for pre, d in _DESCRIPCIONES if k == pre or k.startswith(pre + "-") or k.startswith(pre + ":")), "")
+
+
+def _uso_cajas(cajas, grupos):
+    """Nivel de uso de cada caja: promedio de CPU y RAM de sus instancias con la última muestra guardada (uso_muestras o,
+    sin ella, la última recolección). Sin consultas en vivo ni valores emulados. Cortes de tono_uso: <50 bajo, 50–84 medio, ≥85 alto."""
+    ult = {}
+    try:
+        for r_ in q("SELECT m.equipo, m.ts, m.datos FROM uso_muestras m JOIN (SELECT equipo, MAX(ts) t FROM uso_muestras WHERE cliente_id=? "
+                    "GROUP BY equipo) x ON x.equipo=m.equipo AND x.t=m.ts WHERE m.cliente_id=?", g.cliente["id"], g.cliente["id"]):
+            ult[r_["equipo"]] = (r_["ts"], j(r_["datos"], {}))
+    except Exception:  # noqa: BLE001
+        pass
+    for c in cajas:
+        cpus, rams, tss = [], [], []
+        for e_ in grupos.get(c["clave"]) or []:
+            ts_, m_ = ult.get(e_["nombre"], (None, None))
+            if m_ and m_.get("ncpu") and m_.get("mem_mb"):
+                cpus.append(min(100.0, 100.0 * float(m_.get("carga") or 0) / m_["ncpu"]))
+                rams.append(100.0 * (m_["mem_mb"] - (m_.get("mem_disp_mb") or 0)) / m_["mem_mb"])
+                tss.append(datetime.fromtimestamp(int(ts_), timezone.utc))
+                continue
+            d_ = e_.get("datos")
+            d_ = j(d_, {}) if isinstance(d_, str) else (d_ or {})
+            ok_ = False
+            if e_.get("cpu") and d_.get("carga_1m") is not None:
+                cpus.append(min(100.0, 100.0 * float(d_["carga_1m"]) / e_["cpu"])); ok_ = True
+            rt_ = d_.get("ram_so_mb") or e_.get("ram_mb")
+            rl_ = d_.get("ram_disponible_mb") if d_.get("ram_disponible_mb") is not None else d_.get("ram_libre_mb")
+            if rt_ and rl_ is not None:
+                rams.append(100.0 * (float(rt_) - float(rl_)) / float(rt_)); ok_ = True
+            if ok_ and e_.get("ultima_recoleccion"):
+                try:
+                    tss.append(datetime.fromisoformat(str(e_["ultima_recoleccion"]).replace("Z", "+00:00")))
+                except ValueError:
+                    pass
+        cpu_ = round(sum(cpus) / len(cpus)) if cpus else None
+        ram_ = round(sum(rams) / len(rams)) if rams else None
+        pico_ = max([x for x in (cpu_, ram_) if x is not None], default=None)
+        c["uso"] = None if pico_ is None else {
+            "cpu": cpu_, "ram": ram_, "pico": pico_, "nivel": "alto" if pico_ >= 85 else ("medio" if pico_ >= 50 else "bajo"),
+            "n": max(len(cpus), len(rams)), "ts": max(tss).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if tss else ""}
+
+
+_STACK = {"aceptada": ("En el stack · Adoptar", "s-ok"), "evaluacion": ("En el stack · En evaluación", "s-media"),
+          "contener": ("Contener", "s-media"), "retirar": ("Retirar", "s-alta"), "fuera": ("Fuera del stack", "s-alta")}
+
+
 def _logo_plat(k):
     """Ruta en static del logo del producto (prefijo como en _FABRICANTES); genérico si no hay uno propio."""
     return next((f for pre, f in _LOGOS if k == pre or k.startswith(pre + "-") or k.startswith(pre + ":")), "logos/generico.svg")
@@ -1665,8 +1758,18 @@ def plataformas_vista():
         insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos.get(sel, [])),
                        key=lambda x: (x["estado"] != "encendido", x["id"]))
     _salud_cajas(cajas, grupos)
+    _uso_cajas(cajas, grupos)
+    try:   # descripción de la base de conocimiento (en caché local de la kb); si no trae, la lista propia
+        from . import kb as kb_
+        desc_kb = {x["codigo"]: x["descripcion"] for x in (kb_.q("SELECT codigo, descripcion FROM productos") if kb_.disponible() else [])
+                   if (x.get("descripcion") or "").strip()}
+    except Exception:  # noqa: BLE001
+        desc_kb = {}
     for c_ in cajas:
         c_["logo"] = _logo_plat(c_["clave"])
+        d_ = (desc_kb.get(c_["clave"]) or _desc_plat(c_["clave"])).strip().split("\n")[0]
+        c_["desc"] = d_ if len(d_) <= 110 else d_[:107].rsplit(" ", 1)[0] + "…"
+        c_["stack"] = _STACK.get(c_.get("mf")) if c_.get("mf") else None
     srv_inc = sorted([e for e in equipos_visibles() if seccion_eq(e) in ("inventario", "nubes") and not _propia_faceops(e)], key=lambda e: e["nombre"])
     return render_template("plataformas.html", servidores_inc=srv_inc, titulo="Plataformas", desc="Tecnologías instaladas en el parque: servidores de aplicación, bases de datos, caché, mensajería, contenedores y gestión.",
                            cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.plataformas_vista",
