@@ -1,29 +1,14 @@
-commit: 3e8f3c8761e13d6bed94d37b59a73f2287b00bca
-inicio: 2026-11-11T21:27:30-03:00
+commit: f1d1e50ed6dbbf141bb335a97fbf25306a30fa34
+inicio: 2026-11-11T21:33:12-03:00
 ---
-b35e88c Consola de Keycloak por FaceOps: el proxy reenvía «A
-   · Plantilla «OpenShift · Evaluar imágenes (uso y antigüedad)» (id 1170)
-   · Plantilla «OpenShift · Mover imágenes a Quay» (id 1171)
-HTTP 404 seccion False
-HB 6 status 200 boton True aria True n= ['6'] vacio False Habilidades visible False
-HB   JBoss a EAP 8 | Diferenciador | JBoss | habilitada
-HB   Mover a otra infraestructura | Diferenciador | Máquina | habilitada
-HB   Replicar máquina | Diferenciador | Máquina | habilitada
-HB   RHEL a versión soportada | Diferenciador | Sistema operativo | BLOQ: sin plan de prueba aprobado">Bloqueada: sin plan de prueba aprobado
-HB   Evaluar sistema operativo | Quick win | Sistema operativo | habilitada
-HB   Aplicar parches de seguridad | Quick win | Sistema operativo | habilitada
-HB   Escaneo de seguridad | Quick win | Sistema operativo | habilitada
-HB   Evaluar destino de ciclo de vida | Quick win | Sistema operativo | BLOQ: pide datos (Plataforma, Versión de destino): lánzala desde Acciones">Bloqueada: pide datos (Plataforma, Versión de destino): lánzala desde Acciones
-HB   Relevar entorno para homologar | Quick win | Sistema operativo | BLOQ: sin plan de prueba aprobado">Bloqueada: sin plan de prueba aprobado
-HB   Renovar certificados por vencer | Quick win | Sistema operativo | BLOQ: cambió desde su última prueba; debe probarse de nuevo">Bloqueada: cambió desde su última prueba; debe probarse de nuevo
-HB   Respaldar datos | Quick win | Sistema operativo | BLOQ: sin plan de prueba aprobado">Bloqueada: sin plan de prueba aprobado
-HB 29 status 200 boton True aria True n= ['5'] vacio False Habilidades visible False
-HB   Actualizar a la siguiente EUS | Diferenciador | OpenShift | habilitada
-HB   Escaneo de seguridad con ACS | Diferenciador | OpenShift | habilitada
-HB   Mover imágenes a Quay | Diferenciador | OpenShift | BLOQ: sin plan de prueba aprobado">Bloqueada: sin plan de prueba aprobado
-HB   Migrar cargas desde K8s u otro clúster | Diferenciador | OpenShift | BLOQ: sin plan de prueba aprobado">Bloqueada: sin plan de prueba aprobado
-HB   Habilitar OpenShift Virtualization | Diferenciador | OpenShift | BLOQ: sin plan de prueba aprobado">Bloqueada: sin plan de prueba aprobado
-HB   Evaluar salto a la siguiente EUS | Quick win | OpenShift | habilitada
-HB   Evaluar uso y antigüedad de imágenes | Quick win | OpenShift | habilitada
-HB   Respaldo del clúster (OADP / etcd) | Quick win | OpenShift | habilitada
---- fin: 2026-11-11T21:32:52-03:00 · código: 0
+TK FO-LAB-01986 exitoso 2026-11-12T00:23:18+00:00 25263 workflow | AAP terminó (successful): ejecución 50 s, espera de aprobación 29 s
+TK FO-LAB-01945 exitoso 2026-11-11T23:20:11+00:00 25043 workflow | AAP terminó (successful): ejecución 65 s, espera de aprobación 23 s
+TK FO-LAB-01776 fallido 2026-11-11T18:01:15+00:00 24089 workflow |  | PLAY RECAP ********************************************************************* | nodo-jboss                 : ok=18   changed=4    unreachable=0    failed=1    skipped=1    rescued=1    ignored=0
+TK FO-LAB-01763 fallido 2026-11-11T17:50:54+00:00 24039 workflow |  | PLAY RECAP ********************************************************************* | nodo-jboss                 : ok=18   changed=7    unreachable=0    failed=1    skipped=1    rescued=1    ignored=0
+/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:6905:2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] SEVERE: Unable to pre-process revocation request: Record not found: No such object
+/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:7625:2026-11-11 19:27:36 [https-jsse-jss-nio-18443-exec-7] INFO: RevocationProcessor: Processing revocation request 0xab0cb5989df94d60a4bf4b53996816b6
+/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:7714:2026-11-11 19:27:37 [https-jsse-jss-nio-18443-exec-11] INFO: RevocationProcessor: Processing revocation request 0x85df72d8674474b822bb2e98f2349150
+/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:7800:2026-11-11 19:27:37 [https-jsse-jss-nio-18443-exec-14] INFO: RevocationProcessor: Processing revocation request 0x37d02a27bfd87ed2e4148c8894bccd81
+/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:8795:2026-11-11 20:22:14 [https-jsse-jss-nio-18443-exec-21] INFO: RevocationProcessor: Processing revocation request 0x3a538392983abc47ff3b7e2bc19d2602
+/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:9657:2026-11-11 21:24:49 [https-jsse-jss-nio-18443-exec-22] INFO: RevocationProcessor: Processing revocation request 0x6a8a6a0ca4d910a81ff45f7a838058f4
+--- fin: 2026-11-11T21:33:27-03:00 · código: 0
