@@ -1,14 +1,25 @@
-commit: f1d1e50ed6dbbf141bb335a97fbf25306a30fa34
-inicio: 2026-11-11T21:33:12-03:00
+commit: 163b5598f0ac9b6ccd347a12920885975f22e16f
+inicio: 2026-11-11T21:33:45-03:00
 ---
-TK FO-LAB-01986 exitoso 2026-11-12T00:23:18+00:00 25263 workflow | AAP terminó (successful): ejecución 50 s, espera de aprobación 29 s
-TK FO-LAB-01945 exitoso 2026-11-11T23:20:11+00:00 25043 workflow | AAP terminó (successful): ejecución 65 s, espera de aprobación 23 s
-TK FO-LAB-01776 fallido 2026-11-11T18:01:15+00:00 24089 workflow |  | PLAY RECAP ********************************************************************* | nodo-jboss                 : ok=18   changed=4    unreachable=0    failed=1    skipped=1    rescued=1    ignored=0
-TK FO-LAB-01763 fallido 2026-11-11T17:50:54+00:00 24039 workflow |  | PLAY RECAP ********************************************************************* | nodo-jboss                 : ok=18   changed=7    unreachable=0    failed=1    skipped=1    rescued=1    ignored=0
-/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:6905:2026-11-11 19:23:00 [https-jsse-jss-nio-18443-exec-13] SEVERE: Unable to pre-process revocation request: Record not found: No such object
-/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:7625:2026-11-11 19:27:36 [https-jsse-jss-nio-18443-exec-7] INFO: RevocationProcessor: Processing revocation request 0xab0cb5989df94d60a4bf4b53996816b6
-/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:7714:2026-11-11 19:27:37 [https-jsse-jss-nio-18443-exec-11] INFO: RevocationProcessor: Processing revocation request 0x85df72d8674474b822bb2e98f2349150
-/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:7800:2026-11-11 19:27:37 [https-jsse-jss-nio-18443-exec-14] INFO: RevocationProcessor: Processing revocation request 0x37d02a27bfd87ed2e4148c8894bccd81
-/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:8795:2026-11-11 20:22:14 [https-jsse-jss-nio-18443-exec-21] INFO: RevocationProcessor: Processing revocation request 0x3a538392983abc47ff3b7e2bc19d2602
-/var/log/pki/pki-invoke/ca/debug.2026-11-11.log:9657:2026-11-11 21:24:49 [https-jsse-jss-nio-18443-exec-22] INFO: RevocationProcessor: Processing revocation request 0x6a8a6a0ca4d910a81ff45f7a838058f4
---- fin: 2026-11-11T21:33:27-03:00 · código: 0
+lanzada pid 7049
+· constructora demo-constructor-202611120033 (n2-standard-4, Rocky Linux 9, anidada, 60 GB) · rama feature/faceops-awx
+  0m] Created slic[    1.603923] GPT: Use GNU Parted to correct GPT errors.
+  Nov 12 0== CONSTRUCCION inicio 00:34:11
+  Nov 12 00:34:02 demo-constructor-202611120033 kernel: GPT: Use GNU Parted to correct GPT errors.
+  Nov 12 00:34:11 demo-constructor-202611120033 google_metadata_script_runner[3098]: Metadata key("startup-script"), command("/bin/bash"): == CONSTRUCCION inicio 00:34:11
+  Nov 12 00:34:14 demo-constructor-202611120033 mwlid_extension[1420]: Cloud Logging Client Error: rpc error: code = Unauthenticated desc = transport: per-RPC creds failed due to error: credentials: cannot fetch token: metadata: GCE metadata "instance/service-accounts/default/token?scopes=https%3A%2F%
+  Nov 12 00:34:14 demo-constructor-202611120033 google_guest_agent_manager[858]: Cloud Logging Client Error: rpc error: code = Unauthenticated desc = transport: per-RPC creds failed due to error: credentials: cannot fetch token: metadata: GCE metadata "instance/service-accounts/default/token?scopes=ht
+  Nov 12 00:34:15 demo-constructor-202611120033 google_guest_agent[1409]: Cloud Logging Client Error: rpc error: code = Unauthenticated desc = transport: per-RPC creds failed due to error: credentials: cannot fetch token: metadata: GCE metadata "instance/service-accounts/default/token?scopes=https%3A%
+  Nov 12 00:34:16 demo-constructor-202611120033 google_metadata_script_runner[3098]: Cloud Logging Client Error: rpc error: code = Unauthenticated desc = transport: per-RPC creds failed due to error: credentials: cannot fetch token: metadata: GCE metadata "instance/service-accounts/default/token?scope
+faceadmin Up 8 seconds
+local 200
+contenedor faceadmin
+cuenta: {'proyecto': 'master-ia-320218', 'correo': 'faceadmin-demos@master-ia-320218.iam.gserviceaccount.com', 'id_clave': '', 'fuente': 'metadata'}
+config: {'proyecto': 'master-ia-320218', 'zona': 'southamerica-west1-a', 'tipo': 'n2-standard-4', 'disco_gb': 60, 'imagen': 'familia:faceops-demo', 'faceadmin_url': 'https://10.194.0.10:8843', 'dias_def': 7, 'dias_max': 14}
+  ✓ Cuenta de servicio aceptada por Google (cuenta de la VM, sin clave) 
+  ✓ Zona southamerica-west1-a 
+  ✓ Tipo de máquina n2-standard-4 
+  ✗ Imagen familia:faceops-demo no existe o sin permiso
+  ✓ Listar instancias de demo 
+instancias demo: []
+--- fin: 2026-11-11T21:35:17-03:00 · código: 0
