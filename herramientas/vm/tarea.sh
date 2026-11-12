@@ -1,4 +1,64 @@
-# Tarea de prueba del canal: muestra que el runner corre en la VM.
-set -e
-echo "Host: $(hostname) · Usuario: $(whoami) · $(date)"
-systemctl is-active panel-cumplimiento.service || true
+#!/bin/bash
+# Cola de acciones: espera el despliegue, mide crear/aprobar, prueba AAP caído (encola) → vuelve (lanza) y corre los planes
+# «Plataforma · Medir salud» y «Plataforma · Programar medición». Sin secretos en la salida.
+OBJ=f680dd1b6
+cd ~/summit-redhat && git fetch -q origin main
+for i in $(seq 1 90); do D=$(cat ~/faceops-autodeploy/desplegado 2>/dev/null); [ -n "$D" ] && git merge-base --is-ancestor $OBJ $D 2>/dev/null && break; sleep 20; done
+echo "desplegado: ${D:0:9} · $(cut -c1-140 ~/faceops-autodeploy/estado)"
+sleep 20
+echo "== proceso de la cola"; sudo podman exec faceops sh -c 'for p in /proc/[0-9]*; do c=$(tr "\0" " " < $p/cmdline 2>/dev/null); case "$c" in *app.cola*) echo "pid ${p#/proc/} $c";; esac; done'
+cat > /tmp/cola_t.py <<'PY'
+import time, json, sys
+from app import create_app
+app = create_app()
+with app.app_context():
+    from app.bd import q1, ajuste
+    from app.operacion import solicitar_en_equipo, resolver_aprobacion, actualizar_tickets
+    from app.cola import info_ticket
+    cl = q1("SELECT * FROM clientes ORDER BY id LIMIT 1"); u = q1("SELECT * FROM usuarios WHERE id=1")
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cl["id"], "Plataforma · Medir salud")
+    e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre='nodo-storage'", cl["id"])
+    def correr(etq, caido):
+        if caido: ajuste("cola_prueba_aap_caido_hasta", str(time.time() + 600))
+        t0 = time.time()
+        t = solicitar_en_equipo(u, cl, a, dict(e), {"pm_plataforma": "data-lake"}, f"Prueba cola de acciones ({etq})", None)
+        print(f"{etq} CREAR {(time.time()-t0)*1000:.0f} ms · {t['numero']} estado={t['estado']} job={t['aap_job_id']}", flush=True)
+        if caido:
+            time.sleep(25)
+            x = q1("SELECT * FROM tickets WHERE id=?", t["id"]); ci = info_ticket(t["id"]) or {}
+            print(f"{etq} CON AAP CAIDO tras 25 s: ticket={x['estado']} job={x['aap_job_id']} · cola: {ci.get('texto')}", flush=True)
+            ajuste("cola_prueba_aap_caido_hasta", "0"); tv = time.time()
+            for _ in range(90):
+                time.sleep(2); x = q1("SELECT * FROM tickets WHERE id=?", t["id"])
+                if x["aap_job_id"]: break
+            print(f"{etq} AAP VUELVE: lanzado en {time.time()-tv:.0f} s · job={x['aap_job_id']} · cola: {(info_ticket(t['id']) or {}).get('texto')}", flush=True)
+        fin = time.time() + 600; da = None
+        while time.time() < fin:
+            time.sleep(3)
+            try: actualizar_tickets()
+            except Exception: pass
+            x = q1("SELECT * FROM tickets WHERE id=?", t["id"])
+            if x["estado"] == "pendiente_aprobacion" and da is None:
+                t1 = time.time(); resolver_aprobacion(u, t["id"], True, "Aprobado por Claude (regla de Cristian)"); da = time.time() - t1
+                print(f"{etq} APROBAR {da*1000:.0f} ms", flush=True)
+            if x["estado"] in ("exitoso", "fallido", "rechazado", "vencido", "cancelado"): break
+        x = q1("SELECT * FROM tickets WHERE id=?", t["id"])
+        print(f"{etq} FINAL {x['numero']} {x['estado']} job={x['aap_job_id']}", flush=True)
+    correr("NORMAL", False)
+    correr("CAIDO", True)
+PY
+sudo podman cp /tmp/cola_t.py faceops:/tmp/cola_t.py
+timeout 1800 sudo podman exec -w /opt/faceops -e PYTHONPATH=/opt/faceops -e FACEOPS_VIGIA=0 faceops python3 /tmp/cola_t.py 2>&1 | grep -E "^(NORMAL|CAIDO)|Traceback|Error" | grep -v -i -E "token|authorization|password"
+sudo podman exec faceops rm -f /tmp/cola_t.py
+echo "== HTTP: la página de la cola y el estado de un ticket"
+sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - 2>/dev/null <<'Q' | tail -3
+import time
+from app import create_app
+app = create_app()
+with app.test_client() as c:
+    with c.session_transaction() as s: s["uid"] = 1; s["csrf"] = "x"
+    t0 = time.time(); r = c.get("/lab/cola"); print("cola", r.status_code, f"{(time.time()-t0)*1000:.0f} ms", "Pendientes y en curso" in r.get_data(as_text=True))
+Q
+echo "== log del proceso de la cola"; sudo podman logs --since 40m faceops 2>&1 | grep -E "^cola" | tail -12
+echo "== planes de prueba"
+bash ~/summit-redhat/herramientas/pruebas/p-plataforma-salud.sh 2>&1 | grep -E "^(CASO|CERT|C[0-9]|FIN)" | grep -v -i -E "token|authorization|password"
