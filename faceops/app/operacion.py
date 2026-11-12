@@ -426,7 +426,7 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
             raise PermissionError("No quedan equipos con ese segmento de negocio, ambiente y centro de datos")
     from .creditos import validar as validar_creditos
     from .economia import estimar
-    if limite and auto["nombre_aap"] not in ("Infra · Encender o apagar equipo", "FaceOps · Eliminar servidor"):   # no se lanza sobre máquinas apagadas
+    if limite and auto["nombre_aap"] not in ("Infra · Encender o apagar equipo", "FaceOps · Eliminar servidor", VINCULAR_ONPREM):   # no se lanza sobre máquinas apagadas (vincular on-premise la enciende)
         from .salud import encendido as _enc
         nombres_ = [n for n in limite.split(":") if n]
         apagados = [n for n in nombres_ if (lambda e_: bool(e_) and _enc(dict(e_)) == "apagado")(
