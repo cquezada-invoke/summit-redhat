@@ -1,12 +1,26 @@
-commit: 34915889cb537cbb9f48159e337ae8612358425d
-inicio: 2026-11-12T20:22:00-03:00
+commit: e8067ab00eaaeda5a3f2249f0ae21eab60fc25d0
+inicio: 2026-11-12T20:22:04-03:00
 ---
-1
-Traceback (most recent call last):
-  File "/tmp/p3004.py", line 4, in <module>
-    app = create_app()
-          ^^^^^^^^^^^^
-  File "/opt/faceops/app/__init__.py", line 76, in create_app
-    ^^^^^^^^^^^^^^^
-PermissionError: [Errno 13] Permission denied: '/var/lib/faceops/clave-sesion'
---- fin: 2026-11-12T20:22:02-03:00 · código: 0
+12:  - receiver: faceops-autocuidado
+35:- name: faceops-autocuidado
+37:  - url: http://127.0.0.1:5023/endpoint
+alertas activas en AM: [('AC12', 'srv-prueba-rocky-01', 'active'), ('AC12', 'srv-mig-rocky-01', 'active'), ('AC23', 'faceops', 'active'), ('AC02', '/', 'active'), ('AC23', 'aap', 'active'), ('AC01', '/', 'active'), ('AC12', 'srv-mig-rhel8-01', 'active'), ('AC03', '/var/lib/containers/storage/overlay', 'active')]
+receptor en config: True
+5023 NO escucha
+activación FaceOps · autocuidado error 0 Activation 213 failed to start. Reason: 500 Server Error: Internal Server Error ({"message":"received unexpected HTTP status: 503 Service Unavailable"}
+)
+activación FaceOps · Alertas de objetos error 4 Activation 212 failed to start. Reason: 500 Server Error: Internal Server Error ({"message":"received unexpected HTTP status: 503 Service Unavailable"}
+)
+Atender alerta: 67 [(29466, 'failed', 'workflow', '2026-11-12T23:12'), (29461, 'successful', 'workflow', '2026-11-12T23:11'), (29453, 'successful', 'workflow', '2026-11-12T23:09'), (29441, 'successful', 'workflow', '2026-11-12T23:07'), (29417, 'successful', 'workflow', '2026-11-12T23:03'), (29405, 'successful', 'workflow', '2026-11-12T23:00')]
+regla EDA disparada: JBoss detenido (riesgo bajo) → reiniciar y validar successful 2026-11-12T21:02
+regla EDA disparada: JBoss detenido (riesgo bajo) → reiniciar y validar successful 2026-11-12T21:02
+regla EDA disparada: JBoss detenido (riesgo bajo) → reiniciar y validar successful 2026-11-12T21:01
+regla EDA disparada: Grafana · disco casi lleno failed 2026-11-12T21:01
+regla EDA disparada: JBoss detenido (riesgo bajo) → reiniciar y validar successful 2026-11-12T21:01
+evento 2026-11-12T23:12 eda AC22  | agrupada con FO-LAB-02389 (ya en curso)
+evento 2026-11-12T23:10 eda AC22  | riesgo bajo: se aprueba con «Aprobado por Claude (regla de Cristian)»
+evento 2026-11-12T23:08 eda AC07  | propuesta: «Ampliar disco del anfitrión (GCP)» necesita tamaño nuevo del disco (ac_gb) y a
+evento 2026-11-12T23:05 eda AC22  | riesgo bajo: se aprueba con «Aprobado por Claude (regla de Cristian)»
+evento 2026-11-12T23:02 eda AC01 / | solo aviso (campana y Monitoreo › Autocuidado)
+evento 2026-11-12T22:53 aap-directo AC20  | lanzada por AAP sin FaceOps (riesgo bajo)
+--- fin: 2026-11-12T20:22:12-03:00 · código: 0
