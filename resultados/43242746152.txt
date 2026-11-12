@@ -1,0 +1,23 @@
+commit: 5dde019aac45ba4b30e3b036657e2eac95fd413a
+inicio: 2026-11-12T11:58:32-03:00
+---
+desplegado
+Traceback (most recent call last):
+  File "/tmp/m.py", line 10, in <module>
+    sincronizar_catalogo(cl)
+  File "/opt/faceops/app/operacion.py", line 96, in sincronizar_catalogo
+    items = [("job", t) for t in aap.plantillas()] + [("workflow", w) for w in aap.workflows()]
+                                 ^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 66, in plantillas
+    return self.todos("job_templates/")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 51, in todos
+    datos = self.get(ruta, **params)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET job_templates/ → 503: no healthy upstream
+--- fin: 2026-11-12T11:58:39-03:00 · código: 0
