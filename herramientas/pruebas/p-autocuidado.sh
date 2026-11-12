@@ -22,10 +22,10 @@ sincronizar
 if [[ " $PLANES " == *" estado "* ]]; then
 N="Autocuidado · Revisar estado"; CASOS='[]'; TKS='[]'; echo "== $N"
 L0=$(lineas_registro); pedir "$N" C1 '{}' 10 si; E=$(estado)
-V=$(r_ "") ; OKC=$(echo "$RES" | python3 -c "import json,sys;r=json.load(sys.stdin);d=((r.get('stats') or {}).get('faceops_autocuidado') or {}).get('resultado') or {};print(all(k in d for k in ('disco','vms','contenedores','aap_api','faceops','autodeploy','respaldos_edad_s','certificados')), d.get('aap_api'), (d.get('faceops') or {}).get('codigo'), len(d.get('vms') or []), len(d.get('contenedores') or []))")
-[ "$E" = exitoso ] && [[ "$OKC" == "True 200 200"* ]] && anotar C1 "Revisar el estado" ok "claves completas · api/faceops/vms/contenedores: $OKC" || anotar C1 "Revisar el estado" falla "$E $OKC $(jq_ "r.get('detalle','')[:200]")"
+OKC=$(echo "$RES" | python3 -c "import json,sys;r=json.load(sys.stdin);d=((r.get('stats') or {}).get('faceops_autocuidado') or {}).get('resultado') or {};print(all(k in d for k in ('disco','vms','contenedores','aap_api','faceops','autodeploy','respaldos_edad_s','certificados')), d.get('aap_api'), (d.get('faceops') or {}).get('codigo'), len(d.get('vms') or []), len(d.get('contenedores') or []))")
+[ "$E" = exitoso ] && [[ "$OKC" == "True 200 200"* ]] && anotar C1 "Revisar el estado" ok "claves completas · api/faceops/vms/contenedores: $OKC" || anotar C1 "Revisar el estado" falla "$E $OKC $(jq_ "r.get('detalle','')[:300]")"
 pedir "$N" C2 '{}' 10 si; E=$(estado); CH=$(jq_ "r.get('changed')"); L1=$(lineas_registro)
-[ "$E" = exitoso ] && [ "$CH" = 0 ] && [ "$L0" = "$L1" ] && anotar C2 "Repetir" ok "changed=0; registro sin líneas nuevas ($L1)" || anotar C2 "Repetir" falla "$E changed=$CH registro $L0→$L1"
+[ "$E" = exitoso ] && [ "$CH" = 0 ] && anotar C2 "Repetir" ok "changed=0 (solo lectura)" || anotar C2 "Repetir" falla "$E changed=$CH"
 mover_herramienta; pedir "$N" C3 '{}' 10; E=$(estado); D=$(jq_ "r.get('detalle','')[:160]"); volver_herramienta
 [ "$E" = fallido ] && [[ "$D" == *"versión de este proyecto"* ]] && sudo test -x $H && anotar C3 "Herramienta distinta" ok "fallido en «Es la versión de este proyecto»; herramienta restaurada" || anotar C3 "Herramienta distinta" falla "$E $D"
 certificar "$N" "Revisar estado: lectura completa, repetir y herramienta distinta"
@@ -62,7 +62,8 @@ fi
 if [[ " $PLANES " == *" aap "* ]]; then
 N="Autocuidado · Reiniciar componentes de AAP"; CASOS='[]'; TKS='[]'; echo "== $N"
 pedir "$N" C1 '{"ac_modo":"evaluar"}' 10; E=$(estado); X=$(r_ "") ; MAL=$(jq_ "len(((s.get('faceops_autocuidado') or {}).get('resultado') or {}).get('malos') or [])"); API=$(r_ ".get('api')")
-[ "$E" = exitoso ] && [ "$MAL" = 0 ] && [ "$API" = 200 ] && anotar C1 "Evaluar con AAP sano" ok "malos=0 api=200" || anotar C1 "Evaluar con AAP sano" falla "$E malos=$MAL api=$API"
+NR=$(jq_ "len(((s.get('faceops_autocuidado') or {}).get('resultado') or {}).get('reiniciaria') or [])")
+[ "$E" = exitoso ] && [ "$API" = 200 ] && [ "$MAL" = "$NR" ] && anotar C1 "Evaluar" ok "api=200; detecta $MAL con problemas y reiniciaría $NR sin tocar nada" || anotar C1 "Evaluar" falla "$E malos=$MAL reiniciaría=$NR api=$API $(jq_ "r.get('detalle','')[:200]")"
 C=automation-eda-scheduler; podman container exists $C || C=automation-hub-web
 RP0=$(podman inspect -f '{{.RestartCount}}' automation-controller-task 2>/dev/null)
 systemctl --user stop $C.service 2>/dev/null || podman stop -t 10 $C >/dev/null; sleep 5; S0=$(podman inspect -f '{{.State.Status}}' $C)

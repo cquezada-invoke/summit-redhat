@@ -91,9 +91,9 @@ def ahora():
     return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def sh(argv, timeout=120, entrada=None):
+def sh(argv, timeout=120, entrada=None, cwd=None):
     try:
-        r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, input=entrada)
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, input=entrada, cwd=cwd or "/")
         return r.returncode, r.stdout, r.stderr
     except FileNotFoundError:
         return 127, "", f"{argv[0]}: no existe"
@@ -105,7 +105,7 @@ def como_usuario(c, argv, timeout=120):
     """Ejecuta como el dueño de AAP (podman sin root y su systemd de usuario)."""
     u = pwd.getpwnam(c["aap_usuario"])
     env = ["env", f"XDG_RUNTIME_DIR=/run/user/{u.pw_uid}", f"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/{u.pw_uid}/bus", f"HOME={u.pw_dir}"]
-    return sh(["runuser", "-u", c["aap_usuario"], "--", *env, *argv], timeout)
+    return sh(["runuser", "-u", c["aap_usuario"], "--", *env, *argv], timeout, cwd=u.pw_dir)   # su propio directorio: podman no parte desde el de quien llamó (aap-kvm)
 
 
 def registrar(accion, origen, resultado, detalle=None):
@@ -596,8 +596,8 @@ def respaldar(c, origen, evaluar=False):
     est = os.path.getsize(c["faceops_bd"]) if os.path.exists(c["faceops_bd"]) else 0
     if evaluar:
         return {"ok": True, "modo": "evaluar", "edad_s": respaldos_edad(c), "disco_pct": raiz, "libre_gb": round(libre / 2**30, 1)}
-    if raiz >= 85 or libre < 3 * 2**30 + est:
-        return {"ok": False, "error": f"sin espacio seguro para respaldar (disco al {raiz} %, libre {round(libre / 2**30, 1)} GB): libera disco primero"}
+    if raiz >= 98 or libre < 5 * 2**30 + 2 * est:   # espacio absoluto: el respaldo comprimido pesa poco frente a lo libre
+        return {"ok": False, "error": f"sin espacio seguro para respaldar (disco al {raiz} %, libre {round(libre / 2**30, 1)} GB; mínimo 5 GB): libera disco primero"}
     marca = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     hechos = []
     # FaceOps (SQLite): copia consistente con la API de respaldo, comprimida
@@ -621,7 +621,8 @@ def respaldar(c, origen, evaluar=False):
     try:
         with gzip.open(dst, "wb", 6) as fo:
             p = subprocess.Popen(["runuser", "-u", c["aap_usuario"], "--", "env", f"XDG_RUNTIME_DIR=/run/user/{u.pw_uid}", f"HOME={u.pw_dir}",
-                                  "podman", "exec", "postgresql", "pg_dumpall", "--clean", "--if-exists"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                  "podman", "exec", "postgresql", "pg_dumpall", "--clean", "--if-exists"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 cwd=u.pw_dir)
             shutil.copyfileobj(p.stdout, fo)
             err = p.stderr.read().decode(errors="replace")
             rc = p.wait(timeout=1800)

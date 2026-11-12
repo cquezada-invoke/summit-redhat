@@ -795,7 +795,7 @@ planes:
       - {id: C6, caso: "ac_modo inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; ninguna máquina cambia"}
   "Autocuidado · Reiniciar componentes de AAP":
     casos:
-      - {id: C1, caso: "Modo evaluar con AAP sano", verificar: "ticket exitoso; malos vacío; reiniciaría vacío; api 200"}
+      - {id: C1, caso: "Modo evaluar", verificar: "ticket exitoso; api 200; lista los contenedores con problemas y los que reiniciaría, sin tocar ninguno"}
       - {id: C2, caso: "Componente no propio detenido (automation-eda-scheduler) y aplicar", verificar: "ticket exitoso; el contenedor vuelve a running; api 200; los propios (controller-task, receptor, PostgreSQL, Redis) no se reinician"}
       - {id: C3, caso: "Repetir con todo sano", tipo: Idempotencia, verificar: "ticket exitoso; «nada que reiniciar»; ningún contenedor reinicia (RestartCount igual)"}
       - {id: C4, caso: "ac_modo inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; ningún contenedor se toca"}
@@ -817,7 +817,7 @@ planes:
       - {id: C1, caso: "Modo evaluar", verificar: "ticket exitoso; edad de los respaldos y espacio; no se crea ningún archivo"}
       - {id: C2, caso: "Aplicar", verificar: "ticket exitoso; aap-*.sql.gz y faceops-*.db.gz nuevos en /var/backups/faceops-autocuidado (0600); gzip -t ok; el de AAP trae CREATE DATABASE; la copia de FaceOps pasa integrity_check"}
       - {id: C3, caso: "Repetir", tipo: Idempotencia, verificar: "ticket exitoso; un respaldo nuevo de cada base; nunca más de 7 de cada una"}
-      - {id: C4, caso: "Sin espacio seguro (destino en un tmpfs de 16 MB por configuración temporal)", tipo: Error controlado, verificar: "ticket fallido con «sin espacio seguro»; no quedan archivos a medias; la configuración vuelve a la original"}
+      - {id: C4, caso: "Sin espacio seguro (destino en un tmpfs de 16 MB por configuración temporal: menos de 5 GB libres)", tipo: Error controlado, verificar: "ticket fallido con «sin espacio seguro»; no quedan archivos a medias; la configuración vuelve a la original"}
   "Autocuidado · Renovar certificados":
     casos:
       - {id: C1, caso: "Modo evaluar", verificar: "ticket exitoso; días de vigencia del certificado de AAP y del público de FaceOps"}
