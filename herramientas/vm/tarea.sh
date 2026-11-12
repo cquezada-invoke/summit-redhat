@@ -1,4 +1,2 @@
-# Tarea de prueba del canal: muestra que el runner corre en la VM.
-set -e
-echo "Host: $(hostname) · Usuario: $(whoami) · $(date)"
-systemctl is-active panel-cumplimiento.service || true
+S="ssh -i $HOME/.ssh/id_demo -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=15 cquezada@34.176.114.77"
+$S 'cd ~/demo-gcp; for i in $(seq 1 2); do grep -q "CONSTRUCCION TERMINADA\|construcción FALLIDA\|^GCP " imagen-1.log && break; sleep 20; done; grep -v "k3s\[\|Cloud Logging\|kernel:" imagen-1.log | sed "s/^.*command(\"\/bin\/bash\"): //" | grep -v "^  Nov " | tail -150; pgrep -f construir-imagen.py >/dev/null && echo "(sigue corriendo)"'
