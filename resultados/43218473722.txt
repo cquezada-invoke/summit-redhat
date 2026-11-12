@@ -1,0 +1,37 @@
+commit: a2ebe239d88149f31740c571d6dc3bd1ccadb65e
+inicio: 2026-11-12T09:32:01-03:00
+---
+== redis en nodo-jboss
+LISTEN 0      511         127.0.0.1:6379      0.0.0.0:*    users:(("redis-server",pid=835,fd=6))                    
+LISTEN 0      511    192.168.122.15:6379      0.0.0.0:*    users:(("redis-server",pid=835,fd=7))                    
+LISTEN 0      4096                *:9121            *:*    users:(("redis_exporter",pid=591590,fd=3))               
+redisinsight 0.0.0.0:5540->5540/tcp
+bind 127.0.0.1 -::1
+port 6379
+/etc/redis/redis.conf:0
+Nov 12 00:22:04 nodo-jboss.demo.local redis_exporter[591590]: time="2026-11-12T00:22:04-05:00" level=error msg="Redis INFO err: NOAUTH Authentication required."
+Nov 12 00:30:09 nodo-jboss.demo.local systemd[1]: /etc/systemd/system/faceops-exportador-redis.service:6: Special user nobody configured, this is not safe!
+Nov 12 00:30:11 nodo-jboss.demo.local redis_exporter[591590]: time="2026-11-12T00:30:11-05:00" level=error msg="Couldn't set client name, err: NOAUTH Authentication required."
+Nov 12 00:30:11 nodo-jboss.demo.local redis_exporter[591590]: time="2026-11-12T00:30:11-05:00" level=error msg="Redis INFO err: NOAUTH Authentication required."
+# HELP redis_exporter_last_scrape_error The last scrape error status.
+# TYPE redis_exporter_last_scrape_error gauge
+redis_exporter_last_scrape_error{err="NOAUTH Authentication required."} 1
+== nginx en nodo-nginx
+LISTEN 0      4096                    *:9113             *:*    users:(("nginx-prometheu",pid=495187,fd=3))              
+stub 000
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+Nov 11 16:36:09 nodo-nginx.demo.local systemd[1]: Started The nginx HTTP and reverse proxy server.
+Nov 12 00:23:35 nodo-nginx.demo.local systemd[1]: Reloading The nginx HTTP and reverse proxy server...
+Nov 12 00:23:35 nodo-nginx.demo.local systemd[1]: Reloaded The nginx HTTP and reverse proxy server.
+0
+nginx-1.20.1-28.el9_8.6.x86_64
+with-http_stub_status_module
+== undertow en nodo-jboss
+# HELP jboss_undertow_active_sessions Number of active sessions
+# TYPE jboss_undertow_active_sessions gauge
+jboss_undertow_active_sessions{deployment="app-jboss.war",subdeployment="app-jboss.war"} 0.0
+# HELP jboss_undertow_bytes_received_total The number of bytes that have been received by this listener
+# TYPE jboss_undertow_bytes_received_total counter
+grep: write error: Broken pipe
+--- fin: 2026-11-12T09:32:20-03:00 · código: 0
