@@ -383,6 +383,9 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
             ok_m, por_m = permite(cliente["id"], auto["habilita_skill"])
             if not ok_m:
                 raise PermissionError(f"«{auto['nombre']}» no se puede lanzar: la plataforma {por_m} (Arquitectura › Manifiesto de arquitectura)")
+    if auto["nombre_aap"] == "Seguridad · Aplicar parches de seguridad" and not prueba:   # nunca sin qué aplicar, reinicio y límite
+        from .cves import parametros_parche
+        parametros = dict(parametros, **parametros_parche(cliente["id"], [equipo] if equipo else list(equipos or []), parametros))
     if auto["nombre_aap"] == JENKINS:
         parametros = preparar_jenkins(equipo, parametros)
     if auto["nombre_aap"] == "Recuperación · Respaldar volúmenes con restic":   # sin S3 indicado: el S3 de respaldos del laboratorio

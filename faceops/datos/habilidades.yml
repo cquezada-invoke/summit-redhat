@@ -9,6 +9,7 @@
 #   categoria: regex sobre el tipo de equipo (p. ej. «clúster openshift»); ambito: texto de la columna Ámbito (fija el ámbito)
 #   parametros: valores fijos que se envían (p. ej. el modo de la acción); campos: datos que pide la skill antes de lanzar
 #   ui: replica | mover → abre el flotante propio de la ficha (elige destino) en vez de lanzar directo
+#   ui: parches → abre el formulario de parches de la ficha (qué se aplica, política de reinicio y límite de tiempo)
 # Una habilidad se muestra si su automatización aplica a la máquina (misma regla de la ficha: sistema, plataformas
 # instaladas, inventario de AAP; ámbito en datos/skills-ambito.yml). Si aplica pero no está certificada (regla de prueba,
 # app/pruebas.py) se muestra deshabilitada con su motivo. Todo se ejecuta vía AAP con ticket y aprobación.
@@ -207,6 +208,7 @@ habilidades:
     nombre: Aplicar parches de seguridad
     valor: Cierra las CVE pendientes del sistema con los parches de Red Hat.
     nombre_aap: ["Seguridad · Aplicar parches de seguridad"]
+    ui: parches   # nunca sin parámetros: todos los pendientes o los CVE elegidos, reinicio y límite de tiempo
   - id: escaneo
     tipo: quick win
     grupo: Seguridad y continuidad
@@ -634,8 +636,12 @@ habilidades:
     nombre: Parches del sistema operativo
     valor: Instala los parches de seguridad pendientes del sistema; el reinicio se coordina con el usuario.
     por_so:
-      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: ["Seguridad · Aplicar parches de seguridad"]}
-      - {so: "(?i)windows", nombre_aap: ["Windows · Aplicar actualizaciones"]}
+      - {so: "(?i)linux|red ?hat|rhel|ubuntu|debian|fedora|centos|rocky|alma|suse", nombre_aap: ["Seguridad · Aplicar parches de seguridad"], ui: parches}
+      - so: "(?i)windows"
+        nombre_aap: ["Windows · Aplicar actualizaciones"]
+        parametros: {wu_modo: instalar}
+        campos:   # el reinicio corta el trabajo del usuario: se decide explícito
+          - {var: wu_reiniciar, etiqueta: "Reinicio", tipo: multiplechoice, opciones: ["no", "si"], requerido: true, ayuda: "no: queda pendiente y se coordina con el usuario · si: reinicia al terminar si hace falta"}
       - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
   - id: est-apps-parches
     tipo: quick win

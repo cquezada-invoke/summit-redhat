@@ -1,0 +1,88 @@
+{# Formulario «Aplicar parches de seguridad» (uno solo para toda la consola): lo abren la skill de la ficha, «CVE pendientes ›
+   Aplicar parche / Aplicar todos», Actualizaciones y la página de CVE. Muestra qué se aplicará (todos los pendientes, con su
+   número, o los CVE elegidos de la lista paginada), la política de reinicio y el límite de tiempo; el servidor vuelve a
+   validar antes de crear el ticket (app/cves.py › parametros_parche). Botón que lo abre:
+     data-parches-url    POST que crea el ticket (JSON) · data-parches-datos  GET con los CVE pendientes de la máquina
+     data-cve            «todos» o un CVE preseleccionado · data-parches-hid   skill que lo pidió (motivo «Skill · …»)
+     data-parches-envio="form" + data-parches-extra (JSON) + data-parches-resumen: envío normal a una página (varias máquinas)
+   Se puede incluir varias veces: el diálogo se arma una sola vez. #}
+<style>
+.pp-dlg{width:min(720px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:inherit;box-shadow:0 24px 60px rgba(0,0,0,.28);box-sizing:border-box}
+.pp-dlg::backdrop{background:rgba(15,23,42,.45)}.pp-dlg form{display:flex;flex-direction:column;gap:12px;padding:16px 18px 18px}
+.pp-cab{display:flex;gap:12px;align-items:flex-start}.pp-cab h2{margin:0 0 2px;font-size:18px}.pp-cab .sub{margin:0;font-size:12.5px}.pp-cab .cajon-x{margin-left:auto;position:static}
+.pp-dlg fieldset{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0}.pp-dlg legend{font-size:12.5px;font-weight:600;padding:0 4px}
+.pp-alc label{display:flex;gap:8px;align-items:center;font-size:13px;margin:2px 0}.pp-alc label b{font-weight:600}
+.pp-lista{margin-top:8px}.pp-lista input[type=search]{max-width:260px;margin:0 0 6px}
+.pp-tab{width:100%;border-collapse:collapse;font-size:12.5px}.pp-tab td{padding:4px 6px;border-bottom:1px solid var(--line)}.pp-tab td:first-child{width:24px}
+.pp-pag{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:6px;font-size:12px}
+.pp-fila{display:flex;gap:14px;flex-wrap:wrap}.pp-fila label{font-size:12.5px;font-weight:600;display:flex;flex-direction:column;gap:4px;min-width:180px}
+.pp-fila select,.pp-fila input{padding:6px 9px;border:1px solid var(--line);border-radius:7px;font:inherit;font-weight:400;background:var(--panel);color:inherit}
+.pp-nota{font-size:12px;margin:0}.pp-err{color:var(--bad,#b91c1c);font-size:12.5px;margin:0}.pp-err:empty{display:none}
+.pp-bot{display:flex;gap:8px;justify-content:flex-end}
+</style>
+<script>(()=>{if(window.fxParches)return;const CSRF={{ csrf|tojson }};let d=null,btn=null,datos=null,pag=0;const N=10;
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function armar(){d=document.createElement('dialog');d.className='pp-dlg';d.setAttribute('aria-labelledby','pp-tit');d.innerHTML=
+ '<form novalidate><div class="pp-cab"><div><h2 id="pp-tit">Aplicar parches de seguridad</h2><p class="sub pp-sub"></p></div><button type="button" class="cajon-x" data-pp-cerrar aria-label="Cerrar">×</button></div>'+
+ '<fieldset class="pp-que"><legend>Qué se aplicará</legend><div class="pp-alc"></div><div class="pp-lista" hidden><input type="search" placeholder="Buscar CVE o paquete" aria-label="Buscar CVE"><table class="pp-tab"><tbody></tbody></table><div class="pp-pag"></div></div></fieldset>'+
+ '<fieldset><legend>Reinicio y tiempo</legend><div class="pp-fila"><label>Política de reinicio<select name="pp_reinicio" required><option value="">Elige…</option></select></label>'+
+ '<label class="pp-hora" hidden>Hora del reinicio (de la máquina)<input type="time" name="pp_reinicio_hora"></label>'+
+ '<label>Límite de tiempo (minutos)<input type="number" name="pp_limite_min" required></label></div>'+
+ '<p class="sub pp-nota"></p></fieldset><p class="pp-err" role="alert"></p>'+
+ '<div class="pp-bot"><button type="button" class="btn chico gris" data-pp-cerrar>Cancelar</button><button type="submit" class="btn chico">Solicitar con aprobación</button></div></form>';
+ document.body.append(d);d.addEventListener('click',ev=>{if(ev.target===d||ev.target.closest('[data-pp-cerrar]'))d.close();});
+ const f=d.querySelector('form');f.pp_reinicio.onchange=()=>{d.querySelector('.pp-hora').hidden=f.pp_reinicio.value!=='programar';};
+ d.querySelector('.pp-lista input').oninput=()=>{pag=0;pintar();};
+ d.querySelector('.pp-pag').onclick=ev=>{const b=ev.target.closest('button[data-p]');if(b){pag+=+b.dataset.p;pintar();}};
+ d.querySelector('.pp-tab').onchange=ev=>{if(ev.target.name==='cves'){const s=f.querySelector('input[value=seleccion]');if(s&&ev.target.checked)s.checked=true;contar();}};
+ d.querySelector('.pp-alc').onchange=contar;f.onsubmit=enviar;}
+function contar(){const f=d.querySelector('form'),n=f.querySelectorAll('input[name=cves]:checked').length,s=d.querySelector('.pp-nsel');if(s)s.textContent=n;
+ const sel=f.querySelector('input[value=seleccion]');d.querySelector('.pp-lista').classList.toggle('pp-tenue',!(sel&&sel.checked));}
+function pintar(){const v=d.querySelector('.pp-lista input').value.toLowerCase().trim(),filas=[...d.querySelectorAll('.pp-tab tr')],vis=filas.filter(r=>!v||r.dataset.q.includes(v)),tot=Math.max(1,Math.ceil(vis.length/N));pag=Math.min(pag,tot-1);
+ filas.forEach(r=>r.hidden=true);vis.forEach((r,i)=>{if(i>=pag*N&&i<(pag+1)*N)r.hidden=false;});const nav=d.querySelector('.pp-pag');nav.hidden=vis.length<=N;
+ nav.innerHTML='<span class="sub">'+(vis.length?(pag*N+1)+'–'+Math.min((pag+1)*N,vis.length):0)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(pag?'':'disabled')+'>‹ anterior</button><span class="sub">página '+(pag+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(pag<tot-1?'':'disabled')+'>siguiente ›</button>';}
+function llenar(x,pre){const f=d.querySelector('form'),alc=d.querySelector('.pp-alc'),tb=d.querySelector('.pp-tab tbody'),ok=f.querySelector('[type=submit]');datos=x;
+ const r=f.pp_reinicio;r.length=1;Object.entries(x.reinicio||{no:'No reiniciar',si_hace_falta:'Reiniciar si hace falta',programar:'Programar reinicio'}).forEach(([k,v])=>r.add(new Option(v,k)));r.value='';d.querySelector('.pp-hora').hidden=true;f.pp_reinicio_hora.value='';
+ const lm=x.limite||{min:15,max:720,defecto:120};Object.assign(f.pp_limite_min,{min:lm.min,max:lm.max,value:lm.defecto});
+ d.querySelector('.pp-nota').textContent='Se aplica por lotes de '+(x.lote||20)+' avisos de seguridad. Si se agota el límite, los lotes que falten no se aplican y el ticket lo informa en su resumen. El reinicio programado usa la hora de la máquina.';
+ tb.innerHTML='';d.querySelector('.pp-lista').hidden=true;pag=0;
+ if(x.resumen){alc.innerHTML='<p style="margin:0;font-size:13px">'+esc(x.resumen)+'</p>';ok.disabled=false;return;}
+ const p=x.pendientes||[];
+ if(x.en_curso){alc.innerHTML='<p style="margin:0;font-size:13px">Ya hay un ticket de parches en curso para esta máquina: <a href="'+esc(x.en_curso.url)+'">'+esc(x.en_curso.numero)+'</a> ('+esc((x.en_curso.estado||'').replace(/_/g,' '))+').</p>';ok.disabled=true;return;}
+ if(!p.length){alc.innerHTML='<p style="margin:0;font-size:13px">'+(x.revisado?'No hay parches de seguridad pendientes según su última revisión de CVE: no hay nada que aplicar.':'Sus CVE aún no están revisados: lanza «Revisar CVEs» antes de aplicar parches.')+'</p>';ok.disabled=true;return;}
+ ok.disabled=false;const uno=pre&&pre!=='todos';
+ alc.innerHTML='<label><input type="radio" name="pp_alcance" value="todos"'+(uno?'':' checked')+'> <span><b>Todos los parches de seguridad pendientes</b> · '+p.length+' CVE</span></label>'+
+  '<label><input type="radio" name="pp_alcance" value="seleccion"'+(uno?' checked':'')+'> <span><b>Solo los CVE seleccionados</b> · <span class="pp-nsel">0</span> de '+p.length+'</span></label>';
+ tb.innerHTML=p.map(c=>'<tr data-q="'+esc((c.cve+' '+c.paquete+' '+c.severidad).toLowerCase())+'"><td><input type="checkbox" name="cves" value="'+esc(c.cve)+'"'+(c.cve===pre?' checked':'')+' aria-label="'+esc(c.cve)+'"></td><td class="mono">'+esc(c.cve)+'</td><td>'+esc(c.severidad||'—')+'</td><td class="sub">'+esc(c.paquete)+(c.en_curso?' · en curso '+esc(c.en_curso):'')+'</td></tr>').join('');
+ d.querySelector('.pp-lista').hidden=false;d.querySelector('.pp-lista input').value='';pintar();contar();}
+function abrir(b){if(!d)armar();btn=b;const f=d.querySelector('form');d.querySelector('.pp-err').textContent='';
+ d.querySelector('.pp-sub').textContent=b.dataset.parchesTitulo||'Ticket con aprobación en AAP; FaceOps no toca la máquina directo';
+ if(b.dataset.parchesDatos){d.querySelector('.pp-alc').innerHTML='<p class="sub" style="margin:0">Cargando los CVE pendientes…</p>';f.querySelector('[type=submit]').disabled=true;d.showModal();
+  fetch(b.dataset.parchesDatos,{headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(x=>{if(x.error){d.querySelector('.pp-err').textContent=x.error;return;}
+   d.querySelector('.pp-sub').textContent='Máquina '+x.maquina+' · ticket con aprobación en AAP';llenar(x,(b.dataset.cve||'').toUpperCase()==='TODOS'?'todos':b.dataset.cve);})
+  .catch(()=>{d.querySelector('.pp-err').textContent='No se pudieron cargar los CVE pendientes';});}
+ else{llenar({resumen:b.dataset.parchesResumen||'Los parches de seguridad pendientes'},null);d.showModal();}}
+function enviar(ev){ev.preventDefault();const f=d.querySelector('form'),err=d.querySelector('.pp-err');err.textContent='';
+ const alc=(f.querySelector('input[name=pp_alcance]:checked')||{}).value,cs=[...f.querySelectorAll('input[name=cves]:checked')].map(i=>i.value);
+ if(!datos.resumen&&!alc){err.textContent='Elige qué aplicar';return;}
+ if(alc==='seleccion'&&!cs.length){err.textContent='Elige al menos un CVE de la lista';return;}
+ if(!f.pp_reinicio.value){err.textContent='Elige la política de reinicio';f.pp_reinicio.focus();return;}
+ if(f.pp_reinicio.value==='programar'&&!f.pp_reinicio_hora.value){err.textContent='Indica la hora del reinicio programado';f.pp_reinicio_hora.focus();return;}
+ const lim=+f.pp_limite_min.value;if(!(lim>=+f.pp_limite_min.min&&lim<=+f.pp_limite_min.max)){err.textContent='El límite de tiempo va de '+f.pp_limite_min.min+' a '+f.pp_limite_min.max+' minutos';return;}
+ const campos={_csrf:CSRF,pp_reinicio:f.pp_reinicio.value,pp_reinicio_hora:f.pp_reinicio.value==='programar'?f.pp_reinicio_hora.value:'',pp_limite_min:String(lim)};
+ if(alc)campos.pp_alcance=alc;if(btn.dataset.parchesHid)campos.hid=btn.dataset.parchesHid;
+ Object.assign(campos,btn.dataset.parchesExtra?JSON.parse(btn.dataset.parchesExtra):{});
+ if(btn.dataset.parchesEnvio==='form'){const fo=document.createElement('form');fo.method='post';fo.action=btn.dataset.parchesUrl;fo.hidden=true;
+  Object.entries(campos).forEach(([k,v])=>{const i=document.createElement('input');i.type='hidden';i.name=k;i.value=v;fo.append(i);});document.body.append(fo);fo.submit();return;}
+ const fd=new FormData();Object.entries(campos).forEach(([k,v])=>fd.append(k,v));if(alc==='seleccion')cs.forEach(c=>fd.append('cves',c));
+ const ok=f.querySelector('[type=submit]');ok.disabled=true;
+ fetch(btn.dataset.parchesUrl,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch','X-Inline':'1'}}).then(r=>r.text().then(x=>{try{return JSON.parse(x);}catch(_){return {error:'No se pudo crear el ticket (error '+r.status+')'};}})).then(t=>{
+  ok.disabled=false;if(t.error){err.textContent=t.error;(window.fxAviso||(()=>{}))(t.error,'error');return;}
+  d.close();const b=btn;b.disabled=true;b.textContent='En curso';b.title='Ticket '+t.numero+': '+(t.estado||'').replace(/_/g,' ');
+  const a=document.createElement('a');a.className='ult-t e-'+(t.estado||'pendiente_aprobacion');a.href=t.url;a.textContent=t.numero;b.after(' ',a);
+  window.fxAviso&&fxAviso(t.numero+(t.existente?' ya estaba en curso':' creado')+(alc==='seleccion'?': '+cs.length+' CVE':': todos los parches de seguridad pendientes')+(t.estado==='pendiente_aprobacion'?' (espera aprobación)':''),'ok');
+ }).catch(()=>{ok.disabled=false;err.textContent='No se pudo crear el ticket';});}
+window.fxParches=abrir;
+document.addEventListener('click',ev=>{const b=ev.target.closest('button[data-parches-url]');if(!b||b.disabled)return;ev.preventDefault();abrir(b);});
+})();</script>
+<style>.pp-lista.pp-tenue .pp-tab{opacity:.6}</style>

@@ -274,6 +274,82 @@ def resumen(cliente_id, eqs, estado="pendiente"):
     return sorted(por.values(), key=lambda x: (ORDEN.get(x["severidad"], 9), -len(x["equipos"]), x["cve"]))
 
 
+# «Aplicar parches de seguridad» nunca se pide sin sus parámetros: qué se aplica (todos los pendientes o los CVE elegidos),
+# la política de reinicio y el límite de tiempo. FaceOps los valida antes de crear el ticket (parametros_parche) y el
+# playbook los vuelve a validar («Datos válidos») antes de tocar la máquina; aplica por lotes de LOTE avisos.
+POLITICA_REINICIO = {"no": "No reiniciar", "si_hace_falta": "Reiniciar si hace falta", "programar": "Programar reinicio"}
+ALCANCE = {"todos": "Todos los parches de seguridad pendientes", "seleccion": "Solo los CVE seleccionados"}
+LIMITE_MIN, LIMITE_MAX, LIMITE_DEF, LOTE = 15, 720, 120, 20
+
+
+class ParcheInvalido(PermissionError):
+    """Faltan parámetros o no hay nada que parchar: el ticket no se crea (PermissionError: los que piden ya la muestran)."""
+
+
+def pendientes_parche(cliente_id, e):
+    """(revisado, [CVE pendientes que el parche cierra]) de la máquina; sin los que solo esperan el reinicio del kernel."""
+    cv = por_equipo(cliente_id, [e]).get(e["id"]) or {}
+    return bool(cv.get("revisado")), [x for x in cv.get("todos") or [] if not x["ok"] and not x.get("al_reiniciar")]
+
+
+def parametros_parche(cliente_id, equipos, datos):
+    """Parámetros explícitos del ticket de parches, validados. equipos vacío = la acción va sobre un segmento (no se cuentan
+    pendientes). Lanza ParcheInvalido con el motivo si falta algo o si la máquina no tiene parches pendientes."""
+    import re
+    alc, rb = str(datos.get("pp_alcance") or "").strip(), str(datos.get("pp_reinicio") or "").strip()
+    hora = str(datos.get("pp_reinicio_hora") or "").strip()
+    sel = sorted(set(re.findall(r"CVE-\d{4}-\d{4,7}", str(datos.get("cves") or "").upper())))
+    if alc not in ALCANCE:
+        raise ParcheInvalido("Falta qué aplicar: todos los parches de seguridad pendientes o los CVE seleccionados")
+    if alc == "seleccion" and not sel:
+        raise ParcheInvalido("Elige al menos un CVE pendiente para aplicar")
+    if rb not in POLITICA_REINICIO:
+        raise ParcheInvalido("Falta la política de reinicio: no reiniciar, reiniciar si hace falta o programar el reinicio")
+    if rb == "programar" and not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", hora):
+        raise ParcheInvalido("Programar reinicio pide la hora (HH:MM, hora de la máquina)")
+    try:
+        lim = int(str(datos.get("pp_limite_min") or "").strip())
+    except ValueError:
+        raise ParcheInvalido("Falta el límite de tiempo (minutos)") from None
+    if not LIMITE_MIN <= lim <= LIMITE_MAX:
+        raise ParcheInvalido(f"El límite de tiempo va de {LIMITE_MIN} a {LIMITE_MAX} minutos")
+    total = 0
+    for e in equipos:
+        revisado, pend = pendientes_parche(cliente_id, e)
+        if not revisado:
+            raise ParcheInvalido(f"{e['nombre']} aún no tiene sus CVE revisados: lanza «Revisar CVEs» primero; no se crea el ticket")
+        cs_ = {x["cve"] for x in pend}
+        if not cs_:
+            raise ParcheInvalido(f"{e['nombre']} no tiene parches de seguridad pendientes según su última revisión de CVE: no se crea el ticket")
+        if alc == "seleccion":
+            fuera = [c for c in sel if c not in cs_]
+            if fuera and len(equipos) == 1:
+                raise ParcheInvalido(f"No están pendientes en {e['nombre']}: {', '.join(fuera[:5])}{'…' if len(fuera) > 5 else ''}")
+            total += len([c for c in sel if c in cs_])
+        else:
+            total += len(cs_)
+    p = {"pp_alcance": alc, "pp_reinicio": rb, "pp_limite_min": lim, "pp_lote": LOTE}
+    if equipos:
+        p["pp_parches"] = total
+    if alc == "seleccion":
+        p["cves"] = ", ".join(sel)
+    if rb == "programar":
+        p["pp_reinicio_hora"] = hora
+    return p
+
+
+def resumen_parche(p):
+    """Texto legible de los parámetros de un ticket de parches (detalle del ticket y motivo)."""
+    if not p or "pp_reinicio" not in p:
+        return ""
+    n = p.get("pp_parches")
+    que = (f"{n} CVE seleccionado{'s' if n != 1 else ''}" if n is not None else "CVE seleccionados") + f" ({p.get('cves', '')})" \
+        if p.get("pp_alcance") == "seleccion" else \
+        (f"todos los parches de seguridad pendientes ({n} CVE)" if n is not None else "todos los parches de seguridad pendientes")
+    rb = POLITICA_REINICIO.get(p["pp_reinicio"], p["pp_reinicio"]) + (f" a las {p['pp_reinicio_hora']}" if p.get("pp_reinicio_hora") else "")
+    return f"{que} · {rb.lower()} · límite {p.get('pp_limite_min')} min · lotes de {p.get('pp_lote', LOTE)} avisos"
+
+
 def solicitar(usuario, cliente, nombre_aap, equipos, params, motivo):
     """Un ticket por inventario de AAP (cada uno con su credencial)."""
     from .aap import AAP
@@ -284,6 +360,11 @@ def solicitar(usuario, cliente, nombre_aap, equipos, params, motivo):
     ok, por_que = puede_ejecutar(usuario, cliente["id"], a)
     if not ok:
         raise PermissionError(por_que)
+    if nombre_aap == PARCHAR:   # escritura: regla de prueba y parámetros explícitos validados antes de crear el ticket
+        from .pruebas import estado as estado_prueba, exceptuada
+        if estado_prueba(dict(a, cliente_id=cliente["id"]))["estado"] != "certificada" and not exceptuada(nombre_aap):
+            raise PermissionError(f"«{a['nombre']}» está bloqueada: su versión vigente aún no pasa su plan de prueba")
+        parametros_parche(cliente["id"], equipos, params)   # todo o nada: si una máquina no cumple, no se crea ningún ticket
     aap = AAP.de_cliente(cliente)
     grupos = {}
     from .aap import ErrorAAP
@@ -298,7 +379,8 @@ def solicitar(usuario, cliente, nombre_aap, equipos, params, motivo):
         tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, motivo, creado, "
                  "valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                  cliente["id"], numero_ticket(cliente), a["id"], usuario["id"], "en_cola", seg, ":".join(e["nombre"] for e in es),
-                 json.dumps(params, ensure_ascii=False), motivo, ahora(), a["minutos_manual"], a["tarifa"], a["aap_tipo"],
+                 json.dumps(dict(params, **parametros_parche(cliente["id"], es, params)) if nombre_aap == PARCHAR else params, ensure_ascii=False),
+                 motivo, ahora(), a["minutos_manual"], a["tarifa"], a["aap_tipo"],
                  json.dumps({"ambientes": [es[0]["ambiente"]]} if es[0].get("ambiente") else {}))
         t = q1("SELECT * FROM tickets WHERE id=?", tid)
         auditar(usuario["usuario"], cliente["id"], "solicitar", t["numero"], {"automatizacion": a["nombre"], "equipos": [e["nombre"] for e in es]})

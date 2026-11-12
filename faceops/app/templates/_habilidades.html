@@ -19,11 +19,13 @@
 {% elif h.ticket and h.ticket.abierto %}<button type="button" class="btn chico" disabled title="{{ h.auto }} · {{ h.ticket.estado|replace('_', ' ') }}">En curso</button> <a class="ult-t e-{{ h.ticket.estado }}" href="{{ url_for('consola.ticket', tid=h.ticket.id) }}" data-hb-poll="{{ h.ticket.id }}">{{ h.ticket.numero }}</a>
 {% elif h.ticket %}<span class="chip e-exitoso hb-ok" title="{{ h.auto }}">Aplicada</span><a class="ult-t e-exitoso" href="{{ url_for('consola.ticket', tid=h.ticket.id) }}">{{ h.ticket.numero }}</a>
 {% elif not h.escritura %}<span class="sub">solo lectura</span>
+{% elif h.ui == 'parches' %}<button type="button" class="btn chico" data-parches-url="{{ h.url }}" data-parches-datos="{{ h.url_datos }}" data-parches-hid="{{ h.id }}" title="«{{ h.auto }}»: elige qué aplicar ({{ h.n_pendientes }} CVE pendientes), el reinicio y el límite de tiempo; ticket con aprobación">Ejecutar…</button>
 {% elif h.ui %}<button type="button" class="btn chico" data-hb-abrir="{{ h.ui }}" title="«{{ h.auto }}»: elige el destino; ticket con aprobación">Ejecutar</button>
 {% else %}<button type="button" class="btn chico" data-hb-url="{{ h.url }}" data-hb-id="{{ h.id }}"{% if h.campos %} data-hb-campos="{{ h.campos|tojson|forceescape }}" data-hb-nombre="{{ h.nombre }}"{% endif %} title="«{{ h.auto }}»: ticket con aprobación">{{ 'Ejecutar…' if h.campos else 'Ejecutar' }}</button>{% endif %}</td></tr>{% endfor %}
 <tr class="hb-vacio" hidden><td colspan="4" class="sub">Ningún skill coincide con la búsqueda.</td></tr></tbody></table></div>
 <form class="hb-form" hidden autocomplete="off"><h3></h3><p class="sub">Las claves no se muestran ni quedan en FaceOps: viajan solo a AAP con el ticket (enmascaradas en el ticket y la auditoría; la acción no las escribe en sus registros).</p><div class="hb-campos"></div>
 <div class="hb-fbot"><button type="button" class="btn chico gris" data-hb-cancelar>Cancelar</button><button type="submit" class="btn chico">Solicitar con aprobación</button></div></form>
+{% include "_parches_form.html" %}
 {% else %}<div class="hb-sin"><b>Aún no hay skills para {{ hb_tit }}.</b><span class="sub">Ninguna acción del catálogo aplica hoy a esta máquina (su sistema, sus plataformas o su tipo). Cuando se publique y certifique una, aparecerá aquí.</span></div>{% endif %}
 </dialog>
 <style>
@@ -56,7 +58,7 @@
 .hb-motivo{font-size:11.5px;color:var(--warn,#b45309);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hb-tabla .hb-a{text-align:right;white-space:nowrap}
 .hb-form{margin:0 18px 18px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;overflow:auto}.hb-form[hidden],.hb-tabla[hidden]{display:none}.hb-form h3{margin:0 0 4px;font-size:15px}.hb-form>.sub{font-size:12px;margin:0 0 10px}
-.hb-campos label{display:block;margin:0 0 10px;font-size:12.5px;font-weight:600}.hb-campos input{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-weight:400;background:var(--panel);color:inherit}.hb-campos small{font-weight:400;color:var(--muted)}
+.hb-campos label{display:block;margin:0 0 10px;font-size:12.5px;font-weight:600}.hb-campos input,.hb-campos select{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-weight:400;background:var(--panel);color:inherit}.hb-campos small{font-weight:400;color:var(--muted)}
 .hb-fbot{display:flex;gap:8px;justify-content:flex-end}
 .hb-sin{margin:auto 18px;padding:40px 20px;text-align:center;display:flex;flex-direction:column;gap:6px;border:1px dashed var(--line);border-radius:12px}
 @media (prefers-color-scheme:dark){.hb-tag.dif{background:#3b2a63;color:#ddd6fe}.hb-tag.qw{background:#14432a;color:#bbf7d0}}
@@ -84,8 +86,10 @@ dlg.addEventListener('click',ev=>{const u=ev.target.closest('button[data-hb-abri
 const frm=dlg.querySelector('.hb-form'),tab=dlg.querySelector('.hb-tabla');let fBtn=null;
 const cerrarForm=()=>{frm.hidden=true;tab.hidden=false;frm.querySelector('.hb-campos').innerHTML='';fBtn=null;};
 const abrirForm=b=>{fBtn=b;frm.querySelector('h3').textContent=b.dataset.hbNombre;const cx=frm.querySelector('.hb-campos');cx.innerHTML='';
- JSON.parse(b.dataset.hbCampos).forEach(c=>{const l=document.createElement('label');l.textContent=c.etiqueta;const i=document.createElement('input');
-  i.name='v_'+c.var;i.type=c.tipo==='password'?'password':'text';i.autocomplete=c.tipo==='password'?'new-password':'off';i.spellcheck=false;if(c.requerido)i.required=true;l.append(i);
+ JSON.parse(b.dataset.hbCampos).forEach(c=>{const l=document.createElement('label');l.textContent=c.etiqueta;let i;
+  if(c.opciones&&c.opciones.length){i=document.createElement('select');i.add(new Option('Elige…',''));c.opciones.forEach(o=>i.add(new Option(String(o),String(o))));}   /* opciones: lista cerrada, sin valor por defecto */
+  else{i=document.createElement('input');i.type=c.tipo==='password'?'password':'text';i.autocomplete=c.tipo==='password'?'new-password':'off';i.spellcheck=false;}
+  i.name='v_'+c.var;if(c.requerido)i.required=true;l.append(i);
   if(c.ayuda){const s=document.createElement('small');s.textContent=c.ayuda;l.append(s);}cx.append(l);});tab.hidden=true;frm.hidden=false;const f_=cx.querySelector('input');if(f_)f_.focus();};
 frm.addEventListener('submit',ev=>{ev.preventDefault();if(!fBtn)return;const fd=new FormData(frm),b=fBtn;cerrarForm();pedir(b,fd);});
 dlg.addEventListener('close',cerrarForm);

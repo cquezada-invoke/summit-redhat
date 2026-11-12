@@ -1,3 +1,4 @@
+{% include "_parches_form.html" %}
 <script>/* «Aplicar parche» (CVE) y «Aplicar» (políticas) en el flotante de salud: el botón queda «En curso» con el ticket al lado; sin salir del flotante */
 document.addEventListener('click',ev=>{const b=ev.target.closest('button[data-seg-aplicar]');if(!b||b.disabled)return;ev.preventDefault();
  const ini=b.textContent;b.disabled=true;b.textContent='En curso';const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});

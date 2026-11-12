@@ -6940,6 +6940,8 @@ def cves_solicitar():
         flash("No hay equipos compatibles para esa acción", "info")
         return redirect(request.referrer or url_for("consola.cves"))
     params = {"cves": cve} if cve else {}
+    if nombre == PARCHAR:   # parámetros explícitos del formulario de parches (se validan antes de crear el ticket)
+        params.update({k: f.get(k, "") for k in ("pp_reinicio", "pp_reinicio_hora", "pp_limite_min")}, pp_alcance="seleccion" if cve else "todos")
     motivo = (f"Parchar {cve or 'vulnerabilidades pendientes'}" if nombre == PARCHAR else "Revisar CVE") + f" en {len(eqs)} equipo(s)"
     try:
         ts = solicitar_cve(g.usuario, g.cliente, nombre, eqs, params, motivo)
@@ -6949,27 +6951,50 @@ def cves_solicitar():
     return redirect(request.referrer or url_for("consola.cves"))
 
 
+@bp.route("/inventario/<int:eid>/parches")
+@requiere_login
+def equipo_parches(eid):
+    """Datos del formulario de «Aplicar parches de seguridad» de la máquina (skill y CVE pendientes de su ficha): los CVE
+    pendientes que el parche cierra, el ticket en curso si hay uno y los valores del formulario."""
+    from .cves import ALCANCE, LIMITE_DEF, LIMITE_MAX, LIMITE_MIN, LOTE, POLITICA_REINICIO, pendientes_parche
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        return {"error": "Máquina no válida"}, 404
+    revisado, pend = pendientes_parche(g.cliente["id"], e)
+    cv_ = _cves_equipo(e) or {}
+    en_ = {x["cve"]: x.get("en_curso") for x in cv_.get("todos") or [] if x.get("en_curso")}
+    t = cv_.get("todos_en_curso")
+    return {"maquina": e["nombre"], "revisado": revisado, "en_curso": dict(t, url=url_for("consola.ticket", tid=t["id"])) if t else None,
+            "pendientes": [{"cve": x["cve"], "severidad": x["severidad"] or "", "paquete": x["paquete"] or "",
+                            "en_curso": (en_.get(x["cve"]) or {}).get("numero")} for x in pend],
+            "alcance": ALCANCE, "reinicio": POLITICA_REINICIO, "limite": {"min": LIMITE_MIN, "max": LIMITE_MAX, "defecto": LIMITE_DEF}, "lote": LOTE,
+            "reinicio_pendiente": bool(cv_.get("reinicio"))}
+
+
 @bp.route("/inventario/<int:eid>/cve/parche", methods=["POST"])
 @requiere_login
 def equipo_cve_parche(eid):
-    """«Aplicar parche» de un CVE pendiente de la máquina: un ticket de «Aplicar parches de seguridad» limitado a ese CVE
-    (dnf upgrade --security --cve=…), con aprobación en AAP. Al terminar bien, FaceOps vuelve a revisar sus CVE."""
-    import re as re_
+    """Formulario «Aplicar parches de seguridad» de la máquina (CVE pendientes › Aplicar parche / Aplicar todos y la skill):
+    un ticket con aprobación en AAP con sus parámetros explícitos (qué se aplica, política de reinicio y límite de tiempo),
+    validados antes de crearlo. Al terminar bien, FaceOps vuelve a revisar sus CVE."""
     from .compatibilidad import compatible
-    from .cves import PARCHAR, solicitar as solicitar_cve
+    from .cves import PARCHAR, ParcheInvalido, parametros_parche, resumen_parche, solicitar as solicitar_cve
     if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
         return {"error": "Necesitas perfil de escritura"}, 403
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
-    cve = (request.form.get("cve") or "").strip().upper()
-    todos = cve == "TODOS"   # «Aplicar todos los parches de seguridad pendientes»: un ticket sin filtro de CVE
-    if not e or not (todos or re_.fullmatch(r"CVE-\d{4}-\d{4,7}", cve)):
-        return {"error": "CVE o máquina no válidos"}, 400
-    if not q1("SELECT 1 FROM cves_equipo WHERE cliente_id=? AND equipo_id=? AND estado='pendiente'" + ("" if todos else " AND cve=?"),
-              g.cliente["id"], e["id"], *([] if todos else [cve])):
-        return {"error": f"{'No hay CVE pendientes' if todos else cve + ' no está pendiente'} en {e['nombre']}"}, 400
+    if not e:
+        return {"error": "Máquina no válida"}, 400
+    f = request.form
+    datos = {k: f.get(k, "") for k in ("pp_alcance", "pp_reinicio", "pp_reinicio_hora", "pp_limite_min")}
+    datos["cves"] = ",".join(f.getlist("cves"))
+    try:
+        p_ = parametros_parche(g.cliente["id"], [e], datos)
+    except ParcheInvalido as x_:
+        return {"error": str(x_)}, 400
     cv_ = _cves_equipo(e) or {}
-    t = cv_.get("todos_en_curso") or next((c_["en_curso"] for c_ in cv_.get("todos") or [] if not todos and c_["cve"] == cve and c_.get("en_curso")), None)
-    if t:
+    sel = set(p_.get("cves", "").split(", ")) - {""}
+    t = cv_.get("todos_en_curso") or next((c_["en_curso"] for c_ in cv_.get("todos") or [] if c_["cve"] in sel and c_.get("en_curso")), None)
+    if t:   # ya hay un ticket de parches en curso para esa máquina (todos o alguno de los elegidos): se devuelve ese
         return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "existente": True}
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], PARCHAR)
     if not a:
@@ -6977,9 +7002,12 @@ def equipo_cve_parche(eid):
     ok, por_que = compatible(a, e)
     if not ok:
         return {"error": f"{e['nombre']}: {por_que}"}, 400
+    from .habilidades import MARCA, mapa as mapa_skills
+    h_ = next((x for x in mapa_skills() if x.get("id") == f.get("hid")), None) if f.get("hid") else None
+    # pedida desde la ventana Skills: el motivo lleva su marca para que quede «Aplicada» en ella; el detalle va en los parámetros
+    motivo = f"{MARCA}{h_['nombre']} en {e['nombre']}" if h_ else f"Aplicar parches de seguridad en {e['nombre']}: {resumen_parche(p_)}"
     try:
-        ts = solicitar_cve(g.usuario, g.cliente, PARCHAR, [e], {} if todos else {"cves": cve},
-                           f"Aplicar todos los parches de seguridad pendientes en {e['nombre']}" if todos else f"Aplicar parche de {cve} en {e['nombre']}")
+        ts = solicitar_cve(g.usuario, g.cliente, PARCHAR, [e], p_, motivo)
     except (PermissionError, ErrorAAP) as x_:
         return {"error": str(x_)}, 400
     if not ts:

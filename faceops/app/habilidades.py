@@ -89,7 +89,7 @@ def _auto(e, h):
             if not a.get("visible") or e.get("estado") == "retirado" or (
                     not h.get("sin_limite") and not compatible(a, dict(e, skills=list(skills_de(e))))[0]):   # sin límite: elige su origen, no corre en la máquina
                 continue
-        elif not h.get("ui") and motivo_no_aplica(g.usuario, g.cliente["id"], a, e):
+        elif h.get("ui") in (None, "", "parches") and motivo_no_aplica(g.usuario, g.cliente["id"], a, e):
             continue
         b = _motivo_prueba(a)
         if not b:
@@ -196,7 +196,8 @@ def _resolver(h, e):
         v = next((x for x in h["por_so"] if re.search(x["so"], so)), None)
         if not v:
             return None
-        h = dict(h, nombre_aap=v["nombre_aap"], campos=v.get("campos") or [])
+        h = dict(h, nombre_aap=v["nombre_aap"], campos=v.get("campos") or [], ui=v.get("ui", h.get("ui")),
+                 parametros=v.get("parametros", h.get("parametros")))
     return h
 
 
@@ -246,7 +247,16 @@ def habilidades_maquina(e, rep=None):
              "valor": h.get("valor") or "", "ambito": h.get("ambito") or _ambito_txt(a, e, h.get("ui") or ""), "auto": a["nombre"], "aid": a["id"], "ui": h.get("ui") or "", "bloqueo": bloqueo or "",
              "ticket": None, "escritura": bool(escritura), "url": url_for("consola.habilidad_ejecutar", eid=e["id"]),
              "campos": h.get("campos") or []}
-        if x["ui"] == "replica":   # su flotante propio decide si se puede (instancias, balanceo, regla de prueba)
+        if x["ui"] == "parches":   # su formulario propio (qué se aplica, reinicio y límite): nunca se lanza sin parámetros
+            from .cves import pendientes_parche
+            revisado, pend = pendientes_parche(g.cliente["id"], e)
+            if not x["bloqueo"] and not pend:
+                x["bloqueo"] = "sin parches de seguridad pendientes" if revisado else "sus CVE aún no están revisados («Revisar CVEs»)"
+            x["n_pendientes"] = len(pend)
+            x["url"] = url_for("consola.equipo_cve_parche", eid=e["id"])
+            x["url_datos"] = url_for("consola.equipo_parches", eid=e["id"])
+            x["ticket"] = _ticket(e, a["id"], h.get("origen"))
+        elif x["ui"] == "replica":   # su flotante propio decide si se puede (instancias, balanceo, regla de prueba)
             if not rep or not rep.get("posible"):
                 continue
             x["bloqueo"] = x["bloqueo"] or (rep.get("bloqueo") or "")
@@ -278,7 +288,7 @@ def ejecutar(e, hid, form):
     from .operacion import solicitar_en_equipo
     h = next((x for x in mapa() if x.get("id") == hid), None)
     if not e or not h or h.get("ui"):
-        return {"error": "Skill o máquina no válidas"}, 400
+        return {"error": "Esta skill se pide desde su formulario (abre la skill de nuevo)" if h and h.get("ui") else "Skill o máquina no válidas"}, 400
     if h.get("plataforma"):
         if not set(_lista(h["plataforma"])) & set(plataformas_de(e)):
             return {"error": "Este skill no aplica a la plataforma de esta máquina"}, 400
@@ -313,6 +323,8 @@ def ejecutar(e, hid, form):
             if c.get("requerido"):
                 return {"error": f"Falta «{c['etiqueta']}»"}, 400
             continue
+        if c.get("opciones") and v not in [str(o_) for o_ in c["opciones"]]:
+            return {"error": f"«{c['etiqueta']}»: elige {' o '.join(str(o_) for o_ in c['opciones'])}"}, 400
         if c.get("tipo") == "password":
             secretos[c["var"]], params[c["var"]] = v, "••••••"
         else:
@@ -343,6 +355,9 @@ def _skill_hv(e, h):
         return a, {"cambiada": "cambió desde su última prueba; debe probarse de nuevo", "fallida": "su última prueba falló"}.get(ep, "sin plan de prueba aprobado")
     if h.get("por_maquina"):
         return a, "se pide desde la ficha de cada máquina (elige la máquina y su destino)"
+    f_ = _faltan_datos(a, h)
+    if f_:   # la ventana del hipervisor no pide datos: sin ellos no se crea el ticket
+        return a, "pide datos (" + ", ".join(f_[:2]) + "): lánzala desde Acciones"
     if e.get("hv_estado") != "conectada":
         return a, "el hipervisor no está conectado: verifica su conexión"
     return a, ""

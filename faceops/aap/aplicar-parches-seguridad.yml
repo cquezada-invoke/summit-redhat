@@ -1,13 +1,44 @@
 ---
-# Seguridad · Aplicar parches de seguridad: instala las erratas de seguridad pendientes (todas o las de los CVE indicados)
-# y dice si el equipo necesita reiniciar. No reinicia solo. Variables: cves (lista opcional "CVE-2026-1234,…").
+# Seguridad · Aplicar parches de seguridad: instala los avisos de seguridad pendientes (todos o los de los CVE indicados)
+# por lotes, dentro del límite de tiempo, aplica la política de reinicio y deja un resumen. FaceOps valida los parámetros
+# antes de crear el ticket; aquí se validan otra vez antes de tocar la máquina («Datos válidos»).
+# Variables:
+#   pp_alcance        todos | seleccion (obligatoria)
+#   cves              "CVE-2026-1234, CVE-2026-5678" (obligatoria con seleccion)
+#   pp_reinicio       no | si_hace_falta | programar (obligatoria)
+#   pp_reinicio_hora  HH:MM, hora de la máquina (obligatoria con programar)
+#   pp_limite_min     15 a 720 (obligatoria): los lotes que no alcanzan a empezar dentro del límite no se aplican
+#   pp_lote           avisos por lote (por defecto 20)
+# Deja en set_stats «parches_seguridad» por equipo: avisos, lotes, aplicados, con error, sin tiempo, reinicio y minutos.
 - name: Seguridad · Aplicar parches de seguridad
   hosts: all
   become: true
   gather_facts: false
   vars:
-    lista: "{{ (cves | default('')) | regex_findall('CVE-[0-9]+-[0-9]+') }}"
+    lista: "{{ (cves | default('')) | upper | regex_findall('CVE-[0-9]+-[0-9]+') | unique }}"
+    alcance: "{{ pp_alcance | default('') | string }}"
+    reinicio: "{{ pp_reinicio | default('') | string }}"
+    hora: "{{ pp_reinicio_hora | default('') | string }}"
+    limite_s: "{{ (pp_limite_min | default(0) | int) * 60 }}"
+    lote: "{{ [pp_lote | default(20) | int, 1] | max }}"
   tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - alcance in ['todos', 'seleccion']
+          - alcance == 'todos' or lista | length > 0
+          - reinicio in ['no', 'si_hace_falta', 'programar']
+          - reinicio != 'programar' or hora is match('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+          - (pp_limite_min | default(0) | int) >= 15 and (pp_limite_min | default(0) | int) <= 720
+        fail_msg: >-
+          Faltan parámetros o no son válidos (pp_alcance todos|seleccion con cves, pp_reinicio no|si_hace_falta|programar
+          con pp_reinicio_hora HH:MM, pp_limite_min 15–720): no se toca {{ inventory_hostname }}
+        quiet: true
+
+    - name: Inicio
+      ansible.builtin.set_fact:
+        t0: "{{ lookup('ansible.builtin.pipe', 'date +%s') | int }}"
+
     - name: Repositorios habilitados
       ansible.builtin.shell: dnf -q repolist --enabled 2>/dev/null | tail -n +2 | wc -l
       register: r_rep
@@ -34,17 +65,99 @@
           o carga la credencial «Red Hat · Llave de activación» en AAP para que se registre aquí
         quiet: true
 
-    - name: Parches de seguridad
-      ansible.builtin.command: >-
-        dnf -y -q upgrade --security {{ lista | map('regex_replace', '^', '--cve=') | join(' ') }}
-      register: r_up
-      changed_when: r_up.stdout | length > 0 or 'Complete' in r_up.stderr
+    - name: Avisos de seguridad pendientes
+      ansible.builtin.shell: >-
+        set -o pipefail;
+        dnf -q updateinfo list --security --available
+        {{ lista | map('regex_replace', '^', '--cve=') | join(' ') if alcance == 'seleccion' else '' }} 2>/dev/null
+        | awk '$1 ~ /^[A-Z]+-[0-9]+:[0-9]+$/ {print $1}' | sort -u
+      args:
+        executable: /bin/bash
+      register: r_av
+      changed_when: false
+      failed_when: r_av.rc != 0
+
+    - name: Lotes
+      ansible.builtin.set_fact:
+        avisos: "{{ r_av.stdout_lines }}"
+        lotes: "{{ r_av.stdout_lines | batch(lote | int) | list }}"
+
+    - name: Parches por lotes (dentro del límite de tiempo)
+      ansible.builtin.command: "dnf -y -q upgrade {{ item | map('regex_replace', '^', '--advisory=') | join(' ') }}"
+      loop: "{{ lotes }}"
+      loop_control:
+        index_var: i_lote
+        label: "lote {{ i_lote + 1 }} de {{ lotes | length }} ({{ item | length }} avisos)"
+      when: (lookup('ansible.builtin.pipe', 'date +%s') | int) - (t0 | int) < (limite_s | int) - 60
+      async: "{{ limite_s | int }}"
+      poll: 15
+      register: r_lotes
+      changed_when: true
+      failed_when: false
+
+    - name: Cuenta de lotes
+      ansible.builtin.set_fact:
+        n_ok: "{{ r_lotes.results | default([]) | rejectattr('skipped', 'defined') | selectattr('rc', 'defined')
+                  | selectattr('rc', 'equalto', 0) | list | length }}"
+        n_err: "{{ r_lotes.results | default([]) | rejectattr('skipped', 'defined') | rejectattr('rc', 'equalto', 0) | list | length }}"
+        n_sin: "{{ r_lotes.results | default([]) | selectattr('skipped', 'defined') | selectattr('skipped') | list | length }}"
+        errores: "{{ r_lotes.results | default([]) | rejectattr('skipped', 'defined') | rejectattr('rc', 'equalto', 0)
+                     | map(attribute='stderr', default='') | map('default', '') | map('truncate', 200) | list }}"
 
     - name: ¿Necesita reiniciar?
       ansible.builtin.shell: needs-restarting -r >/dev/null 2>&1 && echo no || echo si
       register: r_reboot
       changed_when: false
 
+    - name: Reiniciar (la política lo permite y hace falta)
+      ansible.builtin.reboot:
+        reboot_timeout: 1200
+        msg: "FaceOps {{ faceops_ticket | default('') }}: reinicio por parches de seguridad"
+      when: reinicio == 'si_hace_falta' and r_reboot.stdout == 'si' and (n_err | int) == 0
+      register: r_rb
+
+    - name: Programar el reinicio
+      ansible.builtin.command:
+        argv: [shutdown, -r, "{{ hora }}", "FaceOps {{ faceops_ticket | default('') }} - reinicio programado por parches de seguridad"]
+      when: reinicio == 'programar' and r_reboot.stdout == 'si'
+      register: r_prog
+      changed_when: true
+
+    - name: Resumen por equipo
+      ansible.builtin.set_stats:
+        data:
+          parches_seguridad: "{{ {inventory_hostname: resumen} }}"
+        per_host: false
+        aggregate: true
+      vars:
+        resumen:
+          alcance: "{{ alcance }}"
+          cves: "{{ lista }}"
+          avisos: "{{ avisos | length }}"
+          lotes: "{{ lotes | length }}"
+          lotes_aplicados: "{{ n_ok | int }}"
+          lotes_con_error: "{{ n_err | int }}"
+          lotes_sin_tiempo: "{{ n_sin | int }}"
+          reinicio_requerido: "{{ r_reboot.stdout == 'si' }}"
+          politica_reinicio: "{{ reinicio }}"
+          reinicio: "{{ 'reiniciado' if r_rb is not skipped else ('programado ' ~ hora) if r_prog is not skipped else 'no' }}"
+          minutos: "{{ (((lookup('ansible.builtin.pipe', 'date +%s') | int) - (t0 | int)) / 60) | round(1) }}"
+
     - name: Resultado
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: parches aplicados{{ ' (CVE: ' ~ (lista | join(', ')) ~ ')' if lista else '' }} · reinicio pendiente: {{ r_reboot.stdout }}"
+        msg: >-
+          {{ inventory_hostname }}: {{ 'sin avisos de seguridad pendientes, nada que aplicar' if not avisos else
+          (avisos | length | string) ~ ' avisos en ' ~ (lotes | length | string) ~ ' lotes: ' ~ n_ok ~ ' aplicados, ' ~ n_err ~ ' con error, '
+          ~ n_sin ~ ' sin aplicar por el límite de ' ~ (pp_limite_min | int | string) ~ ' min' }}{{ ' (CVE: ' ~ (lista | join(', ')) ~ ')' if lista else '' }}
+          · reinicio requerido: {{ r_reboot.stdout }} · {{ 'reiniciado' if r_rb is not skipped else ('reinicio programado a las ' ~ hora)
+          if r_prog is not skipped else 'no se reinició (política: ' ~ reinicio ~ ')' }}
+
+    - name: Todo aplicado
+      ansible.builtin.assert:
+        that:
+          - (n_err | int) == 0
+          - (n_sin | int) == 0
+        fail_msg: >-
+          {{ inventory_hostname }}: {{ n_err }} lote(s) con error y {{ n_sin }} sin aplicar por el límite de tiempo
+          {{ ('· ' ~ (errores | join(' | '))) if errores else '' }}
+        quiet: true

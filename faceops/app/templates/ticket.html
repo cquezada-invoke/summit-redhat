@@ -35,6 +35,10 @@ if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap
     <dt>Motivo</dt><dd>{{ t.motivo or '—' }}</dd>
     <dt>Segmento de negocio</dt><dd>{{ ('Todo el parque' if t.segmento == '*' else t.segmento) or 'no aplica' }}{% set fl = j(t.filtros, {}) %}{% if fl.ambientes %} · ambiente {{ fl.ambientes|join(', ') }}{% endif %}{% if fl.infraestructura %} · {{ fl.infraestructura|join(', ') }}{% endif %}</dd>
     <dt>Máquinas afectadas</dt><dd>{% if maquinas_t %}{% for e in maquinas_t %}<a class="chip" href="{{ url_for('consola.equipo', eid=e.id) }}" title="Ver la máquina{{ ' (retirada)' if e.estado == 'retirado' }}">{{ cod_eq(e) }} ›</a> {% endfor %}{% elif t.limite %}<span class="mono">{{ t.limite.replace(':', ', ') }}</span>{% else %}los que define la acción{% endif %}</dd>
+    {% set pp_ = j(t.parametros, {}) %}{% if pp_.pp_reinicio %}<dt>Parches de seguridad</dt><dd>{# «Aplicar parches de seguridad»: sus parámetros explícitos (app/cves.py) #}
+      <b>Qué se aplica:</b> {% if pp_.pp_alcance == 'seleccion' %}{{ pp_.pp_parches if pp_.pp_parches is defined else '' }} CVE seleccionados · <span class="mono">{{ pp_.cves }}</span>{% else %}todos los parches de seguridad pendientes{% if pp_.pp_parches is defined %} ({{ pp_.pp_parches }} CVE){% endif %}{% endif %}<br>
+      <b>Reinicio:</b> {{ {'no': 'no reiniciar', 'si_hace_falta': 'reiniciar si hace falta', 'programar': 'programar reinicio'}.get(pp_.pp_reinicio, pp_.pp_reinicio) }}{% if pp_.pp_reinicio_hora %} a las {{ pp_.pp_reinicio_hora }} (hora de la máquina){% endif %}<br>
+      <b>Límite de tiempo:</b> {{ pp_.pp_limite_min }} min · lotes de {{ pp_.pp_lote or 20 }} avisos</dd>{% endif %}
     <dt>Parámetros</dt><dd><pre>{{ j(t.parametros, {})|tojson(indent=2) }}</pre></dd>
     {% if t.aprobado_en %}<dt>Aprobación</dt><dd>{{ 'Rechazada' if t.estado == 'rechazado' else ('Vencida' if t.estado == 'vencido' else 'Respondida') }} en {{ t.aprobado_en|fecha }}{% if t.aprobador %} · {{ t.aprobador }}{% endif %}{% if t.respuesta %} · «{{ t.respuesta }}»{% endif %}</dd>{% endif %}
   </dl>

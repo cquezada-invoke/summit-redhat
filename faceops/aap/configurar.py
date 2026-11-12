@@ -850,12 +850,14 @@ paso("Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapsho
 
 # Seguridad: CVE por equipo (solo lectura) y parches de seguridad (con aprobación, la pone FaceOps)
 for nombre_s, pb_s, desc_s in (("Seguridad · Revisar CVEs", "revisar-cves.yml", "CVE cubiertos y pendientes de cada equipo (erratas de seguridad de Red Hat)"),
-                               ("Seguridad · Aplicar parches de seguridad", "aplicar-parches-seguridad.yml", "Instala las erratas de seguridad pendientes (todas o por CVE)"),
+                               ("Seguridad · Aplicar parches de seguridad", "aplicar-parches-seguridad.yml", "Instala las erratas de seguridad pendientes (todas o por CVE) por lotes, con política de reinicio y límite de tiempo"),
                                ("Seguridad · Escaneo de servidores", "escaneo-servidores.yml", "Escaneo de seguridad de servidores (solo lectura): parches, SSH, puertos, SELinux, firewall, cuentas, permisos, fin de vida")):
     asegurar("job_templates", nombre_s, {
         "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_s}", "inventory": inv["id"],
         "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
-        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10, "description": desc_s})
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10, "description": desc_s,
+        # parches: tope duro de AAP por sobre el límite del ticket (máx. 720 min, lo controla el playbook) + reinicio
+        **({"timeout": 13 * 3600} if nombre_s == "Seguridad · Aplicar parches de seguridad" else {})})
 paso("Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)")
 
 # OpenShift · Habilitar clúster: corre en el anfitrión KVM; el pull secret (y el token de OCM, si existe) viajan como

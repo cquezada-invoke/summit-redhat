@@ -352,7 +352,12 @@
   por_inventario: true
   usa_limite: true
   campos:
-    - {var: cves, etiqueta: "CVE (opcional)", tipo: text, ayuda: "Vacío = todas las erratas de seguridad pendientes; o una lista: CVE-2026-1234, CVE-2026-5678"}
+  # Nunca sin parámetros (FaceOps los valida antes de crear el ticket, app/cves.py › parametros_parche; el playbook otra vez)
+    - {var: pp_alcance, etiqueta: "Qué aplicar", tipo: multiplechoice, requerido: true, opciones: [todos, seleccion], ayuda: "todos: todos los parches de seguridad pendientes · seleccion: solo los CVE indicados"}
+    - {var: cves, etiqueta: "CVE (si es selección)", tipo: text, ayuda: "Lista: CVE-2026-1234, CVE-2026-5678"}
+    - {var: pp_reinicio, etiqueta: "Política de reinicio", tipo: multiplechoice, requerido: true, opciones: ["no", si_hace_falta, programar], ayuda: "no: queda pendiente e informado · si_hace_falta: reinicia al terminar solo si lo exige un parche · programar: deja el reinicio programado a la hora indicada"}
+    - {var: pp_reinicio_hora, etiqueta: "Hora del reinicio programado", tipo: text, ayuda: "HH:MM, hora de la máquina (solo con programar)"}
+    - {var: pp_limite_min, etiqueta: "Límite de tiempo (minutos)", tipo: integer, requerido: true, ayuda: "15 a 720: se aplica por lotes de 20 avisos; al agotarse, los lotes que falten no se aplican y el ticket lo informa"}
 "FaceOps · Eliminar servidor":
   usa_limite: false
 "Infra · Encender o apagar equipo":
