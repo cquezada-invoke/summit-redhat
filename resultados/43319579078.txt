@@ -1,0 +1,136 @@
+commit: bf5c2072d8a176c2780dedeee8d919d45fe089e2
+inicio: 2026-11-12T19:24:31-03:00
+---
+== host 2026-11-12T22:24:31Z · version: {"build":1797,"commit":"27ba8a86ca8c10ed2e6744a676e22c8e216d03c7","fecha":"2026-11-12 20:46","instancia":"laboratorio","instancia_id":"FOP-LAB-f7eee738519e","linea":"1.0","rama":"main","rol":"cliente","texto":"v1.0.1797"}
+srv-prueba-rhel9-01=running srv-prueba-resp-01=running nodo-jboss4=running srv-windows-iis-01=running srv-prueba-rhel8-01=running nodo-vault=running srv-no-existe-99=running nodo-windows=running srv-dell-r660xs-01=running srv-hpe-dl360-01=running srv-lenovo-sr630-01=running srv-fujitsu-rx2540-01=running srv-xfusion-2288h-01=running srv-dell-r760-01=running srv-hpe-dl380-01=running srv-lenovo-sr650-01=running srv-cisco-c240-01=running srv-supermicro-01=running sno=running nodo-so=running nodo-tomcat=running nodo-postgres=running nodo-nginx=running nodo-jboss-dev=running nodo-storage=running nodo-jboss2=running nodo-jboss=running dc1-ad01=shut dc1-ds01=shut dc1-idm01=shut dc1-iga01=shut dc1-sat01=shut dc1-sso01=shut ee-centro-datos-prod=shut nodo-jboss-qa=shut nodo-jboss3=shut pc-oficina-01=shut pc-oficina-02=shut srv-jenkins-01=shut srv-legado-jboss5-01=shut srv-mig-rhel8-01=shut srv-mig-rocky-01=shut srv-odoo-demo-01=shut srv-pagos-app-01=shut srv-pn8-rhel6-01=shut srv-prueba-rocky-01=shut srv-rocky-demo-01=shut srv-rocky-prueba-01=shut srv-servidor-de-ejemplo-01=shut srv-test-ubuntu-01=shut srv-test-vinculacion-01=shut 
+### /inventario/6 -> 200 30707 ms, 492 KB
+     24757 ms x56  http  paquetes.py:41:_leer_registro                 GET
+       570 ms x1   http  vistas.py:2957:http_responde                  http://192.168.122.15:5540/
+       437 ms x1   http  bloqueo_admin.py:23:estado                    https://faceadmin.34.176.114.77.sslip.io:8843/api/instancia/estado
+       241 ms x13  http  puntos.py:86:registro_generico                http://192.168.122.1:3000/api/v1/packages/repositorio/generic/etcd-ocp
+       207 ms x11  http  puntos.py:86:registro_generico                http://192.168.122.1:3000/api/v1/packages/repositorio/generic/maquina-
+       171 ms x1   http  puntos.py:85:registro_generico                http://192.168.122.1:3000/api/v1/packages/repositorio
+       154 ms x1   dns   bloqueo_admin.py:23:estado                    faceadmin.34.176.114.77.sslip.io
+       136 ms x5   http  puntos.py:118:_git_archivo                    http://192.168.122.1:3000/api/v1/repos/repositorio/respaldo-servidores
+        83 ms x4   http  alertas_objeto.py:190:reglas_monitoreo        http://127.0.0.1:9090/api/v1/rules
+        34 ms x1   http  vistas.py:3682:_gitea_respaldo                http://192.168.122.1:3000/api/v1/repos/repositorio/respaldo-servidores
+   PROF 30.706 __init__.py:55(__call__)
+   PROF 30.262 __init__.py:392(envoltura)
+   PROF 30.262 vistas.py:4926(equipo)
+   PROF 26.299 templates/equipo.html:4(root)
+   PROF 25.920 templates/base.html:4(root)
+   PROF 25.776 templates/equipo.html:63(block_cuerpo)
+   PROF 25.005 puntos.py:303(recuperacion)
+   PROF 25.004 puntos.py:267(paquetes_de_git)
+   PROF 25.004 puntos.py:278(_paquetes_de_git)
+   PROF 24.837 paquetes.py:68(en_registro)
+   PROF 24.837 paquetes.py:30(_leer_registro)
+   PROF 0.709 puntos.py:79(registro_generico)
+   PROF 0.602 vistas.py:2978(consola_plataforma)
+   PROF 0.583 vistas.py:2952(http_responde)
+   PROF 0.439 __init__.py:105(cargar_usuario)
+   PROF 0.438 bloqueo_admin.py:14(estado)
+   PROF 0.434 pruebas.py:204(estado)
+   PROF 0.414 vistas.py:74(autos_visibles)
+   PROF 0.391 pruebas.py:176(huella)
+   PROF 0.386 pruebas.py:224(no_certificadas)
+   PROF 0.382 pruebas.py:232(<setcomp>)
+   PROF 0.310 vistas.py:62(equipos_visibles)
+   PROF 0.309 inventario.py:69(segmentos_de)
+   PROF 0.301 inventario.py:62(segmentos_candidatos)
+   PROF 0.298 inventario.py:65(<listcomp>)
+   PROF 0.281 __init__.py:12(_safe_load)
+   PROF 0.241 inventario.py:33(cumple_regla)
+   PROF 0.213 pruebas.py:153(huella_externa)
+   PROF 0.208 alertas_objeto.py:274(contexto)
+   PROF 0.173 bd.py:180(q)
+### /inventario/6 -> 200 691 ms, 492 KB
+       193 ms x1   http  bloqueo_admin.py:23:estado                    https://faceadmin.34.176.114.77.sslip.io:8843/api/instancia/estado
+       169 ms x1   dns   bloqueo_admin.py:23:estado                    faceadmin.34.176.114.77.sslip.io
+        30 ms x1   http  vistas.py:3682:_gitea_respaldo                http://192.168.122.1:3000/api/v1/repos/repositorio/respaldo-servidores
+### /inventario/128 -> 200 763 ms, 362 KB
+   PROF 0.762 __init__.py:55(__call__)
+   PROF 0.759 __init__.py:392(envoltura)
+   PROF 0.759 vistas.py:4926(equipo)
+   PROF 0.284 vistas.py:62(equipos_visibles)
+   PROF 0.279 templates/equipo.html:4(root)
+   PROF 0.278 templates/base.html:4(root)
+   PROF 0.260 inventario.py:69(segmentos_de)
+   PROF 0.254 inventario.py:62(segmentos_candidatos)
+   PROF 0.251 inventario.py:65(<listcomp>)
+   PROF 0.204 inventario.py:33(cumple_regla)
+   PROF 0.196 templates/equipo.html:63(block_cuerpo)
+   PROF 0.164 bd.py:180(q)
+   PROF 0.139 inventario.py:14(normal)
+   PROF 0.098 cves.py:115(por_equipo)
+   PROF 0.097 vistas.py:620(_cves_equipo)
+   PROF 0.094 cves.py:134(_por_equipo)
+   PROF 0.076 __init__.py:212(_menu)
+   PROF 0.076 vistas.py:8476(menu_nav)
+   PROF 0.070 templates/_segmentos_maquina.html:4(root)
+   PROF 0.070 ficha_maquina.py:102(segmentos_ficha)
+   PROF 0.067 bd.py:195(j)
+   PROF 0.060 vistas.py:9354(_limites_recursos)
+### /inventario/131 -> 200 1115 ms, 247 KB
+       601 ms x1   tcp   ficha_maquina.py:28:_alcanza                  ('192.168.122.120', 3389)
+   PROF 1.114 __init__.py:55(__call__)
+   PROF 1.112 __init__.py:392(envoltura)
+   PROF 1.112 vistas.py:4926(equipo)
+   PROF 0.711 templates/equipo.html:4(root)
+   PROF 0.710 templates/base.html:4(root)
+   PROF 0.628 templates/equipo.html:63(block_cuerpo)
+   PROF 0.602 templates/_acceso_maquina.html:4(root)
+   PROF 0.602 ficha_maquina.py:40(acceso_directo)
+   PROF 0.602 ficha_maquina.py:21(_alcanza)
+   PROF 0.257 vistas.py:62(equipos_visibles)
+   PROF 0.237 inventario.py:69(segmentos_de)
+   PROF 0.231 inventario.py:62(segmentos_candidatos)
+   PROF 0.229 inventario.py:65(<listcomp>)
+   PROF 0.186 inventario.py:33(cumple_regla)
+   PROF 0.124 inventario.py:14(normal)
+   PROF 0.123 bd.py:180(q)
+   PROF 0.076 __init__.py:212(_menu)
+   PROF 0.076 vistas.py:8476(menu_nav)
+   PROF 0.072 vistas.py:620(_cves_equipo)
+   PROF 0.072 cves.py:115(por_equipo)
+   PROF 0.069 vistas.py:1419(_radar_maquina)
+   PROF 0.069 cves.py:134(_por_equipo)
+   PROF 0.068 vistas.py:1363(_instancias)
+   PROF 0.051 bd.py:195(j)
+### /inventario/29 -> 200 1008 ms, 397 KB
+       126 ms x1   http  alertas_objeto.py:190:reglas_monitoreo        https://thanos-querier-openshift-monitoring.apps.sno.invoke.lab/api/v1
+   PROF 1.008 __init__.py:55(__call__)
+   PROF 1.005 __init__.py:392(envoltura)
+   PROF 1.004 vistas.py:4926(equipo)
+   PROF 0.374 templates/equipo.html:4(root)
+   PROF 0.372 templates/base.html:4(root)
+   PROF 0.357 vistas.py:62(equipos_visibles)
+   PROF 0.327 inventario.py:69(segmentos_de)
+   PROF 0.319 inventario.py:62(segmentos_candidatos)
+   PROF 0.315 inventario.py:65(<listcomp>)
+   PROF 0.256 inventario.py:33(cumple_regla)
+   PROF 0.237 templates/equipo.html:63(block_cuerpo)
+   PROF 0.171 inventario.py:14(normal)
+   PROF 0.142 alertas_objeto.py:274(contexto)
+   PROF 0.135 alertas_objeto.py:172(reglas_monitoreo)
+   PROF 0.134 bd.py:180(q)
+   PROF 0.125 bd.py:195(j)
+   PROF 0.107 __init__.py:212(_menu)
+   PROF 0.107 vistas.py:8476(menu_nav)
+   PROF 0.072 vistas.py:9354(_limites_recursos)
+   PROF 0.057 vistas.py:4267(_nodo_equipo)
+   PROF 0.054 bd.py:181(<listcomp>)
+   PROF 0.052 inventario.py:23(valores)
+   PROF 0.051 vistas.py:620(_cves_equipo)
+   PROF 0.051 cves.py:115(por_equipo)
+### /inventario/29 -> 200 281 ms, 397 KB
+### /mapa -> 200 892 ms, 104 KB
+       427 ms x1   http  topologia.py:1084:_metricas_app               https://inteligencia-fiscalia.sno.34.176.42.56.sslip.io/api/salud
+       271 ms x1   dns   topologia.py:1084:_metricas_app               inteligencia-fiscalia.sno.34.176.42.56.sslip.io
+### /plataformas -> 200 1445 ms, 117 KB
+### /edge -> 200 231 ms, 122 KB
+        92 ms x1   http  mod_edge.py:296:malla                         GET
+### /nubes -> 200 925 ms, 94 KB
+curl lab/inventario/6: 302 0.237898s
+curl lab/inventario/29: 302 0.012848s
+--- fin: 2026-11-12T19:25:17-03:00 · código: 0
