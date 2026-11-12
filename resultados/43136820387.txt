@@ -1,0 +1,5 @@
+commit: 667e3e3984ece5ed454f6a2c86e2dedc443315d4
+inicio: 2026-11-11T22:49:35-03:00
+---
+FUENTE 1199 Cloud GCP · invoke-summit-cloud · Google Cloud gce cred 46 vars {"zones": ["southamerica-west1-a"], "compose": {"ansible_connection": "'winrm' if (disks | map(attribute='licenses', default=[]) | flatten | select('search', 'windows') | list | length) > 0 else 'ssh'", "ansible_port": "5986 if (disks | map(attribute='licenses', default=[]) | flatten | select('search', 'windows') | list | length) > 0 else 22", "ansible_winrm_transport": "'ntlm'", "ansible_winrm_scheme": "'https'", "ansible_winrm_server_cert_validation": "'ignore'"}} estado failed
+--- fin: 2026-11-11T22:49:42-03:00 · código: 0
