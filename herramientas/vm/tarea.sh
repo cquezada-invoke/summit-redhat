@@ -1,4 +1,2 @@
-# Tarea de prueba del canal: muestra que el runner corre en la VM.
-set -e
-echo "Host: $(hostname) · Usuario: $(whoami) · $(date)"
-systemctl is-active panel-cumplimiento.service || true
+cd ~/summit-redhat; source herramientas/pruebas/comun.sh >/dev/null 2>&1
+caso '{"auto":"FaceOps · Exportador de plataforma","equipo":"nodo-jboss","params":{"ex_plataforma":"redis"},"min":1,"caso":"diag"}' | cut -c1-600
