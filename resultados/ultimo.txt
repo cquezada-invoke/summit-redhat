@@ -1,31 +1,17 @@
-commit: 3693233cadb6c264da6ddb88c244965c7dc6a251
-inicio: 2026-11-11T23:29:22-03:00
+commit: 2ee4333e5b0f7d93a0fd89c43219bb2b08d56d7b
+inicio: 2026-11-11T23:38:04-03:00
 ---
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-grep: imagen.log: No such file or directory
-(sigue corriendo)
---- fin: 2026-11-11T23:37:42-03:00 · código: 0
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+CLIENTE {'id': 1, 'codigo': 'lab', 'nombre': 'Invoke Lab'}
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "/opt/faceops/app/bd.py", line 180, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: datos
+{"status":"success","data":{"resultType":"vector","result":[]}}
+{"status":"success","data":{"resultType":"vector","result":[]}}
+{"status":"success","data":{"resultType":"vector","result":[]}}
+{"status":"success","data":{"resultType":"vector","result":[]}}
+--- fin: 2026-11-11T23:38:11-03:00 · código: 0
