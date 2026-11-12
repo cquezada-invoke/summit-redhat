@@ -1,34 +1,17 @@
-commit: 9556ab59ff19c7739ce85f784176cc477e65e929
-inicio: 2026-11-12T20:03:03-03:00
+commit: f633cdd1a99def5370a7b8815e6a38139a29ecb8
+inicio: 2026-11-12T20:07:49-03:00
 ---
-desplegado: 120cf198 2026-11-12 22:42
-objetivos: {"n_equipos": 111, "n_visibles": 48, "encendida": 26, "apagada": 22, "apagada_nombre": "nodo-jboss-qa", "apagada_energia": "apagado", "ticket": 2380, "ticket_num": "FO-LAB-02380", "auto": 95, "n_tickets": 2380, "lector": 23}
-ROL lector: [('monitoreo', 'auditor'), ('servidores', 'auditor')]
-login → {"sin_codigo_url": "/ingresar?siguiente=/inventario?", "codigo_malo_rechazado": true, "pide_codigo": true, "url_final": "http://192.168.122.1:8110/demo-banco/", "s": 1.88, "usuario_en_cabecera": true}
-/ → {"ruta": "/", "status": 200, "ttfb_ms": 480, "dcl_ms": 527, "primera_dcl_ms": 1817, "errores": [], "datos": "productividad True · riesgo en cabecera False", "aviso_aap": 0}
-/riesgo/estado → {"ruta": "/riesgo/estado", "status": 200, "ttfb_ms": 7, "dcl_ms": 14, "primera_dcl_ms": 1027, "errores": [], "datos": "", "aviso_aap": 0}
-/buscar?q=nodo-vault → {"ruta": "/buscar?q=nodo-vault", "status": 200, "ttfb_ms": 83, "dcl_ms": 121, "primera_dcl_ms": 154, "errores": [], "datos": "encuentra nodo-vault True", "aviso_aap": 0}
-/automatizaciones → {"ruta": "/automatizaciones", "status": 200, "ttfb_ms": 96, "dcl_ms": 152, "primera_dcl_ms": 207, "errores": [], "datos": "acciones listadas 100 · bloqueadas marcadas 2", "aviso_aap": 0}
-/automatizaciones/95 → {"ruta": "/automatizaciones/95", "status": 200, "ttfb_ms": 1060, "dcl_ms": 1099, "primera_dcl_ms": 1305, "errores": [], "datos": "ficha acción «Encender» True", "aviso_aap": 0}
-/tickets → {"ruta": "/tickets", "status": 200, "ttfb_ms": 68, "dcl_ms": 270, "primera_dcl_ms": 295, "errores": [], "datos": "filas 520 · FO-LAB 10", "aviso_aap": 0}
-/tickets/2380 → {"ruta": "/tickets/2380", "status": 200, "ttfb_ms": 642, "dcl_ms": 683, "primera_dcl_ms": 1023, "errores": [], "datos": "FO-LAB-02380 visible True · estado exitoso True", "aviso_aap": 0}
-/tickets/2380/estado → {"ruta": "/tickets/2380/estado", "status": 200, "ttfb_ms": 3, "dcl_ms": 8, "primera_dcl_ms": 11, "errores": [], "datos": "{\"cola\":\"\",\"ejecucion_s\":16,\"estado\":\"exitoso\",\"job\":29401,\"numero\":\"FO-LAB-0238", "aviso_aap": 0}
-/inventario → {"ruta": "/inventario", "status": 200, "ttfb_ms": 947, "dcl_ms": 978, "primera_dcl_ms": 1258, "errores": [], "datos": "filas 19 · encendido 2 · apagado 0", "aviso_aap": 0}
-/inventario/26 → {"ruta": "/inventario/26", "status": 200, "ttfb_ms": 348, "dcl_ms": 443, "primera_dcl_ms": 3226, "errores": [], "datos": "nombre visible True · dueño True", "aviso_aap": 0}
-/inventario/22 → {"ruta": "/inventario/22", "status": 200, "ttfb_ms": 334, "dcl_ms": 417, "primera_dcl_ms": 3568, "errores": [], "datos": "nombre visible True · dueño True", "aviso_aap": 0}
-/inventario/26/consola → {"ruta": "/inventario/26/consola", "status": 200, "ttfb_ms": 3, "dcl_ms": 11, "primera_dcl_ms": 13, "errores": [["console", "Failed to load resource: the server responded with a status of 404 (NOT FOUND)"], ["console", "Failed to load resource: the server responded with a status of 404 (NOT FOUND)"], ["console", "Failed to load resource: the server responded with a status of 404 (NOT FOUND)"]], "datos": "terminal False", "aviso_aap": 0}
-/aprobaciones/trazabilidad → {"ruta": "/aprobaciones/trazabilidad", "status": 200, "ttfb_ms": 78, "dcl_ms": 110, "primera_dcl_ms": 209, "errores": [], "datos": "filas 19", "aviso_aap": 0}
-/monitoreo/eventos-aap → {"ruta": "/monitoreo/eventos-aap", "status": 200, "ttfb_ms": 68, "dcl_ms": 146, "primera_dcl_ms": 1153, "errores": [], "datos": "filas 233", "aviso_aap": 0}
-/cola → {"ruta": "/cola", "status": 200, "ttfb_ms": 40, "dcl_ms": 80, "primera_dcl_ms": 120, "errores": [], "datos": "lanzados/recientes 6 · latido True", "aviso_aap": 0}
-/configuracion/usuarios → {"ruta": "/configuracion/usuarios", "status": 200, "ttfb_ms": 37, "dcl_ms": 77, "primera_dcl_ms": 77, "errores": [], "datos": "qa.lector listado False · grupos 0", "aviso_aap": 0}
-/configuracion/pruebas → {"ruta": "/configuracion/pruebas", "status": 200, "ttfb_ms": 144, "dcl_ms": 224, "primera_dcl_ms": 244, "errores": [], "datos": "certificada 1 · sin probar 11", "aviso_aap": 0}
-/admin/catalogo → {"ruta": "/admin/catalogo", "status": 200, "ttfb_ms": 47, "dcl_ms": 470, "primera_dcl_ms": 456, "errores": [], "datos": "filas 0", "aviso_aap": 0}
-/auditoria → {"ruta": "/auditoria", "status": 200, "ttfb_ms": 37, "dcl_ms": 175, "primera_dcl_ms": 175, "errores": [], "datos": "ingreso de qa.nucleo registrado True", "aviso_aap": 0}
-/cuenta/doble-factor → {"ruta": "/cuenta/doble-factor", "status": 200, "ttfb_ms": 29, "dcl_ms": 67, "primera_dcl_ms": 67, "errores": [], "datos": "2FA activo True", "aviso_aap": 0}
-/admin/ → {"ruta": "/admin/", "status": 200, "ttfb_ms": 75, "dcl_ms": 101, "primera_dcl_ms": 120, "errores": [], "datos": "datos demo ofrecido True", "aviso_aap": 0}
-hora_local → "501 marcas de hora · ej. UTC 23:03 → muestra «12-11-2026 20:03» · esperado Santiago 20:03 · ok True"
-ver_como → {"post": 403, "muestra_lector": false, "texto": "Forbidden |  | You don't have the permission to access the requested resource. It is either read-protected or not readable by the server.", "volvio": true}
-movil → {"/": {"sw": 390, "cw": 390, "bw": 567}, "/buscar?q=nodo-vault": {"sw": 390, "cw": 390, "bw": 567}, "/automatizaciones": {"sw": 390, "cw": 390, "bw": 567}, "/automatizaciones/95": {"sw": 390, "cw": 390, "bw": 567}, "/tickets": {"sw": 390, "cw": 390, "bw": 567}, "/tickets/2380": {"sw": 390, "cw": 390, "bw": 567}, "/inventario": {"sw": 390, "cw": 390, "bw": 567}, "/inventario/26": {"sw": 390, "cw": 390, "bw": 567}, "/inventario/22": {"sw": 390, "cw": 390, "bw": 567}, "/inventario/26/consola": {"sw": 980, "cw": 980, "bw": 964}, "/aprobaciones/trazabilidad": {"sw": 390, "cw": 390, "bw": 567}, "/monitoreo/eventos-aap": {"sw": 390, "cw": 390, "bw": 567}, "/cola": {"sw": 390, "cw": 390, "bw": 567}, "/configuracion/usuarios": {"sw": 390, "cw": 390, "bw": 567}, "/configuracion/pruebas": {"sw": 390, "cw": 390, "bw": 567}, "/admin/catalogo": {"sw": 390, "cw": 390, "bw": 531}, "/auditoria": {"sw": 390, "cw": 390, "bw": 567}, "/cuenta/doble-factor": {"sw": 390, "cw": 390, "bw": 567}, "/admin/": {"sw": 390, "cw": 390, "bw": 531}}
-login_publico_2fa → {"sin_codigo_url": "/ingresar?siguiente=/inventario?", "codigo_malo_rechazado": true, "pide_codigo": true, "url_final": "/demo-banco/", "entra": true, "status_final": 200}
-lector → {"/": 403, "/inventario": 200, "/inventario/26": 200, "/cola": 403, "/configuracion/usuarios": 403, "/admin/catalogo": 403, "/admin/usuarios": 403, "POST ejecutar como lector": [400, "{\"error\":\"Esta acci\\u00f3n no aplica a nodo-jboss-qa: esta acci\\u00f3n elige sus equipos en el formulario, no se lanza d"]}
---- fin: 2026-11-12T20:06:28-03:00 · código: 0
+EP_MENU consola.inicio: None | cola: None
+lector / 403 
+lector /inventario 200 
+lector /tickets 403 
+lector /cola 403 
+lector /monitoreo/eventos-aap 403 
+EP_MENU consola.inicio (tras cargar menú): None
+PERFIL / 200 0.94s :: 0.92s __init__.py:392:envoltura | 0.92s vistas.py:443:inicio | 0.43s topologia.py:1033:estrella_parque | 0.43s topologia.py:917:resumen_segmento | 0.29s arquitectura.py:163:vigentes | 0.28s arquitectura.py:144:_modelo | 0.26s bd.py:180:q | 0.25s arquitectura.py:325:flujos_de | 0.22s topologia.py:875:resumen_segmentos | 0.21s panel_extra.py:92:creditos | 0.20s creditos.py:74:estado | 0.19s creditos.py:58:reservado | 0.19s economia.py:207:estimar | 0.18s economia.py:170:regla | 0.15s topologia.py:1164:salud_segmento
+PERFIL /inventario 200 1.08s :: 1.07s __init__.py:392:envoltura | 1.07s vistas.py:2559:inventario | 0.90s riesgo.py:75:evaluar | 0.71s deuda.py:179:cobertura | 0.65s vistas.py:1454:_portada_inv | 0.65s vistas.py:1334:_resumen_grupo | 0.55s ~:0:<method 'execute' of 'sqlite3.Connection' objects> | 0.54s bd.py:184:q1 | 0.18s kb.py:84:q | 0.14s economia.py:69:catalogo_tareas | 0.12s kb.py:73:con | 0.07s vistas.py:62:equipos_visibles | 0.05s inventario.py:90:segmentos_de | 0.05s inventario.html:4:root | 0.05s base.html:4:root
+PERFIL /tickets/2380 200 0.07s :: 0.06s __init__.py:392:envoltura | 0.06s vistas.py:1174:ticket | 0.05s ticket.html:4:root | 0.05s base.html:4:root | 0.04s __init__.py:212:_menu | 0.04s vistas.py:8492:menu_nav | 0.02s vistas.py:62:equipos_visibles | 0.02s inventario.py:90:segmentos_de | 0.02s bd.py:180:q | 0.02s inventario.py:83:segmentos_candidatos | 0.02s inventario.py:86:<listcomp> | 0.01s inventario.py:54:cumple_regla | 0.01s vistas.py:74:autos_visibles | 0.01s ~:0:<method 'execute' of 'sqlite3.Connection' objects> | 0.01s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects>
+PERFIL /automatizaciones/95 200 0.10s :: 0.09s __init__.py:392:envoltura | 0.09s vistas.py:830:automatizacion | 0.07s automatizacion.html:4:root | 0.07s base.html:4:root | 0.06s __init__.py:212:_menu | 0.06s vistas.py:8492:menu_nav | 0.03s vistas.py:62:equipos_visibles | 0.03s bd.py:180:q | 0.02s inventario.py:90:segmentos_de | 0.02s inventario.py:83:segmentos_candidatos | 0.02s inventario.py:86:<listcomp> | 0.02s inventario.py:54:cumple_regla | 0.01s vistas.py:74:autos_visibles | 0.01s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects> | 0.01s ~:0:<method 'execute' of 'sqlite3.Connection' objects>
+PERFIL /inventario/26 200 0.49s :: 0.46s __init__.py:392:envoltura | 0.46s vistas.py:4939:equipo | 0.16s equipo.html:4:root | 0.15s base.html:4:root | 0.11s vistas.py:62:equipos_visibles | 0.09s equipo.html:63:block_cuerpo | 0.09s inventario.py:90:segmentos_de | 0.08s bd.py:180:q | 0.08s inventario.py:83:segmentos_candidatos | 0.08s inventario.py:86:<listcomp> | 0.07s inventario.py:54:cumple_regla | 0.06s ~:0:<method 'execute' of 'sqlite3.Connection' objects> | 0.05s __init__.py:212:_menu | 0.05s vistas.py:8492:menu_nav | 0.05s vistas.py:1419:_radar_maquina
+ 20:08:03 up  1:40,  0 users,  load average: 12.59, 10.32, 8.34
+--- fin: 2026-11-12T20:08:03-03:00 · código: 0
