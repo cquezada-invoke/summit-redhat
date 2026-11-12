@@ -7,7 +7,7 @@ import os
 import time
 from datetime import datetime, timezone
 
-from .aap import AAP, ErrorAAP
+from .aap import AAP, AAPNoDisponible, ErrorAAP
 
 INVENTARIO = "Certificados · Inventario"
 CA_PUBLICA = os.environ.get("FACEOPS_CA_PUBLICA", "https://pki.34.176.42.56.sslip.io")
@@ -124,12 +124,28 @@ def _demo(cliente):
 
 
 def leer(cliente, equipos):
+    """Panel de certificados. En una página nunca se llama a AAP: se entrega la última lectura (la renueva un hilo de
+    fondo); sin lectura previa se espera a lo más 1 s y, si no alcanza, el panel sale con lo local (sin error: si AAP está
+    caído lo dice el banner global)."""
+    try:
+        from flask import has_request_context
+        en_pagina = has_request_context()
+    except Exception:  # noqa: BLE001
+        en_pagina = False
+    if en_pagina:
+        return leer_sin_esperar(cliente, equipos, espera=1.0) or _leer_aap(cliente, equipos, sin_aap=True)
+    return _leer_aap(cliente, equipos)
+
+
+def _leer_aap(cliente, equipos, sin_aap=False):
     k = cliente["id"]
-    if k in _cache and time.time() - _cache[k][0] < 60:
+    if not sin_aap and k in _cache and time.time() - _cache[k][0] < 60:
         return _cache[k][1]
     errores, certs, inv, jb, jt, uso = [], [], {}, None, None, {}
     por_serie, actual, prog, aap_url = {}, {}, None, ""
     try:
+        if sin_aap:
+            raise AAPNoDisponible("sin lectura aún")
         aap = AAP.de_cliente(cliente)
         aap_url = aap.publica
         inv, jb, jt = _inventario(aap)
@@ -140,7 +156,14 @@ def leer(cliente, equipos):
         prog = min((s_.get("next_run") for s_ in sch if s_.get("next_run")), default=None)
         if not jb:
             errores.append(f"«{INVENTARIO}» aún no tiene una ejecución exitosa en AAP")
+    except AAPNoDisponible:   # AAP caído: lo avisa el banner global; se conserva la última lectura buena
+        if not sin_aap and _cache.get(k):
+            _cache[k] = (time.time() - 30, _cache[k][1])   # reintento en 30 s
+            return _cache[k][1]
     except ErrorAAP as e:
+        if _cache.get(k) and not sin_aap and not _cache[k][1].get("errores"):
+            _cache[k] = (time.time() - 30, _cache[k][1])
+            return _cache[k][1]
         errores.append(f"AAP: {str(e)[:160]}")
     demo = _demo(cliente)
     for d in demo:
@@ -222,7 +245,8 @@ def leer(cliente, equipos):
                  "vencidos": sum(1 for f in serv if f["estado"] == "vencido"), "auto": sum(1 for f in serv if f["auto"]),
                  "renovaciones": sum(1 for g in por_serie.values() if g["accion"] == "renovación"),
                  "proximo": min((f for f in serv), key=lambda f: f["dias"] if f["dias"] is not None else 99999, default=None)}}
-    _cache[k] = (time.time(), r)
+    if not sin_aap:
+        _cache[k] = (time.time(), r)
     return r
 
 

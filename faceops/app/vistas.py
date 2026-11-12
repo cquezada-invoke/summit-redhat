@@ -954,7 +954,7 @@ def automatizacion(aid):
                               {"ambientes": [x for x in request.form.getlist("f_ambiente") if x][:1], "infraestructura": request.form.getlist("f_infra")})
             from .operacion import requiere_aprobacion
             amb = (j(t["filtros"], {}).get("ambientes") or [None])[0]
-            flash(f"{t['numero']} creado y enviado a AAP" + (" (esperará la aprobación en AAP)" if requiere_aprobacion(a, amb) else ""), "ok")
+            flash(f"{t['numero']} creado · en cola para lanzarse en AAP" + (" (esperará la aprobación en AAP)" if requiere_aprobacion(a, amb) else ""), "ok")
             return redirect(url_for("consola.ticket", tid=t["id"]))
         except PermissionError as e:
             flash(str(e), "error")
@@ -2791,8 +2791,11 @@ def ticket_estado(tid):
     t = q1("SELECT numero, estado, segmento, dur_ejecucion_s, resultado FROM tickets WHERE id=? AND cliente_id=?", tid, g.cliente["id"])
     if not t or (t["segmento"] and not puede_ver_segmento(g.usuario, g.cliente["id"], t["segmento"])):
         abort(404)
+    from .cola import info_ticket
+    cq = info_ticket(tid) or {}
     return {"numero": t["numero"], "estado": t["estado"], "ejecucion_s": t["dur_ejecucion_s"],
-            "resultado": (t["resultado"] or "")[:300]}
+            "resultado": (t["resultado"] or "")[:300],
+            "cola": cq.get("texto") if cq.get("estado") in ("pendiente", "en_curso") else "", "job": cq.get("job_id")}
 
 
 def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
@@ -8415,7 +8418,7 @@ def menu_nav():
               "consola.ticket": "consola.radar_salud", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.ecosistema", "consola.ciclo_vida_version": "consola.ecosistema", "consola.stack_tecnologico": "consola.ecosistema",
               "consola.modernizacion_apps": "consola.ecosistema", "consola.so_modernizacion": "consola.sistemas_operativos", "consola.so_actualizaciones": "consola.sistemas_operativos",
-              "consola.tickets": "consola.radar_salud", "consola.aprobaciones_pendientes": "consola.radar_salud", "consola.eventos_aap": "consola.radar_salud", "consola.aprobaciones_traza": "consola.radar_salud"}.get(request.endpoint, request.endpoint)
+              "consola.tickets": "consola.radar_salud", "consola.cola_acciones": "consola.radar_salud", "consola.aprobaciones_pendientes": "consola.radar_salud", "consola.eventos_aap": "consola.radar_salud", "consola.aprobaciones_traza": "consola.radar_salud"}.get(request.endpoint, request.endpoint)
     ep_ = request.endpoint or ""
     if ep_.startswith(("consola.devsecops", "consola.buenas_practicas", "consola.stack_")):
         activo = "consola.ecosistema"
@@ -8473,6 +8476,7 @@ def menu_nav():
                  ("consola.radar_salud", "Monitoreo", "alertas", [("Radar de salud", {}), ("Alertas", {"_ep": "consola.alertas"}), ("Eventos de AAP", {"_ep": "consola.eventos_aap"}), ("Productividad", {"_ep": "consola.inicio", "_ancla": "sec-productividad"}), ("Tickets", {"_ep": "consola.tickets", "_titulo": True}), ("Todos", {"_ep": "consola.tickets", "_sub": True}),
                                                              ("En ejecución", {"_ep": "consola.tickets", "estado": "en_ejecucion", "_sub": True}), ("Exitosos", {"_ep": "consola.tickets", "estado": "exitoso", "_sub": True}),
                                                              ("Fallidos", {"_ep": "consola.tickets", "estado": "fallido", "_sub": True}),
+                                                             ("Cola de acciones", {"_ep": "consola.cola_acciones", "_sub": True}),
                                                              ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}),
                                                              ("KPI y OKR", {"_ep": "consola.kpi_okr"}),   # «Control de deuda» quitado del menú por ahora
                                                              ("ITIL (temporal)", {"_ep": "consola.itil"})]),   # «Arquitectura modular» quitada del menú

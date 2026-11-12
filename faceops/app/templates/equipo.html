@@ -503,7 +503,7 @@ const h=location.hash.match(/^#p-(.+)/);if(h){const x=caj.querySelector('.cajon-
 (()=>{const EST={{ url_for('consola.ticket_estado', tid=0)|tojson }},URL={{ url_for('consola.equipo_agente', eid=e.id)|tojson }};
 const ABIERTO=['pendiente_aprobacion','en_cola','en_ejecucion','en curso','ejecutando','esperando'];
 const vigilar=a=>{const tick=()=>fetch(EST.replace(/0$/,a.dataset.agPoll)).then(r=>r.json()).then(t=>{a.className='ult-t e-'+t.estado;
-  if(ABIERTO.includes(t.estado)){a.textContent='En curso · '+t.numero;setTimeout(tick,8000);return;}
+  if(ABIERTO.includes(t.estado)){a.textContent='En curso · '+t.numero+(t.cola?' · '+t.cola:'');a.title=t.cola||a.title;setTimeout(tick,8000);return;}
   if(t.estado==='exitoso'){const s=document.createElement('span');s.className='chip e-exitoso';s.style.fontSize='11px';s.innerHTML='Aplicada · <a href="'+a.href+'">'+t.numero+'</a>';a.replaceWith(s);}
   else a.textContent=t.numero+' · '+(t.estado||'').replace(/_/g,' ');}).catch(()=>setTimeout(tick,15000));tick();};
 document.querySelectorAll('[data-ag-poll]').forEach(vigilar);

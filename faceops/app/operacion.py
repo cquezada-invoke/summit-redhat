@@ -758,8 +758,18 @@ def _simular(ticket_id):
 
 
 def ejecutar(ticket_id, secretos=None, aprobado=False):
+    """Encola el lanzamiento del ticket (app/cola.py): la petición web no llama a AAP y responde de inmediato. El proceso de la
+    cola revisa la salud y la capacidad de AAP y lo lanza con lanzar_ahora(); las claves esperan cifradas en la cola."""
     if os.environ.get("FACEOPS_MAQUETA") == "1":
         return _simular(ticket_id)
+    from .cola import encolar
+    t = q1("SELECT usuario_id FROM tickets WHERE id=?", ticket_id) or {}
+    encolar(ticket_id, "lanzar", {"aprobado": bool(aprobado)}, secretos,
+            usuario=(q1("SELECT usuario FROM usuarios WHERE id=?", t.get("usuario_id")) or {}).get("usuario", ""))
+
+
+def lanzar_ahora(ticket_id, secretos=None, aprobado=False):
+    """Lanza el ticket en AAP (solo desde el proceso de la cola). AAPNoDisponible sube a la cola, que reintenta."""
     from .confianza import CONTEXTO
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
@@ -951,11 +961,12 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             tipo, id_ = objetivo_aap(aap, a, amb)
         job = aap.lanzar(tipo, id_, extra_vars=params, limite=t["limite"] or None)
         ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
-    except AAPNoDisponible as e:   # AAP caído: el ticket queda en FaceOps «En espera de AAP» y el vigía lo lanza al volver
-        ej("UPDATE tickets SET estado='en_cola', resultado=? WHERE id=?", f"{EN_ESPERA_AAP} · {str(e)[:300]}", ticket_id)
+    except AAPNoDisponible:   # AAP caído: el ticket sigue en cola y la cola lo reintenta cuando AAP vuelve
+        raise
     except ErrorAAP as e:
         ej("UPDATE tickets SET estado='fallido', resultado=?, fin=? WHERE id=?", str(e)[:1000], ahora(), ticket_id)
         conector(c).cerrar(q1("SELECT * FROM tickets WHERE id=?", ticket_id), a)
+        raise
 
 
 def resolver_aprobacion(usuario, ticket_id, aprobar, comentario=""):
@@ -972,13 +983,9 @@ def resolver_aprobacion(usuario, ticket_id, aprobar, comentario=""):
     if et:
         cerrar(t["id"], et["etapa"], "aprobada" if aprobar else "rechazada", usuario["usuario"])
     ap_id = (et or {}).get("aap_aprobacion_id") or t["aap_aprobacion_id"]
-    if ap_id:
-        c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
-        try:
-            AAP.de_cliente(c).responder_aprobacion(ap_id, aprobar)
-        except ErrorAAP as x:   # ya respondida (otro clic, o en AAP): no es un error para quien aprueba
-            if "already been approved or denied" not in str(x):
-                raise
+    if ap_id:   # la respuesta a AAP va por la cola de acciones: quien aprueba no espera a AAP
+        from .cola import encolar
+        encolar(ticket_id, "aprobar", {"aprobacion": ap_id, "aprobar": bool(aprobar), "etapa": (et or {}).get("etapa")}, usuario=usuario["usuario"])
         ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=? WHERE id=?", usuario["id"], comentario,
            f"FaceOps ({usuario['usuario']}) → AAP", ticket_id)
         # sin etapas pendientes, el ticket sale de «esperando aprobación» de inmediato (no espera la próxima lectura de AAP)
@@ -997,7 +1004,7 @@ def resolver_aprobacion(usuario, ticket_id, aprobar, comentario=""):
            f"FaceOps ({usuario['usuario']})", ticket_id)
         from .deuda import cerrar_ticket as cerrar_deuda
         cerrar_deuda(t, "aprobado")
-        threading.Thread(target=ejecutar, args=(ticket_id, None, True), daemon=True).start()
+        ejecutar(ticket_id, None, True)   # se encola: el proceso de la cola lo lanza en AAP
     auditar(usuario["usuario"], t["cliente_id"], "aprobar" if aprobar else "rechazar", t["numero"],
             {"comentario": comentario, "etapa": (et or {}).get("etapa"), "area": (et or {}).get("area"), "aprobacion_aap": t["aap_aprobacion_id"]})
 
@@ -1051,6 +1058,9 @@ def _revisar_aprobaciones(aap, t):
         if job.get("status") == "failed":
             final = "rechazado"
     if pendiente and not final:
+        from .cola import aprobacion_en_cola
+        if aprobacion_en_cola(t["id"], pendiente["id"]):   # ya respondida en FaceOps: la respuesta va en la cola hacia AAP
+            return None
         if t["estado"] != "pendiente_aprobacion" or t["aap_aprobacion_id"] != pendiente["id"]:
             ej("UPDATE tickets SET estado='pendiente_aprobacion', aap_aprobacion_id=? WHERE id=?", pendiente["id"], t["id"])
             auditar("AAP", t["cliente_id"], "espera aprobación en AAP", t["numero"], {"aprobacion": pendiente.get("name"), "id": pendiente["id"]})
@@ -1166,16 +1176,15 @@ def actualizar_tickets():
                     o_.cerrar(t2, a_)
     from datetime import datetime as _dt, timedelta, timezone as _tz
     tope_ = (_dt.now(_tz.utc) - timedelta(minutes=15)).isoformat(timespec="seconds")
-    from .aap import disponible as _aap_ok
-    for t in q("SELECT * FROM tickets WHERE estado='en_cola' AND aap_job_id IS NULL AND resultado LIKE ?", EN_ESPERA_AAP + "%"):
-        c_ = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"]) or {}
-        if _aap_ok(c_.get("aap_url")):   # AAP volvió: se lanza lo que quedó en espera
-            try:
-                ejecutar(t["id"])
-            except Exception:  # noqa: BLE001
-                pass
+    from .cola import _tabla as _cola_tabla, encolar as _encolar
+    _cola_tabla()
+    for t in q("SELECT * FROM tickets WHERE estado='en_cola' AND aap_job_id IS NULL AND resultado LIKE ? "
+               "AND id NOT IN (SELECT ticket_id FROM cola_acciones)", EN_ESPERA_AAP + "%"):   # los que esperaban antes de la cola
+        _encolar(t["id"], "lanzar")
+    # sin trabajo vivo en la cola de acciones y sin job en AAP tras 15 min: el ticket no queda pegado
     for t in q("SELECT * FROM tickets WHERE estado IN ('en_cola','en_ejecucion') AND aap_job_id IS NULL AND creado < ? "
-               "AND COALESCE(resultado,'') NOT LIKE ?", tope_, EN_ESPERA_AAP + "%"):
+               "AND COALESCE(resultado,'') NOT LIKE ? AND id NOT IN (SELECT ticket_id FROM cola_acciones WHERE estado IN ('pendiente','en_curso'))",
+               tope_, EN_ESPERA_AAP + "%"):
         ej("UPDATE tickets SET estado='fallido', fin=?, resultado=? WHERE id=?", ahora(),
            "No llegó a ejecutarse en AAP (no se pudo lanzar en 15 min): vuelve a solicitarlo; FaceOps no deja tickets pegados", t["id"])
     for t in q("SELECT * FROM tickets WHERE estado IN ('en_ejecucion','pendiente_aprobacion') AND aap_job_id IS NOT NULL"):

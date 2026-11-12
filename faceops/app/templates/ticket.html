@@ -28,6 +28,11 @@ setInterval(()=>fetch(b.dataset.url).then(r=>r.json()).then(x=>{b.innerHTML=x.ht
   if(ultimo!==x.estado||x.aprobable!==aprobIni){ if(x.aprobable||x.estado==='pendiente_aprobacion'){location.hash='aprobar';} location.reload(); return; }
   ultimo=x.estado}).catch(()=>{}),3000)})();
 if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap){ap.scrollIntoView({behavior:'smooth',block:'center'});ap.classList.add('resalta');}}</script>{% endif %}
+{% set cq = cola_ticket(t.id) %}{% if cq %}<div class="card fila" id="cola-t" style="margin-bottom:12px;gap:10px;padding:10px 14px" data-vivo="{{ 1 if cq.estado in ('pendiente','en_curso') else 0 }}" data-url="{{ url_for('consola.ticket_estado', tid=t.id) }}">
+  <span class="sub">Lanzamiento en AAP</span> <span class="chip {{ {'pendiente':'e-en_cola','en_curso':'e-en_ejecucion','lanzado':'e-exitoso','fallido':'e-fallido'}.get(cq.estado, 'e-cancelado') }}" id="cola-t-txt">{{ cq.texto }}</span>
+  <a class="der sub" style="font-size:12.5px" href="{{ url_for('consola.cola_acciones') }}">Cola de acciones ›</a></div>
+<script>(()=>{const b=document.getElementById('cola-t');if(!b||b.dataset.vivo!=='1')return;const x=document.getElementById('cola-t-txt');
+const tick=()=>fetch(b.dataset.url,{cache:'no-store'}).then(r=>r.json()).then(t=>{if(t.cola){x.textContent=t.cola;setTimeout(tick,3000);}else location.reload();}).catch(()=>setTimeout(tick,8000));setTimeout(tick,3000);})();</script>{% endif %}
 {% if t.estado in ('en_ejecucion','en_cola') %}<p class="sub">Se actualiza solo mientras AAP ejecuta…</p>{% endif %}
 <div class="grid g2">
   <div class="card ficha"><h2>Solicitud</h2><dl>

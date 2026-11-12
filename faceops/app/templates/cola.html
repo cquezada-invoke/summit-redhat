@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% from "_macros.html" import est %}{% block titulo %}Cola de acciones{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Cola de acciones</h1><p class="sub">Crear o aprobar un ticket no espera a AAP: queda aquí y se lanza en cuanto AAP está disponible y con capacidad</p></div>
+<div class="der sub" style="font-size:13px;text-align:right">
+  {% if aap.revisado is defined %}AAP: {% if aap.ok %}<span class="chip e-exitoso">disponible</span>{% else %}<span class="chip e-fallido">{{ aap.motivo }}</span>{% endif %}
+  {% if aap.capacidad is defined %} · capacidad libre {{ aap.capacidad }} · {{ aap.pendientes }} trabajos pendientes en AAP{% endif %}{% else %}AAP: sin revisar aún{% endif %}<br>
+  {% if latido is none %}<span class="chip e-fallido">el proceso de la cola aún no ha corrido</span>{% elif latido > 60 %}<span class="chip e-fallido">el proceso de la cola no responde hace {{ latido }} s</span>{% else %}proceso de la cola activo{% endif %}
+</div></div>
+{% macro tabla(filas, acciones) %}
+<div class="card" style="padding:0">{% if filas %}<table><tr><th>Ticket</th><th>Acción</th><th>Trabajo</th><th>Estado</th><th>Intentos</th><th>Motivo</th><th>Encolado</th>{% if acciones and escritura %}<th></th>{% endif %}</tr>
+{% for f in filas %}<tr><td><a href="{{ url_for('consola.ticket', tid=f.ticket_id) }}">{{ f.numero }}</a></td><td>{{ f.accion or '—' }}</td>
+<td>{{ 'Lanzar en AAP' if f.tipo == 'lanzar' else ('Responder aprobación en AAP (' ~ ('aprobada' if f.datos.aprobar else 'rechazada') ~ ')') }}</td>
+<td>{% if f.estado == 'pendiente' %}<span class="chip e-en_cola">En cola · posición {{ f.posicion }}</span>{% elif f.estado == 'en_curso' %}<span class="chip e-en_ejecucion">Lanzando</span>{% elif f.estado == 'lanzado' %}<span class="chip e-exitoso">{{ 'Lanzado · job #' ~ f.job_id if f.job_id else 'Respondida en AAP' }}</span>{% elif f.estado == 'fallido' %}<span class="chip e-fallido">Fallido</span>{% else %}<span class="chip e-cancelado">{{ f.etiqueta }}</span>{% endif %}</td>
+<td>{{ f.intentos }}</td><td class="sub" style="max-width:360px">{{ f.motivo or '—' }}</td><td>{{ f.creado|fecha if f.creado }}</td>
+{% if acciones and escritura %}<td style="white-space:nowrap;text-align:right">
+  {% if f.estado in ('fallido', 'pendiente') %}<form method="post" action="{{ url_for('consola.cola_accion', cid=f.id, accion='reintentar') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico">{{ 'Reintentar' if f.estado == 'fallido' else 'Reintentar ahora' }}</button></form>{% endif %}
+  {% if f.estado in ('fallido', 'pendiente') %}<form method="post" action="{{ url_for('consola.cola_accion', cid=f.id, accion='cancelar') }}" style="display:inline" onsubmit="return confirm('¿Cancelar {{ f.numero }}? No se lanzará en AAP{{ ' y el ticket queda cancelado' if f.tipo == 'lanzar' }}.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris">Cancelar</button></form>{% endif %}
+</td>{% endif %}</tr>{% endfor %}</table>{% else %}<p class="vacio">Nada aquí.</p>{% endif %}</div>
+{% endmacro %}
+<h2>Pendientes y en curso</h2>{{ tabla(grupos.activos, true) }}
+<h2 style="margin-top:18px">Fallidos</h2>{{ tabla(grupos.fallidos, true) }}
+<h2 style="margin-top:18px">Lanzados y cancelados (últimos 7 días)</h2>{{ tabla(grupos.recientes, false) }}
+<script>setTimeout(()=>{if(!document.querySelector('form:focus-within'))location.reload();},10000);</script>
+{% endblock %}

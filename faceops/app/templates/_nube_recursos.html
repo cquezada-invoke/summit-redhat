@@ -88,7 +88,7 @@ function post(url,datos){const fd=new FormData();fd.append('_csrf',CSRF);for(con
 const CLS=e=>['pendiente_aprobacion','en_cola','en_ejecucion','pendiente'].includes(e)?['curso','En curso']:e==='exitoso'?['ok','Aplicada']:['rechazado','cancelado'].includes(e)?['nd',e.charAt(0).toUpperCase()+e.slice(1)]:['mal','Falló'];
 function chip(t){const [c,x]=CLS(t.estado||'pendiente_aprobacion');const a=document.createElement('a');a.className='chip nr-chip-'+c;a.href=t.url||'#';a.dataset.nrTk=t.id;a.textContent=x+' · '+t.numero;if(t.accion)a.title=t.accion;return a;}
 function seguir(a){const id=a.dataset.nrTk;if(!id||a.dataset.sig)return;a.dataset.sig='1';
- const tick=()=>fetch(U.tk.replace(/\/0\/estado$/,'/'+id+'/estado')).then(r=>r.json()).then(s=>{const [c,x]=CLS(s.estado);a.className='chip nr-chip-'+c;a.textContent=x+' · '+s.numero;if(s.resultado)a.title=s.resultado;
+ const tick=()=>fetch(U.tk.replace(/\/0\/estado$/,'/'+id+'/estado')).then(r=>r.json()).then(s=>{const [c,x]=CLS(s.estado);a.className='chip nr-chip-'+c;a.textContent=x+' · '+s.numero+(s.cola?' · '+s.cola:'');if(s.cola||s.resultado)a.title=s.cola||s.resultado;
   if(c==='curso')setTimeout(tick,6000);}).catch(()=>setTimeout(tick,15000));tick();}
 document.querySelectorAll('[data-nr-tk]').forEach(a=>{if(a.classList.contains('nr-chip-curso'))seguir(a);});
 function ticketCreado(t,donde){aviso(t.numero+' creado: '+(t.accion||t.auto||'')+' espera aprobación en AAP','ok');if(window.fxNuevoTicket)fxNuevoTicket(t);

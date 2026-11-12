@@ -351,6 +351,7 @@ def create_app():
     from . import reportes   # noqa: F401  (Gobierno › Reportes: cumplimiento por área e iniciativas de mejora)
     from . import seguridad_incidentes   # noqa: F401  (Seguridad › Incidentes de seguridad con el SIEM)
     from . import sla   # noqa: F401  (Gobierno › SLA por servicio y Gobierno › Reportes › SLA)
+    from . import cola_vista   # noqa: F401  (Monitoreo › Cola de acciones y estado de la cola en el ticket)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo
     app.jinja_env.globals["es_demo"] = multicliente.es_demo
@@ -365,6 +366,9 @@ def create_app():
     from .operacion import vigia
     if os.environ.get("FACEOPS_VIGIA", "1") == "1":
         vigia()
+        if os.environ.get("FACEOPS_MAQUETA") != "1":
+            from .cola import asegurar_proceso
+            asegurar_proceso()   # proceso propio que lanza en AAP lo encolado (crear y aprobar no esperan a AAP)
         from .paquetes import precargar
         precargar()   # registro de paquetes en memoria antes de la primera ficha de servidor
         try:   # diagnósticos y propuestas de las alertas por correo al responsable de la máquina

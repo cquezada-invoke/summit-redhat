@@ -72,7 +72,7 @@ const filtrar=()=>{const q_=norm(bus.value.trim());let n=0;dlg.querySelectorAll(
 bus.addEventListener('input',filtrar);
 dlg.querySelectorAll('[data-hb-f]').forEach(b=>b.onclick=()=>{dlg.querySelectorAll('[data-hb-f]').forEach(x=>x.classList.toggle('on',x===b));tipo=b.dataset.hbF;filtrar();});
 const vigilar=(a,ini)=>{const tick=()=>fetch(EST.replace(/0$/,a.dataset.hbPoll)).then(r=>r.json()).then(t=>{
-  a.className='ult-t e-'+t.estado;if(ABIERTO.includes(t.estado)){setTimeout(tick,8000);return;}
+  a.className='ult-t e-'+t.estado;if(ABIERTO.includes(t.estado)){a.textContent=t.numero+(t.cola?' · '+t.cola:'');a.title=t.cola||'';setTimeout(tick,8000);return;}
   const b=a.previousElementSibling&&a.previousElementSibling.tagName==='BUTTON'?a.previousElementSibling:null;
   if(t.estado==='exitoso'){const s=document.createElement('span');s.className='chip e-exitoso';s.innerHTML='Aplicada · <a href="'+a.href+'">'+t.numero+'</a>';if(b)b.remove();a.replaceWith(s);}
   else if(b){b.disabled=false;b.textContent=ini||'Reintentar';a.textContent=t.numero+' · '+(t.estado||'').replace(/_/g,' ');}}).catch(()=>setTimeout(tick,15000));tick();};
