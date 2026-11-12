@@ -1,11 +1,41 @@
-commit: 3052ea17863f3a2ed5addc4a0ded1769c3521899
-inicio: 2026-11-12T19:53:58-03:00
+commit: 71baa89e263d8dc36a24caebadfad0b76a41bd7b
+inicio: 2026-11-12T19:53:59-03:00
 ---
-/ingresar → 200 https://faceops.34.176.42.56.sslip.io:8843/faceops/ingresar | Ingresar · FaceOps
-  inputs: [('tz', 'hidden'), ('usuario', 'text'), ('clave', 'password')]
-  texto: INVOKE · MANAGED SERVICE | Operación automatizada, | bajo control. | 01 | Cada cambio, aprobado y auditado | Toda ejecución pasa por Red Hat Ansible Automation Platform, con aprobación de quien corresponde. | 02 | La salud de cada máquina, a la vista | Sistema operativo y plataformas evaluados por separado: errores
-/ → 200 https://faceops.34.176.42.56.sslip.io:8843/faceops/ingresar?siguiente=/? | Ingresar · FaceOps
-  inputs: [('tz', 'hidden'), ('usuario', 'text'), ('clave', 'password')]
-  texto: INVOKE · MANAGED SERVICE | Operación automatizada, | bajo control. | 01 | Cada cambio, aprobado y auditado | Toda ejecución pasa por Red Hat Ansible Automation Platform, con aprobación de quien corresponde. | 02 | La salud de cada máquina, a la vista | Sistema operativo y plataformas evaluados por separado: errores
-curl /ingresar 200 
---- fin: 2026-11-12T19:54:01-03:00 · código: 0
+===== nodo-so 192.168.122.12
+curl: (60) SSL certificate problem: self-signed certificate in certificate chain
+More details here: https://curl.se/docs/sslcerts.html
+http: 301
+tcp443: abierto
+proxy env/curlrc: 0 
+firewalld: sudo: firewall-cmd: command not found · zona: sudo: firewall-cmd: command not found
+sudo: firewall-cmd: command not found
+hosts: 192.168.122.2 dc1-sat01.invoke.lab dc1-sat01;
+crypto-policy: DEFAULT
+ca bundle: lrwxrwxrwx. 1 root root 49 Oct 22 07:39 /etc/pki/tls/certs/ca-bundle.crt -> /etc
+===== nodo-postgres 192.168.122.13
+curl: (60) SSL certificate problem: self-signed certificate in certificate chain
+More details here: https://curl.se/docs/sslcerts.html
+http: 301
+tcp443: abierto
+proxy env/curlrc: 0 
+firewalld: running · zona: public
+		oifname "eth0" goto nat_POST_public
+	chain nat_OUTPUT {
+		type nat hook output priority dstnat + 10; policy accept;
+		jump nat_OUTPUT_POLICIES_pre
+		jump nat_OUTPUT_POLICIES_post
+	chain nat_OUTPUT_POLICIES_pre {
+	chain nat_OUTPUT_POLICIES_post {
+		meta nfproto ipv6 fib saddr . mark . iif check missing drop
+		ct state invalid drop
+		reject with icmpx admin-prohibited
+		ct state invalid drop
+		ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 addr-unreachable
+hosts: 
+crypto-policy: DEFAULT
+ca bundle: lrwxrwxrwx. 1 root root 49 Oct 10  2025 /etc/pki/tls/certs/ca-bundle.crt -> /etc
+===== host: reglas para 192.168.122.12
+    <interface type='network'>
+      <mac address='52:54:00:de:00:12'/>
+      <source network='default' portid='c34ca0ac-d02f-4cc1-a760-6445e25b3801' bridge='virbr0'/>
+--- fin: 2026-11-12T19:54:03-03:00 · código: 0
