@@ -1,0 +1,35 @@
+commit: 9983d76560b694950a053fc5292cb98fe44faafc
+inicio: 2026-11-12T02:16:11-03:00
+---
+  DIAG == DIAG log
+  DIAG == 04:54:49 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
+  DIAG == 04:54:49 KVM/libvirt para las VMs anidadas
+  DIAG == 04:57:18 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
+  DIAG == 04:57:18 paquetes
+  DIAG == 04:57:27 k3s v1.30.6+k3s1
+  DIAG Created symlink /etc/systemd/system/multi-user.target.wants/k3s.service → /etc/systemd/system/k3s.service.
+  DIAG == 04:57:42 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  DIAG == 04:58:07 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
+  DIAG == 04:58:37 repositorio git local (HTTP inteligente con git http-backend en :8088) con playbook y rulebook de prueba
+  DIAG == 04:58:37 acceso SSH de AWX a esta misma máquina (host gestionado)
+  DIAG == 04:58:37 validador local y FaceOps (feature/faceops-awx) en modo awx
+  DIAG
+  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
+  DIAG [notice] To update, run: pip install --upgrade pip
+  DIAG Imágenes listas
+  DIAG == 05:00:35 AWX responde:
+  DIAG == 05:02:38 EDA responde: 200
+  DIAG INSTALACION TERMINADA
+  DIAG == 05:02:38 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
+  DIAG == 05:03:44 VMs anidadas con SSH: localhost localhost
+  DIAG == 05:03:44 esperando AWX y EDA (hasta 30 min)
+  DIAG == 05:06:38 AWX 24.6.1 · EDA HTTP 200
+  DIAG == 05:06:38 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
+  DIAG proyecto AWX: successful
+  DIAG AWX: inventario, credencial, proyecto, 2 plantillas y workflow con aprobación
+  DIAG proyecto EDA: completed
+  DIAG EDA: activación 1 pending
+  DIAG FaceOps: HTTP 000
+  DIAG Error: can only create exec sessions on running containers: container state improper
+  DIAG == DIAG pods
+--- fin: 2026-11-12T02:16:12-03:00 · código: 0
