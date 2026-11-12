@@ -1,17 +1,22 @@
-commit: ab1888da53ae09f251480bf98bd3041c7894173e
-inicio: 2026-11-11T22:51:59-03:00
+commit: 2af47eb36af746ef4881ff44e87aa353f4138435
+inicio: 2026-11-11T22:41:21-03:00
 ---
-4ea13ac Ficha · «Incorporar a FaceOps»: en una máquina que n
-   · Plantilla «OpenShift · Evaluar imágenes (uso y antigüedad)» (id 1170)
-   · Plantilla «OpenShift · Mover imágenes a Quay» (id 1171)
-HTTP 404 seccion False
-UI virsh vivo: 1 vCPU, Maxmemory:=2097152 Usedmemory:=2097152 
-UI virsh config: 1/1 vCPU, mem=2097152 cur=2097152 KiB
-UI app balanceador: 200 · jboss directo 192.168.122.15:8080: 200
-UI ticket {'numero': 'FO-LAB-02009', 'estado': 'pendiente_aprobacion', 'aprobado_por': None, 'motivo': 'Ajustar nodo-jboss a 2 vCPU y 3 GB'}
-UI eq {'nombre': 'nodo-jboss', 'cpu': 1, 'ram_mb': 2048}
-UI falta ['Memoria al 57 %']
-UI botones []
-UI selected ['30 GB (+10.0)', '30 GB (+10.0)', '20 GB', '1 vCPU (actual)', '3 GB (sugerido)']
-UI encender []
---- fin: 2026-11-11T22:55:57-03:00 · código: 0
+AAP ping 200
+Error: can only create exec sessions on running containers: container state improper
+enuso=en uso cero=referenciada rollout:v1=sin uso 0–3 meses rollout:v2=en uso sinuso=sin uso 0–3 meses
+CASO C1 ok · Valores por defecto
+plan=['faceops-prueba-mov/rollout:v1|medio', 'faceops-prueba-mov/sinuso:v1|bajo'] · quay.lab.local/faceops-prueba-mov/sinuso:v1 · skopeo copy --all --preserve-digests docker://image-registry.openshift-image-registry.svc:5000/faceops-prueba-mov/sinuso@sha256:71eb31ecadb30354c4c453ec3d2b57041a9ddb5e151734128ec448954416df6f docker://quay.lab.local/faceops-prueba-mov/sinuso:v1 · rollout=historial · poda=True
+CASO C2 ok · Umbral 0, rangos 1,2 y Quay
+CASO C7 ok · Sin imágenes internas y con Quay
+CASO C8 ok · Sin imágenes internas ni Quay
+CASO C3 ok · Solo el namespace de prueba y organización fija
+git=True repositorio/openshift-manifiestos/imagenes-movilidad/ocp-sno/plan.md · ficha=FO-LAB-02029 12 · raw=404
+CASO C4 ok · Informe en Git y en la ficha del clúster
+CASO C5 ok · Repetir
+CASO C6 ok · Rangos no válidos
+CASO C9 ok · Evaluación por defecto sin el escenario
+CASOS [{"id": "C1", "caso": "Valores por defecto", "resultado": "ok", "evidencia": "enuso=en uso cero=referenciada rollout:v1=sin uso 0–3 meses rollout:v2=en uso sinuso=sin uso 0–3 meses; candidatas del ns de prueba 0; 4 rangos con tamaño; sin namespaces del sistema ni las imágenes base externas (ubi-*)"}, {"id": "C2", "caso": "Umbral 0, rangos 1,2 y Quay", "resultado": "ok", "evidencia": "candidatas ['faceops-prueba-mov/rollout:v1|medio', 'faceops-prueba-mov/sinuso:v1|bajo']; quay.lab.local/faceops-prueba-mov/sinuso:v1 · skopeo copy --all --preserve-digests docker://image-registry.openshift-i
+CERT OpenShift · Evaluar imágenes (uso y antigüedad) → certificada
+/lab/inventario/29 HTTP 200 seccion True
+id="imagenes-movilidad"> Movilidad de imágenes a Quay evaluación 12-11-2026 02:03 UTC · FO-LAB-02034 Solo imágenes del registro interno de OpenShift (ImageStreams); las de registros externos no se listan. 15 / 56 candidatas a Quay (sin uso hace 6 meses o más, o huérfanas) 0.46 GB de las candidatas · 5 capas se liberan solo con ellas — Quay de destino · organización (una por namespace) Rango Revisiones Tamaño en uso 9 3735 MB referenciada 3 1265 MB sin uso 0–3 meses 29 13106 MB huérfana 15 476 MB Plan de movilidad Ola Imagen Sin uso Tamaño Riesgo Destino Referencias 1 huérfana@4de0b2940746 0.0 meses 39 MB bajo — ninguna (no está en uso) 1 huérfana@7eadfa839cda 0.0 meses 39 MB bajo — ninguna (no está en uso) 1 huérfana@eb9763766543 0.0 meses 39 MB bajo — ninguna (no está en uso) 1 huérfana@413beec9b0b6 0.0 meses 38 MB bajo — ninguna (no está en uso) 1 huérfana@8216864efe2e 0.0 meses 38 MB bajo — ninguna (no está en uso) 1 huérfana@98d7a0ab74bd 0.0 meses 38 MB bajo — ninguna (no está en u
+--- fin: 2026-11-11T23:04:26-03:00 · código: 0
