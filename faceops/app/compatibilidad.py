@@ -85,6 +85,32 @@ def falta_recurso(a, e):
     return ""
 
 
+NOMBRE_PLAT = {"jboss": "JBoss EAP", "keycloak": "Keycloak", "sqlserver": "SQL Server", "mongodb": "MongoDB", "jenkins": "Jenkins",
+               "midpoint": "midPoint", "red-hat-idm": "Red Hat IdM"}
+
+
+def requisito_maquina(e):
+    """Mínimo de memoria (y CPU) que exige la máquina por TODAS sus plataformas instaladas, corran o no: sistema + lo que
+    reserva cada una (datos/compatibilidad.yml › encender, la misma fuente que «Encender»). La sugerencia de Rendimiento
+    y el selector de «Ajustar CPU y memoria» nunca proponen menos. None si ninguna plataforma tiene requisito."""
+    from .inventario import skills_de
+    from .vistas import familia
+    rq = conf().get("encender") or {}
+    pl, pc = rq.get("plataformas") or {}, rq.get("cpu") or {}
+    sk = e.get("skills") if isinstance(e.get("skills"), (list, tuple, set)) else skills_de(e)
+    fams = sorted({familia(x) for x in sk or []} & (set(pl) | set(pc)))
+    if not fams:
+        return None
+    sis = int(rq.get("sistema_mb") or 512)
+    mb = sis + sum(int(pl.get(f) or 0) for f in fams)
+    gb = -(-mb // 1024)   # GB enteros hacia arriba: lo que ofrece el selector
+    noms = [NOMBRE_PLAT.get(f, f) for f in fams]
+    quien = noms[0] if len(noms) == 1 else ", ".join(noms[:-1]) + " y " + noms[-1]
+    return {"ram_mb": mb, "ram_gb": gb, "cpu": max([int(pc.get(f) or 1) for f in fams] + [1]), "plataformas": noms,
+            "texto": f"{quien} {'requiere' if len(noms) == 1 else 'requieren'} {gb} GB",
+            "detalle": f"sistema {round(sis / 1024, 2):g} GB + " + " + ".join(f"{NOMBRE_PLAT.get(f, f)} {round(int(pl.get(f) or 0) / 1024, 2):g} GB" for f in fams)}
+
+
 def requisito_encender(e, cod, en_ejecucion=()):
     """Memoria que necesita la máquina para encender la plataforma `cod` junto a las que ya corren (`en_ejecucion`: familias).
     None si la plataforma no tiene requisito definido (datos/compatibilidad.yml › encender). Se compara contra la memoria

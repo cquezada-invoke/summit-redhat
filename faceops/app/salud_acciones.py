@@ -106,7 +106,9 @@ def _recurso(e, ac, texto=None, n=None):
         m = re.search(r"al (\d+(?:[.,]\d+)?) ?%", texto or "")
         if not m or not cur:
             return None
-        n = sugerido(k, cur, float(m.group(1).replace(",", ".")), ops)   # entero aplicable, dentro del selector del anfitrión
+        from .compatibilidad import requisito_maquina
+        rq_ = requisito_maquina(e) or {}
+        n = sugerido(k, cur, float(m.group(1).replace(",", ".")), ops, rq_.get("cpu" if k == "cpu" else "ram_gb"))   # entero aplicable, nunca bajo sus plataformas
     if not n or n == cur or not (1 <= n <= (lim["max_cpu"] if k == "cpu" else lim["max_ram"])):
         return None
     cpu, ram = (n, round((e.get("ram_mb") or 0) / 1024) or 1) if k == "cpu" else (int(e.get("cpu") or 1), n)
@@ -206,11 +208,21 @@ def salud_accion(eid):
             "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
 
 
+@bp.app_template_global("rec_req")
+def rec_req(e):
+    """Mínimo de memoria/CPU que exigen las plataformas instaladas (misma fuente que «Encender»)."""
+    from .compatibilidad import requisito_maquina
+    try:
+        return requisito_maquina(e)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 @bp.app_template_global("rec_sugerido")
-def rec_sugerido(k, cur, u, ops=None):
+def rec_sugerido(k, cur, u, ops=None, minimo=None):
     """Valor sugerido para el selector de «Ajustar CPU/Memoria» (el mismo cálculo que la sugerencia de Rendimiento)."""
     from .radar import sugerido
     try:
-        return sugerido(k, int(cur or 0), u, ops)
+        return sugerido(k, int(cur or 0), u, ops, minimo)
     except (TypeError, ValueError):
         return None

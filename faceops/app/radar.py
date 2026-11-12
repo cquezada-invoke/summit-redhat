@@ -238,15 +238,20 @@ def salud_combinada(r_mso, plats):
 ESCALA = {"cpu": (1, 2, 4, 6, 8, 12, 16, 24, 32), "ram": (1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96)}   # lo que ofrece «Ajustar CPU/Memoria»
 
 
-def sugerido(k, cur, u, ops=None):
+def sugerido(k, cur, u, ops=None, minimo=None):
     """Valor aplicable (vCPU o GB enteros) al que dejar CPU o memoria para que el uso medio quede cerca del 60 %:
     redondeo hacia arriba, mínimo 1 y siempre uno de los valores del selector (ops; por defecto la escala estándar).
     Bajo 15 % propone el menor valor de la escala bajo el actual que cubra ese uso; sobre 70 %, el menor sobre el actual
     que lo cubra (o el mayor posible). None si no hay un valor aplicable distinto del actual (p. ej. 1 vCPU ya es el mínimo)."""
-    if u is None or not cur:
+    if not cur:
         return None
-    ops = sorted({int(x) for x in (ops or ESCALA[k]) if int(x) >= 1})
-    ideal = max(1, math.ceil(float(u) * cur / 60 - 1e-9))
+    mn = max(1, int(minimo or 1))   # lo que exigen las plataformas instaladas (compatibilidad.requisito_maquina)
+    ops = sorted({int(x) for x in (ops or ESCALA[k]) if int(x) >= 1} | ({mn} if minimo else set()))
+    if cur < mn:   # bajo el requisito de sus plataformas: subir hasta él, aunque el uso sea bajo
+        return min(x for x in ops if x >= mn)
+    if u is None:
+        return None
+    ideal = max(mn, math.ceil(float(u) * cur / 60 - 1e-9))
     if u < 15:
         c_ = [x for x in ops if ideal <= x < cur]
         return min(c_) if c_ else None
@@ -335,12 +340,25 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
         partes = [("CPU", uso.get("cpu_u"), f"{e.get('cpu') or '—'} vCPU"), ("Memoria", uso.get("ram_u"), f"{round((e.get('ram_mb') or 0) / 1024, 1):g} GB"),
                   ("Disco (volumen más lleno)", dk, "su capacidad")]
         cur_ = {"CPU": ("cpu", int(e.get("cpu") or 0)), "Memoria": ("ram", round((e.get("ram_mb") or 0) / 1024))}
+        try:
+            from .compatibilidad import requisito_maquina
+            rq_ = requisito_maquina(e) or {}
+        except Exception:  # noqa: BLE001
+            rq_ = {}
+        mn_ = {"CPU": rq_.get("cpu"), "Memoria": rq_.get("ram_gb")}
         sc = []
         for n, u, asig in partes:
             s_ = _pct_uso(u)
             if s_ is None:
                 continue
-            if u < 15 and (n not in cur_ or sugerido(*cur_[n], u) is None):
+            if n in cur_ and mn_.get(n) and 0 < cur_[n][1] < mn_[n]:   # bajo lo que exigen sus plataformas: subir, aunque se use poco
+                k_ = cur_[n][0]
+                sc.append(min(s_, 70))
+                r["detalle"].append({"t": n, "uso": u, "asignado": asig, "v": min(s_, 70)})
+                r["falta"].append(f"{n} al {u} %: bajo el mínimo de sus plataformas ({rq_['texto'] if k_ == 'ram' else str(mn_[n]) + ' vCPU'}: "
+                                  f"{rq_['detalle'] if k_ == 'ram' else 'requisito'}), subir a {sugerido(k_, cur_[n][1], u, minimo=mn_[n])} {'vCPU' if k_ == 'cpu' else 'GB'}")
+                continue
+            if u < 15 and (n not in cur_ or sugerido(*cur_[n], u, minimo=mn_.get(n)) is None):
                 s_ = 100   # no hay a qué bajar: el disco solo se amplía y CPU/memoria ya están en el mínimo aplicable (p. ej. 1 vCPU)
             sc.append(s_)
             r["detalle"].append({"t": n, "uso": u, "asignado": asig, "v": s_})
@@ -350,7 +368,7 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
                 r["falta"].append(f"{n} al {u} %: conviene ampliar antes de llegar al 85 %")
             elif u < 15 and s_ < 100:
                 k_, c_ = cur_[n]
-                r["falta"].append(f"{n} al {u} %: sobredimensionado, se puede bajar a {sugerido(k_, c_, u)} {'vCPU' if k_ == 'cpu' else 'GB'} y liberar el anfitrión")
+                r["falta"].append(f"{n} al {u} %: sobredimensionado, se puede bajar a {sugerido(k_, c_, u, minimo=mn_.get(n))} {'vCPU' if k_ == 'cpu' else 'GB'} y liberar el anfitrión")
         if sc:
             r["pct"] = round(sum(sc) / len(sc))
     # Recuperación: efectividad real de recuperarla
