@@ -1,36 +1,170 @@
-commit: c86c3f1c029bb2d646e5433df81af71124c0ad61
-inicio: 2026-11-11T23:10:00-03:00
+commit: 681dcc5a1c10bc987460e4699b72720f12b0a8a9
+inicio: 2026-11-11T23:22:58-03:00
 ---
-16e4ade
-   · Plantilla «Monitoreo · Grafana de OpenShift» (id 1176)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-SINCRONIZADO lab
-== diagnóstico ocp-sno en el contenedor
-192.168.122.50  thanos-querier-openshift-monitoring.apps.sno.invoke.lab
-OCPDIAG bóveda: ['rol', 'token', 'url', 'usuario'] | url: https://thanos-querier-openshift-monitoring.apps.sno.invoke.lab
-OCPDIAG thanos rules: 200 1
-OCPDIAG reglas_monitoreo: 19
-ACTIVAR máquina → 200 {'numero': 'FO-LAB-02039', 'estado': 'en_ejecucion', 'error': None} | tickets nuevos: 1
-ACTIVAR máquina ticket FO-LAB-02039 exitoso
-ACTIVAR JBoss → 200 {'numero': 'FO-LAB-02041', 'estado': 'en_ejecucion', 'error': None} | tickets nuevos: 1
-ACTIVAR JBoss ticket FO-LAB-02041 exitoso
-PROM máquina [('B05', 'avisar'), ('C01', 'avisar'), ('C02', 'avisar'), ('C03', 'avisar'), ('D01', 'avisar'), ('S01', 'avisar')]
-PROM jboss [('J01', 'diagnosticar')]
-PROBAR J01 200 
-PROBAR J01 falló | 2026-11-12T23:19:49Z · alerta de prueba enviada a Alertmanager → 2026-11-12T23:19:49Z · Alertmanager la recibió y la entrega a faceops-objetos (Event-Driven Ansible) → 2026-11-12T23:20:25Z · EDA lanzó «Monitoreo · Responder alerta» (trabajo 25688: successful) → 2026-11-12T23:20:26Z · workflow «FaceOps · Alerta › Incidentes · Verificar error conocido» (25689) esperando aprobación → 2026-11-12T23:22:44Z · aprobada (PRUEBA, solo lectura · regla de Cristian); corriendo el diagnóstico → 2026-11-12T23:32:54Z · diagnóstico running; correo a cquezada@redhat.com: enviado a cquezada@redhat.com
-== FaceOps alcanzable desde el clúster
-
-== plan Grafana de OpenShift (C1–C6)
-CASO C1 ok · Conectar ocp-sno
-CASO C2 falla · Repetir
-CASO C3 ok · Solo lectura
-CASO C5 ok · Reglas en el monitoreo del clúster
-CASO C6 ok · Cadena de aviso real (X10)
-CASO C4 ok · Nombre inválido
-EVIDENCIA [{"id": "C1", "caso": "Conectar ocp-sno", "resultado": "ok", "evidencia": "datasource faceops-ocp-sno responde (up apiserver: 1 series; nodos Ready: 1); tablero con 19 paneles"}, {"id": "C2", "caso": "Repetir", "resultado": "falla", "evidencia": "exitoso grafana 2026-11-11 23:35:09.942917233 -0300 -03→2026-11-11 23:37:11.160667346 -0300 -03"}, {"id": "C3", "caso": "Solo lectura", "resultado": "ok", "evidencia": "faceops-grafana: create pods=no, delete nodes=no, leer el monitoreo=no"}, {"id": "C5", "caso": "Reglas en el monitoreo del clúster", "resultado": "ok", "evidencia": "grupo faceops-ocp-sno con 29 reglas sanas, todas con faceops_alerta"}, {"id": "C6", "caso": "Cadena de aviso real (X10)", "resultado": "ok", "evidencia": "disparada → FaceOps: 2026-11-12T02:41:13 cquezada@redhat.com enviado a cquezada@redhat.com · umbral restablecido → resuelta: 2026-11-12T02:46:14 cquezada@redhat.com enviado a cquezada@redhat.com"}, {"id": "C4", "caso": "Nombre inválido", "resultado": "ok", "evidencia": "falla en la validación; Grafana sin cambios"}]
-CERT Monitoreo · Grafana de OpenShift → sin probar
-FIN-GRAFANA-OCP
-4
-TABLA 200 | filas: 43 | encendidas: 26 | disparando: 3 | objetos: ['nodo-jboss', 'nodo-jboss · jboss', 'ocp-sno']
-TABLA contadores: [('43', 'configuradas'), ('26', 'encendidas'), ('17', 'apagadas'), ('3', 'disparando ahora')]
---- fin: 2026-11-11T23:49:13-03:00 · código: 0
+== corrida anterior
+· constructora demo-constructor-202611120213 (n2-standard-4, Rocky Linux 9, anidada, 60 GB) · rama feature/faceops-awx
+  == CONSTRUCCION inicio 02:13:59
+  == fuente 00aae68
+  == 02:14:50 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
+  == 02:14:50 KVM/libvirt para las VMs anidadas
+  == 02:17:07 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
+  == 02:17:07 paquetes
+  == 02:17:15 k3s v1.30.6+k3s1
+  == 02:17:30 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  == 02:17:55 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
+  == 02:18:22 repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba
+  == 02:18:22 acceso SSH de AWX a esta misma máquina (host gestionado)
+  == 02:18:22 validador local y FaceOps (feature/faceops-awx) en modo awx
+  == 02:19:53 AWX responde:
+ya corre
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+  DIAG   RULEBOOK_LIVENESS_CHECK_SECONDS: 300
+  DIAG   RULEBOOK_LIVENESS_TIMEOUT_SECONDS: 610
+  DIAG   ACTIVATION_RESTART_SECONDS_ON_COMPLETE: 0
+  DIAG   ACTIVATION_RESTART_SECONDS_ON_FAILURE: 60
+  DIAG   ACTIVATION_MAX_RESTARTS_ON_FAILURE: 5
+  DIAG   ANSIBLE_RULEBOOK_LOG_LEVEL: error
+  DIAG   ALLOW_LOCAL_RESOURCE_MANAGEMENT: True
+  DIAG   RESOURCE_JWT_USER_ID: None
+  DIAG   ANSIBLE_BASE_JWT_VALIDATE_CERT: True
+  DIAG   ANSIBLE_BASE_MANAGED_ROLE_REGISTRY: {}
+  DIAG   ACTIVATION_DB_HOST: eda-postgres-15.eda.svc
+  DIAG   SAFE_PLUGINS_FOR_PORT_FORWARD: ['ansible.eda.webhook', 'eda.builtin.webhook', 'ansible.eda.alertmanager']
+  DIAG   EVENT_STREAM_BASE_URL: None
+  DIAG   EVENT_STREAM_MTLS_BASE_URL: None
+  DIAG /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+  DIAG /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+  DIAG 10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf
+  DIAG 10-listen-on-ipv6-by-default.sh: info: Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
+  DIAG /docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+  DIAG 20-envsubst-on-templates.sh: Running envsubst on /etc/nginx/templates/default.conf.template to /etc/nginx/conf.d/default.conf
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
+  DIAG /docker-entrypoint.sh: Configuration complete; ready for start up
+  DIAG == DIAG eda deployment.apps/eda-server-operator-controller-manager
+  DIAG
+  DIAG --------------------------- Ansible Task StdOut -------------------------------
+  DIAG
+  DIAG task path: /opt/ansible/roles/eda/tasks/update_status.yml:25
+  DIAG
+  DIAG -------------------------------------------------------------------------------
+  DIAG {"level":"info","ts":"2026-11-12T02:52:54Z","logger":"logging_event_handler","msg":"[playbook task start]","name":"eda","namespace":"eda","gvk":"eda.ansible.com/v1alpha1, Kind=EDA","event_type":"playbook_on_task_start","job":"24378558513721
+  DIAG
+  DIAG --------------------------- Ansible Task StdOut -------------------------------
+  DIAG
+  DIAG TASK [eda : Retrieve instance version] *****************************************
+  DIAG task path: /opt/ansible/roles/eda/tasks/update_status.yml:36
+  DIAG
+  DIAG -------------------------------------------------------------------------------
+  DIAG == DIAG eda deployment.apps/eda-ui
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:02 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=286ad9983eee3d0f6fa86a4fe94fa304 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:12 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=13e6f6dcd90445d055fcb0bbf7eb14aa - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:12 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=86f6d8dba51201139aed8b5b08ea2577 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:22 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=0be38187a809b542b24dbaff025ef65e - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:22 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=b54f5cb602d6ec5d7e6506d0063768d8 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:32 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=a5b571c55e283eb4beac5fdb4dbeb512 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:32 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=67f0979287619b8dfc87dda3211267d2 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:42 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=61a69b3085d74470fe9ffa491b289365 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:42 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=e88378acbeb492aaa260b22cae918847 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:52 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=9b268f21748e2373ea7949e6abd619c9 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:52 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=cd2676cd062a65fb981bd3791d860ddd - -
+  DIAG 10.42.0.1 - admin [12/Nov/2026:02:52:57 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "-" rid=17a48f550f60074b1ea135b27e4d0160 - -
+  DIAG 10.42.0.1 - admin [12/Nov/2026:02:52:58 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "-" rid=63c338869f6f9301b7b8c50a96d5816a - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:53:02 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=88903f7834d1f6a4bef1a2a448cc4b39 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:53:02 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=38ee3d1bba21ca8cadca296112b7537b - -
+  DIAG == DIAG log
+  DIAG == 02:44:16 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
+  DIAG == 02:44:16 KVM/libvirt para las VMs anidadas
+  DIAG == 02:46:27 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
+  DIAG == 02:46:27 paquetes
+  DIAG == 02:46:37 k3s v1.30.6+k3s1
+  DIAG Created symlink /etc/systemd/system/multi-user.target.wants/k3s.service → /etc/systemd/system/k3s.service.
+  DIAG == 02:46:51 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  DIAG == 02:47:15 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
+  DIAG == 02:47:49 repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba
+  DIAG == 02:47:50 acceso SSH de AWX a esta misma máquina (host gestionado)
+  DIAG == 02:47:50 validador local y FaceOps (feature/faceops-awx) en modo awx
+  DIAG
+  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
+  DIAG [notice] To update, run: pip install --upgrade pip
+  DIAG
+  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
+  DIAG [notice] To update, run: pip install --upgrade pip
+  DIAG Imágenes listas
+  DIAG == 02:49:27 AWX responde:
+  DIAG == 02:51:51 EDA responde: 200
+  DIAG INSTALACION TERMINADA
+  DIAG == 02:51:51 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
+  DIAG == 02:52:56 VMs anidadas con SSH: localhost localhost
+  DIAG == 02:52:56 esperando AWX y EDA (hasta 30 min)
+  DIAG == 02:52:58 AWX 24.6.1 · EDA HTTP 200
+  DIAG == 02:52:58 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
+  DIAG Traceback (most recent call last):
+  DIAG   File "<stdin>", line 29, in <module>
+  DIAG TypeError: 'NoneType' object is not subscriptable
+  DIAG                total        used        free      shared  buff/cache   available
+  DIAG Mem:           15729        6416         418          53        9277        9312
+  DIAG Swap:              0           0           0
+· construcción FALLIDA
+· constructora demo-constructor-202611120243 eliminada
+--- fin: 2026-11-11T23:53:18-03:00 · código: 0

@@ -1,0 +1,170 @@
+commit: 681dcc5a1c10bc987460e4699b72720f12b0a8a9
+inicio: 2026-11-11T23:22:58-03:00
+---
+== corrida anterior
+· constructora demo-constructor-202611120213 (n2-standard-4, Rocky Linux 9, anidada, 60 GB) · rama feature/faceops-awx
+  == CONSTRUCCION inicio 02:13:59
+  == fuente 00aae68
+  == 02:14:50 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
+  == 02:14:50 KVM/libvirt para las VMs anidadas
+  == 02:17:07 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
+  == 02:17:07 paquetes
+  == 02:17:15 k3s v1.30.6+k3s1
+  == 02:17:30 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  == 02:17:55 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
+  == 02:18:22 repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba
+  == 02:18:22 acceso SSH de AWX a esta misma máquina (host gestionado)
+  == 02:18:22 validador local y FaceOps (feature/faceops-awx) en modo awx
+  == 02:19:53 AWX responde:
+ya corre
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+grep: imagen.log: No such file or directory
+  DIAG   RULEBOOK_LIVENESS_CHECK_SECONDS: 300
+  DIAG   RULEBOOK_LIVENESS_TIMEOUT_SECONDS: 610
+  DIAG   ACTIVATION_RESTART_SECONDS_ON_COMPLETE: 0
+  DIAG   ACTIVATION_RESTART_SECONDS_ON_FAILURE: 60
+  DIAG   ACTIVATION_MAX_RESTARTS_ON_FAILURE: 5
+  DIAG   ANSIBLE_RULEBOOK_LOG_LEVEL: error
+  DIAG   ALLOW_LOCAL_RESOURCE_MANAGEMENT: True
+  DIAG   RESOURCE_JWT_USER_ID: None
+  DIAG   ANSIBLE_BASE_JWT_VALIDATE_CERT: True
+  DIAG   ANSIBLE_BASE_MANAGED_ROLE_REGISTRY: {}
+  DIAG   ACTIVATION_DB_HOST: eda-postgres-15.eda.svc
+  DIAG   SAFE_PLUGINS_FOR_PORT_FORWARD: ['ansible.eda.webhook', 'eda.builtin.webhook', 'ansible.eda.alertmanager']
+  DIAG   EVENT_STREAM_BASE_URL: None
+  DIAG   EVENT_STREAM_MTLS_BASE_URL: None
+  DIAG /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+  DIAG /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+  DIAG 10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf
+  DIAG 10-listen-on-ipv6-by-default.sh: info: Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
+  DIAG /docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+  DIAG 20-envsubst-on-templates.sh: Running envsubst on /etc/nginx/templates/default.conf.template to /etc/nginx/conf.d/default.conf
+  DIAG /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
+  DIAG /docker-entrypoint.sh: Configuration complete; ready for start up
+  DIAG == DIAG eda deployment.apps/eda-server-operator-controller-manager
+  DIAG
+  DIAG --------------------------- Ansible Task StdOut -------------------------------
+  DIAG
+  DIAG task path: /opt/ansible/roles/eda/tasks/update_status.yml:25
+  DIAG
+  DIAG -------------------------------------------------------------------------------
+  DIAG {"level":"info","ts":"2026-11-12T02:52:54Z","logger":"logging_event_handler","msg":"[playbook task start]","name":"eda","namespace":"eda","gvk":"eda.ansible.com/v1alpha1, Kind=EDA","event_type":"playbook_on_task_start","job":"24378558513721
+  DIAG
+  DIAG --------------------------- Ansible Task StdOut -------------------------------
+  DIAG
+  DIAG TASK [eda : Retrieve instance version] *****************************************
+  DIAG task path: /opt/ansible/roles/eda/tasks/update_status.yml:36
+  DIAG
+  DIAG -------------------------------------------------------------------------------
+  DIAG == DIAG eda deployment.apps/eda-ui
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:02 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=286ad9983eee3d0f6fa86a4fe94fa304 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:12 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=13e6f6dcd90445d055fcb0bbf7eb14aa - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:12 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=86f6d8dba51201139aed8b5b08ea2577 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:22 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=0be38187a809b542b24dbaff025ef65e - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:22 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=b54f5cb602d6ec5d7e6506d0063768d8 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:32 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=a5b571c55e283eb4beac5fdb4dbeb512 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:32 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=67f0979287619b8dfc87dda3211267d2 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:42 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=61a69b3085d74470fe9ffa491b289365 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:42 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=e88378acbeb492aaa260b22cae918847 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:52 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=9b268f21748e2373ea7949e6abd619c9 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:52:52 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=cd2676cd062a65fb981bd3791d860ddd - -
+  DIAG 10.42.0.1 - admin [12/Nov/2026:02:52:57 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "-" rid=17a48f550f60074b1ea135b27e4d0160 - -
+  DIAG 10.42.0.1 - admin [12/Nov/2026:02:52:58 +0000] "GET /api/eda/v1/users/me/ HTTP/1.1" 200 287 "-" "curl/7.76.1" "-" rid=63c338869f6f9301b7b8c50a96d5816a - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:53:02 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=88903f7834d1f6a4bef1a2a448cc4b39 - -
+  DIAG 10.42.0.1 - - [12/Nov/2026:02:53:02 +0000] "GET / HTTP/1.1" 200 1758 "-" "kube-probe/1.30" "-" rid=38ee3d1bba21ca8cadca296112b7537b - -
+  DIAG == DIAG log
+  DIAG == 02:44:16 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
+  DIAG == 02:44:16 KVM/libvirt para las VMs anidadas
+  DIAG == 02:46:27 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
+  DIAG == 02:46:27 paquetes
+  DIAG == 02:46:37 k3s v1.30.6+k3s1
+  DIAG Created symlink /etc/systemd/system/multi-user.target.wants/k3s.service → /etc/systemd/system/k3s.service.
+  DIAG == 02:46:51 AWX (awx-operator 2.19.1 → AWX 24.6.1)
+  DIAG == 02:47:15 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
+  DIAG == 02:47:49 repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba
+  DIAG == 02:47:50 acceso SSH de AWX a esta misma máquina (host gestionado)
+  DIAG == 02:47:50 validador local y FaceOps (feature/faceops-awx) en modo awx
+  DIAG
+  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
+  DIAG [notice] To update, run: pip install --upgrade pip
+  DIAG
+  DIAG [notice] A new release of pip is available: 24.2 -> 26.3
+  DIAG [notice] To update, run: pip install --upgrade pip
+  DIAG Imágenes listas
+  DIAG == 02:49:27 AWX responde:
+  DIAG == 02:51:51 EDA responde: 200
+  DIAG INSTALACION TERMINADA
+  DIAG == 02:51:51 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
+  DIAG == 02:52:56 VMs anidadas con SSH: localhost localhost
+  DIAG == 02:52:56 esperando AWX y EDA (hasta 30 min)
+  DIAG == 02:52:58 AWX 24.6.1 · EDA HTTP 200
+  DIAG == 02:52:58 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
+  DIAG Traceback (most recent call last):
+  DIAG   File "<stdin>", line 29, in <module>
+  DIAG TypeError: 'NoneType' object is not subscriptable
+  DIAG                total        used        free      shared  buff/cache   available
+  DIAG Mem:           15729        6416         418          53        9277        9312
+  DIAG Swap:              0           0           0
+· construcción FALLIDA
+· constructora demo-constructor-202611120243 eliminada
+--- fin: 2026-11-11T23:53:18-03:00 · código: 0
