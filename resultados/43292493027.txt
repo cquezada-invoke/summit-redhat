@@ -1,0 +1,39 @@
+commit: 96e486da88aa9d7772e0fbb73cb28719e79a6273
+inicio: 2026-11-12T17:36:53-03:00
+---
+desplegado 65107aec7
+   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 28 reglas en Prometheus y ruta a EDA :5023
+   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
+   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
+repo 65107ae
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Respaldar bases de AAP y FaceOps
+  C1 → exitoso FO-LAB-02335
+CASO C1 ok · Evaluar
+  C2 → fallido FO-LAB-02337
+CASO C2 falla · Aplicar
+  C3 → fallido FO-LAB-02338
+CASO C3 falla · Repetir
+  C4 → fallido FO-LAB-02340
+CASO C4 falla · Sin espacio seguro
+CERT Autocuidado · Respaldar bases de AAP y FaceOps → sin probar
+== Autocuidado · Renovar certificados
+  C1 → exitoso FO-LAB-02343
+CASO C1 ok · Evaluar
+  C2 → fallido FO-LAB-02345
+CASO C2 falla · Aplicar (vigente)
+  C3 → exitoso FO-LAB-02347
+CASO C3 ok · Repetir
+  C4 → fallido FO-LAB-02350
+CASO C4 ok · Modo inválido
+CERT Autocuidado · Renovar certificados → cambiada
+== Autocuidado · Purgar historial de AAP
+  C1 → exitoso FO-LAB-02351
+CASO C1 ok · Conservar 365 días
+  C2 → exitoso FO-LAB-02353
+CASO C2 ok · Repetir
+  C3 → fallido FO-LAB-02354
+CASO C3 ok · Bajo el mínimo
+CERT Autocuidado · Purgar historial de AAP → certificada
+--- fin: 2026-11-12T17:58:59-03:00 · código: 0
