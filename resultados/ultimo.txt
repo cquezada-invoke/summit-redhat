@@ -1,7 +1,19 @@
-commit: 7ffb596d72f75855e2ac126b7cfa471d391275fc
-inicio: 2026-11-11T22:36:00-03:00
+commit: d7746d8c9becd1dca792045b7cbc93cda7105d70
+inicio: 2026-11-11T22:38:00-03:00
 ---
-239159d Contenedores: sin el diálogo «Crear nueva máquina vi
-UI botón: True | sin 'Crear nueva máquina virtual': True
-C2: Zona DNS pública: Cloud DNS respondió 403 · Permisos de la cuenta de servicio: IAM respondió 403 · APIs habilitadas: Service Usage respondió 403 · Región southamerica-west1: Compute respondió 403
---- fin: 2026-11-11T22:37:09-03:00 · código: 0
+  warnings.warn(
+TOPO centrales {"id": "aap", "nombre": "AAP 2.7 · automatización", "red": "kvm", "detalle": "controller · EDA · gestiona todo el parque"}
+TOPO centrales {"id": "anfitrion", "nombre": "Anfitrión KVM", "red": "kvm", "detalle": "192.168.122.1 · ruteo entre redes"}
+TOPO redes {"id": "kvm", "nombre": "Nodos KVM", "prefijo": "192.168.122.", "infra": "Centro de datos Santiago", "detalle": "192.168.122.0/24 · libvirt"}
+TOPO redes {"id": "dc1-srv", "nombre": "DC1 · servidores", "prefijo": "10.101.20.", "infra": "Centro de datos Santiago", "detalle": "10.101.20.0/24"}
+TOPO redes {"id": "dc1-ges", "nombre": "DC1 · gestión", "prefijo": "10.101.10.", "infra": "Centro de datos Santiago", "detalle": "10.101.10.0/24"}
+TOPO redes {"id": "dc1-dmz", "nombre": "DC1 · DMZ", "prefijo": "10.101.30.", "infra": "Centro de datos Santiago", "detalle": "10.101.30.0/24"}
+TOPO redes {"id": "red-lab", "nombre": "Laboratorio de red", "categorias": ["router", "firewall", "switch", "estación de trabajo"], "infra": "Centro de datos Santiago", "detalle": "containerlab · 172.20.20.0/24 y enlaces internos"}
+TOPO redes {"id": "gcp", "nombre": "Cloud GCP · default", "prefijo": "34.", "infra": "Cloud GCP", "detalle": "proyecto invoke-summit-cloud"}
+Traceback (most recent call last):
+  File "<stdin>", line 11, in <module>
+  File "/opt/faceops/app/bd.py", line 180, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: fecha
+--- fin: 2026-11-11T22:38:18-03:00 · código: 0
