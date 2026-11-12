@@ -1,0 +1,21 @@
+commit: bb91689509819053fd66f27f332deaa3da68fcba
+inicio: 2026-11-12T01:14:51-03:00
+---
+usuario: cquezada home: /home/cquezada
+c87ef50 Usuario de servicio Windows: una sola clave para las Windows d
+timer habilitado
+== faceops publica:  · red: host
+http://127.0.0.1:8110/ingresar -> 000
+http://127.0.0.1:8080/ingresar -> 301
+https://127.0.0.1/faceops/ingresar -> 200
+== primer despliegue (servicio)
+código: 0
+estado: 2026-11-12T01:20:37-03:00 ok: desplegado c87ef50d · /ingresar 200 · configurar=0
+2026-11-12T01:14:54-03:00 == despliegue  -> c87ef50d
+2026-11-12T01:14:55-03:00 configurar.py (cambió faceops/aap)
+2026-11-12T01:19:56-03:00 configurar.py código 0
+2026-11-12T01:20:37-03:00 ESTADO ok: desplegado c87ef50d · /ingresar 200 · configurar=0
+NEXT                        LEFT          LAST                        PASSED   UNIT                     ACTIVATES
+Thu 2026-11-12 01:24:53 -03 4min 16s left Thu 2026-11-12 01:14:53 -03 5min ago faceops-autodeploy.timer faceops-autodeploy.service
+
+--- fin: 2026-11-12T01:20:37-03:00 · código: 0
