@@ -1,0 +1,28 @@
+commit: 2b153488266cbf7c3d76fb6fa9c5df02bc8a01c0
+inicio: 2026-11-11T22:51:00-03:00
+---
+UPD 25551 failed 2026-11-12T01:43:14.999184Z
+[1;35mplugin: [{'message': 'Compute Engine API has not been used in project invoke-[0m
+[1;35msummit-cloud before or it is disabled. Enable it by visiting https://console.de[0m
+[1;35mvelopers.google.com/apis/api/compute.googleapis.com/overview?project=invoke-[0m
+[1;35msummit-cloud then retry. If you enabled this API recently, wait a few minutes[0m
+[1;35mfor the action to propagate to our systems and retry.', 'domain':[0m
+[1;35m'usageLimits', 'reason': 'accessNotConfigured', 'extendedHelp':[0m
+[1;35m'https://console.developers.google.com'}][0m
+[0;34m  File "/usr/local/lib/python3.12/site-packages/ansible/inventory/manager.py", line 293, in parse_source[0m
+[0;34m    plugin.parse(self._inventory, self._loader, source, cache=cache)[0m
+[0;34m  File "/usr/local/lib/python3.12/site-packages/ansible/plugins/inventory/auto.py", line 59, in parse[0m
+[0;34m    plugin.parse(inventory, loader, path, cache=cache)[0m
+[0;34m  File "/usr/share/automation-controller/collections/ansible_collections/google/cloud/plugins/inventory/gcp_compute.py", line 625, in parse[0m
+[0;34m    resp = self.fetch_list(params, link, query)[0m
+[0;34m           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[0;34m  File "/usr/share/automation-controller/collections/ansible_collections/google/cloud/plugins/inventory/gcp_compute.py", line 349, in fetch_list[0m
+[0;34m    resp = self._return_if_object([0m
+[0;34m           ^^^^^^^^^^^^^^^^^^^^^^^[0m
+[0;34m  File "/usr/share/automation-controller/collections/ansible_collections/google/cloud/plugins/inventory/gcp_compute.py", line 425, in _return_if_object[0m
+[0;34m    module.fail_json(msg=navigate_hash(result, ["error", "errors"]))[0m
+[0;34m  File "/usr/share/automation-controller/collections/ansible_collections/google/cloud/plugins/inventory/gcp_compute.py", line 171, in fail_json[0m
+[0;34m    raise AnsibleError(kwargs["msg"])[0m
+[1;35msource[0m
+[0;31mERROR! No inventory was parsed, please check your configuration and options.[0m
+--- fin: 2026-11-11T22:51:07-03:00 · código: 0
