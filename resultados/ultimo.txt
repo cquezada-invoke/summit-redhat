@@ -1,21 +1,22 @@
-commit: ce0528cf8269ee162f4870cb16dfe0187c39f88d
-inicio: 2026-11-12T19:54:50-03:00
+commit: fd7abe9032e403d3186e75de568781ae9f8e60a0
+inicio: 2026-11-12T19:47:28-03:00
 ---
-== comparación: rhsm de nodo-postgres
-hostname = subscription.rhsm.redhat.com
-baseurl = https://cdn.redhat.com
-== salida de nodo-so a Red Hat (IPv4)
-https://cdn.redhat.com/ 000 0.321470s · v6 000
-https://subscription.rhsm.redhat.com/subscription/ 000 0.330831s · v6 000
-rhsm http=000
-nodo-postgres makecache baseos: rc=0
-The registered system name is: nodo-so.demo.local
-Repository 'rhel-9-for-x86_64-baseos-rpms' is enabled for this system.
-Repository 'rhel-9-for-x86_64-appstream-rpms' is enabled for this system.
-makecache: 
-repos:
-rhel-9-for-x86_64-appstream-rpms Red Hat Enterprise Linux 9 for x86_64 - AppStream (RPMs)
-rhel-9-for-x86_64-baseos-rpms    Red Hat Enterprise Linux 9 for x86_64 - BaseOS (RPMs)
-avisos de seguridad disponibles: 132
-estado: Overall Status: Registered Content Access Mode is set to Simple Content Access. This host has access to content, regardless of subscription status. 
---- fin: 2026-11-12T19:58:25-03:00 · código: 0
+desplegado 120cf198c
+   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 28 reglas en Prometheus y ruta a EDA :5023
+   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
+   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
+repo 120cf19
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Reiniciar FaceOps y despliegue
+  C1 → exitoso FO-LAB-02374
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02375
+CASO C2 ok · Aplicar con todo sano
+  C3 → exitoso FO-LAB-02376
+CASO C3 ok · Timer detenido
+CASO C4 ok · FaceOps detenido
+  C5 → fallido FO-LAB-02378
+CASO C5 ok · Modo inválido
+CERT Autocuidado · Reiniciar FaceOps y despliegue → certificada
+--- fin: 2026-11-12T19:58:40-03:00 · código: 0
