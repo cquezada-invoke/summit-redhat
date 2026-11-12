@@ -161,6 +161,8 @@ shutil.copy(f"{AQUI}/datalake-derivar.yml", f"{tmp}/playbooks/datalake-derivar.y
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 shutil.copy(f"{AQUI}/jenkins-servidor.yml", f"{tmp}/playbooks/jenkins-servidor.yml")
+for f_ in ("siem-wazuh.yml", "siem-enviar-logs.yml", "siem-aap-logs.yml", "siem-contencion.yml"):   # SIEM e incidentes de seguridad
+    shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/sqlserver-servidor.yml", f"{tmp}/playbooks/sqlserver-servidor.yml")
 shutil.copy(f"{AQUI}/sqlserver-medicion.yml", f"{tmp}/playbooks/sqlserver-medicion.yml")
 shutil.copy(f"{AQUI}/sqlserver-ha.yml", f"{tmp}/playbooks/sqlserver-ha.yml")
@@ -1241,6 +1243,24 @@ jrs = asegurar("job_templates", "Monitoreo · Responder alerta", {
     "description": "Lo lanza EDA cuando se dispara una alerta de objeto con acción: pide la automatización con aprobación"})
 if cr_gw["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jrs['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jrs['id']}/credentials/", {"id": cr_gw["id"]})
+# SIEM e incidentes de seguridad (Seguridad › Incidentes de seguridad)
+_cbs = uno("credentials", name="FaceOps · Bóveda (servicios)")
+for _n, _pb, _d in (("SIEM · Instalar Wazuh", "siem-wazuh.yml", "Skill «wazuh»: Wazuh 4.9.2 todo en uno, receptor syslog TLS, reglas e integración con FaceOps; claves en la bóveda"),
+                    ("SIEM · Enviar logs al SIEM", "siem-enviar-logs.yml", "Reenvío agentless de syslog/journald al SIEM por TLS (agente de Wazuh opcional)"),
+                    ("Seguridad · Contención de incidente", "siem-contencion.yml", "Bloquear IP, aislar la máquina o deshabilitar un usuario desde un incidente de seguridad")):
+    _jt = asegurar("job_templates", _n, {"organization": org["id"], "project": proy, "playbook": f"playbooks/{_pb}", "inventory": inv["id"],
+                                         "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+                                         "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 3500, "description": _d})
+    if _n == "SIEM · Instalar Wazuh" and _cbs and _cbs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{_jt['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{_jt['id']}/credentials/", {"id": _cbs["id"]})
+    paso(f"Plantilla «{_n}» (id {_jt['id']})")
+_jt = asegurar("job_templates", "SIEM · Enviar logs de AAP", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/siem-aap-logs.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Logging externo de AAP (jobs y actividad) hacia el SIEM, con la credencial de AAP del administrador"})
+if cr_gw["id"] not in {c["id"] for c in aap("GET", f"job_templates/{_jt['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{_jt['id']}/credentials/", {"id": cr_gw["id"]})
+paso(f"Plantilla «SIEM · Enviar logs de AAP» (id {_jt['id']})")
 jdp = asegurar("job_templates", "DevSecOps · Pipeline Tekton", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/devsecops-pipeline.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,

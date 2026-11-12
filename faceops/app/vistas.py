@@ -2703,7 +2703,7 @@ def web_equipo(eid, sub):
 # consola web propia de cada plataforma (solo las que tienen una de verdad); las demás muestran que no tienen
 CONSOLAS = {"jboss": ("http", 9990, "/console/", "Consola de administración de JBoss"), "vault": ("http", 8200, "/ui/", "Vault"),
             "keycloak": ("http", 8080, "/admin/", "Keycloak"), "redis": ("http", 5540, "", "Redis Insight"),
-            "jenkins": ("http", 8080, "", "Jenkins"),
+            "jenkins": ("http", 8080, "", "Jenkins"), "wazuh": ("https", 443, "", "SIEM (Wazuh)"),
             "red-hat-idm": ("https", 443, "/ipa/ui/", "Red Hat IdM")}
 
 
@@ -2812,6 +2812,8 @@ def consola_plataforma(e, cod, verificar=True):
     puerto = puerto_web(e, cod, puerto)   # puerto registrado en FaceOps si la plataforma no usa el de fábrica (Keycloak en 8180…)
     if cod == "jenkins" and "jenkins" not in (e.get("skills") or []):
         return None
+    if cod == "wazuh" and "wazuh" not in (e.get("skills") or []):   # SIEM instalado por FaceOps (bajo su ruta: server.basePath)
+        return None
     if cod == "keycloak":   # la consola existe solo si Keycloak corre en la máquina (no basta con la skill declarada)
         sv_ = " ".join(j(e.get("servicios"), []) if isinstance(e.get("servicios"), str) else (e.get("servicios") or [])).lower()
         if "keycloak" not in sv_ and "rhbk" not in sv_:
@@ -2820,7 +2822,7 @@ def consola_plataforma(e, cod, verificar=True):
         return None
     if cod == "keycloak" and verificar and not keycloak_responde(e["ip"], puerto):
         return None
-    w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod in ("redis", "jenkins")}
+    w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod in ("redis", "jenkins", "wazuh")}
     if cod == "keycloak":
         w["cabeceras"] = ("authorization",)
     if cod == "jenkins":   # Jenkins vive bajo su ruta de FaceOps (--prefix) y arma sus enlaces con el Host público
@@ -2969,6 +2971,12 @@ def consola_web_plataforma(eid, cod, sub):
         from .boveda import web as cred_web
         from requests.auth import HTTPBasicAuth
         cr = cred_web(e["nombre"], "jenkins") or {}
+        if cr.get("usuario") and cr.get("clave"):
+            auth = HTTPBasicAuth(cr["usuario"], cr["clave"])
+    elif familia(cod) == "wazuh":   # SIEM: FaceOps entra con el admin de la bóveda (web/<máquina>/wazuh); el usuario no ve la clave
+        from .boveda import web as cred_web
+        from requests.auth import HTTPBasicAuth
+        cr = cred_web(e["nombre"], "wazuh") or {}
         if cr.get("usuario") and cr.get("clave"):
             auth = HTTPBasicAuth(cr["usuario"], cr["clave"])
     return _proxy_web(e, w, sub, prefijo, w["transparente"], auth)
@@ -8228,7 +8236,7 @@ def menu_nav():
                                                                         ("Cumplimiento de SLA", {"_ep": "consola.sla_reporte", "_sub": True}), ("SLA por servicio", {"_ep": "consola.sla"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Mapa de seguridad", {"_ep": "consola.seguridad_mapa"}), ("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
-                                                                ("Incidentes", {"_ep": "consola.incidentes"})]),   # «VPN y accesos remotos» fuera del menú por ahora (la ruta sigue)
+                                                                ("Incidentes", {"_ep": "consola.incidentes"}), ("Incidentes de seguridad", {"_ep": "consola.seg_incidentes"})]),   # «VPN y accesos remotos» fuera del menú por ahora (la ruta sigue)
                  # «Disponibilidad» ya no es una sección: es un criterio de cada segmento de negocio (sección en su flotante del mapa)
                  ("consola.ecosistema", "Arquitectura", "segmentos", [("Manifiesto de arquitectura", {"_ep": "consola.manifiesto_arquitectura"}), ("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Políticas de desarrollo", {"_ep": "consola.politicas_desarrollo"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}), ("Modernización de aplicaciones", {"_ep": "consola.modernizacion_apps"}),
                                                                       ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True})]),   # «Buenas prácticas por tecnología» quitada del menú
@@ -8395,7 +8403,7 @@ GRUPOS_PLATAFORMA = [
     ("middleware", "Servidores de aplicación y web", {"jboss-eap", "iis", "nginx", "tomcat", "httpd", "apache"}),
     ("datos", "Bases de datos y caché", {"postgresql", "redis", "mysql", "mariadb", "oracle", "sqlserver", "mongodb"}),
     ("mensajeria", "Mensajería e integración", {"kafka", "activemq", "rabbitmq"}),
-    ("gestion", "Gestión y acción", {"satellite"}),
+    ("gestion", "Gestión y acción", {"satellite", "wazuh"}),
     ("red", "Redes y acceso remoto", {"wireguard"}),
 ]
 

@@ -148,7 +148,7 @@ def create_app():
             ref = request.headers.get("Origin") or request.headers.get("Referer") or ""
             if not ref.startswith(request.host_url.rstrip("/")):
                 abort(400, "Origen no permitido")
-        elif request.method == "POST" and request.endpoint not in ("consola.ingresar", "consola.api_fabrica_ejecutar", "consola.api_alertas_ocp"):
+        elif request.method == "POST" and request.endpoint not in ("consola.ingresar", "consola.api_fabrica_ejecutar", "consola.api_alertas_ocp", "consola.api_siem_alerta"):
             tok_ = request.form.get("_csrf") or request.headers.get("X-CSRF") or ((request.get_json(silent=True) or {}).get("_csrf") if request.is_json else None)
             if tok_ != session.get("csrf"):
                 abort(400, "Formulario vencido: recarga la página")
@@ -341,6 +341,7 @@ def create_app():
     from . import segmento_ops   # noqa: F401  (vista del segmento: campana de alertas y botón Skills)
     from . import ia_usos   # noqa: F401  (Administración › Uso de IA y distintivo «IA»)
     from . import reportes   # noqa: F401  (Gobierno › Reportes: cumplimiento por área e iniciativas de mejora)
+    from . import seguridad_incidentes   # noqa: F401  (Seguridad › Incidentes de seguridad con el SIEM)
     from . import sla   # noqa: F401  (Gobierno › SLA por servicio y Gobierno › Reportes › SLA)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo

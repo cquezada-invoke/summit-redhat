@@ -128,7 +128,7 @@ def _remediaciones(errs):
 
 
 # Servicios que un producto necesita en ejecución (además del principal que lo detecta)
-SERVICIOS_PROPIOS = {"wireguard": ["wg-quick@wg0"], "satellite": ["foreman", "httpd", "postgresql", "pulpcore", "tomcat", "redis"]}
+SERVICIOS_PROPIOS = {"wazuh": ["wazuh-manager", "wazuh-indexer", "wazuh-dashboard", "rsyslog"], "wireguard": ["wg-quick@wg0"], "satellite": ["foreman", "httpd", "postgresql", "pulpcore", "tomcat", "redis"]}
 
 
 def componentes(e, riesgo, productos, extras=None):

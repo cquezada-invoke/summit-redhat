@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% block titulo %}Incidentes de seguridad{% endblock %}
+{% set SEV = {'critica': ('Crítica', 's-alta'), 'alta': ('Alta', 's-alta'), 'media': ('Media', 's-media'), 'baja': ('Baja', 's-ok')} %}
+{% set CEST = {'nuevo': 's-alta', 'triage': 's-media', 'contencion': 's-media', 'erradicacion': 's-media', 'recuperacion': 's-ok', 'cerrado': ''} %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Incidentes de seguridad</h1>
+<p class="sub">Flujo propio de incidentes de seguridad con el SIEM: cada alerta relevante del SIEM abre un incidente con su severidad, responsable ({{ cf.grupo or 'Seguridad' }}), evidencia del evento, acciones de contención con ticket y aprobación, y línea de tiempo (nuevo → triage → contención → erradicación → recuperación → cerrado).</p></div></div>
+
+<section class="card"><h2 style="margin:0 0 6px">SIEM</h2>
+{% for s in siems %}{% set sal = s.salud %}
+<div class="fila" style="gap:14px;flex-wrap:wrap;align-items:center">
+<div><b><a href="{{ url_for('consola.equipo', eid=s.e.id) }}">{{ s.e.nombre }}</a></b> · SIEM (Wazuh {{ sal.version or '' }}) · {{ s.e.ip }}<br>
+<span class="sub" style="font-size:12px">Índice: {{ sal.indice }}{% if sal.faltan %} · servicios detenidos: {{ sal.faltan|join(', ') }}{% endif %} · alertas en 24 h: {{ sal.alertas_24h if sal.alertas_24h is not none else '—' }}</span></div>
+<span class="chip {{ 's-ok' if sal.pct >= 85 else ('s-media' if sal.pct >= 50 else 's-alta') }}">Salud {{ sal.pct }} %</span>
+{% if escribe %}<a class="btn chico" href="{{ s.consola }}" target="_blank" rel="noopener">Consola</a>{% endif %}
+</div>
+<h3 style="font-size:13px;margin:12px 0 4px">Fuentes que envían logs</h3>
+<table><tr><th>Fuente</th><th>Cómo</th><th>Estado</th><th>Última alerta en el SIEM</th></tr>
+{% for n, m in s.fuentes.maquinas.items()|sort %}<tr><td>{{ n }}</td><td>{{ 'Agente de Wazuh + syslog TLS' if m.agente else 'syslog/journald por TLS (6514), sin agente' }}</td>
+<td>{% if m.en_curso %}<a class="mono" href="{{ url_for('consola.ticket', tid=m.en_curso.id) }}">{{ m.en_curso.numero }}</a> en curso{% elif m.modo == 'activar' %}<span class="chip s-ok">enviando</span> <a class="mono sub" href="{{ url_for('consola.ticket', tid=m.ticket.id) }}">{{ m.ticket.numero }}</a>{% elif m.modo == 'quitar' %}<span class="chip">detenido</span>{% else %}—{% endif %}</td>
+<td class="sub">{{ (s.vistos.get(n) or '—')|replace('T', ' ')|truncate(19, True, '') }}</td></tr>{% endfor %}
+<tr><td>AAP</td><td>Logging externo de AAP (jobs y actividad, 6515)</td><td>{% if s.fuentes.aap and s.fuentes.aap.modo == 'activar' %}<span class="chip s-ok">enviando</span> <a class="mono sub" href="{{ url_for('consola.ticket', tid=s.fuentes.aap.ticket.id) }}">{{ s.fuentes.aap.ticket.numero }}</a>{% else %}<span class="chip">no</span>{% endif %}</td><td class="sub">{{ (s.vistos.get('aap') or '—')|replace('T', ' ')|truncate(19, True, '') }}</td></tr>
+<tr><td>FaceOps</td><td>Auditoría (tickets, aprobaciones, ingresos y cambios) por TLS</td><td>{% if s.fuentes.faceops %}<span class="chip s-ok">enviando</span>{% else %}<span class="chip">no</span>{% endif %}</td><td class="sub">{{ (s.vistos.get('faceops') or '—')|replace('T', ' ')|truncate(19, True, '') }}</td></tr></table>
+{% if escribe %}
+<div class="fila" style="gap:16px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">
+<form method="post" action="{{ url_for('consola.seg_siem_logs') }}" class="fila" style="gap:6px;flex-wrap:wrap;align-items:flex-end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="siem" value="{{ s.e.id }}">
+<label class="sub" style="font-size:12px">Máquinas<br><select name="equipos" multiple size="4" style="min-width:200px">{% for e in linux %}<option value="{{ e.id }}">{{ e.nombre }}</option>{% endfor %}</select></label>
+<label class="sub" style="font-size:12px">Modo<br><select name="modo"><option value="activar">Enviar logs</option><option value="quitar">Dejar de enviar</option></select></label>
+<label class="sub" style="font-size:12px"><input type="checkbox" name="agente" value="1"> con agente de Wazuh (opcional)</label>
+<button class="btn chico" {% if bloqueo['SIEM · Enviar logs al SIEM'] %}disabled title="Enviar logs al SIEM: {{ bloqueo['SIEM · Enviar logs al SIEM'] }}"{% endif %}>Enviar logs al SIEM</button></form>
+<form method="post" action="{{ url_for('consola.seg_siem_aap') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="siem" value="{{ s.e.id }}"><input type="hidden" name="modo" value="{{ 'quitar' if s.fuentes.aap and s.fuentes.aap.modo == 'activar' else 'activar' }}">
+<button class="btn chico gris" {% if bloqueo['SIEM · Enviar logs de AAP'] %}disabled title="Enviar logs de AAP: {{ bloqueo['SIEM · Enviar logs de AAP'] }}"{% endif %}>{{ 'Dejar de enviar logs de AAP' if s.fuentes.aap and s.fuentes.aap.modo == 'activar' else 'Enviar logs de AAP' }}</button></form>
+<form method="post" action="{{ url_for('consola.seg_siem_faceops') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="siem" value="{{ s.e.id }}"><input type="hidden" name="modo" value="{{ 'quitar' if s.fuentes.faceops else 'activar' }}">
+<button class="btn chico gris">{{ 'Dejar de enviar la auditoría de FaceOps' if s.fuentes.faceops else 'Enviar la auditoría de FaceOps' }}</button></form>
+</div>{% endif %}
+{% if not loop.last %}<hr>{% endif %}
+{% else %}
+<p class="sub">Este cliente aún no tiene SIEM. Se instala Wazuh todo en uno en una máquina RHEL 9 de al menos 4 vCPU y 8 GB (créala con «Habilitar servidor»); su consola queda publicada a través de FaceOps y sus claves en la bóveda.</p>
+{% if escribe %}<form method="post" action="{{ url_for('consola.seg_siem_instalar') }}" class="fila" style="gap:6px;align-items:flex-end"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label class="sub" style="font-size:12px">Máquina<br><select name="equipo">{% for e in candidatos_siem %}<option value="{{ e.id }}">{{ e.nombre }} · {{ e.so }}</option>{% endfor %}</select></label>
+<button class="btn chico" {% if bloqueo['SIEM · Instalar Wazuh'] or not autos['SIEM · Instalar Wazuh'] %}disabled title="Instalar Wazuh: {{ bloqueo['SIEM · Instalar Wazuh'] or 'falta en el catálogo' }}"{% endif %}>Instalar SIEM (Wazuh)</button></form>{% endif %}
+{% endfor %}
+</section>
+
+<section class="card">
+<div class="fila" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">
+<a class="btn chico {{ '' if est == 'abiertos' else 'gris' }}" href="{{ url_for('consola.seg_incidentes', estado='abiertos') }}">Abiertos</a>
+{% for k, t in ESTADOS %}<a class="btn chico {{ '' if est == k else 'gris' }}" href="{{ url_for('consola.seg_incidentes', estado=k) }}">{{ t }} ({{ cuenta[k] }})</a>{% endfor %}
+<a class="btn chico {{ '' if est == 'todos' else 'gris' }}" href="{{ url_for('consola.seg_incidentes', estado='todos') }}">Todos</a></div>
+<table><tr><th>Incidente</th><th>Severidad</th><th>Estado</th><th>Máquina</th><th>Origen</th><th>Responsable</th><th class="num">Alertas</th><th>Abierto</th></tr>
+{% for x in filas %}<tr><td><a class="mono" href="{{ url_for('consola.seg_incidente', iid=x.id) }}">{{ x.numero }}</a><br><span style="font-size:12.5px">{{ x.titulo }}</span></td>
+<td><span class="chip {{ SEV[x.severidad][1] }}">{{ SEV[x.severidad][0] }}</span></td><td><span class="chip {{ CEST[x.estado] }}">{{ ESTADOS|selectattr(0, 'equalto', x.estado)|map(attribute=1)|first }}</span></td>
+<td>{{ x.equipo or '—' }}</td><td class="mono" style="font-size:12px">{{ x.ip_origen or '—' }}{% if x.usuario %}<br>usuario {{ x.usuario }}{% endif %}</td>
+<td style="font-size:12.5px">{{ x.responsable_grupo }}{% if x.responsable_usuario %} · {{ x.responsable_usuario }}{% endif %}</td><td class="num">{{ x.alertas }}</td><td style="font-size:12px">{{ x.creado|fecha }}</td></tr>
+{% else %}<tr><td colspan="8" class="sub">Sin incidentes en esta vista.</td></tr>{% endfor %}</table></section>
+{% endblock %}

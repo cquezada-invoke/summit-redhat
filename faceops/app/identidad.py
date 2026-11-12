@@ -30,7 +30,7 @@ def codigo_interno(e):
     return f"{pre}-{int(e.get('id') or 0):04d}"
 
 
-NOMBRES_PLAT = {"postgres": "PostgreSQL", "nginx": "Nginx", "redis": "Redis", "jenkins": "Jenkins", "kafka": "Kafka", "jboss": "JBoss EAP", "vault": "Vault",
+NOMBRES_PLAT = {"postgres": "PostgreSQL", "nginx": "Nginx", "redis": "Redis", "jenkins": "Jenkins", "wazuh": "SIEM (Wazuh)", "kafka": "Kafka", "jboss": "JBoss EAP", "vault": "Vault",
                 "activemq": "ActiveMQ", "tomcat": "Tomcat", "iis": "IIS", "keycloak": "Keycloak", "respaldo-git": None, "node-exporter": None,
                 "redisinsight": None, "node_exporter": None, "monitoreo": None, "windows-exporter": None, "storage-emulado": None, "podman": None,
                 "red-hat-idm": "Red Hat IdM", "389-directory-server": "Directory Server", "midpoint": "midPoint", "active-directory": "Active Directory",
@@ -53,7 +53,7 @@ def descripcion(e):
         return e["descripcion"].strip()
     sk = e.get("skills")
     sk = j(sk, []) if isinstance(sk, str) else (sk or [])
-    nombres = {"postgres": "PostgreSQL", "nginx": "Nginx", "redis": "Redis", "jenkins": "Jenkins", "kafka": "Kafka", "jboss": "JBoss EAP", "vault": "Vault",
+    nombres = {"postgres": "PostgreSQL", "nginx": "Nginx", "redis": "Redis", "jenkins": "Jenkins", "wazuh": "SIEM (Wazuh)", "kafka": "Kafka", "jboss": "JBoss EAP", "vault": "Vault",
                "activemq": "ActiveMQ", "tomcat": "Tomcat", "iis": "IIS", "keycloak": "Keycloak", "respaldo-git": None, "node-exporter": None, "redisinsight": None, "node_exporter": None, "monitoreo": None}
     p = [nombres.get(s, s.capitalize()) for s in sk if nombres.get(s, s) is not None]
     return " · ".join(dict.fromkeys(p)) if p else "Sin plataformas declaradas"

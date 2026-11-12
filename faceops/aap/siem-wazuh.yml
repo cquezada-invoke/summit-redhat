@@ -1,0 +1,404 @@
+---
+# SIEM · Instalar Wazuh (skill «wazuh»): Wazuh 4.9.2 todo en uno (manager + indexer + dashboard) en una VM RHEL 9, más:
+#  · Receptor syslog por TLS (rsyslog, 6514/tcp) para el reenvío agentless de las máquinas: escribe en
+#    /var/log/faceops-remoto/ y Wazuh lo analiza (remoto.log = syslog; faceops.json = auditoría de FaceOps).
+#  · Receptor de los logs de AAP (6515/tcp, solo desde el anfitrión 192.168.122.1) → aap.json.
+#  · Reglas propias (100100: 6 SSH fallidos desde la misma IP, nivel 10) y la integración «custom-faceops», que manda a
+#    FaceOps las alertas de nivel >= wz_nivel (Seguridad › Incidentes de seguridad).
+#  · Consola publicada solo a través de FaceOps (server.basePath = wz_ruta, la entrega FaceOps).
+# Secretos: las claves de Wazuh/indexer las genera el instalador en la máquina (solo root), nunca se imprimen y quedan en la
+# bóveda (web/<equipo>/wazuh) con la credencial «FaceOps · Bóveda (servicios)», junto con la CA del receptor TLS y el token
+# de la integración. FaceOps los lee de ahí.
+- name: SIEM · Instalar Wazuh
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    wz_version: "4.9.2"
+    wz_rama: "4.9"
+    ruta: "{{ wz_ruta | default('') }}"
+    faceops_api: "{{ wz_faceops | default('http://192.168.122.1:8110/api/siem/alerta/' ~ inventory_hostname) }}"
+    nivel: "{{ wz_nivel | default(10) | int }}"
+    anfitrion: "{{ wz_anfitrion | default('192.168.122.1') }}"
+    dir: /etc/faceops-siem
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - ruta is match('^/[A-Za-z0-9/_-]{1,160}$')
+          - faceops_vault_role_id is defined
+          - ansible_distribution == 'RedHat' and ansible_distribution_major_version | int >= 9
+          - ansible_processor_vcpus | int >= 4 and ansible_memtotal_mb | int >= 7000
+          - nivel | int >= 3 and nivel | int <= 15
+        fail_msg: >-
+          Wazuh todo en uno necesita RHEL 9, 4 vCPU y 8 GB, la ruta de su consola (lánzalo desde Seguridad › Incidentes de
+          seguridad) y la credencial «FaceOps · Bóveda (servicios)» en la plantilla
+        quiet: true
+
+    - name: Paquetes de apoyo
+      ansible.builtin.dnf:
+        name: [curl, tar, openssl, rsyslog, rsyslog-gnutls, policycoreutils-python-utils, python3]
+        state: present
+
+    - name: Carpetas
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop: ["{{ dir }}", "{{ dir }}/tls", "/root/wazuh-{{ wz_version }}"]
+
+    - name: Instalador oficial de la rama {{ wz_rama }}
+      ansible.builtin.get_url:
+        url: "https://packages.wazuh.com/{{ wz_rama }}/wazuh-install.sh"
+        dest: "/root/wazuh-{{ wz_version }}/wazuh-install.sh"
+        mode: "0700"
+      register: r_dl
+      retries: 3
+      delay: 10
+      until: r_dl is succeeded
+
+    - name: El instalador es exactamente la versión fijada
+      ansible.builtin.shell: grep -oE '^readonly wazuh_version="[0-9.]+"|^wazuh_version="[0-9.]+"' /root/wazuh-{{ wz_version }}/wazuh-install.sh | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1
+      register: r_ver_inst
+      changed_when: false
+      failed_when: r_ver_inst.stdout != wz_version
+
+    - name: ¿Ya está instalado?
+      ansible.builtin.shell: rpm -q --qf '%{VERSION}' wazuh-manager 2>/dev/null || true
+      register: r_ya
+      changed_when: false
+
+    - name: Instalar Wazuh todo en uno (manager + indexer + dashboard; 10 a 20 min)
+      ansible.builtin.command: bash wazuh-install.sh -a -i
+      args:
+        chdir: "/root/wazuh-{{ wz_version }}"
+        creates: "/root/wazuh-{{ wz_version }}/wazuh-install-files.tar"
+      when: r_ya.stdout != wz_version
+      async: 3000
+      poll: 20
+      register: r_inst
+      no_log: true   # el instalador imprime la clave de admin al terminar
+
+    - name: Instalación sin errores
+      ansible.builtin.assert:
+        that: r_inst is skipped or r_inst.rc | default(1) == 0
+        fail_msg: "El instalador de Wazuh falló (código {{ r_inst.rc | default('?') }}); revisa /var/log/wazuh-install.log en la máquina"
+        quiet: true
+
+    - name: Versión instalada
+      ansible.builtin.command: rpm -q --qf '%{VERSION}' wazuh-manager wazuh-indexer wazuh-dashboard
+      register: r_rpm
+      changed_when: false
+      failed_when: (r_rpm.stdout | regex_findall(wz_version | regex_escape) | length) != 3
+
+    - name: Claves generadas por el instalador (solo root; no se imprimen)
+      ansible.builtin.shell: |
+        set -e
+        umask 077
+        tar -O -xf /root/wazuh-{{ wz_version }}/wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt > {{ dir }}/claves.txt
+        python3 - <<'P'
+        import re, json
+        t = open("{{ dir }}/claves.txt").read()
+        u = re.findall(r"(?:indexer|api)_username:\s*'([^']+)'\s*\n\s*(?:indexer|api)_password:\s*'([^']+)'", t)
+        d = dict(u)
+        json.dump({"admin": d["admin"], "wazuh_api": d.get("wazuh", "")}, open("{{ dir }}/claves.json", "w"))
+        P
+        [ -s {{ dir }}/token ] || openssl rand -hex 32 > {{ dir }}/token
+        chmod 600 {{ dir }}/claves.txt {{ dir }}/claves.json {{ dir }}/token
+      no_log: true
+      changed_when: false
+
+    # ── Receptor syslog por TLS (6514) y receptor de AAP (6515) ──────────────────────────────────────────────────────
+    - name: CA y certificado del receptor TLS (generados en la máquina)
+      ansible.builtin.shell: |
+        set -e
+        cd {{ dir }}/tls
+        if [ ! -s ca.pem ]; then
+          openssl req -x509 -newkey rsa:3072 -nodes -days 3650 -keyout ca.key -out ca.pem -subj "/O=Invoke/CN=FaceOps SIEM CA {{ inventory_hostname }}" 2>/dev/null
+        fi
+        if [ ! -s siem.pem ]; then
+          openssl req -newkey rsa:3072 -nodes -keyout siem.key -out siem.csr -subj "/O=Invoke/CN={{ inventory_hostname }}" 2>/dev/null
+          printf 'subjectAltName=DNS:{{ inventory_hostname }},IP:{{ ansible_default_ipv4.address }}\nextendedKeyUsage=serverAuth\n' > ext.cnf
+          openssl x509 -req -in siem.csr -CA ca.pem -CAkey ca.key -CAcreateserial -days 1825 -out siem.pem -extfile ext.cnf 2>/dev/null
+          echo nuevo
+        fi
+        chmod 600 ca.key siem.key; chmod 644 ca.pem siem.pem
+      register: r_tls
+      changed_when: "'nuevo' in r_tls.stdout"
+
+    - name: Puerto 6515 para rsyslog (SELinux)
+      ansible.builtin.shell: |
+        semanage port -l | grep -qE '^syslogd_port_t.*tcp.*\b6515\b' && echo ya || { semanage port -a -t syslogd_port_t -p tcp 6515 && echo nuevo; }
+      register: r_se
+      changed_when: "'nuevo' in r_se.stdout"
+
+    - name: Carpeta de los logs recibidos
+      ansible.builtin.file:
+        path: /var/log/faceops-remoto
+        state: directory
+        mode: "0750"
+
+    - name: rsyslog · receptores
+      ansible.builtin.copy:
+        dest: /etc/rsyslog.d/10-faceops-siem.conf
+        mode: "0644"
+        content: |
+          # FaceOps · receptores del SIEM (instalado por «SIEM · Instalar Wazuh»)
+          module(load="imtcp" StreamDriver.Name="gtls" StreamDriver.Mode="1" StreamDriver.AuthMode="anon"
+                 StreamDriver.CAFile="{{ dir }}/tls/ca.pem" StreamDriver.CertFile="{{ dir }}/tls/siem.pem" StreamDriver.KeyFile="{{ dir }}/tls/siem.key")
+          template(name="FaceOpsTrad" type="string" string="%TIMESTAMP% %HOSTNAME% %syslogtag%%msg:::sp-if-no-1st-sp%%msg:::drop-last-lf%\n")
+          template(name="FaceOpsJson" type="string" string="%msg:R,ERE,0,DFLT:\{.*--end%\n")
+          template(name="FaceOpsRaw" type="string" string="%rawmsg:R,ERE,0,DFLT:\{.*--end%\n")
+          ruleset(name="faceops_remoto") {
+            if $programname == "faceops-auditoria" then {
+              action(type="omfile" file="/var/log/faceops-remoto/faceops.json" template="FaceOpsJson")
+              stop
+            }
+            action(type="omfile" file="/var/log/faceops-remoto/remoto.log" template="FaceOpsTrad")
+          }
+          ruleset(name="faceops_aap") {
+            action(type="omfile" file="/var/log/faceops-remoto/aap.json" template="FaceOpsRaw")
+          }
+          input(type="imtcp" port="6514" ruleset="faceops_remoto")
+          input(type="imtcp" port="6515" ruleset="faceops_aap" StreamDriver.Name="ptcp" StreamDriver.Mode="0")
+      register: r_rs
+
+    - name: Rotación de los logs recibidos
+      ansible.builtin.copy:
+        dest: /etc/logrotate.d/faceops-remoto
+        mode: "0644"
+        content: |
+          /var/log/faceops-remoto/*.log /var/log/faceops-remoto/*.json {
+            daily
+            rotate 7
+            compress
+            missingok
+            notifempty
+            postrotate
+              /usr/bin/systemctl kill -s HUP rsyslog.service >/dev/null 2>&1 || true
+            endscript
+          }
+
+    - name: rsyslog válido
+      ansible.builtin.command: rsyslogd -N1 -f /etc/rsyslog.conf
+      changed_when: false
+
+    - name: rsyslog arriba
+      ansible.builtin.systemd:
+        name: rsyslog
+        state: "{{ 'restarted' if (r_rs.changed or r_tls.changed or r_se.changed) else 'started' }}"
+        enabled: true
+
+    # ── Wazuh: lo que analiza, reglas propias e integración con FaceOps ──────────────────────────────────────────────
+    - name: Wazuh lee los logs recibidos
+      ansible.builtin.blockinfile:
+        path: /var/ossec/etc/ossec.conf
+        marker: "<!-- {mark} FaceOps · logs recibidos -->"
+        insertbefore: "</ossec_config>"
+        block: |
+          <localfile>
+            <log_format>syslog</log_format>
+            <location>/var/log/faceops-remoto/remoto.log</location>
+          </localfile>
+          <localfile>
+            <log_format>json</log_format>
+            <location>/var/log/faceops-remoto/faceops.json</location>
+          </localfile>
+          <localfile>
+            <log_format>json</log_format>
+            <location>/var/log/faceops-remoto/aap.json</location>
+          </localfile>
+      register: r_lf
+
+    - name: Integración con FaceOps (alertas de nivel {{ nivel }} o más)
+      ansible.builtin.shell: |
+        set -e
+        h=$(sha256sum {{ dir }}/token | cut -d' ' -f1)
+        python3 - "$h" <<'P'
+        import re, sys
+        p = "/var/ossec/etc/ossec.conf"
+        t = open(p).read()
+        b = ("<!-- BEGIN FaceOps · integración -->\n<ossec_config>\n  <integration>\n    <name>custom-faceops</name>\n"
+             "    <hook_url>{{ faceops_api }}</hook_url>\n    <api_key>" + sys.argv[1] + "</api_key>\n    <level>{{ nivel }}</level>\n"
+             "    <alert_format>json</alert_format>\n  </integration>\n</ossec_config>\n<!-- END FaceOps · integración -->\n")
+        n = re.sub(r"<!-- BEGIN FaceOps · integración -->.*?<!-- END FaceOps · integración -->\n", "", t, flags=re.S) + b
+        if n != t:
+            open(p, "w").write(n); print("cambio")
+        P
+      register: r_int
+      changed_when: "'cambio' in r_int.stdout"
+      no_log: true
+
+    - name: Script de la integración (sin dependencias)
+      ansible.builtin.copy:
+        dest: /var/ossec/integrations/custom-faceops
+        owner: root
+        group: wazuh
+        mode: "0750"
+        content: |
+          #!/var/ossec/framework/python/bin/python3
+          # Wazuh → FaceOps: envía la alerta (JSON) al endpoint de incidentes de seguridad. Argumentos de integratord:
+          # <archivo de la alerta> <api_key> <hook_url>
+          import json, sys, urllib.request
+          alerta = json.load(open(sys.argv[1]))
+          r = urllib.request.Request(sys.argv[3], data=json.dumps(alerta).encode(), method="POST",
+                                     headers={"Content-Type": "application/json", "Authorization": "Bearer " + sys.argv[2]})
+          urllib.request.urlopen(r, timeout=15).read()
+      register: r_sc
+
+    - name: Reglas propias de FaceOps
+      ansible.builtin.blockinfile:
+        path: /var/ossec/etc/rules/local_rules.xml
+        marker: "<!-- {mark} FaceOps -->"
+        block: |
+          <group name="faceops,">
+            <rule id="100099" level="5">
+              <if_sid>5760, 5710</if_sid>
+              <description>SSH: intento de acceso fallido (cuenta para el umbral de FaceOps)</description>
+              <group>authentication_failed,faceops_ssh_falla,</group>
+            </rule>
+            <rule id="100100" level="10" frequency="6" timeframe="120">
+              <if_matched_group>faceops_ssh_falla</if_matched_group>
+              <same_source_ip />
+              <description>SSH: 6 intentos fallidos desde la misma IP en 2 minutos (posible fuerza bruta)</description>
+              <mitre><id>T1110</id></mitre>
+              <group>authentication_failures,faceops_incidente,</group>
+            </rule>
+            <rule id="100110" level="3">
+              <match>FACEOPS-SIEM-PRUEBA</match>
+              <description>FaceOps: marca de prueba del reenvío de logs</description>
+              <group>faceops_prueba,</group>
+            </rule>
+            <rule id="100200" level="3">
+              <decoded_as>json</decoded_as>
+              <field name="origen">^faceops$</field>
+              <description>FaceOps · auditoría: $(accion) $(objeto) por $(usuario)</description>
+              <group>faceops_auditoria,</group>
+            </rule>
+            <rule id="100201" level="7">
+              <if_sid>100200</if_sid>
+              <field name="accion">ingreso fallido|ingreso rechazado|ingreso bloqueado</field>
+              <description>FaceOps · auditoría: ingreso fallido de $(usuario)</description>
+              <group>faceops_auditoria,authentication_failed,</group>
+            </rule>
+            <rule id="100300" level="3">
+              <decoded_as>json</decoded_as>
+              <field name="logger_name">^awx</field>
+              <description>AAP: $(logger_name)</description>
+              <group>faceops_aap,</group>
+            </rule>
+          </group>
+      register: r_rl
+
+    - name: Configuración de Wazuh válida
+      ansible.builtin.command: /var/ossec/bin/wazuh-analysisd -t
+      changed_when: false
+
+    - name: Manager con la configuración nueva
+      ansible.builtin.systemd:
+        name: wazuh-manager
+        state: "{{ 'restarted' if (r_lf.changed or r_int.changed or r_sc.changed or r_rl.changed) else 'started' }}"
+        enabled: true
+
+    # ── Consola publicada a través de FaceOps ────────────────────────────────────────────────────────────────────────
+    - name: Dashboard bajo la ruta de FaceOps
+      ansible.builtin.blockinfile:
+        path: /etc/wazuh-dashboard/opensearch_dashboards.yml
+        marker: "# {mark} FaceOps · consola publicada a través de FaceOps"
+        block: |
+          server.basePath: "{{ ruta }}"
+          server.rewriteBasePath: true
+      register: r_db
+
+    - name: Dashboard arriba
+      ansible.builtin.systemd:
+        name: wazuh-dashboard
+        state: "{{ 'restarted' if r_db.changed else 'started' }}"
+        enabled: true
+
+    - name: Firewall (consola, receptores, índice para FaceOps, agentes opcionales)
+      ansible.builtin.shell: |
+        if systemctl is-active -q firewalld; then
+          for p in 443 6514 1514 1515; do firewall-cmd -q --permanent --add-port=$p/tcp; done
+          firewall-cmd -q --permanent --add-rich-rule='rule family="ipv4" source address="{{ anfitrion }}/32" port port="6515" protocol="tcp" accept'
+          firewall-cmd -q --permanent --add-rich-rule='rule family="ipv4" source address="{{ anfitrion }}/32" port port="9200" protocol="tcp" accept'
+          firewall-cmd -q --permanent --add-rich-rule='rule family="ipv4" source address="{{ anfitrion }}/32" port port="55000" protocol="tcp" accept'
+          firewall-cmd -q --reload
+        fi
+      changed_when: false
+
+    # ── Verificación ─────────────────────────────────────────────────────────────────────────────────────────────────
+    - name: Servicios activos
+      ansible.builtin.command: systemctl is-active wazuh-manager wazuh-indexer wazuh-dashboard rsyslog
+      register: r_act
+      changed_when: false
+      retries: 10
+      delay: 10
+      until: r_act.rc == 0
+
+    - name: Receptores escuchando (6514 TLS, 6515)
+      ansible.builtin.shell: ss -ltn | grep -cE ':(6514|6515)\s'
+      register: r_ss
+      changed_when: false
+      failed_when: r_ss.stdout | int < 2
+
+    - name: El receptor 6514 habla TLS con su CA
+      ansible.builtin.shell: >-
+        echo | openssl s_client -connect 127.0.0.1:6514 -CAfile {{ dir }}/tls/ca.pem -verify_return_error -brief 2>&1 | grep -c 'Verification: OK'
+      register: r_tlsok
+      changed_when: false
+      failed_when: r_tlsok.stdout | int < 1
+
+    - name: Indexer responde con la clave de admin
+      ansible.builtin.shell: |
+        p=$(python3 -c "import json;print(json.load(open('{{ dir }}/claves.json'))['admin'])")
+        curl -sk -o /dev/null -w '%{http_code}' -u "admin:$p" https://127.0.0.1:9200/_cluster/health
+      register: r_idx
+      until: r_idx.stdout == '200'
+      retries: 20
+      delay: 10
+      changed_when: false
+      no_log: true
+
+    - name: Dashboard responde bajo su ruta
+      ansible.builtin.shell: curl -sk -o /dev/null -w '%{http_code}' "https://127.0.0.1{{ ruta }}/app/login"
+      register: r_dash
+      until: r_dash.stdout in ['200', '302']
+      retries: 40
+      delay: 10
+      changed_when: false
+
+    - name: Sin clave el indexer no responde
+      ansible.builtin.shell: curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1:9200/_cluster/health
+      register: r_anon
+      changed_when: false
+      failed_when: r_anon.stdout != '401'
+
+    - name: Credenciales, CA y token en la bóveda (FaceOps entra y valida sin mostrarlos)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, urllib.request
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        c = json.load(open("{{ dir }}/claves.json"))
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/wazuh", {"data": {
+            "sitio": "wazuh", "usuario": "admin", "clave": c["admin"], "api_usuario": "wazuh", "api_clave": c["wazuh_api"],
+            "token": open("{{ dir }}/token").read().strip(), "ca": open("{{ dir }}/tls/ca.pem").read(),
+            "ip": "{{ ansible_default_ipv4.address }}", "puerto": 443, "ruta": "{{ ruta }}", "syslog_tls": 6514, "aap": 6515,
+            "version": "{{ wz_version }}"}}, tok)
+        print("ok")
+        P
+      no_log: true
+      changed_when: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_wazuh: {equipo: "{{ inventory_hostname }}", ip: "{{ ansible_default_ipv4.address }}", version: "{{ wz_version }}",
+                          ruta: "{{ ruta }}", syslog_tls: 6514, aap: 6515, nivel_integracion: "{{ nivel }}",
+                          servicios: "{{ r_act.stdout_lines }}", instalado_ahora: "{{ r_inst is not skipped }}"}

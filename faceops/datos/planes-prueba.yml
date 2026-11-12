@@ -7,6 +7,33 @@
 excepciones:
   - {automatizacion: "Monitoreo · Configurar alertas del equipo", autoriza: "Cristian Quezada", fecha: "2026-11-11", motivo: "«ya bloquearemos caso a caso»: el flotante de alertas no se bloquea por la certificación; solo las acciones no certificadas del selector"}
 planes:
+  "SIEM · Instalar Wazuh":   # VM RHEL 9 de 4 vCPU y 8 GB creada con «Habilitar servidor»
+    casos:
+      - {id: C1, caso: "Instalar en la VM nueva desde Seguridad › Incidentes de seguridad (ruta de su consola en FaceOps)", verificar: "ticket exitoso; faceops_wazuh con versión 4.9.2 y los 4 servicios activos; receptores 6514 (TLS verificado con la CA) y 6515 escuchando; indexer responde con la clave de admin y rechaza sin clave (401); claves, CA y token en la bóveda (web/<máquina>/wazuh) sin aparecer en la salida"}
+      - {id: C2, caso: "Consola por FaceOps (botón Consola de la plataforma SIEM (Wazuh))", tipo: Funcional, verificar: "la consola del SIEM carga bajo /faceops/lab/inventario/<id>/consola-web/wazuh/ con la sesión de admin que pone FaceOps (sin pedir clave)"}
+      - {id: C3, caso: "Repetir la instalación", tipo: Idempotencia, verificar: "ticket exitoso; no reinstala (instalado_ahora false); servicios sin reinicio innecesario; mismas claves"}
+      - {id: C4, caso: "Lanzar sin la ruta de la consola (wz_ruta vacía)", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos» con el motivo; no se toca la máquina"}
+  "SIEM · Enviar logs al SIEM":
+    casos:
+      - {id: C1, caso: "Activar el reenvío agentless en nodo-vault", verificar: "ticket exitoso; faceops_siem_logs con tls true y conexión establecida a <SIEM>:6514; la marca FACEOPS-SIEM-PRUEBA de nodo-vault aparece como alerta 100110 en el índice del SIEM"}
+      - {id: C2, caso: "Repetir la activación", tipo: Idempotencia, verificar: "ticket exitoso sin reinicio de rsyslog (changed solo en la marca); sigue una sola conexión"}
+      - {id: C3, caso: "Modo quitar", verificar: "ticket exitoso; sin /etc/rsyslog.d/90-faceops-siem.conf ni conexión a 6514"}
+      - {id: C4, caso: "Volver a activar con el agente de Wazuh (opcional)", verificar: "ticket exitoso; wazuh-agent 4.9.2 activo y registrado en el manager (aparece en la lista de agentes); el reenvío agentless sigue activo"}
+      - {id: C5, caso: "Activar sin la CA del SIEM", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; la máquina no cambia"}
+  "SIEM · Enviar logs de AAP":
+    casos:
+      - {id: C1, caso: "Activar el logging externo de AAP hacia el SIEM", verificar: "ticket exitoso; settings/logging con el SIEM en 6515, tipo other, loggers job_lifecycle y activity_stream, habilitado; la prueba de AAP responde; aparecen alertas 100300 (AAP) en el índice del SIEM"}
+      - {id: C2, caso: "Repetir", tipo: Idempotencia, verificar: "ticket exitoso sin cambios (changed=0)"}
+      - {id: C3, caso: "Modo quitar y volver a activar", verificar: "tickets exitosos; LOG_AGGREGATOR_ENABLED false y luego true"}
+      - {id: C4, caso: "Sin IP del SIEM", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; la configuración de AAP no cambia"}
+  "Seguridad · Contención de incidente":
+    casos:
+      - {id: C1, caso: "Bloquear una IP (203.0.113.50) en srv-siem-01 (pedida como desde un incidente)", verificar: "ticket exitoso; tabla inet faceops_contencion con «ip saddr 203.0.113.50 drop»; servicio faceops-contencion habilitado; AAP sigue entrando"}
+      - {id: C2, caso: "Repetir el bloqueo", tipo: Idempotencia, verificar: "ticket exitoso sin cambios; una sola regla para la IP"}
+      - {id: C3, caso: "Aislar srv-siem-01", verificar: "ticket exitoso; solo 192.168.122.1 y el SIEM llegan a la máquina (AAP sigue entrando; otra máquina del lab no alcanza su puerto 443); el bloqueo de C1 se mantiene"}
+      - {id: C4, caso: "Deshabilitar y volver a habilitar una cuenta normal de la máquina", verificar: "tickets exitosos; passwd -S muestra L y luego P/NP; sus sesiones se cierran al deshabilitar"}
+      - {id: C5, caso: "Revertir", verificar: "ticket exitoso; sin tabla faceops_contencion ni servicio; la máquina vuelve a responder a todos"}
+      - {id: C6, caso: "Bloquear la IP de AAP (192.168.122.1) o deshabilitar root", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; la máquina no cambia"}
   "Plataforma · Medir salud":
     casos:
       - {id: C1, caso: "Medir el data lake en nodo-storage (SeaweedFS: S3 :9000, master :9333, filer :8888, disco /srv/datalake)", verificar: "ticket exitoso de solo lectura; faceops_salud_plat trae s3_responde, comp_ok/comp_total (4 componentes), buckets y espacio_libre_pct, y el espacio coincide con df en la máquina (±2 puntos); la ficha PL-DATA-LAKE-0027 muestra la medición y su salud"}

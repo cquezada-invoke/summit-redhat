@@ -1,0 +1,179 @@
+---
+# Seguridad · Contención de incidente: acciones de contención sugeridas por un incidente de seguridad de FaceOps, siempre
+# con ticket y aprobación. Usa una tabla nftables propia (inet faceops_contencion), independiente de firewalld, que se
+# carga al arrancar con el servicio faceops-contencion; «revertir» la quita completa.
+# Variables (las arma FaceOps desde el incidente):
+#   sc_accion: bloquear_ip | aislar | deshabilitar_usuario | habilitar_usuario | revertir
+#   sc_ip: IP a bloquear        sc_usuario: cuenta a deshabilitar o habilitar
+#   sc_permitidas: IPs que siguen llegando a la máquina aislada (AAP/anfitrión y el SIEM); la red del anfitrión siempre
+#   sc_incidente: número del incidente (queda en los comentarios de las reglas)
+- name: Seguridad · Contención de incidente
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    accion: "{{ sc_accion | default('') }}"
+    inc: "{{ sc_incidente | default('SI') | regex_replace('[^A-Za-z0-9-]', '') }}"
+    permitidas: "{{ (['192.168.122.1'] + (sc_permitidas | default('') | string).split(',')) | map('trim') | select | unique | list }}"
+    archivo: /etc/nftables/faceops-contencion.nft
+    protegidos: [root, ansible, faceops, aap-kvm]
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - accion in ['bloquear_ip', 'aislar', 'deshabilitar_usuario', 'habilitar_usuario', 'revertir']
+          - accion != 'bloquear_ip' or (sc_ip | default('') is match('^[0-9]{1,3}(\.[0-9]{1,3}){3}$'))
+          - accion != 'bloquear_ip' or sc_ip not in permitidas
+          - accion not in ['deshabilitar_usuario', 'habilitar_usuario'] or (sc_usuario | default('') is match('^[a-z_][a-z0-9_.-]{0,31}$'))
+          - accion != 'deshabilitar_usuario' or sc_usuario not in protegidos
+          - permitidas | select('match', '^[0-9]{1,3}(\.[0-9]{1,3}){3}$') | list | length == permitidas | length
+        fail_msg: >-
+          Acción, IP o usuario no válidos (no se bloquea la IP de AAP ni del SIEM; no se deshabilitan root, ansible ni las
+          cuentas de servicio de FaceOps)
+        quiet: true
+
+    - name: nftables presente
+      ansible.builtin.package:
+        name: nftables
+        state: present
+      when: accion in ['bloquear_ip', 'aislar']
+
+    - name: Reglas actuales
+      ansible.builtin.slurp:
+        src: "{{ archivo }}"
+      register: r_act
+      failed_when: false
+
+    - name: Estado de la contención
+      ansible.builtin.set_fact:
+        bloqueadas: "{{ ((r_act.content | default('') | b64decode) | regex_findall('ip saddr ([0-9.]+) drop comment \"bloqueo') ) | unique | list }}"
+        aislada: "{{ 'aislamiento' in (r_act.content | default('') | b64decode) }}"
+
+    - name: Reglas nuevas
+      ansible.builtin.set_fact:
+        n_bloq: "{{ (bloqueadas + ([sc_ip] if accion == 'bloquear_ip' else [])) | unique | list if accion != 'revertir' else [] }}"
+        n_aisl: "{{ (aislada or accion == 'aislar') and accion != 'revertir' }}"
+      when: accion in ['bloquear_ip', 'aislar']
+
+    - name: Tabla de contención
+      ansible.builtin.copy:
+        dest: "{{ archivo }}"
+        mode: "0600"
+        content: |
+          # FaceOps · contención de incidentes de seguridad ({{ inc }}). No editar: lo deja «Seguridad · Contención de incidente».
+          table inet faceops_contencion
+          delete table inet faceops_contencion
+          table inet faceops_contencion {
+            chain entrada {
+              type filter hook input priority -10; policy accept;
+          {% for ip in n_bloq %}
+              ip saddr {{ ip }} drop comment "bloqueo {{ inc }}"
+          {% endfor %}
+          {% if n_aisl %}
+              iif lo accept comment "aislamiento"
+              ct state established,related accept
+          {% for ip in permitidas %}
+              ip saddr {{ ip }} accept
+          {% endfor %}
+              drop comment "aislamiento {{ inc }}"
+          {% endif %}
+            }
+          {% if n_aisl %}
+            chain salida {
+              type filter hook output priority -10; policy accept;
+              oif lo accept
+              ct state established,related accept
+          {% for ip in permitidas %}
+              ip daddr {{ ip }} accept
+          {% endfor %}
+              drop comment "aislamiento {{ inc }}"
+            }
+          {% endif %}
+          }
+      register: r_tab
+      when: accion in ['bloquear_ip', 'aislar']
+
+    - name: Se carga al arrancar
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/faceops-contencion.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=FaceOps · contención de incidentes (nftables)
+          After=network-pre.target
+          Before=network.target
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStart=/usr/sbin/nft -f {{ archivo }}
+          [Install]
+          WantedBy=multi-user.target
+      when: accion in ['bloquear_ip', 'aislar']
+
+    - name: Aplicar
+      ansible.builtin.command: nft -f {{ archivo }}
+      when: accion in ['bloquear_ip', 'aislar']
+      changed_when: r_tab is changed
+
+    - name: Servicio de arranque
+      ansible.builtin.systemd:
+        name: faceops-contencion
+        enabled: "{{ accion != 'revertir' }}"
+        daemon_reload: true
+      when: accion in ['bloquear_ip', 'aislar']
+
+    - name: Revertir · quitar la tabla y el servicio
+      when: accion == 'revertir'
+      block:
+        - name: Sin tabla
+          ansible.builtin.command: nft delete table inet faceops_contencion
+          register: r_del
+          failed_when: false
+          changed_when: r_del.rc == 0
+        - name: Sin archivos
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop: ["{{ archivo }}", /etc/systemd/system/faceops-contencion.service]
+        - name: systemd al día
+          ansible.builtin.systemd:
+            daemon_reload: true
+
+    - name: Deshabilitar usuario (bloqueo de clave, cuenta vencida y sesiones cerradas)
+      ansible.builtin.shell: |
+        set -e
+        id {{ sc_usuario }} >/dev/null 2>&1 || { echo "no-existe"; exit 0; }
+        antes=$(passwd -S {{ sc_usuario }} | awk '{print $2}')
+        usermod -L -e 1 {{ sc_usuario }}
+        pkill -KILL -u {{ sc_usuario }} 2>/dev/null || true
+        [ "$antes" = "L" ] || [ "$antes" = "LK" ] && echo igual || echo cambio
+      register: r_usr
+      changed_when: "'cambio' in r_usr.stdout"
+      failed_when: "'no-existe' in r_usr.stdout"
+      when: accion == 'deshabilitar_usuario'
+
+    - name: Habilitar usuario
+      ansible.builtin.shell: |
+        set -e
+        id {{ sc_usuario }} >/dev/null 2>&1 || { echo "no-existe"; exit 0; }
+        antes=$(passwd -S {{ sc_usuario }} | awk '{print $2}')
+        usermod -U -e '' {{ sc_usuario }} 2>/dev/null || usermod -e '' {{ sc_usuario }}
+        [ "$antes" = "L" ] || [ "$antes" = "LK" ] && echo cambio || echo igual
+      register: r_usr2
+      changed_when: "'cambio' in r_usr2.stdout"
+      failed_when: "'no-existe' in r_usr2.stdout"
+      when: accion == 'habilitar_usuario'
+
+    - name: Estado final
+      ansible.builtin.shell: |
+        nft list table inet faceops_contencion 2>/dev/null | grep -oE 'ip saddr [0-9.]+ drop|drop comment "aislamiento' | sort -u | tr '\n' ';'
+        {% if sc_usuario | default('') %}echo; passwd -S {{ sc_usuario }} 2>/dev/null | awk '{print "usuario " $1 " " $2}'{% endif %}
+      register: r_fin
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_contencion: {equipo: "{{ inventory_hostname }}", accion: "{{ accion }}", incidente: "{{ inc }}",
+                               ip: "{{ sc_ip | default('') }}", usuario: "{{ sc_usuario | default('') }}",
+                               permitidas: "{{ permitidas }}", estado: "{{ r_fin.stdout_lines }}"}

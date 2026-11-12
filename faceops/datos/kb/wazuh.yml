@@ -1,0 +1,32 @@
+producto: {codigo: wazuh, descripcion: "SIEM: recibe los logs de las máquinas, AAP y FaceOps, los analiza y abre incidentes de seguridad en FaceOps", detecta: [wazuh, wazuh-manager], fabricante: Wazuh, nombre: SIEM (Wazuh), skill: wazuh}
+problemas:
+- codigo: wazuh-indice-disco
+  titulo: El índice del SIEM sin espacio (Wazuh indexer en solo lectura)
+  sintomas: Las alertas dejan de aparecer en la consola y el indexer marca los índices como read-only.
+  patrones:
+  - flood stage disk watermark
+  - index read-only
+  - cluster_block_exception
+  causa: El disco del indexer pasó el 95 % y OpenSearch bloquea la escritura.
+  solucion: Ampliar el disco o borrar índices antiguos (política de retención) y quitar el bloqueo read-only de los índices.
+  severidad: alta
+  fuente: Documentación de Wazuh (Wazuh indexer, gestión de índices)
+  ocurrencia: 30
+  pasos:
+  - Revisar el uso de /var/lib/wazuh-indexer
+  - Aplicar retención de índices o ampliar el disco
+  - Quitar index.blocks.read_only_allow_delete
+- codigo: wazuh-syslog-tls
+  titulo: Una máquina dejó de enviar logs al SIEM
+  sintomas: La fuente no aparece en «Última alerta en el SIEM» y rsyslog acumula la cola faceops_siem.
+  patrones:
+  - omfwd.*6514
+  - gtls.*(certificate|handshake)
+  causa: El SIEM no responde en 6514 o la máquina no confía en la CA del receptor.
+  solucion: Verificar que rsyslog del SIEM escuche en 6514 y volver a ejecutar «Enviar logs al SIEM» en la máquina (deja la CA vigente).
+  severidad: media
+  fuente: Documentación de rsyslog (omfwd con gtls)
+  ocurrencia: 20
+  pasos:
+  - Revisar ss -ltn en el SIEM
+  - Volver a ejecutar «Enviar logs al SIEM»

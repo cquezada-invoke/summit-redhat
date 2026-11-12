@@ -1,0 +1,135 @@
+---
+# SIEM · Enviar logs al SIEM (agentless): reenvía el syslog y el journal de la máquina (journald → rsyslog con imjournal)
+# al SIEM por TLS (6514/tcp), validando el certificado del receptor con la CA del SIEM. Cola en disco: si el SIEM no
+# responde, los mensajes esperan y se entregan después. El agente de Wazuh es opcional (sl_agente) y no va por defecto.
+# Variables (las arma FaceOps):
+#   sl_siem: IP del SIEM   sl_siem_nombre: su nombre en FaceOps   sl_ca: CA del receptor (PEM, desde la bóveda; es pública)
+#   sl_modo: activar | quitar     sl_agente: false | true (instala wazuh-agent 4.9.2 y lo registra en el manager)
+- name: SIEM · Enviar logs al SIEM
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    modo: "{{ sl_modo | default('activar') }}"
+    agente: "{{ sl_agente | default(false) | bool }}"
+    wz_version: "4.9.2"
+    conf: /etc/rsyslog.d/90-faceops-siem.conf
+    ca: /etc/pki/faceops-siem/ca.pem
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['activar', 'quitar']
+          - modo == 'quitar' or (sl_siem | default('') is match('^[0-9]{1,3}(\.[0-9]{1,3}){3}$'))
+          - modo == 'quitar' or (sl_ca | default('') is search('BEGIN CERTIFICATE'))
+          - ansible_system == 'Linux'
+        fail_msg: "Falta el SIEM (IP y CA del receptor TLS) o el modo no es activar/quitar; solo Linux"
+        quiet: true
+
+    # ── quitar ───────────────────────────────────────────────────────────────────────────────────────────────────────
+    - name: Quitar el reenvío
+      when: modo == 'quitar'
+      block:
+        - name: Sin configuración de reenvío
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop: ["{{ conf }}", "{{ ca }}"]
+          register: r_q
+        - name: rsyslog sin reenvío
+          ansible.builtin.systemd:
+            name: rsyslog
+            state: restarted
+          when: r_q.changed
+        - name: Resultado
+          ansible.builtin.set_stats:
+            data:
+              faceops_siem_logs: {equipo: "{{ inventory_hostname }}", modo: quitar, cambio: "{{ r_q.changed }}"}
+        - name: Fin
+          ansible.builtin.meta: end_host
+
+    # ── activar ──────────────────────────────────────────────────────────────────────────────────────────────────────
+    - name: rsyslog con TLS
+      ansible.builtin.package:
+        name: [rsyslog, rsyslog-gnutls]
+        state: present
+
+    - name: Carpeta de la CA
+      ansible.builtin.file:
+        path: /etc/pki/faceops-siem
+        state: directory
+        mode: "0755"
+
+    - name: CA del receptor del SIEM
+      ansible.builtin.copy:
+        dest: "{{ ca }}"
+        content: "{{ sl_ca }}"
+        mode: "0644"
+      register: r_ca2
+
+    - name: Reenvío por TLS con cola en disco
+      ansible.builtin.copy:
+        dest: "{{ conf }}"
+        mode: "0644"
+        content: |
+          # FaceOps · reenvío de logs al SIEM {{ sl_siem_nombre | default('') }} ({{ sl_siem }}:6514, TLS). No editar: lo deja
+          # «SIEM · Enviar logs al SIEM»; se quita con la misma acción en modo «quitar».
+          action(type="omfwd" target="{{ sl_siem }}" port="6514" protocol="tcp" template="RSYSLOG_ForwardFormat"
+                 StreamDriver="gtls" StreamDriverMode="1" StreamDriverAuthMode="x509/certvalid" StreamDriver.CAFile="{{ ca }}"
+                 queue.type="LinkedList" queue.filename="faceops_siem" queue.maxDiskSpace="256m" queue.saveOnShutdown="on"
+                 action.resumeRetryCount="-1" action.resumeInterval="10")
+      register: r_conf
+
+    - name: rsyslog válido
+      ansible.builtin.command: rsyslogd -N1 -f /etc/rsyslog.conf
+      changed_when: false
+
+    - name: rsyslog con el reenvío
+      ansible.builtin.systemd:
+        name: rsyslog
+        state: "{{ 'restarted' if (r_conf.changed or r_ca2.changed) else 'started' }}"
+        enabled: true
+
+    - name: Conexión TLS establecida con el SIEM
+      ansible.builtin.shell: |
+        logger -t faceops-siem "FACEOPS-SIEM-PRUEBA {{ inventory_hostname }} {{ lookup('ansible.builtin.pipe', 'date +%s') }}"
+        sleep 3
+        ss -tn state established "( dport = :6514 )" | grep -c "{{ sl_siem }}:6514"
+      register: r_est
+      retries: 6
+      delay: 5
+      until: r_est.stdout | int >= 1
+      changed_when: false
+
+    # ── agente de Wazuh (opcional) ───────────────────────────────────────────────────────────────────────────────────
+    - name: Agente de Wazuh (opcional)
+      when: agente
+      block:
+        - name: Repositorio de Wazuh
+          ansible.builtin.yum_repository:
+            name: wazuh
+            description: Wazuh
+            baseurl: https://packages.wazuh.com/4.x/yum/
+            gpgkey: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+            gpgcheck: true
+          when: ansible_os_family == 'RedHat'
+        - name: Agente {{ wz_version }} registrado en el manager
+          ansible.builtin.dnf:
+            name: "wazuh-agent-{{ wz_version }}"
+            state: present
+          environment:
+            WAZUH_MANAGER: "{{ sl_siem }}"
+            WAZUH_AGENT_NAME: "{{ inventory_hostname }}"
+          when: ansible_os_family == 'RedHat'
+        - name: Agente arriba
+          ansible.builtin.systemd:
+            name: wazuh-agent
+            state: started
+            enabled: true
+            daemon_reload: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_siem_logs: {equipo: "{{ inventory_hostname }}", modo: activar, siem: "{{ sl_siem }}", puerto: 6514, tls: true,
+                              conexiones: "{{ r_est.stdout | int }}", agente: "{{ agente }}"}

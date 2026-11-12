@@ -1,0 +1,45 @@
+{% extends "base.html" %}{% block titulo %}{{ x.numero }} · Incidente de seguridad{% endblock %}
+{% set SEV = {'critica': ('Crítica', 's-alta'), 'alta': ('Alta', 's-alta'), 'media': ('Media', 's-media'), 'baja': ('Baja', 's-ok')} %}
+{% set TIPO = {'apertura': 'Apertura', 'evidencia': 'Evidencia', 'aviso': 'Aviso', 'estado': 'Estado', 'contencion': 'Contención', 'responsable': 'Responsable', 'nota': 'Nota'} %}
+{% block cuerpo %}
+<p class="sub"><a href="{{ url_for('consola.seg_incidentes') }}">Seguridad › Incidentes de seguridad</a></p>
+<div class="fila"><div><h1>{{ x.numero }} · {{ x.titulo }}</h1>
+<p class="sub"><span class="chip {{ SEV[x.severidad][1] }}">{{ SEV[x.severidad][0] }}</span> · regla {{ x.regla_id }} (nivel {{ x.nivel }}) · {{ x.alertas }} alerta{{ 's' if x.alertas != 1 }} · SIEM {{ x.siem }} · abierto {{ x.creado|fecha }}{% if x.cerrado %} · cerrado {{ x.cerrado|fecha }}{% endif %}</p></div></div>
+
+<section class="card"><div class="fila" style="gap:6px;flex-wrap:wrap">
+{% for k, t in ESTADOS %}<span class="chip {{ 's-ok' if loop.index0 < pos else ('s-media' if loop.index0 == pos else '') }}">{{ loop.index }}. {{ t }}</span>{% if not loop.last %}<span class="sub">→</span>{% endif %}{% endfor %}</div>
+{% if escribe and x.estado != 'cerrado' %}
+<div class="fila" style="gap:10px;flex-wrap:wrap;margin-top:10px;align-items:flex-end">
+{% if not x.responsable_usuario %}<form method="post" action="{{ url_for('consola.seg_incidente_tomar', iid=x.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico">Tomar el incidente</button></form>{% endif %}
+<form method="post" action="{{ url_for('consola.seg_incidente_estado', iid=x.id) }}" class="fila" style="gap:6px;align-items:flex-end"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label class="sub" style="font-size:12px">Pasar a<br><select name="estado">{% for k, t in ESTADOS if k != x.estado %}<option value="{{ k }}" {{ 'selected' if k == siguiente }}>{{ t }}</option>{% endfor %}</select></label>
+<label class="sub" style="font-size:12px">Nota (obligatoria al cerrar: causa y resolución)<br><input type="text" name="nota" style="width:340px"></label>
+<button class="btn chico gris">Cambiar estado</button></form></div>{% endif %}
+{% if x.cierre %}<p style="margin:8px 0 0"><b>Cierre:</b> {{ x.cierre }}</p>{% endif %}</section>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px">
+<section class="card"><h2 style="margin:0 0 6px">Datos</h2><table>
+<tr><td>Máquina afectada</td><td>{% if e %}<a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a> · {{ e.ip }}{% else %}{{ x.equipo or '—' }} <span class="sub">(no está en el inventario)</span>{% endif %}</td></tr>
+<tr><td>IP de origen</td><td class="mono">{{ x.ip_origen or '—' }}</td></tr><tr><td>Usuario</td><td>{{ x.usuario or '—' }}</td></tr>
+<tr><td>Responsable</td><td>Grupo {{ x.responsable_grupo }} · {{ x.responsable_correo or 'sin correo' }}{% if x.responsable_usuario %} · lo lleva {{ x.responsable_usuario }}{% endif %}</td></tr>
+<tr><td>Aviso por correo</td><td style="font-size:12.5px">{{ x.correo or '—' }}</td></tr>
+<tr><td>MITRE ATT&amp;CK</td><td>{% for m in x.mitre_l %}<span class="chip">{{ m }}</span> {% else %}—{% endfor %}</td></tr></table></section>
+
+<section class="card"><h2 style="margin:0 0 6px">Contención sugerida</h2>
+<p class="sub" style="font-size:12px;margin:0 0 6px">Cada acción crea un ticket y espera la aprobación en AAP antes de tocar la máquina. AAP y el SIEM siguen llegando a una máquina aislada.</p>
+<table>{% for s in sug %}<tr><td>{{ s.t }}{% if s.no %}<br><span class="sub" style="font-size:12px">{{ s.no }}</span>{% endif %}</td>
+<td>{% if escribe and x.estado != 'cerrado' %}<form method="post" action="{{ url_for('consola.seg_incidente_contener', iid=x.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="{{ s.accion }}">
+<button class="btn chico {{ 'gris' if s.accion in ('revertir', 'habilitar_usuario') }}" {% if s.no or bloq %}disabled title="{{ s.no or ('Contención de incidente: ' ~ bloq) }}"{% endif %}>Solicitar</button></form>{% endif %}</td></tr>{% endfor %}</table></section>
+</div>
+
+<section class="card"><h2 style="margin:0 0 6px">Línea de tiempo y evidencias</h2>
+{% if escribe %}<form method="post" action="{{ url_for('consola.seg_incidente_nota', iid=x.id) }}" class="fila" style="gap:6px;margin-bottom:8px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<input type="text" name="nota" placeholder="Agregar una nota (hallazgo, decisión, contacto)" style="flex:1"><button class="btn chico gris">Agregar</button></form>{% endif %}
+<table><tr><th style="width:150px">Cuándo</th><th style="width:110px">Tipo</th><th>Detalle</th><th style="width:120px">Quién</th></tr>
+{% for l in lin %}<tr><td style="font-size:12px">{{ l.cuando|fecha }}</td><td><span class="chip">{{ TIPO.get(l.tipo, l.tipo) }}</span></td>
+<td>{{ l.texto }}{% if l.ticket_id %} · <a class="mono" href="{{ url_for('consola.ticket', tid=l.ticket_id) }}">{{ l.ticket_numero }}</a> <span class="sub">({{ l.ticket_estado }})</span>{% endif %}
+{% if l.ev %}<details style="margin-top:4px"><summary class="sub" style="font-size:12px">Evento del SIEM {{ l.ev.id }} · {{ l.ev.timestamp }}{% if url_evento and escribe %} · <a href="{{ url_evento(l.ev.id) }}" target="_blank" rel="noopener">abrir en la consola del SIEM</a>{% endif %}</summary>
+<pre class="mono" style="white-space:pre-wrap;font-size:11.5px;margin:4px 0">{{ l.ev.full_log }}</pre>
+<span class="sub" style="font-size:12px">regla {{ l.ev.regla }} · nivel {{ l.ev.nivel }} · máquina {{ l.ev.host }} · origen {{ l.ev.srcip or '—' }} · usuario {{ l.ev.usuario or '—' }}</span></details>{% endif %}</td>
+<td style="font-size:12.5px">{{ l.quien }}</td></tr>{% endfor %}</table></section>
+{% endblock %}

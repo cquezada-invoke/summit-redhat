@@ -1,0 +1,69 @@
+---
+# SIEM · Enviar logs de AAP: activa el logging externo de AAP (Settings › Logging) hacia el receptor de AAP del SIEM
+# (6515/tcp, que solo acepta al anfitrión de AAP): ciclo de vida de los jobs (inicio, fin, estado, plantilla, quién) y el
+# historial de actividad (cambios de configuración). Credencial: «AAP · FaceOps (gateway)» (CONTROLLER_HOST/USERNAME/PASSWORD).
+# Variables: sl_siem (IP del SIEM), sl_modo: activar | quitar
+- name: SIEM · Enviar logs de AAP
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    modo: "{{ sl_modo | default('activar') }}"
+    api: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/api/controller/?$', '') | regex_replace('/$', '') }}/api/controller/v2"
+    auth: &auth
+      url_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+      url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+      force_basic_auth: true
+      validate_certs: false
+    loggers: [job_lifecycle, activity_stream]
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['activar', 'quitar']
+          - modo == 'quitar' or (sl_siem | default('') is match('^[0-9]{1,3}(\.[0-9]{1,3}){3}$'))
+          - lookup('ansible.builtin.env', 'CONTROLLER_HOST') | length > 0
+        fail_msg: "Falta la IP del SIEM o la credencial «AAP · FaceOps (gateway)» en la plantilla"
+        quiet: true
+
+    - name: Configuración actual
+      ansible.builtin.uri:
+        url: "{{ api }}/settings/logging/"
+        <<: *auth
+      register: r_antes
+
+    - name: Logging externo de AAP
+      ansible.builtin.uri:
+        url: "{{ api }}/settings/logging/"
+        method: PATCH
+        body_format: json
+        body: "{{ cfg }}"
+        <<: *auth
+      vars:
+        cfg: >-
+          {{ {'LOG_AGGREGATOR_HOST': sl_siem, 'LOG_AGGREGATOR_PORT': 6515, 'LOG_AGGREGATOR_TYPE': 'other',
+              'LOG_AGGREGATOR_PROTOCOL': 'tcp', 'LOG_AGGREGATOR_LOGGERS': loggers, 'LOG_AGGREGATOR_LEVEL': 'INFO',
+              'LOG_AGGREGATOR_INDIVIDUAL_FACTS': false, 'LOG_AGGREGATOR_ENABLED': true}
+             if modo == 'activar' else {'LOG_AGGREGATOR_ENABLED': false} }}
+      register: r_patch
+      changed_when: >-
+        (r_antes.json.LOG_AGGREGATOR_ENABLED != (modo == 'activar'))
+        or (modo == 'activar' and (r_antes.json.LOG_AGGREGATOR_HOST != sl_siem or r_antes.json.LOG_AGGREGATOR_PORT != 6515))
+
+    - name: Prueba de envío de AAP
+      ansible.builtin.uri:
+        url: "{{ api }}/settings/logging/test/"
+        method: POST
+        body_format: json
+        body: {}
+        status_code: [200, 202]
+        <<: *auth
+      when: modo == 'activar'
+      register: r_test
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_siem_aap: {modo: "{{ modo }}", siem: "{{ sl_siem | default('') }}", puerto: 6515,
+                             habilitado: "{{ r_patch.json.LOG_AGGREGATOR_ENABLED | default(false) }}", loggers: "{{ loggers }}",
+                             prueba: "{{ r_test.status | default('') }}"}

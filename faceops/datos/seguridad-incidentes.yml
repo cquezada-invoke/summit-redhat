@@ -1,0 +1,6 @@
+# Seguridad › Incidentes de seguridad (app/seguridad_incidentes.py): responsable y umbral por cliente.
+#   grupo: grupo responsable de los incidentes · correo: a quién se avisa al abrir uno · nivel: nivel mínimo de las reglas del
+#   SIEM que abre un incidente (la integración de Wazuh envía las alertas de ese nivel o más)
+defecto: {grupo: Seguridad, correo: "", nivel: 10}
+clientes:
+  lab: {grupo: Seguridad, correo: cquezada@redhat.com, nivel: 10}
