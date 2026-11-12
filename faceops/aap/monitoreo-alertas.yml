@@ -136,6 +136,19 @@
             mode: "0644"
           when: not retirar and arm.objetivo | length > 0
 
+        - name: Exportador de la plataforma (objetivo propio; sin alertas que lo necesiten, se quita)
+          ansible.builtin.copy:
+            dest: "{{ m }}/faceops/objetivos/{{ arm.objetivo_exp_archivo }}"
+            content: "{{ arm.objetivo_exp }}"
+            mode: "0644"
+          when: arm.objetivo_exp_archivo | default('') | length > 0 and arm.objetivo_exp | default('') | length > 0
+
+        - name: Sin exportador de la plataforma
+          ansible.builtin.file:
+            path: "{{ m }}/faceops/objetivos/{{ arm.objetivo_exp_archivo }}"
+            state: absent
+          when: arm.objetivo_exp_archivo | default('') | length > 0 and arm.objetivo_exp | default('') | length == 0
+
         - name: Retirar las reglas de este ámbito (y el objetivo, si el equipo ya no tiene reglas de ningún ámbito)
           ansible.builtin.shell:
             cmd: |

@@ -145,6 +145,18 @@ def transito(cliente_id, e, ambito="maquina", cargadas=None):
 
 
 AUTO_GRAFANA_OCP = "Monitoreo · Grafana de OpenShift"
+AUTO_EXPORTADOR = "FaceOps · Exportador de plataforma"
+
+
+def exportador_estado(e, fam):
+    """¿Prometheus lee el exportador de la plataforma en este equipo? True / False (objetivo sin respuesta) / None (sin objetivo)."""
+    import requests
+    try:
+        r = requests.get(PROMETHEUS + "/api/v1/query", params={"query": f'up{{job="faceops-exportadores",faceops_equipo="{e["nombre"]}",faceops_plataforma="{fam}"}}'}, timeout=4)
+        res = r.json()["data"]["result"]
+        return None if not res else res[0]["value"][1] == "1"
+    except Exception:  # noqa: BLE001
+        return None
 PROMETHEUS = os.environ.get("FACEOPS_PROMETHEUS", "http://127.0.0.1:9090")   # Prometheus del anfitrión (FaceOps usa la red del host)
 _mon = {}
 
@@ -229,6 +241,23 @@ def _informe(cliente_id, e):
         return {"acciones": [], "para": "", "quien": ""}
 
 
+def _exportador_ctx(cliente_id, e, ambito, cat):
+    """Exportador opcional de la plataforma (si alguna de sus alertas lo necesita): estado y automatización para instalarlo."""
+    fam = ambito.split(":", 1)[1] if ambito and ambito != "maquina" else ""
+    if not fam or not any(a.get("exportador") == fam for a in cat["alertas"]):
+        return None
+    a = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, AUTO_EXPORTADOR)
+    return {"familia": fam, "lee": exportador_estado(e, fam), "aid": a["id"] if a else None, "bloqueo": bloqueo_auto(cliente_id, AUTO_EXPORTADOR)}
+
+
+def bloqueo_auto(cliente_id, auto):
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, auto)
+    if not a:
+        return f"sin automatización aún («{auto}» no está en AAP)"
+    from .pruebas import estado, exceptuada
+    return "" if estado(dict(a, cliente_id=cliente_id))["estado"] == "certificada" or exceptuada(auto) else f"en prueba («{auto}» aún no pasa su plan de prueba)"
+
+
 def _ult_prueba(cliente_id, e, ambito, aid):
     try:
         from .alerta_prueba import ultima
@@ -286,7 +315,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
             "ambito": ambito, "sufijo": sufijo(ambito), "nombre_amb": nombre_amb,
             "n": (len(prom) if prom is not None else
                   (sum(1 for k in act if any(a["id"] == k and a.get("ambito", "maquina") == ambito for a in cat["alertas"])) if ambito != "maquina" else len(act))),
-            "eid": e["id"], "monitoreo": prom is not None, "disparadas": sum(1 for v in (prom or {}).values() if v["estado"] == "firing"),
+            "eid": e["id"], "monitoreo": prom is not None, "exportador": _exportador_ctx(cliente_id, e, ambito, cat), "disparadas": sum(1 for v in (prom or {}).values() if v["estado"] == "firing"),
             "aplicado": ap.get("actualizado"), "ticket": ap.get("ticket"), "resumen": ap.get("resumen") or [],
             "grafana": url_grafana(e["nombre"], None, ambito), "archivo": f"{REGLAS}/{e['nombre']}{sufijo(ambito)}.yml", "grupo_prom": f"faceops-{e['nombre']}{sufijo(ambito)}",
             "informe": _informe(cliente_id, e), "grafana_ocp": (g_ocp + "?orgId=1&from=now-24h&to=now") if g_ocp else "",

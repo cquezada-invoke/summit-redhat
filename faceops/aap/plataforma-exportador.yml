@@ -1,0 +1,227 @@
+---
+# FaceOps · Exportador de plataforma (opcional, como todo agente): deja en el equipo las métricas que necesitan las alertas
+# de su plataforma, con versiones fijas, y abre su puerto solo hacia la VM anfitriona (Prometheus):
+#   redis      → redis_exporter v1.62.0 en :9121 (lee la clave de Redis de su configuración, no viaja por FaceOps)
+#   postgresql → postgres_exporter v0.15.0 en :9187 (usuario postgres por socket local, sin clave)
+#   nginx      → stub_status en 127.0.0.1:8081 + nginx-prometheus-exporter v1.3.0 en :9113
+#   jboss      → métricas propias de JBoss/WildFly en :9990/metrics (subsistema metrics y estadísticas de Undertow y
+#                de los datasources; recarga la configuración de JBoss solo si hubo que cambiarla)
+# FaceOps la lanza sobre el equipo elegido con su inventario y su credencial.
+#   ex_plataforma: redis | postgresql | nginx | jboss
+- name: FaceOps · Exportador de plataforma
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    pl: "{{ ex_plataforma | default('') }}"
+    exp:
+      redis: {bin: redis_exporter, puerto: 9121, version: "1.62.0",
+              url: "https://github.com/oliver006/redis_exporter/releases/download/v1.62.0/redis_exporter-v1.62.0.linux-amd64.tar.gz",
+              dir: "redis_exporter-v1.62.0.linux-amd64"}
+      postgresql: {bin: postgres_exporter, puerto: 9187, version: "0.15.0",
+                   url: "https://github.com/prometheus-community/postgres_exporter/releases/download/v0.15.0/postgres_exporter-0.15.0.linux-amd64.tar.gz",
+                   dir: "postgres_exporter-0.15.0.linux-amd64"}
+      nginx: {bin: nginx-prometheus-exporter, puerto: 9113, version: "1.3.0",
+              url: "https://github.com/nginx/nginx-prometheus-exporter/releases/download/v1.3.0/nginx-prometheus-exporter_1.3.0_linux_amd64.tar.gz",
+              dir: ""}
+      jboss: {puerto: 9990}
+    x: "{{ exp[pl] | default({}) }}"
+  tasks:
+    - name: Plataforma válida
+      ansible.builtin.assert:
+        that: "pl in ['redis', 'postgresql', 'nginx', 'jboss']"
+        fail_msg: "Indica la plataforma: redis, postgresql, nginx o jboss"
+        quiet: true
+
+    - name: ¿Versión instalada?
+      ansible.builtin.shell: "/usr/local/bin/{{ x.bin }} --version 2>&1 | head -3"
+      register: r_ver
+      changed_when: false
+      failed_when: false
+      when: pl != 'jboss'
+
+    - name: Carpeta de descarga
+      ansible.builtin.file:
+        path: "/tmp/faceops-exp-{{ pl }}"
+        state: directory
+        mode: "0755"
+      when: pl != 'jboss' and x.version not in (r_ver.stdout | default(''))
+
+    - name: Descargar y descomprimir {{ x.bin | default('') }} {{ x.version | default('') }}
+      ansible.builtin.unarchive:
+        src: "{{ x.url }}"
+        dest: "/tmp/faceops-exp-{{ pl }}"
+        remote_src: true
+      when: pl != 'jboss' and x.version not in (r_ver.stdout | default(''))
+
+    - name: Instalar el binario
+      ansible.builtin.copy:
+        src: "/tmp/faceops-exp-{{ pl }}/{{ (x.dir ~ '/') if x.dir else '' }}{{ x.bin }}"
+        dest: "/usr/local/bin/{{ x.bin }}"
+        mode: "0755"
+        remote_src: true
+      when: pl != 'jboss' and x.version not in (r_ver.stdout | default(''))
+      notify: reiniciar
+
+    - name: SELinux · contexto del binario
+      ansible.builtin.command: "restorecon /usr/local/bin/{{ x.bin }}"
+      changed_when: false
+      failed_when: false
+      when: pl != 'jboss'
+
+    # ── Redis: la clave se lee en el equipo (requirepass) y queda en un archivo de entorno solo de root
+    - name: Redis · clave del servidor (en el equipo)
+      ansible.builtin.shell: |
+        for f in /etc/redis/redis.conf /etc/redis.conf /etc/opt/rh/rh-redis*/redis.conf; do
+          [ -f "$f" ] && sed -n 's/^[[:space:]]*requirepass[[:space:]]\+//p' "$f" | tr -d '"' | tail -1 && exit 0
+        done; true
+      register: r_rpass
+      changed_when: false
+      no_log: true
+      when: pl == 'redis'
+
+    - name: Redis · entorno del exportador
+      ansible.builtin.copy:
+        dest: /etc/sysconfig/faceops-redis-exporter
+        mode: "0600"
+        content: "REDIS_ADDR=redis://127.0.0.1:6379\nREDIS_PASSWORD={{ r_rpass.stdout | default('') }}\n"
+      no_log: true
+      notify: reiniciar
+      when: pl == 'redis'
+
+    # ── PostgreSQL: usuario postgres por el socket local (autenticación peer)
+    - name: PostgreSQL · socket local
+      ansible.builtin.shell: ls -d /var/run/postgresql /run/postgresql /tmp 2>/dev/null | while read d; do ls $d/.s.PGSQL.5432 >/dev/null 2>&1 && echo $d && break; done
+      register: r_sock
+      changed_when: false
+      failed_when: r_sock.stdout | length == 0
+      when: pl == 'postgresql'
+
+    # ── nginx: stub_status solo en localhost para el exportador
+    - name: nginx · stub_status en 127.0.0.1:8081
+      ansible.builtin.copy:
+        dest: /etc/nginx/conf.d/faceops-stub-status.conf
+        mode: "0644"
+        content: |
+          # FaceOps · métricas de nginx para el exportador (solo desde el propio equipo)
+          server {
+              listen 127.0.0.1:8081;
+              location = /stub_status { stub_status; allow 127.0.0.1; deny all; }
+          }
+      register: r_stub
+      when: pl == 'nginx'
+
+    - name: nginx · configuración válida y recarga
+      ansible.builtin.shell: nginx -t -q && systemctl reload nginx
+      when: pl == 'nginx' and r_stub is changed
+
+    - name: Servicio systemd del exportador
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/faceops-exportador-{{ pl }}.service"
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=FaceOps · exportador de {{ pl }} ({{ x.bin }} {{ x.version }})
+          After=network-online.target
+          [Service]
+          {% if pl == 'redis' %}EnvironmentFile=/etc/sysconfig/faceops-redis-exporter
+          User=nobody
+          ExecStart=/usr/local/bin/redis_exporter -web.listen-address=:{{ x.puerto }}
+          {% elif pl == 'postgresql' %}User=postgres
+          Environment=DATA_SOURCE_NAME=host={{ r_sock.stdout | default('/var/run/postgresql') }} user=postgres sslmode=disable
+          ExecStart=/usr/local/bin/postgres_exporter --web.listen-address=:{{ x.puerto }}
+          {% else %}User=nobody
+          ExecStart=/usr/local/bin/nginx-prometheus-exporter --web.listen-address=:{{ x.puerto }} --nginx.scrape-uri=http://127.0.0.1:8081/stub_status
+          {% endif %}Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      notify: reiniciar
+      when: pl != 'jboss'
+
+    - name: Exportador activo y en el arranque
+      ansible.builtin.systemd:
+        name: "faceops-exportador-{{ pl }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+      when: pl != 'jboss'
+
+    # ── JBoss / WildFly: métricas propias en la interfaz de administración
+    - name: JBoss · ubicación y CLI
+      ansible.builtin.shell: |
+        for d in /opt/rh/eap8/root/usr/share/wildfly /opt/jboss-eap-8* /opt/jboss-eap* /opt/eap* /opt/wildfly* /opt/jboss*; do
+          [ -x "$d/bin/jboss-cli.sh" ] && echo "$d" && exit 0
+        done; exit 1
+      register: r_jh
+      changed_when: false
+      when: pl == 'jboss'
+
+    - name: JBoss · subsistema de métricas y estadísticas (sin seguridad en /metrics; recarga solo si cambia)
+      ansible.builtin.shell: |
+        set -e
+        C="{{ r_jh.stdout }}/bin/jboss-cli.sh -c --controller=127.0.0.1:9990"
+        o=$($C --command="/subsystem=metrics:read-resource" 2>&1 || true)
+        cambio=0
+        if echo "$o" | grep -q "not found\|WFLYCTL0030\|failed"; then
+          $C --command="/extension=org.wildfly.extension.metrics:add" >/dev/null 2>&1 || true
+          $C --command="/subsystem=metrics:add(security-enabled=false,exposed-subsystems=[\"*\"])"; cambio=1
+        elif echo "$o" | grep -q '"security-enabled" => true'; then
+          $C --command="/subsystem=metrics:write-attribute(name=security-enabled,value=false)"; cambio=1
+        fi
+        $C --command="/subsystem=undertow:read-attribute(name=statistics-enabled)" | grep -q '"result" => true' || { $C --command="/subsystem=undertow:write-attribute(name=statistics-enabled,value=true)"; cambio=1; }
+        for ds in $($C --command="ls /subsystem=datasources/data-source" 2>/dev/null); do
+          $C --command="/subsystem=datasources/data-source=$ds:read-attribute(name=statistics-enabled)" | grep -q '"result" => true' || { $C --command="/subsystem=datasources/data-source=$ds:write-attribute(name=statistics-enabled,value=true)"; cambio=1; }
+        done
+        [ $cambio = 1 ] && $C --command=":reload" && echo cambiado || true
+      register: r_jcli
+      changed_when: "'cambiado' in r_jcli.stdout"
+      when: pl == 'jboss'
+
+    - name: JBoss · /metrics responde
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9990/metrics"
+        return_content: true
+      register: r_jm2
+      until: r_jm2.status == 200 and 'base_memory' in r_jm2.content
+      retries: 24
+      delay: 5
+      when: pl == 'jboss'
+
+    - name: ¿firewalld activo?
+      ansible.builtin.command: systemctl is-active firewalld
+      register: r_fw
+      changed_when: false
+      failed_when: false
+
+    - name: firewalld · puerto del exportador solo desde la VM anfitriona
+      ansible.builtin.shell: |
+        R='rule family="ipv4" source address="192.168.122.1/32" port port="{{ x.puerto }}" protocol="tcp" accept'
+        firewall-cmd --permanent --query-rich-rule="$R" >/dev/null && exit 0
+        firewall-cmd -q --permanent --add-rich-rule="$R" && firewall-cmd -q --add-rich-rule="$R" && echo agregada
+      register: r_regla
+      changed_when: "'agregada' in r_regla.stdout"
+      when: r_fw.stdout == 'active'
+
+    - name: Métricas del exportador
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ x.puerto }}/metrics"
+        return_content: true
+      register: r_met
+      until: r_met.status == 200
+      retries: 12
+      delay: 5
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_exportador: {plataforma: "{{ pl }}", puerto: "{{ x.puerto }}", version: "{{ x.version | default('integrado') }}",
+                               series: "{{ r_met.content.splitlines() | reject('match', '^#') | list | length }}"}
+        per_host: false
+
+  handlers:
+    - name: reiniciar
+      ansible.builtin.systemd:
+        name: "faceops-exportador-{{ pl }}"
+        state: restarted
+        daemon_reload: true
+      when: pl != 'jboss'

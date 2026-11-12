@@ -87,6 +87,7 @@ shutil.copy(f"{AQUI}/recolectar.yml", f"{tmp}/playbooks/recolectar.yml")
 shutil.copy(f"{AQUI}/apagar.yml", f"{tmp}/playbooks/apagar.yml")
 shutil.copy(f"{AQUI}/habilitar-servidor.yml", f"{tmp}/playbooks/habilitar-servidor.yml")
 shutil.copy(f"{AQUI}/agente-monitoreo.yml", f"{tmp}/playbooks/agente-monitoreo.yml")
+shutil.copy(f"{AQUI}/plataforma-exportador.yml", f"{tmp}/playbooks/plataforma-exportador.yml")   # FaceOps · Exportador de plataforma
 shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.yml")
 shutil.copy(f"{AQUI}/rendimiento-canal.yml", f"{tmp}/playbooks/rendimiento-canal.yml")
 shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado.yml")
@@ -356,6 +357,12 @@ jm = asegurar("job_templates", "FaceOps · Agente de monitoreo (Linux)", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Skill «monitoreo»: instala node_exporter para Prometheus y Grafana"})
 paso(f"Plantilla «FaceOps · Agente de monitoreo (Linux)» (id {jm['id']})")
+jxp = asegurar("job_templates", "FaceOps · Exportador de plataforma", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/plataforma-exportador.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Exportador opcional de métricas de una plataforma (Redis, PostgreSQL, nginx, JBoss) para sus alertas"})
+paso(f"Plantilla «FaceOps · Exportador de plataforma» (id {jxp['id']})")
 
 jv = asegurar("job_templates", "FaceOps · Verificar flujos de red", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/verificar-flujos.yml", "inventory": inv["id"],
@@ -797,7 +804,6 @@ if inv_red:
             if c_ and c_["id"] not in ya_:
                 aap("POST", f"job_templates/{jt_['id']}/credentials/", {"id": c_["id"]})
         paso(f"Plantilla «{n_jt}» (id {jt_['id']})")
-
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)
 jch = asegurar("job_templates", "Sistema · Cambio de hora del país", {

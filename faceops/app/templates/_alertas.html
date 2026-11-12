@@ -43,7 +43,10 @@
 {% endmacro %}
 {% macro form_alertas(al, accion, nombre, titulo='') %}<form method="post" action="{{ accion }}" class="al-form" data-nombre="{{ nombre }}" data-ambito="{{ al.ambito or 'maquina' }}" onsubmit="return false">
 <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="ambito" value="{{ al.ambito or 'maquina' }}">
-{% if titulo %}<h2 class="al-amb">{{ titulo }}</h2>{% endif %}{{ cuerpo_alertas(al) }}</form>{% endmacro %}
+{% if titulo %}<h2 class="al-amb">{{ titulo }}</h2>{% endif %}{% if al.exportador %}{% set xp = al.exportador %}
+<p class="sub al-ult al-exp">Algunas alertas de {{ xp.familia }} necesitan su exportador de métricas (opcional):
+  {% if xp.lee %}<span class="chip s-ok" style="font-size:10.5px">Prometheus lo lee</span>{% elif xp.lee is sameas false %}<span class="chip s-alta" style="font-size:10.5px">configurado, sin respuesta</span>{% else %}<span class="chip" style="font-size:10.5px">sin exportador en el monitoreo</span>{% endif %}
+  {% if al.puede and xp.aid %}<button type="button" class="btn chico gris" {{ 'disabled title="' ~ xp.bloqueo ~ '"' if xp.bloqueo }} onclick="fxAlExportador(this, {{ url_for('consola.ejecutar_en_equipo', eid=al.eid, aid=xp.aid)|tojson|forceescape }}, '{{ xp.familia }}')">{{ 'Reinstalar' if xp.lee else 'Instalar' }} exportador (ticket)</button><span class="al-exp-res"></span>{% endif %}</p>{% endif %}{{ cuerpo_alertas(al) }}</form>{% endmacro %}
 {% macro boton_alertas(al, accion, nombre, chico=false, extras=[]) %}{% if al %}{% set sx_ = al.sufijo or '' %}{% set n_tot = al.n + (extras|sum(attribute='n')) %}
 {% set est_ = 'curso' if al.en_curso or (extras|selectattr('en_curso')|list) else ('on' if n_tot else 'off') %}
 <button type="button" id="alertas{{ sx_ }}" class="al-btn al-solo al-{{ est_ }}{{ ' al-chica' if chico }}" aria-label="Alertas{{ ' de ' ~ nombre if chico }}" onclick="event.stopPropagation();document.getElementById('al-dlg{{ sx_ }}').showModal()"
@@ -76,6 +79,10 @@ window.fxAlProbar=window.fxAlProbar||function(b){ const out=b.closest('.al-def')
     const ver=()=>fetch(x.url,{headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(p=>{out.textContent=(p.pasos||[]).map(s=>horaLocal.texto(s,'hora-seg')).join(' → ')||'en curso…';
       if(p.estado==='en curso'){setTimeout(ver,5000);}else{out.textContent=(p.estado==='ok'?'✓ ':'✗ ')+out.textContent;b.disabled=false;}});
     ver();}).catch(()=>{out.textContent='falló: no se pudo enviar';b.disabled=false;});};
+window.fxAlExportador=window.fxAlExportador||function(b,url,fam){ const r=b.parentElement.querySelector('.al-exp-res'); b.disabled=true; r.textContent=' creando ticket…';
+  const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('v_ex_plataforma',fam); fd.append('motivo','Exportador de '+fam+' para sus alertas');
+  fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(x=>x.json()).then(t=>{ if(t.error){r.textContent=' falló: '+t.error;b.disabled=false;return;}
+    r.innerHTML=' <a href="'+t.url+'">'+t.numero+'</a> · '+(t.estado||'').replace('_',' '); window.fxNuevoTicket&&fxNuevoTicket(t);}).catch(()=>{r.textContent=' falló';b.disabled=false;});};
 window.fxAlCambio=window.fxAlCambio||function(f){ return [...f.elements].some(x=>x.type==='checkbox'?x.checked!==x.defaultChecked:(x.tagName==='SELECT'?[...x.options].some(o=>o.selected!==o.defaultSelected):(x.type!=='hidden'&&x.value!==x.defaultValue))); };
 window.fxAlTicketTodos=window.fxAlTicketTodos||async function(dlg){ const fs=[...dlg.querySelectorAll('form.al-form')].filter(fxAlCambio);
   if(!fs.length){(window.fxAviso||alert)('No cambiaste ninguna alerta','error');return;}

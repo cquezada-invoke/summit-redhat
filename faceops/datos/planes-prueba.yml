@@ -107,6 +107,20 @@ planes:
       - {id: C3, caso: "Firewall VyOS (fw) y balanceador HAProxy (lb-sede-01) contra su respaldo", verificar: "tickets exitosos sin cambios; ningún secreto en claro en la salida"}
       - {id: C4, caso: "Repetir tras restablecer la línea base (nuevo respaldo)", tipo: Idempotencia, verificar: "ticket exitoso sin cambios; solo lectura"}
       - {id: C5, caso: "Equipo sin línea base (sw-acc-01 sin respaldo previo)", tipo: Error controlado, verificar: "ticket fallido «no tiene línea base: ejecuta primero «Respaldo de configuración»»; no se toca el equipo ni Git"}
+  "Red · Respaldar configuración":
+    casos:
+      - {id: C1, caso: "Firewall VyOS (fw): colección vyos.vyos por network_cli", verificar: "ticket exitoso; respaldos/fw.cfg en Git (invoke/red-laboratorio) con «set …» del VyOS; ninguna clave en claro (secretos como <oculto:huella>); faceops_red_respaldo en set_stats con líneas y sha256"}
+      - {id: C2, caso: "Router FRR (rtr-wan-01) y switch FRR con VLAN (sw-core-01)", verificar: "tickets exitosos; respaldos con el running-config de vtysh (BGP en el router) y la tabla de VLAN del puente en el switch"}
+      - {id: C3, caso: "Balanceador HAProxy (lb-sede-01)", verificar: "ticket exitoso; respaldos/lb-sede-01.cfg con frontends y backends de haproxy.cfg"}
+      - {id: C4, caso: "Repetir el respaldo del firewall sin cambios", tipo: Idempotencia, verificar: "ticket exitoso «sin cambios desde el último respaldo»; no se crea commit nuevo en Git; el equipo no cambia"}
+      - {id: C5, caso: "Equipo sin configuración legible (suc1: no expone vtysh por SSH)", tipo: Error controlado, verificar: "ticket fallido con «No se pudo leer la configuración … No se cambió nada»; no se crea respaldos/suc1.cfg"}
+  "Red · Detectar cambios de configuración":
+    casos:
+      - {id: C1, caso: "Router FRR (rtr-wan-01) recién respaldado", verificar: "ticket exitoso «sin cambios contra la línea base»; faceops_red_drift.cambios = false"}
+      - {id: C2, caso: "Línea base distinta de la configuración vigente (se quita una línea del respaldo en Git para simular un cambio hecho a mano)", verificar: "ticket exitoso con CAMBIOS: la línea aparece como agregada (+1 / -0); el equipo no cambia"}
+      - {id: C3, caso: "Firewall VyOS (fw) y balanceador HAProxy (lb-sede-01) contra su respaldo", verificar: "tickets exitosos sin cambios; ningún secreto en claro en la salida"}
+      - {id: C4, caso: "Repetir tras restablecer la línea base (nuevo respaldo)", tipo: Idempotencia, verificar: "ticket exitoso sin cambios; solo lectura"}
+      - {id: C5, caso: "Equipo sin línea base (sw-acc-01 sin respaldo previo)", tipo: Error controlado, verificar: "ticket fallido «no tiene línea base: ejecuta primero «Respaldo de configuración»»; no se toca el equipo ni Git"}
   "Políticas de desarrollo · Evaluar aplicaciones":
     casos:
       - {id: C1, caso: "Evaluar todo el parque (con máquinas apagadas)", verificar: "ticket exitoso; las apagadas quedan fuera; aparecen las aplicaciones de JBoss (nodo-jboss, nodo-jboss-dev) y de IIS (srv-pn-win-01) con su plataforma y producto"}
@@ -589,6 +603,14 @@ planes:
       - {id: C2, caso: "Repetir la eliminación del mismo clúster", tipo: Idempotencia, verificar: "ticket exitoso «Nada que eliminar» sin errores"}
       - {id: C3, caso: "Modo ciclo sin clústeres vencidos ni fuera de horario", tipo: Funcional, verificar: "ticket exitoso; no apaga, enciende ni destruye nada"}
       - {id: C4, caso: "Nombre inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos»; no toca GCP"}
+  "FaceOps · Exportador de plataforma":
+    casos:
+      - {id: C1, caso: "JBoss en nodo-jboss", tipo: Funcional, verificar: "/metrics en :9990 con base_memory_* y estadísticas de Undertow; Prometheus lo lee (up=1) y la alerta J02 tiene dato"}
+      - {id: C2, caso: "Redis en nodo-jboss (con clave)", tipo: Funcional, verificar: "redis_exporter v1.62.0 en :9121 con redis_up 1; la clave no viaja ni se imprime"}
+      - {id: C3, caso: "nginx en nodo-nginx", tipo: Funcional, verificar: "stub_status local y nginx-prometheus-exporter v1.3.0 en :9113 con nginx_up 1; nginx sigue respondiendo"}
+      - {id: C4, caso: "PostgreSQL en un equipo con PostgreSQL", tipo: Funcional, verificar: "postgres_exporter v0.15.0 en :9187 con pg_up 1"}
+      - {id: C5, caso: "Repetir JBoss y Redis", tipo: Idempotencia, verificar: "sin recargar JBoss ni reiniciar el exportador; mismas métricas"}
+      - {id: C6, caso: "Plataforma inválida", tipo: Error controlado, verificar: "falla en la validación sin tocar el equipo"}
   "FaceOps · Agente de monitoreo (Linux)":
     casos:
       - {id: C1, caso: "Instalar en un Linux (nodo-jboss)", tipo: Funcional, verificar: "node_exporter activo en :9100 con las métricas del sistema y las de seguridad (faceops_seg_*: SSH fallidos, root, cuentas bloqueadas, SELinux, huella de archivos críticos) y su temporizador cada minuto"}

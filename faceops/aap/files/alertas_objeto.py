@@ -36,6 +36,9 @@ def _num(v):
     return int(f) if f == int(f) else f
 
 
+EXPORTADORES = {"redis": 9121, "postgresql": 9187, "nginx": 9113, "jboss": 9990}   # puerto del exportador de cada plataforma (/metrics)
+
+
 def preparar_prometheus(cfg):
     """Asegura en prometheus.yml las reglas y los dos trabajos de FaceOps (equipos con exportador y sondeo TCP vía blackbox)."""
     cambio = False
@@ -62,6 +65,9 @@ def preparar_prometheus(cfg):
                    "relabel_configs": [{"source_labels": ["__address__"], "target_label": "__param_target"},
                                        {"source_labels": ["__param_target"], "target_label": "instance"},
                                        {"target_label": "__address__", "replacement": "127.0.0.1:9115"}]})
+        cambio = True
+    if "faceops-exportadores" not in nombres:   # exportadores de plataforma (redis_exporter, postgres_exporter, nginx, métricas de JBoss)
+        sc.append({"job_name": "faceops-exportadores", "file_sd_configs": [{"files": [f"{RUTA}/objetivos/plt-*.yml"]}]})
         cambio = True
     if "faceops-plataformas" not in nombres:   # plataformas: lo que FaceOps midió sin agente (AAP por SSH/API), publicado en el anfitrión
         sc.append({"job_name": "faceops-plataformas", "metrics_path": "/metricas/plataformas", "scrape_interval": "60s", "honor_labels": True,
@@ -223,7 +229,13 @@ def main():
     sin_agente = not retirar and all(por_id.get(x.get("id"), {}).get("sin_agente") for x in ped.get("alertas") or [])
     obj = [] if retirar or sin_agente else ([{"targets": [f"{ped['ip']}:{t['puerto']}"], "labels": {"faceops_equipo": ped["equipo"], "faceops_tipo": ped["tipo"]}}]
                                             if pref != "seg" else objetivos_segmento(ped))   # sin agente: las métricas las publica FaceOps
+    # exportador de la plataforma: si alguna alerta del pedido lo necesita, su objetivo va aparte (job faceops-exportadores)
+    fam = ambito(ped).split(":", 1)[1] if ambito(ped) != "maquina" else ""
+    necesita = (not retirar) and fam in EXPORTADORES and any(por_id.get(x.get("id"), {}).get("exportador") for x in ped.get("alertas") or [])
+    obj_x = [{"targets": [f"{ped['ip']}:{EXPORTADORES[fam]}"], "labels": {"faceops_equipo": ped["equipo"], "faceops_plataforma": fam}}] if necesita else []
     print(json.dumps({
+        "objetivo_exp": yaml.safe_dump(obj_x, sort_keys=False, allow_unicode=True) if necesita else "",
+        "objetivo_exp_archivo": f"plt-{ped['equipo']}--{fam}.yml" if fam else "",
         "prometheus": yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True) if cambio else "",
         "reglas": "" if retirar else yaml.safe_dump({"groups": [{"name": f"faceops-{ped['equipo']}{sufijo(ped)}", "rules": rs}]}, sort_keys=False, allow_unicode=True, width=1000),
         "grupo": f"faceops-{ped['equipo']}{sufijo(ped)}", "reglas_archivo": f"{ped['equipo']}{sufijo(ped)}.yml", "tablero_uid": uid_tablero(ped["equipo"] + sufijo(ped)),
