@@ -1,38 +1,38 @@
-commit: d2ccf9b4ffc0058bdf470ae8cc7e59b229a228d3
-inicio: 2026-11-12T15:53:54-03:00
+commit: 8a01003186d609b288aa6e64dd2c587dc206ae24
+inicio: 2026-11-12T15:58:10-03:00
 ---
 desplegado: 8562fdf47 · 2026-11-12T14:53:33-03:00 ok: desplegado 8562fdf4 · /ingresar 200 · configurar=0
 == salud previa
-cola_aap: {"ok": true, "motivo": "", "revisado": 1794509600.0684524, "capacidad": 1230, "grupos": 2, "pendientes": 2}
+cola_aap: {"ok": true, "motivo": "", "revisado": 1794509889.8780437, "capacidad": 1230, "grupos": 2, "pendientes": 1}
 pendientes en cola: 0
 == proceso de la cola
-pid 1703 sh -c for p in /proc/[0-9]*; do c=$(tr "\0" " " < $p/cmdline 2>/dev/null); case "$c" in *app.cola*) echo "pid ${p#/proc/} $c";; esac; done 
+pid 1864 sh -c for p in /proc/[0-9]*; do c=$(tr "\0" " " < $p/cmdline 2>/dev/null); case "$c" in *app.cola*) echo "pid ${p#/proc/} $c";; esac; done 
 pid 8 /opt/app-root/bin/python3.11 -u -m app.cola 
 == camino anterior (sin cola)
 Traceback (most recent call last):
 TypeError: <lambda>() got an unexpected keyword argument 'externo'
 == con cola
-NORMAL CREAR 226 ms · FO-LAB-02255 estado=en_cola job=None
-NORMAL APROBAR 10 ms
-NORMAL FINAL FO-LAB-02255 fallido job=27853
-CAIDO CREAR 127 ms · FO-LAB-02257 estado=en_cola job=None
-CAIDO CON AAP CAIDO tras 25 s: ticket=en_cola job=None · cola: En cola (posición 2) · AAP no disponible (simulado por el plan de prueba)
-CAIDO AAP VUELVE: lanzado en 10 s · job=27872 · cola: Lanzado · job #27872
-CAIDO APROBAR 5 ms
-CAIDO FINAL FO-LAB-02257 fallido job=27872
+NORMAL CREAR 181 ms · FO-LAB-02261 estado=en_cola job=None
+NORMAL APROBAR 5 ms
+NORMAL FINAL FO-LAB-02261 fallido job=27901
+CAIDO CREAR 116 ms · FO-LAB-02263 estado=en_cola job=None
+CAIDO CON AAP CAIDO tras 25 s: ticket=en_cola job=None · cola: En cola (posición 1) · AAP no disponible (simulado por el plan de prueba)
+CAIDO AAP VUELVE: lanzado en 10 s · job=27936 · cola: Lanzado · job #27936
+CAIDO APROBAR 4 ms
+CAIDO FINAL FO-LAB-02263 fallido job=27936
 == HTTP: la página de la cola y el estado de un ticket
-cola 200 609 ms True
+cola 200 493 ms True
 == log del proceso de la cola
-cola: #89 FO-LAB-02252 lanzado · job 27805
-cola: #90 ticket FO-LAB-02252 aprobación aprobada en AAP
-cola: #91 FO-LAB-02253 lanzado · job 27835
-cola: #92 ticket FO-LAB-02253 aprobación aprobada en AAP
-cola: #93 FO-LAB-02255 lanzado · job 27853
-cola: #94 ticket FO-LAB-02255 aprobación aprobada en AAP
-cola: #95 FO-LAB-02256 lanzado · job 27860
-cola: #96 ticket FO-LAB-02256 aprobación aprobada en AAP
-cola: #97 FO-LAB-02257 lanzado · job 27872
-cola: #98 ticket FO-LAB-02257 aprobación aprobada en AAP
-cola: #99 FO-LAB-02258 lanzado · job 27881
-cola: #100 ticket FO-LAB-02258 aprobación aprobada en AAP
---- fin: 2026-11-12T15:57:51-03:00 · código: 0
+cola: #104 ticket FO-LAB-02261 aprobación aprobada en AAP
+cola: #105 FO-LAB-02262 lanzado · job 27914
+cola: #106 ticket FO-LAB-02262 aprobación aprobada en AAP
+cola: #108 FO-LAB-02264 lanzado · job 27934
+cola: #107 FO-LAB-02263 lanzado · job 27936
+cola: #109 ticket FO-LAB-02264 aprobación aprobada en AAP
+cola: #110 ticket FO-LAB-02263 aprobación aprobada en AAP
+cola: #111 FO-LAB-02265 lanzado · job 27954
+cola: #112 ticket FO-LAB-02265 aprobación aprobada en AAP
+cola: #113 FO-LAB-02266 lanzado · job 27981
+cola: #114 ticket FO-LAB-02266 aprobación aprobada en AAP
+cola: #115 FO-LAB-02267 lanzado · job 27997
+--- fin: 2026-11-12T16:08:55-03:00 · código: 0
