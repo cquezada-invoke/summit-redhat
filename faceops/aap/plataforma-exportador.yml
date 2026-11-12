@@ -3,7 +3,7 @@
 # de su plataforma, con versiones fijas, y abre su puerto solo hacia la VM anfitriona (Prometheus):
 #   redis      → redis_exporter v1.62.0 en :9121 (lee la clave de Redis de su configuración, no viaja por FaceOps)
 #   postgresql → postgres_exporter v0.15.0 en :9187 (usuario postgres por socket local, sin clave)
-#   nginx      → stub_status en 127.0.0.1:8081 + nginx-prometheus-exporter v1.3.0 en :9113
+#   nginx      → stub_status en 127.0.0.1:81 (puerto http de SELinux) + nginx-prometheus-exporter v1.3.0 en :9113
 #   jboss      → métricas propias de JBoss/WildFly en :9990/metrics (subsistema metrics y estadísticas de Undertow y
 #                de los datasources; recarga la configuración de JBoss solo si hubo que cambiarla)
 # FaceOps la lanza sobre el equipo elegido con su inventario y su credencial.
@@ -72,9 +72,9 @@
     # ── Redis: la clave se lee en el equipo (requirepass) y queda en un archivo de entorno solo de root
     - name: Redis · clave del servidor (en el equipo)
       ansible.builtin.shell: |
-        for f in /etc/redis/redis.conf /etc/redis.conf /etc/opt/rh/rh-redis*/redis.conf; do
-          [ -f "$f" ] && sed -n 's/^[[:space:]]*requirepass[[:space:]]\+//p' "$f" | tr -d '"' | tail -1 && exit 0
-        done; true
+        [ -s /etc/redis/clave-faceops ] && { tr -d '\n' < /etc/redis/clave-faceops; exit 0; }   # Redis preparado por FaceOps
+        c=$(grep -h -s -E '^[[:space:]]*requirepass[[:space:]]+' /etc/redis/*.conf /etc/redis.conf /etc/opt/rh/rh-redis*/redis.conf | tail -1)
+        echo "$c" | sed 's/^[[:space:]]*requirepass[[:space:]]\+//' | tr -d '"'; true
       register: r_rpass
       changed_when: false
       no_log: true
@@ -98,22 +98,41 @@
       when: pl == 'postgresql'
 
     # ── nginx: stub_status solo en localhost para el exportador
-    - name: nginx · stub_status en 127.0.0.1:8081
+    - name: nginx · stub_status en 127.0.0.1:81
       ansible.builtin.copy:
         dest: /etc/nginx/conf.d/faceops-stub-status.conf
         mode: "0644"
         content: |
           # FaceOps · métricas de nginx para el exportador (solo desde el propio equipo)
           server {
-              listen 127.0.0.1:8081;
+              listen 127.0.0.1:81;
               location = /stub_status { stub_status; allow 127.0.0.1; deny all; }
           }
       register: r_stub
       when: pl == 'nginx'
 
+    - name: nginx · conf.d incluido en el bloque http
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: '^\s*include\s+/etc/nginx/conf\.d/\*\.conf;'
+        line: "    include /etc/nginx/conf.d/*.conf;"
+        insertafter: '^\s*http\s*\{'
+        firstmatch: true
+      register: r_inc
+      when: pl == 'nginx'
+
     - name: nginx · configuración válida y recarga
       ansible.builtin.shell: nginx -t -q && systemctl reload nginx
-      when: pl == 'nginx' and r_stub is changed
+      when: pl == 'nginx' and (r_stub is changed or r_inc is changed)
+
+    - name: nginx · stub_status responde
+      ansible.builtin.uri:
+        url: http://127.0.0.1:81/stub_status
+      register: r_stub_ok
+      until: r_stub_ok.status == 200
+      retries: 6
+      delay: 3
+      when: pl == 'nginx'
 
     - name: Servicio systemd del exportador
       ansible.builtin.copy:
@@ -131,7 +150,7 @@
           Environment=DATA_SOURCE_NAME=host={{ r_sock.stdout | default('/var/run/postgresql') }} user=postgres sslmode=disable
           ExecStart=/usr/local/bin/postgres_exporter --web.listen-address=:{{ x.puerto }}
           {% else %}User=nobody
-          ExecStart=/usr/local/bin/nginx-prometheus-exporter --web.listen-address=:{{ x.puerto }} --nginx.scrape-uri=http://127.0.0.1:8081/stub_status
+          ExecStart=/usr/local/bin/nginx-prometheus-exporter --web.listen-address=:{{ x.puerto }} --nginx.scrape-uri=http://127.0.0.1:81/stub_status
           {% endif %}Restart=always
           [Install]
           WantedBy=multi-user.target

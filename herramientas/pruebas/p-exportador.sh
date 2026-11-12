@@ -16,7 +16,7 @@ Q
 met() { curl -s --max-time 8 "http://$1/metrics" | grep -c "$2"; }
 pedir() { caso_ "{\"auto\":\"$N\",\"equipo\":\"$1\",\"params\":{\"ex_plataforma\":\"$2\"},\"min\":15,\"caso\":\"$3\"}" >/dev/null; }
 JB=nodo-jboss; IJ=$(ip_de $JB)
-pedir $JB jboss C1; E1=$(estado); M1=$(met $IJ:9990 '^base_memory_usedHeap_bytes'); U1=$(met $IJ:9990 '^wildfly_undertow_request_count_total')
+pedir $JB jboss C1; E1=$(estado); M1=$(met $IJ:9990 '^base_memory_usedHeap_bytes'); U1=$(met $IJ:9990 '^jboss_undertow_request_count_total')
 [ "$E1" = exitoso ] && [ "${M1:-0}" -ge 1 ] && anotar C1 "JBoss" ok "$JB :9990/metrics con heap ($M1) y Undertow ($U1)" || anotar C1 "JBoss" falla "$E1 heap=$M1 undertow=$U1 $(jq_ "(r.get('detalle') or '')[:200]")"
 RD=$(con redis); IR=$(ip_de $RD)
 pedir $RD redis C2; E2=$(estado); M2=$(curl -s --max-time 8 http://$IR:9121/metrics | sed -n 's/^redis_up //p')

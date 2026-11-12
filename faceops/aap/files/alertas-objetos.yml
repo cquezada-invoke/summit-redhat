@@ -131,10 +131,10 @@ alertas:
   - {id: J03, tipos: [linux], ambito: "plataforma:jboss", grupo: Bloqueos, nombre: "Hilos bloqueados o deadlock en JBoss", pendiente: "las métricas de JBoss no publican hilos en deadlock: requiere jmx_exporter con java.lang:type=Threading (cambia el arranque de JBoss)"}
   - {id: J04, tipos: [linux], ambito: "plataforma:jboss", exportador: jboss, grupo: Operación, nombre: "Errores 5xx de las aplicaciones", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Porcentaje de peticiones con error (5xx) en Undertow, promedio de 5 minutos (estadísticas de Undertow habilitadas)",
-     expr: '100 * sum by (faceops_equipo) (rate(wildfly_undertow_error_count_total{faceops_equipo="__EQ__"}[5m])) / sum by (faceops_equipo) (rate(wildfly_undertow_request_count_total{faceops_equipo="__EQ__"}[5m])) > __UMBRAL__', aviso: 5, critico: 20, para: 5m}
+     expr: '100 * sum by (faceops_equipo) (rate(jboss_undertow_error_count_total{faceops_equipo="__EQ__"}[5m])) / sum by (faceops_equipo) (rate(jboss_undertow_request_count_total{faceops_equipo="__EQ__"}[5m])) > __UMBRAL__', aviso: 5, critico: 20, para: 5m}
   - {id: J05, tipos: [linux], ambito: "plataforma:jboss", exportador: jboss, grupo: Capacidad, nombre: "Pool del datasource agotado", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Conexiones en uso del pool de algún datasource respecto de su total (estadísticas del datasource habilitadas)",
-     expr: '100 * max by (faceops_equipo, data_source) (wildfly_datasources_pool_in_use_count{faceops_equipo="__EQ__"} / (wildfly_datasources_pool_in_use_count{faceops_equipo="__EQ__"} + wildfly_datasources_pool_available_count{faceops_equipo="__EQ__"})) > __UMBRAL__', aviso: 80, critico: 95, para: 5m}
+     expr: '100 * max by (faceops_equipo, data_source) (jboss_datasources_pool_in_use_count{faceops_equipo="__EQ__"} / (jboss_datasources_pool_in_use_count{faceops_equipo="__EQ__"} + jboss_datasources_pool_available_count{faceops_equipo="__EQ__"})) > __UMBRAL__', aviso: 80, critico: 95, para: 5m}
   # nginx
   - {id: N01, tipos: [linux], ambito: "plataforma:nginx", grupo: Disponibilidad, nombre: "nginx detenido", acciones: [avisar, reiniciar_servicio, diagnosticar],
      descripcion: "El servicio nginx no está activo", expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name="nginx.service",state="active"}) == 0', umbral: false, severidad: critico, para: 1m}
