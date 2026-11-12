@@ -66,22 +66,45 @@ def es_externa(tec):
     return bool(pr) and pr != PROYECTO_FACEOPS
 
 
-def _proyectos_aap(cliente_id):
+def _leer_proyectos(cliente_id):
+    """Lee de AAP la revisión SCM de cada proyecto y la deja en la caché (AAP caído: se mantiene lo último conocido)."""
     import time
     c = _proy_cache.get(cliente_id)
-    if c and time.time() - c[0] < TTL_PROYECTOS:
-        return c[1]
     try:
         from .aap import AAP
         aap = AAP.de_cliente(q1("SELECT * FROM clientes WHERE id=?", cliente_id))
         if not aap:
             raise RuntimeError("sin AAP")
+        aap.timeout = 10
         m = {p["name"]: {"rev": p.get("scm_revision") or "", "url": p.get("scm_url") or "", "rama": p.get("scm_branch") or ""}
              for p in aap.todos("projects/")}
     except Exception:
         m = c[1] if c else {}      # AAP no responde: se mantiene lo último conocido (o el commit de la sincronización)
     _proy_cache[cliente_id] = (time.time() - (0 if m else TTL_PROYECTOS - 15), m)
     return m
+
+
+_proy_th = {}
+
+
+def _proyectos_aap(cliente_id, espera=1.0):
+    """Proyectos de AAP sin bloquear la página: vigente en caché → al tiro; vencida → se entrega la anterior y se renueva en
+    segundo plano (una lectura a la vez); sin lectura previa se espera a lo más `espera` s (AAP caído no frena la vista)."""
+    import threading
+    import time
+    c = _proy_cache.get(cliente_id)
+    if c and time.time() - c[0] < TTL_PROYECTOS:
+        return c[1]
+    th = _proy_th.get(cliente_id)
+    if not th or not th.is_alive():
+        th = threading.Thread(target=_leer_proyectos, args=(cliente_id,), daemon=True, name=f"proyectos-aap-{cliente_id}")
+        _proy_th[cliente_id] = th
+        th.start()
+    if c:
+        return c[1]
+    th.join(espera)
+    c = _proy_cache.get(cliente_id)
+    return c[1] if c else {}
 
 
 def _gitea(url):

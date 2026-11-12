@@ -9,7 +9,7 @@ from datetime import datetime
 import requests
 import yaml
 
-from .aap import AAP, ErrorAAP
+from .aap import AAP, AAPNoDisponible, ErrorAAP
 from .bd import ahora, auditar, ej, j, q, q1
 from .inventario import normal
 from .permisos import equipos_de_segmento, puede_ejecutar, puede_ver_segmento
@@ -27,6 +27,8 @@ FORMULARIOS = os.path.join(AQUI, "..", "datos", "formularios.yml")
 SKILLS = os.path.join(AQUI, "..", "datos", "skills.yml")
 COMPUESTAS = os.path.join(AQUI, "..", "datos", "compuestas.yml")
 TIPOS_AMIGABLES = ("equipo", "equipos", "fecha", "ip")
+
+EN_ESPERA_AAP = "En espera de AAP"   # ticket creado con AAP caído: se lanza solo cuando AAP vuelve
 
 
 def combinar_campos(encuesta, formulario):
@@ -949,6 +951,8 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             tipo, id_ = objetivo_aap(aap, a, amb)
         job = aap.lanzar(tipo, id_, extra_vars=params, limite=t["limite"] or None)
         ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+    except AAPNoDisponible as e:   # AAP caído: el ticket queda en FaceOps «En espera de AAP» y el vigía lo lanza al volver
+        ej("UPDATE tickets SET estado='en_cola', resultado=? WHERE id=?", f"{EN_ESPERA_AAP} · {str(e)[:300]}", ticket_id)
     except ErrorAAP as e:
         ej("UPDATE tickets SET estado='fallido', resultado=?, fin=? WHERE id=?", str(e)[:1000], ahora(), ticket_id)
         conector(c).cerrar(q1("SELECT * FROM tickets WHERE id=?", ticket_id), a)
@@ -1162,7 +1166,16 @@ def actualizar_tickets():
                     o_.cerrar(t2, a_)
     from datetime import datetime as _dt, timedelta, timezone as _tz
     tope_ = (_dt.now(_tz.utc) - timedelta(minutes=15)).isoformat(timespec="seconds")
-    for t in q("SELECT * FROM tickets WHERE estado IN ('en_cola','en_ejecucion') AND aap_job_id IS NULL AND creado < ?", tope_):
+    from .aap import disponible as _aap_ok
+    for t in q("SELECT * FROM tickets WHERE estado='en_cola' AND aap_job_id IS NULL AND resultado LIKE ?", EN_ESPERA_AAP + "%"):
+        c_ = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"]) or {}
+        if _aap_ok(c_.get("aap_url")):   # AAP volvió: se lanza lo que quedó en espera
+            try:
+                ejecutar(t["id"])
+            except Exception:  # noqa: BLE001
+                pass
+    for t in q("SELECT * FROM tickets WHERE estado IN ('en_cola','en_ejecucion') AND aap_job_id IS NULL AND creado < ? "
+               "AND COALESCE(resultado,'') NOT LIKE ?", tope_, EN_ESPERA_AAP + "%"):
         ej("UPDATE tickets SET estado='fallido', fin=?, resultado=? WHERE id=?", ahora(),
            "No llegó a ejecutarse en AAP (no se pudo lanzar en 15 min): vuelve a solicitarlo; FaceOps no deja tickets pegados", t["id"])
     for t in q("SELECT * FROM tickets WHERE estado IN ('en_ejecucion','pendiente_aprobacion') AND aap_job_id IS NOT NULL"):

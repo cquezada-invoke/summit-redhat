@@ -99,6 +99,8 @@ def create_app():
     app.jinja_env.globals["MAQUETA"] = maqueta
     from .salud import tono_salud, tono_uso, semaforo_salud   # regla única de color: salud 85/50, uso inverso
     app.jinja_env.globals.update(tono_salud=tono_salud, tono_uso=tono_uso, semaforo_salud=semaforo_salud)
+    from .aap import salud as aap_salud   # banner global «AAP no disponible» (vigía de fondo, sin consultas en la página)
+    app.jinja_env.globals.update(aap_salud=aap_salud)
 
     @app.before_request
     def cargar_usuario():
@@ -216,6 +218,11 @@ def create_app():
         except Exception:  # el menú nunca debe tumbar la página
             app.logger.exception("menú lateral")
             return []
+
+    @app.template_filter("hora_aap")
+    def hora_aap(ts):
+        import time as _t
+        return _t.strftime("%H:%M", _t.localtime(ts)) + ("" if _t.time() - ts < 86400 else _t.strftime(" del %d-%m", _t.localtime(ts)))
 
     @app.template_filter("horas")
     def horas(h):

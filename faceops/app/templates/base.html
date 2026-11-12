@@ -117,6 +117,7 @@
 {% endif %}
 <main {{ 'style=margin-left:0' if not usuario }}>
 {% if cliente and cliente.suspendido is defined and cliente.suspendido %}<div class="flash error">Servicio suspendido{{ (' · ' ~ cliente.suspendido_motivo) if cliente.suspendido_motivo }}: puedes consultar la consola, pero no solicitar acciones nuevas. Contacta a Invoke para reactivarlo.</div>{% endif %}
+{% if usuario %}{% set aap_ = aap_salud() %}{% if aap_ %}<div class="flash aviso-aap" role="status" style="background:#fdf3d0;border:1px solid #e0b84a;color:#5c4400">La base de automatización (AAP) no está disponible · las acciones quedan en espera{% if aap_.ultimo_ok %} · último contacto {{ aap_.ultimo_ok|hora_aap }}{% else %} · sin contacto desde que inició FaceOps{% endif %}</div>{% endif %}{% endif %}
 {% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
 <div class="contenido">
 {% block cuerpo %}{% endblock %}

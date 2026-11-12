@@ -185,10 +185,11 @@ def reglas_monitoreo(e, ambito="maquina", tipo=None):
     if k in _mon and time.time() - _mon[k][0] < 15:
         return _mon[k][1]
     try:
-        r = requests.get(url.rstrip("/") + "/api/v1/rules", params={"type": "alert"}, headers=hdr, timeout=4, verify=False)
+        r = requests.get(url.rstrip("/") + "/api/v1/rules", params={"type": "alert"}, headers=hdr, timeout=(1, 2), verify=False)
         r.raise_for_status()
         gs = [g_ for g_ in r.json()["data"]["groups"] if g_["name"] == grupo]
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001 - sin lectura: se recuerda 15 s para no esperar en cada carga
+        _mon[k] = (time.time(), None)
         return None
     out = {}
     orden = {"firing": 2, "pending": 1, "inactive": 0}

@@ -1,14 +1,76 @@
-"""Cliente de la API de Ansible Automation Platform (controller vía gateway). Una instancia por cliente de FaceOps."""
+"""Cliente de la API de Ansible Automation Platform (controller vía gateway). Una instancia por cliente de FaceOps.
+
+Regla: FaceOps no espera a un AAP caído. Un vigía en segundo plano hace ping a cada AAP conocido (cada 30 s); mientras uno no
+responde, el «cortacircuito» está abierto y toda llamada falla al instante con AAPNoDisponible (las páginas usan su caché y el
+banner global avisa; los tickets quedan «En espera de AAP» y se lanzan al volver). Timeout corto: 2 s para conectar y 5 s
+de lectura durante una página (20 s en tareas de fondo)."""
 import os
+import threading
+import time
 
 import requests
 import urllib3
 
 urllib3.disable_warnings()
 
+REVISAR_CADA = 30
+_SALUD = {}       # web → {"ok", "ultimo_ok", "desde", "error"}
+_CONOCIDOS = {}   # web → (url de ping, verify)
+_vigia = {"hilo": None}
+
 
 class ErrorAAP(Exception):
     pass
+
+
+class AAPNoDisponible(ErrorAAP):
+    """AAP no responde (caído o sin red): la acción queda en espera, no fallida."""
+
+
+def _marcar(web, ok, error=""):
+    s = _SALUD.setdefault(web, {"ok": True, "ultimo_ok": None, "desde": None, "error": ""})
+    if ok:
+        s.update(ok=True, ultimo_ok=time.time(), desde=None, error="")
+    else:
+        if s["ok"]:
+            s["desde"] = time.time()
+        s.update(ok=False, error=str(error)[:200])
+
+
+def _ping(web):
+    url, verify = _CONOCIDOS[web]
+    try:
+        r = requests.get(url, timeout=(2, 4), verify=verify)
+        _marcar(web, r.status_code < 500, f"ping → {r.status_code}")
+    except requests.RequestException as e:
+        _marcar(web, False, type(e).__name__)
+
+
+def _iniciar_vigia():
+    if _vigia["hilo"] and _vigia["hilo"].is_alive():
+        return
+
+    def bucle():
+        while True:
+            for w in list(_CONOCIDOS):
+                try:
+                    _ping(w)
+                except Exception:  # noqa: BLE001
+                    pass
+            time.sleep(REVISAR_CADA)
+    _vigia["hilo"] = threading.Thread(target=bucle, daemon=True, name="faceops-salud-aap")
+    _vigia["hilo"].start()
+
+
+def salud():
+    """None si todo AAP conocido responde; si no, {desde, ultimo_ok, error} del caído (para el banner global)."""
+    caidos = [s for s in _SALUD.values() if not s["ok"]]
+    return caidos[0] if caidos else None
+
+
+def disponible(web):
+    s = _SALUD.get((web or "").rstrip("/"))
+    return not s or s["ok"]
 
 
 class AAP:
@@ -19,6 +81,9 @@ class AAP:
         self.s = requests.Session()
         self.s.headers.update({"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
         self.s.verify = bool(verificar)
+        if self.web not in _CONOCIDOS:
+            _CONOCIDOS[self.web] = (self.base + "ping/", bool(verificar))
+            _iniciar_vigia()
 
     @classmethod
     def de_cliente(cls, c):
@@ -29,10 +94,27 @@ class AAP:
         return a
 
     def _r(self, metodo, ruta, **kw):
+        if not disponible(self.web):   # cortacircuito abierto: no se espera a un AAP caído
+            raise AAPNoDisponible(f"AAP no disponible desde las {time.strftime('%H:%M', time.localtime(_SALUD[self.web]['desde'] or time.time()))}")
+        to = getattr(self, "timeout", None)
+        if to is None:
+            try:
+                from flask import has_request_context
+                to = (2, 5) if has_request_context() else (2, 20)
+            except Exception:  # noqa: BLE001
+                to = (2, 20)
         try:
-            r = self.s.request(metodo, ruta if ruta.startswith("http") else self.base + ruta.lstrip("/"), timeout=40, **kw)
-        except requests.RequestException as e:
+            r = self.s.request(metodo, ruta if ruta.startswith("http") else self.base + ruta.lstrip("/"), timeout=to, **kw)
+        except (requests.ConnectionError, requests.ConnectTimeout) as e:
+            _marcar(self.web, False, type(e).__name__)
+            raise AAPNoDisponible(f"AAP no responde: {type(e).__name__}") from e
+        except requests.RequestException as e:   # lectura lenta: el vigía confirma en segundo plano si está caído
+            threading.Thread(target=_ping, args=(self.web,), daemon=True).start()
             raise ErrorAAP(f"AAP no responde: {e}") from e
+        if r.status_code in (502, 503, 504):
+            _marcar(self.web, False, f"{metodo} → {r.status_code}")
+            raise AAPNoDisponible(f"AAP no disponible ({r.status_code})")
+        _marcar(self.web, True)
         if r.status_code >= 400:
             raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
         return r.json() if r.content else {}
