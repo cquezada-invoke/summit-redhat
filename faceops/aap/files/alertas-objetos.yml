@@ -16,6 +16,9 @@ tipos:
   storage: {nombre: "Almacenamiento", fuente: "node_exporter (:9100)", puerto: 9100, job: faceops-equipos}
   openshift: {nombre: "Clúster OpenShift", fuente: "monitoreo del propio clúster (Prometheus/Thanos de openshift-monitoring; se aplicarían como PrometheusRule con «OpenShift · Modelo de alertamiento»)", puerto: 6443, job: ""}
   red:     {nombre: "Equipo de red", fuente: "sondeo TCP del puerto de administración (blackbox)", puerto: 22, job: faceops-sondeo}
+  # Hipervisores (campana de su ficha /hipervisores/<id>): el objeto es el hipervisor; sus métricas vienen de su anfitrión o de su exportador
+  kvm:     {nombre: "Hipervisor KVM", fuente: "node_exporter del anfitrión (:9100, con systemd)", puerto: 9100, job: faceops-equipos}
+  vmware:  {nombre: "VMware vSphere", fuente: "vmware_exporter apuntando al vCenter (:9272)", puerto: 9272, job: faceops-equipos}
 # Acciones: lo que la automatización hará cuando la alerta se dispare (se elige una por alerta en el flotante). «avisar»
 # solo registra el evento en Event-Driven Ansible; las demás piden la automatización indicada, siempre con aprobación.
 acciones:
@@ -235,3 +238,28 @@ alertas:
   - {id: D05, tipos: [red], grupo: Disponibilidad, nombre: "Caídas intermitentes", unidad: "% de éxito", acciones: [avisar, diagnosticar],
      descripcion: "Sondeos exitosos en los últimos 15 minutos bajo el umbral (enlace inestable)",
      expr: '100 * avg_over_time(probe_success{job="faceops-sondeo",faceops_equipo="__EQ__"}[15m]) < __UMBRAL__', aviso: 99, critico: 95, para: 5m, menor: true}
+  # ───────── Hipervisor KVM / libvirt (ficha del hipervisor) ─────────
+  - {id: H01, tipos: [kvm], grupo: Capacidad, nombre: "CPU del anfitrión alta", unidad: "%", acciones: [avisar, diagnosticar],
+     descripcion: "Uso de CPU del anfitrión (todas sus máquinas virtuales juntas) en los últimos 2 minutos",
+     expr: '100 - avg by (faceops_equipo) (rate(node_cpu_seconds_total{mode="idle",faceops_equipo="__EQ__"}[2m])) * 100 > __UMBRAL__', aviso: 80, critico: 95, para: 10m}
+  - {id: H02, tipos: [kvm], grupo: Capacidad, nombre: "Memoria del anfitrión alta", unidad: "%", acciones: [avisar, diagnosticar],
+     descripcion: "Memoria en uso del anfitrión (descuenta caché y buffers): con poca libre, las máquinas compiten o el kernel mata procesos",
+     expr: '100 * (1 - node_memory_MemAvailable_bytes{faceops_equipo="__EQ__"} / node_memory_MemTotal_bytes{faceops_equipo="__EQ__"}) > __UMBRAL__', aviso: 85, critico: 95, para: 10m}
+  - {id: H03, tipos: [kvm], grupo: Capacidad, nombre: "Pool de discos casi lleno", unidad: "%", acciones: [avisar, diagnosticar],
+     descripcion: "Sistema de archivos del anfitrión donde viven los pools de libvirt (discos de las máquinas, snapshots e imágenes)",
+     expr: 'max by (faceops_equipo, mountpoint) (100 - 100 * node_filesystem_avail_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs|vfat"} / node_filesystem_size_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs|vfat"}) > __UMBRAL__', aviso: 80, critico: 90, para: 5m}
+  - {id: H04, tipos: [kvm], grupo: Disponibilidad, nombre: "Servicio de libvirt caído", acciones: [avisar, diagnosticar],
+     descripcion: "libvirtd (o virtqemud en libvirt modular) no está activo: no se pueden encender, apagar ni administrar las máquinas",
+     expr: 'max by (faceops_equipo) (node_systemd_unit_state{faceops_equipo="__EQ__",name=~"(libvirtd|virtqemud)\\.service",state="active"}) < 1', umbral: false, severidad: critico, para: 2m}
+  - {id: H05, tipos: [kvm], grupo: Disponibilidad, nombre: "Máquina virtual en error o pausada", pendiente: "requiere métricas de libvirt en el anfitrión (libvirt_exporter o textfile del node_exporter)"}
+  - {id: H06, tipos: [kvm], grupo: Capacidad, nombre: "Sobreasignación de CPU excesiva", pendiente: "requiere métricas de libvirt en el anfitrión (libvirt_exporter o textfile del node_exporter)"}
+  - {id: H07, tipos: [kvm], grupo: Operación, nombre: "Snapshots viejos", pendiente: "requiere métricas de libvirt en el anfitrión (libvirt_exporter o textfile del node_exporter)"}
+  # ───────── Hipervisor VMware vSphere (ficha del hipervisor) ─────────
+  - {id: V01, tipos: [vmware], grupo: Capacidad, nombre: "CPU de los hosts ESXi alta", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V02, tipos: [vmware], grupo: Capacidad, nombre: "Memoria de los hosts ESXi alta", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V03, tipos: [vmware], grupo: Capacidad, nombre: "Datastore casi lleno", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V04, tipos: [vmware], grupo: Disponibilidad, nombre: "Máquina virtual en error o suspendida", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V05, tipos: [vmware], grupo: Disponibilidad, nombre: "vSphere HA desactivado o degradado", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V06, tipos: [vmware], grupo: Disponibilidad, nombre: "vMotion fallido", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V07, tipos: [vmware], grupo: Capacidad, nombre: "Sobreasignación de CPU o memoria excesiva", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V08, tipos: [vmware], grupo: Operación, nombre: "Snapshots viejos", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}

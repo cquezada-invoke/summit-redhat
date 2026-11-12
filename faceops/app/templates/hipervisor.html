@@ -1,8 +1,10 @@
 {% extends "base.html" %}{% block titulo %}{{ x.nombre }}{% endblock %}
 {% block cuerpo %}{% from "_infra.html" import logo %}{% from "_ficha_infra.html" import cabecera, salud, caja_energia, cajon_salud, cajon_conexion, seccion_acciones, recursos with context %}
 {% set ok_ = x.estado == 'conectada' %}{% set url_acc = url_for('consola.hipervisor_accion', iid=x.id) %}{% set url_probar = url_for('consola.infraestructura_probar', iid=x.id) %}
-{{ cabecera(logo(x.tipo, 40), x.nombre, url_for('consola.hipervisores'), 'Hipervisores',
-   x.prov.nombre ~ ' · ' ~ x.centro ~ ' (' ~ etiq ~ ') · verificado ' ~ (x.verificado|fecha if x.verificado else 'nunca'), x.credencial, esc) }}
+{% from "_alertas.html" import boton_alertas with context %}
+{% call cabecera(logo(x.tipo, 40), x.nombre, url_for('consola.hipervisores'), 'Hipervisores',
+   x.prov.nombre ~ ' · ' ~ x.centro ~ ' (' ~ etiq ~ ') · verificado ' ~ (x.verificado|fecha if x.verificado else 'nunca'), x.credencial, esc) %}
+{{ boton_alertas(alertas_obj, url_for('consola.hipervisor_alertas', iid=x.id), x.nombre) }}{% include "_habilidades.html" %}{% endcall %}
 {{ salud(radar_h, x.nombre) }}
 
 <div class="eq-cab">

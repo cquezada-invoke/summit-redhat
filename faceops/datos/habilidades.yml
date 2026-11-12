@@ -238,3 +238,75 @@ habilidades:
         campos:
           - {var: win_clave, etiqueta: "Clave de producto (o GVLK para KMS)", tipo: password}
           - {var: win_kms, etiqueta: "Servidor KMS (opcional)", tipo: text, ayuda: "host o host:puerto"}
+  # ── Hipervisor (ficha /hipervisores/<id>, botón Skills junto a la campana). categoria: hipervisor → solo ahí, nunca en una
+  #    máquina; hipervisor: regex sobre el tipo (kvm, vmware…); solo: tipos donde aplica (en los demás se muestra deshabilitada con
+  #    el motivo); por_maquina: se lanza desde la ficha de cada máquina (necesita elegirla). Parámetro hv_infra = el hipervisor.
+  - id: hv-mtv
+    tipo: diferenciador
+    grupo: Migraciones
+    categoria: hipervisor
+    ambito: Hipervisor
+    nombre: VMware a OpenShift Virtualization (MTV)
+    valor: Lleva las máquinas de vSphere a OpenShift Virtualization con Migration Toolkit for Virtualization, por olas y con vuelta atrás, sin licencias de VMware.
+    nombre_aap: ["Migración · VMware a OpenShift Virtualization"]
+    solo: vmware
+  - id: hv-consolidar
+    tipo: diferenciador
+    grupo: Capacidad
+    categoria: hipervisor
+    ambito: Hipervisor
+    nombre: Evaluar consolidación y ahorro
+    valor: Mide uso real frente a lo asignado y propone cuántos anfitriones sobran, qué máquinas juntar y cuánto se ahorra en hardware y licencias.
+    nombre_aap: ["Infra · Evaluar consolidación de hipervisores"]
+  - id: hv-snapshots
+    tipo: quick win
+    grupo: Capacidad
+    categoria: hipervisor
+    ambito: Hipervisor
+    nombre: Limpiar snapshots viejos
+    valor: Libera espacio del pool o datastore y evita discos encadenados que degradan el rendimiento.
+    nombre_aap: ["Infra · Limpiar snapshots viejos"]
+  - id: hv-rebalancear
+    tipo: quick win
+    grupo: Máquinas virtuales
+    categoria: hipervisor
+    ambito: Hipervisor
+    nombre: Rebalancear o mover máquinas
+    valor: Reparte la carga entre anfitriones o centros de datos moviendo máquinas, con la de origen como vuelta atrás.
+    nombre_aap: ["Infra · Mover máquina entre centros de datos"]
+    por_maquina: true
+  - id: hv-capacidad
+    tipo: quick win
+    grupo: Capacidad
+    categoria: hipervisor
+    ambito: Hipervisor
+    nombre: Informe de capacidad y overcommit
+    valor: CPU, memoria y disco asignados frente a lo físico, tendencia y recomendación de redimensionamiento.
+    nombre_aap: ["Infra · Informe de capacidad del hipervisor"]
+  - id: hv-autoinicio
+    tipo: quick win
+    grupo: Máquinas virtuales
+    categoria: hipervisor
+    ambito: Hipervisor
+    nombre: Encendido automático controlado
+    valor: Al reiniciar el anfitrión solo arranca la bóveda; el resto queda apagado hasta encenderlo desde FaceOps.
+    nombre_aap: ["Infra · Encendido automático de máquinas"]
+    parametros: {ia_encender: nodo-vault}
+    solo: kvm
+  - id: hv-respaldo
+    tipo: quick win
+    grupo: Continuidad
+    categoria: hipervisor
+    ambito: Hipervisor
+    nombre: Respaldo de la configuración del anfitrión
+    valor: Definiciones de máquinas, redes y pools del anfitrión a Git, para reconstruirlo igual si falla.
+    nombre_aap: ["Infra · Respaldar configuración del anfitrión"]
+  - id: hv-parches
+    tipo: quick win
+    grupo: Ciclo de vida
+    categoria: hipervisor
+    ambito: Hipervisor
+    nombre: Parchear el anfitrión
+    valor: Parches del sistema y de la capa de virtualización con ventana y apagado o traslado ordenado de las máquinas.
+    nombre_aap: ["Infra · Parchear anfitrión"]
+  # ── Equipos de red (ámbito «Red · …»): primero las de todos los equipos, luego las de cada categoría

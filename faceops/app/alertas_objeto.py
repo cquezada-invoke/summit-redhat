@@ -72,6 +72,8 @@ def tipo_de(e):
     """linux | windows | storage | red | None (sin alertas para este objeto todavía)."""
     c = (e.get("categoria") or "").lower()
     so = (e.get("so") or "").lower()
+    if c == "hipervisor":   # ficha del hipervisor (mod_hipervisores.objeto_alertas): alertas propias del anfitrión y su virtualización
+        return e.get("hv_tipo") if e.get("hv_tipo") in ("kvm", "vmware") else None
     if c in RED:
         return "red"
     if c == "almacenamiento":
@@ -276,8 +278,8 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
     if not puede_escribir:
         disponible, por_que = False, "Tu perfil es de solo lectura"
     if not e.get("ip"):
-        disponible, por_que = False, "El equipo no tiene IP registrada"
-    return {"tipo": t, "tipo_nombre": cat["tipos"][t]["nombre"], "fuente": cat["tipos"][t]["fuente"], "grupos": grupos,
+        disponible, por_que = False, e.get("sin_ip") or "El equipo no tiene IP registrada"
+    return {"url_probar": e.get("url_probar") or "", "url_regla": e.get("url_regla") or "","tipo": t, "tipo_nombre": cat["tipos"][t]["nombre"], "fuente": cat["tipos"][t]["fuente"], "grupos": grupos,
             "ambito": ambito, "sufijo": sufijo(ambito), "nombre_amb": nombre_amb,
             "n": (len(prom) if prom is not None else
                   (sum(1 for k in act if any(a["id"] == k and a.get("ambito", "maquina") == ambito for a in cat["alertas"])) if ambito != "maquina" else len(act))),
@@ -357,6 +359,14 @@ def registrar_resultado(cliente_id, art, numero):
     """Hook al terminar el ticket: el reflejo de lo aplicado queda en la ficha del equipo."""
     x = (art or {}).get("faceops_alertas") or {}
     e = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente_id, x.get("equipo") or "")
+    if not e and x.get("tipo") in ("kvm", "vmware"):   # alertas de un hipervisor: el reflejo queda en su infraestructura
+        m_ = re.match(r"hv(\d+)-", x.get("equipo") or "")
+        i_ = q1("SELECT id, detalle FROM infraestructuras WHERE cliente_id=? AND id=?", cliente_id, int(m_.group(1))) if m_ else None
+        if i_:
+            d_ = j(i_["detalle"], {})
+            d_["alertas"] = {"tipo": x.get("tipo"), "alertas": x.get("alertas") or [], "resumen": x.get("resumen") or [], "actualizado": ahora(), "ticket": numero}
+            ej("UPDATE infraestructuras SET detalle=? WHERE id=?", json.dumps(d_, ensure_ascii=False), i_["id"])
+        return
     if not e:
         return
     d = j(e["datos"], {})

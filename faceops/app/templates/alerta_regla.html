@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block titulo %}{{ a.nombre }} · {{ e.nombre }}{% endblock %}
 {% block cuerpo %}
-<p class="sub" style="margin:0"><a href="{{ url_for('consola.equipo', eid=e.id) }}#alertas">← {{ e.nombre }}</a> · alerta {{ aid }}{% if ambito != 'maquina' %} · {{ ambito }}{% endif %}</p>
+<p class="sub" style="margin:0"><a href="{{ volver or (url_for('consola.equipo', eid=e.id) ~ '#alertas') }}">← {{ e.nombre }}</a> · alerta {{ aid }}{% if ambito != 'maquina' %} · {{ ambito }}{% endif %}</p>
 <h1 style="margin:4px 0 2px">{{ a.nombre }}</h1>
 <p class="sub" style="margin:0 0 12px">{{ a.descripcion }}</p>
 <div class="card">

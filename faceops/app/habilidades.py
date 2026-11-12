@@ -128,6 +128,8 @@ def _resolver(h, e):
         from .inventario import skills_de
         if h["sin_skill"] in set(skills_de(e)):
             return None
+    if h.get("categoria") == "hipervisor" or (e.get("categoria") or "") == "hipervisor":
+        return None   # las del hipervisor viven en habilidades_hipervisor (ficha del hipervisor), no en una máquina
     if h.get("categoria") and not re.search(h["categoria"], e.get("categoria") or "servidor"):
         return None
     if not h.get("categoria") and (e.get("categoria") or "") == "clúster openshift":
@@ -155,6 +157,8 @@ def _faltan_datos(a, h):
 def habilidades_maquina(e, rep=None):
     """[{id, tipo, grupo, nombre, valor, auto, aid, ui, bloqueo, ticket, url}] de la máquina, diferenciadores primero."""
     escritura = getattr(g, "perfil", None) and g.perfil["modo"] == "escritura"
+    if (e.get("categoria") or "") == "hipervisor":   # ficha del hipervisor: sus propias skills (Ámbito = Hipervisor)
+        return habilidades_hipervisor(e, bool(escritura))
     out = []
     for h in mapa():
         h = _resolver(h, e)
@@ -245,3 +249,63 @@ def habilidad_ejecutar(eid):
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"]}
+
+
+# ------------------------------------------------------------------ skills del hipervisor (ficha /hipervisores/<id>)
+def _skill_hv(e, h):
+    """(automatización, motivo) de una skill del hipervisor: motivo vacío si se puede pedir desde su ficha."""
+    from .pruebas import estado, exceptuada
+    a = next((x for n_ in h.get("nombre_aap") or [] for x in [q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], n_)] if x), None)
+    if h.get("solo") and not re.search(h["solo"], e.get("hv_tipo") or ""):
+        return a, f"aplica a hipervisores {h['solo'].replace('|', ' o ')}; este es {e.get('so') or e.get('hv_tipo')}"
+    if not a:
+        return None, "aún no disponible: la acción no está publicada en AAP"
+    ep = estado(dict(a, cliente_id=g.cliente["id"]))["estado"]
+    if ep != "certificada" and not exceptuada(a["nombre_aap"]):
+        return a, {"cambiada": "cambió desde su última prueba; debe probarse de nuevo", "fallida": "su última prueba falló"}.get(ep, "sin plan de prueba aprobado")
+    if h.get("por_maquina"):
+        return a, "se pide desde la ficha de cada máquina (elige la máquina y su destino)"
+    if e.get("hv_estado") != "conectada":
+        return a, "el hipervisor no está conectado: verifica su conexión"
+    return a, ""
+
+
+def _ticket_hv(e, aid):
+    for t in q("SELECT id, numero, estado, parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 40", g.cliente["id"], aid):
+        if (j(t["parametros"], {}) or {}).get("hv_infra") != e["hv_nombre"]:
+            continue
+        if t["estado"] in ABIERTOS:
+            return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": True}
+        return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": False} if t["estado"] == "exitoso" else None
+    return None
+
+
+def habilidades_hipervisor(e, escritura):
+    """Skills de la ficha del hipervisor (datos/habilidades.yml, categoria: hipervisor), mismas columnas y estados que las de
+    la máquina. Las que no tienen acción publicada o certificada se muestran deshabilitadas con su motivo."""
+    out = []
+    for h in mapa():
+        if h.get("categoria") != "hipervisor" or (h.get("hipervisor") and not re.search(h["hipervisor"], e.get("hv_tipo") or "")):
+            continue
+        a, motivo = _skill_hv(e, h)
+        out.append({"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"], "valor": h.get("valor") or "",
+                    "ambito": h.get("ambito") or "Hipervisor", "auto": (a or {}).get("nombre") or h["nombre_aap"][0], "aid": (a or {}).get("id"), "ui": "",
+                    "bloqueo": motivo, "ticket": _ticket_hv(e, a["id"]) if a else None, "escritura": escritura, "url": e.get("url_skill") or "", "campos": []})
+    out.sort(key=lambda x: (x["tipo"] != "diferenciador", bool(x["bloqueo"])))
+    return out
+
+
+def pedir_habilidad_hipervisor(e, hid):
+    """Ticket (con aprobación en AAP) de una skill del hipervisor; si ya hay uno abierto, devuelve ese."""
+    from .operacion import solicitar
+    h = next((x for x in mapa() if x.get("id") == hid and x.get("categoria") == "hipervisor"), None)
+    if not h:
+        raise ValueError("Skill no válida")
+    a, motivo = _skill_hv(e, h)
+    if motivo:
+        raise PermissionError(f"«{h['nombre']}»: {motivo}")
+    t0 = _ticket_hv(e, a["id"])
+    if t0 and t0["abierto"]:
+        return dict(t0, existente=True), a
+    params = dict(h.get("parametros") or {}, hv_infra=e["hv_nombre"])
+    return solicitar(g.usuario, g.cliente, a, None, params, f"{MARCA}{h['nombre']} en {e['hv_nombre']}"), a

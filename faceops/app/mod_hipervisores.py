@@ -95,6 +95,130 @@ def radar_hipervisor(x, cap, asig, info, escritura):
     return r
 
 
+# El anfitrión KVM del laboratorio es también el anfitrión del monitoreo: su node_exporter escucha solo en 127.0.0.1, así que
+# Prometheus lo lee por loopback. Otro anfitrión se lee por su IP.
+ANFITRION_MONITOREO = os.environ.get("FACEOPS_ANFITRION_MONITOREO", "192.168.122.1")
+
+
+def objeto_alertas(x):
+    """El hipervisor como objeto de la campana de alertas y del botón Skills (app/alertas_objeto.py, app/habilidades.py):
+    nombre estable para Prometheus (hv<id>-<nombre>), su tipo (kvm, vmware) y la IP de la que se leen sus métricas. El
+    reflejo de lo aplicado vive en el detalle de la infraestructura. Nunca lleva secretos."""
+    import json
+    import re
+    from flask import url_for
+    d_ = x["detalle_d"]
+    slug = re.sub(r"[^a-z0-9]+", "-", x["nombre"].lower().translate(str.maketrans("áéíóúñü", "aeiounu"))).strip("-")
+    an = d_.get("anfitrion") or ""
+    ip = ("127.0.0.1" if an == ANFITRION_MONITOREO else an) if re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}", an) else ""
+    sin_ip = "" if ip else ("Falta el exportador de vSphere (vmware_exporter) apuntando al vCenter: sus alertas se podrán activar cuando entregue métricas"
+                            if x["tipo"] == "vmware" else "El hipervisor no tiene la IP de su anfitrión")
+    return {"id": x["id"], "nombre": f"hv{x['id']}-{slug}"[:63], "categoria": "hipervisor", "hv_tipo": x["tipo"], "hv_nombre": x["nombre"],
+            "hv_estado": x["estado"], "so": x["prov"].get("nombre", x["tipo"]), "ip": ip, "sin_ip": sin_ip, "ambiente": "", "segmentos": [],
+            "datos": json.dumps({"hostname": x["nombre"], "alertas": d_.get("alertas") or {}}, ensure_ascii=False),
+            "url_probar": url_for("consola.hipervisor_alerta_probar", iid=x["id"]), "url_regla": url_for("consola.hipervisor_alerta_regla", iid=x["id"]),
+            "url_skill": url_for("consola.hipervisor_habilidad", iid=x["id"])}
+
+
+def _hipervisor_visible(iid):
+    from .infraestructuras import lista
+    return next((i for i in lista(g.cliente["id"], equipos_visibles()) if i["id"] == iid and i["tipo"] in TIPOS_HIPERVISOR), None)
+
+
+@bp.route("/hipervisores/<int:iid>/alertas", methods=["POST"])
+@requiere_login
+def hipervisor_alertas(iid):
+    """Campana del hipervisor: un ticket a «Monitoreo · Configurar alertas del equipo» con las alertas marcadas (Prometheus →
+    Alertmanager → EDA → FaceOps), igual que la campana de una máquina."""
+    from flask import request, session, url_for
+    from . import alertas_objeto as ao
+    from .vistas import _alertas_pedir
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    x = _hipervisor_visible(iid)
+    e = objeto_alertas(x) if x else None
+    if not e or not ao.tipo_de(e):
+        return {"error": "Hipervisor sin alertas"}, 404
+    ctx = ao.contexto(g.cliente["id"], e, True, "maquina")
+    if not ctx["disponible"]:
+        return {"error": ctx["por_que"]}, 400
+    try:
+        t, a = _alertas_pedir(e, "maquina", request.form)
+    except (ValueError, PermissionError) as err:
+        return {"error": str(err)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
+
+
+@bp.route("/hipervisores/<int:iid>/alertas/probar", methods=["POST"])
+@requiere_login
+def hipervisor_alerta_probar(iid):
+    """«Probar» de una alerta activa del hipervisor: alerta sintética por la cadena real (Alertmanager → EDA → acción)."""
+    from flask import current_app, request, session, url_for
+    from . import alertas_objeto as ao
+    from .alerta_prueba import lanzar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    x = _hipervisor_visible(iid)
+    e = objeto_alertas(x) if x else None
+    if not e or not ao.tipo_de(e):
+        abort(404)
+    try:
+        pid = lanzar(current_app._get_current_object(), g.cliente, e, "maquina", (request.form.get("aid") or "").strip(), g.usuario)
+    except ValueError as err:
+        return {"error": str(err)}, 400
+    return {"id": pid, "url": url_for("consola.hipervisor_alerta_prueba", iid=iid, pid=pid)}
+
+
+@bp.route("/hipervisores/<int:iid>/alertas/prueba/<int:pid>")
+@requiere_login
+def hipervisor_alerta_prueba(iid, pid):
+    from .alerta_prueba import leer
+    x = _hipervisor_visible(iid)
+    p_ = leer(pid)
+    if not x or not p_ or p_["cliente_id"] != g.cliente["id"] or p_["equipo"] != objeto_alertas(x)["nombre"]:
+        abort(404)
+    return {"estado": p_["estado"], "pasos": p_["pasos"], "inicio": p_["inicio"]}
+
+
+@bp.route("/hipervisores/<int:iid>/alertas/regla")
+@requiere_login
+def hipervisor_alerta_regla(iid):
+    """La regla de una alerta del hipervisor tal como está cargada en Prometheus (solo lectura)."""
+    from flask import request, url_for
+    from . import alertas_objeto as ao
+    x = _hipervisor_visible(iid)
+    e = objeto_alertas(x) if x else None
+    t = ao.tipo_de(e) if e else None
+    aid = (request.args.get("aid") or "").strip()
+    a = next((y for y in ao.catalogo()["alertas"] if y["id"] == aid), None)
+    if not t or not a:
+        abort(404)
+    mon = ao.reglas_monitoreo(e, "maquina", t)
+    return render_template("alerta_regla.html", e=e, a=a, aid=aid, ambito="maquina", mon=mon, d=(mon or {}).get(aid), grafana=ao.url_grafana(e["nombre"], aid, "maquina"),
+                           grupo=ao.grupo_monitoreo(e, "maquina"), archivo=f"{ao.REGLAS}/{e['nombre']}.yml",
+                           volver=url_for("consola.hipervisor", iid=iid))
+
+
+@bp.route("/hipervisores/<int:iid>/habilidad", methods=["POST"])
+@requiere_login
+def hipervisor_habilidad(iid):
+    """Botón Skills del hipervisor: ticket con aprobación en AAP; si ya hay uno abierto de esa skill, devuelve ese."""
+    from flask import request, session, url_for
+    from .aap import ErrorAAP
+    from .habilidades import pedir_habilidad_hipervisor
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    x = _hipervisor_visible(iid)
+    if not x:
+        return {"error": "Hipervisor no válido"}, 404
+    try:
+        t, a = pedir_habilidad_hipervisor(objeto_alertas(x), request.form.get("hid") or "")
+    except (PermissionError, ErrorAAP, ValueError) as err:
+        return {"error": str(err)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"],
+            "existente": bool(t.get("existente"))}
+
+
 @bp.route("/hipervisores/<int:iid>")
 @requiere_login
 def hipervisor(iid):
@@ -134,7 +258,15 @@ def hipervisor(iid):
     p_ = dict(x["prov"], campos=[c for c in x["prov"].get("campos", []) if c[0] not in ACCESO_CAMPOS])
     radar_h = radar_hipervisor(x, cap, asig, info, esc)
     on_ = sum(1 for e in vms if e.get("energia") == "encendido")
-    return render_template("hipervisor.html", x=x, info=info, cap=cap, asig=asig, vms=vms, vms_on=on_, host=host, fisicos=fisicos,
+    from . import alertas_objeto as ao
+    e_hv = objeto_alertas(x)
+    try:
+        alertas_obj = ao.contexto(g.cliente["id"], e_hv, esc)
+    except Exception:  # noqa: BLE001 - la campana nunca rompe la ficha
+        from flask import current_app
+        current_app.logger.exception("alertas del hipervisor")
+        alertas_obj = None
+    return render_template("hipervisor.html", e=e_hv, alertas_obj=alertas_obj, rep_maq=None, x=x, info=info, cap=cap, asig=asig, vms=vms, vms_on=on_, host=host, fisicos=fisicos,
                            acciones=acciones, areas=list(dict.fromkeys(a["area"] for a in acciones)), radar_h=radar_h, energia_no=energia_no,
                            prov_ctx=p_, esc=esc, emulado=_emulado(x), medicion_vieja=bool(cap) and _medicion_vieja(cap),
                            etiq=etiqueta_centro([i for i in infras if i["centro"] == x["centro"]]))
