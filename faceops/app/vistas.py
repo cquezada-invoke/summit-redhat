@@ -1570,6 +1570,28 @@ def _salud_cajas(cajas, grupos):
     for c in cajas:
         k_ = c["clave"]
         c["fab"] = fab_.get(k_) or next((f for pre, f in _FABRICANTES if k_ == pre or k_.startswith(pre + "-") or k_.startswith(pre + ":")), "")
+        # versiones en uso, peor fase de soporte y ambientes, solo con datos ya recolectados (sin consultar en vivo)
+        vers_, fases_, amb_ = set(), [], set()
+        for e_ in grupos.get(k_) or []:
+            amb_.add((e_.get("ambiente") or "").strip() or "sin ambiente")
+            try:
+                from .versiones import _de_inventario
+                from . import ciclo_vida as cv_
+                d_ = e_.get("datos")
+                d_ = json.loads(d_) if isinstance(d_, str) else (d_ or {})
+                fam_ = familia(k_)
+                v_ = ((d_.get("versiones") or {}).get(fam_) or {}).get("version") or _de_inventario(d_, fam_)
+                if v_:
+                    m_ = re.match(r"(\d+\.\d+)", v_)
+                    my_ = m_.group(1) if m_ else v_
+                    vers_.add(my_)
+                    fases_.append(cv_.evaluar_producto({"jboss": "jboss-eap"}.get(fam_, fam_), my_)["fase"])
+            except Exception:  # noqa: BLE001
+                pass
+        c["versiones"] = sorted(vers_, key=lambda x: [int(n) if n.isdigit() else 0 for n in re.split(r"\D+", x) if n])
+        orden_ = ["fuera", "extendido", "mantencion", "completo"]
+        c["soporte"] = next((f for f in orden_ if f in fases_), "desconocido" if vers_ else "")
+        c["ambientes"] = sorted(amb_)
 
 
 def _nombre_plat(c):
