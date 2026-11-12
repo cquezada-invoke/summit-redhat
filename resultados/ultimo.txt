@@ -1,14 +1,15 @@
-commit: a8d313065f618642d0714fa3dee5928e64259053
-inicio: 2026-11-11T21:58:47-03:00
+commit: 2a05210f60bf49c0c9fb02f37bd489eec6b5e204
+inicio: 2026-11-11T22:09:11-03:00
 ---
-1406cb (anterior a C1): REVOKED
-C3 400 Vigencia: entre 1 y 720 días (máximo del perfil caServerCert de la CA) tickets nuevos: 0
-== C2 (vigencia 0) · antes: serial=E16BF7641288C2B94964D9AD1BFE58E4 notAfter=Nov  1 00:29:14 2028 GMT 
-TICKET FO-LAB-02003 exitoso | AAP terminó (successful): ejecución 38 s, espera de aprobación 57 s
-   después: serial=D4C611B4007EE4AE9437645A12A2591C notAfter=Nov  1 01:03:28 2028 GMT 
-   serie nueva: si · anterior e16bf7641288c2b94964d9ad1bfe58e4: REVOKED · nueva: VALID · pagos HTTP 200
-== C4 (vigencia 0) · antes: serial=D4C611B4007EE4AE9437645A12A2591C notAfter=Nov  1 01:03:28 2028 GMT 
-TICKET FO-LAB-02004 exitoso | AAP terminó (successful): ejecución 52 s, espera de aprobación 23 s
-   después: serial=92D7FC09DB2D39AB4BAD2FB7D87D33B6 notAfter=Nov  1 01:07:49 2028 GMT 
-   serie nueva: si · anterior d4c611b4007ee4ae9437645a12a2591c: REVOKED · nueva: VALID · pagos HTTP 200
---- fin: 2026-11-11T22:08:38-03:00 · código: 0
+a8ab581 EDA: al encender la VM las activaciones esperan al r
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+demo nuevo: None
+[{'id': 1, 'codigo': 'CL-SCL-TDA-001', 'alias': 'Tienda de laboratorio (demo)', 'nodo': 'cl-scl-tda-001-en01', 'equipos': '[24, 6, 21]', 'demo': 1}]
+[{'id': 2, 'nombre': 'Mall (demo)', 'demo': 1}, {'id': 1, 'nombre': 'Zona Centro (demo)', 'demo': 1}]
+/edge 200 menu-edge True barra False cx True grupos True foco True svg False 0
+   Código Nombre Tipo País / Ciudad Execution node Equipos Salud Zona Centro (demo) demo 1 sitio · Grupo de prueba del laboratorio: sitios de la Región Metropolitana 47% CL-SCL-TDA-001 demo Tienda de laboratorio (demo) Tienda CL · Santiago cl-scl-tda-001-en01 No registrado en la malla 3 47% Ningún sitio coincide con el filtro. Grupos de sitios × Agrupa los sitios (p. ej. «Zona Norte», «Mall», «Tiendas grandes») para ver dónde focalizar. Cada sitio va en un solo grupo y se asigna en «Editar sitio». 
+/edge/1 200 menu-edge True barra True cx True grupos False foco False svg True 3
+   Execution node y hop Automation Mesh de AAP · estado leído de AAP Rol Nodo Estado en la malla Enlace Execution node (en el sitio) cl-scl-tda-001-en01 No registrado en la malla → central · la conexión la inicia el sitio Hop node (DMZ de la central) — Salida directa a la central no aplica: salida directa FaceOps no se conecta a las máquinas del sitio: cada acción es un ticket en AAP, pasa por aprobación y baja al sitio por este túnel. Equipos del sitio · 3 Equipo Tipo IP Sistema En el grupo del si
+ocp 29 200
+--- fin: 2026-11-11T22:10:05-03:00 · código: 0
