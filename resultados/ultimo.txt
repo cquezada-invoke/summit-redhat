@@ -1,11 +1,39 @@
-commit: 17a245f0ba5b9dcc513a07191d5ca5821b792e8d
-inicio: 2026-11-12T13:11:35-03:00
+commit: ba4ba796c13591fce3b8fa67f6b7e5d91e28deea
+inicio: 2026-11-12T12:40:33-03:00
 ---
-AAP ping: 200
-FaceOps: 200
-/dev/sda2       500G  484G   16G  97% /
-VMs pausadas: 0
-autodeploy: 2026-11-12T13:10:26-03:00 ok: desplegado 33708a52 · /ingresar 200 · configurar=0 · timer active
-desplegado: 33708a523
-autocuidado instalado: {"ok": true, "version": "1.0.0"}
---- fin: 2026-11-12T13:11:35-03:00 · código: 0
+desplegado: f680dd1b6 · 2026-11-12T12:35:44-03:00 ok: desplegado f680dd1b · /ingresar 200 · configurar=sin cambios
+== proceso de la cola
+pid 8 /opt/app-root/bin/python3.11 -u -m app.cola 
+pid 94 sh -c for p in /proc/[0-9]*; do c=$(tr "\0" " " < $p/cmdline 2>/dev/null); case "$c" in *app.cola*) echo "pid ${p#/proc/} $c";; esac; done 
+== camino anterior (sin cola)
+Traceback (most recent call last):
+    raise PermissionError(f"«{auto['nombre']}» está bloqueada: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep_["estado"] == "cambiada"
+PermissionError: «Medir salud de la plataforma» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado
+== con cola
+Traceback (most recent call last):
+    raise PermissionError(f"«{auto['nombre']}» está bloqueada: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep_["estado"] == "cambiada"
+PermissionError: «Medir salud de la plataforma» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado
+== HTTP: la página de la cola y el estado de un ticket
+cola 200 496 ms True
+== log del proceso de la cola
+cola de acciones: proceso 8 atendiendo
+== planes de prueba
+-- Plataforma · Programar medición
+grupos: 0 grupos · 0 plataformas
+C1 fallido · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
+CASO C1 falla · Programar cada 15 minutos
+C2 fallido · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
+CASO C2 falla · Repetir sin duplicar
+C3 sin respuesta del arnés · 
+CASO C3 falla · Frecuencia inválida
+CERT Plataforma · Programar medición → fallida
+FIN-PLATAFORMA-SALUD
+-- OpenShift · Relevamiento de imágenes
+en uso informe=None real(oc)=126 · registro=None · caché=None · antiguas=0 · muchas_rev=0
+CASO C1 falla · Relevamiento por defecto
+CASO C2 falla · ImageStream de prueba sin uso
+antiguas 0→0 · muchas_rev 0→0 · IS 72→72
+CASO C3 falla · Umbral 30 días y 1 revisión
+CASO C4 falla · Umbral no válido (10 días)
+CERT OpenShift · Relevamiento de imágenes → fallida
+--- fin: 2026-11-12T13:19:15-03:00 · código: 0
