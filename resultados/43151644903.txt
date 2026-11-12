@@ -1,0 +1,56 @@
+commit: 8f621a795967c6445154316d4e56d98791cd539b
+inicio: 2026-11-12T00:58:09-03:00
+---
+### RESPALDO
+R-C1 · fw: FO-LAB-02069 exitoso 25988 AAP terminó (successful): ejecución 25 s, espera de aprobación 71 s
+   fw.cfg: 61 líneas set · ocultos 1 · claro-sospechoso 0
+R-C2a · rtr-wan-01: - no-lanzado 'NoneType' object is not subscriptable
+   rtr-wan-01.cfg: 1 líneas · bgp 0
+R-C2b · sw-core-01: - no-lanzado 'NoneType' object is not subscriptable
+   sw-core-01.cfg: 1 líneas · tabla VLAN 0
+R-C3 · lb-sede-01: - no-lanzado 'NoneType' object is not subscriptable
+   lb-sede-01.cfg: 1 líneas · backend 0 · frontend 0 · ocultos 0
+R-C4 · fw: - no-lanzado 'NoneType' object is not subscriptable
+   commits fw.cfg antes 1 después 1
+R-C5 · suc1: - no-lanzado 'NoneType' object is not subscriptable
+   suc1.cfg: NO-EXISTE
+### DRIFT
+D-C1 · rtr-wan-01: FO-LAB-02073 fallido 26008 AAP terminó (failed): ejecución 11 s, espera de aprobación 26 s Falló en la tarea «Hay línea base» de rtr-wan-01: rtr-wan-01 no tiene línea base: ejecuta primero «Respaldo de configuración»
+    TASK [Hay línea base] **********************************************************
+    fatal: [rtr-wan-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "rtr-wan-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
+    return opener.open(url, data, timeout)
+  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
+    response = self.parent.error(
+  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
+    return self._call_chain(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+D-C2 · rtr-wan-01: FO-LAB-02074 fallido 26011 AAP terminó (failed): ejecución 39 s, espera de aprobación 62 s Falló en la tarea «Hay línea base» de rtr-wan-01: rtr-wan-01 no tiene línea base: ejecuta primero «Respaldo de configuración»
+    TASK [Hay línea base] **********************************************************
+    fatal: [rtr-wan-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "rtr-wan-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se
+D-C3a · fw: FO-LAB-02077 exitoso 26030 AAP terminó (successful): ejecución 18 s, espera de aprobación 31 s
+    TASK [Hay línea base] **********************************************************
+    TASK [Comparar con la línea base (en el nodo de ejecución)] ********************
+    "msg": "fw: sin cambios contra la línea base"
+    TASK [Líneas agregadas y quitadas desde la línea base] *************************
+D-C3b · lb-sede-01: FO-LAB-02079 fallido 26039 AAP terminó (failed): ejecución 12 s, espera de aprobación 39 s Falló en la tarea «Hay línea base» de lb-sede-01: lb-sede-01 no tiene línea base: ejecuta primero «Respaldo de configuración»
+    TASK [Hay línea base] **********************************************************
+    fatal: [lb-sede-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "lb-sede-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se
+D-C4-restablecer · rtr-wan-01: - no-lanzado 'NoneType' object is not subscriptable
+D-C4 · rtr-wan-01: FO-LAB-02082 fallido 26050 AAP terminó (failed): ejecución 11 s, espera de aprobación 39 s Falló en la tarea «Hay línea base» de rtr-wan-01: rtr-wan-01 no tiene línea base: ejecuta primero «Respaldo de configuración»
+    TASK [Hay línea base] **********************************************************
+    fatal: [rtr-wan-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "rtr-wan-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se
+D-C5 · sw-acc-01: FO-LAB-02084 fallido 26060 AAP terminó (failed): ejecución 10 s, espera de aprobación 31 s Falló en la tarea «Hay línea base» de sw-acc-01: sw-acc-01 no tiene línea base: ejecuta primero «Respaldo de configuración». 
+    TASK [Hay línea base] **********************************************************
+    fatal: [sw-acc-01]: FAILED! => {"assertion": "r_git.status == 200", "changed": false, "evaluated_to": false, "msg": "sw-acc-01 no tiene línea base: ejecuta primero «Respaldo de configuración». No se c
+   sw-acc-01.cfg: NO-EXISTE
+TICKETS FO-LAB-02069 - - - - - FO-LAB-02073 FO-LAB-02074 FO-LAB-02077 FO-LAB-02079 - FO-LAB-02082 FO-LAB-02084 
+--- fin: 2026-11-12T01:17:40-03:00 · código: 0
