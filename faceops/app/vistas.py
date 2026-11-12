@@ -8294,9 +8294,20 @@ def ecosistema():
     eqs_ = equipos_visibles()
     from .operacion import estado_servicenow
     from .flujo_arq import armar as armar_flujo
-    return render_template("ecosistema.html", d=armar(eqs_, lista(g.cliente["id"], eqs_), grupo_periferico, clase_eq, NUBE_PUBLICA),
-                           flujo=armar_flujo(eqs_, grupo_periferico, set(filter(None, request.args.get("plegar", "").split(",")))), sn=estado_servicenow(g.cliente),
-                           integ=_integ_diagrama())
+    infras_ = lista(g.cliente["id"], eqs_)
+    nubes_info = {}
+    try:   # consumo del mes de cada nube: solo la caché de FaceOps (lo recupera AAP una vez al día), nunca en vivo
+        from .nube_consumo import muestra, usd
+        for x in infras_:
+            if x["ambito"] == "nube":
+                m_ = muestra(g.cliente["id"], x["id"]) or {}
+                if m_.get("mes_actual_usd") is not None:
+                    nubes_info[x["id"]] = {"consumo": usd(m_["mes_actual_usd"]) + " este mes" + (" (estimado)" if "estim" in (m_.get("fuente") or "") else "")}
+    except Exception:  # noqa: BLE001 - sin caché, la caja de la nube va sin consumo
+        pass
+    return render_template("ecosistema.html", d=armar(eqs_, infras_, grupo_periferico, clase_eq, NUBE_PUBLICA),
+                           flujo=armar_flujo(eqs_, grupo_periferico, set(filter(None, request.args.get("plegar", "").split(","))), infras_, nubes_info),
+                           sn=estado_servicenow(g.cliente), integ=_integ_diagrama())
 
 
 def _integ_diagrama():

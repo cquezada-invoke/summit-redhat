@@ -64,8 +64,48 @@ SEP_INFRA = 46
 ANCHO_PLEG = 150       # ancho de un centro de datos comprimido
 
 
+SIN_CENTRO = "Sin centro asignado"
+
+
 def infra_de(e):
-    return (e.get("ubicacion") or "").strip() or "Sin ubicación"
+    """Centro de datos (o nube) del equipo: lo fija armar() en «_centro»; sin él, su ubicación."""
+    return e.get("_centro") or (e.get("ubicacion") or "").strip() or SIN_CENTRO
+
+
+def resolver_centros(eqs, infras):
+    """{id de equipo: centro}. Toda máquina queda en un centro de datos o nube: 1) la infraestructura de su ubicación
+    (hipervisor, clúster o nube) → el centro de esa infraestructura; 2) una ubicación que ya es el nombre de un centro o un
+    sitio propio (sala de comunicaciones, sede); 3) sin ubicación: el inventario de AAP de una infraestructura, el clúster
+    OpenShift que la contiene o su hipervisor declarado (datos.hipervisor / anfitrion) → el centro de ese equipo.
+    Lo que no se puede determinar queda en «Sin centro asignado» (la vista lo avisa)."""
+    import json as _j
+    por_ubic = {x["ubicacion"]: x["centro"] for x in infras if x.get("ubicacion")}
+    por_inv = {x["inventario"]: x["centro"] for x in infras if x.get("inventario")}
+    por_clu = {"ocp-" + x["detalle_d"]["cluster"]: x["centro"] for x in infras
+               if x["tipo"] in ("openshift", "openshift-virt") and (x.get("detalle_d") or {}).get("cluster")}
+    centros = {x["centro"] for x in infras}
+    out = {}
+    for e in eqs:
+        u = (e.get("ubicacion") or "").strip()
+        c = por_ubic.get(u) or (u if u in centros else None) or por_clu.get(e.get("nombre") or "")
+        if not c and u:
+            c = next((cd for cd in centros if u.endswith(cd)), None) or u
+        if not c and e.get("inventario"):
+            c = por_inv.get(e["inventario"])
+        out[e["id"]] = c
+    por_nombre = {e.get("nombre"): out[e["id"]] for e in eqs if out.get(e["id"])}
+    for e in eqs:
+        if out[e["id"]]:
+            continue
+        d = e.get("datos")
+        d = _j.loads(d) if isinstance(d, str) and d.strip().startswith("{") else (d if isinstance(d, dict) else {})
+        for k in ("hipervisor", "anfitrion", "host", "cluster"):
+            v = (d.get(k) or "") if isinstance(d.get(k), str) else ""
+            c = por_nombre.get(v) or por_nombre.get("ocp-" + v) or por_ubic.get(v)
+            if c:
+                out[e["id"]] = c
+                break
+    return {k: v or SIN_CENTRO for k, v in out.items()}
 
 
 def id_infra(i):
@@ -78,12 +118,21 @@ def _encendido(e):
     return (e.get("energia") or "").lower().startswith("encend")
 
 
-def armar(eqs, grupo, plegadas=()):
+def armar(eqs, grupo, plegadas=(), infras=(), nubes_info=None):
     """plegadas: capas que se muestran comprimidas (una caja con el resumen en vez de cada equipo) y centros comprimidos
     («centro:<id>»: la columna se dibuja angosta, con una sola caja resumen que recibe los buses de cada capa).
     Subdivisión transversal: cada centro de datos o infraestructura es una columna que cruza todas las capas, así se ve en
     qué sitio está cada pieza del flujo."""
     centros_pl = {p[7:] for p in plegadas if p.startswith("centro:")}
+    infras = list(infras or [])
+    if infras:
+        cmap = resolver_centros(eqs, infras)
+        eqs = [dict(e, _centro=cmap[e["id"]]) for e in eqs]
+    # nubes registradas: cada una es un centro aunque no tenga máquinas
+    nubes = {}
+    for x in infras:
+        if x.get("ambito") == "nube":
+            nubes.setdefault(x["centro"], []).append(x)
     por = {}
     for e in eqs:
         if (e.get("categoria") or "").lower().startswith("nodo"):   # nodos de un clúster: los representa el clúster
@@ -93,8 +142,13 @@ def armar(eqs, grupo, plegadas=()):
     for es in por.values():
         for e in es:
             conteo[infra_de(e)] = conteo.get(infra_de(e), 0) + 1
-    infras = sorted(conteo, key=lambda i: (i == "Sin ubicación", -conteo[i], i))
-    cols_i = {i: max(1, min(POR_INFRA, max([sum(1 for e in es if infra_de(e) == i) for es in por.values()] + [1]))) for i in infras}
+    for cn in nubes:
+        conteo.setdefault(cn, 0)
+    sin_centro = sorted((e.get("nombre") or "") for es in por.values() for e in es if infra_de(e) == SIN_CENTRO)
+    infras_ = infras
+    infras = sorted(conteo, key=lambda i: (i == SIN_CENTRO, i in nubes, -conteo[i], i))
+    cols_i = {i: max(1 if conteo[i] else 2 if i in nubes else 1, min(POR_INFRA, max([sum(1 for e in es if infra_de(e) == i) for es in por.values()] + [1])))
+              for i in infras}
     pleg_i = {i for i in infras if id_infra(i) in centros_pl}
     ancho_i = {i: ANCHO_PLEG if i in pleg_i else cols_i[i] * ANCHO_NODO + (cols_i[i] - 1) * SEP_X for i in infras}
     on_i = {i: sum(1 for es in por.values() for e in es if infra_de(e) == i and _encendido(e)) for i in infras}
@@ -157,11 +211,24 @@ def armar(eqs, grupo, plegadas=()):
         y0, y1 = bandas[0]["y"] - 84, bandas[-1]["y"] + bandas[-1]["h"] + 8
         for i in infras:
             w = ancho_i[i]
+            es_nube = i in nubes or (not infras_ and any(w_ in i.lower() for w_ in ("gcp", "aws", "azure", "nube", "cloud")))
             col = {"nombre": i, "id": id_infra(i), "x": x_i[i] - 10, "w": w + 20, "y": y0, "h": y1 - y0, "n": conteo[i],
-                   "on_n": on_i[i], "plegada": i in pleg_i, "nube": any(w_ in i.lower() for w_ in ("gcp", "aws", "azure", "nube", "cloud"))}
+                   "on_n": on_i[i], "plegada": i in pleg_i, "nube": es_nube, "sin_centro": i == SIN_CENTRO, "det": ""}
+            if i in nubes:   # proveedor · proyecto · región · consumo del mes (de la caché de FaceOps, nunca en vivo)
+                partes = []
+                for x in nubes[i]:
+                    d_ = x.get("detalle_d") or {}
+                    info = (nubes_info or {}).get(x["id"]) or {}
+                    partes.append(" · ".join(filter(None, [(x.get("prov") or {}).get("nombre") or x["tipo"].upper(),
+                                                           d_.get("proyecto") or d_.get("cuenta") or d_.get("suscripcion"),
+                                                           (x.get("region") or "").split(" ")[0], info.get("consumo")])))
+                col["det"] = " | ".join(partes)
+                col["nubes_id"] = [x["id"] for x in nubes[i]]
             if i in pleg_i:   # una sola caja, de la primera a la última capa donde el centro tiene equipos
                 con = [b for b in bandas if any(infra_de(e) == i for e in por.get(b["k"], []))] or bandas
                 col["caja"] = {"x": x_i[i], "w": ANCHO_PLEG, "y": con[0]["y"] + 14, "h": con[-1]["y"] + con[-1]["h"] - 28 - con[0]["y"]}
+            elif not conteo[i]:   # nube sin máquinas: una caja «sin máquinas» al centro de la columna
+                col["vacia"] = {"x": x_i[i], "w": w, "y": y0 + (y1 - y0) / 2 - 40, "h": 80}
             columnas.append(col)
     caja_de = {c["nombre"]: c["caja"] for c in columnas if c.get("caja")}
     # buses: de la capa i a la i+1 (y desde Internet a la primera)
@@ -191,4 +258,5 @@ def armar(eqs, grupo, plegadas=()):
             previa = {"centros": [n["x"] + n.get("w", ANCHO_NODO) / 2 for n in ultimos] + xs_pl, "y_abajo": b["y"] + b["h"] - 14}
     alto = (bandas[-1]["y"] + bandas[-1]["h"] + 30) if bandas else 260
     return {"ancho": ancho, "alto": alto, "bandas": bandas, "buses": buses, "nodo": {"w": ANCHO_NODO, "h": ALTO_NODO}, "columnas": columnas,
-            "todo_centros": ["centro:" + c["id"] for c in columnas], "inet": {"x": x_inet, "y": Y_INET}, "x_etq": 20, "ancho_util": ancho_util, "total": sum(b["n"] for b in bandas)}
+            "todo_centros": ["centro:" + c["id"] for c in columnas], "inet": {"x": x_inet, "y": Y_INET}, "x_etq": 20, "ancho_util": ancho_util, "total": sum(b["n"] for b in bandas),
+            "sin_centro": sin_centro}
