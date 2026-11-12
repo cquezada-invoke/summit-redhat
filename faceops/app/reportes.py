@@ -73,6 +73,11 @@ _listo = {"ok": False}
 def iniciar():
     if not _listo["ok"]:
         con().executescript(ESQUEMA)
+        # una sola iniciativa abierta por área y pilar (el programador y una página pueden medir a la vez)
+        ej("DELETE FROM reporte_iniciativas WHERE estado!='cerrada' AND id NOT IN (SELECT MIN(id) FROM reporte_iniciativas "
+           "WHERE estado!='cerrada' GROUP BY cliente_id, seccion, pilar)")
+        con().executescript("CREATE UNIQUE INDEX IF NOT EXISTS reporte_iniciativas_u ON reporte_iniciativas(cliente_id, seccion, pilar) "
+                            "WHERE estado!='cerrada';")
         _listo["ok"] = True
 
 
@@ -196,7 +201,7 @@ def _sincronizar(cliente_id, seccion, r):
         if pct is not None and pct < UMBRAL:
             if not i:
                 comp = (datetime.now(timezone.utc) + timedelta(days=PLAZO[tono(pct)])).strftime("%Y-%m-%d")
-                ej("INSERT INTO reporte_iniciativas(cliente_id, seccion, pilar, estado, abierta, compromiso, pct_inicial, pct_actual, beneficio, "
+                ej("INSERT OR IGNORE INTO reporte_iniciativas(cliente_id, seccion, pilar, estado, abierta, compromiso, pct_inicial, pct_actual, beneficio, "
                    "criterios, actualizada) VALUES (?,?,?,?,?,?,?,?,?,?,?)", cliente_id, seccion, p["nombre"], "abierta", ahora(), comp, pct, pct,
                    100 - pct, json.dumps(pend, ensure_ascii=False), ahora())
                 continue
