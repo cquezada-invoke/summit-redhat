@@ -271,6 +271,54 @@ def importar_directas():
     return n
 
 
+# ── activaciones de EDA caídas (sin ellas no llega ninguna alerta: EDA no puede curarse a sí mismo) ─────────────────
+MALAS_ACT = ("error", "failed", "stopped", "completed", "unresponsive", "workers offline")
+_act = {}   # id → {"desde": t, "ultimo": t, "hoy": (fecha, n)}
+
+
+def vigilar_activaciones():
+    """Activaciones habilitadas que no están corriendo hace más de 2 min → FaceOps las reinicia por la API de EDA (máx. una vez
+    cada 10 min y 6 al día por activación). Típico tras reiniciar el anfitrión: arrancan antes que el Hub (503) y quedan en error."""
+    from datetime import date
+    from .aap import AAP, disponible
+    cl = cliente()
+    if not cl or not cl.get("aap_url") or not disponible(cl["aap_url"]):
+        return 0
+    aap = AAP.de_cliente(cl)
+    if not aap:
+        return 0
+    aap.en_vivo = True
+    try:
+        acts = aap._r("GET", aap.web + "/api/eda/v1/activations/", params={"page_size": 200}).get("results", [])
+    except Exception:  # noqa: BLE001
+        return 0
+    t, hoy, n = time.time(), date.today().isoformat(), 0
+    for a in acts:
+        s = _act.setdefault(a["id"], {"desde": None, "ultimo": 0, "hoy": (hoy, 0)})
+        if not a.get("is_enabled") or (a.get("status") or "").lower() not in MALAS_ACT:
+            s["desde"] = None
+            continue
+        s["desde"] = s["desde"] or t
+        if s["hoy"][0] != hoy:
+            s["hoy"] = (hoy, 0)
+        if t - s["desde"] < 120 or t - s["ultimo"] < 600 or s["hoy"][1] >= 6:
+            continue
+        ok, err = True, ""
+        try:
+            aap._r("POST", aap.web + f"/api/eda/v1/activations/{a['id']}/restart/", json={})
+        except Exception as x:  # noqa: BLE001
+            ok, err = False, str(x)[:160]
+        s["ultimo"], s["hoy"] = t, (hoy, s["hoy"][1] + 1)
+        _evento(cl["id"], {"regla": "AC29", "accion": "reactivar_eda", "severidad": "critico", "objeto": a["name"][:120],
+                           "resumen": f"Activación de EDA «{a['name']}» en {a.get('status')}: {(a.get('status_message') or '')[:160]}"},
+                origen="faceops", decision=("reiniciada por FaceOps (API de EDA)" if ok else f"no se pudo reiniciar: {err}"))
+        n += 1
+    _cache["eda_caidas"] = [{"regla": "AC29", "accion": "reactivar_eda", "objeto": a["name"], "severidad": "critical",
+                             "resumen": f"Activación de EDA «{a['name']}» {a.get('status')}", "desde": a.get("modified_at") or ""}
+                            for a in acts if a.get("is_enabled") and (a.get("status") or "").lower() in MALAS_ACT]
+    return n
+
+
 # ── lectura del monitoreo (solo lectura, en segundo plano: las páginas leen la caché) ─────────────────────────────────
 def _get(url, **params):
     r = requests.get(url, params=params, timeout=(1, 3))
@@ -307,6 +355,7 @@ def leer_monitoreo():
             out["metricas"].setdefault(n, []).append((met, float(s["value"][1])))
     except Exception:  # noqa: BLE001
         pass
+    out["alertas"] = list(_cache.get("eda_caidas") or []) + out["alertas"]   # EDA caído no pasa por Alertmanager → EDA
     _cache["mon"] = out
     return out
 
@@ -406,6 +455,7 @@ def iniciar(app):
                         importar_vigia()
                         if n % 6 == 0:
                             importar_directas()
+                            vigilar_activaciones()
             except Exception as x:  # noqa: BLE001
                 print("autocuidado:", type(x).__name__, str(x)[:200], flush=True)
             n += 1

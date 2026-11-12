@@ -66,6 +66,8 @@ def reglas_prometheus(pol):
     sev = {"aviso": "warning", "critico": "critical"}
     out = []
     for r in pol["reglas"]:
+        if r.get("fuente") == "faceops":   # la vigila FaceOps (API de EDA), no Prometheus
+            continue
         obj = r.get("objeto") or ""
         out.append({"alert": f"FaceOpsAutocuidado{r['id']}", "expr": r["expr"], "for": r.get("para", "5m"),
                     "labels": {"severity": sev.get(r["severidad"], "warning"), "faceops_autocuidado": "si", "faceops_ac_regla": r["id"],

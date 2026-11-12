@@ -12,6 +12,7 @@
 # riesgo: lectura (solo mira) · bajo (se aprueba solo si está certificada) · alto (siempre una persona)
 acciones:
   avisar: {texto: "Solo avisar", riesgo: lectura}
+  reactivar_eda: {texto: "Reiniciar la activación de EDA (FaceOps, por la API de EDA)", riesgo: bajo}
   revisar: {texto: "Revisar el estado (solo lectura)", auto: "Autocuidado · Revisar estado", riesgo: lectura}
   liberar_disco: {texto: "Liberar disco de forma segura", auto: "Autocuidado · Liberar disco", riesgo: bajo, params: {ac_modo: seguro}}
   liberar_disco_profundo: {texto: "Liberar disco a fondo (también imágenes sin uso)", auto: "Autocuidado · Liberar disco", riesgo: alto,
@@ -92,6 +93,9 @@ reglas:
      expr: '(faceops_ac_cola_atascados > 0 and on() faceops_ac_aap_api_ok == 1) or faceops_ac_cola_latido_segundos > 300',
      resumen: "Hay acciones en cola hace más de 15 min con AAP disponible, o el proceso de la cola no da señales"}
   # ── El propio autocuidado ──
+  # fuente: faceops → no es una regla de Prometheus: la vigila FaceOps por la API de EDA (sin EDA no llega ninguna alerta)
+  - {id: AC29, grupo: Autocuidado, nombre: "Activación de EDA caída", severidad: critico, para: 2m, accion: reactivar_eda, objeto: activación, fuente: faceops,
+     expr: 'EDA › activaciones habilitadas en error, failed o stopped (API de EDA, cada 60 s)', resumen: "Activación de EDA caída: FaceOps la reinicia (máx. 1 vez cada 10 min y 6 al día)"}
   - {id: AC25, grupo: Autocuidado, nombre: "Exportador de autocuidado sin datos", severidad: critico, para: 3m, accion: avisar, objeto: "",
      expr: 'up{job="faceops-autocuidado"} == 0 or absent(up{job="faceops-autocuidado"})', resumen: "Prometheus no lee el exportador de autocuidado (127.0.0.1:9469)"}
   - {id: AC26, grupo: Autocuidado, nombre: "Vigía externo detenido", severidad: aviso, para: 5m, accion: avisar, objeto: "",
