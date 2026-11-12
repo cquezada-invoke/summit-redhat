@@ -118,6 +118,111 @@ def _ticket(e, aid, origen=None):
     return None
 
 
+# ------------------------------------------------------------------ migración a JBoss EAP 8 (ui: eap8): origen y destino
+# La acción «Migración · JBoss a EAP 8» lee el ORIGEN por AAP (inventario y credencial de cada equipo) y despliega en el
+# DESTINO con EAP 8. Soporta JBoss AS 5/6 y JBoss EAP 6/7 (y WildFly instalado como ellos); Tomcat, WebLogic y WebSphere no.
+_EAP8_FAM = {"as5-6": "JBoss AS", "eap6-7": "JBoss EAP"}
+_EAP8_NO = (("tomcat", "Apache Tomcat", "esta acción migra desde JBoss AS 5/6 o EAP 6/7; Tomcat aún no tiene migración a EAP 8"),
+            ("weblogic", "Oracle WebLogic", "WebLogic se migra con la skill «WebLogic a OpenShift» (EAP 8 en OpenShift)"),
+            ("websphere", "IBM WebSphere", "esta acción migra desde JBoss AS 5/6 o EAP 6/7; WebSphere aún no tiene migración a EAP 8"),
+            ("wildfly", "WildFly", "WildFly fuera de /opt/jboss*: el inventario no ve su instalación; indica su carpeta lanzándola desde Acciones"))
+
+
+def _eap8_version(v):
+    m = re.search(r"\d+(?:\.\d+)+(?:\.GA)?", v or "")
+    return m.group(0) if m else (v or "versión desconocida")
+
+
+def eap8_contexto(e):
+    """Orígenes y destinos posibles (inventario en caché) para migrar a EAP 8 desde la máquina e.
+    origenes: [{nombre, cod, producto, version, home, apps, soportado, motivo, encendida}] · destinos: [{nombre, cod, version, encendida}]
+    · defecto: el origen por defecto (esta máquina si tiene el servidor a migrar) · aqui_eap8: si esta máquina tiene EAP 8."""
+    from .identidad import codigo as _cod
+    from .inventario import skills_de
+    from .salud import encendido as _enc
+    origenes, destinos = [], []
+    for x in equipos_visibles():
+        if x.get("estado") == "retirado":
+            continue
+        d = j(x.get("datos"), {}) or {}
+        jb = d.get("jboss") or []
+        enc = _enc(x) == "encendido"
+        base = {"nombre": x["nombre"], "cod": _cod(x), "encendida": enc}
+        for i in jb:
+            if i.get("familia") == "eap8":
+                destinos.append(dict(base, version=_eap8_version(i.get("version"))))
+            elif i.get("familia") in _EAP8_FAM:
+                prod = "WildFly" if "wildfly" in (i.get("version") or "").lower() else _EAP8_FAM[i["familia"]]
+                origenes.append(dict(base, producto=prod, version=_eap8_version(i.get("version")), home=i.get("home") or "",
+                                     apps=list(i.get("apps") or []), soportado=enc,
+                                     motivo="" if enc else "la máquina está apagada: enciéndela para leer el origen"))
+        if not any(i.get("familia") in _EAP8_FAM for i in jb):   # otros servidores de aplicaciones: se muestran, no se eligen
+            sk = " ".join(skills_de(x)).lower() + " " + " ".join(s.get("n", "") for s in d.get("servicios_det") or []).lower()
+            for k, prod, motivo in _EAP8_NO:
+                if k in sk and not (k == "wildfly" and jb):
+                    origenes.append(dict(base, producto=prod, version="", home="", apps=[], soportado=False, motivo=motivo))
+    destinos = list({x["nombre"]: x for x in destinos}.values())
+    propios = [o for o in origenes if o["nombre"] == e["nombre"] and o["soportado"]]
+    return {"origenes": origenes, "destinos": destinos, "defecto": propios[0] if propios else None,
+            "aqui_eap8": any(x["nombre"] == e["nombre"] for x in destinos)}
+
+
+def _url_habilitar():
+    a = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
+    return url_for("consola.automatizacion", aid=a["id"]) if a else ""
+
+
+def eap8_valor(origen=None):
+    """«Lo que gana el cliente» con el origen: desde <producto versión> a JBoss EAP 8."""
+    desde = f"desde {origen['producto']} {origen['version']} ({origen['cod']}) " if origen else "desde el origen que elijas (JBoss AS 5/6 o EAP 6/7) "
+    return f"Lleva el servidor de aplicaciones y sus despliegues {desde}a JBoss EAP 8 (Jakarta EE 10) con la configuración migrada."
+
+
+def eap8_validar(e, form):
+    """(parámetros, error) de la skill de migración a EAP 8: origen obligatorio y soportado, despliegues del origen y destino
+    con EAP 8 (esta máquina u otra del inventario). Una máquina nueva se crea antes con «Habilitar servidor» (rol JBoss)."""
+    ctx = eap8_contexto(e)
+    on = (form.get("v_mj_origen") or "").strip()
+    if not on:
+        return None, "Falta el servidor de origen: elige la máquina con el servidor de aplicaciones a migrar"
+    cand = [o for o in ctx["origenes"] if o["nombre"] == on]
+    if not cand:
+        return None, f"«{on}» no tiene en el inventario un servidor de aplicaciones (JBoss AS 5/6 o EAP 6/7) que migrar; actualiza su inventario"
+    home = (form.get("v_mj_jboss_home") or "").strip()
+    o = next((c for c in cand if c["soportado"] and (not home or c["home"] == home)), None)
+    if not o:
+        c = cand[0]
+        return None, f"No se puede migrar desde {c['producto']}{' ' + c['version'] if c['version'] else ''} en {on}: {c['motivo']}. No se creó el ticket"
+    modo = (form.get("v_mj_modo") or "evaluar").strip()
+    if modo not in ("evaluar", "migrar"):
+        return None, "Acción: elige evaluar o migrar"
+    apps = [a for a in form.getlist("v_mj_apps") if a] if hasattr(form, "getlist") else []
+    fuera = [a for a in apps if a not in o["apps"]]
+    if fuera:
+        return None, f"{', '.join(fuera[:3])}: no está desplegada en {o['producto']} {o['version']} de {on}"
+    if o["apps"] and not apps:
+        return None, "Elige al menos un despliegue (WAR/EAR) a migrar"
+    if not o["apps"]:
+        return None, f"{o['producto']} {o['version']} en {on} no tiene despliegues (WAR/EAR) en el inventario: nada que migrar"
+    params = {"mj_origen": on, "mj_modo": modo, "mj_apps": apps if len(apps) < len(o["apps"]) else [], "mj_jboss_home": o["home"]}
+    destino = (form.get("v_mj_destino") or "").strip()
+    if modo == "migrar":
+        if destino == "__nueva__":
+            return None, ("La máquina nueva se crea antes con «Habilitar servidor» (rol JBoss EAP 8); cuando esté en el inventario, "
+                          "elígela como destino. No se creó el ticket")
+        if not destino:
+            return None, "Para migrar elige el destino con JBoss EAP 8 (esta máquina u otra del inventario)"
+        dd = next((x for x in ctx["destinos"] if x["nombre"] == destino), None)
+        if not dd:
+            return None, f"«{destino}» no tiene JBoss EAP 8 en el inventario: prepárala con «JBoss · Preparar servidor» o elige otra"
+        if not dd["encendida"]:
+            return None, f"{destino} está apagada: enciéndela antes de migrar"
+        if destino == on:
+            return None, "El destino debe ser otra máquina: el origen no se toca durante la migración"
+        params["mj_destino"] = destino
+    return params, None
+
+
 SUB_RED = ("router", "switch", "firewall", "balanceador", "waf", "vpn", "wifi")
 _SUB_RED_SO = (("waf", r"(?i)fortiweb|\bwaf\b|modsecurity|imperva"), ("balanceador", r"(?i)big-?ip|\bf5\b|haproxy|netscaler|citrix adc|nginx|avi"),
                ("firewall", r"(?i)fortios|fortigate|pan-?os|palo alto|\basa\b|checkpoint|gaia|sophos|pfsense|opnsense|vyos"),
@@ -261,6 +366,14 @@ def habilidades_maquina(e, rep=None):
                 continue
             x["bloqueo"] = x["bloqueo"] or (rep.get("bloqueo") or "")
             x["en_curso"] = rep.get("en_curso")
+        elif x["ui"] == "eap8":   # su formulario en el flotante: origen (producto, versión y despliegues) y destino
+            ctx = eap8_contexto(e)
+            x["eap8"] = {"origenes": ctx["origenes"], "destinos": ctx["destinos"], "aqui": e["nombre"], "aqui_eap8": ctx["aqui_eap8"],
+                         "defecto": (ctx["defecto"] or {}).get("nombre", ""), "url_nueva": _url_habilitar()}
+            x["valor"] = eap8_valor(ctx["defecto"])
+            x["ticket"] = _ticket(e, a["id"], h.get("origen"))
+            if not bloqueo and not any(o["soportado"] for o in ctx["origenes"]):
+                x["bloqueo"] = "no hay en el inventario un servidor JBoss AS 5/6 o EAP 6/7 encendido desde donde migrar"
         elif not x["ui"]:
             if not bloqueo:
                 f_ = _faltan_datos(a, h)
@@ -287,7 +400,7 @@ def ejecutar(e, hid, form):
     from .aap import ErrorAAP
     from .operacion import solicitar_en_equipo
     h = next((x for x in mapa() if x.get("id") == hid), None)
-    if not e or not h or h.get("ui"):
+    if not e or not h or (h.get("ui") and h.get("ui") != "eap8"):
         return {"error": "Esta skill se pide desde su formulario (abre la skill de nuevo)" if h and h.get("ui") else "Skill o máquina no válidas"}, 400
     if h.get("plataforma"):
         if not set(_lista(h["plataforma"])) & set(plataformas_de(e)):
@@ -317,6 +430,14 @@ def ejecutar(e, hid, form):
         elif c.get("defecto") not in (None, ""):
             params[c["var"]] = int(c["defecto"]) if c.get("tipo") == "integer" and str(c["defecto"]).lstrip("-").isdigit() else c["defecto"]
     params.update(h.get("parametros") or {})
+    if h.get("ui") == "eap8":   # origen, despliegues y destino validados contra el inventario antes de crear el ticket
+        p_, err = eap8_validar(e, form)
+        if err:
+            return {"error": err}, 400
+        params.update(p_)
+        t0 = next((t_ for t_ in [_ticket({"nombre": p_["mj_origen"]}, a["id"], "mj_origen")] if t_ and t_["abierto"]), None)
+        if t0:
+            return dict(t0, url=url_for("consola.ticket", tid=t0["id"]), existente=True)
     for c in h.get("campos") or []:   # datos que pide la skill: las claves (password) solo viajan a AAP; en FaceOps quedan enmascaradas
         v = (form.get("v_" + c["var"]) or "").strip()
         if not v:

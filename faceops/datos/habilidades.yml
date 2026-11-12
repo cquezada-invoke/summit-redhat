@@ -10,6 +10,7 @@
 #   parametros: valores fijos que se envían (p. ej. el modo de la acción); campos: datos que pide la skill antes de lanzar
 #   ui: replica | mover → abre el flotante propio de la ficha (elige destino) en vez de lanzar directo
 #   ui: parches → abre el formulario de parches de la ficha (qué se aplica, política de reinicio y límite de tiempo)
+#   ui: eap8 → formulario en la ventana: origen de la migración (máquina, producto y versión, despliegues) y destino con EAP 8
 # Una habilidad se muestra si su automatización aplica a la máquina (misma regla de la ficha: sistema, plataformas
 # instaladas, inventario de AAP; ámbito en datos/skills-ambito.yml). Si aplica pero no está certificada (regla de prueba,
 # app/pruebas.py) se muestra deshabilitada con su motivo. Todo se ejecuta vía AAP con ticket y aprobación.
@@ -40,7 +41,8 @@ habilidades:
     nombre: JBoss a EAP 8
     valor: Lleva el servidor de aplicaciones y sus despliegues a JBoss EAP 8 (Jakarta EE 10) con la configuración migrada.
     nombre_aap: ["Migración · JBoss a EAP 8"]
-    origen: mj_origen   # la acción elige su servidor en el formulario: la máquina va en ese parámetro (modo por defecto: evaluar)
+    origen: mj_origen   # la acción elige su servidor en el formulario: la máquina va en ese parámetro
+    ui: eap8            # flotante propio: origen (máquina, producto, versión y despliegues del inventario) y destino con EAP 8
   - id: weblogic-ocp
     tipo: diferenciador
     grupo: Migraciones

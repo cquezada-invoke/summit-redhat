@@ -20,6 +20,7 @@
 {% elif h.ticket %}<span class="chip e-exitoso hb-ok" title="{{ h.auto }}">Aplicada</span><a class="ult-t e-exitoso" href="{{ url_for('consola.ticket', tid=h.ticket.id) }}">{{ h.ticket.numero }}</a>
 {% elif not h.escritura %}<span class="sub">solo lectura</span>
 {% elif h.ui == 'parches' %}<button type="button" class="btn chico" data-parches-url="{{ h.url }}" data-parches-datos="{{ h.url_datos }}" data-parches-hid="{{ h.id }}" title="«{{ h.auto }}»: elige qué aplicar ({{ h.n_pendientes }} CVE pendientes), el reinicio y el límite de tiempo; ticket con aprobación">Ejecutar…</button>
+{% elif h.ui == 'eap8' %}<button type="button" class="btn chico" data-hb-url="{{ h.url }}" data-hb-id="{{ h.id }}" data-hb-eap8="{{ h.eap8|tojson|forceescape }}" data-hb-nombre="{{ h.nombre }}" title="«{{ h.auto }}»: elige el origen, sus despliegues y el destino; ticket con aprobación">Ejecutar…</button>
 {% elif h.ui %}<button type="button" class="btn chico" data-hb-abrir="{{ h.ui }}" title="«{{ h.auto }}»: elige el destino; ticket con aprobación">Ejecutar</button>
 {% else %}<button type="button" class="btn chico" data-hb-url="{{ h.url }}" data-hb-id="{{ h.id }}"{% if h.campos %} data-hb-campos="{{ h.campos|tojson|forceescape }}" data-hb-nombre="{{ h.nombre }}"{% endif %} title="«{{ h.auto }}»: ticket con aprobación">{{ 'Ejecutar…' if h.campos else 'Ejecutar' }}</button>{% endif %}</td></tr>{% endfor %}
 <tr class="hb-vacio" hidden><td colspan="4" class="sub">Ningún skill coincide con la búsqueda.</td></tr></tbody></table></div>
@@ -59,6 +60,8 @@
 .hb-tabla .hb-a{text-align:right;white-space:nowrap}
 .hb-form{margin:0 18px 18px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;overflow:auto}.hb-form[hidden],.hb-tabla[hidden]{display:none}.hb-form h3{margin:0 0 4px;font-size:15px}.hb-form>.sub{font-size:12px;margin:0 0 10px}
 .hb-campos label{display:block;margin:0 0 10px;font-size:12.5px;font-weight:600}.hb-campos input,.hb-campos select{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-weight:400;background:var(--panel);color:inherit}.hb-campos small{font-weight:400;color:var(--muted)}
+.hb-eap8-det{margin:-4px 0 10px;font-size:12.5px;padding:8px 10px;border:1px solid var(--line);border-radius:7px}.hb-eap8-apps{margin:0 0 10px;font-size:12.5px}.hb-eap8-t{display:block;font-weight:600;margin-bottom:4px}
+.hb-campos label.hb-chk{display:inline-flex;align-items:center;gap:6px;margin:0 14px 4px 0;font-weight:400}.hb-campos label.hb-chk input{display:inline;width:auto;margin:0}.hb-campos label[hidden]{display:none}
 .hb-fbot{display:flex;gap:8px;justify-content:flex-end}
 .hb-sin{margin:auto 18px;padding:40px 20px;text-align:center;display:flex;flex-direction:column;gap:6px;border:1px dashed var(--line);border-radius:12px}
 @media (prefers-color-scheme:dark){.hb-tag.dif{background:#3b2a63;color:#ddd6fe}.hb-tag.qw{background:#14432a;color:#bbf7d0}}
@@ -81,6 +84,7 @@ dlg.addEventListener('click',ev=>{const u=ev.target.closest('button[data-hb-abri
  if(u){dlg.close();if(u.dataset.hbAbrir==='replica')window.fxReplicar&&fxReplicar();else{const m=document.getElementById('btn-mover');if(m)m.click();}return;}
  if(ev.target.closest('[data-hb-cancelar]')){cerrarForm();return;}
  const b=ev.target.closest('button[data-hb-url]');if(!b||b.disabled)return;
+ if(b.dataset.hbEap8){abrirEap8(b);return;}
  if(b.dataset.hbCampos){abrirForm(b);return;}
  pedir(b,null);});
 const frm=dlg.querySelector('.hb-form'),tab=dlg.querySelector('.hb-tabla');let fBtn=null;
@@ -91,6 +95,40 @@ const abrirForm=b=>{fBtn=b;frm.querySelector('h3').textContent=b.dataset.hbNombr
   else{i=document.createElement('input');i.type=c.tipo==='password'?'password':'text';i.autocomplete=c.tipo==='password'?'new-password':'off';i.spellcheck=false;}
   i.name='v_'+c.var;if(c.requerido)i.required=true;l.append(i);
   if(c.ayuda){const s=document.createElement('small');s.textContent=c.ayuda;l.append(s);}cx.append(l);});tab.hidden=true;frm.hidden=false;const f_=cx.querySelector('input');if(f_)f_.focus();};
+/* Migración a JBoss EAP 8: origen (máquina, producto y versión del inventario en caché, despliegues) y destino con EAP 8 */
+const el=(t,txt,cl)=>{const x=document.createElement(t);if(txt!=null)x.textContent=txt;if(cl)x.className=cl;return x;};
+const abrirEap8=b=>{fBtn=b;const D=JSON.parse(b.dataset.hbEap8),cx=frm.querySelector('.hb-campos'),fila=b.closest('tr'),vt=fila&&fila.querySelector('.hb-v');
+ frm.querySelector('h3').textContent=b.dataset.hbNombre;cx.innerHTML='';
+ const desde=o=>o?'desde '+o.producto+(o.version?' '+o.version:'')+' ('+o.cod+') ':'';
+ const lo=el('label','Servidor de origen');const so=el('select');so.required=true;so.add(new Option('Elige la máquina con el servidor de aplicaciones…',''));
+ D.origenes.forEach((o,i)=>{const t=o.cod+' · '+o.producto+(o.version?' '+o.version:'')+(o.nombre===D.aqui?' (esta máquina)':'')+(o.soportado?'':' — no soportado: '+o.motivo);
+  const op=new Option(t,String(i));op.disabled=!o.soportado;so.add(op);});
+ if(!D.origenes.length)so.add(new Option('Ninguna máquina del inventario tiene un servidor de aplicaciones detectado','',false,false));
+ const hO=el('input');hO.type='hidden';hO.name='v_mj_origen';const hH=el('input');hH.type='hidden';hH.name='v_mj_jboss_home';
+ lo.append(so,el('small','Por defecto esta máquina, si tiene el servidor a migrar. Se migra desde JBoss AS 5/6 o JBoss EAP 6/7; Tomcat, WebLogic y WebSphere se muestran pero no se pueden elegir.'));
+ const det=el('div',null,'hb-eap8-det');const la=el('div',null,'hb-eap8-apps');
+ const lm=el('label','Acción');const sm=el('select');sm.name='v_mj_modo';[['migrar','Migrar a JBoss EAP 8 (el origen no se toca)'],['evaluar','Solo evaluar (lectura, informe en Git)']].forEach(([v,t])=>sm.add(new Option(t,v)));lm.append(sm);
+ const ld=el('label','Destino (JBoss EAP 8)');const sd=el('select');sd.name='v_mj_destino';ld.append(sd);const nota=el('small');ld.append(nota);
+ const pintarDestino=()=>{const o=D.origenes[so.value],v=sd.value;sd.innerHTML='';
+  const aqui=D.destinos.find(x=>x.nombre===D.aqui);
+  const op1=new Option('Esta máquina ('+(aqui?aqui.cod+' · EAP '+aqui.version:D.aqui)+')',D.aqui);op1.disabled=!aqui||!aqui.encendida||(o&&o.nombre===D.aqui);sd.add(op1);
+  D.destinos.filter(x=>x.nombre!==D.aqui).forEach(x=>{const op=new Option(x.cod+' · JBoss EAP '+x.version+(x.encendida?'':' — apagada'),x.nombre);op.disabled=!x.encendida||(o&&o.nombre===x.nombre);sd.add(op);});
+  sd.add(new Option('Una máquina nueva (se crea antes con «Habilitar servidor»)','__nueva__'));
+  const ok=[...sd.options].find(x=>x.value===v&&!x.disabled)||[...sd.options].find(x=>!x.disabled);if(ok)sd.value=ok.value;notaD();};
+ const notaD=()=>{nota.innerHTML='';if(sd.value==='__nueva__'){nota.append('La máquina nueva se crea primero con «Habilitar servidor» (rol JBoss EAP 8); cuando esté en el inventario, elígela aquí. ');if(D.url_nueva){const a=el('a','Habilitar servidor ↗');a.href=D.url_nueva;a.target='_blank';a.rel='noopener';nota.append(a);}}
+  else nota.append(sd.value===D.aqui?'La aplicación migrada queda en esta máquina.':'Donde quedará la aplicación migrada.');};
+ const pintar=()=>{const o=D.origenes[so.value];hO.value=o?o.nombre:'';hH.value=o?o.home:'';det.innerHTML='';la.innerHTML='';
+  if(vt)vt.textContent='Lleva el servidor de aplicaciones y sus despliegues '+desde(o)+'a JBoss EAP 8 (Jakarta EE 10) con la configuración migrada.';
+  if(!o){det.append(el('span','Elige el origen para ver su producto, versión y despliegues.','sub'));return;}
+  det.append(el('b','Origen: '),o.producto+(o.version?' '+o.version:'')+' en '+o.cod+(o.home?' · '+o.home:''),el('br'),el('span','Según el último inventario de la máquina.','sub'));
+  la.append(el('span','Despliegues a migrar (WAR/EAR)','hb-eap8-t'));
+  if(!o.apps.length)la.append(el('span','Sin despliegues en el inventario: nada que migrar.','sub'));
+  o.apps.forEach(a=>{const l=el('label',null,'hb-chk');const c=el('input');c.type='checkbox';c.name='v_mj_apps';c.value=a;c.checked=true;l.append(c,a);la.append(l);});
+  pintarDestino();};
+ so.onchange=pintar;sd.onchange=notaD;sm.onchange=()=>{ld.hidden=sm.value!=='migrar';};
+ const def=D.origenes.findIndex(o=>o.nombre===D.defecto&&o.soportado),pri=def>=0?def:D.origenes.findIndex(o=>o.soportado);if(pri>=0)so.value=String(pri);
+ cx.append(lo,hO,hH,det,la,lm,ld);pintar();if(!D.destinos.length&&!D.aqui_eap8){sm.value='evaluar';ld.hidden=true;}
+ tab.hidden=true;frm.hidden=false;so.focus();};
 frm.addEventListener('submit',ev=>{ev.preventDefault();if(!fBtn)return;const fd=new FormData(frm),b=fBtn;cerrarForm();pedir(b,fd);});
 dlg.addEventListener('close',cerrarForm);
 const pedir=(b,fd0)=>{
