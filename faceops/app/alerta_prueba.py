@@ -220,11 +220,14 @@ def _seguir_(pid, cliente, e, aid, acc, etq, lab, ann, por_am):
         return
     _paso(pid, "aprobada (PRUEBA, solo lectura · regla de Cristian); corriendo el diagnóstico")
     st = wf.get("status")
-    for _ in range(60):
+    for _ in range(180):   # hasta 30 minutos: el diagnóstico de solo lectura puede tardar
         st = aap.get(f"workflow_jobs/{wf['id']}/").get("status")
         if st in ("successful", "failed", "error", "canceled"):
             break
         time.sleep(10)
+    if st not in ("successful", "failed", "error", "canceled"):
+        _paso(pid, f"el diagnóstico sigue en curso tras 30 minutos (workflow {wf['id']}): el correo se enviará al terminar", "falló")
+        return
     r = notificar(cliente, aap, aap.get(f"workflow_jobs/{wf['id']}/"))
     res = (r or {}).get("resultado") or "sin correo"
     _paso(pid, f"diagnóstico {st}; correo a {(r or {}).get('para') or '—'}: {res}", "ok" if st == "successful" and res.startswith("enviado") else "falló")
