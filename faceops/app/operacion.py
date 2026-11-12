@@ -305,6 +305,12 @@ def motivo_no_aplica(usuario, cliente_id, auto, e, reinstalar=False):
     instalación idempotente puede volver a correr aunque el equipo ya tenga la skill (p. ej. Redis Insight con otra ruta)."""
     from .inventario import skills_de
     from .permisos import ambiente_permitido, perfil
+    if auto["nombre_aap"] in (VINCULAR_ONPREM, INCORPORAR):   # dejan el acceso a la máquina: corren en el anfitrión KVM o en la API de la nube
+        if e["estado"] == "retirado":
+            return "el equipo está retirado"
+        if not ambiente_permitido(perfil(usuario, cliente_id), e.get("ambiente")):
+            return f"tu perfil no puede operar el ambiente {e.get('ambiente')}"
+        return None
     if not auto["usa_limite"]:
         return "esta acción elige sus equipos en el formulario, no se lanza desde un equipo"
     if not auto["visible"]:
