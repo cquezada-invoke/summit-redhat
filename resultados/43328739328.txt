@@ -1,0 +1,36 @@
+commit: 2e494d9007b8386403b28e1126880b9a489315e9
+inicio: 2026-11-12T20:25:50-03:00
+---
+desplegado 8a1df2add
+repo 8a1df2a
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Revisar estado
+  C1 → exitoso FO-LAB-02394
+CASO C1 ok · Revisar el estado
+  C2 → sin respuesta del arnés 
+CASO C2 falla · Repetir
+  C3 → fallido FO-LAB-02398
+CASO C3 ok · Herramienta distinta
+CERT Autocuidado · Revisar estado → sin probar
+== Autocuidado · Respaldar bases de AAP y FaceOps
+  C1 → exitoso FO-LAB-02400
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02401
+CASO C2 falla · Aplicar
+  C3 → exitoso FO-LAB-02402
+CASO C3 ok · Repetir
+  C4 → fallido FO-LAB-02403
+CASO C4 ok · Sin espacio seguro
+CERT Autocuidado · Respaldar bases de AAP y FaceOps → sin probar
+== Autocuidado · Renovar certificados
+  C1 → exitoso FO-LAB-02404
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02405
+CASO C2 ok · Aplicar (vigente)
+  C3 → exitoso FO-LAB-02406
+CASO C3 ok · Repetir
+  C4 → fallido FO-LAB-02408
+CASO C4 ok · Modo inválido
+CERT Autocuidado · Renovar certificados → certificada
+--- fin: 2026-11-12T20:55:37-03:00 · código: 0

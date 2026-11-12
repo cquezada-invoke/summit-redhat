@@ -1,13 +1,36 @@
-commit: 30319836cf62e2c803058d3fc5405cc356e0a885
-inicio: 2026-11-12T20:37:28-03:00
+commit: 2e494d9007b8386403b28e1126880b9a489315e9
+inicio: 2026-11-12T20:25:50-03:00
 ---
-BUSCA /inventario?q=nodo-vault · en página True · fila: ['nodo-vault infraestructura 192.168.122.210\tmáquina\tservidor\tvirtual\tRedHat 9.8\tVault\tCentr']
-BUSCA /inventario?forma=virtual&q=nodo-vault · en página True · fila: ['nodo-vault infraestructura 192.168.122.210\tmáquina\tservidor\tvirtual\tRedHat 9.8\tVault\tCentr']
-BUSCA /inventario?forma=fisico&q=nodo-vault · en página True · fila: []
-BUSCA /inventario?q=nodo-jboss-qa · en página True · fila: ['nodo-jboss-qa.demo.local infraestructura 192.168.122.20\tmáquina\tservidor\tvirtual\tRedHat 9.']
-BUSCA /inventario?forma=virtual&q=nodo-jboss-qa · en página True · fila: ['nodo-jboss-qa.demo.local infraestructura 192.168.122.20\tmáquina\tservidor\tvirtual\tRedHat 9.']
-BUSCA /inventario?forma=fisico&q=nodo-jboss-qa · en página True · fila: []
-BUSCA /inventario?q=dc1-ad01 · en página True · fila: []
-BUSCA /inventario?forma=virtual&q=dc1-ad01 · en página True · fila: []
-BUSCA /inventario?forma=fisico&q=dc1-ad01 · en página True · fila: []
---- fin: 2026-11-12T20:37:38-03:00 · código: 0
+desplegado 8a1df2add
+repo 8a1df2a
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Revisar estado
+  C1 → exitoso FO-LAB-02394
+CASO C1 ok · Revisar el estado
+  C2 → sin respuesta del arnés 
+CASO C2 falla · Repetir
+  C3 → fallido FO-LAB-02398
+CASO C3 ok · Herramienta distinta
+CERT Autocuidado · Revisar estado → sin probar
+== Autocuidado · Respaldar bases de AAP y FaceOps
+  C1 → exitoso FO-LAB-02400
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02401
+CASO C2 falla · Aplicar
+  C3 → exitoso FO-LAB-02402
+CASO C3 ok · Repetir
+  C4 → fallido FO-LAB-02403
+CASO C4 ok · Sin espacio seguro
+CERT Autocuidado · Respaldar bases de AAP y FaceOps → sin probar
+== Autocuidado · Renovar certificados
+  C1 → exitoso FO-LAB-02404
+CASO C1 ok · Evaluar
+  C2 → exitoso FO-LAB-02405
+CASO C2 ok · Aplicar (vigente)
+  C3 → exitoso FO-LAB-02406
+CASO C3 ok · Repetir
+  C4 → fallido FO-LAB-02408
+CASO C4 ok · Modo inválido
+CERT Autocuidado · Renovar certificados → certificada
+--- fin: 2026-11-12T20:55:37-03:00 · código: 0
