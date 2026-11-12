@@ -174,8 +174,10 @@ def vinculo_maquina(e, datos):
     if not inf:
         habs = [x for x in q("SELECT * FROM infraestructuras WHERE cliente_id=? AND tipo='gcp'", g.cliente["id"])]
         inf = habs[0] if len(habs) == 1 and "gcp" in (e.get("ubicacion") or e.get("proveedor") or "").lower() else None
-    if not motivo and not inf:
-        motivo = "Solo para máquinas de una nube conectada (GCP, Azure o AWS): esta no viene del inventario de ninguna"
+    if not inf:   # lo primero: si no aplica a esta máquina, se dice eso (no que falta certificarla)
+        motivo = ("Creada por FaceOps on-premise: su vínculo WinRM lo deja la creación (pendiente en esta máquina), no «Incorporar»"
+                  if "Servidores habilitados" in j(e.get("inventarios"), []) else
+                  "Solo para máquinas de una nube conectada (GCP, Azure o AWS): esta no viene del inventario de ninguna")
     if not motivo and e.get("energia") in ("apagado", "suspendido"):
         motivo = "La máquina está apagada: enciéndela para incorporarla"
     nube = bool(inf) or "gcp" in (e.get("proveedor") or "").lower() or "cloud" in (e.get("ubicacion") or "").lower()
