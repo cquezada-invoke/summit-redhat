@@ -18,6 +18,8 @@ acciones:
                            params: {ac_modo: profundo}, por_que: "borra imágenes de contenedores sin uso que podrían volver a necesitarse"}
   recuperar_vms: {texto: "Reanudar o encender máquinas virtuales", auto: "Autocuidado · Recuperar máquinas virtuales", riesgo: bajo, params: {ac_modo: aplicar}}
   reiniciar_aap: {texto: "Reiniciar componentes de AAP no saludables", auto: "Autocuidado · Reiniciar componentes de AAP", riesgo: bajo, params: {ac_modo: aplicar}}
+  reiniciar_despachador: {texto: "Reiniciar el despachador de AAP (controller-task y receptor)", auto: "Autocuidado · Reiniciar despachador de AAP", riesgo: bajo,
+                          params: {ac_modo: aplicar}}
   reiniciar_faceops: {texto: "Reiniciar FaceOps y su despliegue", auto: "Autocuidado · Reiniciar FaceOps y despliegue", riesgo: bajo, params: {ac_modo: aplicar}}
   respaldar: {texto: "Respaldar las bases de AAP y FaceOps", auto: "Autocuidado · Respaldar bases de AAP y FaceOps", riesgo: bajo, params: {ac_modo: aplicar}}
   renovar_cert: {texto: "Renovar certificados", auto: "Autocuidado · Renovar certificados", riesgo: bajo, params: {ac_modo: aplicar}}
@@ -67,8 +69,11 @@ reglas:
   - {id: AC16, grupo: AAP, nombre: "AAP sin capacidad de ejecución", severidad: critico, para: 10m, accion: revisar, objeto: "",
      expr: 'faceops_ac_aap_grupos_con_capacidad == 0 or (faceops_ac_aap_capacidad_libre == 0 and faceops_ac_aap_trabajos_pendientes > 0)',
      resumen: "Los grupos de instancias de AAP no tienen capacidad libre y hay trabajos esperando"}
-  - {id: AC17, grupo: AAP, nombre: "Trabajos de AAP en cola hace más de 15 min", severidad: aviso, para: 5m, accion: revisar, objeto: "",
-     expr: 'faceops_ac_aap_trabajos_pendientes_antiguos > 0', resumen: "{{ $value }} trabajos de AAP esperan hace más de 15 min"}
+  - {id: AC17, grupo: AAP, nombre: "Trabajos de AAP en cola hace más de 10 min", severidad: aviso, para: 5m, accion: revisar, objeto: "",
+     expr: 'faceops_ac_aap_trabajos_pendientes_antiguos > 0', resumen: "{{ $value }} trabajos de AAP esperan hace más de 10 min"}
+  - {id: AC28, grupo: AAP, nombre: "Despachador de AAP detenido", severidad: critico, para: 2m, accion: reiniciar_despachador, objeto: "",
+     expr: 'max(faceops_ac_aap_instancia_latido_segundos) > 300 or (faceops_ac_aap_trabajos_pendientes_antiguos > 0 and on() faceops_ac_aap_capacidad_libre > 0)',
+     resumen: "Una instancia de AAP no reporta latido hace más de 5 min o hay trabajos pendientes hace más de 10 min con capacidad libre: se reinician controller-task y receptor (si AAP no puede, el vigía externo)"}
   - {id: AC18, grupo: Certificados, nombre: "Certificado vence en menos de 21 días", severidad: aviso, para: 10m, accion: renovar_cert, objeto: servicio,
      expr: 'faceops_ac_certificado_dias >= 0 and faceops_ac_certificado_dias < 21', resumen: "Certificado de {{ $labels.servicio }} vence en {{ $value | humanize }} días"}
   - {id: AC19, grupo: Certificados, nombre: "Certificado vence en menos de 7 días", severidad: critico, para: 5m, accion: renovar_cert, objeto: servicio,

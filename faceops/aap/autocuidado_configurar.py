@@ -191,6 +191,8 @@ PLANTILLAS = [   # nombre, playbook, credenciales, tiempo máx (s), descripción
      "Reanuda las máquinas pausadas por E/S (disco lleno) y enciende las caídas o de encendido automático que quedaron abajo"),
     ("Autocuidado · Reiniciar componentes de AAP", "autocuidado-reiniciar-aap.yml", ["kvm"], 1200,
      "Reinicia en orden los contenedores de AAP no saludables (sin tocar lo que sostiene al propio trabajo) y espera la API"),
+    ("Autocuidado · Reiniciar despachador de AAP", "autocuidado-reiniciar-despachador.yml", ["kvm"], 600,
+     "Instancia sin latido o trabajos pendientes con capacidad libre: reinicia receptor y controller-task (diferido 45 s para que este trabajo termine)"),
     ("Autocuidado · Reiniciar FaceOps y despliegue", "autocuidado-reiniciar-faceops.yml", ["kvm"], 900,
      "Reinicia FaceOps si no responde, reactiva el timer del despliegue y lanza el despliegue atrasado"),
     ("Autocuidado · Respaldar bases de AAP y FaceOps", "autocuidado-respaldar.yml", ["kvm"], 3600,
@@ -218,10 +220,15 @@ def plantillas():
         return False
     # el proyecto trae los playbooks «autocuidado-*.yml» recién subidos a Gitea: se actualiza antes de crear las plantillas
     upd = aap("POST", f"projects/{proy['id']}/update/", {})
-    for _ in range(100):
-        if aap("GET", f"project_updates/{upd['id']}/")["status"] in ("successful", "failed", "error", "canceled"):
+    st_ = "?"
+    for _ in range(300):   # hasta 15 min: con la cola de AAP cargada la actualización puede esperar su turno
+        st_ = aap("GET", f"project_updates/{upd['id']}/")["status"]
+        if st_ in ("successful", "failed", "error", "canceled"):
             break
         time.sleep(3)
+    if st_ != "successful":
+        paso(f"ERROR: la actualización del proyecto quedó «{st_}»: sin ella AAP no ve los playbooks de autocuidado")
+        return False
     # credencial de eventos: FaceOps la valida con el token del anfitrión (sha256, como los demás webhooks)
     tok = sudo(f"cat {DIR}/token").stdout.strip()
     ct = uno("credential_types", name="Autocuidado · FaceOps (eventos)") or aap("POST", "credential_types/", {

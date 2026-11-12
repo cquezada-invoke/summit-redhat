@@ -1,0 +1,23 @@
+---
+# Autocuidado · Reiniciar despachador de AAP: una instancia sin latido > 5 min o trabajos pendientes > 10 min con capacidad libre.
+# Reinicia receptor y automation-controller-task, programado 45 s después (systemd-run) para que este mismo trabajo termine antes
+# de que se reinicie quien lo ejecuta. Si el despachador está tan atascado que ni este trabajo corre, lo hace el vigía externo.
+#   ac_modo: evaluar | aplicar (por defecto)
+- name: Autocuidado · Reiniciar despachador de AAP
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    modo: "{{ ac_modo | default('aplicar') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'aplicar']
+        fail_msg: "ac_modo debe ser evaluar o aplicar"
+        quiet: true
+
+    - name: Despachador de AAP
+      ansible.builtin.include_tasks: autocuidado-comun.yml
+      vars:
+        ac_args: "{{ ['reiniciar-despachador', '--modo', modo] + (['--diferido'] if modo == 'aplicar' else []) }}"
+        ac_titulo: "Despachador de AAP ({{ modo }})"

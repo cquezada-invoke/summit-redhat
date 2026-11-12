@@ -330,6 +330,59 @@ def reiniciar_aap(c, origen, evaluar=False, todos=False, sin_propios=False):
     return r
 
 
+DESPACHADOR = ("receptor", "automation-controller-task")   # malla de ejecución y despachador de trabajos, en ese orden
+
+
+def despachador_atascado(c):
+    """(atascado, motivo, datos): una instancia sin latido > 5 min, o trabajos pendientes > 10 min con capacidad libre."""
+    d = capacidad_aap(c)
+    if not d:
+        return False, "", d
+    viejo = {k: v for k, v in (d.get("latidos") or {}).items() if v > 300}
+    if viejo:
+        return True, "instancia sin latido: " + ", ".join(f"{k} hace {v // 60} min" for k, v in viejo.items()), d
+    if d.get("pendientes_antiguos", 0) > 0 and d.get("capacidad_libre", 0) > 0:
+        return True, f"{d['pendientes_antiguos']} trabajos pendientes hace más de 10 min con capacidad libre ({d['capacidad_libre']})", d
+    return False, "", d
+
+
+def reiniciar_despachador(c, origen, evaluar=False, diferido=False):
+    """Reinicia receptor y automation-controller-task (lo que despacha y ejecuta los trabajos de AAP) y espera el latido.
+    Desde AAP va diferido (systemd-run en 45 s): el propio trabajo termina antes de que se reinicie quien lo ejecuta."""
+    atascado, motivo, d = despachador_atascado(c)
+    if evaluar:
+        return {"ok": True, "modo": "evaluar", "atascado": atascado, "motivo": motivo, "latidos": d.get("latidos"),
+                "pendientes_antiguos": d.get("pendientes_antiguos"), "capacidad_libre": d.get("capacidad_libre")}
+    if diferido:
+        rc, _, err = sh(["systemd-run", "--unit", f"faceops-autocuidado-despachador-{int(time.time())}", "--on-active=45",
+                         "-p", "Restart=on-failure", "-p", "RestartSec=30",
+                         "/usr/local/sbin/faceops-autocuidado", "reiniciar-despachador", "--origen", "aap"], 30)
+        r = {"ok": rc == 0, "modo": "diferido", "en_segundos": 45, "motivo": motivo or "pedido sin atasco detectado", "error": err.strip()[-200:] if rc else ""}
+        registrar("reiniciar-despachador (programado)", origen, "ok" if r["ok"] else "con errores", r)
+        return r
+    if uso_raiz() >= 99:
+        return {"ok": False, "error": "disco raíz lleno: libera espacio antes de reiniciar el despachador"}
+    hechos = []
+    for n in DESPACHADOR:
+        rc, _, err = como_usuario(c, ["systemctl", "--user", "restart", n + ".service"], 180)
+        via = "systemd"
+        if rc != 0:
+            rc, _, err = como_usuario(c, ["podman", "restart", "-t", "30", n], 180)
+            via = "podman"
+        hechos.append({"contenedor": n, "via": via, "ok": rc == 0, "error": err.strip()[-200:] if rc else ""})
+    latido = None
+    for _ in range(30):   # hasta 5 min a que la instancia vuelva a reportar latido
+        time.sleep(10)
+        lat = (capacidad_aap(c).get("latidos") or {})
+        if lat and max(lat.values()) < 120:
+            latido = max(lat.values())
+            break
+    r = {"ok": all(h["ok"] for h in hechos) and latido is not None, "modo": "aplicar", "motivo": motivo, "reiniciados": hechos,
+         "latido_s": latido}
+    registrar("reiniciar-despachador", origen, "ok" if r["ok"] else "con errores", r)
+    return r
+
+
 # ── disco ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 def _viejo(ruta, dias):
     try:
@@ -655,9 +708,16 @@ def capacidad_aap(c):
         gs = [x for x in get("instance_groups/?page_size=50").get("results", []) if not x.get("is_container_group")]
         d["capacidad_libre"] = sum(max(0, (x.get("capacity") or 0) - (x.get("consumed_capacity") or 0)) for x in gs)
         d["grupos_con_capacidad"] = sum(1 for x in gs if (x.get("capacity") or 0) > 0)
-        hace = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        d["pendientes"] = get("unified_jobs/?status__in=pending,waiting&page_size=1").get("count", 0)
-        d["pendientes_antiguos"] = get(f"unified_jobs/?status__in=pending,waiting&created__lt={hace}&page_size=1").get("count", 0)
+        hace = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        d["pendientes"], d["pendientes_antiguos"] = 0, 0
+        for ep in ("jobs", "project_updates", "inventory_updates", "system_jobs"):   # ejecutables: un workflow «running» esperando aprobación no cuenta
+            d["pendientes"] += get(f"{ep}/?status__in=pending,waiting&page_size=1").get("count", 0)
+            d["pendientes_antiguos"] += get(f"{ep}/?status__in=pending,waiting&created__lt={hace}&page_size=1").get("count", 0)
+        d["latidos"] = {}
+        for i in get("instances/?page_size=50").get("results", []):
+            if i.get("enabled") and i.get("node_type") in ("hybrid", "control", "execution") and i.get("last_seen"):
+                visto = dt.datetime.fromisoformat(i["last_seen"].replace("Z", "+00:00"))
+                d["latidos"][i["hostname"]] = int((dt.datetime.now(dt.timezone.utc) - visto).total_seconds())
     except Exception:  # noqa: BLE001
         pass
     return d
@@ -751,6 +811,8 @@ def metricas(c):
     m("aap_grupos_con_capacidad", cap.get("grupos_con_capacidad"))
     m("aap_trabajos_pendientes", cap.get("pendientes"))
     m("aap_trabajos_pendientes_antiguos", cap.get("pendientes_antiguos"))
+    for h, v in (cap.get("latidos") or {}).items():
+        m("aap_instancia_latido_segundos", v, instancia=h)
     cola = e.get("cola_faceops") or {}
     m("cola_pendientes", cola.get("pendientes"))
     m("cola_atascados", cola.get("atascados"))
@@ -854,6 +916,26 @@ def vigia(c):
                 st["ultimo_reinicio"], st["reinicios_hoy"] = t, st["reinicios_hoy"] + 1
                 r = reiniciar_aap(c, "vigía")
                 hecho.append({"accion": "reiniciar-aap", "ok": r["ok"], "api": r.get("api"), "reiniciados": [x["contenedor"] for x in r.get("reiniciados", [])]})
+    # 4. despachador de AAP atascado con la API respondiendo: ningún trabajo de AAP corre, así que AAP no puede curarlo
+    if codigo == 200 and not en_gracia:
+        atascado, motivo, _ = despachador_atascado(c)
+        if not atascado:
+            st["despachador_mal_desde"] = None
+        else:
+            st["despachador_mal_desde"] = st.get("despachador_mal_desde") or t
+            st["decision"] = f"despachador de AAP atascado ({motivo})"
+            ult = st.get("ultimo_reinicio") or 0
+            if (t - st["despachador_mal_desde"]) / 60 < 2:
+                pass   # se confirma en la pasada siguiente (evita reiniciar por un pico)
+            elif (t - ult) / 60 < c["vigia_pausa_reinicio_min"]:
+                hecho.append({"accion": "reiniciar-despachador", "omitida": f"último reinicio hace {round((t - ult) / 60)} min"})
+            elif st["reinicios_hoy"] >= c["vigia_reinicios_max_dia"]:
+                hecho.append({"accion": "reiniciar-despachador", "omitida": "tope diario de reinicios alcanzado: requiere una persona"})
+            else:
+                st["ultimo_reinicio"], st["reinicios_hoy"] = t, st["reinicios_hoy"] + 1
+                r = reiniciar_despachador(c, "vigía")
+                hecho.append({"accion": "reiniciar-despachador", "ok": r["ok"], "motivo": motivo, "latido_s": r.get("latido_s")})
+                st["despachador_mal_desde"] = None
     st["ultima_actuacion"] = {"cuando": ahora(), "acciones": hecho} if hecho else st.get("ultima_actuacion")
     st["acciones_total"] = st["acciones_total"] + len([h for h in hecho if not h.get("omitida")])
     try:
@@ -902,7 +984,7 @@ def identidad_gcp():
 
 # ── entrada ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ACCIONES = ("estado", "metricas", "exportador", "vigia", "pausar", "liberar-disco", "recuperar-vms", "reiniciar-aap", "reiniciar-faceops",
-            "respaldar", "renovar-cert", "crecer-fs", "identidad-gcp", "version")
+            "respaldar", "renovar-cert", "crecer-fs", "identidad-gcp", "version", "reiniciar-despachador")
 
 
 def main():
@@ -915,6 +997,7 @@ def main():
     ap.add_argument("--todos", action="store_true", help="reiniciar-aap: todos los contenedores en orden")
     ap.add_argument("--minutos", type=int, default=0, help="pausar: minutos de mantenimiento (0 = quitar la pausa; máx. 1440)")
     ap.add_argument("--solo-pausadas", action="store_true")
+    ap.add_argument("--diferido", action="store_true", help="reiniciar-despachador desde AAP: se programa en 45 s")
     ap.add_argument("--sin-propios", action="store_true", help="reiniciar-aap desde AAP: no toca lo que sostiene al propio trabajo")
     a = ap.parse_args()
     c = conf()
@@ -950,6 +1033,8 @@ def main():
         r = reiniciar_aap(c, origen, evaluar, a.todos, a.sin_propios)
     elif a.accion == "reiniciar-faceops":
         r = reiniciar_faceops(c, origen, evaluar)
+    elif a.accion == "reiniciar-despachador":
+        r = reiniciar_despachador(c, origen, evaluar, a.diferido)
     elif a.accion == "respaldar":
         r = respaldar(c, origen, evaluar)
     elif a.accion == "renovar-cert":

@@ -32,7 +32,8 @@ TERMINALES = ("exitoso", "fallido", "rechazado", "vencido", "cancelado", "error"
 HERRAMIENTA_A_AUTO = {"liberar-disco": "Autocuidado · Liberar disco", "recuperar-vms": "Autocuidado · Recuperar máquinas virtuales",
                       "reiniciar-aap": "Autocuidado · Reiniciar componentes de AAP", "reiniciar-faceops": "Autocuidado · Reiniciar FaceOps y despliegue",
                       "respaldar": "Autocuidado · Respaldar bases de AAP y FaceOps", "renovar-cert": "Autocuidado · Renovar certificados",
-                      "crecer-fs": "Autocuidado · Ampliar disco del anfitrión (GCP)"}
+                      "crecer-fs": "Autocuidado · Ampliar disco del anfitrión (GCP)",
+                      "reiniciar-despachador": "Autocuidado · Reiniciar despachador de AAP"}
 _cache = {}
 _tabla_ok = {"v": False}
 

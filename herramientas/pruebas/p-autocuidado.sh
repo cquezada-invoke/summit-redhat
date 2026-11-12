@@ -1,5 +1,6 @@
 # Planes «Autocuidado · …» (datos/planes-prueba.yml). Corre en el anfitrión con el lab sano:  bash p-autocuidado.sh [plan ...]
-# planes: estado disco vms aap faceops respaldo cert purgar ampliar atender vigia (sin argumentos: todos menos vms, ampliar y vigia)
+# planes: estado disco vms aap despachador faceops respaldo cert purgar ampliar atender vigia (sin argumentos: todos menos vms, ampliar,
+# despachador y vigia; «despachador» reinicia lo que ejecuta los trabajos de AAP: correrlo SOLO, sin otros planes en paralelo)
 # La salida es pública: no imprime tokens, claves ni extra_vars sensibles (solo estados y conteos).
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 H=/usr/local/sbin/faceops-autocuidado
@@ -74,6 +75,23 @@ pedir "$N" C3 '{"ac_modo":"aplicar"}' 15; E=$(estado); NOTA=$(r_ ".get('nota',''
 pedir "$N" C4 '{"ac_modo":"todo"}' 10; E=$(estado); D=$(jq_ "r.get('detalle','')[:120]")
 [ "$E" = fallido ] && [[ "$D" == *"Datos válidos"* ]] && anotar C4 "Modo inválido" ok "fallido en «Datos válidos»" || anotar C4 "Modo inválido" falla "$E $D"
 certificar "$N" "Reiniciar componentes de AAP: evaluar, componente detenido, repetir y modo inválido"
+fi
+
+# ───────────────────────────────────────────────────────────── Reiniciar despachador de AAP (correr solo)
+if [[ " $PLANES " == *" despachador "* ]]; then
+N="Autocuidado · Reiniciar despachador de AAP"; CASOS='[]'; TKS='[]'; echo "== $N"
+inicio_() { podman inspect -f '{{.State.StartedAt}}' $1 2>/dev/null | cut -c1-19; }
+pedir "$N" C1 '{"ac_modo":"evaluar"}' 10; E=$(estado); AT=$(r_ ".get('atascado')"); LAT=$(jq_ "max((((s.get('faceops_autocuidado') or {}).get('resultado') or {}).get('latidos') or {'x': 999}).values())")
+[ "$E" = exitoso ] && [ "$AT" = False ] && [ "${LAT:-999}" -lt 120 ] && anotar C1 "Evaluar con AAP sano" ok "atascado=False; latido ${LAT} s" || anotar C1 "Evaluar con AAP sano" falla "$E atascado=$AT latido=$LAT"
+T0=$(inicio_ automation-controller-task); R0=$(inicio_ receptor)
+pedir "$N" C2 '{"ac_modo":"aplicar"}' 10; E=$(estado); sleep 150
+T2=$(inicio_ automation-controller-task); R2=$(inicio_ receptor)
+pedir "$N" C3 '{"ac_modo":"evaluar"}' 15; E3=$(estado); LAT3=$(jq_ "max((((s.get('faceops_autocuidado') or {}).get('resultado') or {}).get('latidos') or {'x': 999}).values())")
+[ "$E" = exitoso ] && [ "$T0" != "$T2" ] && [ "$R0" != "$R2" ] && [ "$E3" = exitoso ] && anotar C2 "Aplicar programado" ok "controller-task $T0→$T2, receptor $R0→$R2; un trabajo nuevo corrió (C3)" || anotar C2 "Aplicar programado" falla "$E task $T0→$T2 receptor $R0→$R2 siguiente=$E3"
+[ "$E3" = exitoso ] && [ "${LAT3:-999}" -lt 120 ] && anotar C3 "Repetir tras el reinicio" ok "latido ${LAT3} s; AAP ejecuta" || anotar C3 "Repetir tras el reinicio" falla "$E3 latido=$LAT3"
+T4=$(inicio_ automation-controller-task); pedir "$N" C4 '{"ac_modo":"ya"}' 10; E=$(estado); D=$(jq_ "r.get('detalle','')[:120]"); sleep 60; T5=$(inicio_ automation-controller-task)
+[ "$E" = fallido ] && [[ "$D" == *"Datos válidos"* ]] && [ "$T4" = "$T5" ] && anotar C4 "Modo inválido" ok "fallido en «Datos válidos»; sin reinicio" || anotar C4 "Modo inválido" falla "$E $D task $T4→$T5"
+certificar "$N" "Reiniciar despachador de AAP: evaluar, aplicar programado, repetir y modo inválido"
 fi
 
 # ───────────────────────────────────────────────────────────── Reiniciar FaceOps y despliegue

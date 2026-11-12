@@ -799,6 +799,12 @@ planes:
       - {id: C2, caso: "Componente no propio detenido (automation-eda-scheduler) y aplicar", verificar: "ticket exitoso; el contenedor vuelve a running; api 200; los propios (controller-task, receptor, PostgreSQL, Redis) no se reinician"}
       - {id: C3, caso: "Repetir con todo sano", tipo: Idempotencia, verificar: "ticket exitoso; «nada que reiniciar»; ningún contenedor reinicia (RestartCount igual)"}
       - {id: C4, caso: "ac_modo inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; ningún contenedor se toca"}
+  "Autocuidado · Reiniciar despachador de AAP":   # se corre sola, al final: reinicia lo que ejecuta los trabajos de AAP
+    casos:
+      - {id: C1, caso: "Modo evaluar con AAP sano", verificar: "ticket exitoso; atascado false; latido de la instancia < 2 min"}
+      - {id: C2, caso: "Aplicar (programado en 45 s)", verificar: "ticket exitoso; a los ~45 s receptor y controller-task se reinician (StartedAt nuevo), la instancia vuelve a reportar latido y un trabajo nuevo corre"}
+      - {id: C3, caso: "Repetir tras el reinicio", tipo: Idempotencia, verificar: "ticket exitoso; AAP sigue ejecutando trabajos (latido < 2 min)"}
+      - {id: C4, caso: "ac_modo inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; no se programa ningún reinicio"}
   "Autocuidado · Reiniciar FaceOps y despliegue":
     casos:
       - {id: C1, caso: "Modo evaluar", verificar: "ticket exitoso; faceops 200 y estado del despliegue (timer activo, atraso)"}
