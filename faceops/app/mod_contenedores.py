@@ -2,6 +2,7 @@
 
 from . import requiere_login
 from .vistas import bp, inventario
+from . import plataformas_contenedores  # noqa: F401,E402  («Crear plataforma de contenedores»: conectar existente o crear en GCP)
 
 
 @bp.route("/contenedores", methods=["GET", "POST"])

@@ -1,0 +1,394 @@
+---
+# OpenShift · Crear en GCP (IPI). Resuelve la versión (por omisión la última GA de la rama elegida), revisa prerrequisitos en GCP
+# (zona DNS pública, permisos, APIs, cuota) y crea el clúster: SNO (1 control, 0 trabajo) o completo (3+3). El kubeconfig y la
+# clave de kubeadmin quedan SOLO en la credencial cifrada de AAP «OpenShift · <clúster> · acceso»; nunca en disco, Git ni salida.
+# Si la instalación falla se destruye lo creado. Variables: ocg_cluster · ocg_version · ocg_topologia · ocg_vence_horas · ocg_horario
+- name: Datos, versión y prerrequisitos en GCP
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    cluster: "{{ ocg_cluster | default('') | string | lower }}"
+    topologia: "{{ ocg_topologia | default('sno', true) }}"
+    proyecto: "{{ ocg_proyecto | default('master-ia-320218', true) }}"
+    region: "{{ ocg_region | default('southamerica-west1', true) }}"
+    dominio: "{{ ocg_dominio | default('', true) }}"
+    tipo_cp: "{{ ocg_tipo | default('n2-standard-8', true) }}"
+    vence_h: "{{ ocg_vence_horas | default(24, true) | int }}"
+    horario: "{{ ocg_horario | default('siempre', true) | string | replace(' ', '') }}"
+    py: "{{ playbook_dir }}/files/ocp_gcp.py"
+  tasks:
+    - name: Datos de la solicitud
+      ansible.builtin.assert:
+        that:
+          - cluster is match('^[a-z]([a-z0-9-]{0,12}[a-z0-9])?$')
+          - topologia in ['sno', 'completo']
+          - vence_h | int >= 1 and vence_h | int <= 168
+          - horario == 'siempre' or horario is match('^[1-7]-[1-7]_([01]?[0-9]|2[0-3])-([01]?[0-9]|2[0-4])$')
+          - dominio is match('^([a-z0-9-]+\.)+[a-z]{2,}$')
+        fail_msg: >-
+          Datos inválidos: nombre del clúster (minúsculas, números y guiones, 1 a 14, empieza con letra) · tipo sno o completo ·
+          vencimiento entre 1 y 168 horas · horario «siempre» o días_horas como 1-5_8-19 · dominio base válido
+        quiet: true
+
+    - name: Resolver la versión (canal stable de OpenShift)
+      ansible.builtin.command:
+        argv: [python3, "{{ py }}", version, "{{ ocg_version | default('ultima-4', true) }}"]
+      register: r_ver
+      changed_when: false
+
+    - name: Versión resuelta
+      ansible.builtin.set_fact:
+        ver: "{{ r_ver.stdout | from_json }}"
+
+    - name: La versión existe y es GA
+      ansible.builtin.assert:
+        that: [ver.version is defined]
+        fail_msg: >-
+          {{ ver.error | default('versión no resuelta') }}{{ (' · hay canales no estables (' ~ (ver.otros_canales | map(attribute='canal') | join(', ')) ~
+          '): no se instala desde ellos') if ver.otros_canales | default([]) else '' }}
+        quiet: true
+
+    - name: Prerrequisitos en GCP (zona DNS, permisos, APIs, cuota)
+      ansible.builtin.command:
+        argv: [python3, "{{ py }}", prerrequisitos, "{{ proyecto }}", "{{ region }}", "{{ dominio }}", "{{ tipo_cp }}",
+                                "{{ (8 + 4) if topologia == 'sno' else (3 * 8 + 3 * 4 + 4) }}"]
+      register: r_pre
+      changed_when: false
+
+    - name: Resultado de prerrequisitos
+      ansible.builtin.set_fact:
+        pre: "{{ r_pre.stdout | from_json }}"
+
+    - name: Prerrequisitos cumplidos
+      ansible.builtin.assert:
+        that: [pre.listo | default(false)]
+        fail_msg: "Prerrequisitos pendientes: {{ (pre.chequeos | default([]) | rejectattr('ok') | map(attribute='item') | zip(pre.chequeos | default([]) | rejectattr('ok') | map(attribute='detalle')) | map('join', ': ') | join(' · ')) or pre.error | default('') }}"
+        quiet: true
+
+    - name: No existe ya un clúster con ese nombre en el proyecto
+      ansible.builtin.command:
+        argv: [python3, "{{ py }}", instancias, "{{ proyecto }}"]
+      register: r_ins
+      changed_when: false
+      failed_when: >-
+        (r_ins.stdout | from_json).error is defined or
+        (r_ins.stdout | from_json).instancias | selectattr('etiquetas.faceops-ocp', 'defined') | selectattr('etiquetas.faceops-ocp', 'equalto', cluster) | list | length > 0
+
+    - name: Pull secret desde el offline token de Red Hat (sin mostrarlo)
+      when: ocp_pull_secret is not defined
+      no_log: true
+      block:
+        - name: Token de acceso de Red Hat SSO
+          ansible.builtin.uri:
+            url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+            method: POST
+            body_format: form-urlencoded
+            body: {grant_type: refresh_token, client_id: cloud-services, refresh_token: "{{ ocp_ocm_token | default('') }}"}
+          register: r_sso
+        - name: Pull secret de la cuenta (api.openshift.com)
+          ansible.builtin.uri:
+            url: https://api.openshift.com/api/accounts_mgmt/v1/access_token
+            method: POST
+            headers: {Authorization: "Bearer {{ r_sso.json.access_token }}"}
+          register: r_ps
+        - name: Guardar en memoria
+          ansible.builtin.set_fact:
+            ps_json: "{{ r_ps.json | to_json }}"
+      rescue:
+        - name: Sin pull secret
+          ansible.builtin.fail:
+            msg: "No se pudo obtener el pull secret: falta la credencial «OpenShift · Red Hat OCM» (offline token) o no es válida"
+
+    - name: Pull secret de la credencial
+      when: ocp_pull_secret is defined
+      no_log: true
+      ansible.builtin.set_fact:
+        ps_json: "{{ (ocp_pull_secret | to_json) if ocp_pull_secret is mapping else ocp_pull_secret }}"
+
+    - name: Para el anfitrión
+      no_log: true
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        ocg_ver: "{{ ver }}"
+        ocg_pre: "{{ pre }}"
+        ocg_ps: "{{ ps_json | b64encode }}"
+        ocg_sa: "{{ lookup('ansible.builtin.file', lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE')) | b64encode }}"
+        ocg_datos: {cluster: "{{ cluster }}", topologia: "{{ topologia }}", proyecto: "{{ proyecto }}", region: "{{ region }}", dominio: "{{ dominio }}",
+                    tipo_cp: "{{ tipo_cp }}", tipo_w: "{{ ocg_tipo_trabajo | default('n2-standard-4', true) }}", horario: "{{ horario }}",
+                    expira: "{{ (now(utc=true).timestamp() + (vence_h | int) * 3600) | int }}"}
+      loop: "{{ groups['anfitrion_kvm'] | default([]) }}"
+      changed_when: false
+
+- name: Instalar con openshift-install (en el anfitrión)
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    d: "{{ ocg_datos }}"
+    base: /var/lib/faceops-openshift
+    bin: "{{ base }}/bin/{{ ocg_ver.version }}"
+    dir: "{{ base }}/gcp/{{ d.cluster }}"
+    inst: "{{ dir }}/instalar"
+    oi: "{{ bin }}/openshift-install"
+    oc: "{{ bin }}/oc"
+    gcp_sa: "{{ dir }}/.gcp-sa.json"
+    api_url: "https://api.{{ d.cluster }}.{{ d.dominio }}:6443"
+    consola: "https://console-openshift-console.apps.{{ d.cluster }}.{{ d.dominio }}"
+  tasks:
+    - name: Directorios (solo el usuario de servicio)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop: ["{{ base }}", "{{ base }}/gcp", "{{ dir }}", "{{ bin }}"]
+
+    - name: Instalador y cliente {{ ocg_ver.version }} con su huella
+      ansible.builtin.get_url:
+        url: "{{ ocg_ver.url }}{{ item.f }}"
+        dest: "{{ bin }}/{{ item.f }}"
+        checksum: "sha256:{{ item.sha }}"
+        mode: "0600"
+      loop:
+        - {f: openshift-install-linux.tar.gz, sha: "{{ ocg_ver.sha_instalador }}"}
+        - {f: openshift-client-linux.tar.gz, sha: "{{ ocg_ver.sha_cliente }}"}
+      loop_control: {label: "{{ item.f }}"}
+
+    - name: Extraer
+      ansible.builtin.unarchive:
+        src: "{{ bin }}/{{ item.f }}"
+        dest: "{{ bin }}"
+        remote_src: true
+        include: "{{ item.i }}"
+        creates: "{{ bin }}/{{ item.i[0] }}"
+      loop:
+        - {f: openshift-install-linux.tar.gz, i: [openshift-install]}
+        - {f: openshift-client-linux.tar.gz, i: [oc]}
+      loop_control: {label: "{{ item.i[0] }}"}
+
+    - name: Instalación anterior sin terminar
+      ansible.builtin.stat:
+        path: "{{ inst }}/metadata.json"
+      register: r_prev
+
+    - name: No hay otra instalación de este clúster en el anfitrión
+      ansible.builtin.assert:
+        that: [not r_prev.stat.exists]
+        fail_msg: "Ya hay una instalación de {{ d.cluster }} en el anfitrión: usa «Eliminar OpenShift en GCP» antes de crearlo de nuevo"
+        quiet: true
+
+    - name: Crear y verificar (si falla, se destruye lo creado)
+      block:
+        - name: Llave SSH de los nodos
+          ansible.builtin.command: ssh-keygen -q -t ed25519 -N "" -C "faceops-{{ d.cluster }}" -f {{ dir }}/ssh-core
+          args: {creates: "{{ dir }}/ssh-core"}
+
+        - name: install-config y cuenta de servicio (0600, sin mostrar)
+          no_log: true
+          ansible.builtin.copy:
+            dest: "{{ item.f }}"
+            mode: "0600"
+            content: "{{ item.c }}"
+          loop:
+            - f: "{{ gcp_sa }}"
+              c: "{{ ocg_sa | b64decode }}"
+            - f: "{{ inst }}/install-config.yaml"
+              c: "{{ ic | to_nice_yaml }}"
+          vars:
+            sno: "{{ d.topologia == 'sno' }}"
+            ic:
+              apiVersion: v1
+              baseDomain: "{{ d.dominio }}"
+              metadata: {name: "{{ d.cluster }}"}
+              controlPlane:
+                name: master
+                replicas: "{{ 1 if sno else 3 }}"
+                platform: {gcp: {type: "{{ d.tipo_cp }}", zones: "{{ ocg_pre.zonas_tipo[:1] if sno else ocg_pre.zonas_tipo[:3] }}", osDisk: {diskSizeGB: 120}}}
+              compute:
+                - name: worker
+                  replicas: "{{ 0 if sno else 3 }}"
+                  platform: {gcp: {type: "{{ d.tipo_w }}", zones: "{{ ocg_pre.zonas_tipo[:3] }}"}}
+              networking:
+                networkType: OVNKubernetes
+                machineNetwork: [{cidr: 10.0.0.0/16}]
+                clusterNetwork: [{cidr: 10.128.0.0/14, hostPrefix: 23}]
+                serviceNetwork: [172.30.0.0/16]
+              platform:
+                gcp:
+                  projectID: "{{ d.proyecto }}"
+                  region: "{{ d.region }}"
+                  userLabels:
+                    - {key: faceops-ocp, value: "{{ d.cluster }}"}
+                    - {key: faceops-expira, value: "{{ d.expira }}"}
+                    - {key: faceops-horario, value: "{{ d.horario | replace('-', 'a') }}"}
+                    - {key: faceops-ticket, value: "{{ faceops_ticket | default('sin-ticket') | lower | regex_replace('[^a-z0-9_-]', '-') }}"}
+              pullSecret: "{{ ocg_ps | b64decode }}"
+              sshKey: pendiente
+
+        - name: Llave pública de los nodos
+          ansible.builtin.slurp:
+            src: "{{ dir }}/ssh-core.pub"
+          register: r_pub
+
+        - name: Llave pública en el install-config
+          ansible.builtin.lineinfile:
+            path: "{{ inst }}/install-config.yaml"
+            regexp: "^sshKey:"
+            line: "sshKey: '{{ r_pub.content | b64decode | trim }}'"
+
+        - name: Crear el clúster (≈45 min SNO; la salida del instalador no se muestra porque trae la clave de kubeadmin)
+          ansible.builtin.shell: >-
+            {{ oi }} create cluster --dir {{ inst }} --log-level warn > {{ dir }}/instalador.salida 2>&1
+          environment: {GOOGLE_APPLICATION_CREDENTIALS: "{{ gcp_sa }}"}
+          async: 7200
+          poll: 60
+          no_log: true
+          changed_when: true
+
+        - name: La API responde
+          ansible.builtin.command: "{{ oc }} --kubeconfig {{ inst }}/auth/kubeconfig get --raw /readyz"
+          register: r_api
+          retries: 20
+          delay: 30
+          until: r_api.rc == 0 and r_api.stdout == 'ok'
+          changed_when: false
+
+        - name: Nodos Ready
+          ansible.builtin.command: >-
+            {{ oc }} --kubeconfig {{ inst }}/auth/kubeconfig get nodes
+            -o jsonpath={range .items[*]}{.metadata.name}={.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}
+          register: r_nodos
+          retries: 40
+          delay: 30
+          until: >-
+            r_nodos.rc == 0 and r_nodos.stdout_lines | length >= (1 if d.topologia == 'sno' else 6)
+            and r_nodos.stdout_lines | reject('search', '=True$') | list | length == 0
+          changed_when: false
+
+        - name: Acceso del clúster (en memoria)
+          ansible.builtin.slurp:
+            src: "{{ item }}"
+          loop: ["{{ inst }}/auth/kubeconfig", "{{ inst }}/auth/kubeadmin-password", "{{ inst }}/metadata.json", "{{ dir }}/ssh-core"]
+          register: r_acc
+          no_log: true
+
+        - name: Guardar el acceso cifrado en AAP («OpenShift · {{ d.cluster }} · acceso»)
+          delegate_to: localhost
+          no_log: true
+          vars:
+            api: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/api/controller/?$', '') | regex_replace('/$', '') }}/api/controller/v2"
+            cred: "OpenShift · {{ d.cluster }} · acceso"
+          block:
+            - name: Tipo de credencial y organización
+              ansible.builtin.uri:
+                url: "{{ api }}/{{ item }}"
+                url_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+                url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+                force_basic_auth: true
+                validate_certs: false
+              loop: ["credential_types/?name={{ 'OpenShift · Acceso de clúster' | urlencode }}", "organizations/?name=FaceOps",
+                     "credentials/?name={{ cred | urlencode }}"]
+              register: r_meta
+            - name: Crear o actualizar la credencial
+              ansible.builtin.uri:
+                url: "{{ api }}/credentials/{{ (ya.id ~ '/') if ya else '' }}"
+                method: "{{ 'PATCH' if ya else 'POST' }}"
+                url_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+                url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+                force_basic_auth: true
+                validate_certs: false
+                body_format: json
+                status_code: [200, 201]
+                body:
+                  name: "{{ cred }}"
+                  description: "OpenShift {{ ocg_ver.version }} en GCP ({{ d.proyecto }} · {{ d.region }}) · creado por {{ faceops_ticket | default('FaceOps') }}"
+                  organization: "{{ r_meta.results[1].json.results[0].id }}"
+                  credential_type: "{{ r_meta.results[0].json.results[0].id }}"
+                  inputs:
+                    api: "{{ api_url }}"
+                    consola: "{{ consola }}"
+                    version: "{{ ocg_ver.version }}"
+                    kubeconfig: "{{ r_acc.results[0].content | b64decode }}"
+                    kubeadmin: "{{ r_acc.results[1].content | b64decode | trim }}"
+                    metadata: "{{ r_acc.results[2].content | b64decode }}"
+                    ssh_privada: "{{ r_acc.results[3].content | b64decode }}"
+              vars:
+                ya: "{{ r_meta.results[2].json.results | first | default(none) }}"
+
+        - name: Instalado
+          ansible.builtin.set_fact:
+            estado: instalado
+            nodos: "{{ r_nodos.stdout_lines | map('regex_replace', '=.*$', '') | list }}"
+      rescue:
+        - name: Motivo (solo líneas de error del instalador, sin claves)
+          ansible.builtin.shell: >-
+            grep -hE 'level=(error|fatal)|ERROR|FATAL' {{ dir }}/instalador.salida {{ inst }}/.openshift_install.log 2>/dev/null
+            | grep -viE 'password|kubeadmin|token|secret|auth' | tail -n 6 | cut -c1-300
+          register: r_mot
+          changed_when: false
+          failed_when: false
+
+        - name: ¿Alcanzó a crear recursos?
+          ansible.builtin.stat:
+            path: "{{ inst }}/metadata.json"
+          register: r_meta_ins
+
+        - name: Destruir lo que alcanzó a crearse
+          ansible.builtin.shell: "{{ oi }} destroy cluster --dir {{ inst }} --log-level warn > {{ dir }}/destruir.salida 2>&1"
+          environment: {GOOGLE_APPLICATION_CREDENTIALS: "{{ gcp_sa }}"}
+          async: 3600
+          poll: 30
+          register: r_des
+          failed_when: false
+          no_log: true
+          changed_when: true
+          when: r_meta_ins.stat.exists
+
+        - name: Falló
+          ansible.builtin.set_fact:
+            estado: fallido
+            destruido: "{{ (not r_meta_ins.stat.exists) or r_des.rc | default(1) == 0 }}"
+            motivo: "{{ (r_mot.stdout | default('') | regex_replace('level=(error|fatal) msg=', '')) or (ansible_failed_result.msg | default('error sin detalle')) }}"
+      always:
+        - name: Fuera del disco todo secreto (credencial de GCP, acceso, llaves, estado y salida del instalador)
+          ansible.builtin.shell: >-
+            set -e; cd {{ dir }};
+            test -f instalar/metadata.json && cp instalar/metadata.json metadata.json || true;
+            echo '{{ ocg_ver.version }}' > version;
+            shred -u -f .gcp-sa.json ssh-core instalador.salida destruir.salida 2>/dev/null || true;
+            rm -rf instalar; {{ 'rm -f metadata.json version ssh-core.pub' if estado | default('') == 'fallido' and destruido | default(false) else ':' }}
+          changed_when: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_openshift:
+            cluster: "{{ d.cluster }}"
+            dominio: "{{ d.dominio }}"
+            version: "{{ ocg_ver.version }}"
+            canal: "{{ ocg_ver.canal }}"
+            metodo: ipi
+            plataforma: gcp
+            topologia: "{{ d.topologia }}"
+            proyecto: "{{ d.proyecto }}"
+            region: "{{ d.region }}"
+            nodos: "{{ nodos | default([]) }}"
+            api: "{{ api_url }}"
+            consola: "{{ consola }}"
+            credencial: "OpenShift · {{ d.cluster }} · acceso"
+            expira: "{{ d.expira }}"
+            horario: "{{ d.horario }}"
+            estado: "{{ estado }}"
+            destruido_tras_falla: "{{ destruido | default(omit) }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ ('OpenShift ' ~ ocg_ver.version ~ ' (' ~ d.topologia ~ ') listo en GCP · API ' ~ api_url ~ ' responde · nodos Ready: ' ~ (nodos | join(', ')) ~
+              ' · acceso en la credencial cifrada de AAP «OpenShift · ' ~ d.cluster ~ ' · acceso»')
+             if estado == 'instalado' else ('La instalación falló: ' ~ motivo ~ (' · lo creado se destruyó' if destruido | default(false) else ' · revisa recursos en GCP')) }}
+
+    - name: Terminó bien
+      ansible.builtin.assert:
+        that: [estado == 'instalado']
+        fail_msg: "La instalación de {{ d.cluster }} falló: {{ motivo | default('') }}"
+        quiet: true

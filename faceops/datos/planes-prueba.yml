@@ -484,6 +484,20 @@ planes:
     casos:
       - {id: C1, caso: "validar contra un vCenter de laboratorio", verificar: "permisos, red, datastore y cuota con semáforo"}
       - {id: C2, caso: "instalar", verificar: "clúster creado y habilitado en FaceOps"}
+  "OpenShift · Crear en GCP":
+    casos:
+      - {id: C1, caso: "Versión inexistente (ocg_version=4.99.0)", tipo: Error controlado, verificar: "ticket fallido en «La versión existe y es GA» con el motivo; no corre el play del anfitrión; ninguna instancia con etiqueta faceops-ocp nueva en master-ia-320218"}
+      - {id: C2, caso: "Dominio base sin zona DNS pública en Cloud DNS", tipo: Error controlado, verificar: "ticket fallido en «Prerrequisitos cumplidos» con «Zona DNS pública: no hay zona pública …»; no se crea ningún recurso en GCP"}
+      - {id: C3, caso: "Nombre inválido (Mal_Nombre)", tipo: Error controlado, verificar: "ticket fallido en «Datos de la solicitud»; no se crea ningún recurso"}
+      - {id: C4, caso: "Rama sin GA (ultima-6)", tipo: Error controlado, verificar: "ticket fallido con «aún sin versión estable publicada» (y los canales candidate/fast si existen); no se instala desde ellos"}
+      - {id: C5, caso: "Crear SNO real con la última estable (OpenShift 4 · IPI sobre GCP) desde Contenedores › Crear plataforma de contenedores", tipo: Funcional, verificar: "ticket aprobado y exitoso; /readyz de la API responde ok; el único nodo queda Ready; credencial «OpenShift · <clúster> · acceso» en AAP con kubeconfig y kubeadmin cifrados; ni la salida del job ni el disco del anfitrión tienen kubeconfig, clave de kubeadmin, pull secret ni la cuenta de servicio; el clúster aparece en Contenedores (ocp-<clúster>) con plataforma gcp"}
+      - {id: C6, caso: "Limpieza obligatoria: tras C5, pase o falle, se lanza «OpenShift · Eliminar en GCP» (y si la instalación falla, el rescue del playbook destruye lo creado)", tipo: Limpieza, verificar: "ticket de eliminación exitoso; sin instancias faceops-ocp=<clúster> en el proyecto; credencial y host retirados de AAP; el equipo queda retirado en FaceOps"}
+  "OpenShift · Eliminar en GCP":
+    casos:
+      - {id: C1, caso: "Eliminar el SNO creado en el caso C5 de «OpenShift · Crear en GCP»", tipo: Funcional, verificar: "openshift-install destroy cluster con los metadatos guardados; ninguna instancia faceops-ocp=<clúster> queda; credencial «OpenShift · <clúster> · acceso» y host ocp-<clúster> retirados de AAP; equipo retirado en FaceOps"}
+      - {id: C2, caso: "Repetir la eliminación del mismo clúster", tipo: Idempotencia, verificar: "ticket exitoso «Nada que eliminar» sin errores"}
+      - {id: C3, caso: "Modo ciclo sin clústeres vencidos ni fuera de horario", tipo: Funcional, verificar: "ticket exitoso; no apaga, enciende ni destruye nada"}
+      - {id: C4, caso: "Nombre inválido", tipo: Error controlado, verificar: "ticket fallido en «Datos»; no toca GCP"}
   "FaceOps · Agente de monitoreo (Linux)":
     casos:
       - {id: C1, caso: "Instalar en un Linux (nodo-jboss)", tipo: Funcional, verificar: "node_exporter activo en :9100 con las métricas del sistema y las de seguridad (faceops_seg_*: SSH fallidos, root, cuentas bloqueadas, SELinux, huella de archivos críticos) y su temporizador cada minuto"}

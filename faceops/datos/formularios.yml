@@ -410,6 +410,22 @@
     - {var: iv_infraestructura, etiqueta: "Infraestructura VMware", tipo: infraestructura, requerido: true}
     - {var: iv_cluster, etiqueta: "Clúster (manifiesto preparado)", tipo: text, requerido: true, defecto: "ocp-vmw", ayuda: "El nombre con que se preparó: el manifiesto se lee de Git (repositorio/openshift-manifiestos)"}
     - {var: iv_modo, etiqueta: "Qué hacer", tipo: multiplechoice, requerido: true, defecto: validar, opciones: [validar, instalar], ayuda: "validar: revalida y pasa el install-config por openshift-install sin crear nada · instalar: crea el clúster"}
+"OpenShift · Crear en GCP":
+  usa_limite: false
+  campos:
+    - {var: ocg_cluster, etiqueta: "Nombre del clúster", tipo: text, requerido: true, ayuda: "minúsculas, números y guiones (máx. 14) · api.<nombre>.<dominio base>"}
+    - {var: ocg_version, etiqueta: "Versión", tipo: multiplechoice, requerido: true, defecto: "ultima-4", opciones: ["ultima-4", "ultima-5"],
+       ayuda: "Última estable de la rama (canal stable de Red Hat); también acepta una versión exacta, p. ej. 4.22.22"}
+    - {var: ocg_topologia, etiqueta: "Tipo", tipo: multiplechoice, requerido: true, defecto: sno, opciones: [sno, completo],
+       ayuda: "sno: un nodo n2-standard-8 (por defecto) · completo: 3 control + 3 trabajo (avanzado)"}
+    - {var: ocg_vence_horas, etiqueta: "Vence en (horas)", tipo: integer, requerido: true, defecto: 24, ayuda: "Al vencer se destruye (máximo 168 = 7 días)"}
+    - {var: ocg_horario, etiqueta: "Apagado", tipo: multiplechoice, defecto: siempre, opciones: [siempre, "1-5_8-19"],
+       ayuda: "siempre: encendido hasta vencer · 1-5_8-19: lun–vie 08–19 (Chile), apagado el resto (nunca antes de 25 h de creado)"}
+"OpenShift · Eliminar en GCP":
+  usa_limite: false
+  campos:
+    - {var: ocg_cluster, etiqueta: "Clúster", tipo: text, requerido: true, ayuda: "El nombre con que se creó en GCP"}
+    - {var: ocg_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: eliminar, opciones: [eliminar, ciclo], ayuda: "eliminar: destruye el clúster · ciclo: vencidos y horario (lo programa AAP cada hora)"}
 "FaceOps · Incorporar máquinas":
   usa_limite: false
   campos:

@@ -1,0 +1,246 @@
+---
+# OpenShift · Eliminar en GCP. ocg_modo=eliminar: destruye el clúster ocg_cluster (openshift-install destroy cluster con sus
+# metadatos guardados; si se perdieron, se rearman desde las etiquetas de GCP), verifica que no quede ninguna instancia y retira
+# su credencial y su host de AAP. ocg_modo=ciclo (programado cada hora): destruye los vencidos (etiqueta faceops-expira) y
+# apaga/enciende según su horario (faceops-horario, zona ocg_tz), nunca antes de 25 h de creado (rotación inicial de certificados).
+- name: Qué eliminar o apagar
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    modo: "{{ ocg_modo | default('eliminar', true) }}"
+    proyecto: "{{ ocg_proyecto | default('master-ia-320218', true) }}"
+    region: "{{ ocg_region | default('southamerica-west1', true) }}"
+    py: "{{ playbook_dir }}/files/ocp_gcp.py"
+    api: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/api/controller/?$', '') | regex_replace('/$', '') }}/api/controller/v2"
+    auth: &auth
+      url_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+      url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+      force_basic_auth: true
+      validate_certs: false
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['eliminar', 'ciclo']
+          - modo == 'ciclo' or (ocg_cluster | default('') | string) is match('^[a-z]([a-z0-9-]{0,12}[a-z0-9])?$')
+        fail_msg: "Indica el clúster a eliminar (el nombre con que se creó) o el modo ciclo"
+        quiet: true
+
+    - name: Instancias de FaceOps en el proyecto
+      ansible.builtin.command:
+        argv: [python3, "{{ py }}", instancias, "{{ proyecto }}"]
+      register: r_ins
+      changed_when: false
+      failed_when: (r_ins.stdout | from_json).error is defined
+
+    - name: Clústeres en GCP (etiquetas)
+      ansible.builtin.set_fact:
+        inst: "{{ (r_ins.stdout | from_json).instancias }}"
+        ahora_: "{{ now(utc=true).timestamp() | int }}"
+
+    - name: Ciclo · vencidos y horario
+      when: modo == 'ciclo'
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import json, sys, time
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            inst, ahora, tz = json.loads(sys.argv[1]), int(sys.argv[2]), ZoneInfo(sys.argv[3])
+            t = datetime.fromtimestamp(ahora, tz)
+            cl = {}
+            for i in inst:
+                cl.setdefault(i["etiquetas"]["faceops-ocp"], []).append(i)
+            out = {"vencidos": [], "apagar": [], "encender": []}
+            for n, xs in cl.items():
+                e = xs[0]["etiquetas"]
+                if int(e.get("faceops-expira", "0") or 0) and int(e["faceops-expira"]) <= ahora:
+                    out["vencidos"].append(n); continue
+                h = e.get("faceops-horario", "siempre")
+                if h == "siempre" or "_" not in h:
+                    continue
+                d, hh = h.split("_"); d1, d2 = map(int, d.split("a")); h1, h2 = map(int, hh.split("a"))
+                dentro = d1 <= t.isoweekday() <= d2 and h1 <= t.hour < h2
+                creada = min(datetime.fromisoformat(x["creada"]).timestamp() for x in xs)
+                if not dentro and ahora - creada > 25 * 3600:
+                    out["apagar"] += [x for x in xs if x["estado"] == "RUNNING"]
+                if dentro:
+                    out["encender"] += [x for x in xs if x["estado"] == "TERMINATED" and x["etiquetas"].get("faceops-apagado") != "manual"]
+            print(json.dumps(out))
+          - "{{ inst | to_json }}"
+          - "{{ ahora_ }}"
+          - "{{ ocg_tz | default('America/Santiago', true) }}"
+      register: r_ciclo
+      changed_when: false
+
+    - name: Apagar / encender por horario
+      when: modo == 'ciclo'
+      ansible.builtin.command:
+        argv: [python3, "{{ py }}", energia, "{{ proyecto }}", "{{ item.0.zona }}", "{{ item.0.nombre }}", "{{ item.1 }}"]
+      loop: >-
+        {{ ((r_ciclo.stdout | from_json).apagar | product(['stop']) | list) + ((r_ciclo.stdout | from_json).encender | product(['start']) | list) }}
+      loop_control: {label: "{{ item.1 }} {{ item.0.nombre }}"}
+      changed_when: true
+
+    - name: Clústeres a destruir
+      ansible.builtin.set_fact:
+        destruir: "{{ (r_ciclo.stdout | from_json).vencidos if modo == 'ciclo' else [ocg_cluster | string] }}"
+
+    - name: Su credencial de acceso en AAP (metadatos y versión, campos no secretos)
+      ansible.builtin.uri:
+        url: "{{ api }}/credentials/?name={{ ('OpenShift · ' ~ item ~ ' · acceso') | urlencode }}"
+        <<: *auth
+      loop: "{{ destruir }}"
+      register: r_cred
+
+    - name: Metadatos por clúster (de la credencial o rearmados desde las etiquetas de GCP)
+      ansible.builtin.set_fact:
+        planes: >-
+          {{ planes | default([]) + [{'cluster': item.item, 'credencial': c.id | default(none),
+              'version': c.inputs.version | default(''), 'metadata': (c.inputs.metadata | default('') | from_json) if c.inputs.metadata | default('') else
+              ({'clusterName': item.item, 'infraID': infra, 'gcp': {'region': region, 'projectID': proyecto}} if infra else {}),
+              'instancias': inst | selectattr('etiquetas.faceops-ocp', 'equalto', item.item) | list | length}] }}
+      loop: "{{ r_cred.results }}"
+      loop_control: {label: "{{ item.item }}"}
+      vars:
+        c: "{{ item.json.results | first | default({}) }}"
+        etq: "{{ (inst | selectattr('etiquetas.faceops-ocp', 'equalto', item.item) | map(attribute='etiquetas') | first | default({})).keys() | list }}"
+        infra: "{{ etq | select('match', '^kubernetes-io-cluster-') | map('regex_replace', '^kubernetes-io-cluster-', '') | first | default('') }}"
+
+    - name: Para el anfitrión
+      no_log: true
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        ocg_planes: "{{ planes | default([]) }}"
+        ocg_sa: "{{ lookup('ansible.builtin.file', lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE')) | b64encode }}"
+      loop: "{{ groups['anfitrion_kvm'] | default([]) }}"
+      changed_when: false
+
+- name: Destruir (en el anfitrión)
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    base: /var/lib/faceops-openshift
+    sa: "{{ base }}/gcp/.sa-eliminar.json"
+  tasks:
+    - name: Destruir y limpiar
+      when: ocg_planes | length > 0
+      block:
+        - name: Cuenta de servicio (0600, sin mostrar)
+          no_log: true
+          ansible.builtin.copy:
+            dest: "{{ sa }}"
+            content: "{{ ocg_sa | b64decode }}"
+            mode: "0600"
+
+        - name: Metadatos guardados en el anfitrión
+          ansible.builtin.stat:
+            path: "{{ base }}/gcp/{{ item.cluster }}/metadata.json"
+          loop: "{{ ocg_planes }}"
+          loop_control: {label: "{{ item.cluster }}"}
+          register: r_meta
+
+        - name: Instalador disponible
+          ansible.builtin.find:
+            paths: "{{ base }}/bin"
+            patterns: openshift-install
+            recurse: true
+          register: r_bins
+
+        - name: openshift-install destroy cluster
+          ansible.builtin.shell: |
+            set -e
+            d=$(mktemp -d {{ base }}/gcp/.destruir-XXXX); trap 'rm -rf "$d"' EXIT
+            if [ -s {{ base }}/gcp/{{ item.0.cluster }}/metadata.json ]; then cp {{ base }}/gcp/{{ item.0.cluster }}/metadata.json "$d/"
+            else printf '%s' '{{ item.0.metadata | to_json }}' > "$d/metadata.json"; fi
+            v=$(cat {{ base }}/gcp/{{ item.0.cluster }}/version 2>/dev/null || echo '{{ item.0.version }}')
+            oi={{ base }}/bin/$v/openshift-install; [ -x "$oi" ] || oi={{ r_bins.files | map(attribute='path') | sort | last | default('false') }}
+            GOOGLE_APPLICATION_CREDENTIALS={{ sa }} $oi destroy cluster --dir "$d" --log-level error > "$d/salida" 2>&1 || { grep -viE 'token|secret|password' "$d/salida" | tail -n 4 | cut -c1-300; exit 1; }
+            echo destruido
+          loop: "{{ ocg_planes | zip(r_meta.results) | list }}"
+          loop_control: {label: "{{ item.0.cluster }}"}
+          when: item.1.stat.exists or (item.0.metadata.infraID | default('')) != ''
+          register: r_des
+          async: 3600
+          poll: 30
+          changed_when: true
+      always:
+        - name: Borrar la cuenta de servicio del disco
+          ansible.builtin.file:
+            path: "{{ sa }}"
+            state: absent
+
+- name: Verificar y retirar de AAP
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    proyecto: "{{ ocg_proyecto | default('master-ia-320218', true) }}"
+    py: "{{ playbook_dir }}/files/ocp_gcp.py"
+    api: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/api/controller/?$', '') | regex_replace('/$', '') }}/api/controller/v2"
+    auth: &auth2
+      url_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+      url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+      force_basic_auth: true
+      validate_certs: false
+  tasks:
+    - name: Instancias que quedan
+      ansible.builtin.command:
+        argv: [python3, "{{ py }}", instancias, "{{ proyecto }}"]
+      register: r_fin
+      changed_when: false
+
+    - name: Quedan en GCP
+      ansible.builtin.set_fact:
+        quedan: "{{ (r_fin.stdout | from_json).instancias | default([]) | selectattr('etiquetas.faceops-ocp', 'in', destruir) | map(attribute='etiquetas.faceops-ocp') | unique | list }}"
+        eliminados: "{{ destruir | difference((r_fin.stdout | from_json).instancias | default([]) | map(attribute='etiquetas.faceops-ocp') | list) }}"
+
+    - name: Retirar credencial y anfitrión del inventario de los eliminados
+      ansible.builtin.uri:
+        url: "{{ api }}/{{ item.1 }}/?name={{ (('OpenShift · ' ~ item.0 ~ ' · acceso') if item.1 == 'credentials' else ('ocp-' ~ item.0)) | urlencode }}"
+        <<: *auth2
+      loop: "{{ eliminados | product(['credentials', 'hosts']) | list }}"
+      register: r_ret
+
+    - name: Borrar
+      ansible.builtin.uri:
+        url: "{{ api }}/{{ item.item.1 }}/{{ x.id }}/"
+        method: DELETE
+        status_code: [204, 404]
+        <<: *auth2
+      loop: "{{ r_ret.results | selectattr('json.results', 'defined') | list }}"
+      loop_control: {label: "{{ item.item.1 }} {{ item.item.0 }}"}
+      when: x.id is defined and (item.item.1 == 'credentials' or (x.summary_fields.inventory.name | default('')) == 'OpenShift · clústeres')
+      vars:
+        x: "{{ item.json.results | first | default({}) }}"
+
+    - name: Metadatos del anfitrión de los eliminados
+      ansible.builtin.file:
+        path: "/var/lib/faceops-openshift/gcp/{{ item.0 }}"
+        state: absent
+      delegate_to: "{{ item.1 }}"
+      loop: "{{ eliminados | product(groups['anfitrion_kvm'] | default([])) | list }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_openshift_eliminado:
+            modo: "{{ ocg_modo | default('eliminar', true) }}"
+            eliminados: "{{ eliminados }}"
+            quedan: "{{ quedan }}"
+            apagados: "{{ ((r_ciclo.stdout | default('{}') | from_json).apagar | default([])) | map(attribute='nombre') | list }}"
+            encendidos: "{{ ((r_ciclo.stdout | default('{}') | from_json).encender | default([])) | map(attribute='nombre') | list }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ ('Eliminados: ' ~ (eliminados | join(', '))) if eliminados else 'Nada que eliminar' }}{{ (' · QUEDAN instancias de: ' ~ (quedan | join(', '))) if quedan else ' · sin instancias en GCP' }}
+
+    - name: No quedó nada en GCP
+      ansible.builtin.assert:
+        that: [quedan | length == 0]
+        fail_msg: "Quedan instancias de {{ quedan | join(', ') }} en {{ proyecto }}: revisa la destrucción"
+        quiet: true

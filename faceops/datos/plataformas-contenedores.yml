@@ -1,0 +1,36 @@
+# Catálogo de «Crear plataforma de contenedores» (Contenedores › Crear plataforma de contenedores › Crear).
+# Cada opción es una plataforma que FaceOps sabe crear con una acción de AAP (ticket y aprobación). La versión exacta se resuelve
+# sola con la última GA de la rama mayor (canal stable de api.openshift.com); si la rama no tiene GA, la opción queda deshabilitada
+# con su motivo y, si hay canal candidate o fast, se indica (nunca se instala desde ellos). Para agregar otra, suma una entrada.
+opciones:
+  - id: ocp4-gcp-ipi
+    nombre: "OpenShift 4 · IPI sobre GCP"
+    producto: openshift
+    rama: 4
+    metodo: ipi
+    plataforma: gcp
+    accion: "OpenShift · Crear en GCP"
+    eliminar: "OpenShift · Eliminar en GCP"
+  - id: ocp5-gcp-ipi
+    nombre: "OpenShift 5 · IPI sobre GCP"
+    producto: openshift
+    rama: 5
+    metodo: ipi
+    plataforma: gcp
+    accion: "OpenShift · Crear en GCP"
+    eliminar: "OpenShift · Eliminar en GCP"
+# Tipos de clúster (SNO por defecto; completo es la opción avanzada)
+topologias:
+  sno: {nombre: "SNO · un nodo (control y trabajo)", nodos: "1 × n2-standard-8"}
+  completo: {nombre: "Completo 3+3 (avanzado)", nodos: "3 control n2-standard-8 + 3 trabajo n2-standard-4"}
+# Destino GCP del laboratorio de Invoke
+gcp:
+  proyecto: master-ia-320218
+  region: southamerica-west1
+  dominio: ""          # zona DNS pública en Cloud DNS (base domain); vacío = prerrequisito pendiente
+  credencial: "GCP · OpenShift IPI (master-ia-320218)"
+# Vencimiento y apagado, como la demo instantánea de FaceAdmin: al vencer se destruye; fuera de horario se apaga
+vencimiento_horas: [{v: 8, t: "8 horas"}, {v: 24, t: "1 día"}, {v: 72, t: "3 días"}, {v: 168, t: "7 días (máximo)"}]
+vencimiento_defecto: 24
+horarios: [{v: "siempre", t: "Siempre encendido"}, {v: "1-5_8-19", t: "Lun–vie 08:00–19:00 (Chile), apagado el resto"}]
+horario_defecto: "siempre"

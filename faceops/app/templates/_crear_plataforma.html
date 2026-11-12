@@ -1,0 +1,33 @@
+{# Contenedores › «Crear plataforma de contenedores»: conectar un clúster existente o crear uno en GCP (acción de AAP con ticket
+   y aprobación). Las opciones y su versión (última estable de la rama) llegan de /contenedores/crear/opciones al abrir. #}
+<dialog id="dlg-crear-plat" class="dlg"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
+<h2 style="margin-top:0">Crear plataforma de contenedores</h2>
+<div class="sel-prov" role="tablist" style="margin-bottom:10px">
+<a href="#" class="sel-op on" data-modo="crear">Crear en GCP</a>
+<a href="{{ url_for('consola.infraestructuras', nuevo='openshift', solo='contenedores', volver=request.path) }}#incorporar" class="sel-op" data-modo="conectar">Conectar existente</a></div>
+<form method="post" action="{{ url_for('consola.contenedores_crear') }}" class="card form-infra" id="f-crear-plat" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<p class="sub" style="margin:0">Elige qué instalar. La versión exacta es la última estable de su rama (canal <i>stable</i> de Red Hat). Se lanza como acción con ticket y aprobación; al terminar, el clúster queda registrado aquí.</p>
+<div id="cp-opciones" class="sub">Consultando las versiones estables…</div>
+<label>Nombre del clúster <span class="req" aria-hidden="true">*</span><input name="ocg_cluster" required pattern="[a-z]([a-z0-9-]{0,12}[a-z0-9])?" maxlength="14" placeholder="ej. demo-sno">
+<span class="sub" style="font-weight:400">minúsculas, números y guiones (máx. 14) · queda como api.&lt;nombre&gt;.<span id="cp-dominio">&lt;dominio base&gt;</span></span></label>
+<div class="fila" style="gap:12px;flex-wrap:wrap">
+<label style="flex:1">Vence en<select name="ocg_vence_horas" id="cp-vence"></select><span class="sub" style="font-weight:400">al vencer se destruye</span></label>
+<label style="flex:1">Apagado<select name="ocg_horario" id="cp-horario"></select></label></div>
+<details><summary class="sub">Opciones avanzadas</summary>
+<label>Tipo<select name="ocg_topologia" id="cp-topo"></select></label></details>
+<p class="sub" id="cp-destino" style="margin:0;font-size:12.5px"></p>
+<div id="cp-prerreq" class="sub" style="margin:0;font-size:12.5px;border-left:3px solid var(--info,#2b9af3);padding-left:8px">
+<b>Prerrequisitos de «Crear en GCP»</b>: zona DNS pública en Cloud DNS (dominio base) · pull secret de Red Hat (se obtiene con el offline token de la credencial «OpenShift · Red Hat OCM» de AAP, sin mostrarlo) · cuenta de servicio de GCP con permisos para IPI (Compute, DNS, IAM, Storage y Service Usage) y cuota de CPU en la región. El acceso del clúster (kubeconfig y clave de kubeadmin) queda solo en la credencial cifrada de AAP.</div>
+<button class="btn" id="cp-enviar" disabled>Crear</button></form></dialog>
+<script>(()=>{const d=document.getElementById('dlg-crear-plat'),b=document.getElementById('btn-crear-plat'),box=document.getElementById('cp-opciones'),env=document.getElementById('cp-enviar');let cargado=false;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function opts(sel,xs,def){sel.innerHTML=xs.map(x=>'<option value="'+esc(x.v)+'"'+(String(x.v)===String(def)?' selected':'')+'>'+esc(x.t)+'</option>').join('');}
+async function cargar(){if(cargado)return;cargado=true;try{const r=await fetch('{{ url_for('consola.contenedores_crear_opciones') }}',{headers:{'Accept':'application/json'}});const j=await r.json();
+  const pri=j.opciones.find(o=>o.habilitada);
+  box.innerHTML=j.opciones.map(o=>'<label class="op" style="display:block;margin:4px 0'+(o.habilitada?'':';opacity:.6')+'"><input type="radio" name="opcion" value="'+esc(o.id)+'"'+(o.habilitada?'':' disabled')+(pri&&pri.id===o.id?' checked':'')+'> <b>'+esc(o.nombre)+'</b>'+(o.version?' · OpenShift '+esc(o.version)+' <span class="sub">('+esc(o.canal)+')</span>':'')+(o.motivo?'<br><span class="sub" style="font-weight:400">'+esc(o.motivo)+'</span>':'')+'</label>').join('');
+  opts(document.getElementById('cp-topo'),Object.entries(j.topologias||{}).map(([k,v])=>({v:k,t:v.nombre+' · '+v.nodos})),'sno');
+  opts(document.getElementById('cp-vence'),j.vencimientos||[],j.vence_defecto);opts(document.getElementById('cp-horario'),j.horarios||[],j.horario_defecto);
+  const g=j.gcp||{};document.getElementById('cp-dominio').textContent=g.dominio||'<dominio base pendiente>';
+  document.getElementById('cp-destino').textContent='Destino: proyecto '+(g.proyecto||'—')+' · región '+(g.region||'—')+' · IPI';
+  env.disabled=!pri;}catch(e){box.textContent='No se pudieron consultar las opciones: '+e;}}
+if(b)b.addEventListener('click',()=>{d.showModal();cargar();});})();</script>
