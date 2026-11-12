@@ -1,10 +1,21 @@
-commit: 1dc6aac903406ecb1b3942243eeae08bd020eb28
-inicio: 2026-11-12T19:51:15-03:00
+commit: f5d6d58a27594c38c9143537306bcee5ffc87256
+inicio: 2026-11-12T19:51:58-03:00
 ---
 desplegado: 120cf198 2026-11-12 22:42
+Traceback (most recent call last):
+  File "/tmp/n3t.py", line 10, in <module>
+    "encendida": 26, "apagada": next(e["id"] for e in eqs if e["nombre"] == "srv-app-01"),
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+StopIteration
 objetivos: 
-  File "/tmp/n3.py", line 68
-    ("/automatizaciones", lambda pg: f"acciones listadas {pg.locator('a[href*=\"/automatizaciones/\"]').count()} · bloqueadas marcadas {txt(pg).lower().count('bloquead')}"),
-                                                                                                                                                                            ^
-SyntaxError: f-string expression part cannot include a backslash
---- fin: 2026-11-12T19:51:22-03:00 · código: 0
+Traceback (most recent call last):
+  File "/tmp/n3.py", line 6, in <module>
+    T = json.loads(sys.argv[1]); C = json.load(open("/tmp/qa-n3.json"))
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+--- fin: 2026-11-12T19:52:05-03:00 · código: 0
