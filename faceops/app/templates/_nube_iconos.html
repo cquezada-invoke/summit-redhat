@@ -1,0 +1,7 @@
+{# Ficha de nube · campana de alertas propias de la nube y botón Skills, a la derecha (52 px), como en hipervisores y
+   plataformas. Las acciones de la nube viven como skills (lo que gana el cliente), no en una lista aparte. #}
+{% from "_alertas.html" import boton_alertas with context %}{% set al_nube = alertas_nube(x) %}
+<div class="nb-iconos">{% if al_nube %}{{ boton_alertas(al_nube, url_for('consola.nube_alertas', iid=x.id), x.nombre) }}{% endif %}
+{% set hb_lista = habilidades_nube(x) %}{% set hb_titulo = x.nombre %}{% set hb_sub = x.prov.nombre ~ ' · cada skill crea un ticket con aprobación en AAP con la credencial cifrada de la conexión; FaceOps no toca la nube directo' %}{% include "_habilidades.html" %}</div>
+<style>.nb-iconos{display:flex;gap:10px;align-items:center;margin-left:auto}.nb-cab .nb-iconos .hb-btn,.nb-cab .nb-iconos .al-btn{width:52px;height:52px;margin:0}
+.nb-cab .der+.nb-iconos{margin-left:10px}</style>

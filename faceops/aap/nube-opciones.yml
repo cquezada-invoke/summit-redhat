@@ -1,0 +1,64 @@
+---
+# Nube · Leer opciones de la nube. Solo lectura: regiones, zonas, tipos de máquina con precios de la región, imágenes, redes, subredes, cuentas de servicio,
+# firewall, máquinas con sus discos, snapshots, permisos que le faltan a la cuenta de servicio y salud de los productos de FaceOps.
+# Lo lanza FaceOps desde la ficha de la nube con la credencial cifrada de la conexión (GCP), sin ticket (solo lectura: FaceOps la cachea).
+# Variables: nb_infra_id, nb_proyecto (proyecto de la conexión), nb_entrada (lo que arma FaceOps; nunca secretos).
+# Resultado (set_stats faceops_nube_opciones): lo leído; FaceOps lo guarda en su caché.
+- name: Nube · Leer opciones de la nube
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - nb_infra_id | default('') | string is match('^[0-9]+$')
+          - nb_proyecto | default('') is match('^[a-z][a-z0-9-]{4,28}[a-z0-9]$')
+        fail_msg: "Falta la nube (nb_infra_id) o el proyecto no es válido"
+        quiet: true
+
+    - name: Archivos temporales (un nombre fijo para toda la corrida)
+      ansible.builtin.set_fact:
+        entrada: "/tmp/nube-opciones-{{ nb_infra_id }}-{{ 999999999 | random }}.json"
+
+    - name: Salida
+      ansible.builtin.set_fact:
+        salida: "{{ entrada | regex_replace('\\.json$', '-salida.json') }}"
+
+    - name: Entrada para la nube (sin secretos)
+      ansible.builtin.copy:
+        content: "{{ nb_entrada | default({}) | to_json }}"
+        dest: "{{ entrada }}"
+        mode: "0600"
+      changed_when: false
+
+    - name: Leer la nube con la credencial cifrada de la conexión (sin secretos en la salida)
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/nube_gcp.py", opciones, "{{ nb_proyecto }}", "{{ entrada }}", "{{ salida }}"]
+      register: corrida
+      changed_when: false
+      no_log: true
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        res: "{{ lookup('ansible.builtin.file', salida) | from_json }}"
+
+    - name: Borrar los archivos temporales
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: ["{{ entrada }}", "{{ salida }}"]
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_nube_opciones: "{{ res | combine({'infra_id': nb_infra_id | int}) }}"
+        per_host: false
+
+    - name: Lectura completa
+      ansible.builtin.assert:
+        that: res.ok | bool
+        success_msg: >-
+          {{ res.regiones | default([]) | length }} regiones · {{ res.tipos | default({}) | length }} tipos de máquina ·
+          {{ res.maquinas | default([]) | length }} máquinas · permisos que faltan: {{ (res.permisos_faltan | default([], true)) | length if res.permisos_faltan is not none else 'sin lectura' }}
+        fail_msg: "No se pudo leer la nube: {{ res.error | default('sin detalle') }}"

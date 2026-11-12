@@ -25,6 +25,9 @@ tipos:
   # Hipervisores (campana de su ficha /hipervisores/<id>): el objeto es el hipervisor; sus métricas vienen de su anfitrión o de su exportador
   kvm:     {nombre: "Hipervisor KVM", fuente: "node_exporter del anfitrión (:9100, con systemd)", puerto: 9100, job: faceops-equipos}
   vmware:  {nombre: "VMware vSphere", fuente: "vmware_exporter apuntando al vCenter (:9272)", puerto: 9272, job: faceops-equipos}
+  # Nube (campana de su ficha /nubes/<id>): lo que AAP lee de la nube con la credencial de la conexión (consumo, cuotas, llaves,
+  # máquinas y APIs), publicado por FaceOps en el anfitrión sin agente (/metricas/plataformas)
+  nube:    {nombre: "Nube (GCP, AWS, Azure)", fuente: "lecturas de la nube por AAP con la credencial de la conexión, publicadas por FaceOps (/metricas/plataformas, sin agente)", puerto: 8110, job: faceops-plataformas}
 # Acciones: lo que la automatización hará cuando la alerta se dispare (se elige una por alerta en el flotante). «avisar»
 # solo registra el evento en Event-Driven Ansible; las demás piden la automatización indicada, siempre con aprobación.
 acciones:
@@ -313,6 +316,29 @@ alertas:
   - {id: V06, tipos: [vmware], grupo: Disponibilidad, nombre: "vMotion fallido", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
   - {id: V07, tipos: [vmware], grupo: Capacidad, nombre: "Sobreasignación de CPU o memoria excesiva", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
   - {id: V08, tipos: [vmware], grupo: Operación, nombre: "Snapshots viejos", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  # ───────── Nube (ficha de la nube, campana junto a Skills). Medidas SIN agente: FaceOps publica lo que AAP leyó de la nube
+  #   (consumo y estado de la nube; opciones y permisos) como faceops_plataforma_indicador{faceops_plataforma="nube"}.
+  - {id: NB01, tipos: [nube], ambito: "plataforma:nube", sin_agente: true, grupo: Costo, nombre: "Consumo del mes sobre el umbral", unidad: "USD", acciones: [avisar],
+     descripcion: "Consumo del mes en curso hasta la última muestra (facturación real o estimado), en USD",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="nube",indicador="consumo_mes_usd"}) > __UMBRAL__', aviso: 500, critico: 1000, para: 0m}
+  - {id: NB02, tipos: [nube], ambito: "plataforma:nube", sin_agente: true, grupo: Costo, nombre: "Consumo sobre el presupuesto", unidad: "% del presupuesto", acciones: [avisar],
+     descripcion: "Consumo del mes contra el presupuesto mensual de la cuenta de facturación (solo si hay presupuesto definido)",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="nube",indicador="consumo_pct_presupuesto"}) > __UMBRAL__', aviso: 80, critico: 100, para: 0m}
+  - {id: NB03, tipos: [nube], ambito: "plataforma:nube", sin_agente: true, grupo: Disponibilidad, nombre: "Máquina detenida inesperadamente", acciones: [avisar],
+     descripcion: "Máquinas que FaceOps tiene como encendidas y la nube informa detenidas (sin un ticket de apagado)",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="nube",indicador="vm_detenidas_inesperadas"}) > 0', umbral: false, severidad: critico, para: 5m}
+  - {id: NB04, tipos: [nube], ambito: "plataforma:nube", sin_agente: true, grupo: Capacidad, nombre: "Cuota cercana al límite", unidad: "%", acciones: [avisar],
+     descripcion: "La cuota de la nube más usada (CPU, IPs, discos… por región o proyecto): al llegar al límite no se pueden crear recursos",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="nube",indicador="cuota_max_pct"}) > __UMBRAL__', aviso: 80, critico: 90, para: 0m}
+  - {id: NB05, tipos: [nube], ambito: "plataforma:nube", sin_agente: true, grupo: Seguridad, nombre: "Llave de cuenta de servicio por vencer", unidad: "días de antigüedad", acciones: [avisar],
+     descripcion: "La llave de cuenta de servicio más antigua del proyecto (la política es rotarlas a los 90 días)",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="nube",indicador="llave_max_dias"}) > __UMBRAL__', aviso: 80, critico: 90, para: 0m}
+  - {id: NB06, tipos: [nube], ambito: "plataforma:nube", sin_agente: true, grupo: Operación, nombre: "API necesaria deshabilitada", acciones: [avisar],
+     descripcion: "Alguna API que usan las máquinas o los productos creados desde FaceOps no está habilitada en el proyecto",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="nube",indicador="apis_faltantes"}) > 0', umbral: false, severidad: aviso, para: 0m}
+  - {id: NB07, tipos: [nube], ambito: "plataforma:nube", sin_agente: true, grupo: Operación, nombre: "Lectura de la nube atrasada", unidad: "horas", acciones: [avisar],
+     descripcion: "Horas desde la última lectura de la nube por AAP: si crece, la credencial o la conexión dejaron de funcionar",
+     expr: 'max(faceops_plataforma_indicador{faceops_equipo="__EQ__",faceops_plataforma="nube",indicador="lectura_edad_horas"}) > __UMBRAL__', aviso: 26, critico: 50, para: 0m}
   # ───────── Plataformas · indicadores propios medidos SIN agente («Plataforma · Medir salud» por SSH/WinRM/API, inventario de red
   #   o recolección del clúster). FaceOps publica lo medido en /metricas/plataformas (job faceops-plataformas de Prometheus);
   #   sin_agente: la alerta no exige el exportador de la máquina. Ámbito plataforma:<familia>: van a la campana global agrupadas.

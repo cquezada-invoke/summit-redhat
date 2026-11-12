@@ -839,6 +839,11 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
                 job = aap.lanzar(tipo, id_, extra_vars=params, credenciales=[cr_id])
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
+        if a["nombre_aap"] in ("Nube · Crear máquina", "Nube · Operar máquina", "Nube · Producto de la nube"):   # ficha de nube: credencial cifrada de su conexión
+            from .nube_recursos import lanzar as _nube_lanzar
+            tipo, job = _nube_lanzar(aap, c, a, params, amb)
+            ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+            return
         if a["nombre_aap"] == VINCULAR_ONPREM:   # en el anfitrión KVM (credencial fija de la plantilla), no en la máquina
             from .compatibilidad import sistema_fino
             e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], params.get("vo_maquina") or (t["limite"] or "").split(":")[0])
@@ -1380,6 +1385,12 @@ def actualizar_tickets():
                     est = "fallido"
                     res += f"\nLa máquina se creó, pero no se pudo dar de alta en AAP ni en FaceOps: {str(x)[:300]}"
                     ej("UPDATE tickets SET estado=?, resultado=? WHERE id=?", est, res, t["id"])
+            if a and a["nombre_aap"] in ("Nube · Crear máquina", "Nube · Operar máquina", "Nube · Producto de la nube"):   # ficha de nube: alta y vínculo, estado y productos
+                try:
+                    from .nube_recursos import al_terminar as _nube_fin
+                    est, res = _nube_fin(aap, c, t, a, est, res)
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error al cerrar acción de nube", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == VINCULAR_ONPREM:   # IP, acceso en la bóveda y AAP, e inventario
                 try:
                     res += "\n" + registrar_vinculada_onprem(aap, c, t)

@@ -1,0 +1,545 @@
+# Catálogo de la ficha de nube (/nubes/<id>): máquinas y productos adicionales que FaceOps crea en la nube del cliente,
+# siempre por AAP con ticket y aprobación. Es extensible: para sumar un producto agrega una entrada en su categoría.
+# Sirve para GCP hoy; AWS y Azure usan la misma estructura (bajo su proveedor) cuando se habiliten.
+#
+# Producto:
+#   id            clave corta (sin espacios); nombre / resumen  lo que se ve en la tarjeta del catálogo
+#   que_es, para_que, precios, limites, doc       ficha informativa (estilo OperatorHub) que se abre antes de crear
+#   caro          true: por ahora solo se valida el formulario en su plan de prueba (no se crean recursos): queda «sin certificar»
+#   servicio      API que debe estar habilitada en el proyecto
+#   permisos      permisos que la cuenta de servicio de la conexión necesita para crear y eliminar (se revisan con
+#                 testIamPermissions); el rol que los da sale de «roles_por_permiso»
+#   campos        formulario mínimo: var, etiqueta, tipo (text | number | select | bool), opciones, defecto, requerido,
+#                 patron (regex), min, max, ayuda. «nombre» siempre existe (patrón propio con «patron_nombre»)
+#   costo         estimado mensual en USD: fijo, por (campo → {valor: usd}), por_unidad ({campo, usd} por unidad del campo),
+#                 nota (lo que depende del uso). Es una referencia con precios de lista; el consumo real lo trae
+#                 «Nube · Recuperar consumo y estado»
+#   crear         pasos REST (metodo, url, cuerpo) con {proyecto} {region} {zona} {red} {nombre} y cada campo del formulario;
+#                 un valor que es solo "{campo}" conserva su tipo (número, booleano)
+#   estado        {url, campo, ok: [valores sanos]}: salud del producto ya creado (sin campo: existir es estar sano)
+#   eliminar      pasos REST para eliminarlo (en orden). sin_eliminar: true si la nube no permite borrarlo
+proveedores:
+  gcp:
+    nombre: Google Cloud
+    consola: "https://console.cloud.google.com/"
+    # ----------------------------------------------------------------- máquinas (Compute Engine)
+    maquinas:
+      familias:
+        - {id: e2, nombre: "E2 · uso general económico", nota: "Núcleo compartido en e2-micro/small/medium; la opción de menor costo"}
+        - {id: n2, nombre: "N2 · uso general (Intel)", nota: "Rendimiento parejo para servidores de aplicación y bases de datos medianas"}
+        - {id: n2d, nombre: "N2D · uso general (AMD)", nota: "Mejor precio por núcleo que N2"}
+        - {id: n4, nombre: "N4 · uso general (última generación)", nota: "Solo discos Hyperdisk"}
+        - {id: t2d, nombre: "T2D · escalamiento horizontal", nota: "Sin hilos compartidos: un vCPU es un núcleo físico"}
+        - {id: c3, nombre: "C3 · optimizada para cómputo", nota: "Cargas intensivas en CPU; desde 4 vCPU"}
+      # Respaldo si la lectura de la nube aún no trae los tipos (vCPU, GB de RAM)
+      tipos:
+        e2-micro: [0.25, 1]
+        e2-small: [0.5, 2]
+        e2-medium: [1, 4]
+        e2-standard-2: [2, 8]
+        e2-standard-4: [4, 16]
+        e2-standard-8: [8, 32]
+        e2-highmem-2: [2, 16]
+        e2-highmem-4: [4, 32]
+        e2-highcpu-4: [4, 4]
+        n2-standard-2: [2, 8]
+        n2-standard-4: [4, 16]
+        n2-standard-8: [8, 32]
+        n2-highmem-4: [4, 32]
+        n2d-standard-2: [2, 8]
+        n2d-standard-4: [4, 16]
+        n2d-standard-8: [8, 32]
+        n4-standard-2: [2, 8]
+        n4-standard-4: [4, 16]
+        t2d-standard-2: [2, 8]
+        t2d-standard-4: [4, 16]
+        c3-standard-4: [4, 16]
+        c3-standard-8: [8, 32]
+      # Precios de lista por hora (USD, us-central1) por familia: [vCPU, GB de RAM]; los núcleos compartidos tienen precio propio.
+      # La lectura de la nube trae los precios reales de la región (Cloud Billing Catalog); esto es el respaldo.
+      precio_hora:
+        e2: [0.021811, 0.002923]
+        n2: [0.031611, 0.004237]
+        n2d: [0.027502, 0.003686]
+        n4: [0.030483, 0.004090]
+        t2d: [0.027502, 0.003686]
+        c3: [0.034650, 0.004650]
+      precio_hora_compartido: {e2-micro: 0.008376, e2-small: 0.016751, e2-medium: 0.033503}
+      factor_region: {southamerica-west1: 1.38, southamerica-east1: 1.50, us-central1: 1.0, us-east1: 1.0, us-east4: 1.13, northamerica-south1: 1.18, us-west1: 1.0}
+      horas_mes: 730
+      ip_publica_hora: 0.005
+      licencia_hora: {windows_por_vcpu: 0.046, rhel_hasta_4: 0.06, rhel_mas_de_4: 0.13}
+      discos:
+        - {id: pd-balanced, nombre: "Balanceado (pd-balanced)", usd_gb_mes: 0.10, min: 10}
+        - {id: pd-ssd, nombre: "SSD (pd-ssd)", usd_gb_mes: 0.17, min: 10}
+        - {id: pd-standard, nombre: "Estándar HDD (pd-standard)", usd_gb_mes: 0.04, min: 10}
+        - {id: hyperdisk-balanced, nombre: "Hyperdisk balanceado (N4, C3)", usd_gb_mes: 0.08, min: 10, familias: [n4, c3]}
+      imagenes:
+        - {id: rhel-10, so: rhel10, nombre: "Red Hat Enterprise Linux 10", familia: linux, imagen: "projects/rhel-cloud/global/images/family/rhel-10", licencia: rhel, disco_min: 20}
+        - {id: rhel-9, so: rhel9, nombre: "Red Hat Enterprise Linux 9", familia: linux, imagen: "projects/rhel-cloud/global/images/family/rhel-9", licencia: rhel, disco_min: 20}
+        - {id: rhel-8, so: rhel8, nombre: "Red Hat Enterprise Linux 8", familia: linux, imagen: "projects/rhel-cloud/global/images/family/rhel-8", licencia: rhel, disco_min: 20}
+        - {id: rocky-9, so: rocky9, nombre: "Rocky Linux 9", familia: linux, imagen: "projects/rocky-linux-cloud/global/images/family/rocky-linux-9", disco_min: 20}
+        - {id: rocky-8, so: rocky8, nombre: "Rocky Linux 8", familia: linux, imagen: "projects/rocky-linux-cloud/global/images/family/rocky-linux-8", disco_min: 20}
+        - {id: ubuntu-2404, so: ubuntu2404, nombre: "Ubuntu 24.04 LTS", familia: linux, imagen: "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64", disco_min: 10}
+        - {id: ubuntu-2204, so: ubuntu2204, nombre: "Ubuntu 22.04 LTS", familia: linux, imagen: "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts", disco_min: 10}
+        - {id: debian-12, so: debian12, nombre: "Debian 12", familia: linux, imagen: "projects/debian-cloud/global/images/family/debian-12", disco_min: 10}
+        - {id: windows-2025, so: windows2025, nombre: "Windows Server 2025 Datacenter", familia: windows, imagen: "projects/windows-cloud/global/images/family/windows-2025", licencia: windows, disco_min: 50, ram_min: 4}
+        - {id: windows-2022, so: windows2022, nombre: "Windows Server 2022 Datacenter", familia: windows, imagen: "projects/windows-cloud/global/images/family/windows-2022", licencia: windows, disco_min: 50, ram_min: 4}
+        - {id: windows-2019, so: windows2019, nombre: "Windows Server 2019 Datacenter", familia: windows, imagen: "projects/windows-cloud/global/images/family/windows-2019", licencia: windows, disco_min: 50, ram_min: 4}
+      regiones_nombre: {southamerica-west1: Santiago, southamerica-east1: "São Paulo", northamerica-south1: "Querétaro", us-central1: Iowa, us-east1: "Carolina del Sur", us-east4: Virginia, us-west1: "Oregón", europe-west1: "Bélgica", europe-southwest1: Madrid}
+      # Acciones sobre máquinas: permisos que pide cada una (se revisan con testIamPermissions)
+      acciones:
+        crear: [compute.instances.create, compute.instances.setMetadata, compute.instances.setLabels, compute.instances.setTags, compute.disks.create, compute.subnetworks.use, compute.subnetworks.useExternalIp, iam.serviceAccounts.actAs]
+        encender: [compute.instances.start]
+        apagar: [compute.instances.stop]
+        reiniciar: [compute.instances.reset]
+        redimensionar: [compute.instances.setMachineType, compute.instances.stop, compute.instances.start]
+        disco_agregar: [compute.disks.create, compute.instances.attachDisk]
+        disco_ampliar: [compute.disks.resize]
+        etiquetas: [compute.instances.setLabels, compute.instances.setTags]
+        snapshot: [compute.disks.createSnapshot, compute.snapshots.create]
+        firewall: [compute.firewalls.create, compute.firewalls.update, compute.networks.updatePolicy, compute.instances.setTags]
+        eliminar: [compute.instances.delete, compute.disks.delete, compute.snapshots.delete, compute.firewalls.delete]
+    # ----------------------------------------------------------------- skills de la nube (botón Skills de la ficha, junto a la campana)
+    # Mismas columnas que las skills de máquinas y plataformas: tipo (diferenciador | quick win), grupo, valor = lo que gana el
+    # cliente, nombre_aap = acciones de AAP que la ejecutan (la primera publicada). Sin acción publicada o sin su plan de prueba
+    # aprobado se muestran deshabilitadas con el motivo. por_maquina: se pide desde la ficha de cada máquina.
+    # parametros: fijos; {proyecto} {zona} {region} {nube} se completan con la conexión de la nube.
+    skills:
+      - {id: nb-huerfanos, tipo: quick win, grupo: Costo, nombre: "Recursos huérfanos: reporte y limpieza", nombre_aap: ["Nube · Reporte de huérfanos con limpieza", "Nube · Reporte de huérfanos"],
+         valor: "Encuentra discos sin máquina, IPs reservadas sin uso y snapshots viejos que se pagan igual, y los limpia con aprobación: ahorro mensual inmediato y sin riesgo."}
+      - {id: nb-limpiar, tipo: quick win, grupo: Costo, nombre: "Limpiar recursos huérfanos", nombre_aap: ["Nube · Limpiar huérfanos"],
+         valor: "Borra lo que el reporte marcó como huérfano (con aprobación), así la factura deja de cobrar recursos que nadie usa."}
+      - {id: nb-firewall, tipo: quick win, grupo: Seguridad, nombre: "Vigilar reglas de firewall peligrosas", nombre_aap: ["Nube · Vigilar firewall"],
+         valor: "Detecta reglas abiertas a internet en puertos sensibles (SSH, RDP, bases de datos) antes de que alguien las use; cierra la puerta de entrada más común de los ataques en la nube."}
+      - {id: nb-rightsizing, tipo: diferenciador, grupo: Costo, nombre: "Rightsizing de máquinas", nombre_aap: ["Nube · Rightsizing de máquinas"],
+         valor: "Ajusta el tipo de cada máquina a su uso real (CPU y memoria medidas y recomendaciones de Google), con apagado controlado: paga solo lo que necesita, típicamente 20–40 % menos en cómputo."}
+      - {id: nb-ociosas, tipo: quick win, grupo: Costo, nombre: "Apagar máquinas ociosas fuera de horario", nombre_aap: ["Nube · Apagar máquinas ociosas"],
+         valor: "Apaga en las noches y fines de semana las máquinas de desarrollo y QA sin uso y las enciende al empezar el día: hasta 65 % menos en esos ambientes."}
+      - {id: nb-snapshots, tipo: quick win, grupo: Respaldo, nombre: "Snapshots programados de los discos", nombre_aap: ["Nube · Programar snapshots"],
+         valor: "Deja una política de snapshots diarios con retención en los discos de las máquinas: recuperar un servidor pasa de horas a minutos, sin agentes de respaldo."}
+      - {id: nb-etiquetas, tipo: quick win, grupo: Costo, nombre: "Etiquetado de costos", nombre_aap: ["Nube · Etiquetar costos"],
+         valor: "Pone etiquetas de ambiente, dueño y centro de costo a máquinas, discos y productos sin etiquetar: la factura queda separada por área y por aplicación."}
+      - {id: nb-llaves, tipo: quick win, grupo: Seguridad, nombre: "Rotar llaves de cuentas de servicio", nombre_aap: ["Nube · Rotar llaves de cuentas de servicio"],
+         valor: "Rota las llaves de cuentas de servicio con más de 90 días y deja la nueva solo en AAP cifrada: una llave filtrada deja de servir."}
+      - {id: nb-presupuesto, tipo: quick win, grupo: Costo, nombre: "Presupuesto y aviso de gasto", nombre_aap: ["Nube · Configurar presupuesto"],
+         valor: "Define el presupuesto mensual del proyecto con avisos al 50, 80 y 100 %: ninguna sorpresa a fin de mes."}
+      - {id: nb-compromisos, tipo: diferenciador, grupo: Costo, nombre: "Descuentos por uso comprometido", nombre_aap: ["Nube · Evaluar compromisos de uso"],
+         valor: "Calcula con el consumo real cuánto ahorraría un compromiso de 1 o 3 años (CUD) por familia y región: hasta 55 % menos en cargas estables."}
+      - {id: nb-migrar-evaluar, tipo: diferenciador, grupo: Migraciones, nombre: "Evaluar migración de un servidor a la nube", nombre_aap: ["Migración a GCP · Evaluar servidor"], por_maquina: true,
+         valor: "Recomienda cómo llevar cada servidor a Google Cloud (rehost, replatform o refactor), con el tipo de máquina por uso real y los servicios administrados que lo reemplazan."}
+      - {id: nb-migrar-linux, tipo: diferenciador, grupo: Migraciones, nombre: "Migrar un servidor Linux a la nube", nombre_aap: ["Migración a GCP · Servidor Linux"], por_maquina: true,
+         valor: "Lleva un servidor Linux a Compute Engine con el mismo sistema, datos, paquetes y servicios, compara origen y destino y hace el corte solo cuando se pide."}
+    # Rol predefinido de GCP que entrega cada permiso (el mínimo razonable). FaceOps no asigna roles: solo informa cuál falta.
+    roles_por_permiso:
+      compute.instances.: roles/compute.instanceAdmin.v1
+      compute.disks.: roles/compute.instanceAdmin.v1
+      compute.subnetworks.use: roles/compute.networkUser
+      compute.subnetworks.useExternalIp: roles/compute.networkUser
+      compute.snapshots.: roles/compute.storageAdmin
+      compute.firewalls.: roles/compute.securityAdmin
+      compute.networks.updatePolicy: roles/compute.securityAdmin
+      compute.routers.: roles/compute.networkAdmin
+      compute.vpnGateways.: roles/compute.networkAdmin
+      compute.addresses.: roles/compute.networkAdmin
+      compute.targetPools.: roles/compute.loadBalancerAdmin
+      compute.forwardingRules.: roles/compute.loadBalancerAdmin
+      iam.serviceAccounts.actAs: roles/iam.serviceAccountUser
+      storage.buckets.: roles/storage.admin
+      pubsub.topics.: roles/pubsub.admin
+      bigquery.datasets.: roles/bigquery.dataOwner
+      secretmanager.secrets.: roles/secretmanager.admin
+      cloudkms.keyRings.: roles/cloudkms.admin
+      dns.managedZones.: roles/dns.admin
+      dns.networks.bindPrivateDNSZone: roles/dns.admin
+      redis.instances.: roles/redis.admin
+      file.instances.: roles/file.editor
+      cloudsql.instances.: roles/cloudsql.admin
+      alloydb.clusters.: roles/alloydb.admin
+      alloydb.instances.: roles/alloydb.admin
+      datastore.databases.: roles/datastore.owner
+      container.clusters.: roles/container.admin
+      run.services.: roles/run.admin
+      artifactregistry.repositories.: roles/artifactregistry.admin
+      aiplatform.endpoints.: roles/aiplatform.admin
+    # ----------------------------------------------------------------- productos adicionales (estilo OperatorHub)
+    categorias:
+      - nombre: Bases de datos
+        productos:
+          - id: cloudsql
+            nombre: Cloud SQL
+            resumen: "PostgreSQL, MySQL o SQL Server administrado: respaldos, parches y alta disponibilidad los hace Google"
+            que_es: "Servicio de base de datos relacional administrado. Google opera el motor (instalación, parches menores, respaldos automáticos, réplicas y conmutación por error); el cliente administra esquemas, usuarios y datos."
+            para_que: ["Sacar la base de datos de una VM y dejar de operarla", "Bases de aplicaciones transaccionales con respaldos y PITR", "Réplicas de lectura y alta disponibilidad regional sin armar clúster"]
+            precios: ["Por vCPU y GB de memoria por hora, más el almacenamiento por GB-mes", "Alta disponibilidad (regional) duplica el cómputo", "SQL Server suma la licencia por núcleo", "Descuentos por uso comprometido de 1 y 3 años"]
+            limites: ["Hasta 96 vCPU y 624 GB de RAM por instancia", "Hasta 64 TB de almacenamiento", "Sin acceso al sistema operativo ni superusuario del motor", "Mantenimiento con ventana definida (reinicio breve)"]
+            doc: "https://cloud.google.com/sql/docs"
+            caro: true
+            servicio: sqladmin.googleapis.com
+            permisos: [cloudsql.instances.create, cloudsql.instances.get, cloudsql.instances.delete]
+            campos:
+              - {var: motor, etiqueta: Motor, tipo: select, requerido: true, defecto: POSTGRES_16, opciones: [POSTGRES_16, POSTGRES_15, MYSQL_8_0, SQLSERVER_2022_STANDARD]}
+              - {var: nivel, etiqueta: "Tamaño (tier)", tipo: select, requerido: true, defecto: db-custom-1-3840, opciones: [db-custom-1-3840, db-custom-2-7680, db-custom-4-15360]}
+              - {var: disco_gb, etiqueta: "Almacenamiento (GB)", tipo: number, requerido: true, defecto: 20, min: 10, max: 2000}
+              - {var: alta_disponibilidad, etiqueta: "Alta disponibilidad regional", tipo: select, defecto: ZONAL, opciones: [ZONAL, REGIONAL]}
+            costo: {por: {nivel: {db-custom-1-3840: 50, db-custom-2-7680: 100, db-custom-4-15360: 200}}, por_unidad: {campo: disco_gb, usd: 0.17}, nota: "REGIONAL duplica el cómputo; SQL Server suma licencia"}
+            crear:
+              - {metodo: POST, url: "https://sqladmin.googleapis.com/v1/projects/{proyecto}/instances",
+                 cuerpo: {name: "{nombre}", databaseVersion: "{motor}", region: "{region}",
+                          settings: {tier: "{nivel}", dataDiskSizeGb: "{disco_gb}", availabilityType: "{alta_disponibilidad}", edition: ENTERPRISE, userLabels: {origen: faceops}}}}
+            estado: {url: "https://sqladmin.googleapis.com/v1/projects/{proyecto}/instances/{nombre}", campo: state, ok: [RUNNABLE]}
+            eliminar:
+              - {metodo: DELETE, url: "https://sqladmin.googleapis.com/v1/projects/{proyecto}/instances/{nombre}"}
+          - id: alloydb
+            nombre: AlloyDB para PostgreSQL
+            resumen: "PostgreSQL compatible de alto rendimiento para cargas transaccionales y analíticas mixtas"
+            que_es: "Base de datos compatible con PostgreSQL con almacenamiento desacoplado, caché columnar para consultas analíticas y disponibilidad 99,99 %. Vive en la VPC del cliente por acceso privado a servicios."
+            para_que: ["Bases PostgreSQL exigentes que Cloud SQL ya no alcanza", "Consultas analíticas sobre datos transaccionales sin ETL", "Migraciones desde Oracle con alto volumen"]
+            precios: ["Por vCPU y GB de memoria por hora de cada instancia (primaria y de lectura)", "Almacenamiento por GB-mes realmente usado", "Respaldos por GB-mes"]
+            limites: ["Requiere acceso privado a servicios (peering) en la red", "Instancia primaria desde 2 vCPU", "Una región por clúster (réplicas entre regiones aparte)"]
+            doc: "https://cloud.google.com/alloydb/docs"
+            caro: true
+            servicio: alloydb.googleapis.com
+            permisos: [alloydb.clusters.create, alloydb.instances.create, alloydb.clusters.delete]
+            campos:
+              - {var: cpu, etiqueta: "vCPU de la primaria", tipo: select, requerido: true, defecto: "2", opciones: ["2", "4", "8"]}
+            costo: {por: {cpu: {"2": 290, "4": 580, "8": 1160}}, nota: "Más almacenamiento usado (USD 0,30/GB-mes)"}
+            crear:
+              - {metodo: POST, url: "https://alloydb.googleapis.com/v1/projects/{proyecto}/locations/{region}/clusters?clusterId={nombre}",
+                 cuerpo: {networkConfig: {network: "projects/{proyecto}/global/networks/{red}"}, labels: {origen: faceops}}}
+              - {metodo: POST, url: "https://alloydb.googleapis.com/v1/projects/{proyecto}/locations/{region}/clusters/{nombre}/instances?instanceId={nombre}-primaria",
+                 cuerpo: {instanceType: PRIMARY, machineConfig: {cpuCount: "{cpu}"}}}
+            estado: {url: "https://alloydb.googleapis.com/v1/projects/{proyecto}/locations/{region}/clusters/{nombre}", campo: state, ok: [READY]}
+            eliminar:
+              - {metodo: DELETE, url: "https://alloydb.googleapis.com/v1/projects/{proyecto}/locations/{region}/clusters/{nombre}?force=true"}
+          - id: memorystore
+            nombre: Memorystore para Redis
+            resumen: "Redis administrado para caché y sesiones, en la red privada"
+            que_es: "Redis administrado por Google: aprovisiona, replica, parcha y supervisa la instancia. Se accede por IP privada desde la VPC."
+            para_que: ["Caché de aplicaciones y sesiones web", "Colas livianas y contadores en memoria", "Reemplazar un Redis en VM"]
+            precios: ["Por GB de capacidad por hora, según nivel (Basic sin réplica, Standard con réplica)", "Sin costo por operaciones"]
+            limites: ["Basic: sin réplica ni conmutación por error", "Hasta 300 GB por instancia", "Solo acceso privado desde la red autorizada"]
+            doc: "https://cloud.google.com/memorystore/docs/redis"
+            servicio: redis.googleapis.com
+            permisos: [redis.instances.create, redis.instances.get, redis.instances.delete]
+            campos:
+              - {var: nivel, etiqueta: Nivel, tipo: select, requerido: true, defecto: BASIC, opciones: [BASIC, STANDARD_HA]}
+              - {var: memoria_gb, etiqueta: "Capacidad (GB)", tipo: number, requerido: true, defecto: 1, min: 1, max: 300}
+            costo: {por_unidad: {campo: memoria_gb, usd: 36}, nota: "STANDARD_HA cuesta cerca del doble"}
+            crear:
+              - {metodo: POST, url: "https://redis.googleapis.com/v1/projects/{proyecto}/locations/{region}/instances?instanceId={nombre}",
+                 cuerpo: {tier: "{nivel}", memorySizeGb: "{memoria_gb}", authorizedNetwork: "projects/{proyecto}/global/networks/{red}", labels: {origen: faceops}}}
+            estado: {url: "https://redis.googleapis.com/v1/projects/{proyecto}/locations/{region}/instances/{nombre}", campo: state, ok: [READY]}
+            eliminar:
+              - {metodo: DELETE, url: "https://redis.googleapis.com/v1/projects/{proyecto}/locations/{region}/instances/{nombre}"}
+          - id: firestore
+            nombre: Firestore
+            resumen: "Base de datos de documentos NoSQL sin servidor, con nivel gratuito diario"
+            que_es: "Base de datos de documentos totalmente administrada y sin servidor, con escalamiento automático, consultas indexadas y sincronización en tiempo real."
+            para_que: ["Datos de apps web y móviles", "Catálogos y perfiles con esquema flexible", "Back-ends sin servidor (Cloud Run, Functions)"]
+            precios: ["Por lecturas, escrituras y borrados de documentos", "Almacenamiento por GB-mes", "Nivel gratuito diario (50 mil lecturas, 20 mil escrituras, 1 GB)"]
+            limites: ["Documentos de hasta 1 MiB", "Ubicación fija al crearla", "Sin JOIN ni transacciones SQL"]
+            doc: "https://cloud.google.com/firestore/docs"
+            servicio: firestore.googleapis.com
+            permisos: [datastore.databases.create, datastore.databases.get, datastore.databases.delete]
+            patron_nombre: "^[a-z][a-z0-9-]{3,61}[a-z0-9]$"
+            campos: []
+            costo: {fijo: 0, nota: "Por uso: lecturas, escrituras y GB guardados (nivel gratuito diario)"}
+            crear:
+              - {metodo: POST, url: "https://firestore.googleapis.com/v1/projects/{proyecto}/databases?databaseId={nombre}",
+                 cuerpo: {locationId: "{region}", type: FIRESTORE_NATIVE}}
+            estado: {url: "https://firestore.googleapis.com/v1/projects/{proyecto}/databases/{nombre}"}
+            eliminar:
+              - {metodo: DELETE, url: "https://firestore.googleapis.com/v1/projects/{proyecto}/databases/{nombre}"}
+      - nombre: Almacenamiento
+        productos:
+          - id: bucket
+            nombre: Cloud Storage (bucket)
+            resumen: "Almacenamiento de objetos: archivos, respaldos y data lake, sin acceso público"
+            que_es: "Almacenamiento de objetos durable (11 nueves) para cualquier volumen de datos. FaceOps lo crea con acceso uniforme por IAM y bloqueo de acceso público."
+            para_que: ["Respaldos y archivos de aplicaciones", "Data lake y entrada de BigQuery", "Artefactos e imágenes de despliegue"]
+            precios: ["Por GB-mes según la clase (Standard, Nearline, Coldline, Archive)", "Operaciones por cada 10 mil", "Salida a internet por GB", "Las clases frías cobran la recuperación y tienen permanencia mínima"]
+            limites: ["Nombre único en todo Google Cloud", "Objetos de hasta 5 TiB", "La ubicación no se cambia después de crearlo"]
+            doc: "https://cloud.google.com/storage/docs"
+            servicio: storage.googleapis.com
+            permisos: [storage.buckets.create, storage.buckets.get, storage.buckets.delete]
+            patron_nombre: "^[a-z0-9][a-z0-9._-]{2,62}$"
+            campos:
+              - {var: clase, etiqueta: "Clase de almacenamiento", tipo: select, requerido: true, defecto: STANDARD, opciones: [STANDARD, NEARLINE, COLDLINE, ARCHIVE]}
+              - {var: gb_estimados, etiqueta: "GB que esperas guardar (para el costo)", tipo: number, defecto: 10, min: 0, max: 1000000}
+            costo: {por_unidad: {campo: gb_estimados, usd: 0.023}, por: {clase: {STANDARD: 0, NEARLINE: 0, COLDLINE: 0, ARCHIVE: 0}}, nota: "Standard regional; Nearline/Coldline/Archive cuestan menos por GB pero cobran la recuperación"}
+            crear:
+              - {metodo: POST, url: "https://storage.googleapis.com/storage/v1/b?project={proyecto}",
+                 cuerpo: {name: "{nombre}", location: "{region}", storageClass: "{clase}", labels: {origen: faceops},
+                          iamConfiguration: {uniformBucketLevelAccess: {enabled: true}, publicAccessPrevention: enforced}}}
+            estado: {url: "https://storage.googleapis.com/storage/v1/b/{nombre}"}
+            eliminar:
+              - {metodo: DELETE, url: "https://storage.googleapis.com/storage/v1/b/{nombre}"}
+          - id: filestore
+            nombre: Filestore
+            resumen: "Sistema de archivos NFS administrado para VM y GKE"
+            que_es: "Servidor de archivos NFSv3 administrado de alto rendimiento, montable desde VM de Compute Engine y clústeres GKE de la misma red."
+            para_que: ["Directorios compartidos entre servidores", "Migrar NAS on-premise", "Volúmenes RWX para contenedores"]
+            precios: ["Por GB aprovisionado por mes según el nivel (Basic HDD, Basic SSD, Zonal, Enterprise)", "Se cobra la capacidad aprovisionada, no la usada"]
+            limites: ["Basic HDD desde 1 TiB", "Una zona (Basic) o región (Enterprise)", "Solo acceso desde la VPC autorizada"]
+            doc: "https://cloud.google.com/filestore/docs"
+            servicio: file.googleapis.com
+            permisos: [file.instances.create, file.instances.get, file.instances.delete]
+            campos:
+              - {var: nivel, etiqueta: Nivel, tipo: select, requerido: true, defecto: BASIC_HDD, opciones: [BASIC_HDD, BASIC_SSD]}
+              - {var: capacidad_gb, etiqueta: "Capacidad (GB)", tipo: number, requerido: true, defecto: 1024, min: 1024, max: 65434}
+            costo: {por_unidad: {campo: capacidad_gb, usd: 0.20}, nota: "BASIC_SSD cuesta cerca del doble por GB"}
+            crear:
+              - {metodo: POST, url: "https://file.googleapis.com/v1/projects/{proyecto}/locations/{zona}/instances?instanceId={nombre}",
+                 cuerpo: {tier: "{nivel}", fileShares: [{name: vol1, capacityGb: "{capacidad_gb}"}], networks: [{network: "{red}", modes: [MODE_IPV4]}], labels: {origen: faceops}}}
+            estado: {url: "https://file.googleapis.com/v1/projects/{proyecto}/locations/{zona}/instances/{nombre}", campo: state, ok: [READY]}
+            eliminar:
+              - {metodo: DELETE, url: "https://file.googleapis.com/v1/projects/{proyecto}/locations/{zona}/instances/{nombre}"}
+      - nombre: Contenedores
+        productos:
+          - id: gke
+            nombre: Google Kubernetes Engine (GKE)
+            resumen: "Kubernetes administrado; modo Autopilot: Google opera los nodos"
+            que_es: "Kubernetes administrado por Google. En Autopilot, Google aprovisiona y opera los nodos y se paga por los recursos que piden los pods."
+            para_que: ["Correr contenedores en Kubernetes sin operar el plano de control", "Cargas que no requieren OpenShift", "Entornos efímeros de pruebas"]
+            precios: ["Tarifa de administración por clúster por hora (un crédito mensual cubre un clúster)", "Autopilot: vCPU, memoria y disco que piden los pods por hora", "Standard: las VM de los nodos"]
+            limites: ["Autopilot restringe pods privilegiados y algunos DaemonSets", "Versiones de Kubernetes con soporte de 14 meses", "Para OpenShift en GCP usa Contenedores › Crear plataforma"]
+            doc: "https://cloud.google.com/kubernetes-engine/docs"
+            caro: true
+            servicio: container.googleapis.com
+            permisos: [container.clusters.create, container.clusters.get, container.clusters.delete, iam.serviceAccounts.actAs]
+            campos:
+              - {var: canal, etiqueta: "Canal de versiones", tipo: select, defecto: REGULAR, opciones: [RAPID, REGULAR, STABLE]}
+            costo: {fijo: 73, nota: "Tarifa del clúster; los pods se cobran por lo que piden"}
+            crear:
+              - {metodo: POST, url: "https://container.googleapis.com/v1/projects/{proyecto}/locations/{region}/clusters",
+                 cuerpo: {cluster: {name: "{nombre}", autopilot: {enabled: true}, releaseChannel: {channel: "{canal}"}, network: "{red}", resourceLabels: {origen: faceops}}}}
+            estado: {url: "https://container.googleapis.com/v1/projects/{proyecto}/locations/{region}/clusters/{nombre}", campo: status, ok: [RUNNING]}
+            eliminar:
+              - {metodo: DELETE, url: "https://container.googleapis.com/v1/projects/{proyecto}/locations/{region}/clusters/{nombre}"}
+          - id: cloudrun
+            nombre: Cloud Run
+            resumen: "Contenedores sin servidor: escala a cero y se paga por solicitud"
+            que_es: "Plataforma sin servidor que ejecuta contenedores HTTP; escala de cero a miles de instancias según el tráfico. FaceOps lo crea solo con acceso autenticado."
+            para_que: ["APIs y sitios livianos", "Procesos por evento (Pub/Sub, Storage)", "Prototipos sin infraestructura"]
+            precios: ["Por vCPU-segundo y GB-segundo mientras atiende", "Por millón de solicitudes", "Nivel gratuito mensual (180 mil vCPU-s, 2 millones de solicitudes)"]
+            limites: ["Solo cargas HTTP o gRPC sin estado", "Hasta 60 min por solicitud", "Imagen desde Artifact Registry o pública"]
+            doc: "https://cloud.google.com/run/docs"
+            servicio: run.googleapis.com
+            permisos: [run.services.create, run.services.get, run.services.delete, iam.serviceAccounts.actAs]
+            campos:
+              - {var: imagen, etiqueta: "Imagen del contenedor", tipo: text, requerido: true, defecto: "us-docker.pkg.dev/cloudrun/container/hello", patron: "^[a-z0-9.-]+(:[0-9]+)?/[a-zA-Z0-9._/-]+(:[A-Za-z0-9._-]+|@sha256:[a-f0-9]{64})?$"}
+            costo: {fijo: 0, nota: "Por uso (nivel gratuito mensual); escala a cero"}
+            crear:
+              - {metodo: POST, url: "https://run.googleapis.com/v2/projects/{proyecto}/locations/{region}/services?serviceId={nombre}",
+                 cuerpo: {template: {containers: [{image: "{imagen}"}]}, ingress: INGRESS_TRAFFIC_ALL, labels: {origen: faceops}}}
+            estado: {url: "https://run.googleapis.com/v2/projects/{proyecto}/locations/{region}/services/{nombre}", campo: terminalCondition.state, ok: [CONDITION_SUCCEEDED]}
+            eliminar:
+              - {metodo: DELETE, url: "https://run.googleapis.com/v2/projects/{proyecto}/locations/{region}/services/{nombre}"}
+          - id: artifactregistry
+            nombre: Artifact Registry
+            resumen: "Registro privado de imágenes de contenedor y paquetes"
+            que_es: "Registro administrado para imágenes Docker/OCI y paquetes (Maven, npm, Python), con escaneo de vulnerabilidades e IAM por repositorio."
+            para_que: ["Imágenes de las aplicaciones del cliente", "Caché de imágenes públicas (remoto)", "Paquetes internos"]
+            precios: ["Por GB-mes guardado (0,5 GB gratis)", "Salida entre regiones y a internet por GB"]
+            limites: ["Formato fijo por repositorio", "Ubicación fija al crearlo"]
+            doc: "https://cloud.google.com/artifact-registry/docs"
+            servicio: artifactregistry.googleapis.com
+            permisos: [artifactregistry.repositories.create, artifactregistry.repositories.get, artifactregistry.repositories.delete]
+            campos:
+              - {var: formato, etiqueta: Formato, tipo: select, defecto: DOCKER, opciones: [DOCKER, MAVEN, NPM, PYTHON]}
+              - {var: gb_estimados, etiqueta: "GB que esperas guardar", tipo: number, defecto: 5, min: 0, max: 100000}
+            costo: {por_unidad: {campo: gb_estimados, usd: 0.10}}
+            crear:
+              - {metodo: POST, url: "https://artifactregistry.googleapis.com/v1/projects/{proyecto}/locations/{region}/repositories?repositoryId={nombre}",
+                 cuerpo: {format: "{formato}", labels: {origen: faceops}}}
+            estado: {url: "https://artifactregistry.googleapis.com/v1/projects/{proyecto}/locations/{region}/repositories/{nombre}"}
+            eliminar:
+              - {metodo: DELETE, url: "https://artifactregistry.googleapis.com/v1/projects/{proyecto}/locations/{region}/repositories/{nombre}"}
+      - nombre: Mensajería
+        productos:
+          - id: pubsub
+            nombre: Pub/Sub (tema)
+            resumen: "Mensajería asíncrona entre servicios, con entrega garantizada"
+            que_es: "Servicio de mensajería global y administrado: los publicadores envían a un tema y cada suscripción recibe una copia, con reintentos y retención."
+            para_que: ["Desacoplar servicios por eventos", "Ingesta de datos hacia BigQuery o Dataflow", "Notificaciones de Cloud Storage"]
+            precios: ["Por TiB de rendimiento (10 GiB gratis al mes)", "Retención de mensajes por GiB-mes"]
+            limites: ["Mensajes de hasta 10 MB", "Retención de hasta 31 días"]
+            doc: "https://cloud.google.com/pubsub/docs"
+            servicio: pubsub.googleapis.com
+            permisos: [pubsub.topics.create, pubsub.topics.get, pubsub.topics.delete]
+            campos: []
+            costo: {fijo: 0, nota: "Por volumen (10 GiB gratis al mes)"}
+            crear:
+              - {metodo: PUT, url: "https://pubsub.googleapis.com/v1/projects/{proyecto}/topics/{nombre}", cuerpo: {labels: {origen: faceops}}}
+            estado: {url: "https://pubsub.googleapis.com/v1/projects/{proyecto}/topics/{nombre}"}
+            eliminar:
+              - {metodo: DELETE, url: "https://pubsub.googleapis.com/v1/projects/{proyecto}/topics/{nombre}"}
+      - nombre: Analítica
+        productos:
+          - id: bigquery
+            nombre: BigQuery (dataset)
+            resumen: "Almacén de datos sin servidor para analítica SQL a gran escala"
+            que_es: "Almacén de datos analítico sin servidor: consultas SQL sobre terabytes en segundos, separando almacenamiento y cómputo. El dataset agrupa tablas y vistas con sus permisos."
+            para_que: ["Analítica y reportes del negocio", "Exportar la facturación de la nube", "Destino del data lake"]
+            precios: ["Almacenamiento por GB-mes (activo y de largo plazo)", "Consultas por TiB leído (1 TiB gratis al mes) o capacidad reservada"]
+            limites: ["Ubicación fija al crearlo", "El id solo admite letras, números y guion bajo"]
+            doc: "https://cloud.google.com/bigquery/docs"
+            servicio: bigquery.googleapis.com
+            permisos: [bigquery.datasets.create, bigquery.datasets.get, bigquery.datasets.delete]
+            patron_nombre: "^[a-z][a-z0-9_]{2,62}$"
+            campos:
+              - {var: gb_estimados, etiqueta: "GB que esperas guardar", tipo: number, defecto: 10, min: 0, max: 1000000}
+            costo: {por_unidad: {campo: gb_estimados, usd: 0.023}, nota: "Más consultas por TiB leído (1 TiB gratis al mes)"}
+            crear:
+              - {metodo: POST, url: "https://bigquery.googleapis.com/bigquery/v2/projects/{proyecto}/datasets",
+                 cuerpo: {datasetReference: {projectId: "{proyecto}", datasetId: "{nombre}"}, location: "{region}", labels: {origen: faceops}}}
+            estado: {url: "https://bigquery.googleapis.com/bigquery/v2/projects/{proyecto}/datasets/{nombre}"}
+            eliminar:
+              - {metodo: DELETE, url: "https://bigquery.googleapis.com/bigquery/v2/projects/{proyecto}/datasets/{nombre}?deleteContents=true"}
+      - nombre: Red
+        productos:
+          - id: balanceador
+            nombre: Cloud Load Balancing (red, TCP)
+            resumen: "Balanceador de red externo regional hacia máquinas de la nube"
+            que_es: "Balanceador de red de paso (L4) regional: una IP externa que reparte conexiones TCP entre las máquinas elegidas, con el origen del cliente preservado."
+            para_que: ["Publicar un servicio TCP en varias VM", "Alta disponibilidad de servidores de aplicación", "Puerta de entrada estable aunque cambien las VM"]
+            precios: ["Por regla de reenvío por hora (las primeras 5 en un precio único)", "Datos procesados por GB"]
+            limites: ["Las máquinas deben estar en la misma región", "Sin terminación TLS (para HTTPS usa el balanceador de aplicación)"]
+            doc: "https://cloud.google.com/load-balancing/docs/network"
+            servicio: compute.googleapis.com
+            permisos: [compute.targetPools.create, compute.forwardingRules.create, compute.targetPools.delete, compute.forwardingRules.delete]
+            campos:
+              - {var: maquinas, etiqueta: "Máquinas (nombres, separados por coma, de una zona)", tipo: text, requerido: true, patron: "^[a-z][a-z0-9-]*(,[a-z][a-z0-9-]*)*$"}
+              - {var: puerto, etiqueta: Puerto, tipo: number, requerido: true, defecto: 80, min: 1, max: 65535}
+            costo: {fijo: 18.25, nota: "Más datos procesados por GB"}
+            crear:
+              - {metodo: POST, url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/targetPools",
+                 cuerpo: {name: "{nombre}", instances: "{_maquinas_urls}"}}
+              - {metodo: POST, url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/forwardingRules",
+                 cuerpo: {name: "{nombre}-fr", target: "projects/{proyecto}/regions/{region}/targetPools/{nombre}", IPProtocol: TCP, portRange: "{puerto}", labels: {origen: faceops}}}
+            estado: {url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/forwardingRules/{nombre}-fr"}
+            eliminar:
+              - {metodo: DELETE, url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/forwardingRules/{nombre}-fr"}
+              - {metodo: DELETE, url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/targetPools/{nombre}"}
+          - id: dns
+            nombre: Cloud DNS (zona)
+            resumen: "Zona DNS administrada, pública o privada para la red"
+            que_es: "DNS autoritativo administrado con 100 % de disponibilidad. Una zona privada solo responde dentro de la red elegida."
+            para_que: ["Nombres internos de servicios en la VPC", "Dominios públicos del cliente", "Resolución híbrida con on-premise"]
+            precios: ["Por zona por mes", "Por millón de consultas"]
+            limites: ["El dominio termina en punto", "Una zona privada se asocia a redes del mismo proyecto o compartidas"]
+            doc: "https://cloud.google.com/dns/docs"
+            servicio: dns.googleapis.com
+            permisos: [dns.managedZones.create, dns.managedZones.get, dns.managedZones.delete, dns.networks.bindPrivateDNSZone]
+            campos:
+              - {var: dominio, etiqueta: "Dominio (sin punto final)", tipo: text, requerido: true, defecto: "interno.invoke", patron: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$"}
+              - {var: visibilidad, etiqueta: Visibilidad, tipo: select, defecto: private, opciones: [private, public]}
+            costo: {fijo: 0.20, nota: "Más USD 0,40 por millón de consultas"}
+            crear:
+              - {metodo: POST, url: "https://dns.googleapis.com/dns/v1/projects/{proyecto}/managedZones",
+                 cuerpo: {name: "{nombre}", dnsName: "{dominio}.", description: "Creada por FaceOps", visibility: "{visibilidad}", labels: {origen: faceops},
+                          privateVisibilityConfig: {networks: [{networkUrl: "https://www.googleapis.com/compute/v1/projects/{proyecto}/global/networks/{red}"}]}}}
+            estado: {url: "https://dns.googleapis.com/dns/v1/projects/{proyecto}/managedZones/{nombre}"}
+            eliminar:
+              - {metodo: DELETE, url: "https://dns.googleapis.com/dns/v1/projects/{proyecto}/managedZones/{nombre}"}
+          - id: nat
+            nombre: Cloud NAT
+            resumen: "Salida a internet para máquinas sin IP pública"
+            que_es: "NAT administrado y distribuido (sin VM de por medio): las máquinas sin IP pública salen a internet por IPs de Google; nadie entra por ahí."
+            para_que: ["Actualizar y registrar máquinas privadas", "Quitar IPs públicas de los servidores", "IP de salida conocida para listas blancas (con IP estática)"]
+            precios: ["Por hora según las VM que lo usan (tope a las 32)", "Datos procesados por GB"]
+            limites: ["Una puerta de enlace por región y red", "Solo salida (no publica servicios)"]
+            doc: "https://cloud.google.com/nat/docs"
+            servicio: compute.googleapis.com
+            permisos: [compute.routers.create, compute.routers.update, compute.routers.delete]
+            campos: []
+            costo: {fijo: 1.02, nota: "Por VM que lo usa (hasta USD 32/mes) más datos procesados"}
+            crear:
+              - {metodo: POST, url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/routers",
+                 cuerpo: {name: "{nombre}", network: "projects/{proyecto}/global/networks/{red}",
+                          nats: [{name: "{nombre}-nat", natIpAllocateOption: AUTO_ONLY, sourceSubnetworkIpRangesToNat: ALL_SUBNETWORKS_ALL_IP_RANGES}]}}
+            estado: {url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/routers/{nombre}"}
+            eliminar:
+              - {metodo: DELETE, url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/routers/{nombre}"}
+          - id: vpn
+            nombre: Cloud VPN (HA)
+            resumen: "Puerta de enlace VPN de alta disponibilidad hacia on-premise u otra nube"
+            que_es: "Puerta de enlace IPsec de alta disponibilidad (99,99 % con dos túneles). Se crea la puerta; los túneles y el router BGP se agregan con los datos del otro extremo."
+            para_que: ["Unir la VPC con el centro de datos del cliente", "Conectar con AWS o Azure", "Acceso privado de AAP a máquinas sin IP pública"]
+            precios: ["Por túnel por hora", "Salida de datos por GB"]
+            limites: ["Hasta 3 Gbps por túnel", "Requiere un router Cloud con BGP para los túneles"]
+            doc: "https://cloud.google.com/network-connectivity/docs/vpn"
+            servicio: compute.googleapis.com
+            permisos: [compute.vpnGateways.create, compute.vpnGateways.get, compute.vpnGateways.delete]
+            campos: []
+            costo: {fijo: 0, nota: "La puerta no cobra; cada túnel ≈ USD 36/mes"}
+            crear:
+              - {metodo: POST, url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/vpnGateways",
+                 cuerpo: {name: "{nombre}", network: "projects/{proyecto}/global/networks/{red}", labels: {origen: faceops}}}
+            estado: {url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/vpnGateways/{nombre}"}
+            eliminar:
+              - {metodo: DELETE, url: "https://compute.googleapis.com/compute/v1/projects/{proyecto}/regions/{region}/vpnGateways/{nombre}"}
+      - nombre: Seguridad
+        productos:
+          - id: secretmanager
+            nombre: Secret Manager
+            resumen: "Guarda claves, tokens y certificados con versiones y auditoría"
+            que_es: "Almacén de secretos con versiones, replicación, rotación y auditoría de cada acceso. FaceOps crea el secreto vacío: su valor se carga después, nunca por el ticket."
+            para_que: ["Claves de bases de datos y API de las aplicaciones", "Certificados", "Reemplazar secretos en archivos de configuración"]
+            precios: ["Por versión activa por mes (6 gratis)", "Por cada 10 mil accesos"]
+            limites: ["Valor de hasta 64 KiB", "La replicación se elige al crearlo"]
+            doc: "https://cloud.google.com/secret-manager/docs"
+            servicio: secretmanager.googleapis.com
+            permisos: [secretmanager.secrets.create, secretmanager.secrets.get, secretmanager.secrets.delete]
+            campos: []
+            costo: {fijo: 0.06, nota: "Por versión activa; accesos USD 0,03 cada 10 mil"}
+            crear:
+              - {metodo: POST, url: "https://secretmanager.googleapis.com/v1/projects/{proyecto}/secrets?secretId={nombre}",
+                 cuerpo: {replication: {automatic: {}}, labels: {origen: faceops}}}
+            estado: {url: "https://secretmanager.googleapis.com/v1/projects/{proyecto}/secrets/{nombre}"}
+            eliminar:
+              - {metodo: DELETE, url: "https://secretmanager.googleapis.com/v1/projects/{proyecto}/secrets/{nombre}"}
+          - id: kms
+            nombre: Cloud KMS (llavero)
+            resumen: "Llaves de cifrado administradas para cifrar datos con llaves propias"
+            que_es: "Servicio de llaves criptográficas: llaveros y llaves simétricas o asimétricas para cifrar discos, buckets y bases con llaves administradas por el cliente (CMEK)."
+            para_que: ["CMEK en discos, buckets y bases", "Firmas y cifrado en aplicaciones", "Cumplimiento que exige llaves propias"]
+            precios: ["Por versión de llave activa por mes", "Por cada 10 mil operaciones"]
+            limites: ["Un llavero no se puede eliminar (queda vacío sin costo)", "Las llaves se destruyen con un plazo de espera"]
+            doc: "https://cloud.google.com/kms/docs"
+            servicio: cloudkms.googleapis.com
+            permisos: [cloudkms.keyRings.create, cloudkms.keyRings.get]
+            sin_eliminar: true
+            campos: []
+            costo: {fijo: 0, nota: "El llavero no cobra; cada llave ≈ USD 0,06/mes más operaciones"}
+            crear:
+              - {metodo: POST, url: "https://cloudkms.googleapis.com/v1/projects/{proyecto}/locations/{region}/keyRings?keyRingId={nombre}", cuerpo: {}}
+            estado: {url: "https://cloudkms.googleapis.com/v1/projects/{proyecto}/locations/{region}/keyRings/{nombre}"}
+            eliminar: []
+      - nombre: IA
+        productos:
+          - id: vertex
+            nombre: Vertex AI (endpoint)
+            resumen: "Punto de servicio para desplegar modelos de IA propios o de Model Garden"
+            que_es: "Plataforma de IA de Google Cloud. Un endpoint es la URL donde se despliegan modelos (propios, de Model Garden o Gemini ajustado) para inferencia en línea."
+            para_que: ["Servir modelos de la fábrica de IA del cliente", "Probar modelos de Model Garden", "Inferencia con autoescalamiento"]
+            precios: ["El endpoint no cobra; se pagan las horas de nodo de cada modelo desplegado", "Gemini y modelos de Model Garden por tokens o caracteres"]
+            limites: ["Los nodos con GPU dependen de la cuota de la región", "Modelos y endpoint en la misma región"]
+            doc: "https://cloud.google.com/vertex-ai/docs"
+            caro: true
+            servicio: aiplatform.googleapis.com
+            permisos: [aiplatform.endpoints.create, aiplatform.endpoints.get, aiplatform.endpoints.delete]
+            campos: []
+            costo: {fijo: 0, nota: "Cada modelo desplegado cobra por hora de nodo (desde ≈ USD 100/mes)"}
+            crear:
+              - {metodo: POST, url: "https://{region}-aiplatform.googleapis.com/v1/projects/{proyecto}/locations/{region}/endpoints",
+                 cuerpo: {displayName: "{nombre}", labels: {origen: faceops}}}
+            estado: {url: "https://{region}-aiplatform.googleapis.com/v1/projects/{proyecto}/locations/{region}/endpoints?filter=display_name={nombre}"}
+            eliminar: []
+  aws:
+    nombre: Amazon Web Services
+    categorias: []
+  azure:
+    nombre: Microsoft Azure
+    categorias: []

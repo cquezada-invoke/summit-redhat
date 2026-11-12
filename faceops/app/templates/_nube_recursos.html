@@ -1,0 +1,221 @@
+{# Ficha de nube › crear y operar máquinas, y productos adicionales (estilo OperatorHub). Todo por ticket con aprobación en AAP.
+   Secciones propias: no toca las del consolidado ni el costo de la nube. Datos: app/nube_recursos.py (contexto). #}
+{% set nr = nube_recursos_ctx(x, maqs) %}{% if nr %}
+<style>
+.nr-chip-curso{background:#fff4d6;color:#7a5300}.nr-chip-ok{background:#e3f4e6;color:#1e6b31}.nr-chip-mal{background:#fde4e4;color:#9b1c1c}.nr-chip-nd{background:var(--line)}
+.nr-op{display:flex;gap:6px;align-items:center;flex-wrap:wrap;white-space:nowrap}.nr-op .btn{padding:3px 9px}
+.nr-form{display:flex;flex-direction:column;gap:10px}.nr-form label{display:flex;flex-direction:column;gap:3px;font-size:12.5px}
+.nr-form .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}.nr-form .fila-c{display:flex;gap:8px;align-items:center;font-size:12.5px}
+.nr-precio{border:1px solid var(--line);border-left:4px solid var(--acc,#2b9af3);border-radius:8px;padding:8px 12px;font-size:13px}
+.nr-precio b{font-size:16px}.nr-aviso{border-left:4px solid var(--warn);background:#fffbf2;border-radius:6px;padding:8px 10px;font-size:12.5px}
+.nr-bloq{color:var(--bad);font-size:12px}.nr-sec{border-top:1px solid var(--line);padding-top:10px;margin-top:12px}.nr-sec h3{margin:0 0 6px;font-size:14px}
+.nr-cat{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:10px}
+.nr-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--panel);text-align:left;font:inherit;color:inherit;display:flex;flex-direction:column;gap:4px}
+.nr-card:hover{border-color:var(--acc,#2b9af3)}.nr-card b{font-size:13.5px}.nr-card small{color:var(--muted);font-size:12px;line-height:1.35}
+.nr-card .pie{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto;padding-top:4px}.nr-filtros{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.nr-filtros button{border:1px solid var(--line);background:none;border-radius:14px;padding:3px 10px;font-size:12px;cursor:pointer;color:inherit}
+.nr-filtros button.on{background:var(--ink,#151515);color:var(--panel,#fff);border-color:transparent}
+.nr-ficha h4{margin:12px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}.nr-ficha ul{margin:0;padding-left:18px;font-size:13px}
+.nr-ficha p{font-size:13px;margin:0}.cajon.nr-ancho{width:min(760px,100vw)}
+@media (max-width:620px){.nr-form .dos{grid-template-columns:1fr}}
+</style>
+
+{# ---------- productos de la nube ---------- #}
+<div class="card hv-lista" style="margin-top:14px;padding:0" id="productos-nube"><div class="hv-lcab"><h2>Productos de la nube · {{ nr.creados|length }}</h2>
+{% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn chico" id="nr-cat-abrir" title="Catálogo de {{ nr.proveedor }}: bases de datos, almacenamiento, contenedores, red, seguridad e IA">+ Agregar producto</button>{% endif %}
+<span class="sub" style="margin-left:auto;font-size:12px" id="nr-lect">{% if nr.lectura and nr.lectura.estado == 'en curso' %}Leyendo la nube…{% elif nr.op %}Opciones leídas {{ nr.op._ts|fecha }}{% else %}Opciones de la nube sin leer{% endif %}</span>
+{% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn chico gris" id="nr-releer" title="Relee regiones, tipos con precio, imágenes, redes, permisos y la salud de los productos (solo lectura, sin ticket)">Actualizar opciones</button>{% endif %}</div>
+{% if nr.faltan_roles %}<p class="nr-aviso" style="margin:0 16px 10px">A la cuenta de servicio de la conexión le faltan roles para algunas acciones (FaceOps no los asigna): <b>{{ nr.faltan_roles|join(', ') }}</b>. Las acciones que los necesitan quedan deshabilitadas con el motivo.</p>{% endif %}
+<table class="sin-pag"><tr><th>Producto</th><th>Nombre</th><th>Región</th><th>Salud</th><th>Consumo del mes</th><th>Última acción</th><th></th></tr>
+{% for r in nr.creados %}<tr data-nr-prod="{{ r.id }}"><td>{{ r.nombre_producto }}</td><td class="mono">{{ r.nombre }}</td><td>{{ r.region or '—' }}</td>
+<td>{% set s_ = r.salud or ('en creación' if r.estado == 'creando' else '') %}<span class="chip {{ 's-ok' if s_ == 'operativo' else ('s-alta' if s_ in ('con problemas', 'no existe') or r.estado == 'fallido' else '') }}" title="{{ 'Leída ' ~ (r.salud_ts|fecha) if r.salud_ts else 'Aún sin lectura' }}">{{ 'falló al crear' if r.estado == 'fallido' else (s_ or 'sin lectura') }}</span></td>
+<td>{% if r.consumo %}{{ r.consumo.html|safe }}{% else %}<a href="#consumo" class="sub" title="El consumo lo trae «Nube · Recuperar consumo y estado»">sin muestra</a>{% endif %}</td>
+<td>{% if r.ticket %}<a class="chip nr-chip-{{ r.ticket.cls }}" href="{{ r.ticket.url }}" data-nr-tk="{{ r.ticket.id }}" data-nr-acc="{{ r.ticket.accion }}">{{ r.ticket.txt }} · {{ r.ticket.numero }}</a>{% else %}—{% endif %}</td>
+<td>{% if perfil_actual.modo == 'escritura' and r.estado in ('activo', 'fallido') and not r.sin_eliminar %}<button type="button" class="btn chico gris" data-nr-elim="{{ r.id }}" data-nombre="{{ r.nombre }}" {{ ('disabled title="' ~ r.bloqueo_el ~ '"')|safe if r.bloqueo_el }}>Eliminar</button>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="sub">Sin productos adicionales. Agrega bases de datos, buckets, contenedores, red, seguridad o IA desde el catálogo: cada uno se crea con un ticket que pide aprobación y aparece aquí con su salud.</td></tr>{% endfor %}</table></div>
+
+{# ---------- flotante: crear máquina ---------- #}
+<div id="nr-velo" class="cajon-velo" hidden></div>
+<aside id="nr-crear" class="cajon" hidden aria-label="Crear máquina"><div class="cajon-barra"><b style="font-size:15px">Crear máquina · {{ x.nombre }}</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
+{% if nr.bloq.crear %}<p class="nr-aviso" style="margin:6px 0 10px">{{ nr.bloq.crear }}</p>{% endif %}
+<form class="nr-form" id="nr-f-crear" autocomplete="off">
+<label>Proyecto<input value="{{ cuenta }}" disabled></label>
+<div class="dos"><label>Región<select name="region" required></select></label><label>Zona<select name="zona" required></select></label></div>
+<p class="sub" id="nr-tipos-ref" style="margin:-4px 0 0;font-size:12px" hidden>Tipos de referencia: esta región aún no se lee. <a href="#" id="nr-leer-region">Leer tipos y precios de esta región</a></p>
+<div class="dos"><label>Familia<select name="familia"></select></label><label>Tipo de máquina<select name="tipo" required></select></label></div>
+<label>Imagen<select name="imagen" required></select></label>
+<div class="dos"><label>Tipo de disco<select name="disco_tipo"></select></label><label>Disco de arranque (GB)<input type="number" name="disco_gb" min="10" max="2000" value="20" required></label></div>
+<div class="dos"><label>Red (VPC)<select name="red"></select></label><label>Subred<select name="subred"></select></label></div>
+<label class="fila-c" style="flex-direction:row"><input type="checkbox" name="publica" value="1" checked> IP pública (AAP la usa para vincularla; sin ella, solo por red privada)</label>
+<div class="dos"><label>Nombre<input name="nombre" required pattern="[a-z]([-a-z0-9]{0,61}[a-z0-9])?" placeholder="srv-app-01"></label><label>Ambiente<select name="ambiente"><option value="desarrollo">Desarrollo</option><option value="qa">QA</option><option value="produccion">Producción</option></select></label></div>
+<label>Etiquetas <span class="sub">clave=valor, una por línea</span><textarea name="etiquetas" rows="2" placeholder="equipo=pagos&#10;centro-costo=ti"></textarea></label>
+<label>Etiquetas de red <span class="sub">para reglas de firewall, separadas por coma</span><input name="etiquetas_red" placeholder="web, interno"></label>
+<label>Cuenta de servicio de la máquina<select name="cuenta"></select></label>
+<div class="nr-precio" id="nr-precio">Elige el tipo para ver el precio estimado.</div>
+<p class="sub" style="margin:0;font-size:12px">Queda vinculada al nacer y se inventaría sin agente: Linux por SSH (llave de los nodos en sus metadatos); Windows por WinRM, con la clave del usuario de servicio cifrada en AAP. Se crea con un ticket que pide aprobación en AAP.</p>
+<div class="fila" style="gap:8px"><button class="btn" {{ ('disabled title="' ~ nr.bloq.crear ~ '"')|safe if nr.bloq.crear }}>Crear máquina (ticket)</button><button type="button" class="btn gris" data-cerrar="1">Cancelar</button></div>
+</form></aside>
+
+{# ---------- flotante: operar máquina ---------- #}
+<aside id="nr-operar" class="cajon" hidden aria-label="Operar máquina"><div class="cajon-barra"><b style="font-size:15px" id="nr-op-titulo">Máquina</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
+<div id="nr-op-cuerpo"></div></aside>
+
+{# ---------- flotante: catálogo de productos ---------- #}
+<aside id="nr-catalogo" class="cajon nr-ancho" hidden aria-label="Agregar producto"><div class="cajon-barra"><b style="font-size:15px" id="nr-cat-titulo">Agregar producto · {{ nr.proveedor }}</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
+<div id="nr-cat-lista"><p class="sub" style="margin:4px 0 0;font-size:12.5px">{{ nr.n_productos }} servicios administrados de {{ nr.proveedor }}. Cada uno se crea con un ticket que pide aprobación y después aparece en «Productos de la nube» con su salud.</p>
+<input type="search" id="nr-cat-q" placeholder="Buscar producto: base de datos, bucket, kubernetes, dns…" aria-label="Buscar producto" style="width:100%;margin-top:10px">
+<div class="nr-filtros" id="nr-cat-f"><button type="button" class="on" data-c="">Todas</button>{% for c in nr.categorias %}<button type="button" data-c="{{ c.nombre }}">{{ c.nombre }}</button>{% endfor %}</div>
+<div class="nr-cat" id="nr-cat-g"></div></div>
+<div id="nr-cat-ficha" class="nr-ficha" hidden></div></aside>
+
+<script>(()=>{
+const D={{ nr.datos_js|tojson }}, CSRF={{ csrf|tojson }}, ESC={{ (perfil_actual.modo == 'escritura')|tojson }};
+const U={crear:{{ url_for('consola.nube_maquina_crear', iid=x.id)|tojson }}, costo:{{ url_for('consola.nube_maquina_costo', iid=x.id)|tojson }},
+ accion:{{ url_for('consola.nube_maquina_accion', iid=x.id, maquina='__M__', accion='__A__')|tojson }}, prod:{{ url_for('consola.nube_producto_crear', iid=x.id)|tojson }},
+ elim:{{ url_for('consola.nube_producto_eliminar', iid=x.id, rid=0)|tojson }}, op:{{ url_for('consola.nube_opciones', iid=x.id)|tojson }}, tk:{{ url_for('consola.ticket_estado', tid=0)|tojson }}};
+const PORMAQ={{ nr.por_maq|tojson }}, CONS={ {% for n, c in nr.consumo_maq.items() %}{{ n|tojson }}:{{ (c.html if c else '')|tojson }},{% endfor %} };
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const aviso=(t,k)=>window.fxAviso?fxAviso(t,k):alert(t);
+/* flotantes propios */
+const velo=document.getElementById('nr-velo');let abierto=null;
+function abrir(c){if(abierto)cerrar();abierto=c;c.hidden=false;velo.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'));}
+function cerrar(){if(!abierto)return;const c=abierto;c.classList.remove('abierto');setTimeout(()=>{c.hidden=true;},180);velo.hidden=true;abierto=null;}
+velo.addEventListener('click',cerrar);document.addEventListener('keydown',e=>{if(e.key==='Escape'&&abierto)cerrar();});
+document.querySelectorAll('#nr-crear .cajon-x,#nr-crear [data-cerrar],#nr-operar .cajon-x,#nr-catalogo .cajon-x').forEach(b=>b.addEventListener('click',cerrar));
+function post(url,datos){const fd=new FormData();fd.append('_csrf',CSRF);for(const k in datos)fd.append(k,datos[k]);
+ return fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json().catch(()=>({error:'Error '+r.status})));}
+/* estado del ticket: «En curso · FO-… → Aplicada · FO-…» */
+const CLS=e=>['pendiente_aprobacion','en_cola','en_ejecucion','pendiente'].includes(e)?['curso','En curso']:e==='exitoso'?['ok','Aplicada']:['rechazado','cancelado'].includes(e)?['nd',e.charAt(0).toUpperCase()+e.slice(1)]:['mal','Falló'];
+function chip(t){const [c,x]=CLS(t.estado||'pendiente_aprobacion');const a=document.createElement('a');a.className='chip nr-chip-'+c;a.href=t.url||'#';a.dataset.nrTk=t.id;a.textContent=x+' · '+t.numero;if(t.accion)a.title=t.accion;return a;}
+function seguir(a){const id=a.dataset.nrTk;if(!id||a.dataset.sig)return;a.dataset.sig='1';
+ const tick=()=>fetch(U.tk.replace(/\/0\/estado$/,'/'+id+'/estado')).then(r=>r.json()).then(s=>{const [c,x]=CLS(s.estado);a.className='chip nr-chip-'+c;a.textContent=x+' · '+s.numero;if(s.resultado)a.title=s.resultado;
+  if(c==='curso')setTimeout(tick,6000);}).catch(()=>setTimeout(tick,15000));tick();}
+document.querySelectorAll('[data-nr-tk]').forEach(a=>{if(a.classList.contains('nr-chip-curso'))seguir(a);});
+function ticketCreado(t,donde){aviso(t.numero+' creado: '+(t.accion||t.auto||'')+' espera aprobación en AAP','ok');if(window.fxNuevoTicket)fxNuevoTicket(t);
+ if(donde){donde.innerHTML='';const a=chip(t);donde.appendChild(a);seguir(a);}}
+/* lista de máquinas: columna «Operar» y botón «Crear máquina» (la tabla es de la ficha; aquí solo se agrega) */
+const tbl=document.querySelector('#maquinas table');
+if(tbl){const cab=document.querySelector('#maquinas .hv-lcab');
+ if(cab&&ESC){const b=document.createElement('button');b.type='button';b.className='btn chico';b.textContent='+ Crear máquina';b.title=D.bloqueos.crear||'Crear una máquina en la nube (ticket con aprobación)';
+  b.addEventListener('click',()=>{abrir(document.getElementById('nr-crear'));armarCrear();});cab.insertBefore(b,cab.querySelector('input'));}
+ const h=tbl.rows[0];if(h){const th=document.createElement('th');th.textContent='Operar';h.appendChild(th);}
+ [...tbl.rows].slice(1).forEach(r=>{if(r.querySelector('td[colspan]')){r.querySelector('td[colspan]').colSpan+=1;return;}
+  const n=(r.cells[0].querySelector('a')||r.cells[0]).textContent.trim().split(/\s/)[0];const td=r.insertCell(-1);td.className='nr-op';
+  const o=PORMAQ[n];if(o){const a=chip({id:o.id,numero:o.numero,url:o.url,estado:{curso:'en_ejecucion',ok:'exitoso',mal:'fallido',nd:'cancelado'}[o.cls],accion:o.accion});a.title=o.accion;td.appendChild(a);if(o.cls==='curso')seguir(a);}
+  if(D.maquinas[n]){const b=document.createElement('button');b.type='button';b.className='btn chico gris';b.textContent='Operar ›';b.addEventListener('click',()=>operar(n,td));td.appendChild(b);}
+  else if(!o){const s=document.createElement('span');s.className='sub';s.style.fontSize='11.5px';s.textContent='aún no leída';s.title='No aparece en la última lectura de la nube: usa «Actualizar opciones»';td.appendChild(s);}});}
+/* releer opciones */
+const rel=document.getElementById('nr-releer');if(rel)rel.addEventListener('click',()=>{rel.disabled=true;post(U.op,{}).then(x=>{if(x.error){aviso(x.error,'error');rel.disabled=false;return;}
+ document.getElementById('nr-lect').textContent='Leyendo la nube…';esperarLectura();});});
+function esperarLectura(){fetch(U.op).then(r=>r.json()).then(s=>{if(s.en_curso)setTimeout(esperarLectura,6000);else location.reload();});}
+{% if nr.lectura and nr.lectura.estado == 'en curso' %}setTimeout(esperarLectura,6000);{% endif %}
+/* ---------- crear máquina ---------- */
+const F=document.getElementById('nr-f-crear');const opt=(v,t,dis)=>'<option value="'+esc(v)+'"'+(dis?' disabled title="'+esc(dis)+'"':'')+'>'+esc(t)+'</option>';
+const tiposDe=(reg,zona)=>{const leidos=Object.entries(D.tipos).filter(([k,v])=>(v.zonas||[]).includes(zona));
+ if(leidos.length)return [leidos.map(([k,v])=>[k,v.cpu,v.ram]),false];return [Object.entries(D.tipos_ref).map(([k,v])=>[k,v[0],v[1]]),true];};
+let armado=false;
+function armarCrear(){if(armado)return;armado=true;
+ F.region.innerHTML=D.regiones.map(r=>opt(r,r+(D.regiones_nombre[r]?' ('+D.regiones_nombre[r]+')':''))).join('');F.region.value=D.region||D.regiones[0];
+ F.familia.innerHTML=D.familias.map(f=>opt(f.id,f.nombre)).join('');
+ F.imagen.innerHTML=D.imagenes.map(i=>opt(i.id,i.nombre+(i.bloqueo?' · sin certificar':''),i.bloqueo||(i.ok?'':'La imagen no está disponible en la nube'))).join('');F.imagen.value=(D.imagenes.find(i=>!i.bloqueo&&i.ok)||{}).id||'';
+ F.cuenta.innerHTML=opt('','Sin cuenta de servicio (sin acceso a APIs de Google)')+D.cuentas.map(c=>opt(c,c)).join('');
+ const redes=D.redes.length?D.redes.map(r=>r.nombre):[D.red];F.red.innerHTML=redes.map(r=>opt(r,r)).join('');F.red.value=redes.includes(D.red)?D.red:redes[0];
+ ['region','zona','familia','tipo','imagen','disco_tipo','disco_gb','red','publica'].forEach(k=>F[k].addEventListener('change',()=>refrescar(k)));
+ F.disco_gb.addEventListener('input',()=>precio());refrescar('region');}
+function refrescar(k){const reg=F.region.value;
+ if(k==='region'){const zs=D.zonas[reg]||[D.zona];F.zona.innerHTML=zs.map(z=>opt(z,z)).join('');F.zona.value=zs.includes(D.zona)?D.zona:zs[0];}
+ if(['region','zona','familia'].includes(k)){const [ts,ref]=tiposDe(reg,F.zona.value);document.getElementById('nr-tipos-ref').hidden=!ref;
+  const fam=F.familia.value;const l=ts.filter(t=>t[0].split('-')[0]===fam).sort((a,b)=>a[1]-b[1]||a[2]-b[2]);
+  F.tipo.innerHTML=l.length?l.map(t=>opt(t[0],t[0]+' · '+t[1]+' vCPU · '+t[2]+' GB')).join(''):opt('','Sin tipos de esta familia en la zona');}
+ if(['region','zona','familia','tipo'].includes(k)){const fam=(F.tipo.value||'').split('-')[0];const ds=D.discos.filter(d=>!d.familias||d.familias.includes(fam)).filter(d=>fam!=='n4'||d.id==='hyperdisk-balanced');
+  const prev=F.disco_tipo.value;F.disco_tipo.innerHTML=ds.map(d=>opt(d.id,d.nombre)).join('');if(ds.some(d=>d.id===prev))F.disco_tipo.value=prev;}
+ if(['region','red'].includes(k)){const ss=D.subredes.filter(s=>s.red===F.red.value&&s.region===reg);F.subred.innerHTML=ss.length?ss.map(s=>opt(s.nombre,s.nombre+' · '+s.rango)).join(''):opt(F.red.value,F.red.value+' (subred de la región)');}
+ if(k==='imagen'){const im=D.imagenes.find(i=>i.id===F.imagen.value)||{};const mn=Math.max(10,im.disco_min||10);F.disco_gb.min=mn;if(+F.disco_gb.value<mn)F.disco_gb.value=mn;}
+ precio();}
+let tPrecio;function precio(){clearTimeout(tPrecio);tPrecio=setTimeout(()=>{const p=new URLSearchParams({region:F.region.value,tipo:F.tipo.value,imagen:F.imagen.value,disco_tipo:F.disco_tipo.value,disco_gb:F.disco_gb.value,publica:F.publica.checked?'1':'0'});
+ const box=document.getElementById('nr-precio');if(!F.tipo.value){box.textContent='Elige el tipo para ver el precio estimado.';return;}
+ fetch(U.costo+'?'+p).then(r=>r.json()).then(c=>{box.innerHTML=c.error?esc(c.error):'<b>≈ '+esc(c.texto)+'</b> <span class="sub">estimado · '+esc(c.cpu)+' vCPU · '+esc(c.ram)+' GB RAM</span><div class="sub" style="font-size:12px;margin-top:2px">'+esc(c.detalle_txt)+'</div><div class="sub" style="font-size:11.5px">'+esc(c.fuente)+'. El consumo real lo trae la medición de consumo de la nube.</div>';});},250);}
+const lr=document.getElementById('nr-leer-region');if(lr)lr.addEventListener('click',e=>{e.preventDefault();post(U.op,{region:F.region.value}).then(x=>{if(x.error){aviso(x.error,'error');return;}aviso('Leyendo los tipos y precios de '+F.region.value+'; la ficha se actualiza al terminar','ok');esperarLectura();});});
+F.addEventListener('submit',ev=>{ev.preventDefault();const b=F.querySelector('button.btn:not(.gris)');b.disabled=true;
+ const d=Object.fromEntries(new FormData(F).entries());d.publica=F.publica.checked?'1':'0';
+ post(U.crear,d).then(t=>{b.disabled=false;if(t.error){aviso(t.error,'error');return;}cerrar();t.accion='Crear máquina '+t.maquina;ticketCreado(t,null);
+  if(tbl){const r=tbl.insertRow(1);r.innerHTML='<td>'+esc(t.maquina)+' <span class="chip">nueva</span></td><td>'+esc(F.region.value)+' · '+esc(F.zona.value)+'</td>'+'<td>—</td>'.repeat(Math.max(0,tbl.rows[0].cells.length-3));
+   const td=r.insertCell(-1);td.className='nr-op';const a=chip(t);td.appendChild(a);seguir(a);}}).catch(()=>{b.disabled=false;aviso('No se pudo crear el ticket','error');});});
+/* ---------- operar máquina ---------- */
+function bq(a){return D.bloqueos[a]||'';}
+function btn(acc,txt,cls,env){const m=bq(acc);return '<button type="'+(env?'submit':'button')+'" class="btn chico '+(cls||'')+'"'+(cls==='rojo'?' style="background:var(--bad);border-color:var(--bad)"':'')+' data-acc="'+acc+'"'+(m?' disabled title="'+esc(m)+'"':'')+'>'+esc(txt)+'</button>';}
+function motivo(acc){const m=bq(acc);return m?'<p class="nr-bloq">'+esc(m)+'</p>':'';}
+function operar(n,celda){const m=D.maquinas[n];const on=m.estado==='RUNNING';document.getElementById('nr-op-titulo').textContent=n;
+ const tipos=Object.entries(D.tipos).filter(([k,v])=>(v.zonas||[]).includes(m.zona)&&k!==m.tipo).sort((a,b)=>a[1].cpu-b[1].cpu||a[1].ram-b[1].ram);
+ const reglas=D.firewall.filter(f=>f.etiquetas.some(t=>(m.etiquetas_red||[]).includes(t)));
+ const sn=D.snapshots.filter(s=>s.maquina===n||m.discos.some(d=>d.nombre===s.disco));
+ const et=Object.entries(m.etiquetas||{}).filter(([k])=>k!=='origen').map(([k,v])=>k+'='+v).join('\n');
+ const o=PORMAQ[n];
+ let h='<dl class="hv-dl" style="margin:6px 0 4px"><dt>Estado</dt><dd><span class="chip '+(on?'s-ok':'')+'">'+esc(m.estado)+'</span></dd><dt>Tipo</dt><dd>'+esc(m.tipo)+'</dd><dt>Zona</dt><dd>'+esc(m.zona)+'</dd>'
+  +'<dt>IP</dt><dd class="mono">'+esc(m.ip||'—')+(m.publica?' · '+esc(m.publica):'')+'</dd><dt>Cuenta de servicio</dt><dd style="font-size:12px">'+esc(m.cuenta||'ninguna')+'</dd>'
+  +'<dt>Consumo del mes</dt><dd>'+(CONS[n]||'<a href="#consumo" class="sub">sin muestra</a>')+'</dd><dt>Última acción</dt><dd id="nr-op-ult">'+(o?'':'—')+'</dd></dl>'
+  +'<p class="sub" style="font-size:12px;margin:0">Cada acción crea un ticket que pide aprobación en AAP y corre en segundo plano: «En curso · ticket» → «Aplicada · ticket».</p>';
+ h+='<div class="nr-sec"><h3>Encendido</h3><div class="fila" style="gap:6px">'+btn('encender','Encender',on?'gris':'')+btn('apagar','Apagar',on?'':'gris')+btn('reiniciar','Reiniciar','gris')+'</div>'+motivo('encender')+'</div>';
+ h+='<form class="nr-sec nr-form" data-f="redimensionar"><h3>Cambiar tipo de máquina</h3><label>Nuevo tipo<select name="tipo">'+(tipos.length?tipos.map(([k,v])=>opt(k,k+' · '+v.cpu+' vCPU · '+v.ram+' GB')).join(''):opt('','Sin tipos leídos para '+m.zona))+'</select></label>'
+  +'<p class="nr-aviso" style="margin:0">Requiere apagado: '+(on?'la máquina se apaga, cambia de tipo y vuelve a encenderse (corte de servicio de unos minutos).':'está apagada; queda apagada con el tipo nuevo.')+'</p>'
+  +(on?'<label class="fila-c" style="flex-direction:row"><input type="checkbox" name="detener" value="1" required> Acepto apagarla para cambiar el tipo</label>':'')+'<div>'+btn('redimensionar','Cambiar tipo (ticket)','',1)+'</div>'+motivo('redimensionar')+'</form>';
+ h+='<div class="nr-sec"><h3>Discos</h3><table class="sin-pag" style="font-size:12.5px"><tr><th>Disco</th><th>GB</th><th>Tipo</th><th></th></tr>'+m.discos.map(d=>'<tr><td class="mono">'+esc(d.nombre)+'</td><td>'+esc(d.gb)+'</td><td>'+esc(d.tipo||'—')+(d.arranque?' · arranque':'')+'</td><td>'+(bq('snapshot')?'':'<button type="button" class="btn chico gris" data-snap="'+esc(d.nombre)+'">Snapshot</button>')+'</td></tr>').join('')+'</table>'
+  +(sn.length?'<p class="sub" style="font-size:12px;margin:4px 0 0">Snapshots: '+sn.map(s=>esc(s.nombre)).join(', ')+'</p>':'')+motivo('snapshot')
+  +'<form class="nr-form" data-f="disco_ampliar" style="margin-top:8px"><div class="dos"><label>Ampliar disco<select name="disco">'+m.discos.map(d=>opt(d.nombre,d.nombre+' · '+d.gb+' GB')).join('')+'</select></label><label>Nuevo tamaño (GB)<input type="number" name="gb" min="11" required></label></div><div>'+btn('disco_ampliar','Ampliar (ticket)','gris',1)+'</div>'+motivo('disco_ampliar')+'</form>'
+  +'<form class="nr-form" data-f="disco_agregar" style="margin-top:8px"><div class="dos"><label>Agregar disco (GB)<input type="number" name="gb" min="10" max="4000" value="10" required></label><label>Tipo<select name="disco_tipo">'+D.discos.map(d=>opt(d.id,d.nombre)).join('')+'</select></label></div><div>'+btn('disco_agregar','Agregar (ticket)','gris',1)+'</div>'+motivo('disco_agregar')+'</form></div>';
+ h+='<form class="nr-sec nr-form" data-f="etiquetas"><h3>Etiquetas</h3><label>Etiquetas <span class="sub">clave=valor por línea</span><textarea name="etiquetas" rows="3">'+esc(et)+'</textarea></label><label>Etiquetas de red<input name="etiquetas_red" value="'+esc((m.etiquetas_red||[]).join(', '))+'"></label><div>'+btn('etiquetas','Guardar etiquetas (ticket)','gris',1)+'</div>'+motivo('etiquetas')+'</form>';
+ h+='<div class="nr-sec"><h3>Reglas de firewall asociadas · '+reglas.length+'</h3>'+(reglas.length?'<table class="sin-pag" style="font-size:12.5px"><tr><th>Regla</th><th>Permite</th><th>Orígenes</th><th></th></tr>'+reglas.map(f=>'<tr><td class="mono">'+esc(f.nombre)+(f.deshabilitada?' <span class="chip">deshabilitada</span>':'')+'</td><td>'+esc(f.permite.join(' '))+'</td><td style="font-size:12px">'+esc(f.origenes.join(', '))+(f.origenes.includes('0.0.0.0/0')?' <span class="chip s-alta">abierta a internet</span>':'')+'</td><td>'+(f.nombre.startsWith('fo-'+n+'-')&&!bq('firewall')?'<button type="button" class="btn chico gris" data-fwq="'+esc(f.nombre)+'">Quitar</button>':'')+'</td></tr>').join('')+'</table>':'<p class="sub" style="font-size:12.5px;margin:0">Ninguna regla apunta a sus etiquetas de red.</p>')
+  +'<form class="nr-form" data-f="firewall" style="margin-top:8px"><input type="hidden" name="modo" value="agregar"><div class="dos"><label>Nombre corto<input name="regla" required pattern="[a-z0-9-]{1,20}" placeholder="web"></label><label>Protocolo<select name="protocolo"><option>tcp</option><option>udp</option><option>icmp</option></select></label></div>'
+  +'<div class="dos"><label>Puertos<input name="puertos" placeholder="80,443"></label><label>Orígenes (CIDR)<input name="origenes" required placeholder="10.0.0.0/8"></label></div><div>'+btn('firewall','Asociar regla (ticket)','gris',1)+'</div>'+motivo('firewall')+'</form></div>';
+ h+='<form class="nr-sec nr-form" data-f="eliminar" style="border-top-color:var(--bad)"><h3 style="color:var(--bad)">Eliminar máquina</h3><p class="sub" style="font-size:12.5px;margin:0">Borra la máquina con sus discos, sus snapshots y sus reglas creadas por FaceOps. No se puede deshacer; sale del inventario de FaceOps y de AAP.</p>'
+  +'<label>Escribe el nombre para confirmar<input name="confirmar" required autocomplete="off" placeholder="'+esc(n)+'"></label><label class="fila-c" style="flex-direction:row"><input type="checkbox" name="entiendo" value="1" required> Entiendo que no se puede deshacer</label>'
+  +'<div>'+btn('eliminar','Eliminar (ticket con aprobación)','rojo',1)+'</div>'+motivo('eliminar')+'</form>';
+ const cu=document.getElementById('nr-op-cuerpo');cu.innerHTML=h;
+ if(o){const a=chip({id:o.id,numero:o.numero,url:o.url,estado:{curso:'en_ejecucion',ok:'exitoso',mal:'fallido',nd:'cancelado'}[o.cls]});a.title=o.accion;document.getElementById('nr-op-ult').appendChild(a);if(o.cls==='curso')seguir(a);}
+ const lanzar=(acc,datos,txt)=>{post(U.accion.replace('__M__',encodeURIComponent(n)).replace('__A__',acc),datos).then(t=>{if(t.error){aviso(t.error,'error');return;}
+  t.accion=t.accion+' · '+n;ticketCreado(t,celda);PORMAQ[n]={id:t.id,numero:t.numero,url:t.url,cls:'curso',accion:t.accion};const u=document.getElementById('nr-op-ult');u.innerHTML='';const a=chip(t);u.appendChild(a);seguir(a);});};
+ cu.querySelectorAll('button[data-acc]').forEach(b=>{if(b.type==='button')b.addEventListener('click',()=>{const acc=b.dataset.acc;if(!confirm('¿'+b.textContent+' '+n+'? Se crea un ticket que pide aprobación en AAP.'))return;lanzar(acc,{});});});
+ cu.querySelectorAll('form[data-f]').forEach(f=>f.addEventListener('submit',ev=>{ev.preventDefault();const acc=f.dataset.f;const d=Object.fromEntries(new FormData(f).entries());
+  if(acc==='eliminar'&&!confirm('Última confirmación: ¿eliminar '+n+' de la nube? No se puede deshacer.'))return;lanzar(acc,d);}));
+ cu.querySelectorAll('[data-snap]').forEach(b=>b.addEventListener('click',()=>{if(confirm('¿Snapshot del disco '+b.dataset.snap+'? (ticket con aprobación)'))lanzar('snapshot',{disco:b.dataset.snap});}));
+ cu.querySelectorAll('[data-fwq]').forEach(b=>b.addEventListener('click',()=>{if(confirm('¿Quitar la regla '+b.dataset.fwq+' de '+n+'? (ticket con aprobación)'))lanzar('firewall',{modo:'quitar',regla:b.dataset.fwq.slice(('fo-'+n+'-').length)});}));
+ abrir(document.getElementById('nr-operar'));}
+/* ---------- catálogo de productos ---------- */
+const P=D.categorias.flatMap(c=>c.productos);let cat='';
+const costoTxt=(p,v)=>{const c=p.costo||{};let t=+(c.fijo||0);for(const k in (c.por||{}))t+=+((c.por[k]||{})[String(v[k]??'')]||0);if(c.por_unidad)t+=(+v[c.por_unidad.campo]||0)*c.por_unidad.usd;return t;};
+const usd=v=>'USD '+v.toLocaleString('es-CL',{minimumFractionDigits:2,maximumFractionDigits:2});
+const defs=p=>Object.fromEntries((p.campos||[]).map(c=>[c.var,c.defecto]));
+function grilla(){const qv=(document.getElementById('nr-cat-q').value||'').toLowerCase().trim();
+ const l=P.filter(p=>(!cat||p.categoria===cat)&&(!qv||(p.nombre+' '+p.resumen+' '+p.categoria+' '+p.que_es).toLowerCase().includes(qv)));
+ document.getElementById('nr-cat-g').innerHTML=l.map(p=>'<button type="button" class="nr-card" data-p="'+esc(p.id)+'"><b>'+esc(p.nombre)+'</b><small>'+esc(p.resumen)+'</small><span class="pie"><span class="chip">'+esc(p.categoria)+'</span>'
+  +(p.certificado?'':'<span class="chip s-media" title="'+esc(p.bloqueo)+'">sin certificar</span>')+'<span class="chip" title="Estimado con la configuración por defecto">'+(costoTxt(p,defs(p))?'≈ '+usd(costoTxt(p,defs(p)))+'/mes':'por uso')+'</span></span></button>').join('')||'<p class="sub">Sin productos con ese filtro.</p>';
+ document.querySelectorAll('#nr-cat-g [data-p]').forEach(b=>b.addEventListener('click',()=>ficha(b.dataset.p)));}
+function ficha(id){const p=P.find(x=>x.id===id);const lst=a=>'<ul>'+a.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+ const campo=c=>c.tipo==='select'?'<label>'+esc(c.etiqueta)+'<select name="'+esc(c.var)+'">'+c.opciones.map(o=>opt(o,o)).join('')+'</select></label>'
+  :'<label>'+esc(c.etiqueta)+'<input name="'+esc(c.var)+'" type="'+(c.tipo==='number'?'number':'text')+'"'+(c.min!=null?' min="'+c.min+'"':'')+(c.max!=null?' max="'+c.max+'"':'')+(c.requerido?' required':'')+' value="'+esc(c.defecto??'')+'"></label>';
+ const regs=D.regiones.map(r=>opt(r,r+(D.regiones_nombre[r]?' ('+D.regiones_nombre[r]+')':''))).join('');
+ const el=document.getElementById('nr-cat-ficha');
+ el.innerHTML='<p style="margin:6px 0"><a href="#" id="nr-volver">‹ Catálogo</a></p><h2 style="margin:0">'+esc(p.nombre)+'</h2><p class="sub">'+esc(p.categoria)+' · '+esc(p.resumen)+'</p>'
+  +(p.certificado?'':'<p class="nr-aviso" style="margin:8px 0">Sin certificar: '+esc(p.bloqueo.replace(/^Sin certificar: ?/,''))+'</p>')
+  +'<h4>Qué es</h4><p>'+esc(p.que_es)+'</p><h4>Para qué sirve</h4>'+lst(p.para_que)+'<h4>Modelos de precio</h4>'+lst(p.precios)+'<h4>Límites relevantes</h4>'+lst(p.limites)
+  +'<p style="margin:10px 0 0"><a href="'+esc(p.doc)+'" target="_blank" rel="noopener">Documentación oficial de Google Cloud ↗</a>'+(p.servicio?' <span class="sub mono" style="font-size:11.5px">'+esc(p.servicio)+'</span>':'')+'</p>'
+  +'<form class="nr-form nr-sec" id="nr-f-prod"><h3>Crear '+esc(p.nombre)+'</h3><div class="dos"><label>Nombre<input name="nombre" required placeholder="'+esc(p.id==='bigquery'?'datos_ventas':'prod-'+p.id+'-01')+'"></label>'
+  +(p.id==='balanceador'?'<span></span>':'<label>Región<select name="region">'+regs+'</select></label>')+'</div>'+(p.campos||[]).map(campo).join('')
+  +'<div class="nr-precio" id="nr-p-costo"></div>'+(p.bloqueo?'<p class="nr-bloq">'+esc(p.bloqueo)+'</p>':'')
+  +'<div class="fila" style="gap:8px"><button class="btn"'+(p.bloqueo?' disabled title="'+esc(p.bloqueo)+'"':'')+'>Crear (ticket con aprobación)</button></div></form>';
+ const f=el.querySelector('form');if(f.region)f.region.value=D.region;
+ const pc=()=>{const v=Object.fromEntries(new FormData(f).entries());const t=costoTxt(p,v);document.getElementById('nr-p-costo').innerHTML=(t?'<b>≈ '+usd(t)+'/mes</b> <span class="sub">estimado con precios de lista</span>':'<b>Por uso</b>')+(p.costo&&p.costo.nota?'<div class="sub" style="font-size:12px">'+esc(p.costo.nota)+'</div>':'');};
+ f.addEventListener('input',pc);pc();
+ f.addEventListener('submit',ev=>{ev.preventDefault();const b=f.querySelector('button');b.disabled=true;const d=Object.fromEntries(new FormData(f).entries());d.producto=p.id;
+  post(U.prod,d).then(t=>{b.disabled=false;if(t.error){aviso(t.error,'error');return;}cerrar();t.accion='Agregar '+t.producto+' '+t.nombre;ticketCreado(t,null);setTimeout(()=>location.reload(),1200);}).catch(()=>{b.disabled=false;aviso('No se pudo crear el ticket','error');});});
+ el.querySelector('#nr-volver').addEventListener('click',e=>{e.preventDefault();el.hidden=true;document.getElementById('nr-cat-lista').hidden=false;document.getElementById('nr-cat-titulo').textContent='Agregar producto · {{ nr.proveedor }}';});
+ document.getElementById('nr-cat-lista').hidden=true;el.hidden=false;document.getElementById('nr-cat-titulo').textContent=p.nombre;document.getElementById('nr-catalogo').scrollTop=0;}
+const ca=document.getElementById('nr-cat-abrir');if(ca)ca.addEventListener('click',()=>{document.getElementById('nr-cat-ficha').hidden=true;document.getElementById('nr-cat-lista').hidden=false;grilla();abrir(document.getElementById('nr-catalogo'));});
+document.getElementById('nr-cat-q').addEventListener('input',grilla);
+document.querySelectorAll('#nr-cat-f button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#nr-cat-f button').forEach(x=>x.classList.toggle('on',x===b));cat=b.dataset.c;grilla();}));
+/* eliminar producto */
+document.querySelectorAll('[data-nr-elim]').forEach(b=>b.addEventListener('click',()=>{const n=b.dataset.nombre;const v=prompt('Eliminar «'+n+'» de la nube no se puede deshacer. Escribe su nombre para confirmar (ticket con aprobación):');
+ if(v===null)return;if(v.trim()!==n){aviso('El nombre no coincide: no se eliminó','error');return;}b.disabled=true;
+ post(U.elim.replace(/\/0\/eliminar$/,'/'+b.dataset.nrElim+'/eliminar'),{confirmar:v.trim()}).then(t=>{if(t.error){aviso(t.error,'error');b.disabled=false;return;}t.accion='Eliminar '+n;ticketCreado(t,b.closest('tr').cells[5]);b.remove();});}));
+})();</script>
+{% endif %}

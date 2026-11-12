@@ -1,0 +1,107 @@
+---
+# Nube · Crear máquina. Crea una máquina en la nube GCP de la ficha de nube de FaceOps con la colección google.cloud
+# (versión fija en collections/requirements.yml) y la credencial cifrada de la conexión. Siempre con ticket y aprobación.
+# Queda vinculada al nacer: Linux con la llave de los nodos en los metadatos (ssh-keys); Windows sin clave en la nube:
+# FaceOps lanza «Incorporar máquinas», que la deja con WinRM y el usuario de servicio con su clave cifrada. Se inventaría
+# sin agente (SSH o WinRM).
+# Variables: nb_infra_id, nb_proyecto, nm_nombre, nm_zona, nm_tipo, nm_imagen (familia de imagen), nm_so, nm_familia_so
+#            (linux | windows), nm_disco_gb, nm_disco_tipo, nm_red, nm_subred, nm_publica (bool), nm_etiquetas (dict),
+#            nm_etiquetas_red (lista), nm_cuenta (correo de la cuenta de servicio de la VM; vacío = sin cuenta), hab_ambiente
+# Resultado (set_stats): faceops_creados [nombre|ip], faceops_so, faceops_destino gcp, faceops_ambiente (FaceOps la da de
+# alta en «Servidores habilitados» y la vincula) y faceops_nube_creada (detalle).
+- name: Nube · Crear máquina
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    region: "{{ nm_zona | default('') | regex_replace('-[a-z]$', '') }}"
+    gcp: &gcp
+      auth_kind: serviceaccount
+      service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') or lookup('ansible.builtin.env', 'GCE_CREDENTIALS_FILE_PATH') }}"
+      project: "{{ nb_proyecto }}"
+  tasks:
+    - name: Datos válidos (no se crea nada si algo no calza)
+      ansible.builtin.assert:
+        that:
+          - nb_proyecto | default('') is match('^[a-z][a-z0-9-]{4,28}[a-z0-9]$')
+          - nm_nombre | default('') is match('^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$')
+          - nm_zona | default('') is match('^[a-z]+-[a-z]+[0-9]+-[a-z]$')
+          - nm_tipo | default('') is match('^(e2|n2|n2d|n4|t2d|c3)-[a-z0-9-]+$')
+          - nm_imagen | default('') is match('^projects/[a-z0-9-]+/global/images/family/[a-z0-9-]+$')
+          - nm_familia_so | default('') in ['linux', 'windows']
+          - nm_disco_gb | default(0) | int >= 10 and nm_disco_gb | int <= 2000
+          - nm_disco_tipo | default('') in ['pd-balanced', 'pd-ssd', 'pd-standard', 'hyperdisk-balanced']
+          - nm_red | default('') is match('^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$')
+          - nm_subred | default('') is match('^([a-z]([-a-z0-9]{0,61}[a-z0-9])?)?$')
+          - (nm_etiquetas | default({})) is mapping
+          - (nm_etiquetas_red | default([])) | reject('match', '^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$') | list | length == 0
+          - nm_cuenta | default('') is match('^([a-z0-9-]+@[a-z0-9.-]+\.gserviceaccount\.com)?$')
+          - lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') or lookup('ansible.builtin.env', 'GCE_CREDENTIALS_FILE_PATH')
+        fail_msg: "Solicitud no válida o sin credencial de la nube: nombre, zona, tipo, imagen, disco (10-2000 GB), red, etiquetas o cuenta de servicio (no se creó nada)"
+        quiet: true
+
+    - name: Red
+      google.cloud.gcp_compute_network_info:
+        filters: ["name = {{ nm_red }}"]
+        <<: *gcp
+      register: r_red
+
+    - name: Subred de la región
+      google.cloud.gcp_compute_subnetwork_info:
+        region: "{{ region }}"
+        filters: ["name = {{ nm_subred | default(nm_red, true) }}"]
+        <<: *gcp
+      register: r_sub
+
+    - name: ¿Existen la red y la subred?
+      ansible.builtin.assert:
+        that:
+          - r_red.resources | length == 1
+          - r_sub.resources | length == 1
+        fail_msg: "No existe la red {{ nm_red }} o su subred {{ nm_subred | default(nm_red, true) }} en {{ region }} (no se creó nada)"
+        quiet: true
+
+    - name: Crear la máquina (si ya existe con ese nombre, queda igual)
+      google.cloud.gcp_compute_instance:
+        name: "{{ nm_nombre }}"
+        zone: "{{ nm_zona }}"
+        machine_type: "{{ nm_tipo }}"
+        labels: "{{ nm_etiquetas | default({}) | combine({'origen': 'faceops', 'so': nm_so | default('') | regex_replace('[^a-z0-9_-]', ''), 'ambiente': hab_ambiente | default('desarrollo')}) }}"
+        tags:
+          items: "{{ nm_etiquetas_red | default([]) }}"
+        disks:
+          - auto_delete: true
+            boot: true
+            initialize_params:
+              source_image: "{{ nm_imagen }}"
+              disk_size_gb: "{{ nm_disco_gb | int }}"
+              disk_type: "{{ nm_disco_tipo }}"
+        network_interfaces:
+          - network: {selfLink: "{{ r_red.resources[0].selfLink }}"}
+            subnetwork: {selfLink: "{{ r_sub.resources[0].selfLink }}"}
+            access_configs: "{{ [{'name': 'External NAT', 'type': 'ONE_TO_ONE_NAT'}] if nm_publica | default(true) | bool else [] }}"
+        service_accounts: "{{ [{'email': nm_cuenta, 'scopes': ['https://www.googleapis.com/auth/cloud-platform']}] if nm_cuenta | default('') else [] }}"
+        metadata: "{{ {} if nm_familia_so == 'windows' else {'ssh-keys': 'ansible:' ~ lookup('ansible.builtin.file', playbook_dir ~ '/../datos/ssh-nube.pub')} }}"
+        state: present
+        <<: *gcp
+      register: r_vm
+
+    - name: Direcciones
+      ansible.builtin.set_fact:
+        ip_int: "{{ (r_vm.networkInterfaces | first).networkIP | default('') }}"
+        ip_pub: "{{ ((r_vm.networkInterfaces | first).accessConfigs | default([{}], true) | first).natIP | default('') }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_creados: ["{{ nm_nombre }}|{{ ip_pub or ip_int }}"]
+          faceops_so: "{{ nm_so | default('') }}"
+          faceops_destino: gcp
+          faceops_ambiente: "{{ hab_ambiente | default('desarrollo') }}"
+          faceops_nube_creada: {nombre: "{{ nm_nombre }}", zona: "{{ nm_zona }}", tipo: "{{ nm_tipo }}", ip: "{{ ip_int }}", publica: "{{ ip_pub }}",
+                                estado: "{{ r_vm.status | default('') }}", infra_id: "{{ nb_infra_id | default('') }}"}
+        per_host: false
+
+    - name: Máquina creada
+      ansible.builtin.debug:
+        msg: "{{ nm_nombre }} · {{ nm_tipo }} · {{ nm_zona }} · {{ ip_pub or ip_int }}{{ '' if ip_pub else ' (sin IP pública: AAP la alcanza solo por red privada)' }} · {{ 'queda vinculándose por WinRM (Incorporar máquinas)' if nm_familia_so == 'windows' else 'llave de los nodos en sus metadatos' }}"

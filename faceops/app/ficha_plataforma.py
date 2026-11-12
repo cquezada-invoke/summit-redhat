@@ -431,6 +431,11 @@ def _metricas():
             ed = _edad_h(m.get("medido"))
             if ed is not None:
                 lin.append(f"faceops_plataforma_medicion_edad_segundos{{{base}}} {round(ed * 3600)}")
+    try:   # nubes: consumo, cuotas, llaves, máquinas y APIs (lo leído por AAP; alertas de la campana de la ficha de nube)
+        from .nube_recursos import metricas_nube
+        lin += metricas_nube(esc)
+    except Exception:  # noqa: BLE001 - sin nubes o sin lectura: solo faltan esas series
+        pass
     return "\n".join(lin) + "\n"
 
 

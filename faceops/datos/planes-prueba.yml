@@ -477,6 +477,41 @@ planes:
       - {id: C1, caso: "Guardar la conexión de la nube GCP del laboratorio con la cuenta de servicio vigente y aprobar", verificar: "ticket exitoso; fuente dinámica sincronizada; la ficha de la nube muestra «Conectada» y sus VM"}
       - {id: C2, caso: "Rechazar la aprobación", tipo: Error controlado, verificar: "no corre la sincronización; la conexión guardada no cambia"}
       - {id: C3, caso: "Fuente dinámica inexistente (id inválido)", tipo: Error controlado, verificar: "ticket fallido con el motivo; no se toca la nube"}
+  "Nube · Leer opciones de la nube":   # proyecto invoke-summit-cloud (sandbox vacío)
+    casos:
+      - {id: C1, caso: "Leer la nube GCP del laboratorio con la credencial cifrada de su conexión", verificar: "trabajo exitoso; regiones, zonas, tipos de máquina con vCPU/RAM, imágenes, redes y subredes, cuentas de servicio y permisos que faltan; FaceOps lo guarda en su caché y la ficha lo usa en «Crear máquina»"}
+      - {id: C2, caso: "Repetir la lectura", tipo: Idempotencia, verificar: "trabajo exitoso con los mismos conteos; la nube no cambia (solo lectura)"}
+      - {id: C3, caso: "Proyecto no válido", tipo: Error controlado, verificar: "trabajo fallido en «Datos válidos»; no se llama a la nube"}
+      - {id: C4, caso: "Salida sin secretos", verificar: "la salida del trabajo no contiene private_key, client_secret ni tokens"}
+  "Nube · Crear máquina":   # VM e2-micro en invoke-summit-cloud; se elimina al terminar, pase o falle
+    casos:
+      - {id: C1, caso: "Crear una e2-micro Linux (Rocky Linux 9, pd-balanced 20 GB, IP pública, etiquetas y etiqueta de red) desde la ficha de la nube", verificar: "ticket exitoso; la VM existe RUNNING con sus etiquetas; alta en «Servidores habilitados»; vinculación automática y su inventario sin agente exitosos"}
+      - {id: C2, caso: "Repetir la creación con el mismo nombre", tipo: Idempotencia, verificar: "ticket exitoso sin cambios en la nube (la VM queda igual); el formulario de FaceOps rechaza el nombre repetido"}
+      - {id: C3, caso: "Datos no válidos (tipo de máquina fuera de las familias)", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; no se crea nada"}
+      - {id: C4, caso: "Rechazar la aprobación", tipo: Error controlado, verificar: "ticket rechazado; no se crea nada"}
+      - {id: C5, caso: "Validaciones del formulario (nombre, zona de otra región, disco bajo el mínimo, N4 sin Hyperdisk, Windows sin certificar)", tipo: Error controlado, verificar: "FaceOps rechaza cada una con su motivo, sin ticket"}
+  "Nube · Operar máquina":   # sobre la VM de prueba de «Nube · Crear máquina»
+    casos:
+      - {id: C1, caso: "Apagar", verificar: "ticket exitoso; TERMINATED; FaceOps la marca apagada"}
+      - {id: C2, caso: "Apagar de nuevo", tipo: Idempotencia, verificar: "ticket exitoso «ya estaba apagada: sin cambios»"}
+      - {id: C3, caso: "Cambiar tipo estando apagada (e2-micro → e2-small)", verificar: "ticket exitoso; tipo nuevo y sigue apagada"}
+      - {id: C4, caso: "Encender", verificar: "ticket exitoso; RUNNING; FaceOps la marca encendida"}
+      - {id: C5, caso: "Cambiar tipo encendida: sin confirmar el apagado y confirmado (e2-small → e2-micro)", verificar: "sin confirmar: FaceOps lo rechaza sin ticket; confirmado: apaga, cambia y vuelve a encender (RUNNING, e2-micro)"}
+      - {id: C6, caso: "Reiniciar", verificar: "ticket exitoso; RUNNING"}
+      - {id: C7, caso: "Agregar disco de 10 GB y ampliarlo a 12 GB (achicar: rechazado)", verificar: "disco conectado y luego de 12 GB; achicar lo rechaza el formulario"}
+      - {id: C8, caso: "Cambiar etiquetas y etiquetas de red", verificar: "ticket exitoso; etiquetas y etiquetas de red aplicadas"}
+      - {id: C9, caso: "Snapshot del disco de arranque", verificar: "ticket exitoso; snapshot con la etiqueta faceops-vm"}
+      - {id: C10, caso: "Asociar una regla de firewall (tcp 8080 desde 10.0.0.0/8) y quitarla", verificar: "regla fo-<vm>-web creada y etiqueta en la VM; al quitar, la VM ya no tiene la etiqueta"}
+      - {id: C11, caso: "Eliminar (confirmación fuerte)", verificar: "sin el nombre exacto FaceOps lo rechaza; confirmado: ticket exitoso, la VM, su disco extra, su snapshot y su regla ya no existen; retirada de FaceOps y de AAP"}
+      - {id: C12, caso: "Máquina inexistente", tipo: Error controlado, verificar: "ticket fallido con «no existe la máquina»; no cambia nada"}
+  "Nube · Producto de la nube":   # bucket en invoke-summit-cloud; se elimina al terminar, pase o falle
+    casos:
+      - {id: C1, caso: "Crear un bucket (Cloud Storage, STANDARD) desde el catálogo", verificar: "ticket exitoso; el bucket existe; aparece en «Productos de la nube» con salud operativo"}
+      - {id: C2, caso: "Crear de nuevo el mismo bucket", tipo: Idempotencia, verificar: "ticket exitoso «ya existe: sin cambios»"}
+      - {id: C3, caso: "Eliminar el bucket (escribiendo su nombre)", verificar: "ticket exitoso; el bucket ya no existe; sale de la lista"}
+      - {id: C4, caso: "Pasos hacia una URL que no es de Google", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; no se llama a ninguna API"}
+      - {id: C5, caso: "Formularios de los productos caros (GKE, Cloud SQL, AlloyDB, Vertex AI): válidos y no válidos", tipo: Error controlado, verificar: "FaceOps arma los pasos o rechaza con el motivo, sin crear recursos; quedan «sin certificar» en el catálogo"}
+      - {id: C6, caso: "Rechazar la aprobación", tipo: Error controlado, verificar: "ticket rechazado; no se crea nada"}
   "Nube · Recuperar consumo y estado":
     casos:
       - {id: C1, caso: "Recuperar la nube GCP del laboratorio con la credencial cifrada de su conexión (ticket «Actualizar ahora»)", verificar: "ticket exitoso; faceops_nube_resumen trae consumo con su fuente (facturación, API o estimado) o «sin datos» con lo que falta, y cada sección leída o con «sin permiso: falta rol X»; FaceOps lo guarda con fecha y la lista y la ficha lo muestran"}

@@ -210,6 +210,9 @@ shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/opens
 for f_ in ("openshift-gcp-crear.yml", "openshift-gcp-eliminar.yml"):   # Contenedores › Crear plataforma de contenedores (GCP)
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/nube-simulada.yml", f"{tmp}/playbooks/nube-simulada.yml")
+for f_ in ("nube-opciones.yml", "nube-maquina-crear.yml", "nube-maquina-operar.yml", "nube-producto.yml"):   # ficha de nube › máquinas y productos
+    shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
+shutil.copy(f"{AQUI}/files/nube_gcp.py", f"{tmp}/playbooks/files/nube_gcp.py")
 shutil.copy(f"{AQUI}/nube-consumo.yml", f"{tmp}/playbooks/nube-consumo.yml")   # Nube · Recuperar consumo y estado
 shutil.copy(f"{AQUI}/files/nube_resumen.py", f"{tmp}/playbooks/files/nube_resumen.py")
 shutil.copy(f"{AQUI}/incorporar-maquinas.yml", f"{tmp}/playbooks/incorporar-maquinas.yml")
@@ -231,7 +234,7 @@ os.makedirs(f"{tmp}/datos", exist_ok=True)
 os.makedirs(f"{tmp}/collections", exist_ok=True)
 open(f"{tmp}/collections/requirements.yml", "w").write(
     "# Colecciones que AAP descarga al sincronizar el proyecto «FaceOps · automatizaciones»\n"
-    "collections:\n  - name: google.cloud\n  - name: ansible.windows\n  - name: ansible.posix\n"
+    "collections:\n  - name: google.cloud\n    version: '1.15.0'\n  - name: ansible.windows\n  - name: ansible.posix\n"
     "  - name: ansible.netcommon\n  - name: vyos.vyos\n")   # netcommon y vyos: Red · Inventariar equipo de red
 pub_nube = gitea("GET", "repos/invoke/nube/contents/datos/ssh.pub", t=True)
 if pub_nube:
@@ -1228,6 +1231,17 @@ if not aap("GET", f"workflow_job_templates/{wnv['id']}/workflow_nodes/")["result
     n2 = aap("POST", f"workflow_job_templates/{wnv['id']}/workflow_nodes/", {"unified_job_template": jnv["id"]})
     aap("POST", f"workflow_job_template_nodes/{n1['id']}/success_nodes/", {"id": n2["id"]})
 paso(f"Workflow «Nube · Validar conexión e inventariar» (id {wnv['id']})")
+# Ficha de nube › máquinas y productos (GCP). FaceOps las lanza con la credencial cifrada de la conexión de la nube (se
+# elige al lanzar). Crear, operar y productos van siempre con aprobación (un flujo por nube); leer opciones es solo lectura.
+for n_, pb_, d_, to_ in (
+        ("Nube · Leer opciones de la nube", "nube-opciones.yml", "Solo lectura: regiones, zonas, tipos con precio, imágenes, redes, cuentas de servicio, permisos que faltan y salud de los productos", 900),
+        ("Nube · Crear máquina", "nube-maquina-crear.yml", "Crea una máquina en la nube (google.cloud) que queda vinculada e inventariada sin agente", 1800),
+        ("Nube · Operar máquina", "nube-maquina-operar.yml", "Encender, apagar, reiniciar, cambiar tipo, discos, etiquetas, snapshot, firewall o eliminar una máquina de la nube", 2400),
+        ("Nube · Producto de la nube", "nube-producto.yml", "Crea o elimina un producto adicional de la nube: bases de datos, buckets, contenedores, red, seguridad o IA", 3600)):
+    j_ = asegurar("job_templates", n_, {"organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_}", "inventory": inv_inf["id"],
+                                        "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True,
+                                        "timeout": to_, "description": d_})
+    paso(f"Plantilla «{n_}» (id {j_['id']})")
 # Nube · Recuperar consumo y estado: solo lectura. FaceOps la lanza una vez al día por nube (y por ticket con «Actualizar
 # ahora») con la credencial cifrada de la conexión, que se elige al lanzar; guarda el resultado en su base.
 jnc = asegurar("job_templates", "Nube · Recuperar consumo y estado", {
