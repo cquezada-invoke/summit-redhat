@@ -1,14 +1,257 @@
-commit: 8a5e41faa31b7913a6dccfabed375e4154885f3f
-inicio: 2026-11-11T23:19:59-03:00
+commit: 16bee5df356f66041bff723f608df41d21045ccc
+inicio: 2026-11-11T23:20:19-03:00
 ---
-puerto 9100: responde
-puerto 9177: responde
-puerto 9272: responde
-0
-[('artemis', '127.0.0.1:9410', ''), ('certificados', '192.168.122.11:443', ''), ('componentes-dns-lab', '172.20.20.30', ''), ('componentes-http-ok', 'http://127.0.0.1:3000/api/healthz', ''), ('componentes-http-ok', 'http://127.0.0.1:30097/', ''), ('componentes-http-ok', 'http://127.0.0.1:8090/app-jboss/', ''), ('componentes-http-ok', 'http://127.0.0.1:8090/grafana/api/health', ''), ('componentes-http-ok', 'http://127.0.0.1:9090/-/healthy', ''), ('componentes-http-ok', 'http://127.0.0.1:9093/-/healthy', ''), ('componentes-http-ok', 'http://192.168.122.14:8080/auth/realms/invoke', ''), ('componentes-http-ok', 'http://192.168.122.14:8161/console/', ''), ('componentes-http-ok', 'http://192.168.122.15:8080/app-jboss/salud', ''), ('componentes-http-ok', 'http://192.168.122.17/', ''), ('componentes-http-ok', 'http://192.168.122.18:8080/app-jboss/salud', ''), ('componentes-http-ok', 'https://127.0.0.1/', ''), ('componentes-http-ok', 'https://127.0.0.1/api/controller/v2/ping/', ''), ('componentes-http-ok', 'https://127.0.0.1/api/eda/v1/status/', ''), ('componentes-http-ok', 'https://127.0.0.1/api/galaxy/pulp/api/v3/status/', ''), ('componentes-http-ok', 'https://127.0.0.1:8200/v1/sys/health', ''), ('componentes-http-ok', 'https://127.0.0.1:9443/', ''), ('componentes-http-ok', 'https://192.168.122.11/', ''), ('componentes-http-ok', 'https://dev459364.service-now.com/', ''), ('componentes-tcp-connect', '172.20.20.12:22', ''), ('componentes-tcp-connect', '192.168.122.12:22', ''), ('componentes-tcp-connect', '192.168.122.13:5432', ''), ('componentes-tcp-connect', '192.168.122.14:61616', ''), ('componentes-tcp-connect', '192.168.122.14:6379', ''), ('componentes-tcp-connect', '192.168.122.17:5985', ''), ('faceops-equipos', '192.168.122.15:9100', 'nodo-jboss'), ('faceops-sondeo', '172.20.20.12:22', 'fw'), ('nube', '127.0.0.1:9420', ''), ('prometheus', '127.0.0.1:9090', ''), ('servidores', '127.0.0.1:9100', ''), ('servidores', '192.168.122.11:9100', ''), ('servidores', '192.168.122.12:9100', ''), ('servidores', '192.168.122.13:9100', ''), ('servidores', '192.168.122.14:9100', ''), ('servidores', '192.168.122.15:9100', ''), ('servidores', '192.168.122.17:9182', ''), ('servidores', '192.168.122.18:9100', '')]
-inactive
-active
-/var/lib/node_exporter:
-textfile
-node_ex+    1321  1.2  0.0 1242208 28092 ?       Ssl  18:29   3:29 /usr/local/bin/node_exporter --web.listen-address=127.0.0.1:9100 --collector.systemd --collector.textfile.directory=/var/lib/node_exporter/textfile
---- fin: 2026-11-11T23:19:59-03:00 · código: 0
+== prometheus jobs
+    - targets:
+- job_name: artemis
+  - targets:
+- job_name: certificados
+  - targets:
+- job_name: sitios-windows
+  - targets:
+- job_name: servidores
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+- job_name: componentes-http-ok
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+  - targets:
+- job_name: componentes-tcp-connect
+  - targets:
+  - targets:
+  - targets:
+summit_ecosistema.prom
+ExecStart=/usr/local/bin/node_exporter --web.listen-address=127.0.0.1:9100 --collector.systemd --collector.textfile.directory=/var/lib/node_exporter/textfile
+127.0.0.1:8000 users:(("gunicorn",pid=9047,fd=6),("gunicorn",pid=9043,fd=6),("gunicorn",pi
+127.0.0.1:9100 users:(("node_exporter",pid=1321,fd=3))
+127.0.0.1:9090 users:(("prometheus",pid=8352,fd=6))
+127.0.0.1:9115 users:(("blackbox_export",pid=5995,fd=3))
+0.0.0.0:8080 users:(("nginx",pid=16240,fd=7),("nginx",pid=16239,fd=7),("nginx",pid=16238,f
+0.0.0.0:5022 users:(("ansible-ruleboo",pid=1025768,fd=13))
+0.0.0.0:5000 users:(("ansible-ruleboo",pid=1026079,fd=13))
+[::]:8080 users:(("nginx",pid=16240,fd=8),("nginx",pid=16239,fd=8),("nginx",pid=16238,fd=8
+host
+HOSTNAME=demo-ansible-summit]
+cert   | FaceOps · Apagar equipo
+cert   | FaceOps · Aplicar política de seguridad
+cert   | FaceOps · Eliminar servidor
+cert   | FaceOps · Habilitar servidor
+sin    | FaceOps · Incorporar máquinas
+cert   | FaceOps · Nuevo segmento de negocio
+cert   | FaceOps · Preparar imágenes RHEL
+sin    | FaceOps · Recuperar servidor
+sin    | FaceOps · Rendimiento del canal
+camb   | FaceOps · Replicar con alta disponibilidad
+cert   | FaceOps · Respaldo continuo en Git
+cert   | FaceOps · Uso por segmento
+cert   | FaceOps · Vincular máquina a la bóveda
+sin    | FaceOps · Volver a una versión
+sin    | Fiscalía · Aviso de complemento
+sin    | Homologación · Relevar entorno
+sin    | IIS · Preparar servidor
+sin    | Identidad · Fuente de usuarios de FaceOps
+cert   | Incidentes · Diagnosticar PostgreSQL
+cert   | Incidentes · Verificar error conocido
+cert   | Infra · Agregar disco (anfitrión)
+cert   | Infra · Ajustar recursos de máquinas
+sin    | Infra · Ampliar disco (anfitrión)
+sin    | Infra · Cargar imágenes base al registro
+cert   | Infra · Encender o apagar equipo
+cert   | Infra · Encendido automático de máquinas
+cert   | Infra · Mover máquina entre centros de datos
+cert   | Infra · Origen de las máquinas
+cert   | Infra · Preparar centro de datos emulado
+cert   | Infra · Replicar máquina
+cert   | Integración · PostgreSQL
+cert   | JBoss · Aplicar configuración
+camb   | JBoss · Desplegar app
+sin    | JBoss · Preparar servidor
+cert   | JBoss · Restablecer a versión
+cert   | Jenkins · Preparar servidor
+cert   | Licencias · Levantar desde las plataformas
+sin    | Migración K8s → OpenShift · Convertir manifiestos
+sin    | Migración K8s → OpenShift · Evaluar origen
+sin    | Migración K8s → OpenShift · Migrar aplicación
+sin    | Migración K8s → OpenShift · Preparar destino
+sin    | Migración K8s → OpenShift · Validar y conmutar
+sin    | Migración a GCP · Evaluar servidor
+sin    | Migración a GCP · Servidor Linux
+sin    | Migración · CentOS a RHEL
+cert   | Migración · Evaluar sistema operativo
+cert   | Migración · IIS a OpenShift
+cert   | Migración · JBoss a EAP 8
+sin    | Migración · RHEL a versión soportada
+cert   | Migración · WebLogic a OpenShift
+cert   | Migración · WebLogic a OpenShift · Evaluar
+sin    | MongoDB · Preparar servidor
+camb+X | Monitoreo · Configurar alertas del equipo
+sin    | Monitoreo · Exportador en Windows
+sin    | Monitoreo · Grafana de OpenShift
+cert   | Monitoreo · Responder alerta
+sin    | MySQL · Preparar servidor
+cert   | Nube · Dar de baja VM
+camb   | Nube · Limpiar huérfanos
+sin    | Nube · Prueba: crear huérfanos
+sin    | Nube · Prueba: regla peligrosa
+cert   | Nube · Reporte de huérfanos
+sin    | Nube · Reporte de huérfanos con limpieza
+cert   | Nube · Solicitar VM
+sin    | Nube · Solicitar VM con aprobación
+sin    | Nube · Validar conexión e inventariar
+cert   | Nube · Vigilar firewall
+cert   | OpenShift · Agente de ACS
+sin    | OpenShift · Crear en GCP
+cert   | OpenShift · Desplegar segmento
+cert   | OpenShift · Diagnóstico de regularización
+sin    | OpenShift · Eliminar en GCP
+cert   | OpenShift · Evaluar imágenes (uso y antigüedad)
+sin    | OpenShift · Habilitar OpenShift Virtualization
+sin    | OpenShift · Habilitar clúster
+cert   | OpenShift · Informe y ficha
+cert   | OpenShift · Límites y cuotas
+sin    | OpenShift · Modelo de alertamiento
+sin    | OpenShift · Mover imágenes a Quay
+cert   | OpenShift · Operador
+cert   | OpenShift · Operadores OLM
+cert   | OpenShift · Preparar instalación IPI VMware
+cert   | OpenShift · Recolectar clúster
+cert   | OpenShift · Relevamiento de imágenes
+camb   | OpenShift · Remediar alerta
+sin    | OpenShift · Remediar alerta (con aprobación)
+cert   | OpenShift · Respaldo de etcd
+sin    | OpenShift · Validar e instalar IPI VMware
+cert   | OpenShift · Versión del clúster
+sin    | Plataforma · Actualizar firmware
+cert   | Plataforma · Controlar servicio
+cert   | Plataforma · Desinstalar
+camb   | Plataforma · Preparar dependencias
+sin    | Políticas de desarrollo · Evaluar aplicaciones
+camb   | Portal · Amdocs · Activar orden de servicio
+camb   | Portal · Amdocs · Desplegar release
+sin    | Portal · Amdocs · Desplegar release (plantilla)
+camb   | Portal · Amdocs · Informe de operación y conciliación
+sin    | Portal · Amdocs · Informe de operación y conciliación (plantilla)
+sin    | Portal · Amdocs · Orden de servicio (plantilla)
+sin    | Portal · Amdocs · Salud de la plataforma BSS (plantilla)
+sin    | Portal · Informe de ejecución (PDF)
+camb   | Portal · Infra · Atender ticket de Odoo
+sin    | Portal · Infra · Atender ticket de Odoo (plantilla)
+sin    | Portal · Infraestructura · Aplicar parches de seguridad
+sin    | Portal · Infraestructura · Encender o apagar servidor
+sin    | Portal · Infraestructura · Escaneo de seguridad
+sin    | Portal · Infraestructura · Inventariar servidor
+sin    | Portal · Infraestructura · Inventario de certificados
+sin    | Portal · Infraestructura · Revisar CVE de servidores
+camb   | Portal · Linux · Informe de seguridad
+sin    | Portal · Linux · Informe de seguridad (plantilla)
+camb   | Portal · Linux · Liberar espacio en disco
+sin    | Portal · Linux · Liberar espacio en disco (plantilla)
+camb   | Portal · OpenShift · Acceso de equipo
+sin    | Portal · OpenShift · Acceso de equipo (plantilla)
+sin    | Portal · OpenShift · Actualizaciones y operadores (plantilla)
+camb   | Portal · OpenShift · Actualización guiada con ACM
+sin    | Portal · OpenShift · Actualización guiada con ACM (plantilla)
+camb   | Portal · OpenShift · Alta de proyecto
+sin    | Portal · OpenShift · Alta de proyecto (plantilla)
+camb   | Portal · OpenShift · Certificado de aplicación de punta a punta
+sin    | Portal · OpenShift · Certificado de aplicación de punta a punta (plantilla)
+sin    | Portal · OpenShift · Certificados (plantilla)
+camb   | Portal · OpenShift · De alerta a incidente
+sin    | Portal · OpenShift · De alerta a incidente (plantilla)
+cert   | Portal · OpenShift · Informe de seguridad del clúster
+sin    | Portal · OpenShift · Informe de seguridad del clúster (plantilla)
+camb   | Portal · OpenShift · Optimizar recursos y limpiar
+sin    | Portal · OpenShift · Optimizar recursos y limpiar (plantilla)
+sin    | Portal · OpenShift · Regularizar línea base (plantilla)
+camb   | Portal · OpenShift · Respaldo de etcd
+sin    | Portal · OpenShift · Respaldo de etcd (plantilla)
+sin    | Portal · OpenShift · Salud del clúster (plantilla)
+camb   | Portal · Telco · Día 2 del clúster de cargas
+camb   | Portal · Telco · Onboarding de CNF
+sin    | Portal · Telco · Onboarding de CNF (plantilla)
+sin    | Portal · Telco · Red del servicio (VLAN y BGP)
+sin    | Portal · Telco · Red del servicio (VLAN y BGP) (plantilla)
+sin    | Portal · Telco · Validar clúster para CNF (plantilla)
+sin    | Portal · Windows · Informe de seguridad
+sin    | Portal · Windows · Informe de seguridad (plantilla)
+sin    | PostgreSQL · Preparar servidor
+sin    | Recuperación · Respaldar volúmenes con restic
+sin    | Red · Actualizar firmware
+cert   | Red · Aplicar configuración
+cert   | Red · Bloquear IP
+cert   | Red · Configurar VLAN
+cert   | Red · Inventariar equipo de red
+sin    | Red · Preparar red OpenShift
+sin    | Red · Preparar red OpenShift con aprobación
+cert   | Red · Revocar acceso
+sin    | Red · Revocar acceso con aprobación
+cert   | Red · Revocar accesos vencidos
+cert   | Red · Solicitar acceso
+cert   | Red · Solicitar acceso con aprobación
+cert   | Red · Verificar drift
+cert   | Redis · Instalar Redis Insight
+cert   | Redis · Preparar servidor
+cert   | Remediación · Cola de pagos
+cert   | Remediación · Diagnosticar app
+cert   | Remediación · IIS en Windows
+cert   | Remediación · Limpiar logs
+cert   | Remediación · Reiniciar JBoss
+cert   | Remediación · Renovar certificado
+sin    | Remediación · Rollback con aprobación
+cert   | Remediación · Volver a la versión validada
+sin    | SQL Server · Configurar alta disponibilidad
+sin    | SQL Server · Conmutar réplica primaria
+cert   | SQL Server · Levantamiento y medición
+cert   | SQL Server · Preparar servidor
+sin    | Satellite · Actualizar
+sin    | Satellite · Convertir a RHEL
+sin    | Satellite · Incorporar RHEL
+sin    | Satellite · Instalar
+camb   | Satellite · Instalar servidor
+cert   | Seguridad · Aplicar parches de seguridad
+cert   | Seguridad · Escaneo de servidores
+camb   | Seguridad · Revisar CVEs
+sin    | Sistema · Ampliar disco en la máquina
+cert   | Sistema · Cambio de hora del país
+camb   | Sistema · Inventariar máquina
+camb   | Sistema · Paquetes · inventario y respaldo
+cert   | Sistema · Preparar disco nuevo
+cert   | Sistema · Quitar agente
+cert   | Sistema · Registrar en Red Hat
+cert   | Storage · Ampliar volumen
+cert   | Storage · Asignar volumen a servidor
+cert   | Storage · Crear volumen
+sin    | Storage · Preparar emulador
+sin    | Storage · Servicio S3 del data lake
+cert   | Storage · Snapshot de volumen
+cert   | VPN · Gestionar acceso
+sin    | VPN · Instalar
+camb   | VPN · Preparar servidor
+sin    | Vault · Preparar servidor
+sin    | Windows · Activar licencia
+cert   | Windows · Habilitar escritorio remoto
+sin    | Windows · Preparar IIS
+cert   | Windows · Provocar caída de IIS (demo)
+--- fin: 2026-11-11T23:20:30-03:00 · código: 0
