@@ -1,16 +1,20 @@
-commit: 6982ed1bd0dda7508642be6334beb9bd91adb4eb
-inicio: 2026-11-11T21:52:50-03:00
+commit: 7baf93de09b9cf9a0d7b79f12f0c1b23dd37dfc1
+inicio: 2026-11-11T21:53:19-03:00
 ---
-  warnings.warn(
-/lab/edge 200 None menu-edge True barra False cx True
-   Código Nombre Tipo País / Ciudad Execution node Equipos Salud CL-SCL-TDA-001 demo Tienda de laboratorio (demo) Tienda CL · Santiago cl-scl-tda-001-en01 No registrado en la malla 3 47% Ningún sitio coincide con el filtro. Agregar sitio × Código técnico * PAÍS-CIUDAD-TIPO-NNN en mayúsculas. Tipos: TDA tienda · SUC sucursal · BOD bodega · CD centro de distribución. No se puede cambiar después. Nombre
-/edge 200 None menu-edge True barra False cx True
-   Código Nombre Tipo País / Ciudad Execution node Equipos Salud CL-SCL-TDA-001 demo Tienda de laboratorio (demo) Tienda CL · Santiago cl-scl-tda-001-en01 No registrado en la malla 3 47% Ningún sitio coincide con el filtro. Agregar sitio × Código técnico * PAÍS-CIUDAD-TIPO-NNN en mayúsculas. Tipos: TDA tienda · SUC sucursal · BOD bodega · CD centro de distribución. No se puede cambiar después. Nombre
-/lab/edge/1 200 None menu-edge True barra True cx True
-   Execution node y hop Automation Mesh de AAP · estado leído de AAP Rol Nodo Estado en la malla Enlace Execution node (en el sitio) cl-scl-tda-001-en01 No registrado en la malla → central · la conexión la inicia el sitio Hop node (DMZ de la central) — Salida directa a la central no aplica: salida directa FaceOps no se conecta a las máquinas del sitio: cada acción es un ticket en AAP, pasa por aproba
-/edge/1 200 None menu-edge True barra True cx True
-   Execution node y hop Automation Mesh de AAP · estado leído de AAP Rol Nodo Estado en la malla Enlace Execution node (en el sitio) cl-scl-tda-001-en01 No registrado en la malla → central · la conexión la inicia el sitio Hop node (DMZ de la central) — Salida directa a la central no aplica: salida directa FaceOps no se conecta a las máquinas del sitio: cada acción es un ticket en AAP, pasa por aproba
-/lab/inventario/29 200 None menu-edge True barra True cx False
-   
-https lab/edge 200
---- fin: 2026-11-11T21:53:01-03:00 · código: 0
+shut off
+
+error: Failed to query for interfaces addresses
+error: Requested operation is not valid: domain is not running
+
+ vnet37     52:54:00:a8:43:32    ipv4         192.168.122.233/24
+
+FO-LAB-01983 fallido workflow 25242 a FaceOps (mismos nombres que los de Ansible)] ****************** / fatal: [srv-mig-rocky-01]: FAILED! => {"msg": "The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'. {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'\n\nThe error appears to be in '/runner/project/playbooks/recolectar.yml': line 40, column 11, but may\nbe elsewhere in the file depending on the exact syntax problem.\n\nThe offending line appears to be:\n\n\n        - name: Datos para FaceOps (mismos nombres que los de Ansible)\n          ^ here\n"} /  / PLAY RECAP ********************************************************************* / srv-mig-rocky-01           : ok=2    changed=0    unreachable=0    failed
+JOB 25247 Sistema · Inventariar máquina failed 34.8  timeout 3600
+FO-LAB-01983 25247 Datos estándar del sistema operativo | Failed to connect to the host via ssh: ssh: connect to host 192.168.122.231 port 22: Connection timed out |  | 
+FO-LAB-01983 25247 Datos del sistema por shell | Failed to connect to the host via ssh: ssh: connect to host 192.168.122.231 port 22: Connection timed out |  | 
+FO-LAB-01983 25247 Datos para FaceOps (mismos nombres que los de Ansible) | The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has  |  | 
+FO-LAB-01976 exitoso workflow 25213 AAP terminó (successful): ejecución 312 s, espera de aprobación 31 s / Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-mig-rocky-01 · pendiente
+JOB 25216 FaceOps · Habilitar servidor successful 312.875  timeout 0
+{'id': 129, 'nombre': 'srv-mig-rocky-01', 'estado': 'con datos', 'ip': '192.168.122.231'}
+{'id': 130, 'nombre': 'srv-mig-rhel8-01', 'estado': 'con datos', 'ip': '192.168.122.233'}
+--- fin: 2026-11-11T21:53:37-03:00 · código: 0
