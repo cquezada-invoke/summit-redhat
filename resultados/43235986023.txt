@@ -1,0 +1,56 @@
+commit: 8178ed80566c4469255a8768f681d30fa2c96967
+inicio: 2026-11-12T11:19:38-03:00
+---
+probe http://h:8110 200
+vuelta 0: pagina 0.27s[200] · en paralelo: recorrido=0.07s[200] rendimiento=0.09s[200] datos=4.18s[200] · total visible 4.46s · datos solo 0.29s
+vuelta 1: pagina 0.17s[200] · en paralelo: rendimiento=0.02s[200] recorrido=0.05s[200] datos=0.25s[200] · total visible 0.43s · datos solo 0.28s
+vuelta 2: pagina 0.14s[200] · en paralelo: rendimiento=0.01s[200] recorrido=0.04s[200] datos=0.26s[200] · total visible 0.40s · datos solo 0.25s
+vuelta 3: pagina 0.14s[200] · en paralelo: rendimiento=0.01s[200] recorrido=0.05s[200] datos=0.26s[200] · total visible 0.40s · datos solo 0.24s
+global pagina 1.10s
+global pagina 0.91s
+FRIO datos 5.49s 200
+        1    0.003    0.003    5.454    5.454 /opt/faceops/app/__init__.py:379(envoltura)
+        1    0.003    0.003    5.451    5.451 /opt/faceops/app/vistas.py:6400(mapa_datos)
+       46    0.001    0.000    4.781    0.104 /opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py:598(urlopen)
+       48    0.000    0.000    4.689    0.098 /usr/lib64/python3.11/socket.py:704(readinto)
+        1    0.001    0.001    4.688    4.688 /opt/faceops/app/topologia.py:170(construir)
+       26    0.000    0.000    4.584    0.176 /opt/faceops/app/aap.py:40(get)
+       26    0.000    0.000    4.584    0.176 /opt/faceops/app/aap.py:31(_r)
+        1    0.000    0.000    4.442    4.442 /opt/faceops/app/topologia.py:118(_candado_entrada)
+        1    0.001    0.001    4.437    4.437 /opt/faceops/app/certificados_panel.py:126(leer)
+        1    0.001    0.001    3.572    3.572 /opt/faceops/app/certificados_panel.py:89(_gestionados)
+        1    0.000    0.000    0.679    0.679 /opt/faceops/app/certificados_panel.py:63(_inventario)
+        1    0.000    0.000    0.337    0.337 /opt/faceops/app/vistas.py:74(autos_visibles)
+        1    0.000    0.000    0.328    0.328 /opt/faceops/app/pruebas.py:201(no_certificadas)
+        1    0.001    0.001    0.324    0.324 /opt/faceops/app/pruebas.py:209(<setcomp>)
+      256    0.001    0.000    0.323    0.001 /opt/faceops/app/pruebas.py:181(estado)
+  331/256    0.005    0.000    0.302    0.001 /opt/faceops/app/pruebas.py:153(huella)
+       20    0.000    0.000    0.298    0.015 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:14(request)
+       19    0.000    0.000    0.280    0.015 /opt/app-root/lib64/python3.11/site-packages/requests/api.py:62(get)
+       19    0.218    0.011    0.218    0.011 {method 'recv_into' of '_socket.socket' objects}
+      114    0.000    0.000    0.199    0.002 /opt/faceops/app/__init__.py:12(_safe_load)
+        1    0.000    0.000    0.183    0.183 /opt/faceops/app/topologia.py:613(_bifurcacion_lake)
+        1    0.000    0.000    0.183    0.183 /opt/faceops/app/topologia.py:560(_uso_lake)
+      130    0.000    0.000    0.163    0.001 /opt/faceops/app/pruebas.py:130(huella_externa)
+      130    0.000    0.000    0.159    0.001 /opt/faceops/app/pruebas.py:69(_proyectos_aap)
+        1    0.000    0.000    0.158    0.158 /opt/faceops/app/aap.py:49(todos)
+        1    0.012    0.012    0.129    0.129 /opt/faceops/app/cves.py:112(por_equipo)
+        5    0.000    0.000    0.109    0.022 /opt/faceops/app/arquitectura.py:149(vigentes)
+        1    0.000    0.000    0.097    0.097 /opt/faceops/app/topologia.py:890(resumen_segmento)
+     1324    0.002    0.000    0.092    0.000 /opt/faceops/app/pruebas.py:27(_yaml)
+       17    0.000    0.000    0.088    0.005 /opt/faceops/app/boveda.py:26(leer)
+        3    0.000    0.000    0.081    0.027 /opt/faceops/app/arquitectura.py:311(flujos_de)
+      154    0.000    0.000    0.071    0.000 /opt/faceops/app/bd.py:180(q)
+       12    0.000    0.000    0.069    0.006 /opt/faceops/app/boveda.py:37(acceso)
+        1    0.000    0.000    0.047    0.047 /opt/faceops/app/topologia.py:848(resumen_segmentos)
+        6    0.000    0.000    0.045    0.008 /opt/faceops/app/consola.py:23(tipo_consola)
+      154    0.045    0.000    0.045    0.000 {method 'fetchall' of 'sqlite3.Cursor' objects}
+    21213    0.034    0.000    0.036    0.000 /opt/faceops/app/cves.py:145(<lambda>)
+        3    0.000    0.000    0.035    0.012 /opt/app-root/lib64/python3.11/site-packages/urllib3/connection.py:1006(_ssl_wrap_socket_and_match_hostname)
+        1    0.000    0.000    0.032    0.032 /opt/faceops/app/topologia.py:1077(salud_segmento)
+        1    0.001    0.001    0.031    0.031 /opt/faceops/app/__init__.py:103(cargar_usuario)
+     7002    0.011    0.000    0.031    0.000 /opt/faceops/app/inventario.py:14(normal)
+        1    0.000    0.000    0.031    0.031 /opt/faceops/app/vistas.py:62(equipos_visibles)
+        1    0.000    0.000    0.029    0.029 /opt/faceops/app/bloqueo_admin.py:14(estado)
+       46    0.000    0.000    0.028    0.001 /opt/faceops/app/inventario.py:69(segmentos_de)
+--- fin: 2026-11-12T11:20:09-03:00 · código: 0
