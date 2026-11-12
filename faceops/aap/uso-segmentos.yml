@@ -11,6 +11,26 @@
       ansible.builtin.setup:
         gather_subset: [min]
 
+    - name: Windows · uso del momento (CPU, memoria) por WinRM, sin agente
+      ansible.windows.win_shell: |
+        $os = Get-CimInstance Win32_OperatingSystem
+        $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+        $n = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+        @{ncpu = $n; cpu_pct = [double]$cpu; mem_mb = [int]($os.TotalVisibleMemorySize / 1024); mem_disp_mb = [int]($os.FreePhysicalMemory / 1024)} | ConvertTo-Json -Compress
+      register: r_uso_win
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family | default('') == 'Windows'
+
+    - name: Windows · resultado para FaceOps (carga equivalente = % de CPU × procesadores)
+      vars:
+        w: "{{ r_uso_win.stdout | from_json }}"
+      ansible.builtin.set_stats:
+        data:
+          faceops_uso: "{{ {inventory_hostname: {'ts': now(utc=true).timestamp() | int, 'ncpu': w.ncpu, 'mem_mb': w.mem_mb, 'mem_disp_mb': w.mem_disp_mb,
+                                                 'carga': ((w.cpu_pct | float) / 100 * (w.ncpu | int)) | round(2), 'so': 'windows', 'procesos': {}}} }}"
+      when: ansible_os_family | default('') == 'Windows' and (r_uso_win.stdout | default('')).strip().startswith('{')
+
     - name: Solo Linux
       ansible.builtin.meta: end_host
       when: ansible_system | default('') != 'Linux'

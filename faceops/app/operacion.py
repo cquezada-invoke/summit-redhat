@@ -596,17 +596,78 @@ def registrar_incorporadas(aap, cliente, t):
     return "Incorporación: " + (" · ".join(lineas) or "sin máquinas")
 
 
+VINCULAR_ONPREM = "FaceOps · Vincular máquina on-premise"
+INFRA_ONPREM = "on-premise"   # clave del usuario de servicio Windows de las máquinas del anfitrión KVM (bóveda infra/on-premise/maquinas)
+INV_HAB = "Servidores habilitados"
+
+
+def registrar_vinculada_onprem(aap, cliente, t):
+    """Tras «Vincular máquina on-premise»: IP en FaceOps y en el host de AAP; Windows: conexión WinRM HTTPS, credencial
+    cifrada en AAP (plan de recolección del grupo windows) y acceso en la bóveda, y se inventaría; Linux: se vincula a la
+    bóveda (llave propia) y desde ahí se inventaría. Nada queda solo en el anfitrión."""
+    from .boveda import disponible as bov_ok, escribir
+    from .infraestructuras import _credencial_maquinas
+    v = (artefactos_ticket(aap, t) or {}).get("faceops_vinculada") or {}
+    nombre, ip, so = v.get("maquina", ""), v.get("ip", ""), v.get("so", "")
+    e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente["id"], nombre)
+    if not e or not re.match(r"^\d+\.\d+\.\d+\.\d+$", ip or ""):
+        return f"Sin IP de {nombre or 'la máquina'}: no se registró el vínculo"
+    usuario_srv = j(t["parametros"], {}).get("vo_usuario") or "faceops"
+    hv_ex = {"ansible_host": ip}
+    if so == "windows":
+        hv_ex.update({"ansible_connection": "winrm", "ansible_port": 5986, "ansible_winrm_scheme": "https",
+                      "ansible_winrm_transport": "ntlm", "ansible_winrm_server_cert_validation": "ignore"})
+    for inv_n in dict.fromkeys([e["inventario"]] + j(e["inventarios"], [])):   # el host en cada inventario donde está
+        inv = (aap.get("inventories/", name=inv_n).get("results") or [None])[0]
+        h = (aap.get("hosts/", name=nombre, inventory=inv["id"]).get("results") or [None])[0] if inv else None
+        if h:
+            hv = j(h.get("variables"), {}) if str(h.get("variables") or "").strip().startswith("{") else (yaml.safe_load(h.get("variables") or "") or {})
+            hv.update(hv_ex)
+            aap.patch(f"hosts/{h['id']}/", {"variables": json.dumps(hv, ensure_ascii=False)})
+    ej("UPDATE equipos SET ip=? WHERE id=?", ip, e["id"])
+    txt = f"{nombre}: IP {ip}"
+    if so == "windows":
+        _, _, clave = _acceso_servicio(INFRA_ONPREM, usuario_srv)
+        org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
+        cred = _credencial_maquinas(aap, org, "on-premise Windows", usuario_srv, clave=clave)
+        cl_ = q1("SELECT recoleccion FROM clientes WHERE id=?", cliente["id"])
+        plan = j(cl_["recoleccion"], {})
+        filas = [x for x in plan.get(e["inventario"], []) if x.get("limite") != "windows"]
+        plan[e["inventario"]] = [{"limite": "windows", "credencial": cred["name"]}] + filas   # Windows primero; el resto como estaba
+        ej("UPDATE clientes SET recoleccion=? WHERE id=?", json.dumps(plan, ensure_ascii=False), cliente["id"])
+        if bov_ok():
+            escribir(f"maquinas/{nombre}", {"usuario": usuario_srv, "clave": clave, "protocolo": "rdp", "metodo": "clave", "puerto": 5986,
+                                            "conexion": "winrm", "origen": f"vinculada · {t['numero']}"})
+        d_ = j(e["datos"], {})
+        d_["vinculo"] = {"ok": True, "protocolo": "WinRM", "ticket": t["numero"], "cuando": ahora()}
+        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e["id"])
+        e = q1("SELECT * FROM equipos WHERE id=?", e["id"])
+        inventariar_incorporada(cliente, dict(t, numero=t["numero"]), e, MOTIVO_INVENTARIO + t["numero"])
+        return txt + f" · WinRM HTTPS 5986 con «{usuario_srv}» · credencial «{cred['name']}» y bóveda · inventario lanzado"
+    # Linux: llave propia en la bóveda con «Vincular máquina a la bóveda» (se aprueba sola) y luego el inventario
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], VINCULAR)
+    u = q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"])
+    if a and u:
+        try:
+            solicitar_en_equipo(u, cliente, a, dict(q1("SELECT * FROM equipos WHERE id=?", e["id"])), {"vm_usuario": usuario_srv, "vm_tipo": "linux"},
+                                MOTIVO_VINCULAR + t["numero"])
+            txt += " · vinculación SSH lanzada"
+        except Exception as x:  # noqa: BLE001
+            txt += f" · vinculación SSH no lanzada: {str(x)[:150]}"
+    return txt
+
+
 MOTIVO_INV_INCORPORADA = "Inventario automático · máquina incorporada en "
 
 
-def inventariar_incorporada(cliente, t, e):
+def inventariar_incorporada(cliente, t, e, motivo=None):
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], INVENTARIAR)
     u = q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"])
     if not a or not u or q1("SELECT 1 FROM tickets WHERE cliente_id=? AND automatizacion_id=? AND limite=? AND estado IN "
                             "('en_cola','en_ejecucion','pendiente_aprobacion')", cliente["id"], a["id"], e["nombre"]):
         return
     try:
-        solicitar_en_equipo(u, cliente, a, dict(e), {}, MOTIVO_INV_INCORPORADA + t["numero"])
+        solicitar_en_equipo(u, cliente, a, dict(e), {}, motivo or (MOTIVO_INV_INCORPORADA + t["numero"]))
     except Exception as x:  # noqa: BLE001
         auditar("sistema", cliente["id"], "inventario automático no lanzado", t["numero"], {"equipo": e["nombre"], "error": str(x)[:200]})
 
@@ -732,6 +793,20 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             if not cr:
                 raise ErrorAAP(f"{inf['nombre']} no tiene su credencial de plataforma en AAP: usa «Conectar» en Infraestructuras")
             tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, credenciales=[cr["id"]], sufijo=inf["nombre"])
+            job = aap.lanzar(tipo, id_, extra_vars=params)
+            ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+            return
+        if a["nombre_aap"] == VINCULAR_ONPREM:   # en el anfitrión KVM (credencial fija de la plantilla), no en la máquina
+            from .compatibilidad import sistema_fino
+            e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], params.get("vo_maquina") or (t["limite"] or "").split(":")[0])
+            if not e:
+                raise ErrorAAP("Elige la máquina a vincular")
+            params["vo_maquina"] = e["nombre"]
+            params["vo_tipo"] = "windows" if ("windows" in sistema_fino(e) or (e.get("so_familia") or "").lower() == "windows") else "linux"
+            params.setdefault("vo_usuario", "faceops")
+            if params["vo_tipo"] == "windows":
+                params["inc_clave_windows"] = _acceso_servicio(INFRA_ONPREM, params["vo_usuario"])[2]   # secreto: solo en tareas no_log
+            tipo, id_ = objetivo_aap(aap, a, amb)
             job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
@@ -1259,6 +1334,12 @@ def actualizar_tickets():
                     est = "fallido"
                     res += f"\nLa máquina se creó, pero no se pudo dar de alta en AAP ni en FaceOps: {str(x)[:300]}"
                     ej("UPDATE tickets SET estado=?, resultado=? WHERE id=?", est, res, t["id"])
+            if est == "exitoso" and a and a["nombre_aap"] == VINCULAR_ONPREM:   # IP, acceso en la bóveda y AAP, e inventario
+                try:
+                    res += "\n" + registrar_vinculada_onprem(aap, c, t)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error registrar vinculada on-premise", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == INCORPORAR:   # acceso en la bóveda e inventario agentless de cada una
                 try:
                     res += "\n" + registrar_incorporadas(aap, c, t)
@@ -1577,6 +1658,22 @@ def vincular_creados(cliente, t, texto):
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], VINCULAR)
     u = q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"])
     pt = j(t["parametros"], {})
+    if u and pt.get("hab_destino", "onpremise") == "onpremise":
+        # on-premise: Windows (clave solo en el anfitrión, WinRM sin usuario de servicio) y Linux sin IP aún quedan vinculadas
+        # por «Vincular máquina on-premise» (se aprueba sola: la creación ya fue aprobada)
+        avo = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], VINCULAR_ONPREM)
+        win = str(pt.get("hab_so", "")).startswith("windows")
+        pend = re.findall(r"([A-Za-z0-9][A-Za-z0-9._-]*) · pendiente", texto or "")
+        for nombre in (dict.fromkeys(re.findall(r"([A-Za-z0-9][A-Za-z0-9._-]*) · (?:\d+\.\d+\.\d+\.\d+|pendiente)", texto or "")) if win else pend):
+            e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
+            if not avo or not e:
+                continue
+            try:
+                solicitar_en_equipo(u, cliente, avo, dict(e), {"vo_maquina": nombre, "vo_usuario": "faceops"}, MOTIVO_VINCULAR + t["numero"])
+            except Exception as x:  # noqa: BLE001
+                auditar("sistema", cliente["id"], "vinculación on-premise no lanzada", t["numero"], {"equipo": nombre, "error": str(x)[:200]})
+        if win:
+            return
     if u and str(pt.get("hab_so", "")).startswith("windows"):
         # Windows: queda vinculada por WinRM con el usuario de servicio (antes se saltaba y la máquina nacía sin acceso)
         ai = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], INCORPORAR)

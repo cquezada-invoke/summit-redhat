@@ -229,6 +229,11 @@
     - {var: vm_usuario, etiqueta: "Usuario de servicio", tipo: text, defecto: faceops}
     - {var: vm_tipo, etiqueta: "Tipo de equipo", tipo: multiplechoice, defecto: linux, opciones: [linux, red, windows]}
     - {var: vm_clave, etiqueta: "Clave (solo red y Windows)", tipo: password}
+"FaceOps · Vincular máquina on-premise":
+  usa_limite: true
+  campos:
+    - {var: vo_maquina, etiqueta: "Máquina", tipo: equipo, requerido: true}
+    - {var: vo_usuario, etiqueta: "Usuario de servicio", tipo: text, defecto: faceops}
 "Redis · Preparar servidor":
   por_inventario: true
   usa_limite: true

@@ -1,0 +1,130 @@
+---
+# FaceOps · Vincular máquina on-premise: deja una máquina del anfitrión KVM lista para que FaceOps la inventaríe y mida
+# SIN agente. La usa la creación («Habilitar servidor» on-premise) al terminar y sirve para máquinas que ya existían.
+#   1. En el anfitrión: la enciende si está apagada y lee su IP (DHCP de libvirt, virsh domifaddr).
+#   2. Windows: entra por WinRM con la cuenta de instalación (su clave vive en el anfitrión y no se imprime), crea el
+#      usuario de servicio (administrador local) con la clave de la credencial cifrada y habilita WinRM HTTPS (5986);
+#      comprueba que el usuario de servicio entra por 5986. Linux: solo IP (la llave propia la deja «Vincular a la bóveda»).
+#   3. Resultado para FaceOps (set_stats faceops_vinculada): máquina, IP y sistema. FaceOps guarda el acceso en la bóveda
+#      y en AAP, ajusta el host del inventario y la inventaría.
+# Variables: vo_maquina, vo_tipo (windows | linux), vo_usuario (faceops), inc_clave_windows (secreto, solo Windows).
+- name: Vincular máquina on-premise · anfitrión
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    maquina: "{{ vo_maquina | default('') }}"
+    tipo: "{{ vo_tipo | default('linux') }}"
+    dir: /var/lib/libvirt/images/faceops
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - maquina is match('^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$')
+          - tipo in ['windows', 'linux']
+          - tipo == 'linux' or (inc_clave_windows | default('') | length >= 12)
+        fail_msg: "Falta la máquina, su sistema (windows | linux) o la clave del usuario de servicio"
+        quiet: true
+
+    - name: ¿Existe en el anfitrión?
+      ansible.builtin.command: sudo -n virsh domstate {{ maquina }}
+      register: r_est
+      changed_when: false
+      failed_when: false
+
+    - name: Máquina inexistente (falla controlada, sin tocar nada)
+      ansible.builtin.fail:
+        msg: "No existe la máquina {{ maquina }} en el anfitrión KVM"
+      when: r_est.rc != 0
+
+    - name: Encender si está apagada
+      ansible.builtin.command: sudo -n virsh start {{ maquina }}
+      when: "'running' not in r_est.stdout"
+
+    - name: IP de la máquina (DHCP del anfitrión; Windows recién creado puede tardar en instalarse)
+      ansible.builtin.shell: |
+        for i in $(seq 1 240); do
+          ip=$(sudo -n virsh domifaddr {{ maquina }} --source lease 2>/dev/null | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}')
+          [ -n "$ip" ] && { echo $ip; exit 0; }
+          sleep 10
+        done
+        exit 1
+      register: r_ip
+      changed_when: false
+
+    - name: Cuenta de instalación de Windows (queda en el anfitrión; no se imprime)
+      ansible.builtin.slurp:
+        src: "{{ dir }}/claves/{{ maquina }}.txt"
+      register: r_clave
+      no_log: true
+      when: tipo == 'windows'
+
+    - name: Windows · entrar por WinRM con la cuenta de instalación
+      ansible.builtin.add_host:
+        name: "{{ maquina }}"
+        groups: [vo_windows]
+        ansible_host: "{{ r_ip.stdout }}"
+        ansible_connection: winrm
+        ansible_port: 5985
+        ansible_winrm_scheme: http
+        ansible_winrm_transport: ntlm
+        ansible_user: ansible
+        ansible_password: "{{ (r_clave.content | b64decode).splitlines() | select('match', '^ansible=') | first | regex_replace('^ansible=', '') }}"
+        ansible_become: false
+      no_log: true
+      when: tipo == 'windows'
+
+    - name: IP para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_vinculada: {maquina: "{{ maquina }}", ip: "{{ r_ip.stdout }}", so: "{{ tipo }}"}
+
+- name: Vincular máquina on-premise · Windows (usuario de servicio y WinRM HTTPS)
+  hosts: vo_windows
+  gather_facts: false
+  vars:
+    usuario: "{{ vo_usuario | default('faceops') }}"
+  tasks:
+    - name: Esperar WinRM (la instalación desatendida lo habilita al terminar)
+      ansible.builtin.wait_for_connection:
+        timeout: 2400
+        sleep: 15
+
+    - name: Usuario de servicio (administrador local; clave de la credencial cifrada)
+      ansible.windows.win_user:
+        name: "{{ usuario }}"
+        password: "{{ inc_clave_windows }}"
+        fullname: FaceOps (servicio)
+        password_never_expires: true
+        update_password: always
+        groups: [Administrators]
+        groups_action: add
+      no_log: true
+
+    - name: WinRM HTTPS (5986) con certificado propio, firewall y cuentas locales por red
+      ansible.windows.win_shell: |
+        Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord
+        $c = Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.Subject -eq "CN=$env:COMPUTERNAME" } | Select-Object -First 1
+        if (-not $c) { $c = New-SelfSignedCertificate -DnsName $env:COMPUTERNAME -CertStoreLocation Cert:\LocalMachine\My -NotAfter (Get-Date).AddYears(5) }
+        $l = Get-ChildItem WSMan:\localhost\Listener | Where-Object { $_.Keys -contains 'Transport=HTTPS' }
+        if (-not $l) { New-Item -Path WSMan:\localhost\Listener -Transport HTTPS -Address * -CertificateThumbPrint $c.Thumbprint -Force | Out-Null; 'cambio' }
+        if (-not (Get-NetFirewallRule -DisplayName 'FaceOps WinRM HTTPS' -ErrorAction SilentlyContinue)) {
+          New-NetFirewallRule -DisplayName 'FaceOps WinRM HTTPS' -Direction Inbound -Protocol TCP -LocalPort 5986 -Action Allow | Out-Null; 'cambio' }
+      register: r_https
+      changed_when: "'cambio' in r_https.stdout"
+
+    - name: Comprobar el usuario de servicio por WinRM HTTPS (desde el entorno de ejecución)
+      delegate_to: localhost
+      ansible.builtin.command:
+        argv: [python3, -c, "import os,sys,winrm; r=winrm.Session('https://' + sys.argv[1] + ':5986/wsman', auth=(sys.argv[2], os.environ['FO_C']), transport='ntlm', server_cert_validation='ignore').run_cmd('whoami'); print(r.std_out.decode().strip()); sys.exit(r.status_code)", "{{ ansible_host }}", "{{ usuario }}"]
+      environment:
+        FO_C: "{{ inc_clave_windows }}"
+      register: r_svc
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: El usuario de servicio entra por 5986
+      ansible.builtin.assert:
+        that: r_svc.rc == 0
+        fail_msg: "WinRM HTTPS (5986) no aceptó al usuario de servicio en {{ inventory_hostname }}"
+        success_msg: "{{ r_svc.stdout | default('') }} entra por WinRM HTTPS"

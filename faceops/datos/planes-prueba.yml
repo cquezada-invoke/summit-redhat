@@ -328,6 +328,12 @@ planes:
       - {id: C4, caso: "Una VM Windows de GCP desde su ficha (inc_maquina)", verificar: "WinRM HTTPS 5986 responde con el usuario de servicio; firewall solo desde AAP; script retirado de los metadatos; acceso en la bóveda; inventario agentless con el SO real"}
       - {id: C5, caso: "Repetir sobre la misma VM Windows", verificar: "«ya estaba», sin reinicio"}
       - {id: C6, caso: "inc_maquina inexistente", verificar: "falla controlada «No existe la máquina…» sin tocar otras VM"}
+  "FaceOps · Vincular máquina on-premise":
+    casos:
+      - {id: C1, caso: "Windows on-premise apagada y sin IP (creada por FaceOps sin vínculo)", verificar: "se enciende; IP registrada en FaceOps y AAP; usuario de servicio entra por WinRM HTTPS 5986; credencial en la bóveda y en AAP (plan de recolección del grupo windows); se inventaría sola y la ficha muestra el SO desde los facts"}
+      - {id: C2, caso: "Repetir sobre la misma Windows", verificar: "idempotente: sin cambios en WinRM, misma IP y misma credencial"}
+      - {id: C3, caso: "Linux on-premise existente", verificar: "IP registrada; se lanza «Vincular máquina a la bóveda» (llave propia) y luego el inventario"}
+      - {id: C4, caso: "Máquina inexistente en el anfitrión", verificar: "falla controlada «No existe la máquina…» sin tocar nada"}
   "Satellite · Instalar":
     casos:
       - {id: C1, caso: "Paso del workflow «Satellite · Instalar servidor» sobre una RHEL de prueba con 4 vCPU y 20 GB", verificar: "satellite-installer termina; hammer ping ok"}

@@ -168,20 +168,22 @@ def vinculo_maquina(e, datos):
     hab = (datos or {}).get("vinculo") or {}
     vinculada = facts or cred or bool(hab.get("ok"))
     from .mod_nubes import _accion_lista
-    from .operacion import infra_de_maquina
-    a, motivo = _accion_lista(g.cliente["id"], INCORPORAR)
+    from .operacion import VINCULAR_ONPREM, infra_de_maquina
+    from .vistas import energia_posible
     inf = infra_de_maquina(g.cliente["id"], e["nombre"])
     if not inf:
         habs = [x for x in q("SELECT * FROM infraestructuras WHERE cliente_id=? AND tipo='gcp'", g.cliente["id"])]
         inf = habs[0] if len(habs) == 1 and "gcp" in (e.get("ubicacion") or e.get("proveedor") or "").lower() else None
-    if not inf:   # lo primero: si no aplica a esta máquina, se dice eso (no que falta certificarla)
-        motivo = ("Creada por FaceOps on-premise: su vínculo WinRM lo deja la creación (pendiente en esta máquina), no «Incorporar»"
-                  if "Servidores habilitados" in j(e.get("inventarios"), []) else
-                  "Solo para máquinas de una nube conectada (GCP, Azure o AWS): esta no viene del inventario de ninguna")
-    if not motivo and e.get("energia") in ("apagado", "suspendido"):
+    onprem = not inf and energia_posible(e)   # VM del anfitrión KVM: la vincula «Vincular máquina on-premise» (la enciende si hace falta)
+    accion = INCORPORAR if inf else (VINCULAR_ONPREM if onprem else "")
+    a, motivo = _accion_lista(g.cliente["id"], accion) if accion else (None, "")
+    if not accion:   # lo primero: si no aplica a esta máquina, se dice eso (no que falta certificarla)
+        motivo = "Solo para máquinas de una nube conectada (GCP, Azure o AWS) o del anfitrión KVM: esta no es de ninguna"
+    if inf and not motivo and e.get("energia") in ("apagado", "suspendido"):
         motivo = "La máquina está apagada: enciéndela para incorporarla"
     nube = bool(inf) or "gcp" in (e.get("proveedor") or "").lower() or "cloud" in (e.get("ubicacion") or "").lower()
+    etiqueta = "Incorporar a FaceOps" if inf else f"Vincular por {'WinRM' if win else 'SSH'}"
     return {"vinculada": vinculada, "facts": facts, "credencial": cred, "protocolo": "WinRM" if win else "SSH", "nube": nube,
-            "incorporar": a, "motivo_incorporar": motivo, "infra": (inf or {}).get("nombre", ""),
+            "incorporar": a, "motivo_incorporar": motivo, "infra": (inf or {}).get("nombre", ""), "onprem": onprem, "etiqueta": etiqueta,
             "aviso": "" if facts else (f"Sin vínculo {'WinRM' if win else 'SSH'}: FaceOps no puede inventariar ni medir el sistema operativo. "
-                                       "Incorpórala para inventariarla y medirla sin agente.")}
+                                       + ("Vincúlala" if onprem else "Incorpórala") + " para inventariarla y medirla sin agente.")}

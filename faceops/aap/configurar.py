@@ -153,6 +153,7 @@ shutil.copy(f"{AQUI}/inventariar-maquina.yml", f"{tmp}/playbooks/inventariar-maq
 shutil.copy(f"{AQUI}/origen-maquinas.yml", f"{tmp}/playbooks/origen-maquinas.yml")
 shutil.copy(f"{AQUI}/registro-imagenes.yml", f"{tmp}/playbooks/registro-imagenes.yml")
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
+shutil.copy(f"{AQUI}/vincular-onprem.yml", f"{tmp}/playbooks/vincular-onprem.yml")   # Vincular máquina on-premise (KVM)
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/licencias-levantar.yml", f"{tmp}/playbooks/licencias-levantar.yml")
 shutil.copy(f"{AQUI}/politicas-dev-evaluar.yml", f"{tmp}/playbooks/politicas-dev-evaluar.yml")
@@ -304,6 +305,13 @@ jom = asegurar("job_templates", "Infra · Origen de las máquinas", {
 if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jom['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jom['id']}/credentials/", {"id": c_kvm["id"]})
 paso(f"Plantilla «Infra · Origen de las máquinas» (id {jom['id']})")
+jvo = asegurar("job_templates", "FaceOps · Vincular máquina on-premise", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/vincular-onprem.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "timeout": 3600,
+    "description": "Máquina del anfitrión KVM: la enciende, lee su IP y deja el acceso SSH o WinRM HTTPS con el usuario de servicio (sin agentes). FaceOps la lanza con aprobación"})
+if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jvo['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jvo['id']}/credentials/", {"id": c_kvm["id"]})
+paso(f"Plantilla «FaceOps · Vincular máquina on-premise» (id {jvo['id']})")
 jri = asegurar("job_templates", "Infra · Cargar imágenes base al registro", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/registro-imagenes.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,
