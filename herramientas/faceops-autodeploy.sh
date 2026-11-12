@@ -1,5 +1,5 @@
 #!/bin/bash
-# FaceOps · despliegue consolidado en el anfitrión (lo ejecuta faceops-autodeploy.timer cada 10 min).
+# FaceOps · despliegue consolidado en el anfitrión (lo ejecuta faceops-autodeploy.timer cada 10 min; ver dep-fo.sh para esperar).
 # Si origin/main cambió respecto de lo desplegado: pull --ff-only, configurar.py (solo si cambió faceops/aap),
 # version.sh, podman build y restart de faceops; espera a que /ingresar responda 200.
 # Si el build falla NO reinicia: FaceOps sigue con la imagen anterior y el error queda en el log y en el estado.
