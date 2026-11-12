@@ -1,0 +1,26 @@
+commit: bcc120c1aa52d374eccda433798e3537ada0e6ca
+inicio: 2026-11-12T19:59:06-03:00
+---
+desplegado 120cf198c
+   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 28 reglas en Prometheus y ruta a EDA :5023
+   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
+   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
+repo 120cf19
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Atender alerta
+  C1 → exitoso FO-LAB-02380
+CASO C1 ok · Solo avisar
+  C2 → exitoso FO-LAB-02381
+CASO C2 ok · Riesgo bajo certificada
+  C3 → exitoso FO-LAB-02385
+CASO C3 ok · Riesgo alto
+  C4a → exitoso FO-LAB-02387
+  C4b → exitoso FO-LAB-02390
+CASO C4 ok · Agrupar
+  C5 → fallido FO-LAB-02391
+CASO C5 ok · Regla inválida
+alertmanager 200
+CASO C6 falla · Cadena completa
+CERT Autocuidado · Atender alerta → sin probar
+--- fin: 2026-11-12T20:21:23-03:00 · código: 0
