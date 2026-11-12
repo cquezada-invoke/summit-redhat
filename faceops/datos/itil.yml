@@ -335,7 +335,13 @@ practicas:
       - {t: "Metas de salud por pilar", ep: consola.radar_salud}
       - {t: "RTO y RPO por segmento", ep: consola.mapa}
       - {t: "KPI con meta", ep: consola.kpi_okr}
+      - {t: "Gobierno › SLA: SLA por servicio de negocio (disponibilidad, latencia p95, respuesta y resolución P1–P4, aprobación de cambios, dueño, consumidor, vigencia y versión), cada cambio con ticket «Cambio de SLA» aprobado", ep: consola.sla}
+      - {t: "Gobierno › Reportes › SLA: cumplimiento del período medido con Prometheus y los tickets, error budget, violaciones con su ticket o alerta, envío mensual e historial", ep: consola.sla_reporte}
     falta: "SLA acordado por servicio y su informe periódico de cumplimiento"
+    # app/itil.py: pasa a «cubierta» y el «Falta» deja de aparecer con un SLA vigente aprobado por ticket, el reporte programado y un envío aceptado
+    dinamico: sla
+    nuevo_dinamico: "SLA acordado por servicio con aprobación y reporte periódico de cumplimiento (Gobierno › SLA y Reportes › SLA)"
+    apoyo: "Tablas sla_versiones, sla_mediciones, sla_envios y sla_programa (app/sla.py): cada SLA es una versión aprobada por un ticket «Cambio de SLA» (propuesto → vigente, la anterior queda reemplazada). La disponibilidad y la latencia p95 salen de Prometheus (sonda blackbox del VIP del segmento, job faceops-segmentos, sin ventanas de mantenimiento; sin muestras = «sin medición»); respuesta, resolución y aprobación salen de las marcas de tiempo de los tickets reales del servicio. El error budget sobre el umbral abre la alerta «SLA en riesgo» y baja la salud del segmento; cada objetivo incumplido abre una iniciativa de mejora. Se cuenta cubierta con al menos un SLA vigente aprobado por ticket, el envío programado activo y un envío aceptado por el servidor de correo."
   - nombre: "Gestión de solicitudes de servicio"
     en: "Service request management"
     grupo: "Prácticas de gestión de servicios"

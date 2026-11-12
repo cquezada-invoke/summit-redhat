@@ -1140,5 +1140,10 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None):
         out.append({"nivel": "media", "area": "Rendimiento", "titulo": f"Latencia sobre el umbral ({um_:.0f} ms) en {len(lentos)} flujo(s): cuello de botella",
                     "detalle": ", ".join(f"{f['desde']}→{f['hacia']} ⌀ {ms:.0f} ms" for ms, f in lentos[:4]),
                     "remedio": "Revisar red y carga del destino; medir de nuevo con «Probar latencia» en la línea"})
+    try:   # SLA del servicio (Gobierno › SLA): incumplimiento, «SLA en riesgo» por error budget y tiempos de atención
+        from .sla import salud_items
+        out += salud_items(cliente, segmento)
+    except Exception:  # noqa: BLE001  sin SLA o sin tablas: nada que agregar
+        pass
     orden = {"alta": 0, "media": 1, "info": 2, "ok": 3}
     return sorted(out, key=lambda x: orden.get(x["nivel"], 2))

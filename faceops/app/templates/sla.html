@@ -1,0 +1,82 @@
+{% extends "base.html" %}{% block titulo %}SLA por servicio{% endblock %}
+{% block cuerpo %}
+<style>
+.sla-t td{vertical-align:middle}.sla-t .n b{display:block}.sla-t .n small{color:var(--muted)}
+.sla-f{display:grid;gap:4px}.sla-f label{display:block;font-weight:600;font-size:13px;margin:8px 0 3px}.sla-f input,.sla-f select,.sla-f textarea{width:100%;box-sizing:border-box}
+.sla-rej{display:grid;grid-template-columns:repeat(3,1fr);gap:0 12px}.sla-pr{display:grid;grid-template-columns:60px 1fr 1fr;gap:6px 12px;align-items:end}
+.sla-pr span{font-weight:700;padding-bottom:7px}.sla-m{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:6px 12px}
+.sla-def{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0}.sla-def dt{color:var(--muted)}.sla-def dd{margin:0}
+.sla-demo{background:#f0ab00;color:#151515}
+@media (max-width:720px){.sla-rej,.sla-m{grid-template-columns:1fr}.sla-def{grid-template-columns:1fr}}
+</style>
+<div class="fila"><div><h1>SLA por servicio</h1><p class="sub">El nivel de servicio acordado de cada servicio de negocio: disponibilidad, latencia, tiempos de atención por prioridad y de aprobación de cambios. Crear o cambiar un SLA abre un ticket «Cambio de SLA»: queda <b>propuesto</b> hasta que el grupo dueño de Aplicaciones lo aprueba.</p></div>
+<div class="der fila"><a class="btn gris" href="{{ url_for('consola.sla_reporte') }}">Reporte de cumplimiento</a></div></div>
+
+<div class="card" style="padding:0;overflow-x:auto"><table class="sla-t">
+<tr><th></th><th>Servicio</th><th>SLA vigente</th><th>Disponibilidad</th><th>Latencia p95</th><th>Dueño · consumidor</th><th>Período actual</th><th></th></tr>
+{% for x in ss %}{% set v = x.vigente %}{% set m = x.medicion %}<tr>
+<td>{% if m %}<span class="semaforo s-{{ COLOR[m.estado] }}" title="{{ TEXTO[m.estado] }}"></span>{% else %}<span class="semaforo s-nada" title="Sin SLA vigente"></span>{% endif %}</td>
+<td class="n"><b>{{ x.seg.nombre }}</b><small>{{ x.seg.descripcion|truncate(70) if x.seg.descripcion }}</small></td>
+<td>{% if v %}<span class="chip">v{{ v.version }}</span>{% if v.demo %} <span class="chip sla-demo">demo</span>{% endif %}<div class="sub" style="font-size:11.5px">{{ v.d.vigencia_desde }} → {{ v.d.vigencia_hasta }}</div>{% else %}<span class="sub">sin SLA</span>{% endif %}
+ {% if x.propuesto %}<div><a class="chip s-media" href="{{ url_for('consola.ticket', tid=x.propuesto.ticket_id) }}">v{{ x.propuesto.version }} propuesto · {{ x.propuesto.ticket_numero }}</a></div>{% endif %}</td>
+<td>{% if v %}{{ pct(v.d.disponibilidad, 3) }} <span class="sub">{{ v.d.ventana }}</span>{% else %}—{% endif %}</td>
+<td>{% if v %}{{ v.d.latencia_p95_ms }} ms{% else %}—{% endif %}</td>
+<td>{% if v %}{{ (grupos|selectattr('clave', 'equalto', v.d.dueno)|map(attribute='nombre')|first) or v.d.dueno }} · {{ v.d.consumidor }}{% else %}—{% endif %}</td>
+<td>{% if m %}<b>{{ TEXTO[m.estado] }}</b>{% if m.cumplimiento is not none %} · {{ m.cumplimiento }} % de los medidos{% endif %}{% if m.parcial %}<div class="sub" style="font-size:11.5px" title="{{ m.sin_medir|join(', ') }}">medición parcial</div>{% endif %}{% if m.consumo is not none %}<div class="sub" style="font-size:11.5px">error budget {{ pct(m.consumo, 1) }}</div>{% endif %}{% else %}—{% endif %}</td>
+<td style="text-align:right;white-space:nowrap"><a class="btn chico gris" href="{{ url_for('consola.sla', servicio=x.seg.id) }}#ficha">{{ 'Ver y cambiar' if v else ('Ver propuesto' if x.propuesto else 'Definir SLA') }}</a></td></tr>
+{% else %}<tr><td colspan="8" class="vacio">No hay servicios de negocio visibles para tu perfil.</td></tr>{% endfor %}
+</table></div>
+
+<details style="margin:10px 0"><summary class="sub">Cómo se mide</summary><div class="card" style="margin-top:6px"><ul style="margin:0;padding-left:18px">
+<li><b>Disponibilidad y latencia:</b> Prometheus, la sonda blackbox del VIP del segmento (la misma de sus alertas «Servicio no disponible» y «Latencia p95 alta»), una muestra cada 5 min, sin las ventanas de mantenimiento. Sin muestras, el SLA dice «sin medición».</li>
+<li><b>Respuesta, resolución y aprobación:</b> los tickets reales del servicio (su segmento o sus máquinas): creación, toma o respuesta de la aprobación, inicio y cierre. Los tickets de demostración no cuentan.</li>
+<li><b>Prioridad:</b> los tickets aún no traen prioridad propia; se asigna así: {% for p, t in REGLA %}<b>{{ p }}</b> {{ t|lower }}{{ '; ' if not loop.last else '.' }}{% endfor %}</li>
+<li><b>Error budget:</b> minutos fuera de servicio sobre los permitidos en el período. Sobre el umbral se abre la alerta «SLA en riesgo» y baja la salud del segmento.</li></ul></div></details>
+
+{% if sel %}{% set v = sel.vigente %}{% set p = sel.propuesto %}
+<h2 id="ficha">{{ sel.seg.nombre }}</h2>
+{% if v or p %}{% set s = p or v %}<div class="card"><div class="fila"><div><b>{{ 'Propuesto' if p else 'Vigente' }} · v{{ s.version }}</b>{% if s.demo %} <span class="chip sla-demo">demo</span>{% endif %}
+ · ticket <a class="mono" href="{{ url_for('consola.ticket', tid=s.ticket_id) }}">{{ s.ticket_numero }}</a></div></div>
+<dl class="sla-def" style="margin-top:8px">
+<dt>Disponibilidad objetivo</dt><dd>{{ pct(s.d.disponibilidad, 3) }} {{ s.d.ventana }} · zona {{ s.d.zona }}</dd>
+<dt>Mantenimiento excluido</dt><dd>{% for m in s.d.mantenimiento %}{{ DIAS[m.dia] }} {{ m.desde }}–{{ m.hasta }}{{ ', ' if not loop.last }}{% else %}ninguno{% endfor %}</dd>
+<dt>Latencia objetivo (p95)</dt><dd>{{ s.d.latencia_p95_ms }} ms</dd>
+<dt>Respuesta · resolución</dt><dd>{% for k in PRIORIDADES %}<b>{{ k }}</b> {{ dur(s.d.prioridades[k].respuesta_min) }} · {{ dur(s.d.prioridades[k].resolucion_min) }}{{ ' — ' if not loop.last }}{% endfor %}</dd>
+<dt>Aprobación de cambios</dt><dd>máximo {{ dur(s.d.aprobacion_max_h * 60) }}</dd>
+<dt>Alerta «SLA en riesgo»</dt><dd>error budget consumido ≥ {{ pct(s.d.umbral_riesgo, 0) }}</dd>
+<dt>Dueño · consumidor</dt><dd>{{ (grupos|selectattr('clave', 'equalto', s.d.dueno)|map(attribute='rol')|first) or s.d.dueno }} · {{ s.d.consumidor }}{% if s.d.correo_consumidor %} ({{ s.d.correo_consumidor }}){% endif %}</dd>
+<dt>Vigencia</dt><dd>{{ s.d.vigencia_desde }} → {{ s.d.vigencia_hasta }}</dd></dl></div>{% endif %}
+
+<h3>Historial de versiones</h3>
+<div class="card" style="padding:0;overflow-x:auto">{% if hist %}<table><tr><th>Versión</th><th>Estado</th><th>Ticket</th><th>Propuso</th><th>Aprobó o rechazó</th><th>Cambios</th></tr>
+{% for h in hist %}<tr><td>v{{ h.version }}{% if h.demo %} <span class="chip sla-demo">demo</span>{% endif %}</td><td><span class="chip {{ 's-ok' if h.estado == 'vigente' else ('s-media' if h.estado == 'propuesto' else ('s-alta' if h.estado == 'rechazado' else '')) }}">{{ ESTADOS[h.estado] }}</span></td>
+<td><a class="mono" href="{{ url_for('consola.ticket', tid=h.ticket_id) }}">{{ h.ticket_numero }}</a></td><td>{{ h.autor }} · {{ h.creado|fecha }}</td>
+<td>{% if h.aprobado %}{{ h.aprobado_por }} · {{ h.aprobado|fecha }}{% if h.comentario %}<div class="sub" style="font-size:11.5px">«{{ h.comentario }}»</div>{% endif %}{% else %}—{% endif %}</td>
+<td class="sub">{{ pct(h.d.disponibilidad, 3) }} · p95 {{ h.d.latencia_p95_ms }} ms · aprobación {{ dur(h.d.aprobacion_max_h * 60) }}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Este servicio aún no tiene SLA.</p>{% endif %}</div>
+
+{% if escribe and not p %}<h3 id="proponer">{{ 'Proponer cambio' if v else 'Definir SLA' }}</h3>
+<form class="card sla-f" method="post" action="{{ url_for('consola.sla_proponer', sid=sel.seg.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="sla-rej"><label>Disponibilidad objetivo (%)<input name="disponibilidad" value="{{ form.disponibilidad }}" inputmode="decimal" required></label>
+<label>Ventana de medición<select name="ventana">{% for k, n in VENTANAS %}<option value="{{ k }}"{{ ' selected' if form.ventana == k }}>{{ n }}</option>{% endfor %}</select></label>
+<label>Zona horaria<input name="zona" value="{{ form.zona }}" required></label></div>
+<label>Ventanas de mantenimiento excluidas</label>
+{% for i in range(3) %}{% set m = form.mantenimiento[i] if form.mantenimiento|length > i else {} %}<div class="sla-m">
+<select name="m{{ i }}_dia" aria-label="Día"><option value="">—</option>{% for d in DIAS %}<option value="{{ loop.index0 }}"{{ ' selected' if m.dia is defined and m.dia == loop.index0 }}>{{ d }}</option>{% endfor %}</select>
+<input name="m{{ i }}_desde" value="{{ m.desde or '' }}" placeholder="desde HH:MM" aria-label="Desde"><input name="m{{ i }}_hasta" value="{{ m.hasta or '' }}" placeholder="hasta HH:MM" aria-label="Hasta"></div>{% endfor %}
+<div class="sla-rej"><label>Latencia objetivo p95 (ms)<input name="latencia_p95_ms" value="{{ form.latencia_p95_ms }}" inputmode="numeric" required></label>
+<label>Aprobación máxima de cambios (h)<input name="aprobacion_max_h" value="{{ form.aprobacion_max_h }}" inputmode="decimal" required></label>
+<label>Umbral «SLA en riesgo» (% del error budget)<input name="umbral_riesgo" value="{{ form.umbral_riesgo }}" inputmode="numeric" required></label></div>
+<label>Respuesta y resolución por prioridad (minutos)</label>
+<div class="sla-pr"><b></b><small class="sub">Respuesta</small><small class="sub">Resolución</small>
+{% for k in PRIORIDADES %}<span>{{ k }}</span><input name="{{ k }}_resp" value="{{ form.prioridades[k].respuesta_min }}" inputmode="numeric" aria-label="{{ k }} respuesta"><input name="{{ k }}_res" value="{{ form.prioridades[k].resolucion_min }}" inputmode="numeric" aria-label="{{ k }} resolución">{% endfor %}</div>
+<div class="sla-rej"><label>Dueño del servicio (grupo)<select name="dueno">{% for gr in grupos %}<option value="{{ gr.clave }}"{{ ' selected' if form.dueno == gr.clave }}>{{ gr.nombre }}</option>{% endfor %}</select></label>
+<label>Cliente o área consumidora<input name="consumidor" value="{{ form.consumidor }}" maxlength="120" required></label>
+<label>Correo del consumidor<input name="correo_consumidor" value="{{ form.correo_consumidor }}" type="email"></label></div>
+<div class="sla-rej"><label>Vigente desde<input name="vigencia_desde" type="date" value="{{ form.vigencia_desde }}" required></label>
+<label>Vigente hasta<input name="vigencia_hasta" type="date" value="{{ form.vigencia_hasta }}" required></label><span></span></div>
+<label>Motivo del cambio<input name="motivo" maxlength="300" placeholder="Qué se acordó y con quién"></label>
+<div style="margin-top:10px"><button class="btn">Proponer y abrir ticket «Cambio de SLA»</button> <span class="sub">Queda propuesto hasta que el grupo dueño de Aplicaciones lo aprueba en el ticket.</span></div>
+</form>{% elif p %}<p class="sub" id="proponer">Hay un cambio esperando aprobación: <a href="{{ url_for('consola.ticket', tid=p.ticket_id) }}">{{ p.ticket_numero }}</a>. Apruébalo o recházalo antes de proponer otro.</p>{% endif %}
+{% endif %}
+{% endblock %}

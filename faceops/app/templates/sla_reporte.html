@@ -1,0 +1,74 @@
+{% extends "base.html" %}{% block titulo %}Reporte de SLA{% endblock %}
+{% block cuerpo %}
+<style>
+.sla-t td{vertical-align:middle}.sla-demo{background:#f0ab00;color:#151515}
+.sla-obj{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:8px 0 12px}
+.sla-obj .card{margin:0;padding:10px 12px}.sla-obj b.v{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.sla-obj small{color:var(--muted);display:block}
+.sla-pr td,.sla-pr th{text-align:right}.sla-pr td:first-child,.sla-pr th:first-child{text-align:left}
+.sla-f{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.sla-f label{font-size:13px;font-weight:600;display:grid;gap:3px}
+</style>
+{% if hay_reportes %}<div class="tabs-pf"><a href="{{ url_for('consola.reportes') }}">Cumplimiento por área</a><a class="on" href="{{ url_for('consola.sla_reporte') }}">SLA por servicio</a></div>{% endif %}
+<div class="fila"><div><h1>Reporte de cumplimiento de SLA</h1><p class="sub">Cumplimiento del período de cada servicio con SLA vigente, medido con Prometheus y los tickets de FaceOps. Se envía al dueño de cada servicio y a su consumidor{% if lab %} (en el laboratorio, todo a {{ LAB_PARA }}){% endif %}: correo breve con enlace a esta página.</p></div>
+<div class="der fila">{% if periodos %}<form method="get"><select name="periodo" onchange="this.form.submit()" aria-label="Período">{% for k, et in periodos %}<option value="{{ k }}"{{ ' selected' if k == clave }}>{{ et }}</option>{% endfor %}</select></form>{% endif %}
+<a class="btn gris" href="{{ url_for('consola.sla') }}">Gestionar SLA</a></div></div>
+
+{% if not rs %}<div class="card"><p class="vacio">Ningún servicio tiene SLA vigente. Defínelo en <a href="{{ url_for('consola.sla') }}">Gobierno › SLA</a>: queda vigente cuando se aprueba su ticket «Cambio de SLA».</p></div>
+{% else %}
+<div class="card" style="padding:0;overflow-x:auto"><table class="sla-t">
+<tr><th></th><th>Servicio</th><th>SLA</th><th>Disponibilidad</th><th>Error budget</th><th>Latencia p95</th><th>Tickets en plazo</th><th>Aprobaciones en plazo</th><th>Violaciones</th></tr>
+{% for r in rs %}{% set o = r.objetivos %}<tr{% if r.segmento == segn %} style="background:var(--soft)"{% endif %}>
+<td><span class="semaforo s-{{ COLOR[r.estado] }}" title="{{ TEXTO[r.estado] }}"></span></td>
+<td><a href="?segmento={{ r.segmento|urlencode }}{{ '&periodo=' ~ clave if clave }}#detalle"><b>{{ r.segmento }}</b></a><div class="sub" style="font-size:11.5px">{{ TEXTO[r.estado] }}{% if r.cumplimiento is not none %} · {{ r.cumplimiento }} % de los objetivos medidos{% endif %}{% if r.parcial %} · <span title="Sin medición: {{ r.sin_medir|join(', ') }}">medición parcial</span>{% endif %}</div></td>
+<td>v{{ r.version }}{% if r.demo %} <span class="chip sla-demo">demo</span>{% endif %}</td>
+<td>{{ o[0].valor }} <span class="sub">/ {{ o[0].objetivo }}</span></td>
+<td>{{ pct(r.consumo, 1) }}</td>
+<td>{{ o[1].valor }} <span class="sub">/ {{ o[1].objetivo }}</span></td>
+<td>{{ o[2].valor }} · {{ o[3].valor }}</td><td>{{ o[4].valor }}</td>
+<td>{{ r.violaciones|length }}</td></tr>{% endfor %}</table></div>
+
+{% if sel %}<h2 id="detalle">{{ sel.segmento }} · {{ sel.etiqueta }}{% if sel.en_curso %} <span class="sub" style="font-size:14px;font-weight:400">(período en curso)</span>{% endif %}</h2>
+<p class="sub">Del {{ sel.inicio|fecha }} al {{ sel.fin|fecha }} · SLA v{{ sel.version }} · medido {{ sel.calculado|hace }} · <a href="{{ url_for('consola.sla', servicio=sel.segmento_id) }}#ficha">ver el SLA</a> · <a href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=sel.segmento) }}">ver el segmento</a></p>
+<div class="sla-obj">{% for o in sel.objetivos %}<div class="card"><span class="semaforo s-{{ COLOR[o.estado] }}" style="width:12px;height:12px"></span> <b>{{ o.nombre }}</b>
+<b class="v">{{ o.valor }}</b><small>objetivo {{ o.objetivo }} · {{ TEXTO[o.estado] }}</small>{% if o.detalle %}<small>{{ o.detalle }}</small>{% endif %}</div>{% endfor %}</div>
+<p class="sub" style="font-size:12px">Fuente de disponibilidad y latencia: <span class="mono">{{ sel.medicion.fuente }}</span>{% if sel.medicion.desde %} · muestras del {{ sel.medicion.desde|fecha }} al {{ sel.medicion.hasta|fecha }}{% endif %}</p>
+
+<h3>Tiempos por prioridad</h3>
+<div class="card" style="padding:0;overflow-x:auto"><table class="sla-pr"><tr><th>Prioridad</th><th>Tickets</th><th>Respuesta objetivo</th><th>Respuesta promedio</th><th>En plazo</th><th>Resolución objetivo</th><th>Resolución promedio</th><th>En plazo</th></tr>
+{% for k in PRIORIDADES %}{% set x = sel.por_prioridad[k] %}{% set ob = sel.d.prioridades[k] %}<tr><td><b>{{ k }}</b> <span class="sub">{{ REGLA[loop.index0][1] }}</span></td><td>{{ x.n }}</td>
+<td>{{ dur(ob.respuesta_min) }}</td><td>{{ dur(x.resp_prom) }}</td><td>{{ x.resp_ok }} / {{ x.resp_n }}</td><td>{{ dur(ob.resolucion_min) }}</td><td>{{ dur(x.res_prom) }}</td><td>{{ x.res_ok }} / {{ x.res_n }}</td></tr>{% endfor %}
+<tr><td><b>Aprobación de cambios</b></td><td>{{ sel.aprobacion.n }}</td><td colspan="2">máximo {{ dur(sel.d.aprobacion_max_h * 60) }}</td><td>{{ sel.aprobacion.ok }} / {{ sel.aprobacion.n }}</td><td colspan="3" class="sub">{% if sel.aprobacion.prom_h is not none %}promedio {{ sel.aprobacion.prom_h }} h por etapa{% endif %}</td></tr></table></div>
+
+<h3>Violaciones</h3>
+<div class="card" style="padding:0;overflow-x:auto">{% if sel.violaciones %}<table><tr><th>Tipo</th><th>Qué pasó</th><th>Cuándo</th><th>Enlace</th></tr>
+{% for v in sel.violaciones %}<tr><td><span class="chip s-alta">{{ {'disponibilidad': 'Disponibilidad', 'latencia': 'Latencia', 'respuesta': 'Respuesta', 'resolucion': 'Resolución', 'aprobacion': 'Aprobación'}[v.tipo] }}</span></td>
+<td>{{ v.texto }}</td><td>{% if v.inicio %}{{ v.inicio|fecha }} → {{ v.fin|fecha }}{% else %}—{% endif %}</td>
+<td>{% if v.ticket_id %}<a class="mono" href="{{ url_for('consola.ticket', tid=v.ticket_id) }}">{{ v.numero }}</a>{% elif v.alerta %}<a href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=sel.segmento) }}">alerta {{ v.alerta }} del segmento</a>{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Sin violaciones en el período{% if sel.estado == 'sin_medicion' %} (nada medible todavía){% endif %}.</p>{% endif %}</div>
+{% endif %}{% endif %}
+
+<h3 id="alertas">Alertas «SLA en riesgo»</h3>
+<div class="card" style="padding:0;overflow-x:auto">{% if alertas_sla %}<table><tr><th>Servicio</th><th>Abierta</th><th>Cerrada</th><th>Error budget</th><th>Aviso</th></tr>
+{% for a in alertas_sla %}<tr><td>{{ a.segmento }}</td><td>{{ a.abierta|fecha }}</td><td>{{ a.cerrada|fecha if a.cerrada else 'abierta' }}</td><td>{{ pct(a.consumo, 1) }} <span class="sub">umbral {{ pct(a.umbral, 0) }}</span></td><td class="sub">{{ a.resultado }}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Ningún servicio ha pasado el umbral de su error budget.</p>{% endif %}</div>
+
+<h3 id="iniciativas">Iniciativas de mejora por violaciones de SLA</h3>
+<div class="card" style="padding:0;overflow-x:auto">{% if inis %}<table><tr><th>Iniciativa</th><th>Estado</th><th>Responsable</th><th>Abierta</th><th>Compromiso</th><th>Ticket</th></tr>
+{% for i in inis %}<tr><td>{{ i.pilar }}<div class="sub" style="font-size:11.5px">{{ i.nota }}</div></td><td><span class="chip {{ 's-ok' if i.estado == 'cerrada' else 's-media' }}">{{ i.estado|replace('_', ' ') }}</span></td>
+<td>{{ i.seccion }}</td><td>{{ i.abierta|fecha }}</td><td>{{ i.compromiso }}</td><td>{% if i.ticket_id %}<a class="mono" href="{{ url_for('consola.ticket', tid=i.ticket_id) }}">{{ i.ticket_numero }}</a>{% else %}—{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Sin iniciativas: ningún objetivo de SLA se ha incumplido.</p>{% endif %}</div>
+<p class="sub" style="font-size:12px">Las iniciativas viven en el mismo registro de mejora de Gobierno › Reportes (responsable = grupo dueño del servicio) y se cierran solas cuando una medición deja el objetivo en cumplimiento.</p>
+
+<h3 id="envios">Envío del reporte</h3>
+<div class="card">{% if escribe %}<form class="sla-f" method="post" action="{{ url_for('consola.sla_programa') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Frecuencia<select name="frecuencia">{% for k, n in [('mensual', 'Mensual'), ('trimestral', 'Trimestral'), ('pausado', 'Pausado')] %}<option value="{{ k }}"{{ ' selected' if prog.frecuencia == k }}>{{ n }}</option>{% endfor %}</select></label>
+<label>Día del mes<input name="dia" type="number" min="1" max="28" value="{{ prog.dia }}" style="width:80px"></label>
+<label>Hora local del destinatario<input name="hora" value="{{ prog.hora }}" style="width:90px"></label>
+<button class="btn gris">Guardar programa</button></form>{% endif %}
+<p class="sub" style="margin:8px 0">{% if prog.proximo %}Próximo envío: <b>{{ prog.proximo|fecha }}</b> (reporte del período que cierra){% else %}Envío programado en pausa{% endif %}{% if not smtp %} · FaceOps aún no tiene servidor de correo: el envío queda registrado como pendiente{% endif %}.</p>
+{% if escribe and rs %}<form method="post" action="{{ url_for('consola.sla_enviar') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="periodo" value="{{ clave }}"><button class="btn">Enviar ahora</button></form>{% endif %}</div>
+<div class="card" style="padding:0;overflow-x:auto;margin-top:8px">{% if envios %}<table><tr><th>Fecha</th><th>Período</th><th>Tipo</th><th>Quién</th><th>Para</th><th>Asunto</th><th>Resultado</th></tr>
+{% for e in envios %}<tr><td>{{ e.fecha|fecha }}</td><td>{{ e.periodo }}</td><td>{{ e.tipo }}</td><td>{{ e.quien }}</td><td class="sub">{{ e.para }}</td><td>{{ e.asunto }}</td>
+<td><span class="chip {{ 's-ok' if (e.resultado or '').startswith('enviado') else 's-alta' }}">{{ e.resultado }}</span></td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Aún no se ha enviado el reporte.</p>{% endif %}</div>
+{% endblock %}

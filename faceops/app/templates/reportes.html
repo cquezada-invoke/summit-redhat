@@ -3,6 +3,7 @@
 {% macro pct(v) %}{{ '—' if v is none else v ~ ' %' }}{% endmacro %}
 {% macro delta(d) %}{% if d is none %}<span class="sub">—</span>{% else %}<b style="color:{{ 'var(--ok)' if d > 0 else ('var(--bad)' if d < 0 else 'inherit') }}">{{ '▲ +' if d > 0 else ('▼ ' if d < 0 else '= ') }}{{ d }}</b>{% endif %}{% endmacro %}
 {% block cuerpo %}
+<div class="tabs-pf"><a class="on" href="{{ url_for('consola.reportes') }}">Cumplimiento por área</a><a href="{{ url_for('consola.sla_reporte') }}">SLA por servicio</a></div>
 <div class="fila"><div><h1>Reportes</h1>
 <p class="sub">Cumplimiento de cada área responsable (grupo dueño) en los 6 pilares del Radar de salud, con las iniciativas de mejora que abre cada brecha y el envío del reporte al correo del grupo. Los % salen de la salud real de los objetos de cada área; los colores siguen la regla de toda la consola: rojo &lt; 50 %, amarillo 50–84 %, verde ≥ 85 %.</p></div>
 <div class="der"><span class="sub" style="font-size:12px">Comparar contra</span>

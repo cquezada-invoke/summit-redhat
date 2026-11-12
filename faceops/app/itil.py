@@ -21,8 +21,22 @@ def _dinamicas(ps):
     """Prácticas que se evalúan con datos del cliente (campo «dinamico» en itil.yml; «apoyo» documenta en qué se basa):
     · iniciativas: Mejora continua queda cubierta, sin «Falta», cuando hay iniciativas de mejora registradas con
       responsable, fecha compromiso y beneficio esperado (Gobierno › Reportes).
-    · reporte_envio: Medición y reporte queda cubierta con un envío programado activo y al menos un envío aceptado."""
+    · reporte_envio: Medición y reporte queda cubierta con un envío programado activo y al menos un envío aceptado.
+    · sla: Gestión de niveles de servicio queda cubierta con al menos un SLA vigente aprobado por ticket, el reporte de
+      cumplimiento de SLA programado y al menos un envío aceptado (Gobierno › SLA y Gobierno › Reportes › SLA)."""
     from flask import g
+    try:
+        from .sla import itil_sla
+        s_ = itil_sla(g.cliente["id"])
+    except Exception:  # noqa: BLE001  sin cliente o sin tablas: queda lo declarado
+        s_ = None
+    for p in ps:
+        if p.get("dinamico") == "sla" and s_ and s_["vigentes"] and s_["envios"] and s_["programado"]:
+            p["estado"], p["falta"] = "cubierta", None
+            p["medido"] = (f"{s_['vigentes']} SLA vigente{'s' if s_['vigentes'] != 1 else ''} aprobado{'s' if s_['vigentes'] != 1 else ''} por ticket "
+                           f"({', '.join(s_['tickets'][:3])}) · {s_['medidos']} con medición · reporte mensual programado · {s_['envios']} envío"
+                           f"{'s' if s_['envios'] != 1 else ''} aceptado{'s' if s_['envios'] != 1 else ''} por el servidor de correo")
+            p["nuevo"] = p.get("nuevo_dinamico") or p.get("nuevo")
     try:
         from .reportes import itil_mejora
         m = itil_mejora(g.cliente["id"])
