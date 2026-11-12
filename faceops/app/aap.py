@@ -80,8 +80,14 @@ def _iniciar_vigia():
 # Regla: una página (petición GET) nunca llama a AAP. Toda lectura (GET a la API) que se hace al pintar una página se sirve
 # desde la tabla aap_lecturas; el sincronizador de fondo (este vigía) la renueva cada TTL_LECTURA mientras alguna página la
 # use. A AAP solo se llama en vivo al lanzar una acción (peticiones POST de FaceOps) y desde las tareas de fondo.
+_tabla_ok = {}
+
+
 def _tabla():
-    from .bd import con
+    from .bd import RUTA, con
+    if _tabla_ok.get(RUTA):
+        return
+    _tabla_ok[RUTA] = True
     con().execute("CREATE TABLE IF NOT EXISTS aap_lecturas (clave TEXT PRIMARY KEY, web TEXT, url TEXT, params TEXT, datos TEXT, "
                   "actualizado REAL, usado REAL, error TEXT DEFAULT '')")
 
@@ -112,7 +118,10 @@ def _leer_bd(web, url, params):
     f = q1("SELECT datos, actualizado, usado FROM aap_lecturas WHERE clave=?", k)
     if f:
         if time.time() - (f.get("usado") or 0) > 30:
-            ej("UPDATE aap_lecturas SET usado=? WHERE clave=?", time.time(), k)
+            try:
+                ej("UPDATE aap_lecturas SET usado=? WHERE clave=?", time.time(), k)
+            except Exception:  # noqa: BLE001 - p. ej. disco lleno: la lectura sigue sirviendo
+                pass
         return json.loads(f["datos"]) if f["datos"] else {}
     return None
 
