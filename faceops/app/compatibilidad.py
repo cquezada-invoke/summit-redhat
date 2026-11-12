@@ -55,6 +55,9 @@ def etiquetas(a):
 
 
 def sistema_fino(e):
+    """Sistema de la máquina según lo detectado: por el nombre del sistema (so) y, si viene vacío o genérico («Servidor»),
+    por la familia que detectó el inventario (so_familia). Por familia, RedHat cuenta solo como Linux: Rocky, Alma o
+    CentOS también son de esa familia y no deben recibir lo que exige RHEL."""
     s = (e.get("so") or "").lower()
     if "windows" in s:
         return {"windows"}
@@ -64,6 +67,11 @@ def sistema_fino(e):
         return {"rhel", "linux"}
     if "linux" in s or any(d in s for d in ("rocky", "alma", "centos", "oracle", "fedora", "suse", "sles", "amazon")):
         return {"linux"}   # «Rocky 9.8», «CentOS Stream 9»…: el inventario no siempre dice «Linux»
+    f = (e.get("so_familia") or "").lower()
+    if "windows" in f:
+        return {"windows"}
+    if f in ("redhat", "debian", "suse", "linux", "archlinux", "gentoo"):
+        return {"linux"}
     return set()
 
 

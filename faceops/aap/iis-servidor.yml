@@ -1,0 +1,152 @@
+---
+# IIS · Preparar servidor: instala Microsoft IIS en un servidor Windows por WinRM (ansible.windows). Idempotente.
+#   1. rol Web-Server con sus características básicas (contenido estático, documento por defecto, errores HTTP, registro,
+#      compresión, filtrado de pedidos y consola de administración)
+#   2. servicio W3SVC arriba y en inicio automático
+#   3. sitio por defecto («Default Web Site») en C:\inetpub\wwwroot con enlace HTTP 80 y HTTPS 443 (certificado propio
+#      del servidor, autofirmado, que se reutiliza si ya existe)
+#   4. firewall de Windows: 80 y 443 de entrada
+#   5. verificación: el sitio responde HTTP 200; versión de IIS, estado de W3SVC y respuesta HTTP quedan para FaceOps
+#      (set_stats faceops_iis y fact en caché) → detección en la ficha y su barra de salud
+# Variables: iis_sitio (por defecto «Default Web Site»), iis_https (por defecto true).
+- name: IIS · Preparar servidor
+  hosts: all
+  gather_facts: true
+  vars:
+    iis_sitio: Default Web Site
+    iis_https: true
+    iis_ruta: C:\inetpub\wwwroot
+    iis_caracteristicas:
+      - Web-Server
+      - Web-Common-Http
+      - Web-Default-Doc
+      - Web-Static-Content
+      - Web-Http-Errors
+      - Web-Http-Logging
+      - Web-Request-Monitor
+      - Web-Filtering
+      - Web-Stat-Compression
+      - Web-Mgmt-Console
+  tasks:
+    - name: Sistema Windows Server
+      ansible.builtin.assert:
+        that: ansible_os_family == 'Windows'
+        fail_msg: "IIS se instala solo en Windows Server (esta máquina tiene {{ ansible_distribution | default('otro sistema') }}): no se cambió nada"
+        quiet: true
+
+    - name: Nombre de sitio válido
+      ansible.builtin.assert:
+        that: iis_sitio | trim | length > 0 and iis_sitio is match('^[A-Za-z0-9 ._-]+$')
+        fail_msg: "Nombre de sitio inválido «{{ iis_sitio }}»: no se cambió nada"
+        quiet: true
+
+    - name: Rol Web Server (IIS) y sus características básicas
+      ansible.windows.win_feature:
+        name: "{{ iis_caracteristicas }}"
+        state: present
+        include_management_tools: true
+      register: r_feat
+
+    - name: Reinicio si el rol lo exige
+      ansible.windows.win_reboot:
+        reboot_timeout: 900
+      when: r_feat.reboot_required | default(false)
+
+    - name: Servicio W3SVC arriba y en inicio automático
+      ansible.windows.win_service:
+        name: W3SVC
+        start_mode: auto
+        state: started
+
+    - name: Sitio por defecto con HTTP 80 y HTTPS 443
+      ansible.windows.win_powershell:
+        parameters:
+          Sitio: "{{ iis_sitio }}"
+          Ruta: "{{ iis_ruta }}"
+          Https: "{{ iis_https | bool }}"
+        script: |
+          param([string]$Sitio, [string]$Ruta, [bool]$Https)
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+          $Ansible.Changed = $false
+          if (-not (Test-Path $Ruta)) { New-Item -ItemType Directory -Path $Ruta | Out-Null; $Ansible.Changed = $true }
+          $doc = Join-Path $Ruta 'index.html'
+          if (-not (Get-ChildItem $Ruta -Include iisstart.htm, index.html, default.htm, default.aspx -File -ErrorAction SilentlyContinue)) {
+            Set-Content -Path $doc -Encoding UTF8 -Value "<!doctype html><html lang='es'><head><meta charset='utf-8'><title>$env:COMPUTERNAME</title></head><body><h1>IIS en $env:COMPUTERNAME</h1><p>Sitio por defecto publicado por FaceOps.</p></body></html>"
+            $Ansible.Changed = $true
+          }
+          $s = Get-Website -Name $Sitio -ErrorAction SilentlyContinue
+          if (-not $s) {
+            New-Website -Name $Sitio -PhysicalPath $Ruta -Port 80 -IPAddress '*' -Force | Out-Null
+            $Ansible.Changed = $true
+          } elseif (-not (Get-WebBinding -Name $Sitio -Protocol http -Port 80)) {
+            New-WebBinding -Name $Sitio -Protocol http -Port 80 -IPAddress '*'
+            $Ansible.Changed = $true
+          }
+          if ($Https) {
+            if (-not (Get-WebBinding -Name $Sitio -Protocol https -Port 443)) {
+              New-WebBinding -Name $Sitio -Protocol https -Port 443 -IPAddress '*'
+              $Ansible.Changed = $true
+            }
+            $cert = Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.FriendlyName -eq 'FaceOps IIS' -and $_.NotAfter -gt (Get-Date).AddDays(30) } | Select-Object -First 1
+            if (-not $cert) {
+              $cert = New-SelfSignedCertificate -DnsName $env:COMPUTERNAME -CertStoreLocation Cert:\LocalMachine\My -FriendlyName 'FaceOps IIS' -NotAfter (Get-Date).AddYears(2)
+              $Ansible.Changed = $true
+            }
+            $b = Get-WebBinding -Name $Sitio -Protocol https -Port 443
+            if ($b.certificateHash -ne $cert.Thumbprint) {
+              $b.AddSslCertificate($cert.Thumbprint, 'My')
+              $Ansible.Changed = $true
+            }
+          }
+          if ((Get-Website -Name $Sitio).State -ne 'Started') { Start-Website -Name $Sitio; $Ansible.Changed = $true }
+
+    - name: Firewall · HTTP 80 y HTTPS 443 de entrada
+      ansible.windows.win_powershell:
+        parameters:
+          Https: "{{ iis_https | bool }}"
+        script: |
+          param([bool]$Https)
+          $Ansible.Changed = $false
+          $reglas = @(@{n='FaceOps-IIS-HTTP'; p=80})
+          if ($Https) { $reglas += @{n='FaceOps-IIS-HTTPS'; p=443} }
+          foreach ($r in $reglas) {
+            if (-not (Get-NetFirewallRule -Name $r.n -ErrorAction SilentlyContinue)) {
+              New-NetFirewallRule -Name $r.n -DisplayName "FaceOps IIS $($r.p)" -Direction Inbound -Protocol TCP -LocalPort $r.p -Action Allow | Out-Null
+              $Ansible.Changed = $true
+            }
+          }
+
+    - name: El sitio responde HTTP 200
+      ansible.windows.win_uri:
+        url: http://localhost/
+        status_code: 200
+      register: r_web
+      until: r_web.status_code | default(0) == 200
+      retries: 10
+      delay: 3
+
+    - name: Versión de IIS y estado de W3SVC
+      ansible.windows.win_powershell:
+        script: |
+          $Ansible.Changed = $false
+          $v = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\InetStp' -ErrorAction SilentlyContinue
+          $w = Get-Service W3SVC -ErrorAction SilentlyContinue
+          [pscustomobject]@{ version = "$($v.MajorVersion).$($v.MinorVersion)"; w3svc = "$($w.Status)".ToLower() }
+      register: r_ver
+
+    - name: Resultado para FaceOps (ficha y barra de salud)
+      ansible.builtin.set_fact:
+        cacheable: true
+        faceops_iis:
+          version: "{{ r_ver.output[0].version }}"
+          w3svc: "{{ 'running' if r_ver.output[0].w3svc == 'running' else r_ver.output[0].w3svc }}"
+          http: "{{ r_web.status_code }}"
+          sitio: "{{ iis_sitio }}"
+          https: "{{ iis_https | bool }}"
+          revisado: "{{ now(utc=true).isoformat() }}"
+
+    - name: Resultado del ticket
+      ansible.builtin.set_stats:
+        data:
+          faceops_iis: "{{ {inventory_hostname: faceops_iis} }}"

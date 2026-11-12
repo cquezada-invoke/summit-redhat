@@ -4891,10 +4891,19 @@ def equipo(eid):
             plat_nuevas.append({"id": a_["id"], "nombre": a_["nombre"], "skill": sk_, "desc": (j(a_.get("guia"), {}).get("proposito") or a_.get("descripcion") or "")[:180],
                                 "datos": False, "bloqueada": bool(a_.get("_bloqueada")), "alerta": _falta_(a_, e)})
     plat_nuevas = [x for x in plat_nuevas if x["skill"] not in AGENTES_SK]
-    from .manifiesto import permite as _mf_permite   # manifiesto de arquitectura: solo lo aceptado se ofrece
+    from .manifiesto import permite as _mf_permite   # manifiesto de arquitectura: solo lo aceptado se instala; lo demás se muestra con su motivo
     for x in plat_nuevas:
         x["mf_ok"], x["mf_nota"] = _mf_permite(g.cliente["id"], x["skill"])
-    plat_nuevas = [x for x in plat_nuevas if x["mf_ok"]]
+    plat_nuevas.sort(key=lambda x: (not x["mf_ok"], bool(x.get("bloqueada")), x["nombre"]))
+    # el flotante «Incorporar plataforma» nunca queda vacío ni en silencio: por qué no hay opciones o por qué no se pueden lanzar
+    from .compatibilidad import sistema_fino as _sis_fino_
+    _win_ = "windows" in _sis_fino_(e)
+    e["_plat_acceso"] = "" if (e.get("ip") or "").strip().lower() not in ("", "pendiente", "-", "—") else \
+        f"la máquina aún no está vinculada por {'WinRM' if _win_ else 'SSH'}"
+    e["_plat_vacio"] = ("" if plat_nuevas else
+                        "No se pudo determinar el sistema operativo de esta máquina, y cada plataforma depende de él. Inventaría la máquina para detectarlo."
+                        if not _sis_fino_(e) and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo") else
+                        f"No hay plataformas compatibles con {e.get('so') or e.get('so_familia') or 'esta máquina'} que aún no tenga instaladas.")
     agentes_eq = _agentes_de(e, d_)
     _acc = __import__("app.boveda", fromlist=["x"]).acceso(e["nombre"]) or {}
     if agentes_eq is not None and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo"):

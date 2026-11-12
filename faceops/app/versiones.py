@@ -33,6 +33,8 @@ LECTORES = {"jboss": _leer_jboss}
 def _de_inventario(datos, fam):
     """Versión según el inventario: JBoss detectado en disco, o el paquete RPM/DEB de la plataforma."""
     import fnmatch
+    if fam == "iis":   # rol de Windows: la versión la deja «IIS · Preparar servidor» (registro InetStp)
+        return (datos.get("iis") or {}).get("version") or None
     if fam == "jboss":
         for x in datos.get("jboss") or []:
             if x.get("version") and x.get("version") != "desconocida":

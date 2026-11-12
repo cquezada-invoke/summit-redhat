@@ -176,6 +176,11 @@
     - {var: sql_edicion, etiqueta: "Edición", tipo: multiplechoice, opciones: [Developer, Express, Standard, Enterprise], defecto: Developer,
        ayuda: "Developer: todas las capacidades, sin costo, solo para pruebas · Standard: alta disponibilidad básica (una base por grupo) · Enterprise: grupos completos. Standard y Enterprise requieren licencia", enlace: {texto: "Ediciones y licencias de SQL Server", url: "https://www.microsoft.com/es-es/sql-server/sql-server-2022-pricing"}}
     - {var: sql_base_ejemplo, etiqueta: "Base de ejemplo", tipo: text, defecto: pagos, ayuda: "Se crea con datos de muestra y modelo de recuperación completo; vacío = sin base de ejemplo"}
+"IIS · Preparar servidor":
+  usa_limite: true
+  campos:
+    - {var: iis_sitio, etiqueta: "Sitio", tipo: text, defecto: "Default Web Site", ayuda: "Sitio por defecto que se publica en C:\\inetpub\\wwwroot (letras, números, espacio, punto, guion)"}
+    - {var: iis_https, etiqueta: "Publicar también HTTPS (443)", tipo: multiplechoice, opciones: ["true", "false"], defecto: "true", ayuda: "Enlace 443 con un certificado propio del servidor (autofirmado); el firewall se abre en 80 y, si aplica, 443"}
 "SQL Server · Levantamiento y medición":
   por_inventario: true
   usa_limite: true

@@ -133,6 +133,7 @@ shutil.copy(f"{AQUI}/quitar-agente.yml", f"{tmp}/playbooks/quitar-agente.yml")
 shutil.copy(f"{AQUI}/postgresql-servidor.yml", f"{tmp}/playbooks/postgresql-servidor.yml")
 shutil.copy(f"{AQUI}/mysql-servidor.yml", f"{tmp}/playbooks/mysql-servidor.yml")
 shutil.copy(f"{AQUI}/mongodb-servidor.yml", f"{tmp}/playbooks/mongodb-servidor.yml")   # Sistema · Inventariar máquina · parte 3
+shutil.copy(f"{AQUI}/iis-servidor.yml", f"{tmp}/playbooks/iis-servidor.yml")   # IIS · Preparar servidor (Windows, WinRM)
 shutil.copy(f"{AQUI}/files/inventario-a-git.py", f"{tmp}/playbooks/files/inventario-a-git.py")
 shutil.copytree(f"{AQUI}/files/lib", f"{tmp}/playbooks/files/lib", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
@@ -600,6 +601,12 @@ _cbs = uno("credentials", name="FaceOps · Bóveda (servicios)")
 if _cbs and _cbs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{j_mongodb['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{j_mongodb['id']}/credentials/", {"id": _cbs["id"]})
 paso(f"Plantilla «MongoDB · Preparar servidor» (id {j_mongodb['id']})")
+j_iis = asegurar("job_templates", "IIS · Preparar servidor", {   # Windows por WinRM: sin become; el fact faceops_iis queda en caché
+    "organization": org["id"], "project": proy, "playbook": "playbooks/iis-servidor.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True, "use_fact_cache": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": False,
+    "description": "Skill «iis»: rol Web-Server con sus características básicas, sitio por defecto en 80/443 y firewall, por WinRM"})
+paso(f"Plantilla «IIS · Preparar servidor» (id {j_iis['id']})")
 jsq2 = asegurar("job_templates", "SQL Server · Levantamiento y medición", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/sqlserver-medicion.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,

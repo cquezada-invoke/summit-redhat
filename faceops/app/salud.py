@@ -194,7 +194,13 @@ def componentes(e, riesgo, productos, extras=None):
                 for x in SERVICIOS_PROPIOS.get(cod, []):
                     if x not in serv_txt:
                         ms.append(_m(f"servicio {x} detenido", 25, "rojo"))
+            if cod == "iis":   # IIS: el servicio W3SVC arriba y el sitio respondiendo HTTP 200
+                ms = [_m("servicio W3SVC detenido", 100, "rojo")] if serv and "w3svc" not in serv_txt else []
             secs.append(_seccion("servicio", "Servicio", ms if serv else []))
+            http_ = (datos.get("iis") or {}).get("http") if cod == "iis" else None
+            if http_:   # la última revisión de «IIS · Preparar servidor» (sin revisión aún, no cuenta)
+                secs.append(_seccion("http", "Respuesta HTTP", [] if int(http_) == 200 else
+                                     [_m(f"el sitio respondió HTTP {http_} (se espera 200)", 100, "rojo")]))
             secs.append(_seccion("remediaciones", "Remediaciones preventivas", _remediaciones(errs)))
         vals = [s["salud"] for s in secs]
         pts = round(0.5 * min(vals) + 0.5 * sum(vals) / len(vals)) if vals else None

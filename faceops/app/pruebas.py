@@ -286,6 +286,8 @@ def calidad(auto):
         por_que = ("Cambió desde su última certificación: la versión vigente no está probada." if est["estado"] == "cambiada"
                    else "Su última corrida del plan falló en esta misma versión: vuelve a quedar bloqueada hasta que pase completo." if est["estado"] == "fallida"
                    else f"Su plan aún no pasa completo ({ok_} de {n} casos ok en la última corrida).")
+        if plan.get("pendiente"):   # por qué el plan aún no se puede ejecutar (p. ej. la máquina de prueba sin vincular)
+            por_que += f" Pendiente: {plan['pendiente']}."
     else:
         falta = [t for t in ("Funcional", "Error controlado", "Idempotencia") if t not in tipos]
         nivel = "Alta" if not falta and n >= 3 else "Media"

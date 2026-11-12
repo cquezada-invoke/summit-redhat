@@ -191,13 +191,17 @@ def radar_plataforma(r_mso, c):
             p.pop(k_, None)
         n = p["nombre"]
         if n == "Disponibilidad":
-            sv, base = secs.get("servicio"), p0.get("pct")
-            vals = [v for v in (sv, base) if v is not None]
+            sv, base, ht = secs.get("servicio"), p0.get("pct"), secs.get("http")
+            vals = [v for v in (sv, base, ht) if v is not None]
             p["pct"] = min(vals) if vals else None
             if sv is not None:
                 p["detalle"].append({"t": f"Servicio de {nom}", "v": sv})
                 if sv < 100:
                     p["falta"].append(f"Levantar el servicio de {nom} (detenido o sin responder)")
+            if ht is not None:   # servidores web (IIS): el sitio debe responder HTTP 200
+                p["detalle"].append({"t": f"Respuesta HTTP de {nom}", "v": ht})
+                if ht < 100:
+                    p["falta"].append(f"Que el sitio de {nom} vuelva a responder HTTP 200")
             if base is not None:
                 p["detalle"].append({"t": "Instancias de la máquina que la aloja", "v": base})
             p["falta"] += [f for f in p0.get("falta") or [] if re.search(r"réplica|tercera instancia|alerta", f)]

@@ -325,6 +325,9 @@ def motivo_no_aplica(usuario, cliente_id, auto, e, reinstalar=False):
         return por_que or "no es compatible con el sistema, el tipo o los productos del equipo"
     if auto.get("habilita_skill") and auto["habilita_skill"] in sk and not reinstalar:
         return f"el equipo ya tiene {auto['habilita_skill']}"
+    if auto.get("habilita_skill") and (e.get("ip") or "").strip().lower() in ("", "pendiente", "-", "—"):   # instalar exige llegar a la máquina
+        from .compatibilidad import sistema_fino
+        return f"la máquina aún no está vinculada por {'WinRM' if 'windows' in sistema_fino(e) else 'SSH'}"
     return None
 
 
@@ -1144,6 +1147,11 @@ def actualizar_tickets():
                 pass
             if est == "exitoso" and a and a.get("habilita_skill"):
                 registrar_skill(t, a, j(t["parametros"], {}))
+            if est in ("exitoso", "fallido") and a and a["nombre_aap"] == IIS:
+                try:
+                    guardar_iis(t, artefactos_ticket(aap, t))
+                except Exception:  # noqa: BLE001 - la ficha lo vuelve a tomar en la próxima corrida
+                    pass
             if est in ("exitoso", "fallido") and a and a["nombre_aap"] == "FaceOps · Acceso de red":
                 try:
                     from .topologia import verificar_flujos
@@ -1615,6 +1623,23 @@ def registrar_recuperacion(aap, cliente, t):
     return (f"{r.get('equipo')} restaurado en {r.get('ip')} desde la versión {r.get('version')}\n"
             f"{' · '.join(r.get('paquetes', [])[:1])} · {r.get('archivos')}\nServicios: {', '.join(r.get('servicios', [])) or '—'}"
             f"\nCaídos: {', '.join(r.get('caidos', [])) or 'ninguno'}" + extra)
+
+
+IIS = "IIS · Preparar servidor"
+
+
+def guardar_iis(t, art):
+    """IIS instalado o revisado: versión, estado de W3SVC y respuesta HTTP de cada máquina (set_stats faceops_iis) quedan
+    en equipos.datos["iis"]; con eso la ficha muestra la versión y la barra de salud de IIS."""
+    for nombre, d in ((art or {}).get("faceops_iis") or {}).items():
+        e = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=?", t["cliente_id"], nombre)
+        if not e or not isinstance(d, dict):
+            continue
+        datos = j(e["datos"], {})
+        datos["iis"] = {"version": str(d.get("version") or ""), "w3svc": str(d.get("w3svc") or ""), "http": int(d.get("http") or 0),
+                        "sitio": d.get("sitio") or "", "https": str(d.get("https")).lower() == "true", "revisado": d.get("revisado") or ahora(),
+                        "ticket": t["numero"]}
+        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(datos, ensure_ascii=False), e["id"])
 
 
 def registrar_skill(t, auto, params):

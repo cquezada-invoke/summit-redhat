@@ -430,6 +430,14 @@ planes:
       - {id: C1, caso: "Instalar en una máquina RHEL 9 de prueba", verificar: "servicio arriba, puerto 27017 abierto, la clave queda en la bóveda (web/<equipo>/mongodb) y no aparece en la salida; la máquina muestra la plataforma"}
       - {id: C2, caso: "Repetir en la misma máquina", verificar: "idempotente: no cambia la clave ni reinstala"}
       - {id: C3, caso: "Máquina no compatible (Windows o RHEL 7)", verificar: "no se ofrece o falla controlada"}
+  "IIS · Preparar servidor":
+    pendiente: "la máquina aún no está vinculada por WinRM (srv-windows-iis-01, /lab/inventario/131)"
+    casos:
+      - {id: C1, caso: "Instalar en srv-windows-iis-01 (Windows Server vinculada por WinRM) con el sitio por defecto y HTTPS", verificar: "ticket exitoso; rol Web-Server y sus características presentes; W3SVC en ejecución y automático; «Default Web Site» con enlaces 80 y 443; reglas FaceOps-IIS-HTTP/HTTPS en el firewall; http://<ip>/ responde 200 desde FaceOps; set_stats faceops_iis con versión, w3svc=running y http=200; la ficha muestra «Microsoft IIS · versión …» y su barra de salud con Servicio y Respuesta HTTP al 100 %"}
+      - {id: C2, caso: "Repetir en la misma máquina", tipo: Idempotencia, verificar: "ticket exitoso sin cambios (changed=0): mismo certificado, mismos enlaces y reglas; el sitio sigue respondiendo 200"}
+      - {id: C3, caso: "Detener W3SVC en la máquina y revisar la ficha tras inventariar", tipo: Funcional, verificar: "la barra de salud de IIS baja (servicio W3SVC detenido) y la alerta W04 aplica; relanzar la plataforma la deja arriba y en 200"}
+      - {id: C4, caso: "Nombre de sitio inválido («sitio/<x>»)", tipo: Error controlado, verificar: "ticket fallido en «Nombre de sitio válido» con el motivo; IIS y el sitio existentes no cambian y siguen respondiendo 200"}
+      - {id: C5, caso: "Máquina Linux (RHEL 9)", tipo: Error controlado, verificar: "no se ofrece en «Incorporar plataforma»; lanzada igual (prueba) falla en «Sistema Windows Server» sin cambiar nada"}
   "Sistema · Quitar agente":
     casos:
       - {id: C1, caso: "Quitar el respaldo continuo de una máquina de prueba que lo tiene", verificar: "timers y scripts retirados; la rama en Git se conserva; la sección Agentes lo muestra como no instalado"}
