@@ -1,0 +1,21 @@
+commit: 3f6613881e1efdffc01305f97b24185a22a96cdd
+inicio: 2026-11-12T11:07:15-03:00
+---
+TICKET 2181 FO-LAB-02181 estado= fallido cliente= 1 limite= nodo-jboss creado= 2026-11-12T14:04:03+00:00
+motivo= Skill · Aplicar parches de seguridad en nodo-jboss
+parametros= {}
+filtros= {"ambientes": ["produccion"]}
+aap_job_id= 26855 tipo= workflow resultado= AAP terminó (failed): ejecución 15 s, espera de aprobación 46 s
+Falló en la tarea «Repositorios habilitados» de nodo-jboss: no se pudo conectar con el equipo (apagado o sin red): Failed to connect to the host via ssh: Connection timed out during banner exchange
+Connection to 192.168.122.15 port 22 
+ACCION 76 Aplicar parches de seguridad | Seguridad · Aplicar parches de seguridad job 132 aprob= 1
+campos_accion= [{"var": "cves", "etiqueta": "CVE (opcional)", "tipo": "text", "ayuda": "Vacío = todas las erratas de seguridad pendientes; o una lista: CVE-2026-1234, CVE-2026-5678"}]
+MAQUINA 6 nodo-jboss RedHat 9.8 produccion cve_pendientes= 0
+  otro 2181 FO-LAB-02181 fallido 2026-11-12T14:04:03+00:00
+  otro 1708 FO-LAB-01708 exitoso 2026-11-11T16:33:42+00:00
+  otro 1648 FO-LAB-01648 exitoso 2026-11-11T14:52:46+00:00
+  otro 766 FO-LAB-00766 exitoso 2026-11-04T00:15:20+00:00
+  otro 522 FO-LAB-00522 exitoso 2026-11-02T07:26:50+00:00
+  otro 454 FO-LAB-00454 fallido 2026-11-02T06:51:13+00:00
+JT 132 timeout= 0 survey= False ask_vars= True ask_limit= True forks= 10 playbook= playbooks/aplicar-parches-seguridad.yml extra_vars= 
+JOB 26855 failed FaceOps · Aprobar › Seguridad · Aplicar parches de seguridad · Nodos demo · credencial 3 [Sistemas operativos] extra_vars= {"faceops_ticket": "FO-LAB-02181", "faceops_solicitante": "cquezada", "solicitado_por": "cquezada", "faceops_autorizacion": "<REDACTADO>

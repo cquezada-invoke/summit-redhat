@@ -1,28 +1,21 @@
-commit: 24612020d165ab166a15e60475994f1e241216ed
-inicio: 2026-11-12T10:50:54-03:00
+commit: 3f6613881e1efdffc01305f97b24185a22a96cdd
+inicio: 2026-11-12T11:07:15-03:00
 ---
-desplegado: 1
-cliente lab
-plantillas ['Plataforma · Controlar servicio', 'Plataforma · Desinstalar', 'Plataforma · Medir salud', 'Plataforma · Preparar dependencias', 'Plataforma · Programar medición']
-C1 rechazado al solicitar  · s3=None componentes=None/None libre=None (df 99.0) buckets=None · ficha: salud 61 % · S3
-CASO C1 falla · Medir el data lake en nodo-storage
-C2 fallido · servicio active · brokers=None subreplicadas=None offline=None lag=None
-CASO C2 falla · Medir Kafka en nodo-nginx
-C3 rechazado al solicitar · ping=None persistencia=None · rastros de clave en la salida: 0
-CASO C3 falla · Medir Redis (Valkey) en nodo-tomcat
-CASO C4 falla · Repetir la medición del data lake
-C5 rechazado al solicitar · 
-CASO C5 falla · Plataforma que no corresponde
-C6 exitoso · 
-CASO C6 falla · Medición programada de varias plataformas
-CERT Plataforma · Medir salud → sin probar
-grupos: 5 grupos · 25 plataformas
-C1 exitoso · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
-CASO C1 ok · Programar cada 15 minutos
-C2 exitoso · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
-CASO C2 ok · Repetir sin duplicar
-C3 fallido · 5 Medición de plataformas · Data center 1 · credencial 22|FREQ=MINUTELY;INTERVAL=15|1|True;Medición de plataformas · Data center 1 · credencial 21|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Servidores habilitados · credencial 3|FREQ=MINUTELY;INTERVAL=15|4|True;Medición de plataformas · Nodos demo · credencial 3|FREQ=MINUTELY;INTERVAL=15|15|True;Medición de plataformas · Servidores Windows · credencial 17|FREQ=MINUTELY;INTERVAL=15|1|True
-CASO C3 ok · Frecuencia inválida
-CERT Plataforma · Programar medición → certificada
-FIN-PLATAFORMA-SALUD
---- fin: 2026-11-12T11:06:55-03:00 · código: 0
+TICKET 2181 FO-LAB-02181 estado= fallido cliente= 1 limite= nodo-jboss creado= 2026-11-12T14:04:03+00:00
+motivo= Skill · Aplicar parches de seguridad en nodo-jboss
+parametros= {}
+filtros= {"ambientes": ["produccion"]}
+aap_job_id= 26855 tipo= workflow resultado= AAP terminó (failed): ejecución 15 s, espera de aprobación 46 s
+Falló en la tarea «Repositorios habilitados» de nodo-jboss: no se pudo conectar con el equipo (apagado o sin red): Failed to connect to the host via ssh: Connection timed out during banner exchange
+Connection to 192.168.122.15 port 22 
+ACCION 76 Aplicar parches de seguridad | Seguridad · Aplicar parches de seguridad job 132 aprob= 1
+campos_accion= [{"var": "cves", "etiqueta": "CVE (opcional)", "tipo": "text", "ayuda": "Vacío = todas las erratas de seguridad pendientes; o una lista: CVE-2026-1234, CVE-2026-5678"}]
+MAQUINA 6 nodo-jboss RedHat 9.8 produccion cve_pendientes= 0
+  otro 2181 FO-LAB-02181 fallido 2026-11-12T14:04:03+00:00
+  otro 1708 FO-LAB-01708 exitoso 2026-11-11T16:33:42+00:00
+  otro 1648 FO-LAB-01648 exitoso 2026-11-11T14:52:46+00:00
+  otro 766 FO-LAB-00766 exitoso 2026-11-04T00:15:20+00:00
+  otro 522 FO-LAB-00522 exitoso 2026-11-02T07:26:50+00:00
+  otro 454 FO-LAB-00454 fallido 2026-11-02T06:51:13+00:00
+JT 132 timeout= 0 survey= False ask_vars= True ask_limit= True forks= 10 playbook= playbooks/aplicar-parches-seguridad.yml extra_vars= 
+JOB 26855 failed FaceOps · Aprobar › Seguridad · Aplicar parches de seguridad · Nodos demo · credencial 3 [Sistemas operativos] extra_vars= {"faceops_ticket": "FO-LAB-02181", "faceops_solicitante": "cquezada", "solicitado_por": "cquezada", "faceops_autorizacion": "<REDACTADO>
