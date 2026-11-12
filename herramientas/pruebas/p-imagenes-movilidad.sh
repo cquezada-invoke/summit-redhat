@@ -56,12 +56,12 @@ caso "{\"auto\":\"$N\",\"equipo\":\"ocp-sno\",\"params\":{\"im_incluir\":\"sin-i
 Q8=$(jq_ "(s.get('faceops_imagenes_movilidad',{}).get('revisiones'), s.get('faceops_imagenes_movilidad',{}).get('quay_detectado'))")
 [ "$(estado)" = exitoso ] && [ "$Q8" = "(0, {})" ] && anotar C8 "Sin imágenes internas ni Quay" ok "revisiones y Quay = $Q8 (mensaje breve en la ficha)" || anotar C8 "Sin imágenes internas ni Quay" falla "$(estado) $Q8"
 caso "{\"auto\":\"$N\",\"equipo\":\"ocp-sno\",\"params\":{\"im_meses\":0,\"im_incluir\":\"$NS\",\"im_quay\":\"quay.lab.local\",\"im_quay_org\":\"movilidad\"},\"min\":12,\"caso\":\"C3\"}"
-A3=$(jq_ "all(x['id'].startswith('$NS/') for x in s.get('faceops_imagenes_movilidad',{}).get('detalle',[]))"); N3=$(jq_ "s.get('faceops_imagenes_movilidad',{}).get('revisiones')")
+A3=$(jq_ "all(x['id'].startswith(('$NS/', 'huérfana@')) for x in s.get('faceops_imagenes_movilidad',{}).get('detalle',[]))"); N3=$(jq_ "len([x for x in s.get('faceops_imagenes_movilidad',{}).get('detalle',[]) if x['id'].startswith('$NS/')])")
 D3=$(jq_ "next((p['destino'] for p in s.get('faceops_imagenes_movilidad',{}).get('plan',[]) if p['id']=='$NS/sinuso:v1'),'-')")
 G3=$(jq_ "s.get('faceops_imagenes_movilidad',{}).get('informe_git')"); GR=$(jq_ "s.get('faceops_imagenes_movilidad',{}).get('git')"); P3=$(jq_ "sorted(p['id'] for p in s.get('faceops_imagenes_movilidad',{}).get('plan',[]))")
 TK3=$(ticket)
 [ "$(estado)" = exitoso ] && [ "$A3" = True ] && [ "$N3" = 5 ] && [ "$D3" = "quay.lab.local/movilidad/$NS-sinuso:v1" ] \
-  && anotar C3 "Solo el namespace de prueba y organización fija" ok "$N3 revisiones, todas de $NS; destino $D3" || anotar C3 "Solo el namespace de prueba y organización fija" falla "$(estado) todas=$A3 n=$N3 $D3"
+  && anotar C3 "Solo el namespace de prueba y organización fija" ok "$N3 revisiones de ImageStreams, todas de $NS (más sus huérfanas de corridas anteriores); destino $D3" || anotar C3 "Solo el namespace de prueba y organización fija" falla "$(estado) todas=$A3 n=$N3 $D3"
 sleep 20
 FI=$(sudo podman exec -i faceops python3 - <<'Q' 2>/dev/null | tail -1
 import json
