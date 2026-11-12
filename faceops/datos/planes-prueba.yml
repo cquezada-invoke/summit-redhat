@@ -288,8 +288,11 @@ planes:
   "FaceOps · Incorporar máquinas":
     casos:
       - {id: C1, caso: "Incorporar las máquinas de un proyecto GCP de laboratorio", verificar: "usuario de servicio en cada máquina; llave solo en AAP; FaceOps las inventaría"}
-      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente: la llave y la clave del usuario de servicio no cambian (bóveda infra/<nube>/maquinas)"}
       - {id: C3, caso: "Credencial de nube inválida", verificar: "falla controlada sin tocar máquinas"}
+      - {id: C4, caso: "Una VM Windows de GCP desde su ficha (inc_maquina)", verificar: "WinRM HTTPS 5986 responde con el usuario de servicio; firewall solo desde AAP; script retirado de los metadatos; acceso en la bóveda; inventario agentless con el SO real"}
+      - {id: C5, caso: "Repetir sobre la misma VM Windows", verificar: "«ya estaba», sin reinicio"}
+      - {id: C6, caso: "inc_maquina inexistente", verificar: "falla controlada «No existe la máquina…» sin tocar otras VM"}
   "Satellite · Instalar":
     casos:
       - {id: C1, caso: "Paso del workflow «Satellite · Instalar servidor» sobre una RHEL de prueba con 4 vCPU y 20 GB", verificar: "satellite-installer termina; hammer ping ok"}

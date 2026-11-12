@@ -1,0 +1,19 @@
+{# Ficha · «Segmentos de negocio» de la máquina (puede ser más de uno): nombre, responsable o grupo y salud agregada, con
+   enlace a su vista. «Editar» abre un flotante lateral para asociarla a uno o más segmentos. Datos: segmentos_ficha(e). #}
+{% set sgf_ = segmentos_ficha(e) %}
+<style>.sg-dlg{position:fixed;inset:0 0 0 auto;margin:0 0 0 auto;height:100vh;max-height:100vh;width:min(420px,100vw);padding:0;border:0;border-left:1px solid var(--line);background:var(--panel);color:inherit}
+.sg-dlg::backdrop{background:rgba(0,0,0,.35)}.sg-dlg form{display:flex;flex-direction:column;height:100%}.sg-dlg .sg-cab{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.sg-dlg .sg-cuerpo{flex:1;overflow:auto;padding:12px 16px}.sg-dlg label{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.sg-dlg .sg-pie{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}</style>
+<div class="card" style="margin-top:14px" id="segmentos-negocio"><div class="fila"><h2 style="margin:0">Segmentos de negocio</h2><span class="sub der" style="font-size:12px">servicios de negocio a los que pertenece la máquina</span>{% if perfil_actual.modo == 'escritura' and sgf_.lista %}<button type="button" class="btn chico" data-sg-abrir>Editar</button>{% endif %}</div>
+{% if sgf_.lista %}<table class="hist" style="margin-top:8px"><tr><th>Segmento</th><th>Responsable o grupo</th><th class="num">Salud</th></tr>
+{% for s in sgf_.lista %}<tr><td><a href="{{ s.url }}"><b>{{ s.nombre }}</b></a>{% if s.descripcion %}<div class="sub" style="font-size:11.5px">{{ s.descripcion }}</div>{% endif %}</td>
+<td>{{ s.responsable or '—' }}{% if s.grupo or s.area %}<div class="sub" style="font-size:11.5px">{{ [s.grupo, s.area]|select|join(' · ') }}</div>{% endif %}</td>
+<td class="num">{% if s.salud is not none %}<span style="color:{{ 'var(--ok)' if s.salud >= 85 else ('var(--warn)' if s.salud >= 60 else 'var(--bad)') }}">{{ s.salud }} %</span>{% else %}<span class="sub">—</span>{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">La máquina no pertenece a ningún segmento de negocio.{% if perfil_actual.modo == 'escritura' %} <button type="button" class="btn chico" data-sg-abrir{{ ' disabled title="No hay segmentos creados en FaceOps"'|safe if not sgf_.todos }}>Asociar a un segmento</button>{% endif %}</p>{% endif %}
+{% if perfil_actual.modo == 'escritura' %}<dialog class="sg-dlg" id="sg-dlg-{{ e.id }}" aria-labelledby="sg-tit-{{ e.id }}"><form method="post" action="{{ url_for('consola.equipo_segmentos', eid=e.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="sg-cab"><h3 id="sg-tit-{{ e.id }}" style="margin:0;font-size:15px">Segmentos de {{ e.nombre }}</h3><button type="button" class="btn chico gris" style="margin-left:auto" data-sg-cerrar aria-label="Cerrar">✕</button></div>
+<div class="sg-cuerpo">{% for s in sgf_.todos %}<label><input type="checkbox" name="segmento" value="{{ s.nombre }}" {{ 'checked' if s.sel }}><span><b>{{ s.nombre }}</b>{% if s.grupo %}<span class="sub" style="font-size:11.5px"> · {{ s.grupo }}</span>{% endif %}</span></label>{% else %}<p class="vacio">No hay segmentos de negocio creados en FaceOps.</p>{% endfor %}</div>
+<div class="sg-pie"><button type="button" class="btn chico gris" data-sg-cerrar>Cancelar</button><button class="btn chico">Guardar</button></div></form></dialog>
+<script>(()=>{const d=document.getElementById('sg-dlg-{{ e.id }}');document.querySelectorAll('#segmentos-negocio [data-sg-abrir]').forEach(b=>b.addEventListener('click',()=>d.showModal()));
+d.querySelectorAll('[data-sg-cerrar]').forEach(b=>b.addEventListener('click',()=>d.close()));})();</script>{% endif %}</div>

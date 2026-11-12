@@ -318,6 +318,11 @@ def _fuente(aap, inv, nombre, tipo, cred, v):
         return
     sv = {"gce": {"zones": [v.get("zona")]} if v.get("zona") else {}, "ec2": {"regions": [v.get("region")]} if v.get("region") else {},
           "azure_rm": {}, "vmware": {}}[p["fuente"]]
+    if p["fuente"] == "gce":   # las VM Windows se alcanzan por WinRM HTTPS (5986) con el usuario de servicio; las Linux por SSH
+        win = "(disks | map(attribute='licenses', default=[]) | flatten | select('search', 'windows') | list | length) > 0"
+        sv["compose"] = {"ansible_connection": f"'winrm' if {win} else 'ssh'", "ansible_port": f"5986 if {win} else 22",
+                         "ansible_winrm_transport": "'ntlm'", "ansible_winrm_scheme": "'https'",
+                         "ansible_winrm_server_cert_validation": "'ignore'"}
     if p["fuente"] == "vmware":
         sv = {"port": _vc(v.get("host", ""))[1], "validate_certs": (v.get("tls") or "si").lower() not in ("no", "false", "0"),
               "hostnames": ["config.name"], "with_tags": False,

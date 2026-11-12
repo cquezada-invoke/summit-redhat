@@ -338,6 +338,7 @@ def create_app():
     from . import recuperar   # noqa: F401  (recuperar clave desde el login)
     from . import multicliente   # noqa: F401  (FaceOps centralizado · demo: registra /clientes en la consola)
     from . import salud_acciones   # noqa: F401  (flotante de salud: acciones para llegar al 100 %)
+    from . import ficha_maquina   # noqa: F401  (ficha: acceso SSH/RDP, segmentos de negocio, vínculo y medición agentless)
     from . import habilidades   # noqa: F401  (ficha: botón «Habilidades», quick wins y diferenciadores)
     from . import ia_usos   # noqa: F401  (Administración › Uso de IA y distintivo «IA»)
     app.register_blueprint(consola)

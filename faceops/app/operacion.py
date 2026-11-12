@@ -530,6 +530,87 @@ def acceso_equipo(aap, cliente, equipo):
     raise ErrorAAP(f"No sé con qué credencial llegar a {equipo['nombre']} (agrégalo al plan de recolección del cliente)")
 
 
+def infra_de_maquina(cliente_id, nombre):
+    """Infraestructura de nube cuyo inventario de AAP trae la máquina (la descubrió su fuente dinámica)."""
+    e = q1("SELECT inventario, inventarios FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente_id, nombre)
+    if not e:
+        return None
+    invs = [e["inventario"]] + j(e["inventarios"], [])
+    for inf in q("SELECT * FROM infraestructuras WHERE cliente_id=? AND tipo IN ('gcp','azure','aws')", cliente_id):
+        if inf.get("inventario") and inf["inventario"] in invs:
+            return inf
+    return None
+
+
+def _acceso_servicio(infra, usuario_srv):
+    """Llave SSH y clave Windows del usuario de servicio de las máquinas de una nube: estables (bóveda infra/<nombre>/maquinas).
+    Regenerarlas en cada incorporación dejaba fuera a las máquinas incorporadas antes con la llave anterior."""
+    import secrets as _sec
+    import string as _st
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from .boveda import disponible as bov_ok, escribir, leer
+    ruta = f"infra/{infra}/maquinas"
+    d = (leer(ruta) or {}) if bov_ok() else {}
+    if d.get("llave") and d.get("publica") and d.get("clave_windows") and d.get("usuario") == usuario_srv:
+        return d["llave"], d["publica"], d["clave_windows"]
+    k = Ed25519PrivateKey.generate()
+    priv = k.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.OpenSSH, serialization.NoEncryption()).decode()
+    pub = k.public_key().public_bytes(serialization.Encoding.OpenSSH, serialization.PublicFormat.OpenSSH).decode() + f" faceops@{infra[:30].replace(' ', '-')}"
+    alf = _st.ascii_letters + _st.digits
+    clave = "".join(_sec.choice(alf) for _ in range(20)) + _sec.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") + _sec.choice("abcdefghijkmnpqrstuvwxyz") \
+        + _sec.choice("23456789") + _sec.choice("-_.:+=")   # complejidad de Windows: mayúscula, minúscula, dígito y símbolo
+    if bov_ok():
+        escribir(ruta, {"usuario": usuario_srv, "llave": priv, "publica": pub, "clave_windows": clave})
+    return priv, pub, clave
+
+
+INCORPORAR_RESULTADO = "faceops_incorporadas"
+
+
+def registrar_incorporadas(aap, cliente, t):
+    """Tras «Incorporar máquinas»: cada Windows incorporada deja su acceso en la bóveda (consola RDP de FaceOps) y cada
+    máquina incorporada se inventaría sola por SSH o WinRM (sin agente). Devuelve el texto para el ticket."""
+    from .boveda import disponible as bov_ok, escribir
+    art = artefactos_ticket(aap, t) or {}
+    maqs = art.get(INCORPORAR_RESULTADO) or []
+    usuario_srv = art.get("faceops_usuario_servicio") or "faceops"
+    p = j(t["parametros"], {})
+    inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente["id"], p.get("inc_infraestructura", "")) \
+        or (infra_de_maquina(cliente["id"], p.get("inc_maquina", "")) if p.get("inc_maquina") else None)
+    lineas = []
+    for m in maqs:
+        ok = str(m.get("estado", "")).startswith(("incorporada", "ya estaba"))
+        e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente["id"], m.get("maquina", ""))
+        lineas.append(f"{m.get('maquina')}: {m.get('estado')}")
+        if not ok or not e:
+            continue
+        if m.get("so") == "windows" and bov_ok() and inf:
+            _, _, clave = _acceso_servicio(inf["nombre"], usuario_srv)
+            escribir(f"maquinas/{e['nombre']}", {"usuario": usuario_srv, "clave": clave, "protocolo": "rdp", "metodo": "clave",
+                                               "puerto": 5986, "conexion": "winrm", "origen": f"incorporada · {t['numero']}"})
+        d_ = j(e["datos"], {})
+        d_["vinculo"] = {"ok": True, "protocolo": "WinRM" if m.get("so") == "windows" else "SSH", "ticket": t["numero"], "cuando": ahora()}
+        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e["id"])
+        inventariar_incorporada(cliente, t, e)
+    return "Incorporación: " + (" · ".join(lineas) or "sin máquinas")
+
+
+MOTIVO_INV_INCORPORADA = "Inventario automático · máquina incorporada en "
+
+
+def inventariar_incorporada(cliente, t, e):
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], INVENTARIAR)
+    u = q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"])
+    if not a or not u or q1("SELECT 1 FROM tickets WHERE cliente_id=? AND automatizacion_id=? AND limite=? AND estado IN "
+                            "('en_cola','en_ejecucion','pendiente_aprobacion')", cliente["id"], a["id"], e["nombre"]):
+        return
+    try:
+        solicitar_en_equipo(u, cliente, a, dict(e), {}, MOTIVO_INV_INCORPORADA + t["numero"])
+    except Exception as x:  # noqa: BLE001
+        auditar("sistema", cliente["id"], "inventario automático no lanzado", t["numero"], {"equipo": e["nombre"], "error": str(x)[:200]})
+
+
 def solicitar_apagado(usuario, cliente, equipo, motivo, prueba=False):
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], APAGAR)
     if not a:
@@ -631,17 +712,16 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
         if a["nombre_aap"] == INCORPORAR:  # llave nueva: la privada solo a AAP; la pública viaja a las máquinas
             from .infraestructuras import _credencial_maquinas, plan_acceso
             inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("inc_infraestructura", ""))
+            if not inf and params.get("inc_maquina"):   # desde la ficha: la nube cuyo inventario trae la máquina
+                inf = infra_de_maquina(c["id"], params["inc_maquina"])
             if not inf or inf["tipo"] not in ("gcp", "azure", "aws"):
                 raise ErrorAAP("Incorporar máquinas funciona en infraestructuras GCP, Azure o AWS (en vSphere y on-premise se usa su credencial de acceso)")
             det = j(inf["detalle"], {})
-            from cryptography.hazmat.primitives import serialization
-            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-            k = Ed25519PrivateKey.generate()
-            priv = k.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.OpenSSH, serialization.NoEncryption()).decode()
-            pub = k.public_key().public_bytes(serialization.Encoding.OpenSSH, serialization.PublicFormat.OpenSSH).decode() + f" faceops@{inf['nombre'][:30].replace(' ', '-')}"
-            org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
             usuario_srv = params.get("inc_usuario") or "faceops"
-            acc = _credencial_maquinas(aap, org, inf["nombre"], usuario_srv, llave=priv)
+            priv, pub, clave_win = _acceso_servicio(inf["nombre"], usuario_srv)
+            org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
+            acc = _credencial_maquinas(aap, org, inf["nombre"], usuario_srv, llave=priv, clave=clave_win)
+            params["inc_clave_windows"] = clave_win   # secreto: el playbook lo usa solo en el entorno de una tarea con no_log
             plan_acceso(c["id"], inf["inventario"], acc["name"])
             zona = det.get("zona") or ""
             params.update({"inc_plataforma": inf["tipo"], "inc_usuario": usuario_srv, "inc_llave_publica": pub, "inc_proyecto": det.get("proyecto", ""),
@@ -1179,6 +1259,12 @@ def actualizar_tickets():
                     est = "fallido"
                     res += f"\nLa máquina se creó, pero no se pudo dar de alta en AAP ni en FaceOps: {str(x)[:300]}"
                     ej("UPDATE tickets SET estado=?, resultado=? WHERE id=?", est, res, t["id"])
+            if est == "exitoso" and a and a["nombre_aap"] == INCORPORAR:   # acceso en la bóveda e inventario agentless de cada una
+                try:
+                    res += "\n" + registrar_incorporadas(aap, c, t)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error registrar incorporadas", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == VINCULAR and (t["motivo"] or "").startswith(MOTIVO_VINCULAR):
                 inventariar_vinculado(c, t)
             if est in ("exitoso", "fallido") and a and a["nombre_aap"] in ("VPN · Preparar servidor", "VPN · Gestionar acceso"):
@@ -1483,7 +1569,22 @@ def vincular_creados(cliente, t, texto):
     porque la creación ya fue aprobada (queda la referencia al ticket de origen). texto: lo que devolvió registrar_servidores."""
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], VINCULAR)
     u = q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"])
-    if not a or not u or str(j(t["parametros"], {}).get("hab_so", "")).startswith("windows"):
+    pt = j(t["parametros"], {})
+    if u and str(pt.get("hab_so", "")).startswith("windows"):
+        # Windows: queda vinculada por WinRM con el usuario de servicio (antes se saltaba y la máquina nacía sin acceso)
+        ai = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], INCORPORAR)
+        if ai and pt.get("hab_destino") == "gcp":
+            for nombre in dict.fromkeys(re.findall(r"([A-Za-z0-9][A-Za-z0-9._-]*) · \d+\.\d+\.\d+\.\d+", texto or "")):
+                e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
+                if not e:
+                    continue
+                try:
+                    solicitar_en_equipo(u, cliente, ai, dict(e), {"inc_infraestructura": pt.get("hab_infraestructura", ""), "inc_maquina": nombre,
+                                                                  "inc_usuario": "faceops"}, MOTIVO_VINCULAR + t["numero"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", cliente["id"], "vinculación WinRM no lanzada", t["numero"], {"equipo": nombre, "error": str(x)[:200]})
+        return
+    if not a or not u:
         return
     for nombre in dict.fromkeys(re.findall(r"([A-Za-z0-9][A-Za-z0-9._-]*) · \d+\.\d+\.\d+\.\d+", texto or "")):
         e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)

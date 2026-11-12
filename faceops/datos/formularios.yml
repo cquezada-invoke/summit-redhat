@@ -435,8 +435,9 @@
   usa_limite: false
   campos:
     - {var: inc_infraestructura, etiqueta: "Infraestructura", tipo: infraestructura, requerido: true, ayuda: "Nube cuyas máquinas quedarán administradas por FaceOps (GCP, Azure o AWS)"}
-    - {var: inc_usuario, etiqueta: "Usuario de servicio", tipo: text, defecto: faceops, ayuda: "Se crea en cada máquina Linux con sudo; su llave privada se genera en FaceOps y queda solo en la credencial cifrada de AAP"}
+    - {var: inc_usuario, etiqueta: "Usuario de servicio", tipo: text, defecto: faceops, ayuda: "Se crea en cada máquina (Linux: con sudo y llave SSH; Windows: administrador local con clave para WinRM); la llave y la clave quedan en la credencial cifrada de AAP y en la bóveda"}
     - {var: inc_etiqueta, etiqueta: "Solo máquinas con la etiqueta (opcional)", tipo: text, ayuda: "clave=valor, ej. demo=summit-cloud · vacío: todas las de la infraestructura"}
+    - {var: inc_maquina, etiqueta: "Solo esta máquina (opcional)", tipo: text, ayuda: "Nombre de la VM en la nube (desde su ficha: «Incorporar a FaceOps»). Windows: usuario de servicio y WinRM HTTPS 5986; se reinicia una vez. No instala agentes"}
 "Ciclo de vida · Evaluar destino":
   por_inventario: true   # entra con la credencial de cada equipo (no como root)
   usa_limite: true

@@ -172,8 +172,10 @@ def resumir(facts, host_vars):
                                                          "serie": red.get("serie")}.items() if v}}}
     if not f.get("ansible_os_family") and hv.get("config.guestId"):  # VM de vSphere sin facts: lo que dice el vCenter
         return _vsphere(hv)
-    fam = f.get("ansible_os_family", "")
-    so = (f.get("ansible_distribution", "") + " " + f.get("ansible_distribution_version", "")).strip()
+    from .so_deteccion import so_de_facts, so_de_nube, so_declarado
+    # sistema: facts de Ansible → lo que informa la nube (licencia/imagen del disco de arranque) → declarado o pedido al crearla
+    so_t = so_de_facts(f) or so_de_nube(hv) or so_declarado(hv)
+    so, fam, so_ver = so_t if so_t else ("", "", "")
     discos = []
     for m in f.get("ansible_mounts", []) or []:
         if m.get("size_total"):
@@ -189,8 +191,8 @@ def resumir(facts, host_vars):
     ip = (f.get("ansible_default_ipv4") or {}).get("address") or (ipv4 or [""])[0] \
         or host_vars.get("ansible_host", "")
     return {
-        "so": so or host_vars.get("so", ""), "so_familia": fam or ("Windows" if "windows" in json.dumps(host_vars).lower() else ""),
-        "so_version": f.get("ansible_distribution_major_version", ""), "ip": ip,
+        "so": so, "so_familia": fam or ("Windows" if "windows" in so.lower() else ""),
+        "so_version": so_ver or f.get("ansible_distribution_major_version", ""), "ip": ip,
         "cpu": f.get("ansible_processor_vcpus") or f.get("ansible_processor_count"),
         "ram_mb": f.get("ansible_memtotal_mb"), "discos": discos, "servicios": servicios,
         "datos": {
@@ -445,8 +447,8 @@ def sincronizar(cliente, usuario="sistema"):
                 "proveedor": a["proveedor"], "ubicacion": a["ubicacion"], "ambiente": a["ambiente"],
                 "estado": estado, "ultima_recoleccion": a["facts_fecha"], "visto": ahora(),
                 "categoria": categoria, "forma": forma,
-                "segmentos_fijos": json.dumps([x for x in (a["hv"].get("faceops_segmento") if isinstance(a["hv"].get("faceops_segmento"), list)
-                                                           else [a["hv"].get("faceops_segmento")]) if x], ensure_ascii=False)}
+                "segmentos_fijos": json.dumps(list(dict.fromkeys([x for x in (a["hv"].get("faceops_segmento") if isinstance(a["hv"].get("faceops_segmento"), list)
+                                                           else [a["hv"].get("faceops_segmento")]) if x] + list(a["over"].get("segmentos") or []))), ensure_ascii=False)}
         if isinstance(a["hv"].get("faceops_skills"), list):  # productos declarados en AAP (servicios que no se recolectan)
             fila["skills_manual"] = json.dumps(sorted(set(a["hv"]["faceops_skills"])))
         elif isinstance(a["over"].get("skills"), list):     # o en la clasificación del cliente (p. ej. el software de un router)
