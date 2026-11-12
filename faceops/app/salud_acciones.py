@@ -69,7 +69,7 @@ def _auto(cliente_id, e, ac):
     return elegida, bloqueo
 
 
-def _ticket(cliente_id, e, aid, por_param=None):
+def _ticket(cliente_id, e, aid, por_param=None, valor=None):
     """Último ticket de esa automatización sobre la máquina pedido desde el flotante (o abierto por cualquier vía).
     por_param: parámetro que nombra la máquina cuando la automatización no corre en ella (p. ej. ir_maquinas en recursos)."""
     for t in q("SELECT id, numero, estado, limite, motivo, fin, parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 40",
@@ -82,6 +82,8 @@ def _ticket(cliente_id, e, aid, por_param=None):
             continue   # (las que corren en FaceOps o en otro host no llevan la máquina en el límite: se reconoce por el motivo)
         if t["estado"] in ABIERTOS:
             return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": True}
+        if valor and por_param and (j(t["parametros"], {}) or {}).get(por_param) != valor:
+            return None   # lo aplicado antes fue otro valor (p. ej. bajó a 2 GB): la sugerencia nueva se puede pedir
         if t["estado"] == "exitoso" and (t["motivo"] or "").startswith(MARCA):
             return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "abierto": False}
         if (t["motivo"] or "").startswith(MARCA):
@@ -157,7 +159,7 @@ def salud_acciones(e, pilar):
                 continue
             accs.append({"tipo": "auto", "boton": (rc or {}).get("boton") or ac.get("boton") or a["nombre"], "auto": a["nombre"], "aid": a["id"],
                          "bloqueo": bloqueo, "escritura": escritura, "n": (rc or {}).get("n") or "",
-                         "ticket": _ticket(g.cliente["id"], e, a["id"], "ir_maquinas" if rc else None),
+                         "ticket": _ticket(g.cliente["id"], e, a["id"], "ir_maquinas" if rc else None, (rc or {}).get("parametros", {}).get("ir_maquinas")),
                          "url": url_for("consola.salud_accion", eid=e["id"]), "sid": s["id"]})
         if accs and any(x["tipo"] == "auto" for x in accs):   # «respaldo: true» (abrir un flotante) solo cuando no hay automatización
             accs = [x for x in accs if x["tipo"] == "auto" or not next((ac for ac in s.get("acciones") or [] if ac.get("ui") == x["ui"] and ac.get("respaldo")), None)]
