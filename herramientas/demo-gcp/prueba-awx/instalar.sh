@@ -102,7 +102,7 @@ spec:
 K
 (cd /opt/prueba/eda && kustomize build . | kubectl apply -f - >/dev/null 2>&1) || (sleep 20; cd /opt/prueba/eda && kustomize build . | kubectl apply -f - >/dev/null)
 
-paso "repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba"
+paso "repositorio git local (HTTP inteligente con git http-backend en :8088) con playbook y rulebook de prueba"
 NODO=${NODO:-$(hostname -I | awk '{print $1}')}
 install -d /srv/git && rm -rf /tmp/pr && mkdir -p /tmp/pr/rulebooks
 cat > /tmp/pr/ping.yml <<'Y'
@@ -128,14 +128,49 @@ cat > /tmp/pr/rulebooks/alerta.yml <<'Y'
 Y
 (cd /tmp/pr && git init -q -b main && git add -A && git -c user.name=prueba -c user.email=prueba@local commit -qm prueba)
 rm -rf /srv/git/prueba.git && git clone -q --bare /tmp/pr /srv/git/prueba.git && git -C /srv/git/prueba.git update-server-info
+# HTTP «inteligente» (git http-backend): EDA clona con --depth, que el HTTP tonto no soporta
+cat > /usr/local/sbin/git-http.py <<'G'
+import http.server, os, subprocess, sys
+class H(http.server.BaseHTTPRequestHandler):
+    def _git(self):
+        ruta, _, qs = self.path.partition("?")
+        n = int(self.headers.get("Content-Length") or 0)
+        cuerpo = self.rfile.read(n) if n else b""
+        env = dict(os.environ, GIT_PROJECT_ROOT="/srv/git", GIT_HTTP_EXPORT_ALL="1", PATH_INFO=ruta, QUERY_STRING=qs,
+                   REQUEST_METHOD=self.command, CONTENT_TYPE=self.headers.get("Content-Type", ""), CONTENT_LENGTH=str(len(cuerpo)),
+                   REMOTE_ADDR=self.client_address[0], GIT_PROTOCOL=self.headers.get("Git-Protocol", ""))
+        if self.headers.get("Content-Encoding") == "gzip":
+            env["HTTP_CONTENT_ENCODING"] = "gzip"
+        out = subprocess.run(["git", "http-backend"], input=cuerpo, env=env, capture_output=True).stdout
+        cab, _, datos = out.partition(b"\r\n\r\n")
+        if not _:
+            cab, _, datos = out.partition(b"\n\n")
+        estado = 200
+        lineas = [l for l in cab.decode(errors="replace").splitlines() if ":" in l]
+        for l in lineas:
+            if l.lower().startswith("status:"):
+                estado = int(l.split(":", 1)[1].split()[0])
+        self.send_response(estado)
+        for l in lineas:
+            k, v = l.split(":", 1)
+            if k.lower() != "status":
+                self.send_header(k.strip(), v.strip())
+        self.send_header("Content-Length", str(len(datos)))
+        self.end_headers()
+        self.wfile.write(datos)
+    do_GET = do_POST = _git
+    def log_message(self, *a):
+        pass
+http.server.ThreadingHTTPServer(("0.0.0.0", int(sys.argv[1])), H).serve_forever()
+G
 cat > /etc/systemd/system/git-http.service <<U
 [Service]
-ExecStart=/usr/bin/python3 -m http.server 8088 --directory /srv/git
+ExecStart=/usr/bin/python3 /usr/local/sbin/git-http.py 8088
 Restart=always
 [Install]
 WantedBy=multi-user.target
 U
-systemctl daemon-reload && systemctl enable --now git-http >/dev/null 2>&1
+systemctl daemon-reload && systemctl enable git-http >/dev/null 2>&1 && systemctl restart git-http
 echo "http://$NODO:8088/prueba.git" > $P/repo_url
 
 paso "acceso SSH de AWX a esta misma máquina (host gestionado)"
