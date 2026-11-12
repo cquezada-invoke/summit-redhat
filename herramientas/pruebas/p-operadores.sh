@@ -4,7 +4,7 @@
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 CL=ocp-sno
 fo() {  # fo '<python>' : evalúa dentro de FaceOps con e = ocp-sno y d = e.datos
-  sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - "$1" 2>/dev/null <<'Q' | tail -1
+  sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - "$1" 2>&1 <<'Q' | grep -v -i -E "warn" | tail -1
 import sys, json
 from app import create_app
 app = create_app()
