@@ -1,0 +1,20 @@
+commit: e29b18106fecb12779a7da0b5d71e379799d3521
+inicio: 2026-11-12T01:20:56-03:00
+---
+37ce746
+SINCRONIZADO lab
+== plan exportador
+CASO C1 falla · JBoss
+CASO C2 falla · Redis (nodo-jboss)
+CASO C3 falla · nginx
+CASO C4 falla · PostgreSQL (nodo-postgres)
+CASO C5 falla · Repetir
+CASO C6 ok · Plataforma inválida
+EVIDENCIA [{"id": "C1", "caso": "JBoss", "resultado": "falla", "evidencia": "rechazado al solicitar heap=1 undertow=0 "}, {"id": "C2", "caso": "Redis (nodo-jboss)", "resultado": "falla", "evidencia": "rechazado al solicitar redis_up= "}, {"id": "C3", "caso": "nginx", "resultado": "falla", "evidencia": "rechazado al solicitar nginx_up= web=200 "}, {"id": "C4", "caso": "PostgreSQL (nodo-postgres)", "resultado": "falla", "evidencia": "rechazado al solicitar pg_up= "}, {"id": "C5", "caso": "Repetir", "resultado": "falla", "evidencia": "rechazado al solicitar/rechazado al solicitar pid 0→0"}, {"id": "C6", "caso": "Plataforma inválida", "resultado": "ok", "evidencia": "rechazada (rechazado al solicitar)"}]
+CERT FaceOps · Exportador de plataforma → sin probar
+FIN-EXPORTADOR
+== alertas de JBoss con exportador en nodo-jboss (J01 + J02)
+ALERTAS JBoss None sin respuesta del arnés 
+PROM exportadores []
+PROM heap JBoss % []
+--- fin: 2026-11-12T01:26:24-03:00 · código: 0

@@ -1,32 +1,20 @@
-commit: 21f5e9f75aac04e343032aeddee44badbae1e498
-inicio: 2026-11-12T01:05:20-03:00
+commit: e29b18106fecb12779a7da0b5d71e379799d3521
+inicio: 2026-11-12T01:20:56-03:00
 ---
-== FaceOps: 401
-84f9b53 Vincular máquina on-premise: se puede lanzar sobre u
-DBG (6, 6, 29, True, [('compliance-operator', 1, 1), ('datagrid', 1, 1), ('hawtio-operator', 1, 1), ('openshift-gitops-operator', 1, 1), ('openshift-pipelines-operator-rh', 2, 2), ('rhacs-operator', 1, 1)])
-AUT  Ansible</b> <span class="sub mono" style="font-size:10.5px">E1</span><small>Está en el inventario de AAP: se opera con automatizaciones, no a mano</small></div></li></ul> </se
-AUT Buscar en el inventario</td></tr><tr><td style="white-space:nowrap"><kbd>Ctrl+A</kbd> o <kbd>Alt+4</kbd></td><td>Buscar automatizaciones</td></tr><tr><td style="white-space:now
-AUT Alt+3" placeholder="—" style="width:110px;text-align:center;font-family:var(--mono,monospace)"></td></tr><tr><td>Buscar automatizaciones</td><td><input class="atj-tecla" data-i
-AUT ;font-family:var(--mono,monospace)"></td></tr><tr><td>Buscar automatizaciones</td><td><input class="atj-tecla" data-id="automatizaciones" readonly value="Ctrl+A" placeholder="—
-AUT ="—" style="width:110px;text-align:center;font-family:var(--mono,monospace)"></td><td><input class="atj-tecla" data-id="automatizaciones" readonly value="Alt+4" placeholder="—"
-AUT nventario", "teclas": ["Ctrl+I", "Alt+3"], "titulo": "Buscar en el inventario", "url": "/inventario?buscar=1"}, {"id": "automatizaciones", "teclas": ["Ctrl+A", "Alt+4"], "titul
-AUT nventario", "url": "/inventario?buscar=1"}, {"id": "automatizaciones", "teclas": ["Ctrl+A", "Alt+4"], "titulo": "Buscar automatizaciones", "url": "/automatizaciones?buscar=1"},
-AUT rio?buscar=1"}, {"id": "automatizaciones", "teclas": ["Ctrl+A", "Alt+4"], "titulo": "Buscar automatizaciones", "url": "/automatizaciones?buscar=1"}, {"id": "panel", "teclas": [
-AUT erviene IA: Conversa en lenguaje natural y responde con los mismos datos que ve el usuario (inventario, tickets, salud, automatizaciones, segmentos). Para actuar prepara el · S
-CASO C1 falla · Instalar File Integrity (OwnNamespace)
-CASO C2 falla · Repetir File Integrity
-CASO C3 falla · Instalar Network Observability (AllNamespaces)
-CASO C4 ok · Paquete inexistente
-CASO C5 ok · Modo no soportado
-CASO C6 ok · ODF en un solo nodo desde la ficha
-EVIDENCIA [{"id": "C1", "caso": "Instalar File Integrity (OwnNamespace)", "resultado": "falla", "evidencia": "fallido ns= og= sub= csv= pods= ficha=[] No está instalado en otro namespace · The task includes an option with an undefined variable. The error was: No first item, sequence was empty.. No first item, sequence was empty.\n\nThe error appears to be in '/runner/project/playbooks/openshift-operador-insta"}, {"id": "C2", "caso": "Repetir File Integrity", "resultado": "falla", "evidencia": "fallido changed=0 ya=None subs=0 No está instalado en otro namespace · The task includes an option with an undefined variable. The error was: No first item, sequence was empty.. No first item, sequence was empty.\n\nThe error appears t"}, {"id": "C3", "caso": "Instalar Network Observability (AllNamespaces)", "resultado": "falla", "evidencia": "fallido og=[] csv= pods= No está instalado en otro namespace · The task includes an option with an undefined variable. The error was: No first item, sequence was empty.. No first item, sequence was empty.\n\nThe error appears to be in '/runner/project/playbooks/openshift-operador-instalar.yml': line 7"}, {"id": "C4", "caso": "Paquete inexistente", "resultado": "ok", "evidencia": "El paquete existe en el catálogo · El paquete «no-existe-operator» no existe en el catálogo del clúster; nada se cambió · ; sin namespace"}, {"id": "C5", "caso": "Modo no soportado", "resultado": "ok", "evidencia": "Modo de instalación soportado · web-terminal (fast) no a
-CERT OpenShift · Instalar operador → sin probar
-CASO D1 falla · Desinstalar File Integrity
-CASO D2 falla · Desinstalar Network Observability
-CASO D3 ok · Repetir
-CASO D4 ok · Namespace del sistema
-CASO D5 ok · El clúster queda como estaba
-EVIDENCIA [{"id": "D1", "caso": "Desinstalar File Integrity", "resultado": "falla", "evidencia": "sin respuesta del arnés ns= sub=0 csv=0 crd=0 ficha=[] "}, {"id": "D2", "caso": "Desinstalar Network Observability", "resultado": "falla", "evidencia": "sin respuesta del arnés ns= sub=0 csv=0 crd=0 "}, {"id": "D3", "caso": "Repetir", "resultado": "ok", "evidencia": "changed=0; no estaba instalado"}, {"id": "D4", "caso": "Namespace del sistema", "resultado": "ok", "evidencia": "Datos · Indica el paquete y el namespace del operador (no uno del sistema); nada se cambió · "}, {"id": "D5", "caso": "El clúster queda como estaba", "resultado": "ok", "evidencia": "mismas Subscriptions, CSV, namespaces y crd 220"}]
-CERT OpenShift · Desinstalar operador → sin probar
-FIN-OPERADORES
---- fin: 2026-11-12T01:25:24-03:00 · código: 0
+37ce746
+SINCRONIZADO lab
+== plan exportador
+CASO C1 falla · JBoss
+CASO C2 falla · Redis (nodo-jboss)
+CASO C3 falla · nginx
+CASO C4 falla · PostgreSQL (nodo-postgres)
+CASO C5 falla · Repetir
+CASO C6 ok · Plataforma inválida
+EVIDENCIA [{"id": "C1", "caso": "JBoss", "resultado": "falla", "evidencia": "rechazado al solicitar heap=1 undertow=0 "}, {"id": "C2", "caso": "Redis (nodo-jboss)", "resultado": "falla", "evidencia": "rechazado al solicitar redis_up= "}, {"id": "C3", "caso": "nginx", "resultado": "falla", "evidencia": "rechazado al solicitar nginx_up= web=200 "}, {"id": "C4", "caso": "PostgreSQL (nodo-postgres)", "resultado": "falla", "evidencia": "rechazado al solicitar pg_up= "}, {"id": "C5", "caso": "Repetir", "resultado": "falla", "evidencia": "rechazado al solicitar/rechazado al solicitar pid 0→0"}, {"id": "C6", "caso": "Plataforma inválida", "resultado": "ok", "evidencia": "rechazada (rechazado al solicitar)"}]
+CERT FaceOps · Exportador de plataforma → sin probar
+FIN-EXPORTADOR
+== alertas de JBoss con exportador en nodo-jboss (J01 + J02)
+ALERTAS JBoss None sin respuesta del arnés 
+PROM exportadores []
+PROM heap JBoss % []
+--- fin: 2026-11-12T01:26:24-03:00 · código: 0
