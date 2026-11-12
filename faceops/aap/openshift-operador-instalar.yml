@@ -75,7 +75,7 @@
     - name: No está instalado en otro namespace
       ansible.builtin.assert:
         that: previa | rejectattr('metadata.namespace', 'equalto', oi_ns) | list | length == 0
-        fail_msg: "{{ oi_paquete }} ya está instalado en el namespace {{ (previa | first).metadata.namespace }}; nada se cambió"
+        fail_msg: "{{ oi_paquete }} ya está instalado en el namespace {{ previa | map(attribute='metadata.namespace') | join(', ') }}; nada se cambió"
         quiet: true
 
     - name: Namespace {{ oi_ns }}
