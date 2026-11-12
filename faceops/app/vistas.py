@@ -7810,7 +7810,14 @@ def centros_datos(centro=None):
         if otros:
             por_inf.append(({"nombre": "Red y otros equipos del centro", "tipo": "red", "id": None, "prov": {"nombre": ""}, "detalle_d": {}}, otros))
         sel["por_inf"] = por_inf
-    return render_template("centros_datos.html", cds=cds, sel=sel, TIPOS_HIPERVISOR=TIPOS_HIPERVISOR)
+    diag = None
+    if not sel:
+        try:   # diagrama: cajas por centro y líneas solo donde algo de adentro se conecta de verdad
+            from .centros_diagrama import diagrama
+            diag = diagrama(g.cliente, cds, eqs_)
+        except Exception as ex:  # noqa: BLE001 - sin diagrama queda la lista
+            print("diagrama de centros:", str(ex)[:200])
+    return render_template("centros_datos.html", cds=cds, sel=sel, diag=diag, TIPOS_HIPERVISOR=TIPOS_HIPERVISOR)
 
 
 @bp.route("/arquitectura/licencias", methods=["GET", "POST"])

@@ -4,13 +4,61 @@
 .cd-caja{display:flex;flex-direction:column;gap:8px;color:var(--ink)}.cd-caja:hover{border-color:var(--acc);text-decoration:none}
 .cd-caja h2{margin:0;font-size:17px}.cd-cab{display:flex;align-items:center;gap:10px}.cd-cab svg{flex:none;color:var(--acc)}
 .cd-num{display:flex;gap:18px;font-size:13px}.cd-num b{display:block;font-size:20px}
-.cd-inf{display:flex;flex-wrap:wrap;gap:6px}</style>
+.cd-inf{display:flex;flex-wrap:wrap;gap:6px}
+.cdd-vistas{display:inline-flex;margin-top:14px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.cdd-tab{border:0;background:none;padding:6px 14px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer}.cdd-tab.on{background:var(--acc);color:#fff}
+.cdd{margin-top:10px}.cdd-wrap{overflow-x:auto;margin-top:8px}.cdd-wrap svg{width:100%;min-width:640px;height:auto;display:block}
+.cdd-ley{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;margin-top:8px}.cdd-ley span{display:inline-flex;align-items:center;gap:5px}
+.cdd-ley i{width:12px;height:12px;border-radius:3px;border:1.5px solid;display:inline-block}.cdd-ley .t-ok{background:var(--okbg);border-color:var(--ok)}.cdd-ley .t-med{background:var(--warnbg);border-color:var(--warn)}.cdd-ley .t-mal{background:var(--badbg);border-color:var(--bad)}.cdd-ley .t-nd{background:var(--soft);border-color:var(--muted)}
+.cdd-lm{display:inline-block;width:22px;height:0;border-top:2.5px solid}.cdd-lm.cdd-respaldo,.cdd-lm.cdd-vpn,.cdd-lm.cdd-enlace{border-top-style:dashed}.cdd-lm.cdd-segmento{border-top-style:dotted}
+.cdd-marco{stroke-width:2}.t-ok .cdd-marco{fill:var(--okbg);stroke:var(--ok)}.t-med .cdd-marco{fill:var(--warnbg);stroke:var(--warn)}.t-mal .cdd-marco{fill:var(--badbg);stroke:var(--bad)}.t-nd .cdd-marco{fill:var(--soft);stroke:var(--muted)}
+.cdd-relleno{fill:var(--muted)}.t-ok .cdd-relleno,.t-ok .cdd-pct{fill:var(--ok)}.t-med .cdd-relleno,.t-med .cdd-pct{fill:var(--warn)}.t-mal .cdd-relleno,.t-mal .cdd-pct{fill:var(--bad)}.t-nd .cdd-pct{fill:var(--muted)}
+.cdd-pista{fill:var(--line)}.cdd-ct{font-size:17px;font-weight:700;fill:var(--ink)}.cdd-caja a:hover .cdd-ct{fill:var(--acc);text-decoration:underline}.cdd-pct{font-size:17px;font-weight:700}
+.cdd-cs{font-size:11.5px;fill:var(--muted)}.cdd-cr{font-size:12.5px;fill:var(--ink)}
+.cdd-tile rect{fill:var(--panel);stroke:var(--line);stroke-width:1.2}.cdd-tile:hover rect{stroke:var(--acc);stroke-width:2}.cdd-tt{font-size:12.5px;font-weight:600;fill:var(--ink)}.cdd-ts{font-size:11px;fill:var(--muted)}
+.cdd-l{cursor:pointer;outline:none}.cdd-hit{fill:none;stroke:transparent;stroke-width:14}.cdd-p{fill:none;stroke-width:2.5;stroke:var(--muted)}
+.cdd-l:hover .cdd-p,.cdd-l.sel .cdd-p,.cdd-l:focus .cdd-p{stroke-width:4.5}
+.cdd-balanceo .cdd-p,.cdd-lm.cdd-balanceo{stroke:#8476d1;border-color:#8476d1}.cdd-replica .cdd-p,.cdd-lm.cdd-replica{stroke:var(--acc);border-color:var(--acc)}
+.cdd-respaldo .cdd-p,.cdd-lm.cdd-respaldo{stroke:#ec7a08;border-color:#ec7a08;stroke-dasharray:8 5}.cdd-vpn .cdd-p,.cdd-lm.cdd-vpn{stroke:var(--ok);border-color:var(--ok);stroke-dasharray:8 5}
+.cdd-enlace .cdd-p,.cdd-lm.cdd-enlace{stroke:#009596;border-color:#009596;stroke-dasharray:6 4}.cdd-flujo .cdd-p,.cdd-lm.cdd-flujo{stroke:var(--ink);border-color:var(--ink)}
+.cdd-segmento .cdd-p,.cdd-lm.cdd-segmento{stroke:var(--muted);border-color:var(--muted);stroke-dasharray:2 4}
+.cdd-lt{font-size:12px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:5px;stroke-linejoin:round}
+.cdd-lb rect{fill:var(--panel);stroke:#8476d1;stroke-width:2}.cdd-lb:hover rect{fill:var(--soft)}.cdd-bt{font-size:13px;font-weight:700;fill:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.cdd-bs{font-size:11px;fill:var(--muted)}
+.cdd-det{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;font-size:13px;min-height:22px}.cdd-det ul{margin:6px 0 0;padding-left:18px}.cdd-det li{margin:2px 0}
+</style>
 {% macro icono(et, nom='') %}{% if 'GCP' in nom or 'Google' in nom %}<img src="{{ url_for('static', filename='logos/gcp.png') }}" alt="" width="28" height="28">{% else %}<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">{% if et == 'cloud' %}<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 11.5 3.3 3.3 0 0 0 7 18z" fill="none" stroke="currentColor" stroke-width="1.8"/>{% else %}<path d="M4 20V8l8-4 8 4v12M8 20v-6h8v6M8 10h.01M12 10h.01M16 10h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>{% endif %}</svg>{% endif %}{% endmacro %}
 {% macro salud(res) %}{% if res and res.salud is not none %}{% set sv_ = res.salud|int %}<span class="salud-barra s-{{ semaforo_salud(sv_) }}" style="flex:1"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span>{% endif %}{% endmacro %}
 
 {% if not sel %}
 <div class="fila"><div><h1>Centros de datos</h1><p class="sub">Dónde viven tus máquinas: centros on-premise y nubes. Entra a uno para ver todas sus máquinas.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<a class="btn der" href="{{ url_for('consola.infraestructuras', nuevo='kvm', volver=request.path) }}" title="Un centro de datos nace con su primera infraestructura (hipervisor, nube, físicos u OpenShift)">+ Agregar centro de datos</a>{% endif %}</div>
+{% if cds %}<div class="cdd-vistas" role="tablist" aria-label="Vista"><button type="button" class="cdd-tab on" data-vista="diagrama" role="tab" aria-selected="true">Diagrama</button><button type="button" class="cdd-tab" data-vista="lista" role="tab" aria-selected="false">Lista</button></div>{% endif %}
+{% if diag %}<div class="card cdd" id="cdd-diagrama" data-vista-panel="diagrama">
+<div class="fila" style="align-items:center;gap:10px"><span class="sub" style="font-size:12.5px">Una línea une dos centros solo si algo de adentro se conecta de verdad ({{ diag.n_conexiones }} conexión{{ 'es' if diag.n_conexiones != 1 }} detectada{{ 's' if diag.n_conexiones != 1 }}). Pasa el mouse o haz clic en una línea para ver qué la genera.</span></div>
+<div class="cdd-ley sub"><span><i class="t-ok"></i>salud ≥ 85 %</span><span><i class="t-med"></i>50–84 %</span><span><i class="t-mal"></i>&lt; 50 %</span><span><i class="t-nd"></i>sin lectura</span>{% for et, cls in diag.leyenda %}<span><b class="cdd-lm {{ cls }}"></b>{{ et }}</span>{% endfor %}</div>
+<div class="cdd-wrap"><svg viewBox="0 0 {{ diag.w }} {{ diag.h }}" role="img" aria-label="Diagrama de centros de datos y sus conexiones">
+{% for c in diag.cajas %}<g class="cdd-caja t-{{ c.tono }}">
+<rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" rx="12" class="cdd-marco"/>
+<a href="{{ c.url }}"><title>Entrar a {{ c.nombre }}: todas sus máquinas</title><text x="{{ c.x + 16 }}" y="{{ c.y + 28 }}" class="cdd-ct">{{ c.tit }}</text></a>
+<text x="{{ c.x + c.w - 14 }}" y="{{ c.y + 28 }}" class="cdd-pct" text-anchor="end">{{ (c.salud ~ ' %') if c.salud is not none else '—' }}</text>
+<text x="{{ c.x + 16 }}" y="{{ c.y + 46 }}" class="cdd-cs">{{ c.etiqueta }}{% if c.region %} · {{ c.region }}{% endif %}</text>
+<rect x="{{ c.x + 16 }}" y="{{ c.y + 56 }}" width="{{ c.w - 32 }}" height="6" rx="3" class="cdd-pista"/>{% if c.salud is not none %}<rect x="{{ c.x + 16 }}" y="{{ c.y + 56 }}" width="{{ (c.w - 32) * c.salud / 100 }}" height="6" rx="3" class="cdd-relleno"/>{% endif %}
+<text x="{{ c.x + 16 }}" y="{{ c.y + 84 }}" class="cdd-cr">{{ c.resumen[0] }} · {{ c.resumen[3] }}</text>
+<text x="{{ c.x + 16 }}" y="{{ c.y + 102 }}" class="cdd-cr">{{ c.resumen[1] }} · {{ c.resumen[2] }}</text>
+{% if c.plats %}<text x="{{ c.x + 16 }}" y="{{ c.y + 120 }}" class="cdd-cs">{{ c.plats }}</text>{% endif %}
+{% for t in c.tiles %}<a href="{{ t.url }}" class="cdd-tile"><title>{{ t.full }} · abrir su ficha</title><rect x="{{ t.x }}" y="{{ t.y }}" width="{{ t.w }}" height="{{ t.h }}" rx="8"/>
+<text x="{{ t.x + 10 }}" y="{{ t.y + 19 }}" class="cdd-tt">{{ t.tit }}</text><text x="{{ t.x + 10 }}" y="{{ t.y + 35 }}" class="cdd-ts">{{ t.sub }}</text></a>{% endfor %}
+</g>{% endfor %}
+{% for l in diag.lineas %}<g class="cdd-l {{ l.cls }}" data-i="{{ loop.index0 }}" tabindex="0" role="button" aria-label="{{ l.titulo }}"><title>{{ l.titulo }}{% if l.proto %} · {{ l.proto|join(', ') }}{% endif %}</title>
+<path d="{{ l.d }}" class="cdd-hit"/><path d="{{ l.d }}" class="cdd-p"/>{% if l.txt %}<text x="{{ l.tx }}" y="{{ l.ty }}" class="cdd-lt" text-anchor="{{ l.ta or 'middle' }}">{{ l.txt }}</text>{% endif %}</g>{% endfor %}
+{% for b in diag.balanceadores %}{% if b.url %}<a href="{{ b.url }}">{% endif %}<g class="cdd-lb"><title>{{ b.full }} · balanceador en {{ b.centro }}</title>
+<rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="25"/><text x="{{ b.x + b.w / 2 }}" y="{{ b.y + 21 }}" class="cdd-bt" text-anchor="middle">{{ b.tit }}</text>
+<text x="{{ b.x + b.w / 2 }}" y="{{ b.y + 38 }}" class="cdd-bs" text-anchor="middle">{{ b.sub }}</text></g>{% if b.url %}</a>{% endif %}{% endfor %}
+</svg></div>
+<div class="cdd-det" id="cdd-det" aria-live="polite"><span class="sub">{% if diag.lineas %}Selecciona una línea para ver los componentes que la generan.{% else %}No hay conexiones entre centros en el inventario ni en la configuración: ninguna máquina de un centro se conecta con otro.{% endif %}</span></div>
+<script type="application/json" id="cdd-datos">{{ diag.json|safe }}</script>
+</div>{% endif %}
+<div data-vista-panel="lista"{% if diag %} hidden{% endif %}>
 <div class="card" style="padding:0;margin-top:14px">{% if cds %}<table><tr><th>Centro de datos</th><th>Tipo</th><th>Región</th><th style="text-align:right">Máquinas</th><th style="text-align:right">Encendidas</th><th>Salud consolidada</th><th>Infraestructuras</th></tr>
 {% for c in cds %}<tr><td><a href="{{ url_for('consola.centros_datos', centro=c.nombre) }}" style="display:flex;gap:8px;align-items:center">{{ icono(c.etiqueta, c.nombre) }}<b>{{ c.nombre }}</b></a></td>
 <td><span class="chip {{ 'nat-nube' if c.etiqueta == 'cloud' else 'nat-vm' }}">{{ c.etiqueta }}</span></td><td>{{ c.region or '—' }}</td>
@@ -18,6 +66,7 @@
 <td style="min-width:160px">{% if c.res and c.res.salud is not none %}{{ salud(c.res) }}{% else %}<span class="sub">—</span>{% endif %}</td>
 <td>{% for x in c.infras %}<span class="chip" style="font-size:11.5px">{{ x.nombre }}</span> {% endfor %}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio" style="padding:16px">Aún no hay centros de datos: agrega el primero con su infraestructura (hipervisor, nube o servidores físicos).</p>{% endif %}</div>
+</div>
 {% else %}
 <p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.centros_datos') }}">Centros de datos</a> ›</p>
 <div class="fila"><div class="cd-cab">{{ icono(sel.etiqueta, sel.nombre) }}<div><h1 style="margin:0">{{ sel.nombre }}</h1><span class="sub">{{ sel.region }}</span></div><span class="chip {{ 'nat-nube' if sel.etiqueta == 'cloud' else 'nat-vm' }}">{{ sel.etiqueta }}</span></div>
@@ -34,4 +83,17 @@
 {% else %}<tr><td colspan="7" class="sub">{% if x.tipo == 'gcp' %}Sin máquinas todavía en este proyecto.{% else %}Sin máquinas en esta infraestructura.{% endif %}</td></tr>{% endfor %}</table></div>
 {% endfor %}
 {% endif %}
+{% if not sel and cds %}<script>(function(){
+var tabs=document.querySelectorAll('.cdd-tab'),pan=document.querySelectorAll('[data-vista-panel]');
+function ver(v){tabs.forEach(function(t){var on=t.dataset.vista===v;t.classList.toggle('on',on);t.setAttribute('aria-selected',on)});pan.forEach(function(p){p.hidden=p.dataset.vistaPanel!==v});try{localStorage.setItem('cdd-vista',v)}catch(e){}}
+tabs.forEach(function(t){t.addEventListener('click',function(){ver(t.dataset.vista)})});
+var pv=null;try{pv=localStorage.getItem('cdd-vista')}catch(e){}if(pv==='lista'||!document.getElementById('cdd-diagrama'))ver('lista');
+var el=document.getElementById('cdd-datos');if(!el)return;var D=JSON.parse(el.textContent),det=document.getElementById('cdd-det'),fijo=null;
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function mostrar(i){var x=D[i];if(!x)return;det.innerHTML='<b>'+esc(x.t)+'</b>'+(x.p.length?' <span class="chip">'+esc(x.p.join(' · '))+'</span>':'')+'<ul>'+x.d.map(function(d){return '<li>'+esc(d)+'</li>'}).join('')+'</ul>'+(x.m?'<span class="sub">y '+x.m+' más</span>':'')}
+document.querySelectorAll('.cdd-l').forEach(function(g){var i=+g.dataset.i;
+g.addEventListener('mouseenter',function(){if(fijo===null)mostrar(i)});
+function fijar(){document.querySelectorAll('.cdd-l.sel').forEach(function(o){o.classList.remove('sel')});if(fijo===i){fijo=null;return}fijo=i;g.classList.add('sel');mostrar(i)}
+g.addEventListener('click',fijar);g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fijar()}})});
+})();</script>{% endif %}
 {% endblock %}
