@@ -908,6 +908,17 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
     tarjeta = next((t for t in resumen_segmentos(cliente, es, hallazgos, [seg]) if t["nombre"] == segmento), {}) if seg else {}
     es_d = es if ambiente else ([e for e in es if (e.get("ambiente") or "") == "produccion"] or es)   # disponibilidad: la de producción
     disp = disponibilidad_segmento(es_d, j(seg.get("ficha"), {}), exige=ambiente in ("", "produccion"))
+    paridad = None
+    try:   # réplicas y paridad de ambientes (app/paridad.py): solo inventario y arquitectura, sin consultas en vivo
+        from .paridad import evaluar as _paridad
+        try:
+            from flask import url_for as _uf
+            urls_ = {"equipo": lambda i: _uf("consola.equipo", eid=i), "arquitectura": _uf("consola.arquitectura")}
+        except Exception:  # noqa: BLE001  (fuera de una petición: sin enlaces)
+            urls_ = {}
+        paridad = _paridad(cliente["id"], segmento, eqs, arq, urls_) if seg else None
+    except Exception:  # noqa: BLE001
+        paridad = None
     if k and ambiente:  # costo solo de este ambiente
         filas = [f for f in k["filas"] if f["ambiente"] == ambiente]
         k = dict(k, mensual=round(sum(f["mensual"] for f in filas), 2), incremental=round(sum(f["incremental"] for f in filas), 2))
@@ -924,7 +935,9 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
             "ocp": [{"ambiente": o["ambiente"], "namespace": o["namespace"], "rutas": o["rutas_d"], "gitops": o["gitops"], "version": o["version"]}
                     for o in _ocp_de(cliente["id"], segmento)],
             "ocp_comps": [c["nombre"] for c in arq["m"]["componentes"] if c.get("plataforma") == "openshift"] if arq else [],
-            **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq, disp)),
+            **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq, disp,
+                                            ((paridad or {}).get("items") or {}).get(ambiente or "produccion", []) if paridad else None)),
+            "paridad": {k_: v for k_, v in (paridad or {}).items() if k_ not in ("items", "por_maquina")} if paridad else None,
             "disponibilidad": {k_: v for k_, v in disp.items() if k_ != "funciones"} | {"funciones": [{x_: f[x_] for x_ in ("funcion", "n", "on", "estado")} for f in disp["funciones"]]},
             "salud_meta": metas_salud(j(seg.get("ficha"), {})),
             "metricas_app": _indicadores_app(arq)}
@@ -1074,7 +1087,7 @@ def disponibilidad_segmento(es, ficha=None, riesgos=None, exige=True):
             "rto": fi_.get("rto") or "", "rpo": fi_.get("rpo") or "", "exige": exige}
 
 
-def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None):
+def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None, paridad=None):
     """Salud consolidada del segmento con su mecanismo de remediación: máquinas apagadas, hallazgos, flujos cerrados,
     flujos sin TLS, latencias altas, métricas de la aplicación (p. ej. tiempos de respuesta del modelo de IA) y la
     [{nivel: alta|media|ok|info, area, titulo, detalle, remedio}]"""
@@ -1091,7 +1104,9 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq, disp=None):
     # «Disponibilidad» del segmento en el mapa: disponibilidad_segmento)
     if disp is None:
         disp = disponibilidad_segmento(es, j((q1_seg(cliente, segmento) or {}).get("ficha"), {}))
-    if disp.get("exige"):
+    if paridad is not None:   # regla de réplicas y paridad (app/paridad.py): por componente de la arquitectura, reemplaza el conteo por función
+        out += paridad
+    elif disp.get("exige"):
         for x in disp["spof"]:
             out.append({"nivel": "media", "area": "Disponibilidad", "titulo": f"{x['funcion']} sin alta disponibilidad (una sola máquina en producción)",
                         "detalle": next((n for _, n, en in x["equipos"] if en == "encendido"), ""), "remedio": "Replicar con alta disponibilidad desde su caja (botón HA)"})

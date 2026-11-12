@@ -9,6 +9,14 @@ Disponibilidad:
   definicion: "Que el servicio esté arriba cuando el negocio lo necesita y que una falla no lo detenga."
   no_medido: ["Capacidad de reserva ante picos o caídas", "Ventanas de mantenimiento sin corte", "Que las alertas se atiendan (se mide que la alerta esté configurada)"]   # lo que el pilar considera pero FaceOps aún no evalúa
   considerar: ["Redundancia de lo crítico (sin puntos únicos de falla)", "Monitoreo y alerta de disponibilidad configurados", "Capacidad de reserva ante picos o caídas", "Ventanas de mantenimiento sin corte"]
+  # Regla de réplicas y paridad (Cristian, nov-2026; app/paridad.py, criterios D3 por máquina y SD3/SD4 por segmento):
+  #  · Producción: cada componente del segmento (cada rol de su arquitectura) con AL MENOS 2 réplicas; con 1 resta salud y
+  #    se remedia con «Agregar réplica de <componente>» (skill «Replicar máquina», ticket con aprobación).
+  #  · QA y desarrollo: basta 1 réplica, pero con la MISMA arquitectura y las MISMAS versiones de SO y plataformas que su
+  #    producción; cada diferencia resta salud («Alinear <componente> con producción»), con su acción o «sin acción».
+  #  · Vínculo: los ambientes previos de un segmento corresponden a la producción del mismo segmento (ambientes de su
+  #    arquitectura); sin máquinas productivas queda «sin productivo de referencia» (se define en su arquitectura).
+  regla_replicas: "Producción: cada componente del segmento con al menos 2 réplicas. QA y desarrollo: 1 réplica basta, pero con la misma arquitectura y las mismas versiones de sistema operativo y plataformas que producción."
   por_contexto:
     servidores: ["Agente de métricas y alertas en cada servidor", "Réplicas detrás de un balanceador para lo crítico", "Encendido automático tras reinicio del anfitrión"]
     redes: ["Enlaces y equipos redundantes (HA de firewall y routers)", "Rutas alternativas (BGP, VRRP)", "Monitoreo de interfaces y enlaces"]
@@ -17,7 +25,7 @@ Disponibilidad:
     plataformas: ["Al menos 2 instancias por servicio de plataforma", "Sesiones compartidas o sin estado", "Chequeos de salud en el balanceo"]
     contenedores: ["Control plane de 3 nodos y workers suficientes", "Réplicas y PodDisruptionBudget en las apps", "Sondas de vida y de disponibilidad"]
     nube: ["Despliegue en más de una zona", "Grupos de autoescalado", "Alertas del proveedor conectadas"]
-    aplicaciones: ["Todos los componentes del flujo con redundancia", "Pruebas de punta a punta periódicas", "Dependencias externas monitoreadas"]
+    aplicaciones: ["Cada componente con al menos 2 réplicas en producción", "QA y desarrollo con la misma arquitectura y versiones que producción", "Todos los componentes del flujo con redundancia", "Pruebas de punta a punta periódicas", "Dependencias externas monitoreadas"]
 Rendimiento:
   well_architected: "Performance Efficiency (eficiencia del rendimiento)"
   cobit: "BAI04 Gestión de la disponibilidad y la capacidad"

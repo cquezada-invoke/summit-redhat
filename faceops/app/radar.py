@@ -14,6 +14,7 @@ from .topologia import PRINCIPIOS_SALUD, metas_salud
 CRITERIOS_EQ = [
     ("D1", "Disponibilidad", "Encendido", "El equipo está encendido o respondiendo"),
     ("D2", "Disponibilidad", "Vigilado: alerta de disponibilidad", "Tiene configurada en Ansible la alerta «sin respuesta» (botón Alertas)"),
+    ("D3", "Disponibilidad", "Réplicas y paridad del segmento", "En producción su componente tiene al menos 2 réplicas; en QA o desarrollo, la misma arquitectura y versiones que producción (app/paridad.py)"),
     ("H1", "Excelencia operativa", "Sin hallazgos graves", "Ningún hallazgo de severidad alta abierto"),
     ("H2", "Excelencia operativa", "Sin advertencias", "Ningún hallazgo de severidad media abierto"),
     ("P1", "Rendimiento", "Con métricas de rendimiento", "Tiene el agente de métricas (node_exporter o windows_exporter)"),
@@ -29,7 +30,8 @@ CRITERIOS_EQ = [
 CRITERIOS_SEG = [
     ("SD1", "Disponibilidad", "Con servicio", "No está completamente apagado", r"completamente apagado"),
     ("SD2", "Disponibilidad", "Máquinas encendidas", "Ninguna máquina del segmento apagada", r"máquina\(s\) apagada"),
-    ("SD3", "Disponibilidad", "Alta disponibilidad en producción", "Ningún componente con una sola máquina", r"sin alta disponibilidad"),
+    ("SD3", "Disponibilidad", "Alta disponibilidad en producción", "Cada componente con al menos 2 réplicas en producción", r"sin alta disponibilidad|^Agregar réplica"),
+    ("SD4", "Disponibilidad", "Paridad de ambientes", "QA y desarrollo con la misma arquitectura y versiones que producción, y con productivo de referencia", None),
     ("SH1", "Excelencia operativa", "Sin hallazgos graves", "Ningún hallazgo alto en sus máquinas", None),
     ("SH2", "Excelencia operativa", "Sin advertencias", "Ningún hallazgo medio en sus máquinas", None),
     ("SP1", "Rendimiento", "Flujos abiertos", "Todos los flujos entre componentes pasan", r"flujo\(s\) cerrado"),
@@ -44,6 +46,16 @@ SEG_KW = re.compile(r"seguridad|cve|vulner|acceso|ssh|root|tls|cifr|certific|con
 
 def _datos(e):
     return e.get("_datos") if isinstance(e.get("_datos"), dict) else (j(e.get("datos"), {}) or {})
+
+
+def _paridad_eq(e):
+    """D3: la máquina es parte de un componente de segmento con sus réplicas y paridad al día (None si no es de ninguno)."""
+    try:
+        from .paridad import por_maquina
+        v = por_maquina(e.get("cliente_id")).get(e.get("nombre")) if e.get("cliente_id") else None
+    except Exception:  # noqa: BLE001
+        v = None
+    return None if v is None else bool(v[0])
 
 
 def casos_equipo(e, hs_eq):
@@ -64,6 +76,7 @@ def casos_equipo(e, hs_eq):
     return {
         "D1": (e.get("energia") or e.get("estado")) not in ("apagado", "suspendido"),
         "D2": ("D01" in al or "D02" in al) if vigilable else None,
+        "D3": _paridad_eq(e),
         "H1": not any(s in ("alta", "critica", "crítica", "critical", "high") for s in sev),
         "H2": not any(s in ("media", "medium") for s in sev),
         "P1": bool(sk & {"monitoreo", "node_exporter", "windows_exporter"}) or bool(d.get("monitoreo")) if es_srv else None,
@@ -132,6 +145,9 @@ def radar_segmentos(cliente, eqs, hallazgos, ambiente="produccion", grupo="aplic
                 falla = any(x["area"] == "Excelencia operativa" and x["nivel"] == "alta" for x in items)
             elif cid == "SH2":
                 falla = any(x["area"] == "Excelencia operativa" and x["nivel"] == "media" for x in items)
+            elif cid == "SD4":   # se mide sobre los ambientes previos, no sobre el que se está mirando
+                pa_ = r.get("paridad") or {}
+                falla = bool(pa_.get("sin_productivo") or any(pa_.get("previos", {}).values()))
             else:
                 falla = any(re.search(rx, x.get("titulo", ""), re.I) for x in items)
             cuenta[cid][1] += 1

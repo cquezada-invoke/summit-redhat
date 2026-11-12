@@ -5763,6 +5763,12 @@ def mapa():
             if request.args.get("ambiente") == "homologacion":
                 seg_info["ambiente"] = "homologacion"
                 seg_info["homolog"] = _homologar_segmento(segmento, arq)
+            try:   # «Réplicas y paridad» (app/paridad.py): del inventario ya cargado, sin consultas en vivo
+                from .paridad import evaluar as _paridad
+                seg_info["paridad"] = _paridad(g.cliente["id"], segmento, equipos_visibles(), arq,
+                                               {"equipo": lambda i: url_for("consola.equipo", eid=i), "arquitectura": url_for("consola.arquitectura")})
+            except Exception as e_:  # noqa: BLE001
+                current_app.logger.warning("paridad de %s: %s", segmento, e_)
     from .grupos_segmento import GRUPOS, NOMBRE, grupo_de
     grupo = request.args.get("grupo") or (grupo_de(seg_info) if seg_info else ("redes" if vista == "infra" else ""))
     from .segmentos_archivo import lista as archivados
