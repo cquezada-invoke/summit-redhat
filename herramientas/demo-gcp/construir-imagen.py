@@ -11,6 +11,7 @@ VM (servidor de metadatos: sin claves ni gcloud). Solo biblioteca estándar.
 3) Imagen faceops-demo-<fecha> en la familia faceops-demo desde el disco; se borra la constructora y se dejan las 2 últimas imágenes."""
 import argparse
 import json
+import re
 import sys
 import time
 import urllib.error
@@ -67,18 +68,18 @@ dnf -y -q install git >/dev/null 2>&1
 rm -rf /opt/prueba/fuente; git clone -q --depth 1 -b "__RAMA__" __REPO__ /opt/prueba/fuente || { s "CONSTRUCCION FALLO (git clone)"; exit 1; }
 s "== fuente $(git -C /opt/prueba/fuente log -1 --format=%h)"
 if RAMA="__RAMA__" REPO=__REPO__ bash /opt/prueba/fuente/herramientas/demo-gcp/preparar-vm.sh 2>&1 | tee /var/log/demo-construccion.log \
-     | grep --line-buffered -E '^== |✓|✗|verificaciones|ERROR|FALL|Traceback|rror:' | while read -r l; do s "$l"; done; [ "${PIPESTATUS[0]}" = 0 ]; then
+     | grep --line-buffered -E '^== |✓|✗|verificaciones|ERROR|FALL|Traceback|rror:|^    |^(proyecto|AWX:|EDA:|FaceOps)' | while read -r l; do s "$l"; done; [ "${PIPESTATUS[0]}" = 0 ]; then
   s "== generalizar"
   rm -f /etc/ssh/ssh_host_* ; truncate -s0 /etc/machine-id; rm -f /var/lib/demo/credenciales.listo /var/lib/demo/ultimo-uso
   journalctl --rotate >/dev/null 2>&1; journalctl --vacuum-time=1s >/dev/null 2>&1
   install -d /var/lib/demo; touch /var/lib/demo/construida; sync
   s "CONSTRUCCION OK"; sleep 5; poweroff
 else
-  s "CONSTRUCCION FALLO"
   export KUBECONFIG=/etc/rancher/k3s/k3s.yaml PATH=$PATH:/usr/local/bin
-  { echo "== DIAG pods"; kubectl get pods -A 2>&1; for ns in awx eda; do for d in $(kubectl -n $ns get deploy -o name 2>/dev/null); do
-      echo "== DIAG $ns $d"; kubectl -n $ns logs $d --all-containers --tail=15 2>&1; done; done
-    echo "== DIAG log"; tail -40 /var/log/demo-construccion.log; free -m; } 2>&1 | grep -viE 'clave|password|passwd|token|secret' | cut -c1-240 | sed 's/^/DIAG /' > /dev/ttyS0
+  { echo "== DIAG log"; tail -40 /var/log/demo-construccion.log; echo "== DIAG pods"; kubectl get pods -A 2>&1; for ns in awx eda; do for d in $(kubectl -n $ns get deploy -o name 2>/dev/null); do
+      echo "== DIAG $ns $d"; kubectl -n $ns logs $d --all-containers --tail=15 2>&1; done; done; free -m; } 2>&1 \
+    | grep -viE 'clave|password|passwd|token|secret' | cut -c1-240 | sed 's/^/DIAG /' > /dev/ttyS0
+  sleep 5; s "CONSTRUCCION FALLO"
 fi
 """
 
@@ -118,8 +119,9 @@ def main():
                 break
             pos = int(s.get("next", pos))
             for l in s.get("contents", "").splitlines():
-                l = l.split("startup-script: ", 1)[-1].strip()
-                if l.startswith("== ") or l.startswith("DIAG") or "CONSTRUCCION" in l or "✓" in l or "✗" in l or "verificaciones" in l or "FALL" in l:
+                l = l.rstrip()
+                # solo lo que escribe el startup-script con s() (sin el prefijo de fecha del journal ni el del kernel)
+                if l and not re.match(r"^([A-Z][a-z]{2} +\d|\[ *\d|\x1b|<\d>)", l) and "Cloud Logging" not in l:
                     if not any(k in l.lower() for k in ("clave=", "password=", "token=")):
                         print("  " + l[:300], flush=True)
                     if "CONSTRUCCION OK" in l:
