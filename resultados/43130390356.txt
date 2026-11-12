@@ -1,0 +1,23 @@
+commit: e26198304d60496d941a232c9106e2f7697ceae9
+inicio: 2026-11-11T22:51:19-03:00
+---
+INFRA Cloud GCP · invoke-summit-cloud gcp error | cred: GCP · invoke-summit-cloud | inv: Nube GCP | verif: 2026-11-12T01:46:12+00:00 | msg: La última sincronización con la nube falló
+DETALLE claves ['etiqueta', 'proyecto', 'red', 'zona'] | contiene private_key: False | contiene BEGIN: False
+CRED AAP id 46 tipo Google Compute Engine mod 2026-11-12T00:49:54.043025Z | username(email): True | project: invoke-summit-cloud | ssh_key_data cifrada: True
+AUTO Nube · Validar conexión e inventariar True
+AUTO Nube · Validar conexión e inventariar nube False
+AUTO Nube · Encender o apagar VM False
+AUTOS NUBE ['Nube · Solicitar VM', 'Nube · Dar de baja VM', 'Nube · Reporte de huérfanos', 'Nube · Limpiar huérfanos', 'Nube · Vigilar firewall', 'Nube · Prueba: crear huérfanos', 'Nube · Prueba: regla peligrosa', 'Nube · Solicitar VM con aprobación', 'Nube · Reporte de huérfanos con limpieza', 'Nube · Validar conexión e inventariar']
+JT AAP ['FaceOps · Nube GCP simulada', 'Nube · Avisar por correo', 'Nube · Cerrar ticket tras falla', 'Nube · Dar de baja VM', 'Nube · Limpiar huérfanos', 'Nube · Prueba: crear huérfanos', 'Nube · Prueba: regla peligrosa', 'Nube · Reporte de huérfanos', 'Nube · Solicitar VM', 'Nube · Validar conexión e inventariar (ejecución)', 'Nube · Vigilar firewall']
+WF AAP ['FaceOps · Aprobar › Nube · Reporte de huérfanos [Nube]', 'Nube · Reporte de huérfanos con limpieza', 'Nube · Solicitar VM con aprobación', 'Nube · Validar conexión e inventariar']
+AUD {'id': '10722', 'cuando': '2026-11-12T01:50:59+00:00', 'usuario': 'AAP', 'cliente_id': '1', 'accion': 'espera aprobación en AAP', 'objeto': 'FO-LAB-02028'}
+AUD {'id': '10721', 'cuando': '2026-11-12T01:50:56+00:00', 'usuario': 'FaceOps', 'cliente_id': '1', 'accion': 'sincronizar inventario', 'objeto': 'inventario'}
+AUD {'id': '10720', 'cuando': '2026-11-12T01:50:17+00:00', 'usuario': 'FaceOps', 'cliente_id': '1', 'accion': 'ticket en Odoo', 'objeto': 'FO-LAB-02028'}
+AUD {'id': '10719', 'cuando': '2026-11-12T01:50:15+00:00', 'usuario': 'cquezada', 'cliente_id': '1', 'accion': 'solicitar', 'objeto': 'FO-LAB-02028'}
+AUD {'id': '10718', 'cuando': '2026-11-12T01:48:55+00:00', 'usuario': 'cquezada', 'cliente_id': '1', 'accion': 'aprobar', 'objeto': 'FO-LAB-02027'}
+AUD {'id': '10717', 'cuando': '2026-11-12T01:48:54+00:00', 'usuario': 'AAP', 'cliente_id': '1', 'accion': 'espera aprobación en AAP', 'objeto': 'FO-LAB-02027'}
+AUD {'id': '10716', 'cuando': '2026-11-12T01:48:52+00:00', 'usuario': 'FaceOps', 'cliente_id': '1', 'accion': 'servidor eliminado', 'objeto': 'FO-LAB-02026'}
+AUD {'id': '10715', 'cuando': '2026-11-12T01:48:45+00:00', 'usuario': 'AAP', 'cliente_id': '1', 'accion': 'espera aprobación en AAP', 'objeto': 'FO-LAB-02027'}
+TICKETS [('FO-LAB-02028', 'pendiente_aprobacion', 'Plan de prueba C8 de «OpenShift · Evaluar imágenes (uso y an'), ('FO-LAB-02027', 'exitoso', 'Plan de prueba C7 de «OpenShift · Evaluar imágenes (uso y an'), ('FO-LAB-02026', 'exitoso', 'Plan de prueba baja srv-mig-rhel8-01 de «FaceOps · Eliminar '), ('FO-LAB-02025', 'exitoso', 'Plan de prueba C2 de «OpenShift · Evaluar imágenes (uso y an'), ('FO-LAB-02024', 'fallido', 'Plan de prueba C3: fuente inexistente')]
+--- LOGS POST
+--- fin: 2026-11-11T22:51:26-03:00 · código: 0
