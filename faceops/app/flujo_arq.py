@@ -80,7 +80,11 @@ def resolver_centros(eqs, infras):
     Lo que no se puede determinar queda en «Sin centro asignado» (la vista lo avisa)."""
     import json as _j
     por_ubic = {x["ubicacion"]: x["centro"] for x in infras if x.get("ubicacion")}
-    por_inv = {x["inventario"]: x["centro"] for x in infras if x.get("inventario")}
+    inv_c = {}
+    for x in infras:   # un inventario de AAP compartido por infraestructuras de centros distintos no sirve para ubicar
+        if x.get("inventario"):
+            inv_c.setdefault(x["inventario"], set()).add(x["centro"])
+    por_inv = {k: next(iter(v)) for k, v in inv_c.items() if len(v) == 1}
     por_clu = {"ocp-" + x["detalle_d"]["cluster"]: x["centro"] for x in infras
                if x["tipo"] in ("openshift", "openshift-virt") and (x.get("detalle_d") or {}).get("cluster")}
     centros = {x["centro"] for x in infras}
