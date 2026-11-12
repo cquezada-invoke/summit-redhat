@@ -12,14 +12,23 @@ CLAVE = open(f"{P}/clave").read().strip()
 NODO = os.popen("hostname -I").read().split()[0]
 B = "Basic " + base64.b64encode(f"admin:{CLAVE}".encode()).decode()
 def h(m, url, d=None, auth=B, ok404=False):
-    r = urllib.request.Request(url, method=m, data=json.dumps(d).encode() if d is not None else None,
-                               headers={"Content-Type": "application/json", "Authorization": auth})
-    try:
-        with urllib.request.urlopen(r, timeout=60) as x:
-            b = x.read(); return json.loads(b) if b else {}
-    except urllib.error.HTTPError as e:
-        if ok404 and e.code == 404: return None
-        raise SystemExit(f"ERROR {m} {url.split('?')[0]} -> {e.code}: {e.read()[:400].decode(errors='replace')}")
+    # AWX o EDA recién levantados (migrando, 502/503, página HTML): se reintenta hasta 20 min
+    for intento in range(120):
+        r = urllib.request.Request(url, method=m, data=json.dumps(d).encode() if d is not None else None,
+                                   headers={"Content-Type": "application/json", "Authorization": auth})
+        try:
+            with urllib.request.urlopen(r, timeout=60) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        except urllib.error.HTTPError as e:
+            if ok404 and e.code == 404: return None
+            if e.code in (502, 503, 504) and intento < 119:
+                time.sleep(10); continue
+            raise SystemExit(f"ERROR {m} {url.split('?')[0]} -> {e.code}: {e.read()[:400].decode(errors='replace')}")
+        except (urllib.error.URLError, ConnectionError, json.JSONDecodeError):
+            if m != "GET" and intento > 2:
+                raise
+            time.sleep(10)
+    raise SystemExit(f"ERROR {m} {url.split('?')[0]}: sin respuesta JSON en 20 min")
 A = "http://127.0.0.1:30080/api/v2/"; E = "http://127.0.0.1:30081/api/eda/v1/"
 awx = lambda m, p, d=None: h(m, A + p, d)
 def uno(rec, nombre, base=A):
