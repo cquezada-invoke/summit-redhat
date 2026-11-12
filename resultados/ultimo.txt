@@ -1,73 +1,16 @@
-commit: 004dde0ba6822b5c560eb09519225e8b27cf7b5f
-inicio: 2026-11-11T21:52:18-03:00
+commit: 6982ed1bd0dda7508642be6334beb9bd91adb4eb
+inicio: 2026-11-11T21:52:50-03:00
 ---
-== gcloud
-master-ia-320218
-== zonas DNS en master-ia-320218
-ERROR: (gcloud.dns.managed-zones.list) You do not currently have an active account selected.
-Please run:
-
-  $ gcloud auth login
-
-to obtain new credentials.
-
-If you have already logged in with a different account, run:
-
-  $ gcloud config set account ACCOUNT
-== zonas DNS en invoke-summit-cloud
-ERROR: (gcloud.dns.managed-zones.list) You do not currently have an active account selected.
-Please run:
-
-  $ gcloud auth login
-
-to obtain new credentials.
-
-If you have already logged in with a different account, run:
-
-  $ gcloud config set account ACCOUNT
-== proyectos visibles
-ERROR: (gcloud.projects.list) You do not currently have an active account selected.
-Please run:
-
-  $ gcloud auth login
-
-to obtain new credentials.
-
-If you have already logged in with a different account, run:
-
-  $ gcloud config set account ACCOUNT
-== roles de la cuenta activa en master-ia-320218
-ERROR: (gcloud.projects.get-iam-policy) You do not currently have an active account selected.
-Please run:
-
-  $ gcloud auth login
-
-to obtain new credentials.
-
-If you have already logged in with a different account, run:
-
-  $ gcloud config set account ACCOUNT
-
-to select an already authenticated account to use.
-== cuentas de servicio en master-ia-320218
-ERROR: (gcloud.iam.service-accounts.list) You do not currently have an active account selected.
-Please run:
-
-  $ gcloud auth login
-
-to obtain new credentials.
-
-If you have already logged in with a different account, run:
-
-  $ gcloud config set account ACCOUNT
-== APIs habilitadas (relevantes)
-
-== cuota southamerica-west1
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-== credenciales GCP en AAP (campos no secretos)
-  existe OpenShift · Pull secret
-  FALTA OpenShift · Red Hat OCM
-  existe AAP · FaceOps (gateway)
-== offline token de Red Hat → pull secret (solo códigos HTTP y cantidad de registros)
-  error: HTTPError HTTP Error 400: Bad Request
---- fin: 2026-11-11T21:52:31-03:00 · código: 0
+  warnings.warn(
+/lab/edge 200 None menu-edge True barra False cx True
+   Código Nombre Tipo País / Ciudad Execution node Equipos Salud CL-SCL-TDA-001 demo Tienda de laboratorio (demo) Tienda CL · Santiago cl-scl-tda-001-en01 No registrado en la malla 3 47% Ningún sitio coincide con el filtro. Agregar sitio × Código técnico * PAÍS-CIUDAD-TIPO-NNN en mayúsculas. Tipos: TDA tienda · SUC sucursal · BOD bodega · CD centro de distribución. No se puede cambiar después. Nombre
+/edge 200 None menu-edge True barra False cx True
+   Código Nombre Tipo País / Ciudad Execution node Equipos Salud CL-SCL-TDA-001 demo Tienda de laboratorio (demo) Tienda CL · Santiago cl-scl-tda-001-en01 No registrado en la malla 3 47% Ningún sitio coincide con el filtro. Agregar sitio × Código técnico * PAÍS-CIUDAD-TIPO-NNN en mayúsculas. Tipos: TDA tienda · SUC sucursal · BOD bodega · CD centro de distribución. No se puede cambiar después. Nombre
+/lab/edge/1 200 None menu-edge True barra True cx True
+   Execution node y hop Automation Mesh de AAP · estado leído de AAP Rol Nodo Estado en la malla Enlace Execution node (en el sitio) cl-scl-tda-001-en01 No registrado en la malla → central · la conexión la inicia el sitio Hop node (DMZ de la central) — Salida directa a la central no aplica: salida directa FaceOps no se conecta a las máquinas del sitio: cada acción es un ticket en AAP, pasa por aproba
+/edge/1 200 None menu-edge True barra True cx True
+   Execution node y hop Automation Mesh de AAP · estado leído de AAP Rol Nodo Estado en la malla Enlace Execution node (en el sitio) cl-scl-tda-001-en01 No registrado en la malla → central · la conexión la inicia el sitio Hop node (DMZ de la central) — Salida directa a la central no aplica: salida directa FaceOps no se conecta a las máquinas del sitio: cada acción es un ticket en AAP, pasa por aproba
+/lab/inventario/29 200 None menu-edge True barra True cx False
+   
+https lab/edge 200
+--- fin: 2026-11-11T21:53:01-03:00 · código: 0
