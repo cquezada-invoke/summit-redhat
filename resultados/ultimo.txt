@@ -1,12 +1,6 @@
-commit: 69ef71d447d5a5ce94942ae2b942be4d3047074c
-inicio: 2026-11-11T23:12:17-03:00
+commit: 2789184a6b03d96ce5b18d36e2e33f4664df64c6
+inicio: 2026-11-11T23:13:06-03:00
 ---
-Traceback (most recent call last):
-  File "/tmp/redq.py", line 5, in <module>
-    cl = {c["id"]: c["slug"] for c in q("SELECT id, slug FROM clientes")}
-                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/bd.py", line 180, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: slug
---- fin: 2026-11-11T23:12:24-03:00 · código: 0
+lab 14 fw |so VyOS 2026.10.23-0026-rolling 2026 |ip 172.20.20.12 | con datos |inv ["Red \u00b7 laboratorio"] |skills [] |datos {'recolectado': '2026-11-10T20:46:48+00:00', 'hostname': 'fw', 'uptime_dias': '0.9'}
+   claves-datos: ['alertas', 'componentes_internos', 'hardware', 'hostname', 'recolectado', 'red', 'uptime_dias']
+--- fin: 2026-11-11T23:13:13-03:00 · código: 0
