@@ -14,6 +14,7 @@ import urllib3
 urllib3.disable_warnings()
 
 REVISAR_CADA = 30
+INICIO = time.time()   # arranque de FaceOps (para el aviso «sin contacto desde …»)
 _SALUD = {}       # web → {"ok", "ultimo_ok", "desde", "error"}
 _CONOCIDOS = {}   # web → (url de ping, verify)
 _vigia = {"hilo": None}
@@ -189,7 +190,7 @@ def _en_pagina():
 def salud():
     """None si todo AAP conocido responde; si no, {desde, ultimo_ok, error} del caído (para el banner global)."""
     caidos = [s for s in _SALUD.values() if not s["ok"]]
-    return caidos[0] if caidos else None
+    return dict(caidos[0], inicio=INICIO) if caidos else None
 
 
 def disponible(web):
