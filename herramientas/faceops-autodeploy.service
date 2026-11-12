@@ -1,0 +1,12 @@
+# FaceOps · despliegue consolidado (git pull + build + restart si origin/main cambió). Lo dispara faceops-autodeploy.timer.
+# Instalar: sudo install -m 644 herramientas/faceops-autodeploy.{service,timer} /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now faceops-autodeploy.timer
+[Unit]
+Description=FaceOps · despliegue consolidado desde origin/main
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=cquezada
+ExecStart=/bin/bash /home/cquezada/summit-redhat/herramientas/faceops-autodeploy.sh
+TimeoutStartSec=1800

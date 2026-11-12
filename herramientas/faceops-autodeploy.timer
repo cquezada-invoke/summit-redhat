@@ -1,0 +1,11 @@
+# FaceOps · revisa origin/main cada 10 minutos y despliega si cambió (ver faceops-autodeploy.service)
+[Unit]
+Description=FaceOps · despliegue consolidado cada 10 minutos
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=10min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
