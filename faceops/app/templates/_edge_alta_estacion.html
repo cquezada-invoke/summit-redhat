@@ -1,0 +1,12 @@
+{# Alta de estación de trabajo: sitio Edge y ubicación (piso). Tras el alta, edgeTrasAlta() registra la pertenencia en FaceOps. #}
+{% set ss_ = edge_sitios_alta() %}
+<div class="alta-paso">Sitio Edge <span class="sub" style="font-weight:400">(opcional)</span></div>
+<div class="grid g2"><label>Sitio<select id="alta-edge-sitio"><option value="">Sin sitio</option>{% for s in ss_ %}<option value="{{ s.id }}">{{ s.codigo }}{{ ' · ' ~ s.alias if s.alias }}</option>{% endfor %}</select></label>
+<label>Ubicación (piso)<select id="alta-edge-ubic" disabled><option value="">sin ubicación</option></select></label></div>
+{% if not ss_ %}<p class="sub" style="font-size:12px;margin:0">Aún no hay sitios: créalos en <a href="{{ url_for('consola.edge') }}">Servidores › Edge</a>.</p>{% endif %}
+<script>(()=>{const UB={ {% for s in ss_ %}"{{ s.id }}":{{ s.ubicaciones_l|tojson }}{{ ',' if not loop.last }}{% endfor %} };
+const si=document.getElementById('alta-edge-sitio'),ub=document.getElementById('alta-edge-ubic');
+si.addEventListener('change',()=>{const us=UB[si.value]||[];ub.innerHTML='<option value="">sin ubicación</option>'+us.map(()=>'<option></option>').join('');[...ub.options].slice(1).forEach((o,i)=>{o.value=us[i];o.textContent=us[i];});ub.disabled=!us.length;});
+window.edgeTrasAlta=o=>{if(!si.value)return Promise.resolve();
+ return fetch({{ url_for('consola.edge_estacion_asignar')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({_csrf:{{ csrf|tojson }},nombre:o.nombre,sitio:si.value,ubic:ub.value})})
+  .then(r=>r.json()).then(r=>{if(r.error)alert('La estación quedó agregada, pero no se asignó al sitio: '+r.error);}).catch(()=>{});};})();</script>

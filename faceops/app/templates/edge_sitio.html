@@ -55,10 +55,10 @@
 <p class="sub" style="margin:10px 0 0;font-size:12.5px">FaceOps no se conecta a las máquinas del sitio: cada acción es un ticket en AAP, pasa por aprobación y baja al sitio por este túnel.</p></div>
 
 <div class="card fi-lista" style="margin-top:14px;padding:0" id="equipos"><div class="fi-lcab"><h2>Equipos del sitio · {{ eqs|length }}</h2>{% if eqs|length > 10 %}<input type="search" placeholder="Buscar equipo: nombre, IP, sistema…" aria-label="Buscar equipo">{% endif %}</div>
-<table class="sin-pag"><tr><th>Equipo</th><th>Tipo</th><th>IP</th><th>Sistema</th><th>En el grupo del sitio</th><th>Estado</th></tr>
-{% for e in eqs %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a></td><td>{{ e.categoria or 'servidor' }}</td><td class="mono">{{ e.ip or '—' }}</td><td style="font-size:12px">{{ e.so or '—' }}</td>
+<table class="sin-pag"><tr><th>Equipo</th><th>Tipo</th>{% if s.ubicaciones_l %}<th>Ubicación</th>{% endif %}<th>IP</th><th>Sistema</th><th>En el grupo del sitio</th><th>Estado</th></tr>
+{% for e in eqs %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a></td><td>{{ e.categoria or 'servidor' }}</td>{% if s.ubicaciones_l %}<td>{{ s.ubic_eq_d.get(e.id) or '—' }}</td>{% endif %}<td class="mono">{{ e.ip or '—' }}</td><td style="font-size:12px">{{ e.so or '—' }}</td>
 <td>{{ 'sí' if grupo in (j(e.grupos, []) or []) else 'no' }}</td><td><span class="chip {{ 's-ok' if e.energia == 'encendido' else ('s-alta' if e.energia == 'apagado' else '') }}">{{ e.energia or '—' }}</span></td></tr>
-{% else %}<tr><td colspan="6" class="sub">El sitio aún no tiene equipos asociados{{ ': «Editar sitio» para agregarlos' if esc }}.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
+{% else %}<tr><td colspan="7" class="sub">El sitio aún no tiene equipos asociados{{ ': «Editar sitio» para agregarlos' if esc }}.</td></tr>{% endfor %}</table><div class="pag-js"></div></div>
 
 <div class="card fi-lista" style="margin-top:14px;padding:0" id="alertas"><div class="fi-lcab"><h2>Alertas del sitio · {{ hallazgos|length }}</h2></div>
 <table class="sin-pag"><tr><th>Severidad</th><th>Alerta</th><th>Equipo</th></tr>

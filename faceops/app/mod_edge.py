@@ -17,8 +17,9 @@ from . import requiere_login
 from .bd import ahora, auditar, ej, j, q, q1
 from .vistas import bp, equipos_visibles, hallazgos_visibles, EP_ALIAS
 
-TIPOS = {"TDA": "Tienda", "SUC": "Sucursal", "BOD": "Bodega", "CD": "Centro de distribución"}
-RE_CODIGO = re.compile(r"^([A-Z]{2})-([A-Z]{3})-(TDA|SUC|BOD|CD)-(\d{3})$")
+TIPOS = {"TDA": "Tienda", "SUC": "Sucursal", "BOD": "Bodega", "CD": "Centro de distribución", "OFI": "Oficina"}
+CON_UBICACIONES = ("OFI",)   # tipos con ubicaciones internas (pisos, alas)
+RE_CODIGO = re.compile(r"^([A-Z]{2})-([A-Z]{3})-(TDA|SUC|BOD|CD|OFI)-(\d{3})$")
 RE_NODO = re.compile(r"^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$")
 # Acciones del sitio en AAP (nombre en AAP). Mientras no estén publicadas y certificadas aparecen deshabilitadas con su motivo.
 ENERGIA_EDGE = "Edge · Encender o apagar equipos del sitio"
@@ -28,7 +29,7 @@ ACCIONES = [  # área, nombre, texto, nombre en AAP
     ("Inventario", "Agrupar los equipos del sitio", "Crea o actualiza el grupo del sitio en el inventario de AAP con sus equipos", "Edge · Agrupar equipos del sitio"),
 ]
 EP_ALIAS.update({"consola.edge_ficha": "consola.edge", "consola.edge_guardar": "consola.edge", "consola.edge_accion": "consola.edge",
-                 "consola.edge_energia": "consola.edge", "consola.edge_grupo_guardar": "consola.edge", "consola.edge_grupo_eliminar": "consola.edge"})
+                 "consola.edge_energia": "consola.edge", "consola.edge_grupo_guardar": "consola.edge", "consola.edge_grupo_eliminar": "consola.edge", "consola.edge_estacion_asignar": "consola.estaciones"})
 
 
 def _tabla():
@@ -41,9 +42,13 @@ def _tabla():
     CREATE TABLE IF NOT EXISTS edge_grupos (
       id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, nombre TEXT NOT NULL, descripcion TEXT DEFAULT '', demo INTEGER DEFAULT 0,
       creado TEXT, autor TEXT DEFAULT '', UNIQUE(cliente_id, nombre));""")
-    if "grupo_id" not in {r["name"] for r in con().execute("PRAGMA table_info(edge_sitios)")}:
-        con().execute("ALTER TABLE edge_sitios ADD COLUMN grupo_id INTEGER")   # un grupo por sitio (para focalizar)
-        con().commit()
+    hay = {r["name"] for r in con().execute("PRAGMA table_info(edge_sitios)")}
+    for col, tipo in (("grupo_id", "INTEGER"),                 # un grupo por sitio (para focalizar)
+                      ("ubicaciones", "TEXT DEFAULT '[]'"),     # ubicaciones internas de una oficina: «Piso 1», «Ala norte»…
+                      ("ubic_eq", "TEXT DEFAULT '{}'")):        # equipo_id → ubicación
+        if col not in hay:
+            con().execute(f"ALTER TABLE edge_sitios ADD COLUMN {col} {tipo}")
+            con().commit()
 
 
 # ------------------------------------------------------------------ grupos de sitios (p. ej. «Zona Norte», «Mall»): para saber dónde focalizar
@@ -95,7 +100,14 @@ def nodo_sugerido(codigo):
 
 def sitios(cliente_id):
     _tabla()
-    return [dict(s, equipos_l=j(s["equipos"], []) or []) for s in q("SELECT * FROM edge_sitios WHERE cliente_id=? ORDER BY codigo", cliente_id)]
+    return [_con_listas(s) for s in q("SELECT * FROM edge_sitios WHERE cliente_id=? ORDER BY codigo", cliente_id)]
+
+
+def _con_listas(s):
+    s["equipos_l"] = j(s.get("equipos"), []) or []
+    s["ubicaciones_l"] = j(s.get("ubicaciones"), []) or []
+    s["ubic_eq_d"] = {int(k): v for k, v in (j(s.get("ubic_eq"), {}) or {}).items()}
+    return s
 
 
 def validar(cliente_id, f, actual=None):
@@ -107,7 +119,7 @@ def validar(cliente_id, f, actual=None):
         if codigo != codigo.upper():
             raise ValueError("El código va en mayúsculas (p. ej. CL-SCL-TDA-014)")
         if not RE_CODIGO.match(codigo):
-            raise ValueError("Formato de código no válido: PAÍS-CIUDAD-TIPO-NNN, p. ej. CL-SCL-TDA-014 (tipos: TDA, SUC, BOD, CD)")
+            raise ValueError("Formato de código no válido: PAÍS-CIUDAD-TIPO-NNN, p. ej. CL-SCL-TDA-014 (tipos: TDA, SUC, BOD, CD, OFI)")
         if q1("SELECT id FROM edge_sitios WHERE cliente_id=? AND codigo=?", cliente_id, codigo):
             raise ValueError(f"Ya existe un sitio con el código {codigo}")
     m = RE_CODIGO.match(codigo)
@@ -149,20 +161,34 @@ def validar(cliente_id, f, actual=None):
             grupo_id = -1
         if not q1("SELECT id FROM edge_grupos WHERE id=? AND cliente_id=?", grupo_id, cliente_id):
             raise ValueError("Grupo no válido")
+    ubic, ubic_eq = [], {}
+    if m.group(3) in CON_UBICACIONES:
+        for u in (f.get("ubicaciones") or "").replace("\r", "").split("\n"):
+            u = u.strip()[:40]
+            if u and u.lower() not in {x.lower() for x in ubic}:
+                ubic.append(u)
+        if len(ubic) > 40:
+            raise ValueError("Máximo 40 ubicaciones por sitio")
+        for i in ids:
+            u = (f.get(f"ubic_{i}") or "").strip()
+            if u and u in ubic:
+                ubic_eq[str(i)] = u
     return {"codigo": codigo, "alias": alias, "tipo": m.group(3), "pais": m.group(1), "ciudad": ciudad, "nodo": nodo, "hop": hop, "equipos": ids,
-            "grupo_id": grupo_id}
+            "grupo_id": grupo_id, "ubicaciones": ubic, "ubic_eq": ubic_eq}
 
 
 def guardar(cliente_id, d, quien, actual=None, demo=False):
     _tabla()
     if actual:
-        ej("UPDATE edge_sitios SET alias=?, ciudad=?, nodo=?, hop=?, equipos=?, grupo_id=?, actualizado=?, autor=? WHERE id=? AND cliente_id=?",
-           d["alias"], d["ciudad"], d["nodo"], d["hop"], json.dumps(d["equipos"]), d.get("grupo_id"), ahora(), quien, actual["id"], cliente_id)
+        ej("UPDATE edge_sitios SET alias=?, ciudad=?, nodo=?, hop=?, equipos=?, grupo_id=?, ubicaciones=?, ubic_eq=?, actualizado=?, autor=? WHERE id=? AND cliente_id=?",
+           d["alias"], d["ciudad"], d["nodo"], d["hop"], json.dumps(d["equipos"]), d.get("grupo_id"), json.dumps(d.get("ubicaciones") or [], ensure_ascii=False),
+           json.dumps(d.get("ubic_eq") or {}, ensure_ascii=False), ahora(), quien, actual["id"], cliente_id)
         auditar(quien, cliente_id, "editar sitio edge", d["codigo"], {k: d.get(k) for k in ("alias", "ciudad", "nodo", "hop", "equipos", "grupo_id")})
         return actual["id"]
-    sid = ej("INSERT INTO edge_sitios(cliente_id, codigo, alias, tipo, pais, ciudad, nodo, hop, equipos, grupo_id, demo, creado, actualizado, autor) "
-             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cliente_id, d["codigo"], d["alias"], d["tipo"], d["pais"], d["ciudad"], d["nodo"], d["hop"],
-             json.dumps(d["equipos"]), d.get("grupo_id"), 1 if demo else 0, ahora(), ahora(), quien)
+    sid = ej("INSERT INTO edge_sitios(cliente_id, codigo, alias, tipo, pais, ciudad, nodo, hop, equipos, grupo_id, ubicaciones, ubic_eq, demo, creado, actualizado, autor) "
+             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cliente_id, d["codigo"], d["alias"], d["tipo"], d["pais"], d["ciudad"], d["nodo"], d["hop"],
+             json.dumps(d["equipos"]), d.get("grupo_id"), json.dumps(d.get("ubicaciones") or [], ensure_ascii=False),
+             json.dumps(d.get("ubic_eq") or {}, ensure_ascii=False), 1 if demo else 0, ahora(), ahora(), quien)
     auditar(quien, cliente_id, "crear sitio edge", d["codigo"], {"demo": demo})
     return sid
 
@@ -172,6 +198,7 @@ def sembrar_demo_lab(cliente_id, quien="faceops"):
     _tabla()
     if q1("SELECT id FROM edge_sitios WHERE cliente_id=? AND demo=1", cliente_id):
         sembrar_grupos_demo(cliente_id, quien)
+        sembrar_oficina_demo(cliente_id, quien)
         return None
     usados = {i for s in sitios(cliente_id) for i in s["equipos_l"]}
     cand = [e for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado' ORDER BY nombre", cliente_id)
@@ -183,7 +210,26 @@ def sembrar_demo_lab(cliente_id, quien="faceops"):
         return None
     sid = guardar(cliente_id, d, quien, demo=True)
     sembrar_grupos_demo(cliente_id, quien)
+    sembrar_oficina_demo(cliente_id, quien)
     return sid
+
+
+def sembrar_oficina_demo(cliente_id, quien="faceops"):
+    """UN sitio de oficina «demo» (CL-SCL-OFI-001) con Piso 1 y Piso 2 que agrupa las estaciones de trabajo que ya existen en el
+    lab (no crea infraestructura). Idempotente: si ya existe, no lo toca."""
+    _tabla()
+    cod = "CL-SCL-OFI-001"
+    if q1("SELECT id FROM edge_sitios WHERE cliente_id=? AND codigo=?", cliente_id, cod):
+        return None
+    usados = {i for s in sitios(cliente_id) for i in s["equipos_l"]}
+    est = [e for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado' ORDER BY nombre", cliente_id)
+           if (e.get("categoria") or "") == "estación de trabajo" and e["id"] not in usados]
+    pisos = ["Piso 1", "Piso 2"]
+    g1 = q1("SELECT id FROM edge_grupos WHERE cliente_id=? AND demo=1 ORDER BY id LIMIT 1", cliente_id)
+    d = {"codigo": cod, "alias": "Oficina central (demo)", "tipo": "OFI", "pais": "CL", "ciudad": "Santiago", "nodo": nodo_sugerido(cod), "hop": "",
+         "equipos": [e["id"] for e in est], "grupo_id": g1["id"] if g1 else None, "ubicaciones": pisos,
+         "ubic_eq": {str(e["id"]): pisos[n % 2] for n, e in enumerate(est)}}
+    return guardar(cliente_id, d, quien, demo=True)
 
 
 def sembrar_grupos_demo(cliente_id, quien="faceops"):
@@ -356,10 +402,18 @@ def diagrama(s, eqs, m, pcts):
     _, en_top, en_bot = caja(cx - 150, y, 300, BH, s["nodo"] or "sin execution node", f"execution node · {t_en}", en_p, mono=True)
     lineas.append({"x1": cx, "y1": en_top, "x2": cx, "y2": sube, "tunel": True, "txt": "malla 27199/tcp · la inicia el sitio"})
     y = en_bot + 46
+    ubq = s.get("ubic_eq_d") or {}
+    secciones = []
     for k, nom in SECC_DIAG:
         grupo_ = [e for e in eqs if clase_diag(e) == k]
-        if not grupo_:
-            continue
+        if k == "est" and s.get("ubicaciones_l"):   # oficina: estaciones agrupadas por ubicación (piso, ala)
+            for u in s["ubicaciones_l"] + [""]:
+                gu = [e for e in grupo_ if (ubq.get(e["id"]) or "") == u]
+                if gu:
+                    secciones.append((f"{nom} · {u or 'sin ubicación'}", gu))
+        elif grupo_:
+            secciones.append((nom, grupo_))
+    for nom, grupo_ in secciones:
         textos.append({"x": 40, "y": y - 8, "txt": f"{nom} · {len(grupo_)}"})
         for i0 in range(0, len(grupo_), POR_FILA):
             fila = grupo_[i0:i0 + POR_FILA]
@@ -433,7 +487,7 @@ def edge_ficha(sid):
     s = q1("SELECT * FROM edge_sitios WHERE id=? AND cliente_id=?", sid, g.cliente["id"])
     if not s:
         abort(404)
-    s["equipos_l"] = j(s["equipos"], []) or []
+    _con_listas(s)
     vis = equipos_visibles()
     eqs = _equipos_de(s, vis)
     esc = g.perfil["modo"] == "escritura"
@@ -491,7 +545,7 @@ def _sitio_post(sid):
     s = q1("SELECT * FROM edge_sitios WHERE id=? AND cliente_id=?", sid, g.cliente["id"])
     if not s:
         return None, ({"error": "Sitio no válido"}, 400)
-    s["equipos_l"] = j(s["equipos"], []) or []
+    _con_listas(s)
     return s, None
 
 
@@ -571,3 +625,78 @@ def edge_grupo_eliminar(gid):
     except ValueError as err:
         flash(str(err), "error")
     return redirect(url_for("consola.edge", grupos=1))
+
+
+# ------------------------------------------------------------------ estaciones de trabajo por sitio y ubicación (Edge × Estaciones)
+def estaciones_por_sitio():
+    """Las estaciones de trabajo visibles agrupadas por sitio Edge y ubicación (piso), con la salud de cada una (la misma de la
+    lista de máquinas) y la agregada de cada grupo. Las que no están en ningún sitio van en «Sin sitio»."""
+    from .vistas import _con_salud, seccion_eq
+    cid = g.cliente["id"]
+    est = [e for e in equipos_visibles() if seccion_eq(e) == "estaciones"]
+    _con_salud(est)
+    ss, grs = sitios(cid), {x["id"]: x for x in grupos(cid)}
+    donde = {}
+    for s in ss:
+        for i in s["equipos_l"]:
+            donde[i] = (s, s["ubic_eq_d"].get(i, ""))
+    bloques = []
+
+    def bloque(s, u, lista):
+        val = [e["salud"]["salud"] for e in lista if e.get("salud") and e["salud"].get("salud") is not None]
+        bloques.append({"sitio": s, "ubic": u, "grupo": grs.get((s or {}).get("grupo_id")), "estaciones": lista,
+                        "salud": round(sum(val) / len(val)) if val else None})
+    for s in ss:
+        mios = [e for e in est if donde.get(e["id"], (None,))[0] is s]
+        for u in s["ubicaciones_l"] + [""]:
+            lu = [e for e in mios if (donde[e["id"]][1] or "") == u]
+            if lu:
+                bloque(s, u, lu)
+    sin = [e for e in est if e["id"] not in donde]
+    if sin:
+        bloque(None, "", sin)
+    return {"bloques": bloques, "sitios": ss, "grupos": list(grs.values()), "total": len(est)}
+
+
+@bp.app_context_processor
+def _ctx_edge():
+    return {"edge_estaciones": estaciones_por_sitio, "edge_sitios_alta": lambda: [s for s in sitios(g.cliente["id"])] if g.get("cliente") else []}
+
+
+@bp.route("/edge/estacion", methods=["POST"])
+@requiere_login
+def edge_estacion_asignar():
+    """Tras el alta de una estación de trabajo: la asigna a un sitio Edge y a su ubicación (piso). Solo registra la pertenencia
+    en FaceOps: no cambia nada en el equipo."""
+    d = request.get_json(silent=True) or {}
+    if d.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    _tabla()
+    from .vistas import seccion_eq
+    e = next((x for x in equipos_visibles() if x["nombre"] == (d.get("nombre") or "").strip()), None)
+    if not e or seccion_eq(e) != "estaciones":
+        return {"error": "Estación de trabajo no encontrada"}, 400
+    try:
+        sid = int(d.get("sitio") or 0)
+    except (TypeError, ValueError):
+        sid = 0
+    s = q1("SELECT * FROM edge_sitios WHERE id=? AND cliente_id=?", sid, g.cliente["id"])
+    if not s:
+        return {"error": "Sitio no válido"}, 400
+    _con_listas(s)
+    otro = next((x for x in sitios(g.cliente["id"]) if x["id"] != s["id"] and e["id"] in x["equipos_l"]), None)
+    if otro:
+        return {"error": f"{e['nombre']} ya pertenece a {otro['codigo']}"}, 400
+    u = (d.get("ubic") or "").strip()
+    if u and u not in s["ubicaciones_l"]:
+        return {"error": "Ubicación no válida para el sitio"}, 400
+    eqs = s["equipos_l"] + ([e["id"]] if e["id"] not in s["equipos_l"] else [])
+    ub = {str(k): v for k, v in s["ubic_eq_d"].items()}
+    if u:
+        ub[str(e["id"])] = u
+    else:
+        ub.pop(str(e["id"]), None)
+    ej("UPDATE edge_sitios SET equipos=?, ubic_eq=?, actualizado=?, autor=? WHERE id=?", json.dumps(eqs), json.dumps(ub, ensure_ascii=False), ahora(),
+       g.usuario["usuario"], s["id"])
+    auditar(g.usuario["usuario"], g.cliente["id"], "asignar estación a sitio edge", s["codigo"], {"equipo": e["nombre"], "ubicacion": u})
+    return {"ok": True}

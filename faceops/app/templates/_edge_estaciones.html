@@ -1,0 +1,37 @@
+{# Estaciones de trabajo agrupadas por sitio Edge y ubicación (piso), con la salud agregada de cada grupo y filtros por grupo
+   Edge, sitio y piso. Las que no están en un sitio van en «Sin sitio». Datos: edge_estaciones() (mod_edge). #}
+{% set ed_ = edge_estaciones() %}
+{% macro barra_e(p) %}{% if p is not none %}{% set nv = semaforo_salud(p) %}<span class="salud-barra s-{{ nv }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ p }}%"></span></span><b>{{ p }}%</b></span>{% else %}<span class="salud-barra s-gris"><span class="sb-pista"></span><b>—</b></span>{% endif %}{% endmacro %}
+<div class="card" style="padding:0" id="est-sitios">
+<div class="fi-lcab" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px 6px">
+<select id="es-grupo" aria-label="Filtrar por grupo Edge" style="width:auto"><option value="">Todos los grupos Edge</option>{% for gr in ed_.grupos %}<option value="{{ gr.id }}">{{ gr.nombre }}</option>{% endfor %}<option value="sin">Sin grupo</option></select>
+<select id="es-sitio" aria-label="Filtrar por sitio" style="width:auto"><option value="">Todos los sitios</option>{% for s in ed_.sitios %}<option value="{{ s.id }}" data-grupo="{{ s.grupo_id or 'sin' }}">{{ s.codigo }}{{ ' · ' ~ s.alias if s.alias }}</option>{% endfor %}<option value="sin">Sin sitio</option></select>
+<select id="es-piso" aria-label="Filtrar por piso o ubicación" style="width:auto"><option value="">Todas las ubicaciones</option></select>
+<span class="sub" id="es-cuenta">{{ ed_.total }} estaci{{ 'ones' if ed_.total != 1 else 'ón' }}</span>
+<input type="search" id="es-q" placeholder="Buscar estación: nombre, IP, sistema…" aria-label="Buscar estación" style="margin-left:auto;max-width:300px;width:100%"></div>
+{% if ed_.bloques %}<div style="overflow-x:auto"><table class="sin-pag es-tab"><thead><tr><th>Estación</th><th>IP</th><th>Sistema</th><th>Ambiente</th><th>Encendido</th><th style="min-width:150px">Salud</th></tr></thead>
+{% for b in ed_.bloques %}<tbody class="es-gr" data-sitio="{{ b.sitio.id if b.sitio else 'sin' }}" data-grupo="{{ (b.sitio.grupo_id or 'sin') if b.sitio else 'nada' }}" data-piso="{{ b.ubic }}">
+<tr class="es-cab"><td colspan="5"><button type="button" class="ed-pliega" aria-expanded="true"><i class="chev"></i>{% if b.sitio %}<b class="mono">{{ b.sitio.codigo }}</b>{% if b.sitio.alias %} <span>{{ b.sitio.alias }}</span>{% endif %}{% if b.ubic %} <span>› {{ b.ubic }}</span>{% elif b.sitio.ubicaciones_l %} <span class="sub">› sin ubicación</span>{% endif %}{% if b.grupo %} <span class="chip">{{ b.grupo.nombre }}</span>{% endif %}{% if b.sitio.demo %} <span class="chip s-media">demo</span>{% endif %}{% else %}<b>Sin sitio</b>{% endif %}
+<span class="sub es-n">{{ b.estaciones|length }} estaci{{ 'ones' if b.estaciones|length != 1 else 'ón' }}</span></button>{% if b.sitio %} <a class="sub" style="font-size:12px" href="{{ url_for('consola.edge_ficha', sid=b.sitio.id) }}">ficha del sitio ›</a>{% endif %}</td><td>{{ barra_e(b.salud) }}</td></tr>
+{% for e in b.estaciones %}<tr class="es-fila"><td><a class="mono" href="{{ url_for('consola.equipo', eid=e.id) }}"><b>{{ e.nombre }}</b></a></td><td class="mono">{{ e.ip or '—' }}</td><td style="font-size:12px">{{ e.so or '—' }}</td><td>{{ e.ambiente or '—' }}</td>
+<td><span class="chip {{ 's-ok' if e.energia == 'encendido' else ('s-alta' if e.energia == 'apagado' else '') }}">{{ e.energia or '—' }}</span></td><td>{{ barra_e(e.salud.salud if e.salud else none) }}</td></tr>{% endfor %}</tbody>{% endfor %}
+<tbody><tr id="es-nada" style="display:none"><td colspan="6" class="sub">Ninguna estación coincide con el filtro.</td></tr></tbody></table></div>
+{% else %}<p class="vacio" style="padding:0 16px 16px">Aún no hay estaciones de trabajo{{ ': usa «+ Agregar estación de trabajo»' if perfil_actual.modo == 'escritura' }}.</p>{% endif %}
+</div>
+<style>.es-tab .es-cab td{background:var(--soft);border-top:1px solid var(--line)}.ed-pliega{border:0;background:none;padding:0;cursor:pointer;color:inherit;font:inherit;display:inline-flex;gap:6px;align-items:baseline;flex-wrap:wrap;text-align:left}
+.ed-pliega .chev{display:inline-block;width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-right:4px;transition:transform .15s}.es-gr.plegado .ed-pliega .chev{transform:rotate(-45deg)}</style>
+<script>(()=>{
+const UB={ {% for s in ed_.sitios %}"{{ s.id }}":{{ s.ubicaciones_l|tojson }}{{ ',' if not loop.last }}{% endfor %} };
+const q=document.getElementById('es-q'),gs=document.getElementById('es-grupo'),ss=document.getElementById('es-sitio'),ps=document.getElementById('es-piso'),cu=document.getElementById('es-cuenta'),nada=document.getElementById('es-nada');
+const grs=[...document.querySelectorAll('.es-gr')];
+function pisos(){const v=ps.value;let us=[];if(ss.value&&ss.value!=='sin')us=UB[ss.value]||[];else Object.values(UB).forEach(l=>l.forEach(u=>{if(!us.includes(u))us.push(u);}));
+ ps.innerHTML='<option value="">Todas las ubicaciones</option>'+us.map(()=>'<option></option>').join('');[...ps.options].slice(1).forEach((o,i)=>{o.value=us[i];o.textContent=us[i];});ps.value=us.includes(v)?v:'';ps.disabled=!us.length;}
+function f(){const v=(q.value||'').toLowerCase().trim(),g=gs.value,s=ss.value,p=ps.value;let n=0;
+ [...ss.options].slice(1).forEach(o=>{o.hidden=!!g&&o.value!=='sin'&&o.dataset.grupo!==g;});
+ grs.forEach(b=>{const ok=(!g||b.dataset.grupo===g)&&(!s||b.dataset.sitio===s)&&(!p||b.dataset.piso===p);let k=0;
+  b.querySelectorAll('.es-fila').forEach(r=>{const m=ok&&(!v||r.textContent.toLowerCase().includes(v));r.style.display=m&&!b.classList.contains('plegado')?'':'none';if(m)k++;});
+  b.style.display=k?'':'none';n+=k;});
+ if(nada)nada.style.display=n?'none':'';cu.textContent=n+(n===1?' estación':' estaciones');}
+gs.addEventListener('change',()=>{if(ss.value&&ss.selectedOptions[0].hidden)ss.value='';f();});ss.addEventListener('change',()=>{pisos();f();});ps.addEventListener('change',f);q.addEventListener('input',f);
+grs.forEach(b=>b.querySelector('.ed-pliega').addEventListener('click',e=>{const pl=b.classList.toggle('plegado');e.currentTarget.setAttribute('aria-expanded',pl?'false':'true');f();}));
+pisos();f();})();</script>

@@ -1,24 +1,26 @@
 {# Flotante lateral derecho de alta o edición de un sitio edge. El código técnico es inmutable: al editar no se cambia. #}
 {% macro cajon_sitio(s, equipos, ocupados, accion_url, grupos=[]) %}
-<style>#fi-cx .ed-eq{display:flex;flex-direction:row;gap:8px;align-items:baseline;font-weight:400;font-size:13px;margin:0}#fi-cx .ed-eq>*{margin:0}#fi-cx .ed-eq .sub{font-size:11.5px}#fi-cx .ed-eq input{align-self:center}#fi-cx .ed-otro{opacity:.55}</style>
+<style>#fi-cx .ed-eq{display:flex;flex-direction:row;gap:8px;align-items:baseline;font-weight:400;font-size:13px;margin:0}#fi-cx .ed-eq>*{margin:0}#fi-cx .ed-eq .sub{font-size:11.5px}#fi-cx .ed-eq input{align-self:center}#fi-cx .ed-otro{opacity:.55}#fi-cx .ed-usel{margin-left:auto !important;width:auto;max-width:130px;font-size:12px;padding:1px 4px;align-self:center}</style>
 <aside id="fi-cx" class="cajon" hidden aria-label="{{ 'Editar sitio' if s else 'Agregar sitio' }}"><div class="cajon-barra"><b style="font-size:15px">{{ ('Editar sitio · ' ~ s.codigo) if s else 'Agregar sitio' }}</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
 <form method="post" action="{{ accion_url }}" class="form-infra" autocomplete="off" style="display:flex;flex-direction:column;gap:10px"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <label>Tipo{% if not s %} <span class="req" aria-hidden="true">*</span>{% endif %}<select {{ 'name=tipo required id=ed-tipo-sel'|safe if not s else 'disabled' }}>{% if not s %}<option value="">Elige el tipo…</option>{% endif %}{% for k, n in tipos.items() %}<option value="{{ k }}" {{ 'selected' if s and s.tipo == k }}>{{ n }} ({{ k }})</option>{% endfor %}</select></label>
 {% if s %}<p class="sub" style="margin:-6px 0 0;font-size:12px">El tipo es parte del código técnico, que no cambia.</p>{% endif %}
 {% if s %}<label>Código técnico<input value="{{ s.codigo }}" disabled class="mono"></label><p class="sub" style="margin:-6px 0 0;font-size:12px">El código no cambia: es la identidad del sitio en AAP (grupo <span class="mono">{{ s.codigo|lower|replace('-', '_') }}</span>).</p>
-{% else %}<label>Código técnico <span class="req" aria-hidden="true">*</span><input name="codigo" required class="mono" placeholder="CL-SCL-TDA-014" pattern="[A-Z]{2}-[A-Z]{3}-(TDA|SUC|BOD|CD)-[0-9]{3}" title="PAÍS-CIUDAD-TIPO-NNN en mayúsculas, p. ej. CL-SCL-TDA-014" id="ed-cod"></label>
-<p class="sub" style="margin:-6px 0 0;font-size:12px">PAÍS-CIUDAD-TIPO-NNN en mayúsculas. Tipos: TDA tienda · SUC sucursal · BOD bodega · CD centro de distribución. No se puede cambiar después.</p>{% endif %}
+{% else %}<label>Código técnico <span class="req" aria-hidden="true">*</span><input name="codigo" required class="mono" placeholder="CL-SCL-TDA-014" pattern="[A-Z]{2}-[A-Z]{3}-(TDA|SUC|BOD|CD|OFI)-[0-9]{3}" title="PAÍS-CIUDAD-TIPO-NNN en mayúsculas, p. ej. CL-SCL-TDA-014" id="ed-cod"></label>
+<p class="sub" style="margin:-6px 0 0;font-size:12px">PAÍS-CIUDAD-TIPO-NNN en mayúsculas. Tipos: TDA tienda · SUC sucursal · BOD bodega · CD centro de distribución · OFI oficina. No se puede cambiar después.</p>{% endif %}
 <label>Nombre comercial (alias)<input name="alias" maxlength="80" value="{{ s.alias if s }}" placeholder="Tienda Mall Plaza Oeste"></label>
 <label>Grupo<select name="grupo_id"><option value="">Sin grupo</option>{% for gr in grupos %}<option value="{{ gr.id }}" {{ 'selected' if s and s.grupo_id == gr.id }}>{{ gr.nombre }}</option>{% endfor %}</select></label>
 <p class="sub" style="margin:-6px 0 0;font-size:12px">Un grupo por sitio (p. ej. «Zona Norte», «Mall»): sirve para ver dónde focalizar. Los grupos se gestionan en Edge › Grupos.</p>
 <label>Ciudad<input name="ciudad" maxlength="60" value="{{ s.ciudad if s }}" placeholder="Santiago"></label>
 <label>Execution node del sitio<input name="nodo" class="mono" value="{{ s.nodo if s }}" placeholder="{{ (s.codigo|lower ~ '-en01') if s else 'cl-scl-tda-014-en01' }}" id="ed-nodo"></label>
 <label>Hop node<input name="hop" class="mono" value="{{ s.hop if s }}" placeholder="hop-dmz-01"></label><p class="sub" style="margin:-6px 0 0;font-size:12px">Opcional: solo si el sitio no tiene salida directa a la central (normalmente en la DMZ).</p>
+{% set ofi = s and s.tipo == 'OFI' %}<div id="ed-ubic-box" {{ '' if ofi else 'hidden' }}><label>Ubicaciones internas <span class="sub" style="font-weight:400">(una por línea)</span><textarea name="ubicaciones" id="ed-ubic" rows="3" placeholder="Piso 1&#10;Piso 3&#10;Ala norte">{{ (s.ubicaciones_l|join('\n')) if s }}</textarea></label>
+<p class="sub" style="margin:4px 0 0;font-size:12px">Solo en oficinas: pisos o alas donde están las estaciones. Asigna cada equipo a su ubicación en la lista de abajo; si quitas una ubicación, sus equipos quedan sin ubicación.</p></div>
 <fieldset style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:0"><legend class="sub" style="padding:0 4px">Equipos del sitio</legend>
 <input type="search" placeholder="Filtrar equipos…" aria-label="Filtrar equipos" id="ed-filtro" style="width:100%;margin:0 0 6px">
 <div id="ed-eqs" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">
 {% for e in equipos %}{% set otro = ocupados.get(e.id) %}<label class="ed-eq{{ ' ed-otro' if otro }}"><input type="checkbox" name="equipos" value="{{ e.id }}" {{ 'checked' if s and e.id in s.equipos_l }} {{ 'disabled' if otro }} style="width:auto;margin:0">
-<span class="mono">{{ e.nombre }}</span><span class="sub">{{ e.categoria or 'servidor' }}{{ ' · ' ~ e.ip if e.ip }}{{ (' · en ' ~ otro) if otro }}</span></label>
+<span class="mono">{{ e.nombre }}</span><span class="sub">{{ e.categoria or 'servidor' }}{{ ' · ' ~ e.ip if e.ip }}{{ (' · en ' ~ otro) if otro }}</span>{% if not otro %}<select name="ubic_{{ e.id }}" class="ed-usel" data-v="{{ s.ubic_eq_d.get(e.id, '') if s else '' }}" aria-label="Ubicación de {{ e.nombre }}" {{ '' if ofi else 'hidden' }}></select>{% endif %}</label>
 {% else %}<p class="sub" style="margin:0">No hay equipos en el inventario.</p>{% endfor %}</div>
 <p class="sub" style="margin:6px 0 0;font-size:12px">Por convención los equipos heredan el código: <span class="mono">{{ (s.codigo|lower) if s else 'cl-scl-tda-014' }}-pos01</span>, <span class="mono">-srv01</span>, <span class="mono">-en01</span>.</p></fieldset>
 <p class="sub" style="margin:0;font-size:12.5px">Registrar el sitio no crea infraestructura: las acciones sobre el sitio bajan por la malla de AAP con ticket y aprobación.</p>
@@ -26,6 +28,12 @@
 <script>(()=>{const f=document.getElementById('ed-filtro'),l=document.getElementById('ed-eqs');if(f)f.addEventListener('input',()=>{const v=f.value.toLowerCase().trim();l.querySelectorAll('label').forEach(x=>x.style.display=!v||x.textContent.toLowerCase().includes(v)?'':'none');});
 const c=document.getElementById('ed-cod'),n=document.getElementById('ed-nodo'),t=document.getElementById('ed-tipo-sel');
 if(c&&n)c.addEventListener('input',()=>{n.placeholder=(c.value||'CL-SCL-TDA-014').toLowerCase()+'-en01';});
+// oficinas: ubicaciones internas (pisos, alas) y la ubicación de cada equipo
+const ub=document.getElementById('ed-ubic'),ubx=document.getElementById('ed-ubic-box'),sels=[...document.querySelectorAll('#fi-cx .ed-usel')];
+const pintarU=()=>{const us=[...new Set((ub.value||'').split('\n').map(x=>x.trim()).filter(Boolean))];sels.forEach(x=>{const v=x.value||x.dataset.v;x.innerHTML='<option value="">sin ubicación</option>'+us.map(u=>'<option></option>').join('');[...x.options].slice(1).forEach((o,i)=>{o.value=us[i];o.textContent=us[i];});x.value=us.includes(v)?v:'';});};
+const verU=on=>{ubx.hidden=!on;sels.forEach(x=>x.hidden=!on);};
+if(ub){ub.addEventListener('input',pintarU);pintarU();}
+if(t&&ubx)t.addEventListener('change',()=>verU(t.value==='OFI'));
 // tipo ↔ código: elegir el tipo arma ese tramo del código; escribir el código elige el tipo
 if(c&&t){
  t.addEventListener('change',()=>{const p=(c.value||'').split('-');if(!t.value)return;while(p.length<4)p.push('');if(!p[0])p[0]='CL';if(!p[1])p[1]='SCL';p[2]=t.value;c.value=p.slice(0,4).join('-');c.dispatchEvent(new Event('input'));c.focus();});
