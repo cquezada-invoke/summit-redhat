@@ -9,7 +9,7 @@
 <a class="btn gris" href="{{ r.ca_publica }}/ca/ee/ca/displayBySerial?serialNumber=0x{{ f.serie|lower|replace('0x', '') }}" target="_blank" rel="noopener" title="Abre este certificado en el portal de la CA">Portal de la CA ↗</a></span></div>
 {% if f.estado in ('vencido', 'por vencer') and f.tipo == 'servidor' %}<div class="flash error" style="margin:10px 0 0">{{ 'Este certificado ya venció' if f.estado == 'vencido' else 'Este certificado vence en ' ~ f.dias ~ ' días' }}: reemplázalo para no afectar a las {{ maquinas|length }} máquina(s) que dependen de él.</div>{% endif %}
 
-{% if f.vida is not none %}<div class="card" style="margin:12px 0"><div class="fila" style="font-size:12.5px"><span>Emitido {{ f.inicio.strftime('%d-%m-%Y') if f.inicio }}</span><span class="der">Vence {{ f.fin.strftime('%d-%m-%Y %H:%M') if f.fin }} UTC</span></div>
+{% if f.vida is not none %}<div class="card" style="margin:12px 0"><div class="fila" style="font-size:12.5px"><span>Emitido {{ f.inicio|fecha('fecha') if f.inicio }}</span><span class="der">Vence {{ f.fin|fecha if f.fin }}</span></div>
 <div class="barra" style="height:10px;margin-top:6px" title="{{ f.vida }} % de su vida consumida"><i style="width:{{ f.vida }}%;background:{{ 'var(--bad)' if f.estado == 'vencido' else ('var(--warn)' if f.estado == 'por vencer' else 'var(--ok)') }}"></i></div>
 <p class="sub" style="font-size:12px;margin:6px 0 0">{{ f.vida }} % de su vida consumida · ventana de renovación: {{ r.umbral }} días antes del vencimiento.</p></div>{% endif %}
 
@@ -50,7 +50,7 @@
 
 {% if f.historial %}<h2 style="margin:16px 0 8px">Certificados anteriores · {{ f.historial|length }}</h2>
 <div class="card" style="padding:0"><table><tr><th>Serie</th><th>Vigencia</th><th>Estado</th></tr>
-{% for h in f.historial %}<tr><td><a class="mono" href="{{ url_for('consola.certificado', serie=h.serie) }}">{{ h.serie_txt }}</a></td><td style="font-size:12.5px">{{ h.inicio.strftime('%d-%m-%Y') if h.inicio }} → {{ h.fin.strftime('%d-%m-%Y') if h.fin }}</td><td><span class="chip {{ h.nivel }}">{{ h.estado }}</span></td></tr>{% endfor %}</table></div>{% endif %}
+{% for h in f.historial %}<tr><td><a class="mono" href="{{ url_for('consola.certificado', serie=h.serie) }}">{{ h.serie_txt }}</a></td><td style="font-size:12.5px">{{ h.inicio|fecha('fecha') if h.inicio }} → {{ h.fin|fecha('fecha') if h.fin }}</td><td><span class="chip {{ h.nivel }}">{{ h.estado }}</span></td></tr>{% endfor %}</table></div>{% endif %}
 
 {% if f.crudo %}<details class="card" style="margin-top:14px"><summary style="cursor:pointer"><b>Todos los campos que entrega la CA</b></summary>
 <table style="margin-top:8px">{% for k, v in f.crudo|dictsort %}<tr><td class="sub" style="width:220px">{{ k }}</td><td class="mono" style="font-size:12px;word-break:break-all">{{ v }}</td></tr>{% endfor %}</table></details>{% endif %}

@@ -6,7 +6,7 @@
     <p class="sub" style="margin:0 0 6px">Consola de acción del Managed Service de Invoke</p>
     {% if bloqueo.bloqueado %}<div style="background:#fdeaea;color:#a30000;border-radius:8px;padding:10px 12px;margin:4px 0 8px;font-size:14px"><b>Acceso suspendido</b><br>{{ bloqueo.motivo or 'El acceso a esta consola está suspendido. Contacta a Invoke.' }}</div>
     {% elif bloqueo.aviso %}<div style="background:#fdf5e1;color:#795600;border-radius:8px;padding:10px 12px;margin:4px 0 8px;font-size:13.5px">{{ bloqueo.aviso }}</div>{% endif %}
-    <label>Usuario<input type="text" name="usuario" autofocus autocomplete="username" required></label>
+    <input type="hidden" name="tz" value=""><label>Usuario<input type="text" name="usuario" autofocus autocomplete="username" required></label>
     <label>Clave<input type="password" name="clave" autocomplete="current-password" required></label>
     <p><button class="btn" style="width:100%;margin-top:8px">Ingresar</button></p>
     <p style="text-align:center;margin:4px 0 0"><a class="login-olvido" href="{{ url_for('consola.recuperar') }}">¿Olvidaste tu clave?</a></p>

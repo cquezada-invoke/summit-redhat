@@ -62,7 +62,7 @@ v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('k
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 {% if tickets_seg is defined and segmento and request.args.get('ambiente') != 'homologacion' %}<h2 style="margin:22px 0 6px;font-size:16px" id="actividad">Actividad lanzada en este segmento</h2>
 {% if tickets_seg %}<div class="tabla-scroll"><table style="font-size:13px"><tr><th>Ticket</th><th>Fecha</th><th>Acción</th><th>Máquinas</th><th>Motivo</th><th>Estado</th></tr>
-{% for t in tickets_seg %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td style="white-space:nowrap">{{ (t.creado or '')[:16].replace('T', ' ') }}</td>
+{% for t in tickets_seg %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td style="white-space:nowrap">{{ t.creado|fecha }}</td>
 <td>{{ t.accion or '—' }}</td><td>{{ t.maquinas|join(', ') or '—' }}</td><td class="sub">{{ (t.motivo or '')[:110] }}</td><td><span class="chip e-{{ t.estado }}">{{ t.estado.replace('_', ' ') }}</span></td></tr>{% endfor %}</table></div>
 {% else %}<p class="sub">Aún no se ha lanzado ninguna acción sobre este segmento.</p>{% endif %}{% endif %}
 <script>const AMB_SEG={{ (seg_info.ambiente if seg_info else '')|tojson }};
@@ -353,7 +353,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     panel.innerHTML=h;
     panel.querySelectorAll('.act-fila.exp > .act-lin').forEach(l=>l.onclick=e=>{ if(!e.target.closest('a,button')) l.parentElement.classList.toggle('abierto'); });
   }
-  const hora=t=>t?t.replace('T',' ').slice(11,16):'-';
+  const hora=t=>t?horaLocal.fmt(t,'hora'):'-';
   // radar de salud: un eje por principio; punteado = meta alcanzable, azul = actual, ámbar = brecha
   const PRINC=['Disponibilidad','Rendimiento','Seguridad','Recuperación','Costo','Excelencia operativa'];
   function estrellaSVG(act, meta){
@@ -537,7 +537,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     fetch({{ url_for('consola.mapa_lake_uso')|tojson }}+'?segmento='+encodeURIComponent(SEG)).then(r=>r.ok?r.json():null).then(x=>{ if(!x) return;
       const q=id=>document.getElementById(id), f=v=>v==null?'—':Number(v).toLocaleString('es-CL');
       if(q('lake-req')) q('lake-req').textContent=f(x.requests); if(q('lake-mb')&&x.mb!=null) q('lake-mb').textContent=n2(x.mb); if(q('lake-arch')) q('lake-arch').textContent=f(x.archivos);
-      if(q('lake-desde')&&x.desde) q('lake-desde').textContent='(desde '+x.desde.slice(0,16).replace('T',' ')+' UTC)';
+      if(q('lake-desde')&&x.desde) q('lake-desde').textContent='(desde '+horaLocal.fmt(x.desde)+')';
       if(q('lake-rps')) q('lake-rps').textContent=x.rps==null?'—':Number(x.rps).toLocaleString('es-CL',{maximumFractionDigits:2}); })
      .catch(()=>{}).finally(()=>{ usoLakeT=setTimeout(usoLake,5000); }); }
   function enlazarLakeSegmento(){ const bb=document.getElementById('b-bif-seg'), x=bifSegmento(); if(!bb||!x) return;
@@ -746,7 +746,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     pintar(cab('Historial de versiones','Volver','#')+'<p class="act-desc">'+d.nombre+' · cargando…</p>');
     panel.querySelector('.act-cab a').onclick=ev=>{ev.preventDefault(); mostrar(d);};
     fetch(d.respaldo.versiones).then(r=>r.json()).then(x=>{
-      const fecha=f=>new Date(f).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const fecha=f=>horaLocal.fmt(f);
       let h=cab('Historial de versiones','Volver','#',x.historial?'<a href="'+x.historial+'" target="_blank" title="Abrir en Git">Git ↗</a>':'');
       h+='<p class="act-desc"><b>'+d.nombre+'</b> · cada minuto se respalda en Git su configuración, paquetes exactos, servicios y los comandos que se ejecutan. Elige una versión para ver qué cambió y volver a ella.</p>';
       if(x.error){ h+='<p class="act-desc" style="color:var(--bad)">'+x.error+'</p>'; }
@@ -789,7 +789,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(d.bif){ const b=d.bif;
       h+=sec('Data lake');
       h+=fila({izq:'Bifurcación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
-        det:'Punto: <b>'+b.como+'</b>.<br>'+(b.activa?'Cada request que pasa por aquí se copia al data lake'+(b.por?' (activada por '+b.por+', '+(b.en||'').slice(0,16).replace('T',' ')+')':'')+'.'
+        det:'Punto: <b>'+b.como+'</b>.<br>'+(b.activa?'Cada request que pasa por aquí se copia al data lake'+(b.por?' (activada por '+b.por+', '+horaLocal.fmt(b.en||'')+')':'')+'.'
             :'Al activarla, cada request que pasa por aquí se copia al data lake en <b>'+b.destino+'</b>, sin tocar el camino del negocio.')
           +(b.declarada?'<br><span class="sub">La arquitectura del segmento declara su propio lake como componente.</span>':'')
           +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')

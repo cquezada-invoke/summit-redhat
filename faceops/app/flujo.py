@@ -5,6 +5,7 @@ tareas del catálogo que la componen. El mismo flujo se pinta en el ticket con e
 Formato: lista de columnas; cada columna es una lista de nodos que corren en paralelo.
 Nodo: {tipo: inicio | aprobacion | tarea | fin, titulo, sub, estado}"""
 from .bd import j, q
+from .hora_local import texto_utc
 
 ESTADOS = {"espera": "en espera", "curso": "en curso", "ok": "listo", "falla": "falló", "rechazo": "rechazada", "omitido": "no se ejecutó"}
 
@@ -93,7 +94,7 @@ def en_vivo(t, a, aap=None, avance=None, vig=None):
                 n["_i"], k_tarea = k_tarea, k_tarea + 1
             if n["tipo"] == "inicio":
                 n["estado"] = "ok"
-                n["sub"] = f"{t['numero']} · {(t.get('creado') or '')[:16].replace('T', ' ')}"
+                n["sub"] = f"{t['numero']} · {texto_utc(t.get('creado'), vacio='')}"
             elif n["tipo"] == "aprobacion" and n.get("area"):
                 f = next((x for x in filas if x["area"] == n["area"] and x["id"] not in usadas), None)
                 if f:

@@ -18,7 +18,7 @@
   <div><dt>Contacto principal</dt><dd>{{ (ct.contacto or {}).get('nombre') or '—' }} {% if (ct.contacto or {}).get('correo') %}· {{ ct.contacto.correo }}{% endif %}</dd></div>
   <div><dt>País · industria</dt><dd>{{ ct.pais or '—' }} · {{ ct.industria or '—' }}</dd></div>
   <div><dt>Prueba de concepto</dt><dd>{% if ct.poc and ct.poc.si %}{{ 'en el entorno del cliente' if ct.poc.entorno == 'cliente' else 'en el laboratorio de Invoke' }} · {{ ct.poc.inicio or '?' }} → {{ ct.poc.fin or '?' }}{% if ct.poc.objetivos %}<br><span class="sub" style="font-size:12px">{{ ct.poc.objetivos }}</span>{% endif %}{% else %}No{% endif %}</dd></div>
-  <div><dt>Alta</dt><dd>{{ ct.alta_por }} · {{ (ct.alta or '')[:10] }}{% if ct.vendedor %} · vendedor {{ ct.vendedor }}{% endif %}</dd></div>
+  <div><dt>Alta</dt><dd>{{ ct.alta_por }} · {{ ct.alta|fecha('fecha') if ct.alta else '' }}{% if ct.vendedor %} · vendedor {{ ct.vendedor }}{% endif %}</dd></div>
 </dl>
 {% set cts = ct.get('contactos') or ([ct.contacto] if ct.get('contacto') and ct.contacto.get('nombre') else []) %}
 <h3 style="margin:16px 0 6px">Contactos · {{ cts|length }}</h3>

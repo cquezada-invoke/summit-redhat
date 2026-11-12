@@ -4,7 +4,7 @@
 <div class="card"><table>
 <tr><td class="sub">Estado</td><td><span class="chip {{ r.est_t[1] }}">{{ r.est_t[0] }}</span></td></tr>
 <tr><td class="sub">Horario</td><td>{{ r.horario }}</td></tr>
-<tr><td class="sub">Disponible hasta</td><td><b>{{ r.expira_txt }}</b> (luego se elimina por completo)</td></tr>
+<tr><td class="sub">Disponible hasta</td><td><b>{{ r.expira|fecha }}</b> (luego se elimina por completo)</td></tr>
 {% if r.url %}<tr><td class="sub">Acceso</td><td><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.url }}</a></td></tr>{% endif %}
 </table>
 {% if r.estado == 'apagada' %}<form method="post" style="margin-top:12px"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn" {{ 'disabled' if not r.en_horario }}>Encender mi demo</button>

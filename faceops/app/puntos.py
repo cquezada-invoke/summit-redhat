@@ -11,6 +11,7 @@ import time
 import requests
 
 from .bd import ahora, ej, j, q, q1
+from .hora_local import texto_utc
 
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS puntos_restauracion (id INTEGER PRIMARY KEY, cliente_id INTEGER, equipo_id INTEGER, equipo TEXT,
@@ -158,7 +159,7 @@ def estado_ocp(f):
     ok_etcd = len(ult) >= 3 and ult[2] not in ("0", "", "None")
     return [("Versión del clúster", "ok" if v.get("version") else "falta", f"{v.get('version') or '—'} · canal {v.get('canal') or '—'} · sin vuelta atrás si se actualiza"),
             ("Respaldo de etcd", "ok" if ok_etcd else ("parcial" if et.get("cronjobs") else "falta"),
-             (f"último {ult[1][:16]} {'correcto' if ok_etcd else 'con falla'}" if ult else ("CronJob sin ejecuciones" if et.get("cronjobs") else "sin CronJob de respaldo (T-01)"))),
+             (f"último {texto_utc(ult[1])} {'correcto' if ok_etcd else 'con falla'}" if ult else ("CronJob sin ejecuciones" if et.get("cronjobs") else "sin CronJob de respaldo (T-01)"))),
             ("Operadores", "ok" if op.get("lista") else "falta", f"{len(op.get('lista') or [])} operador(es) con su versión"),
             ("Git de configuración", "ok" if gc.get("apps") else "falta", f"{len(gc.get('apps') or [])} aplicación(es) de Argo CD" if gc.get("apps") else "la configuración del clúster no está en GitOps"),
             ("Git de aplicaciones", "ok" if (ga.get("apps") or ga.get("segmentos")) else "falta",

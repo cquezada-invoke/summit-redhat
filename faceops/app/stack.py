@@ -116,6 +116,7 @@ def ruta_informe(eid):
 
 def informe_pdf(t, r):
     """Informe PDF de obsolescencia: índice, cuenta por fase y la tabla de componentes."""
+    from .correo import hora   # el informe va en la zona de quien pidió el ticket (o en UTC)
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet
@@ -126,7 +127,7 @@ def informe_pdf(t, r):
     doc = SimpleDocTemplate(ruta_informe(x["id"]), pagesize=landscape(A4), title="Evaluación del stack tecnológico")
     fase_n = {"fuera": "Fuera de soporte", "extendido": "Solo extendido", "mantencion": "Mantención", "completo": "Soporte completo", "desconocido": "Sin datos"}
     els = [Paragraph(f"Evaluación del stack tecnológico · {c['nombre']}", st["Title"]),
-           Paragraph(f"Ticket {t['numero']} · {r['fecha'][:16].replace('T', ' ')} · {r['equipos']} equipos · {r['componentes']} componentes", st["Normal"]),
+           Paragraph(f"Ticket {t['numero']} · {hora(r['fecha'], usuario_id=t.get('usuario_id'))} · {r['equipos']} equipos · {r['componentes']} componentes", st["Normal"]),
            Spacer(1, 8),
            Paragraph(f"<b>Índice de obsolescencia: {r['indice']} %</b> (0 % = todo con soporte completo; 100 % = todo fuera de soporte)", st["Heading2"]),
            Paragraph(" · ".join(f"{fase_n[k]}: {v}" for k, v in r["cuenta"].items() if v), st["Normal"]), Spacer(1, 10)]

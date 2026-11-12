@@ -11,7 +11,7 @@
 <td>{{ u.que_hace }}</td><td>{{ u.modelo }}<br><span class="sub" style="font-size:12px">{{ u.proveedor }}</span></td>
 <td>{{ u.envia }}</td><td>{{ u.nunca }}</td><td>{{ u.decide }}</td>
 <td>{% if clave %}<span class="chip ok">activa</span>{% else %}<span class="chip">inactiva (sin clave)</span>{% endif %}</td>
-<td style="text-align:right">{{ u.llamadas.n or 0 }}{% if u.llamadas.n %}<br><span class="sub" style="font-size:11.5px">{{ u.llamadas.ok or 0 }} ok · última {{ (u.llamadas.ultima or '')[:16]|replace('T', ' ') }}</span>{% endif %}</td></tr>{% endfor %}
+<td style="text-align:right">{{ u.llamadas.n or 0 }}{% if u.llamadas.n %}<br><span class="sub" style="font-size:11.5px">{{ u.llamadas.ok or 0 }} ok · última {{ u.llamadas.ultima|fecha }}</span>{% endif %}</td></tr>{% endfor %}
 </table>
 <p class="sub" style="font-size:12px;margin:8px 0 0">Se cuenta cada llamada (cuándo, cuál y si respondió), sin guardar su contenido. La clave vive en un archivo solo legible por FaceAdmin y nunca se muestra.</p></div>
 {% if no_ia %}<div class="card" style="margin-top:12px"><b>Sin IA</b><ul style="margin:6px 0 0">{% for x in no_ia %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}

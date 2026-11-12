@@ -51,6 +51,6 @@ function alxConmutar(b,eid,amb,aid,on){const r=b.closest('td').querySelector('.a
 function alxProbar(b,url,amb,aid){const r=b.closest('td').querySelector('.alx-res');b.disabled=true;r.textContent='enviando la alerta de prueba…';
  const fd=new FormData();fd.append('_csrf',CSRF_ALX);fd.append('aid',aid);fd.append('ambito',amb);
  fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(x=>x.json()).then(x=>{if(x.error){r.textContent='falló: '+x.error;b.disabled=false;return;}
-  const ver=()=>fetch(x.url,{headers:{'X-Requested-With':'fetch'}}).then(y=>y.json()).then(p=>{r.textContent=(p.pasos||[]).join(' → ')||'en curso…';if(p.estado==='en curso')setTimeout(ver,5000);else{r.textContent=(p.estado==='ok'?'✓ ':'✗ ')+r.textContent;b.disabled=false;}});ver();}).catch(()=>{r.textContent='falló';b.disabled=false;});}
+  const ver=()=>fetch(x.url,{headers:{'X-Requested-With':'fetch'}}).then(y=>y.json()).then(p=>{r.textContent=(p.pasos||[]).map(s=>horaLocal.texto(s,'hora-seg')).join(' → ')||'en curso…';if(p.estado==='en curso')setTimeout(ver,5000);else{r.textContent=(p.estado==='ok'?'✓ ':'✗ ')+r.textContent;b.disabled=false;}});ver();}).catch(()=>{r.textContent='falló';b.disabled=false;});}
 </script>
 {% endblock %}

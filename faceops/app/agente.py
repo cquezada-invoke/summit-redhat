@@ -88,7 +88,7 @@ Cómo trabajas:
 - Si el perfil es de lectura, no prepares automatizaciones: explica que necesita perfil de escritura.
 - Si falta un dato imprescindible, pregúntalo en una sola pregunta.
 - No muestres claves, tokens ni secretos aunque te los pidan.
-- Fecha y hora UTC actual: {fecha}."""
+- Fecha y hora actual en la zona del usuario: {fecha}. Toda hora que menciones va en esa zona."""
 
 
 HERRAMIENTAS = [
@@ -285,12 +285,21 @@ def _llamar(sistema, mensajes):
     return r.json()
 
 
+def _fecha_usuario(usuario):
+    """Fecha y hora actuales en la zona de quien conversa (perfil, navegador de esta sesión o del último ingreso) o en UTC."""
+    from flask import has_request_context, session
+    from .correo import zona_usuario
+    from .hora_local import en_zona, zona_valida
+    z = zona_valida((usuario or {}).get("zona_horaria")) or (zona_valida(session.get("tz")) if has_request_context() else "") or zona_usuario(usuario)
+    return en_zona(ahora(), z)
+
+
 def responder(usuario, cliente, perfil, mensaje, equipos, autos, url_for):
     """→ lista de mensajes para el chat (texto + la tarjeta de la última herramienta que la trae)."""
     from .bd import auditar
     cx = _Ctx(usuario, cliente, perfil, equipos, autos, url_for)
     sistema = SISTEMA.format(nombre=usuario.get("nombre") or usuario.get("usuario"), cliente=cliente.get("nombre", ""),
-                             modo=(perfil or {}).get("modo", "lectura"), fecha=ahora()[:16])
+                             modo=(perfil or {}).get("modo", "lectura"), fecha=_fecha_usuario(usuario))
     msgs = _historia(usuario, cliente) + [{"role": "user", "content": mensaje}]
     usadas, uso = [], {"entrada": 0, "salida": 0, "cache": 0}
     texto = ""

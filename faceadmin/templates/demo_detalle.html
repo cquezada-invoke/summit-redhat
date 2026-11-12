@@ -14,13 +14,13 @@
 <tr><td class="sub">Pedido</td><td>{{ d.tipo|capitalize }} · {{ d.semanas }} semana{{ 's' if d.semanas != 1 }}{% if vigente %} · quedan {{ d.dias }} días{% endif %}</td></tr>
 <tr><td class="sub">Período</td><td class="mono">{{ d.desde }} → {{ d.hasta }}</td></tr>
 <tr><td class="sub">FaceOps</td><td><b class="mono">{{ d.version }}</b> {{ '(instalada)' if d.version_instalada else '(se instalará)' }} · <a href="{{ url_for('demo_requisitos', did=d.id) }}" target="_blank" rel="noopener">requisitos técnicos para el cliente (PDF)</a></td></tr>
-<tr><td class="sub">Pedida por</td><td>{{ d.por }} · {{ d.creado[:16] }}</td></tr>{% if d.motivo %}<tr><td class="sub">Motivo</td><td>{{ d.motivo }}</td></tr>{% endif %}
+<tr><td class="sub">Pedida por</td><td>{{ d.por }} · {{ d.creado|fecha }}</td></tr>{% if d.motivo %}<tr><td class="sub">Motivo</td><td>{{ d.motivo }}</td></tr>{% endif %}
 <tr><td class="sub">Semanas usadas en la oportunidad</td><td>{{ o.demo_semanas }} de {{ max_poc_semanas() }}</td></tr>
 <tr><td class="sub">Licencias del cliente</td><td>{% if lic.aap %}<span class="chip ok">AAP · {{ lic.origen_t.get(lic.aap.origen, '') }}</span>{% else %}<span class="chip mal">falta AAP</span>{% endif %} {% if lic.rhel %}<span class="chip ok">RHEL</span>{% else %}<span class="chip mal">falta RHEL</span>{% endif %}</td></tr>
 <tr><td class="sub">Instancia</td><td class="mono">{{ c.instancia_id or '—' }}</td></tr></table></div>
 <div class="card"><h2>Instalaciones de esta PoC</h2>{% if d.its %}<table><tr><th>Inicio</th><th>Máquina</th><th>Resultado</th><th>Paso</th></tr>
-{% for x in d.its %}{% set ix = inst_t.get(x.resultado, (x.resultado, '')) %}<tr><td class="mono">{{ x.inicio[:16] }}</td><td class="mono">{{ x.host }}</td><td><span class="chip {{ ix[1] }}">{{ ix[0] }}</span></td><td>{{ x.paso }}</td></tr>{% endfor %}</table>
+{% for x in d.its %}{% set ix = inst_t.get(x.resultado, (x.resultado, '')) %}<tr><td class="mono">{{ x.inicio|fecha }}</td><td class="mono">{{ x.host }}</td><td><span class="chip {{ ix[1] }}">{{ ix[0] }}</span></td><td>{{ x.paso }}</td></tr>{% endfor %}</table>
 {% else %}<p class="sub">{{ inst_t[d.inst][0] }}: aún no se lanza ninguna instalación.</p>{% endif %}</div></div>
 <div class="card tabla-scroll"><h2>Lo que pasó durante la PoC</h2>{% if eventos %}<table style="font-size:13px"><tr><th>Fecha</th><th>Quién</th><th>Qué</th></tr>
-{% for e in eventos %}<tr><td class="mono">{{ e.fecha[:16] }}</td><td>{{ e.usuario }}</td><td>{{ e.accion }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Sin movimientos registrados en el período.</p>{% endif %}</div>
+{% for e in eventos %}<tr><td class="mono">{{ e.fecha|fecha }}</td><td>{{ e.usuario }}</td><td>{{ e.accion }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Sin movimientos registrados en el período.</p>{% endif %}</div>
 {% endblock %}

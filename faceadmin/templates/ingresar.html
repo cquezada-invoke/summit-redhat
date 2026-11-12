@@ -4,7 +4,7 @@
 {% elif recuperar %}<form method="post" action="{{ url_for('recuperar') }}" style="display:grid;gap:10px"><p class="sub" style="margin:0">Escribe tu usuario o correo: te enviamos un enlace de un solo uso para definir una nueva clave.</p>
 <label>Usuario o correo<input name="usuario" autocomplete="username" required autofocus></label><button class="btn">Enviar enlace</button>
 <a href="{{ url_for('ingresar') }}" class="sub">Volver a ingresar</a></form>
-{% else %}<form method="post" action="{{ url_for('ingresar') }}" style="display:grid;gap:10px"><label>Usuario<input name="usuario" autocomplete="username" required autofocus></label>
+{% else %}<form method="post" action="{{ url_for('ingresar') }}" style="display:grid;gap:10px"><input type="hidden" name="tz" value=""><label>Usuario<input name="usuario" autocomplete="username" required autofocus></label>
 <label>Clave<input name="clave" type="password" autocomplete="current-password" required></label><button class="btn">Ingresar</button>
 <a href="{{ url_for('recuperar') }}" class="sub" style="text-align:center">¿Olvidaste tu clave? Recuperar acceso</a></form>{% endif %}</div>
 {% endblock %}

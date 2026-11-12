@@ -5,7 +5,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Mono&family=Red+Hat+Text:wght@400;500;600;700&display=swap">
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}?v={{ version_faceops.build }}"></head>
+<link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}?v={{ version_faceops.build }}">
+<script src="{{ url_for('static', filename='hora-local.js') }}?v={{ version_faceops.build }}"></script></head>
 <body class="{{ 'embebido' if request.args.get('embebido') }}{{ ' solo-chat' if solo_chat }}">{% if request.args.get('embebido') %}<script>document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.parent!==window){const d=parent.document.getElementById('perfil-dlg');if(d&&d.open)d.close();}});</script>{% endif %}
 {% if MAQUETA %}<div style="position:fixed;left:50%;bottom:10px;transform:translateX(-50%);background:#f0ab00;color:#151515;font-size:12px;padding:3px 12px;border-radius:12px;z-index:9999;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.25)">Maqueta · datos emulados · las acciones se simulan</div>{% endif %}
 {% if usuario %}
@@ -40,7 +41,7 @@
 {% if ver_como %}<div style="background:#f0ab00;color:#151515;padding:6px 16px;font-size:13.5px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;position:relative;z-index:200">Estás viendo FaceOps como <b>{{ ver_como.otro.nombre }}</b> ({{ ver_como.otro.usuario }}) · solo lectura<a style="margin-left:auto;color:#151515;font-weight:700" href="{{ url_for('consola.ver_como_salir') }}">Volver a mi usuario</a></div>{% endif %}
 <header class="top">
   <button class="hamb" aria-label="Menú" onclick="document.body.classList.toggle(window.innerWidth>900?'nav-oculta':'nav-abierta')">☰</button>
-  <a class="marca" href="{{ url_for('consola.inicio') }}"><img class="marca-img" src="{{ url_for('static', filename='marca.png') }}" alt="" width="34" height="26"><span class="prod"><b>FaceOps</b><small>{{ 'Admin' if request.blueprint == 'admin' else 'Managed Service' }} · Invoke</small></span></a><span class="ver-chip" title="Versión de FaceOps en esta instancia ({{ version_faceops.instancia }}){% if version_faceops.commit %} · commit {{ version_faceops.commit[:7] }} del {{ version_faceops.fecha }}{% endif %}">{{ version_faceops.texto }}</span>
+  <a class="marca" href="{{ url_for('consola.inicio') }}"><img class="marca-img" src="{{ url_for('static', filename='marca.png') }}" alt="" width="34" height="26"><span class="prod"><b>FaceOps</b><small>{{ 'Admin' if request.blueprint == 'admin' else 'Managed Service' }} · Invoke</small></span></a><span class="ver-chip" title="Versión de FaceOps en esta instancia ({{ version_faceops.instancia }}){% if version_faceops.commit %} · commit {{ version_faceops.commit[:7] }} del {{ version_faceops.fecha|fecha_txt }}{% endif %}">{{ version_faceops.texto }}</span>
   <div class="der">
     {% if clientes|length > 1 and request.blueprint != 'admin' and modo_administracion() == 'centralizado' %}<a class="top-pill{{ ' on' if request.endpoint == 'consola.multicliente' }}" href="{{ url_for('consola.multicliente') }}" title="Todos los clientes que administra este FaceOps"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Clientes</span></a>{% endif %}
     {% if request.blueprint != 'admin' and cliente %}{% set gob = menu_nav()|selectattr('t', 'in', ['Gobierno de TI', 'Tickets', 'Arquitectura', 'Fábrica de software', 'Buenas prácticas', 'Disponibilidad', 'Seguridad', 'DevSecOps', 'Respaldos y recuperación', 'Monitoreo'])|list %}
@@ -119,7 +120,7 @@
 {% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
 <div class="contenido">
 {% block cuerpo %}{% endblock %}
-<p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops.texto }}{% if version_faceops.commit %} ({{ version_faceops.commit[:7] }} · {{ version_faceops.fecha }}){% endif %} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
+<p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops.texto }}{% if version_faceops.commit %} ({{ version_faceops.commit[:7] }} · {{ version_faceops.fecha|fecha }}){% endif %} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
 </div>
 </main>
 <div id="glosa" class="glosa" hidden></div><div id="fx-avisos" class="fx-avisos" aria-live="polite"></div>

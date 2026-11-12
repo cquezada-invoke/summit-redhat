@@ -5,7 +5,13 @@
 <tr><td class="sub">Correo</td><td>{{ u.correo or '—' }}</td></tr>
 <tr><td class="sub">Origen</td><td>{{ fuente }}</td></tr>
 <tr><td class="sub">Doble factor</td><td>{{ 'activo' if u.totp_activo else 'no activado' }}</td></tr>
-<tr><td class="sub">Último ingreso</td><td>{{ (u.ultimo_ingreso or '')[:16].replace('T', ' ') or '—' }}</td></tr>
+<tr><td class="sub">Último ingreso</td><td>{{ u.ultimo_ingreso|fecha }}</td></tr>
+<tr><td class="sub">Zona horaria</td><td><form method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<input name="zona_horaria" list="zonas-tz" value="{{ u.zona_horaria or '' }}" placeholder="Automática (la de tu navegador)" style="min-width:240px" aria-label="Zona horaria">
+<datalist id="zonas-tz"></datalist><button class="btn chico">Guardar</button>
+<span class="sub" style="font-size:12px">En pantalla ves la hora de tu navegador<span id="tz-nav"></span>. Los correos usan esta zona; si queda vacía, la de tu último ingreso{{ (' (' ~ u.zona_login ~ ')') if u.zona_login }}.</span></form>
+<script>(()=>{const s=document.getElementById('tz-nav');if(s&&window.horaLocal)s.textContent=' ('+horaLocal.etiqueta().replace('Hora local: ','')+')';
+try{const d=document.getElementById('zonas-tz');(Intl.supportedValuesOf?Intl.supportedValuesOf('timeZone'):[]).forEach(z=>{const o=document.createElement('option');o.value=z;d.appendChild(o);});}catch(e){}})();</script></td></tr>
 <tr><td class="sub">Cliente</td><td>{{ cliente.nombre }}</td></tr>
 {% if acc %}<tr><td class="sub">Grupos</td><td>{% for gr in grupos %}<span class="chip">{{ gr.nombre }}</span> {% else %}—{% endfor %}</td></tr>
 <tr><td class="sub">Roles de clúster</td><td>{% for c in acc.cluster|sort %}<span class="chip">{{ c }}</span> {% else %}—{% endfor %}</td></tr>

@@ -9,7 +9,7 @@
 <td class="mono" style="font-size:12.5px"><b>{{ x.id }}</b><br><span class="sub" style="font-size:11.5px">intento {{ x.n_intento }}</span></td>
 <td><b>{{ x.c.nombre }}</b><br><span class="sub" style="font-size:12px">{{ x.c.pais or '' }}</span></td>
 <td class="mono" style="font-size:12.5px">{{ x.host }}</td>
-<td class="mono" style="font-size:12.5px">{{ x.inicio[:16] }}</td>
+<td class="mono" style="font-size:12.5px">{{ x.inicio|fecha }}</td>
 <td>{{ x.paso }}{% if x.motivo %}<br><span class="sub" style="font-size:12px">{{ x.motivo[:140] }}</span>{% endif %}</td>
 <td>{% if x.avance is not none %}<div class="sb-barra" style="margin:0"><i style="width:{{ x.avance }}%;background:{{ '#3e8635' if x.resultado == 'commit' else ('#c9190b' if x.resultado in ('rollback', 'validacion') else '#0066cc') }}"></i></div><span class="sub" style="font-size:12px">{{ x.avance }} %{% if x.resta %} · faltan ≈{{ x.resta }} min{% endif %}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td>{{ x.min }} min</td>

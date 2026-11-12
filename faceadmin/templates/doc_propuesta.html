@@ -3,7 +3,7 @@
 h2{font-size:17px;margin:22px 0 6px;border-bottom:2px solid #ee0000;padding-bottom:3px}.sub{color:#6a6e73}table{border-collapse:collapse;width:100%}td,th{padding:5px 8px;border-bottom:1px solid #e0e0e0;text-align:left;vertical-align:top}
 td.n{text-align:right}@media print{body{margin:0}}</style></head><body>
 <p class="sub" style="margin:0">{{ em.nombre }} · FaceOps Managed Service</p>
-<h1>Propuesta comercial · FaceOps</h1><p class="sub">{{ p.numero }} · versión {{ p.version }} · {{ (p.creado or '')[:10] }} · para {{ c.razon_social or c.nombre }}</p>
+<h1>Propuesta comercial · FaceOps</h1><p class="sub">{{ p.numero }} · versión {{ p.version }} · {{ p.creado|fecha('fecha') if p.creado else '' }} · para {{ c.razon_social or c.nombre }}</p>
 <h2>Solución</h2><p>FaceOps: consola de operación con Ansible Automation Platform para {{ c.nombre }}, con inventario, salud, seguridad, recuperación y acciones con aprobación, en una instancia propia del cliente y con un consultor a cargo durante el contrato.</p>
 <h2>Alcance de habilitación · {{ a.nombre }}</h2><ol>{% for x in a.actividades %}<li>{{ x }}</li>{% endfor %}</ol>
 <p class="sub">Entregables: {{ a.entregables|join(' · ') }}. Plazo estimado: {{ a.semanas }} semanas ({{ a.horas }} horas).</p>

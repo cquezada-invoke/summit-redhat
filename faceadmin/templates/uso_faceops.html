@@ -4,7 +4,7 @@
 <form method="get" class="card fila" style="gap:10px;align-items:end;flex-wrap:wrap">
 <label>Instancia<br><select name="inst">{% for c in insts %}<option value="{{ c.codigo }}" {{ 'selected' if c.codigo == cod }}>{{ c.nombre }} ({{ c.codigo }}){% if c.codigo in llegan %} · {{ llegan[c.codigo].pulsos }} pulsos{% endif %}</option>{% endfor %}</select></label>
 <label>Desde<br><input type="date" name="desde" value="{{ desde }}"></label><label>Hasta<br><input type="date" name="hasta" value="{{ hasta }}"></label>
-<button class="btn">Ver</button>{% if cod in llegan %}<span class="sub">último lote recibido: {{ llegan[cod].ultimo }}</span>{% else %}<span class="sub">esta instancia aún no envía pulsos</span>{% endif %}</form>
+<button class="btn">Ver</button>{% if cod in llegan %}<span class="sub">último lote recibido: {{ llegan[cod].ultimo|fecha }}</span>{% else %}<span class="sub">esta instancia aún no envía pulsos</span>{% endif %}</form>
 {% if error %}<div class="card" style="border-color:#c9190b">{{ error }}</div>{% endif %}
 {% if r %}{% set t = r.t %}
 <div class="kpis"><div class="kpi"><span class="sub">Requests</span><b>{{ t.req }}</b><span class="sub" style="font-size:12px">{{ t.n - t.req }} eventos de negocio</span></div>
@@ -19,12 +19,12 @@
 <div class="card tabla-scroll"><h2>Rutas más usadas</h2><table><tr><th>Ruta</th><th>Requests</th><th>Errores</th><th>Prom. ms</th><th>p50</th><th>p95</th></tr>
 {% for x in r.rutas %}<tr><td class="mono">{{ x.ruta }}</td><td>{{ x.n }}</td><td style="{{ 'color:#c9190b' if x.err }}">{{ x.err }}</td><td>{{ x.prom }}</td><td>{{ x.p50 }}</td><td>{{ x.p95 }}</td></tr>{% else %}<tr><td colspan="6" class="sub">Sin requests en el rango</td></tr>{% endfor %}</table></div>
 <div class="card tabla-scroll"><h2>Errores <span class="sub" style="font-size:13px">5xx, 4xx distintos de 401/403/404 y errores de AAP · más recientes arriba</span></h2><table><tr><th>Hora (UTC)</th><th>Ruta</th><th>Status</th><th>Tipo</th><th>Detalle</th></tr>
-{% for e in r.errores %}<tr><td class="mono">{{ (e.ts or '')[:19]|replace('T', ' ') }}</td><td class="mono">{{ e.metodo or '' }} {{ e.ruta_real or e.ruta }}</td><td>{{ e.status }}</td><td>{{ e.tipo }}</td>
+{% for e in r.errores %}<tr><td class="mono">{{ e.ts|fecha("segundos") }}</td><td class="mono">{{ e.metodo or '' }} {{ e.ruta_real or e.ruta }}</td><td>{{ e.status }}</td><td>{{ e.tipo }}</td>
 <td>{% if e.mensaje or e.traza %}<details><summary>{{ (e.mensaje or 'traza')[:90] }}</summary><div class="mono" style="white-space:pre-wrap;font-size:12px">{{ e.mensaje }}{% for l in e.traza %}
   {{ l }}{% endfor %}</div></details>{% endif %}{% if e.usuario_id %}<span class="sub"> · usuario {{ e.usuario_id }}</span>{% endif %}</td></tr>{% else %}<tr><td colspan="5" class="sub">Sin errores en el rango</td></tr>{% endfor %}</table></div>
 <div class="fila" style="gap:16px;align-items:flex-start;flex-wrap:wrap">
 <div class="card tabla-scroll" style="flex:1 1 320px"><h2>Usuarios activos</h2><table><tr><th>Usuario (id)</th><th>Rol</th><th>Requests</th><th>Último (UTC)</th></tr>
-{% for u in r.usuarios %}<tr><td>{{ u.id }}</td><td>{{ u.rol }}</td><td>{{ u.n }}</td><td class="mono">{{ u.ultimo[:16]|replace('T', ' ') }}</td></tr>{% endfor %}</table></div>
+{% for u in r.usuarios %}<tr><td>{{ u.id }}</td><td>{{ u.rol }}</td><td>{{ u.n }}</td><td class="mono">{{ u.ultimo|fecha }}</td></tr>{% endfor %}</table></div>
 <div class="card tabla-scroll" style="flex:1 1 260px"><h2>Eventos de negocio</h2><table><tr><th>Evento</th><th>Cantidad</th></tr>
 {% for k, v in t.eventos|dictsort %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% else %}<tr><td colspan="2" class="sub">Sin eventos</td></tr>{% endfor %}</table></div>
 <div class="card tabla-scroll" style="flex:1 1 220px"><h2>Módulos</h2><table><tr><th>Módulo</th><th>Requests</th></tr>

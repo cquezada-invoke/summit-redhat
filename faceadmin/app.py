@@ -133,6 +133,9 @@ def iniciar():
             ej("ALTER TABLE usuarios ADD COLUMN tenant_id INTEGER")
         if "correo" not in ucols:
             ej("ALTER TABLE usuarios ADD COLUMN correo TEXT DEFAULT ''")
+        for col in ("zona_horaria", "zona_login"):   # zona elegida en el perfil / la que reportó el navegador al ingresar (correos)
+            if col not in ucols:
+                ej(f"ALTER TABLE usuarios ADD COLUMN {col} TEXT DEFAULT ''")
         if "emisor" not in {r["name"] for r in q("PRAGMA table_info(facturas)")}:
             ej("ALTER TABLE facturas ADD COLUMN emisor TEXT DEFAULT 'invoke'")
         for linea in filter(None, (os.environ.get("FACEADMIN_CLIENTES") or "").split(";")):   # codigo|nombre|url|maquina|tamaño|rol
@@ -277,7 +280,7 @@ def central():
         try:
             r = requests.get(f"https://api.github.com/repos/{REPO}/commits/main", timeout=6, headers={"Accept": "application/vnd.github+json"})
             d = r.json() if r.ok else {}
-            return {"commit": d.get("sha"), "fecha": ((d.get("commit") or {}).get("committer") or {}).get("date", "")[:16].replace("T", " "),
+            return {"commit": d.get("sha"), "fecha": ((d.get("commit") or {}).get("committer") or {}).get("date", ""),
                     "mensaje": ((d.get("commit") or {}).get("message") or "").split("\n")[0][:120]}
         except (requests.RequestException, ValueError):
             return {}
@@ -346,6 +349,11 @@ def ingresar():
             session.update(uid=u["id"], csrf=secrets.token_hex(16))
             session.permanent = True
             g.usuario = u
+            from hora_local import zona_valida
+            tz = zona_valida(request.form.get("tz"))   # zona del navegador (campo oculto): para los avisos por correo
+            if tz:
+                session["tz"] = tz
+                ej("UPDATE usuarios SET zona_login=? WHERE id=?", tz, u["id"])
             bitacora("ingreso", u["usuario"])
             sig = request.args.get("siguiente", "")
             return redirect(sig if sig.startswith("/") and not sig.startswith("//") else url_for("panel"))
@@ -633,6 +641,28 @@ def smtp_config():
         pass
     return {"host": os.environ.get("FACEADMIN_SMTP_HOST", ""), "puerto": os.environ.get("FACEADMIN_SMTP_PUERTO", "587"),
             "usuario": os.environ.get("FACEADMIN_SMTP_USUARIO", ""), "clave": os.environ.get("FACEADMIN_SMTP_CLAVE", ""), "de": os.environ.get("FACEADMIN_SMTP_DE", "")}
+
+
+def zona_de(para):
+    """Zona horaria de un destinatario para los avisos: la de su perfil y, si no, la de su navegador en su último ingreso.
+    Si no es usuario de FaceAdmin (o los destinatarios no comparten zona) queda '' = UTC con la etiqueta «UTC»."""
+    from hora_local import zona_valida
+    cs = [x.strip().lower() for x in (para or "").replace(";", ",").split(",") if x.strip()]
+    if not cs:
+        return ""
+    try:
+        us = q(f"SELECT zona_horaria, zona_login FROM usuarios WHERE LOWER(correo) IN ({','.join('?' * len(cs))}) "
+               f"OR LOWER(usuario) IN ({','.join('?' * len(cs))})", *cs, *cs)
+    except sqlite3.Error:
+        return ""
+    zs = {zona_valida(u.get("zona_horaria")) or zona_valida(u.get("zona_login")) for u in us} - {""}
+    return zs.pop() if len(zs) == 1 else ""
+
+
+def hora_para(v, para, zona_defecto="", modo="fecha-hora"):
+    """Hora para el cuerpo de un aviso, en la zona del destinatario («… (America/Santiago, UTC−3)») o en UTC."""
+    from hora_local import en_zona
+    return en_zona(v, zona_de(para) or zona_defecto, modo)
 
 
 def enviar_correo(cid, para, asunto, cuerpo, adjunto_nombre="", adjunto=""):
@@ -935,6 +965,11 @@ def ver_bitacora():
         cods = {c["codigo"] for c in q("SELECT * FROM clientes") if en_alcance(c)} | {u["usuario"] for u in q("SELECT usuario FROM usuarios WHERE tenant_id=?", g.usuario["tenant_id"])}
         filas = [f for f in filas if f["objeto"] in cods]
     return render_template("bitacora.html", filas=filas[:300])
+
+
+import hora_local  # noqa: E402  |fecha, |fecha_txt, |iso_z, |hace, |fechas_texto
+hora_local.NAIVE_LOCAL = True   # ahora() guarda datetime.now() sin zona: la del sistema (UTC en el contenedor)
+hora_local.registrar_filtros(app)
 
 
 @app.template_filter("num")

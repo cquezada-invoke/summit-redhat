@@ -27,13 +27,35 @@ def ultima(cliente_id, equipo, ambito, aid):
     _tabla()
     r = q1("SELECT * FROM alerta_pruebas WHERE cliente_id=? AND equipo=? AND ambito=? AND alerta=? ORDER BY id DESC LIMIT 1",
            cliente_id, equipo, ambito or "maquina", aid)
-    return dict(r, pasos=json.loads(r["pasos"] or "[]")) if r else None
+    return dict(r, pasos=_pasos_utc(r)) if r else None
 
 
 def leer(pid):
     _tabla()
     r = q1("SELECT * FROM alerta_pruebas WHERE id=?", pid)
-    return dict(r, pasos=json.loads(r["pasos"] or "[]")) if r else None
+    return dict(r, pasos=_pasos_utc(r)) if r else None
+
+
+def _pasos_utc(r):
+    """Los pasos se guardan como «HH:MM:SS · texto» (hora del contenedor, que corre en UTC, sin día ni zona). Al leerlos se
+    completan con el día de la prueba y la Z para que el navegador los muestre en su hora local; no se migra nada."""
+    from .hora_local import a_utc
+    ps, base = json.loads(r["pasos"] or "[]"), a_utc(r.get("inicio"))
+    if not base:
+        return ps
+    out, dia = [], base.replace(hour=0, minute=0, second=0, microsecond=0)
+    prev = base.replace(microsecond=0) - timedelta(seconds=60)
+    for p in ps:
+        h = p[:8]
+        if len(p) > 10 and p[2] == ":" and p[5] == ":" and p[8:11] == " · " and h.replace(":", "").isdigit():
+            t = dia + timedelta(hours=int(h[:2]), minutes=int(h[3:5]), seconds=int(h[6:8]))
+            if t < prev - timedelta(hours=1):   # pasó la medianoche UTC
+                dia += timedelta(days=1)
+                t += timedelta(days=1)
+            prev = t
+            p = t.strftime("%Y-%m-%dT%H:%M:%SZ") + p[8:]
+        out.append(p)
+    return out
 
 
 def _paso(pid, texto, estado=None):

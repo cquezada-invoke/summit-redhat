@@ -253,10 +253,12 @@ def _eliminar(r, cx, motivo):
 def _aviso(r):
     d = _demo(r)
     por = q1("SELECT usuario FROM usuarios WHERE usuario=?", r["por"]) or {}
-    cuerpo = (f"La Demo {d.get('numero')} en GCP vence el {local(r, r['expira'])} ({r['tz']}) y se eliminará por completo: la VM, sus discos y "
-              "todos los datos. Si necesitan continuar, conversemos el paso a una PoC o al contrato.\n\nFaceAdmin · Invoke")
+    from app import hora_para   # zona del destinatario; si no se conoce, la zona configurada de la demo (con su etiqueta)
     for para in {x for x in (r["correo_aviso"], por.get("usuario") if "@" in (por.get("usuario") or "") else "") if x}:
-        enviar_correo(d.get("cliente_id"), para, f"Tu Demo {d.get('numero')} vence el {local(r, r['expira'])[:10]}", cuerpo)
+        vence = hora_para(r["expira"], para, r.get("tz") or "")
+        cuerpo = (f"La Demo {d.get('numero')} en GCP vence el {vence} y se eliminará por completo: la VM, sus discos y "
+                  "todos los datos. Si necesitan continuar, conversemos el paso a una PoC o al contrato.\n\nFaceAdmin · Invoke")
+        enviar_correo(d.get("cliente_id"), para, f"Tu Demo {d.get('numero')} vence el {vence.split(' ')[0]}", cuerpo)
     _act(r["id"], aviso_enviado=RELOJ())
     _bit(r, "aviso de vencimiento enviado", {"para": r["correo_aviso"]})
 

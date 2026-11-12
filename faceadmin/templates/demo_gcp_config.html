@@ -26,5 +26,5 @@ Permisos mínimos: rol personalizado con compute.instances.{create,get,list,star
 <button class="btn">Guardar</button></form></div></div>
 <div class="card tabla-scroll"><h2>VMs de demo</h2>{% if filas %}<table style="font-size:13px"><tr><th>Demo</th><th>VM</th><th>Estado</th><th>Vence</th><th>Horas</th></tr>
 {% for r in filas %}<tr><td class="mono"><a href="{{ url_for('demo_nube', did=r.demo_id) }}#gcp">{{ r.numero }}</a></td><td class="mono">{{ r.instancia }}{% if r.ip %}<br><span class="sub">{{ r.ip }}</span>{% endif %}</td>
-<td><span class="chip {{ r.est_t[1] }}">{{ r.est_t[0] }}</span></td><td class="mono">{{ r.expira_txt }}</td><td>{{ '%.1f'|format(r.horas_uso or 0) }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Aún no hay demos instantáneas.</p>{% endif %}</div>
+<td><span class="chip {{ r.est_t[1] }}">{{ r.est_t[0] }}</span></td><td class="mono">{{ r.expira|fecha }}</td><td>{{ '%.1f'|format(r.horas_uso or 0) }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Aún no hay demos instantáneas.</p>{% endif %}</div>
 {% endblock %}

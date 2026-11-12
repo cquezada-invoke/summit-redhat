@@ -6,6 +6,7 @@ Mismas reglas que la consola: permisos del perfil, compatibilidad con el equipo 
 import re
 
 from .bd import j, q, q1
+from .hora_local import texto_utc
 from .inventario import normal
 
 RE_IP = re.compile(r"\b(\d{1,3}(?:\.\d{1,3}){3}(?:/\d{1,2})?)\b")
@@ -495,7 +496,7 @@ def _infra(cliente, clave, equipos_vis):
     if x.get("region"):
         filas.append(("Región", x["region"]))
     if x.get("verificado"):
-        filas.append(("Verificada", str(x["verificado"])[:16].replace("T", " ")))
+        filas.append(("Verificada", texto_utc(x["verificado"])))
     if x.get("mensaje"):
         filas.append(("Último resultado", x["mensaje"][:200]))
     return [_msg(x["nombre"], infra_det={"id": x["id"], "nombre": x["nombre"], "filas": filas})]
@@ -606,7 +607,14 @@ def _cortesia(nm, nombre):
     t = re.sub(r"\s+", " ", t).strip()
     if not t:
         return None
-    h = (_dt.datetime.utcnow() - _dt.timedelta(hours=3)).hour   # hora de Chile
+    h = (_dt.datetime.utcnow() - _dt.timedelta(hours=3)).hour   # sin zona conocida: hora de Chile
+    try:   # la hora local de quien escribe (zona del navegador en su ingreso)
+        from zoneinfo import ZoneInfo
+        from flask import session
+        if session.get("tz"):
+            h = _dt.datetime.now(ZoneInfo(session["tz"])).hour
+    except Exception:  # noqa: BLE001
+        pass
     momento = "Buenos días" if 5 <= h < 12 else ("Buenas tardes" if 12 <= h < 20 else "Buenas noches")
     n = f", {nombre}" if nombre else ""
     if re.fullmatch(r"(hola|holi|holaa+|hey|hi|hello|buen(o|a)s?( dias| tardes| noches)?|saludos|que tal|como estas|como te va|como andas|hola que tal|hola como estas|hola buen(o|a)s?( dias| tardes| noches)?)( (que tal|como estas))?", t):
@@ -627,7 +635,7 @@ def _detalle(t):
     filas = [("Estado", (t["estado"] or "").replace("_", " ")),
              ("Equipo / ámbito", t.get("limite") or t.get("segmento") or "—"),
              ("Pedido por", t.get("usuario_nombre") or "—"),
-             ("Creado", (t.get("creado") or "")[:16].replace("T", " ") + " UTC"),
+             ("Creado", texto_utc(t.get("creado"))),
              ("Duración", (f"{dur // 60} min {dur % 60} s" if dur and dur >= 60 else (f"{dur} s" if dur else "—"))),
              ("Motivo", (t.get("motivo") or "—")[:160])]
     return {"filas": filas, "resultado": res[:6]}

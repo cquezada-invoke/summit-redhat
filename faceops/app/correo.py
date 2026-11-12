@@ -3,6 +3,37 @@ el aviso queda registrado como pendiente de envío y la operación sigue."""
 import os
 
 
+def zona_usuario(u):
+    """Zona horaria para escribirle a un usuario: la de su perfil, si no la de su navegador en el último ingreso, si no ''
+    (= UTC con la etiqueta «UTC»)."""
+    from .hora_local import zona_valida
+    u = u or {}
+    return zona_valida(u.get("zona_horaria")) or zona_valida(u.get("zona_login"))
+
+
+def zona_de(para="", usuario_id=None):
+    """Zona del destinatario de un correo (uno o varios separados por coma) o de un usuario por su id. Si los
+    destinatarios conocidos no comparten zona, o no son usuarios de FaceOps (correo de un grupo), queda UTC."""
+    from .bd import q, q1
+    try:
+        if usuario_id:
+            return zona_usuario(q1("SELECT zona_horaria, zona_login FROM usuarios WHERE id=?", usuario_id))
+        cs = [c.strip().lower() for c in (para or "").replace(";", ",").split(",") if c.strip()]
+        if not cs:
+            return ""
+        zs = {zona_usuario(u) for u in q(f"SELECT zona_horaria, zona_login FROM usuarios WHERE LOWER(correo) IN ({','.join('?' * len(cs))})", *cs)}
+        zs.discard("")
+        return zs.pop() if len(zs) == 1 else ""
+    except Exception:  # noqa: BLE001  sin columnas aún o sin BD: UTC
+        return ""
+
+
+def hora(v, para="", usuario_id=None, modo="fecha-hora"):
+    """Hora para el cuerpo de un correo, en la zona del destinatario («… (America/Santiago, UTC−3)») o en UTC."""
+    from .hora_local import en_zona
+    return en_zona(v, zona_de(para, usuario_id), modo)
+
+
 def configurado():
     return bool(os.environ.get("FACEOPS_SMTP_HOST"))
 

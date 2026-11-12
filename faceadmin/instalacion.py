@@ -142,7 +142,7 @@ def progreso(cid):
     lleva = round(((ahora_ if en_curso else f(evs[-1]["fecha"])) - f(evs[0]["fecha"])).total_seconds() / 60)
     from datetime import timedelta as _td
     return {"host": evs[-1].get("host") or host_id[:12], "pasos": out, "resultado": fin, "en_curso": en_curso, "resta_min": resta, "lleva_min": lleva,
-            "pct_tiempo": round(100 * lleva / max(1, lleva + resta)) if en_curso else 100, "termina": (ahora_ + _td(minutes=resta)).strftime("%H:%M") if en_curso else "",
+            "pct_tiempo": round(100 * lleva / max(1, lleva + resta)) if en_curso else 100, "termina": (ahora_ + _td(minutes=resta)).strftime("%Y-%m-%dT%H:%M:%SZ") if en_curso else "",
             "inicio": evs[0]["fecha"], "ultimo": evs[-1]["fecha"]}
 
 

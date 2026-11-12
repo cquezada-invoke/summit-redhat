@@ -3,6 +3,7 @@ import os
 
 from flask import abort, g, render_template
 from . import requiere_login
+from .hora_local import texto_utc
 from .vistas import bp, inventario, TIPOS_HIPERVISOR, _resumen_grupo, equipos_visibles, j
 
 
@@ -277,7 +278,7 @@ def traslado_pendiente(cliente_id, nombre, hips):
         if p_["mv_modo"] != "mover":
             return None   # confirmar o revertir cerraron el último traslado
         dst = next((x for x in hips if x["tipo"] == "kvm" and (x["detalle_d"].get("red_libvirt") or "default") == p_.get("mv_destino")), None)
-        return {"ticket": t["numero"], "fecha": (t["fin"] or "")[:16].replace("T", " "), "hacia": dst["nombre"] if dst else p_.get("mv_destino")}
+        return {"ticket": t["numero"], "fecha": texto_utc(t["fin"], vacio=""), "hacia": dst["nombre"] if dst else p_.get("mv_destino")}
     return None
 
 
@@ -329,7 +330,7 @@ def destinos_traslado(cliente_id, e, eqs):
                     "region": x.get("region") or "", "red": d_.get("red") or (f"datacenter vSphere {d_['datacenter']}" if d_.get("datacenter") else "—"),
                     "red_libvirt": d_.get("red_libvirt") or "default", "estado": x["estado"], "vms": len(vms),
                     "cores": cap.get("cores"), "ram_libre": None if vieja else cap.get("ram_disp_gb"), "disco_libre": None if vieja else cap.get("disco_disp_gb"),
-                    "medido": (cap.get("medido") or "")[:16].replace("T", " "), "vieja": vieja, "remedir": x["tipo"] == "kvm" and x["estado"] == "conectada",
+                    "medido": texto_utc(cap.get("medido"), vacio=""), "vieja": vieja, "remedir": x["tipo"] == "kvm" and x["estado"] == "conectada",
                     "mismo_anfitrion": mismo, "emulado": _emulado(x),
                     "elegible": not motivos and not bloqueo, "motivos": motivos})
     out.sort(key=lambda y: (not y["elegible"], y["nombre"]))

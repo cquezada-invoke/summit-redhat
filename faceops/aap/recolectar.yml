@@ -135,7 +135,7 @@
         find /var/log /var/opt/rh/eap8/log /opt/rh/eap8/root/usr/share/wildfly/standalone/log /var/lib/pgsql/data/log /var/lib/pgsql/*/data/log \
              /opt/keycloak/data/log /var/log/dirsrv /var/log/httpd /var/log/nginx /var/log/redis /var/log/tomcat /var/log/vault \
              -maxdepth 3 -type f -size +0 \( -name '*.log' -o -name messages -o -name secure -o -name cron -o -name maillog -o -name dmesg \
-             -o -name errors -o -name access -o -name audit -o -name '*_log' \) ! -name '*.gz' -printf '%p|%s|%TY-%Tm-%Td %TH:%TM\n' 2>/dev/null | sort -u | head -150
+             -o -name errors -o -name access -o -name audit -o -name '*_log' \) ! -name '*.gz' -printf '%p|%s|%TY-%Tm-%Td %TH:%TM%Tz\n' 2>/dev/null | sort -u | head -150
       register: r_logs
       changed_when: false
       failed_when: false

@@ -47,7 +47,7 @@
   <div>{% for o in d.operadores_instalados or [] %}<span class="chip">{{ o }}</span>{% else %}<span class="sub">ninguno todavía</span>{% endfor %}</div></div>
 </div>
 
-<div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:14px 16px 0"><h2 style="margin:0">Nodos</h2><span class="sub der" style="font-size:12px;margin:0">Ansible → API de OpenShift · {{ d.recolectado[:16]|replace('T', ' ') }} UTC</span></div>
+<div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:14px 16px 0"><h2 style="margin:0">Nodos</h2><span class="sub der" style="font-size:12px;margin:0">Ansible → API de OpenShift · {{ d.recolectado|fecha }} UTC</span></div>
 <table><tr><th>Nodo</th><th>Roles</th><th>Estado</th><th>Arquitectura</th><th>Sistema del nodo</th><th>Kernel · runtime · kubelet</th><th>CPU</th><th>Memoria</th><th>IP</th></tr>
 {% for n in nodos %}<tr><td><b>{{ n.nombre }}</b>{% if n.zona or n.tipo_instancia %}<div class="sub" style="font-size:12px;margin:0">{{ n.zona }} {{ n.tipo_instancia }}</div>{% endif %}</td>
 <td>{% for r in n.roles %}<span class="chip">{{ r }}</span>{% endfor %}</td>

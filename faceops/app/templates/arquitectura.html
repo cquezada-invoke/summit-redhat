@@ -86,7 +86,7 @@
   function pintar(d){
     if(!caja||!d) return;
     let h='';
-    if(d.cuando) h+='<p class="sub" style="font-size:12px">Última prueba: '+d.cuando.replace('T',' ').slice(0,16)+'</p>';
+    if(d.cuando) h+='<p class="sub" style="font-size:12px">Última prueba: '+horaLocal.fmt(d.cuando)+'</p>';
     const e=d.entrada;
     if(e){ h+='<p><b>Entrada</b> '+(e.ok?'<span class="chip e-exitoso">✓ responde</span>':'<span class="chip e-fallido">✗ falla</span>')
       +' <span class="sub" style="font-size:12px">'+(e.codigo?('HTTP '+e.codigo+' en '+e.ms+' ms'):(e.error||''))+(e.servidor?' · atendió '+e.servidor:'')+'</span>'

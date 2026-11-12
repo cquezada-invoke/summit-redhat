@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 import yaml
 
 from .bd import ahora, ej, j, q, q1
+from .hora_local import texto_utc
 
 AUTO = "Monitoreo · Configurar alertas del equipo"
 RUTA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "aap", "files", "alertas-objetos.yml")
@@ -413,7 +414,6 @@ def tabla_cliente(cliente_id, equipos):
     """Monitoreo › Alertas: una fila por alerta de cada objeto con alertas (máquina, cada plataforma y clúster), con su
     estado REAL en el monitoreo (encendida = regla cargada; disparando = firing ahora; último disparo) y lo que dice
     FaceOps (reflejo del último ticket), marcando si difieren."""
-    from datetime import datetime
     from .alerta_diagnostico import destino
     cat = catalogo()
     acc_cat = cat.get("acciones") or {}
@@ -465,7 +465,7 @@ def tabla_cliente(cliente_id, equipos):
                                   {"warning": "aviso", "critical": "crítico"}.get(x_, x_) for x_ in sevs if x_),
                               "accion": acc_cat.get(acc, {}).get("texto", acc), "tipo_accion": tipo_acc,
                               "encendida": encendida, "disparando": bool(m and m["estado"] == "firing"), "pendiente": bool(m and m["estado"] == "pending"),
-                              "salud": (m or {}).get("salud", ""), "ultimo": datetime.fromtimestamp(ts).strftime("%d-%m %H:%M") if ts else "",
+                              "salud": (m or {}).get("salud", ""), "ultimo": texto_utc(ts) if ts else "",
                               "responsable": resp[1] if resp else "", "correo": resp[0] if resp else "",
                               "difiere": (prom is not None and t != "openshift" and bool(m) != bool(rf)),
                               "difiere_txt": ("FaceOps la tiene encendida pero no está cargada en Prometheus" if rf and not m else

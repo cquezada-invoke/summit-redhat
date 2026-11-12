@@ -85,7 +85,7 @@ def _url_aap(aap, tipo, id_):
 
 def notificar(cliente, aap, trabajo, para=None):
     """Arma y envía el correo de un trabajo terminado. Devuelve el registro (o None si no corresponde)."""
-    from .correo import enviar
+    from .correo import enviar, hora   # hora en la zona del destinatario (perfil o último ingreso) o en UTC
     ev = trabajo.get("extra_vars") or "{}"
     try:
         ev = json.loads(ev)
@@ -119,7 +119,7 @@ def notificar(cliente, aap, trabajo, para=None):
     estado = {"successful": "terminó bien", "failed": "falló", "error": "falló", "canceled": "se canceló"}.get(trabajo.get("status"), trabajo.get("status"))
     asunto = f"[FaceOps{' · PRUEBA' if prueba else ''}] {tipo_inf} · alerta {a_cat.get('nombre', alerta)} ({alerta}, {sev or 'sin severidad'}) en {eq or 'equipo desconocido'}"
     cuerpo = (f"{tipo_inf} automático de la alerta «{a_cat.get('nombre', alerta)}» ({alerta}, severidad {sev or '—'}) en {eq}.\n"
-              f"Acción: {accion} · el trabajo en AAP {estado} ({trabajo.get('finished') or ''}).\n\n"
+              f"Acción: {accion} · el trabajo en AAP {estado} ({hora(trabajo.get('finished'), para) if trabajo.get('finished') else 'sin hora de término'}).\n\n"
               f"Resumen:\n{cuerpo_t}\n\n"
               f"Ficha de la máquina: {_url_ficha(cliente, e)}\n"
               f"Ticket / trabajo en AAP: {_url_aap(aap, trabajo.get('type'), trabajo['id'])}\n\n"

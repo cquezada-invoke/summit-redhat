@@ -14,6 +14,7 @@ from flask import Blueprint, abort, current_app, flash, g, make_response, redire
 from . import requiere_login
 from .aap import AAP, ErrorAAP
 from .bd import ahora, auditar, ej, j, q, q1
+from .hora_local import texto_utc
 from .buscador import buscar
 from .inventario import cumplimiento, normal, politicas_de, recolectar, segmentos_de, sincronizar, skills_de, sistema_de
 from .operacion import resolver_aprobacion, segmentos_aplicables, equipos_elegibles, sincronizar_catalogo, solicitar
@@ -121,10 +122,14 @@ def _clave_ok(u, clave):
 
 def _entrar(u, sig=""):
     from .doble_factor import limpiar
+    from .hora_local import zona_valida
+    tz = zona_valida(request.form.get("tz")) or session.get("pre_tz", "")   # zona del navegador (campo oculto del ingreso)
     session.clear()
     session["uid"] = u["id"]
     session.permanent = True
-    ej("UPDATE usuarios SET ultimo_ingreso=? WHERE id=?", ahora(), u["id"])
+    if tz:
+        session["tz"] = tz
+    ej("UPDATE usuarios SET ultimo_ingreso=?, zona_login=COALESCE(NULLIF(?, ''), zona_login) WHERE id=?", ahora(), tz, u["id"])
     limpiar(u["usuario"])
     auditar(u["usuario"], None, "ingresar", "sesión", {"ip": request.headers.get("X-Real-IP") or request.remote_addr,
                                                         "acceso": "público" if request.headers.get("X-FaceOps-Acceso") == "publico" else "interno"})
@@ -190,8 +195,10 @@ def ingresar():
             return render_template("ingresar.html"), 403
         if u:
             if u.get("totp_activo"):
+                from .hora_local import zona_valida
                 session.clear()
                 session["pre_uid"], session["pre_t"] = u["id"], datetime.now(timezone.utc).timestamp()
+                session["pre_tz"] = zona_valida(request.form.get("tz"))
                 return redirect(url_for("consola.ingresar_codigo", siguiente=request.args.get("siguiente", "")))
             if es_publico(request):
                 auditar(u["usuario"], None, "ingreso rechazado", "sesión", {"ip": ip, "motivo": "acceso público sin doble factor"})
@@ -278,13 +285,20 @@ def contrato_activar():
     return redirect(request.referrer or url_for("consola.inicio"))
 
 
-@bp.route("/cuenta/datos")
+@bp.route("/cuenta/datos", methods=["GET", "POST"])
 @requiere_login
 def cuenta_datos():
-    """Mi perfil: solo la información del usuario (datos, origen, grupos y accesos)."""
+    """Mi perfil: solo la información del usuario (datos, origen, grupos y accesos) y su zona horaria para los correos."""
     from . import fuentes_usuarios as fu
     from . import rbac
     u = g.usuario
+    if request.method == "POST":   # zona horaria del perfil: vacía = la del navegador (los correos usan la del último ingreso)
+        from .hora_local import zona_valida
+        z = zona_valida(request.form.get("zona_horaria"))
+        ej("UPDATE usuarios SET zona_horaria=? WHERE id=?", z, u["id"])
+        auditar(u["usuario"], g.cliente["id"], "zona horaria del perfil", u["usuario"], {"zona": z or "automática"})
+        flash(f"Zona horaria: {z or 'automática (la de tu navegador)'}", "ok")
+        return redirect(url_for("consola.cuenta_datos"))
     acc = rbac.acceso(u, g.cliente["id"]) if rbac.activo(g.cliente["id"]) else None
     return render_template("cuenta_datos.html", u=u, fuente=fu.etiqueta_origen(u), grupos=rbac.grupos_de(u["id"], g.cliente["id"]) if acc else [],
                            acc=acc, espacios=rbac.ESPACIOS, roles_esp=rbac.ROLES_ESPACIO)
@@ -1127,14 +1141,14 @@ def ticket_caja(tid, pos):
     except Exception:  # noqa: BLE001
         cli = None
     if n["tipo"] == "inicio":
-        info = [("Ticket", t["numero"]), ("Creado", (t["creado"] or "")[:19].replace("T", " ")), ("Solicitante", t.get("solicitante") or "—"),
+        info = [("Ticket", t["numero"]), ("Creado", texto_utc(t["creado"], "segundos")), ("Solicitante", t.get("solicitante") or "—"),
                 ("Motivo", t["motivo"] or "—"), ("Equipos", (t["limite"] or "los que define la acción").replace(":", ", "))]
     elif n["tipo"] == "aprobacion":
         from .aprobacion_areas import dias, etapas
         f = next((x for x in etapas(t, a) if x["area"] == n.get("area")), None)
         if f:
             info = [("Área", n["titulo"].replace("Aprueba ", "")), ("Estado", f["estado"]), ("Quién", f.get("quien") or "aún nadie"),
-                    ("Desde", (f.get("inicio") or "")[:19].replace("T", " ")), ("Espera", f"{dias(f) * 24:.1f} h")]
+                    ("Desde", texto_utc(f.get("inicio"), "segundos")), ("Espera", f"{dias(f) * 24:.1f} h")]
         info.append(("Quiénes pueden aprobar", n.get("roles") or "—"))
         if t["estado"] == "pendiente_aprobacion":
             info.append(("Nota", "El ticket espera solo esta aprobación: es lo único que puede detenerlo. Las aprobaciones no vencen."))
@@ -1151,7 +1165,7 @@ def ticket_caja(tid, pos):
         if t["estado"] == "en_ejecucion" and n.get("estado") == "curso":
             vig = vigilancia(cli, t)
     elif n["tipo"] == "fin":
-        info = [("Estado", t["estado"].replace("_", " ")), ("Terminó", (t["fin"] or "—")[:19].replace("T", " ")), ("Resultado", t["resultado"] or "—")]
+        info = [("Estado", t["estado"].replace("_", " ")), ("Terminó", texto_utc(t["fin"], "segundos")), ("Resultado", t["resultado"] or "—")]
     resp = make_response(render_template("_caja.html", n=n, t=t, pasos=pasos, info=info, vig=vig, web_aap=web_aap, jobs=jobs))
     resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -2292,7 +2306,7 @@ def vpn_config(pid, usuario):
         abort(404)
     d_ = j(e.get("datos"), {})
     if (d_.get("vpn_descargas") or {}).get(usuario):
-        flash(f"La configuración de {usuario} ya se descargó ({d_['vpn_descargas'][usuario][:16]}). Para otra copia, revoca el usuario y créalo de nuevo.", "error")
+        flash(f"La configuración de {usuario} ya se descargó ({texto_utc(d_['vpn_descargas'][usuario])}). Para otra copia, revoca el usuario y créalo de nuevo.", "error")
         return redirect(url_for("consola.plataforma_detalle", pid=pid) + "#vpn")
     sec = leer(f"web/{e['nombre']}/vpn-{usuario}") or {}
     if not sec.get("config"):
@@ -3740,7 +3754,7 @@ def _salud_agente_detalle(e, a):
     if a.get("skill") == "acceso":
         return [{"n": "Acceso", "d": "Usuario de servicio con llave propia en la bóveda: AAP opera la máquina con él", "ok": bool(a.get("instalado")), "acc": None}]
     filas = []
-    inv = (e.get("ultima_recoleccion") or "")[:16].replace("T", " ")
+    inv = texto_utc(e.get("ultima_recoleccion"), vacio="")
     if a.get("skill") == "respaldo-git":
         filas.append({"n": "Estado", "d": "Temporizadores activos (respaldo cada minuto)" if sa.get("ok") else (sa.get("estado") or "sin dato"), "ok": sa.get("ok"), "acc": None})
         filas.append({"n": "Reporta", "d": sa.get("detalle") or "sin dato del repositorio", "ok": sa.get("ok"), "acc": None})
@@ -7649,7 +7663,7 @@ def fabrica_trabajos():
                "WHERE t.cliente_id=? AND a.nombre_aap=? ORDER BY t.id DESC LIMIT 400", g.cliente["id"], _PIPE):
         dp = (j(t["parametros"], {}) or {}).get("dp_params") or {}
         if dp.get("app") and dp.get("ambiente"):
-            ult.setdefault((dp["app"], dp["ambiente"]), {"numero": t["numero"], "estado": t["estado"], "fecha": (t["creado"] or "")[:16].replace("T", " "),
+            ult.setdefault((dp["app"], dp["ambiente"]), {"numero": t["numero"], "estado": t["estado"], "fecha": texto_utc(t["creado"], vacio=""),
                                                         "rama": dp.get("revision", ""), "url": url_for("consola.ticket", tid=t["id"])})
     for r in d.get("repos") or []:
         r["despliegues"] = {k: ult.get((r["repo"], v)) for k, v in (("dev", "desarrollo"), ("qa", "qa"), ("prod", "produccion"))}

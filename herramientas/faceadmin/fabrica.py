@@ -61,7 +61,7 @@ def actividad(rutas):
     for _, f, _, _ in filas:
         mensual[f[:7]] = mensual.get(f[:7], 0) + 1
     autores = sorted({a for _, _, a, _ in filas})
-    return {"commits": len(filas), "ultimos": [{"sha": h[:10], "fecha": f[:16].replace("T", " "), "autor": a, "mensaje": s[:140]} for h, f, a, s in filas[:8]],
+    return {"commits": len(filas), "ultimos": [{"sha": h[:10], "fecha": f, "autor": a, "mensaje": s[:140]} for h, f, a, s in filas[:8]],
             "autores": autores, "mensual": dict(sorted(mensual.items())[-12:]), "primero": filas[-1][1][:10] if filas else ""}
 
 
@@ -109,7 +109,7 @@ def main():
     head = git("log", "-1", "--format=%H\x1f%cI\x1f%s").strip().split("\x1f")
     res = {"generado": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "monorepo": "github.com/cquezada-invoke/summit-redhat",
            "faceops": {"linea": linea(), "build": int(git("rev-list", "--count", "HEAD").strip() or 0), "commit": head[0][:10] if head[0] else "",
-                       "fecha": head[1][:16].replace("T", " ") if len(head) > 1 else "", "mensaje": head[2][:140] if len(head) > 2 else "",
+                       "fecha": head[1] if len(head) > 1 else "", "mensaje": head[2][:140] if len(head) > 2 else "",
                        "actividad": actividad(["faceops"])},
            "base": base(),
            "modulos": out, "sin_modulo": {"n": len(sueltas), "lineas": lineas(sueltas), "ejemplos": sueltas[:40]}}

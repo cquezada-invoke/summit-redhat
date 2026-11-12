@@ -15,7 +15,7 @@
 <tr><td class="sub">Nivel</td><td class="fila" style="align-items:center;gap:12px"><select name="nivel" style="width:auto">{% for n, p in niveles %}<option value="{{ n }}" {{ 'selected' if o.nivel_ == n }}>{{ 'Nivel 0 · negocio' if n == 0 else 'Nivel ' ~ n ~ ' · ' ~ p ~ ' %' }}</option>{% endfor %}</select>
 <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" name="perdida" value="1" style="width:auto" {{ 'checked' if o.etapa == 'perdida' }}> perdida</label></td></tr>
 <tr><td class="sub">Se espera cerrar</td><td class="fila" style="align-items:center;gap:10px"><input type="date" name="cierre_estimado" value="{{ o.cierre_estimado }}" style="width:auto"> <b>{{ o.quarter }}</b></td></tr>
-<tr><td class="sub">Creada</td><td>{{ o.creado[:10] }} por {{ o.por }}</td></tr></table>
+<tr><td class="sub">Creada</td><td>{{ o.creado|fecha('fecha') }} por {{ o.por }}</td></tr></table>
 <div class="fila" style="margin-top:10px"><button class="btn">Guardar cambios</button></div></form>
 </div>
 </div>
@@ -24,11 +24,11 @@
 {% for x in lista %}{% if x.clase == 'demo' %}<tr><td class="mono"><a href="{{ url_for('demo_nube', did=x.id) }}"><b>{{ x.numero }}</b></a></td><td><span class="chip" style="background:#e7f1fa;color:#004080;border-color:transparent">Demo</span><br><span class="sub" style="font-size:11.5px">nube Invoke</span></td>
 <td>{{ x.dias }} día{{ 's' if x.dias != 1 }}</td><td class="mono" style="font-size:12.5px">{{ x.desde }} → {{ x.hasta }}</td>
 <td>{% if x.entorno_nombre %}<b>{{ x.entorno_nombre }}</b>{% if x.entorno_url %}<br><a href="{{ x.entorno_url }}" target="_blank" rel="noopener" style="font-size:12px">{{ x.entorno_url|replace('https://', '') }}</a>{% endif %}{% else %}<a href="{{ url_for('demo_nube', did=x.id) }}">asignar entorno →</a>{% endif %}</td>
-<td><span class="chip {{ x.est_t[1] }}">{{ x.est }}</span></td><td><span class="sub">no aplica</span></td><td>{{ x.por }} · {{ x.creado[:10] }}</td></tr>
+<td><span class="chip {{ x.est_t[1] }}">{{ x.est }}</span></td><td><span class="sub">no aplica</span></td><td>{{ x.por }} · {{ x.creado|fecha('fecha') }}</td></tr>
 {% else %}{% set it = inst_t.get(x.inst, (x.inst, '')) %}<tr><td class="mono"><a href="{{ url_for('demo_detalle', did=x.id) }}"><b>{{ x.numero }}</b></a></td><td><span class="chip" style="background:#f3e8fd;color:#5e2aa0;border-color:transparent">PoC</span><br><span class="sub" style="font-size:11.5px">en el cliente</span></td>
 <td>{{ x.tipo }} · {{ x.semanas }} sem.</td><td class="mono" style="font-size:12.5px">{{ x.desde }} → {{ x.hasta }}</td>
 <td style="white-space:nowrap"><span class="mono"><b>{{ x.version }}</b></span><br><span class="sub" style="font-size:11.5px">{{ 'instalada' if x.version_instalada else 'se instalará' }}</span> · <a href="{{ url_for('demo_requisitos', did=x.id) }}" target="_blank" rel="noopener" title="Documento para el cliente: máquina, red, licencias y pasos">requisitos técnicos (PDF)</a></td>
-<td><span class="chip {{ 'ok' if x.vigente else ('med' if x.est == 'programada' else '') }}">{{ x.est }}</span></td><td><span class="chip {{ it[1] }}">{{ it[0] }}</span></td><td>{{ x.por }} · {{ x.creado[:10] }}</td></tr>{% endif %}
+<td><span class="chip {{ 'ok' if x.vigente else ('med' if x.est == 'programada' else '') }}">{{ x.est }}</span></td><td><span class="chip {{ it[1] }}">{{ it[0] }}</span></td><td>{{ x.por }} · {{ x.creado|fecha('fecha') }}</td></tr>{% endif %}
 {% else %}<tr><td colspan="8" class="sub">El cliente aún no ha pedido una Demo ni una PoC.</td></tr>{% endfor %}</table></div>
 
 <style>#op-hist[hidden],#op-demo[hidden],#op-demo section[hidden]{display:none!important}</style>
@@ -37,8 +37,8 @@
 <div class="fila" style="align-items:center;padding:14px 16px;border-bottom:1px solid var(--borde,#d2d2d2)"><h2 style="margin:0">Historial · {{ o.numero }}</h2><button type="button" class="btn chico gris der" onclick="opHist(false)" title="Cerrar">×</button></div>
 <form method="post" style="padding:12px 16px;border-bottom:1px solid var(--borde,#d2d2d2)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="comentario">
 <label>Nuevo comentario<textarea name="nota" rows="3" required placeholder="qué pasó, próximo paso, con quién…"></textarea></label><div class="fila" style="margin-top:6px"><button class="btn">Guardar comentario</button></div></form>
-<div style="padding:12px 16px;overflow:auto;flex:1">{% if o.historial or o.notas %}<div style="font-size:13.5px">{% for h in o.historial %}<div style="border-left:3px solid var(--borde,#d2d2d2);padding:2px 0 6px 10px;margin:0 0 6px"><span class="sub mono" style="font-size:12px">{{ h.fecha[:16].replace('T', ' ') }} · {{ h.usuario }}</span>{% if h.cambios %} <span class="chip" style="font-size:11px">{{ h.cambios }}</span>{% endif %}{% if h.texto %}<div style="white-space:pre-wrap">{{ h.texto }}</div>{% endif %}</div>{% endfor %}
-{% if o.notas %}<div style="border-left:3px solid var(--borde,#d2d2d2);padding:2px 0 6px 10px"><span class="sub mono" style="font-size:12px">{{ o.creado[:10] }} · {{ o.por }} · nota inicial</span><div style="white-space:pre-wrap">{{ o.notas }}</div></div>{% endif %}</div>{% else %}<p class="sub">Sin notas aún.</p>{% endif %}</div></aside>
+<div style="padding:12px 16px;overflow:auto;flex:1">{% if o.historial or o.notas %}<div style="font-size:13.5px">{% for h in o.historial %}<div style="border-left:3px solid var(--borde,#d2d2d2);padding:2px 0 6px 10px;margin:0 0 6px"><span class="sub mono" style="font-size:12px">{{ h.fecha|fecha }} · {{ h.usuario }}</span>{% if h.cambios %} <span class="chip" style="font-size:11px">{{ h.cambios }}</span>{% endif %}{% if h.texto %}<div style="white-space:pre-wrap">{{ h.texto }}</div>{% endif %}</div>{% endfor %}
+{% if o.notas %}<div style="border-left:3px solid var(--borde,#d2d2d2);padding:2px 0 6px 10px"><span class="sub mono" style="font-size:12px">{{ o.creado|fecha('fecha') }} · {{ o.por }} · nota inicial</span><div style="white-space:pre-wrap">{{ o.notas }}</div></div>{% endif %}</div>{% else %}<p class="sub">Sin notas aún.</p>{% endif %}</div></aside>
 <script>function opHist(v){document.getElementById('op-hist').hidden=!v;document.getElementById('op-hist-fondo').hidden=!v;if(v)document.querySelector('#op-hist textarea').focus()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')opHist(false)});{% if request.args.get('hist') %}opHist(true);{% endif %}</script>
 

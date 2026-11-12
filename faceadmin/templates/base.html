@@ -3,6 +3,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Mono&family=Red+Hat+Text:wght@400;500;600;700&display=swap">
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}?v={{ version.build }}">
+<script src="{{ url_for('static', filename='hora-local.js') }}?v={{ version.build }}"></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='faceadmin.css') }}?v={{ version.build }}"></head><body class="ver-todo">
 <header class="top">
   <button class="hamb" aria-label="Menú" onclick="document.body.classList.toggle(window.innerWidth>900?'nav-oculta':'nav-abierta')">☰</button>

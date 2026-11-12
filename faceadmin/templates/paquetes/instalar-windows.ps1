@@ -14,7 +14,7 @@ $Base = "C:\ProgramData\FaceOps"; $R = "$Base\repo"
 New-Item -ItemType Directory -Force -Path $Base, "$Base\datos" | Out-Null
 if (-not (Test-Path "$R\.git")) { git clone -q $Repo $R }
 git -C $R fetch -q origin; git -C $R checkout -q $Commit
-$ver = @{ linea = "1.0"; build = [int](git -C $R rev-list --count HEAD); commit = $Commit; fecha = (git -C $R log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M'); rama = "main" }
+$ver = @{ linea = "1.0"; build = [int](git -C $R rev-list --count HEAD); commit = $Commit; fecha = (git -C $R log -1 --format=%cI); rama = "main" }
 $ver | ConvertTo-Json -Compress | Set-Content -Encoding UTF8 "$R\faceops\app\version.json"
 podman build -q -t localhost/faceops:latest -f "$R\faceops\Containerfile" "$R\faceops" | Out-Null
 @"

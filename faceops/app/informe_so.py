@@ -92,9 +92,10 @@ def generar(cliente, equipo, ticket, ev):
     s_b = ParagraphStyle("b", parent=s_n, fontName="Helvetica-Bold")
     esc = lambda x: str(x or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     out = []
+    from .correo import hora   # en la zona de quien pidió el ticket (perfil o último ingreso) o en UTC
     out.append(Paragraph("FaceOps · Managed Service de Invoke", s_s))
     out.append(Paragraph(f"Impacto de migración · {esc(equipo)}", s_t))
-    out.append(Paragraph(f"{esc(cliente.get('nombre'))} · ticket {esc(ticket.get('numero'))} · {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC", s_s))
+    out.append(Paragraph(f"{esc(cliente.get('nombre'))} · ticket {esc(ticket.get('numero'))} · {esc(hora(datetime.now(timezone.utc), usuario_id=ticket.get('usuario_id')))}", s_s))
     out.append(Spacer(1, 6))
     fil = [["Versión actual", plan.get("origen", "—"), "Soporte", plan.get("soporte", "—")],
            ["Destino evaluado", plan.get("destino", "—"), "Acción", plan.get("accion", "—")],

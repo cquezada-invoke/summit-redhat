@@ -65,7 +65,7 @@ document.getElementById('f-nueva').addEventListener('submit',e=>{const f=e.targe
  f.onsubmit=e=>{e.preventDefault();const b=document.getElementById('alta-ok');b.disabled=true;err.hidden=true;const o=Object.fromEntries(new FormData(f).entries());o.tipo=tipo();o._csrf={{ csrf|tojson }};
   fetch({{ url_for('consola.equipo_agregar', seccion=seccion)|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)}).then(r=>r.json()).then(r=>{
    if(r.error){err.textContent=r.error;err.hidden=false;b.disabled=false;return;}location.href=r.url;}).catch(()=>{err.textContent='No pude conectarme.';err.hidden=false;b.disabled=false;});};})();</script>{% endif %}
-{% macro ult_t(t) %}{% if t %}<a class="ult-t e-{{ t.estado }}" href="{{ url_for('consola.ticket', tid=t.id) }}" title="Último ticket: {{ t.estado|replace('_', ' ') }} · {{ t.creado|fecha }}">{{ t.numero.split('-')[-1]|int }}</a>{% endif %}{% endmacro %}
+{% macro ult_t(t) %}{% if t %}<a class="ult-t e-{{ t.estado }}" href="{{ url_for('consola.ticket', tid=t.id) }}" title="Último ticket: {{ t.estado|replace('_', ' ') }} · {{ t.creado|fecha_txt }}">{{ t.numero.split('-')[-1]|int }}</a>{% endif %}{% endmacro %}
 {{ radar_franja(radar_sec, seccion_tit[0] if seccion_tit else 'Servidores', vacio=(seccion in ('nubes', 'hipervisores', 'redes'))) }}
 {% set q_ = {'infra': filtros.infra or None, 'tipo': tipo_sel or None, 'ambito': f_amb or None, 'clase': f_clase or None, 'sin_segmento': '1' if sin_segmento else None} %}
 {% if seccion in ('nubes', 'hipervisores') and portada %}{% from "_infra.html" import logo as logo_c %}

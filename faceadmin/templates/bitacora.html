@@ -1,4 +1,4 @@
 {% extends "base.html" %}{% block titulo %}Bitácora{% endblock %}{% block cuerpo %}
 <h1>Bitácora</h1><div class="card tabla-scroll" style="padding:6px 8px"><table><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Objeto</th><th>Detalle</th></tr>
-{% for f in filas %}<tr><td class="mono">{{ f.fecha[:16] }}</td><td>{{ f.usuario }}</td><td>{{ f.accion }}</td><td>{{ f.objeto }}</td><td class="mono">{{ f.detalle[:120] }}</td></tr>{% endfor %}</table></div>
+{% for f in filas %}<tr><td class="mono">{{ f.fecha|fecha }}</td><td>{{ f.usuario }}</td><td>{{ f.accion }}</td><td>{{ f.objeto }}</td><td class="mono">{{ f.detalle[:120] }}</td></tr>{% endfor %}</table></div>
 {% endblock %}

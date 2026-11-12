@@ -14,7 +14,7 @@
 <tr><td class="sub">Período</td><td class="mono">{{ d.desde }} → {{ d.hasta }}</td></tr>
 <tr><td class="sub">Entorno</td><td>{% if d.entorno_nombre %}<b>{{ d.entorno_nombre }}</b>{% else %}<span class="chip med">sin asignar</span>{% endif %}{% if d.entorno_url %}<br><a href="{{ d.entorno_url }}" target="_blank" rel="noopener">{{ d.entorno_url }}</a>{% endif %}</td></tr>
 <tr><td class="sub">Credenciales</td><td>{{ d.entrega or 'sin indicar cómo se entregan' }}</td></tr>
-<tr><td class="sub">Pedida por</td><td>{{ d.por }} · {{ d.creado[:16] }}{% if d.origen != 'faceadmin' %} · desde {{ d.origen }}{% endif %}</td></tr>{% if d.motivo %}<tr><td class="sub">Motivo</td><td>{{ d.motivo }}</td></tr>{% endif %}
+<tr><td class="sub">Pedida por</td><td>{{ d.por }} · {{ d.creado|fecha }}{% if d.origen != 'faceadmin' %} · desde {{ d.origen }}{% endif %}</td></tr>{% if d.motivo %}<tr><td class="sub">Motivo</td><td>{{ d.motivo }}</td></tr>{% endif %}
 </table></div>
 <div class="card"><h2>Entorno asignado</h2>{% if d.est in ('pedida', 'preparada', 'activa') %}
 <form method="post" style="display:grid;gap:8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="entorno">
@@ -33,7 +33,7 @@
 <p class="sub" style="font-size:12px;margin:4px 0 0">Quedan {{ libres }} día{{ 's' if libres != 1 }} disponibles hasta el máximo de {{ max_dias }}.</p>
 {% elif d.est != 'cerrada' %}<p class="sub">La Demo ya usó los {{ max_dias }} días: para seguir, pasa a una PoC o al contrato.</p>{% endif %}
 {% if d.est != 'cerrada' %}<form method="post" style="margin-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="cerrar">
-<button class="btn gris" onclick="return confirm('Se cierra la Demo {{ d.numero }}. ¿Continuar?')">Cerrar la Demo</button></form>{% else %}<p class="sub">Cerrada el {{ d.cerrada[:16] }}.</p>{% endif %}</div>
+<button class="btn gris" onclick="return confirm('Se cierra la Demo {{ d.numero }}. ¿Continuar?')">Cerrar la Demo</button></form>{% else %}<p class="sub">Cerrada el {{ d.cerrada|fecha }}.</p>{% endif %}</div>
 <div class="card tabla-scroll"><h2>Movimientos</h2>{% if eventos %}<table style="font-size:13px"><tr><th>Fecha</th><th>Quién</th><th>Qué</th></tr>
-{% for e in eventos %}<tr><td class="mono">{{ e.fecha[:16] }}</td><td>{{ e.usuario }}</td><td>{{ e.accion }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Sin movimientos.</p>{% endif %}</div></div>
+{% for e in eventos %}<tr><td class="mono">{{ e.fecha|fecha }}</td><td>{{ e.usuario }}</td><td>{{ e.accion }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Sin movimientos.</p>{% endif %}</div></div>
 {% endblock %}

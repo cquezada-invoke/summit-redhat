@@ -4,7 +4,7 @@
 <div class="kpis"><div class="kpi"><span class="sub">FaceOps habilitados</span><b>{{ resumen.n }}</b></div><div class="kpi"><span class="sub">Responden</span><b>{{ resumen.on }}/{{ resumen.n }}</b></div>
 <div class="kpi"><span class="sub">En proceso comercial</span><b>{{ resumen.prospectos }}</b></div><div class="kpi"><span class="sub">Con facturas vencidas</span><b>{{ resumen.con_deuda }}</b></div>
 <div class="kpi"><span class="sub">Bloqueados</span><b style="color:{{ 'var(--bad)' if resumen.bloqueados else 'inherit' }}">{{ resumen.bloqueados }}</b></div></div>
-{% if es_invoke %}<div class="card"><h2>Repositorio central</h2><p style="margin:0"><a class="mono" href="https://github.com/{{ repo }}" target="_blank" rel="noopener">github.com/{{ repo }}</a> · main {% if central.commit %}<span class="mono">{{ central.commit[:7] }}</span> · {{ central.fecha }} · {{ central.mensaje }}{% else %}<span class="chip mal">sin respuesta de GitHub</span>{% endif %}</p></div>{% endif %}
+{% if es_invoke %}<div class="card"><h2>Repositorio central</h2><p style="margin:0"><a class="mono" href="https://github.com/{{ repo }}" target="_blank" rel="noopener">github.com/{{ repo }}</a> · main {% if central.commit %}<span class="mono">{{ central.commit[:7] }}</span> · {{ central.fecha|fecha }} · {{ central.mensaje }}{% else %}<span class="chip mal">sin respuesta de GitHub</span>{% endif %}</p></div>{% endif %}
 <div class="fila" style="gap:8px;margin:0 0 12px;align-items:center"><a class="btn" href="{{ url_for('contrato_nuevo') }}">+ Crear contrato</a><span class="sub" style="font-size:13px">Los clientes y tenants se dan de alta con su contrato, que lleva toda su información.</span></div>
 
 

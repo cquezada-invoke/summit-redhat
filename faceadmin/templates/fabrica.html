@@ -3,7 +3,7 @@
 <div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Fábrica de FaceOps</h1>
 <p class="sub" style="margin:2px 0 0">FaceOps se ensambla como un avión: cada módulo es una pieza con su repositorio, su versión y su ciclo de vida. FaceOps es la suma de todos.</p></div>
 <a class="btn gris" style="margin-left:auto" href="{{ url_for('arquitectura') }}">Arquitectura del producto</a><a class="btn gris" href="{{ url_for('fabrica_instalacion') }}">Paquete de instalación</a></div>
-<div class="kpis"><div class="kpi"><span class="sub">FaceOps</span><b>v{{ F.linea }}.{{ F.build }}</b><span class="sub mono" style="font-size:12px">{{ F.commit }} · {{ F.fecha }}</span></div>
+<div class="kpis"><div class="kpi"><span class="sub">FaceOps</span><b>v{{ F.linea }}.{{ F.build }}</b><span class="sub mono" style="font-size:12px">{{ F.commit }} · {{ F.fecha|fecha }}</span></div>
 <div class="kpi"><span class="sub">Módulos</span><b>{{ d.modulos|length }}</b><span class="sub" style="font-size:12px">{{ d.por_etapa.produccion }} en producción · {{ d.por_etapa.pruebas }} en pruebas</span></div>
 <div class="kpi"><span class="sub">Piezas</span><b>{{ d.total_piezas }}</b><span class="sub" style="font-size:12px">{{ '{:,}'.format(d.total_lineas).replace(',', '.') }} líneas · {{ d.sin_modulo.n }} sin módulo</span></div>
 <div class="kpi"><span class="sub">Instancias en clientes</span><b>{{ flota|length }}</b><span class="sub" style="font-size:12px">{{ flota|selectattr('atraso', 'equalto', 0)|list|length }} al día</span></div></div>
@@ -47,14 +47,14 @@
 <text x="928" y="{{ (d.modulos|length - 1) * 13 + 31 }}" text-anchor="middle" fill="#fff" font-size="10.5" font-family="Red Hat Mono,monospace">v{{ F.linea }}.{{ F.build }}</text></svg></div>
 
 <div class="card tabla-scroll" style="padding:6px 8px"><table><tr><th>Módulo</th><th>Último commit</th><th>Versión</th><th>Ciclo de vida</th><th style="text-align:right">Código</th><th style="text-align:right">Vistas</th><th style="text-align:right">Playbooks</th><th style="text-align:right">Líneas</th><th>Última actualización</th><th>Dueño</th></tr>
-{% for m in d.modulos %}<tr><td><a href="{{ url_for('fabrica_modulo', clave=m.clave) }}"><b>{{ m.nombre }}</b></a></td><td class="mono" style="font-size:12.5px">{% if m.ultimo %}<a href="https://github.com/{{ d.monorepo|replace('github.com/', '') }}/commit/{{ m.ultimo.sha }}" target="_blank" rel="noopener" title="{{ m.ultimo.mensaje }} · {{ m.ultimo.fecha }} · {{ m.ultimo.autor }}">{{ m.ultimo.sha[:7] }}</a>{% else %}—{% endif %}</td><td class="mono">{{ m.version }}</td>
+{% for m in d.modulos %}<tr><td><a href="{{ url_for('fabrica_modulo', clave=m.clave) }}"><b>{{ m.nombre }}</b></a></td><td class="mono" style="font-size:12.5px">{% if m.ultimo %}<a href="https://github.com/{{ d.monorepo|replace('github.com/', '') }}/commit/{{ m.ultimo.sha }}" target="_blank" rel="noopener" title="{{ m.ultimo.mensaje }} · {{ m.ultimo.fecha|fecha_txt }} · {{ m.ultimo.autor }}">{{ m.ultimo.sha[:7] }}</a>{% else %}—{% endif %}</td><td class="mono">{{ m.version }}</td>
 <td><span class="chip" style="border-color:{{ col[m.etapa] }};color:{{ col[m.etapa] }}">{{ etapa_t[m.etapa] }}</span>{% if m.etapa_estimada %} <span class="sub" style="font-size:11px">estimada</span>{% endif %}</td>
 <td style="text-align:right">{{ m.piezas.codigo|length }}</td><td style="text-align:right">{{ m.piezas.vistas|length }}</td><td style="text-align:right">{{ m.piezas.playbooks|length }}</td><td style="text-align:right">{{ m.lineas|num }}</td>
-<td style="font-size:12.5px">{% if m.ultimo %}<span class="mono">{{ m.ultimo.fecha }}</span><br><span class="sub">{{ m.ultimo.mensaje[:60] }}</span>{% else %}—{% endif %}</td><td style="font-size:12.5px">{{ m.dueno }}</td></tr>{% endfor %}</table></div>
+<td style="font-size:12.5px">{% if m.ultimo %}<span class="mono">{{ m.ultimo.fecha|fecha }}</span><br><span class="sub">{{ m.ultimo.mensaje[:60] }}</span>{% else %}—{% endif %}</td><td style="font-size:12.5px">{{ m.dueno }}</td></tr>{% endfor %}</table></div>
 
 <div class="card tabla-scroll" style="padding:6px 8px"><h2 style="padding:8px 8px 0">Flota: FaceOps en clientes</h2><table><tr><th>Cliente</th><th>Instancia</th><th>Versión</th><th>Estado</th></tr>
 {% for c in flota %}{% set v = c.estado.version or {} %}<tr><td><a href="{{ url_for('cliente', cid=c.id) }}">{{ c.nombre }}</a></td><td class="mono" style="font-size:12px">{{ c.instancia_id }}</td>
 <td>{% if v.texto %}<b>{{ v.texto }}</b>{% if c.atraso == 0 %} <span class="chip ok">al día</span>{% elif c.atraso %} <span class="chip med">{{ c.atraso }} atrás</span>{% endif %}{% else %}—{% endif %}</td>
 <td>{% if c.estado.responde %}<span class="chip ok">● enlazado</span>{% else %}<span class="chip mal">sin respuesta</span>{% endif %}</td></tr>{% else %}<tr><td colspan="4" class="sub">Sin instancias.</td></tr>{% endfor %}</table></div>
-<p class="sub" style="font-size:12px">Datos de los módulos al {{ d.generado }} (se regeneran en cada construcción de FaceAdmin desde el repositorio).</p>
+<p class="sub" style="font-size:12px">Datos de los módulos al {{ d.generado|fechas_texto }} (se regeneran en cada construcción de FaceAdmin desde el repositorio).</p>
 {% endblock %}

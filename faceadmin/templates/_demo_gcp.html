@@ -18,13 +18,13 @@ Dura lo que queda de la Demo (máximo 14 días) y luego se elimina por completo;
 {% else %}
 <div class="fila" style="gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="chip {{ gx.est_t[1] }}">{{ gx.est_t[0] }}</span>
 <span class="chip {{ 'ok' if gx.en_horario else '' }}">{{ 'En horario hábil' if gx.en_horario else 'Fuera de horario' }}</span>
-{% if gx.estado not in ('eliminada',) %}<span class="sub">vence el <b>{{ gx.expira_txt }}</b> · quedan {{ gx.quedan_h }} h</span>{% endif %}</div>
+{% if gx.estado not in ('eliminada',) %}<span class="sub">vence el <b>{{ gx.expira|fecha }}</b> · quedan {{ gx.quedan_h }} h</span>{% endif %}</div>
 {% if gx.error %}<p class="chip mal" style="display:block;white-space:normal">{{ gx.error }}</p>{% endif %}
 <table style="font-size:13.5px">
 <tr><td class="sub">VM</td><td class="mono">{{ gx.instancia }} · {{ gx.tipo }} · {{ gx.zona }}{% if gx.ip %} · {{ gx.ip }}{% endif %}</td></tr>
 <tr><td class="sub">Acceso</td><td>{% if gx.url %}<a href="{{ gx.url }}" target="_blank" rel="noopener">{{ gx.url }}</a>{% else %}se asigna al crear la VM{% endif %}</td></tr>
 <tr><td class="sub">Horario</td><td>{{ gx.horario }}{{ ' · se enciende sola al inicio' if gx.arranque_programado }} · se apaga tras {{ gx.inactividad_min }} min sin uso</td></tr>
-<tr><td class="sub">Uso</td><td>{% if gx.encendida_txt %}encendida desde {{ gx.encendida_txt }} · {% endif %}{{ gx.horas }} h encendida en total{% if gx.ultimo_uso_txt %} · último uso {{ gx.ultimo_uso_txt }}{% endif %}{% if gx.latido_txt %} · agente {{ gx.latido_txt }}{% endif %}{% if gx.motivo_apagado and gx.estado == 'apagada' %}<br><span class="sub">Apagada: {{ gx.motivo_apagado }}</span>{% endif %}</td></tr>
+<tr><td class="sub">Uso</td><td>{% if gx.encendida_txt %}encendida desde {{ gx.encendida_desde|fecha }} · {% endif %}{{ gx.horas }} h encendida en total{% if gx.ultimo_uso_txt %} · último uso {{ gx.ultimo_uso|fecha }}{% endif %}{% if gx.latido_txt %} · agente {{ gx.ultimo_latido|fecha }}{% endif %}{% if gx.motivo_apagado and gx.estado == 'apagada' %}<br><span class="sub">Apagada: {{ gx.motivo_apagado }}</span>{% endif %}</td></tr>
 {% if gx.enlace %}<tr><td class="sub">Enlace del cliente</td><td><input readonly value="{{ gx.enlace }}" onclick="this.select()" style="width:100%;font-family:var(--mono,monospace);font-size:12px"><span class="sub" style="font-size:12px">«Encender mi demo»: entrégalo al cliente; enciende la VM solo en horario hábil.</span></td></tr>{% endif %}
 <tr><td class="sub">Credenciales</td><td>usuario <b>{{ gx.usuario_cliente }}</b> · {{ 'creadas en la VM' if gx.clave_entregada else 'la VM las toma en su primer arranque' }}</td></tr>
 </table>

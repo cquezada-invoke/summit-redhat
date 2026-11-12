@@ -261,11 +261,8 @@ def create_app():
     def combine(a, b):
         return {**(a or {}), **(b or {})}
 
-    @app.template_filter("fecha")
-    def fecha(v):
-        if not v:
-            return "—"
-        return str(v).replace("T", " ")[:16]
+    from .hora_local import registrar_filtros   # |fecha, |fecha_txt, |iso_z, |hace: UTC en el servidor, hora local en el navegador
+    registrar_filtros(app)
 
     @app.template_filter("dur")
     def dur(s):

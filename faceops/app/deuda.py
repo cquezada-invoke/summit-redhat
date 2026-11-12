@@ -189,7 +189,7 @@ def cobertura(cliente_id, equipo, problema):
             f"AND t.estado='exitoso' AND a.nombre_aap IN ({marcas}) AND (':' || t.limite || ':') LIKE ? ORDER BY t.fin DESC LIMIT 1",
             cliente_id, *autos, f"%:{equipo}:%")
     if ok:
-        return {"estado": "cubierto", "fecha": (ok["fin"] or "")[:10], "automatizacion": ok["nombre"], "ticket": ok["numero"]}
+        return {"estado": "cubierto", "fecha": ok["fin"] or "", "automatizacion": ok["nombre"], "ticket": ok["numero"]}
     dd = q1(f"SELECT d.*, a.nombre auto FROM deudas d JOIN automatizaciones a ON a.id=d.automatizacion_id WHERE d.cliente_id=? "
             f"AND d.estado IN ('esperando','vencida','rechazada') AND a.nombre_aap IN ({marcas}) AND (':' || d.limite || ':') LIKE ? "
             f"ORDER BY d.creado LIMIT 1", cliente_id, *autos, f"%:{equipo}:%")

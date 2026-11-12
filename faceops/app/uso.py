@@ -7,10 +7,10 @@ período; luego la reparte entre los segmentos que usan esa plataforma en esta m
   · otro proceso compartido → partes iguales (estimado)"""
 import json
 import time
-from datetime import datetime
 from urllib.parse import urlparse
 
 from .bd import ahora, auditar, con, ej, j, q, q1
+from .hora_local import texto_utc
 
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS uso_muestras (id INTEGER PRIMARY KEY, cliente_id INTEGER, equipo TEXT, ts INTEGER, datos TEXT);
@@ -161,5 +161,5 @@ def por_segmento(cliente_id, e):
         x["mem_tipo"] = "exacta" if x["mem_tipo"] == {"exacta"} else ("compartida" if "compartida" in x["mem_tipo"] and not x["mem_mb"] else "parcial")
         x["red_h"] = round(x["red_bytes"] / horas)
         x["req_h"] = round(x["req"] / horas)
-    return {"medido": True, "fecha": datetime.fromtimestamp(b["ts"]).strftime("%Y-%m-%d %H:%M"), "segmentos": seg,
+    return {"medido": True, "fecha": texto_utc(b["ts"]), "segmentos": seg,
             "jboss_estadisticas": (b.get("jboss") or {}).get("estadisticas")}
