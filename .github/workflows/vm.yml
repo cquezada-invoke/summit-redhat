@@ -14,8 +14,33 @@ jobs:
     runs-on: [self-hosted, summit-vm, "${{ startsWith(github.ref_name, 'vmt/c-') && 'corta' || 'larga' }}"]   # tareas cortas al runner "corta", largas a los "larga"
     timeout-minutes: 60
     steps:
+      # Guarda: no repetir trabajo. Se omite la tarea si su SHA ya tiene resultado en vm-resultados,
+      # si la rama ya no apunta a este SHA (el agente la borró al rendirse) o si el commit tiene más de 3 h
+      # (nadie la está esperando: run2.sh espera minutos). Así la cola nunca re-ejecuta tareas viejas.
+      - name: Omitir si ya tiene resultado o quedó huérfana
+        id: guard
+        env:
+          TS: ${{ github.event.head_commit.timestamp }}
+        run: |
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_VALUE_0=""
+          R="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          motivo=""
+          if [ -n "$TS" ] && [ $(( $(date +%s) - $(date -d "$TS" +%s) )) -gt 10800 ]; then motivo="más de 3 h en cola"; fi
+          if [ -z "$motivo" ] && [ "${{ github.event_name }}" = push ]; then
+            actual=$(git ls-remote "$R" "refs/heads/${{ github.ref_name }}" 2>/dev/null | cut -f1)
+            [ -n "$actual" ] && [ "$actual" != "${{ github.sha }}" ] && motivo="la rama cambió"
+            [ -z "$actual" ] && git ls-remote --exit-code "$R" refs/heads/main >/dev/null 2>&1 && motivo="la rama ya no existe"
+          fi
+          if [ -z "$motivo" ]; then
+            d=$(mktemp -d) && git -C "$d" init -q && git -C "$d" fetch -q --depth 1 "$R" vm-resultados 2>/dev/null \
+              && git -C "$d" grep -q "^commit: ${{ github.sha }}" FETCH_HEAD -- 'resultados/[0-9]*.txt' && motivo="ya tiene resultado"
+            rm -rf "$d"
+          fi
+          [ -n "$motivo" ] && { echo "Tarea omitida: $motivo"; echo "omitir=1" >> "$GITHUB_OUTPUT"; } || true
       - uses: actions/checkout@v4
+        if: steps.guard.outputs.omitir != '1'
       - name: Ejecutar tarea
+        if: steps.guard.outputs.omitir != '1'
         run: |
           set +e
           mkdir -p /tmp/vm-res
@@ -24,7 +49,7 @@ jobs:
           bash herramientas/vm/tarea.sh >> "$OUT" 2>&1
           echo "--- fin: $(date -Is) · código: $?" >> "$OUT"
       - name: Publicar resultado
-        if: always()
+        if: always() && steps.guard.outputs.omitir != '1'
         run: |
           export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_VALUE_0=""
           for intento in 1 2 3 4 5 6; do   # varias tareas en paralelo: si otro publicó antes, se reintenta sobre lo nuevo
