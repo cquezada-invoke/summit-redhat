@@ -1,39 +1,14 @@
-commit: 9fc4d617f7be60a83eff16a5c503bced6d54005f
-inicio: 2026-11-12T14:54:01-03:00
+commit: 8f5ab13d59f98d6333add90c75d7e307a4d1c3bf
+inicio: 2026-11-12T15:47:19-03:00
 ---
-desplegado 8562fdf47
-   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 28 reglas en Prometheus y ruta a EDA :5023
-   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
-   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
-repo 8562fdf
-herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
-SINCRONIZADO lab
-== Autocuidado · Respaldar bases de AAP y FaceOps
-  C1 → exitoso FO-LAB-02236
-CASO C1 ok · Evaluar
-  C2 → fallido FO-LAB-02237
-CASO C2 falla · Aplicar
-  C3 → fallido FO-LAB-02239
-CASO C3 falla · Repetir
-  C4 → fallido FO-LAB-02240
-CASO C4 ok · Sin espacio seguro
-CERT Autocuidado · Respaldar bases de AAP y FaceOps → sin probar
-== Autocuidado · Renovar certificados
-  C1 → exitoso FO-LAB-02241
-CASO C1 ok · Evaluar
-  C2 → exitoso FO-LAB-02242
-CASO C2 ok · Aplicar (vigente)
-  C3 → exitoso FO-LAB-02243
-CASO C3 ok · Repetir
-  C4 → fallido FO-LAB-02245
-CASO C4 ok · Modo inválido
-CERT Autocuidado · Renovar certificados → certificada
-== Autocuidado · Purgar historial de AAP
-  C1 → exitoso FO-LAB-02247
-CASO C1 ok · Conservar 365 días
-  C2 → exitoso FO-LAB-02249
-CASO C2 ok · Repetir
-  C3 → fallido FO-LAB-02250
-CASO C3 ok · Bajo el mínimo
-CERT Autocuidado · Purgar historial de AAP → certificada
---- fin: 2026-11-12T15:46:57-03:00 · código: 0
+{"linea": "1.0", "build": 1793, "commit": "8562fdf472f1cec10e541e44de6feee736b10a63", "fecha": "2026-11-12 17:36", "rama": "main"}
+
+lab http 302
+CASO App de pagos | desarrollo ok · data lake inactivo · configurado en produccion · no configurado en desarrollo
+RESULTADO ok
+POS guardar 200 {'n': 1, 'ok': True}
+POS leer {'en': '2026-11-12T18:48:25+00:00', 'por': 'cquezada', 'posiciones': {'e:a': {'x': 1.0, 'y': 2.0}}}
+POS otro ambiente {'en': '', 'por': '', 'posiciones': {}}
+POS borrar 200 {'en': '', 'por': '', 'posiciones': {}}
+PAGINA 200 True True False
+--- fin: 2026-11-12T15:48:28-03:00 · código: 0
