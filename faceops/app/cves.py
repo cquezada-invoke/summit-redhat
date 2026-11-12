@@ -109,8 +109,29 @@ def sembrar_base(aap, cliente):
     return n
 
 
+_memo_pe = {}
+
+
 def por_equipo(cliente_id, eqs):
-    """{equipo_id: {revisado, repos, pendientes, cubiertos, criticos, importantes, cuando, top: [...]}}"""
+    """{equipo_id: {revisado, repos, pendientes, cubiertos, criticos, importantes, cuando, top: [...]}}
+    Memo en el proceso: se recalcula solo si cambió lo revisado (firma de cves_equipo / cves_revision) o pasaron 60 s."""
+    import time
+    try:
+        f = q1("SELECT (SELECT COUNT(*) || ':' || COALESCE(MAX(rowid), 0) FROM cves_equipo WHERE cliente_id=?) AS a, "
+               "(SELECT COUNT(*) || ':' || COALESCE(MAX(cuando), '') FROM cves_revision WHERE cliente_id=?) AS b", cliente_id, cliente_id)
+        firma = (f["a"], f["b"])
+    except Exception:  # noqa: BLE001
+        return _por_equipo(cliente_id, eqs)
+    ids_ = frozenset(e["id"] for e in eqs)
+    m = _memo_pe.get(cliente_id)
+    if m and m[1] == firma and time.time() - m[0] < 60 and ids_ <= m[2].keys():
+        return {i: m[2][i] for i in ids_}
+    out = _por_equipo(cliente_id, eqs)
+    _memo_pe[cliente_id] = (time.time(), firma, out)
+    return out
+
+
+def _por_equipo(cliente_id, eqs):
     rev = {r["equipo_id"]: r for r in q("SELECT * FROM cves_revision WHERE cliente_id=?", cliente_id)}
     pend, cub = {}, {}
     ids_ = {e["id"] for e in eqs}

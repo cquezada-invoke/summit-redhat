@@ -138,11 +138,25 @@ def hash_de(texto):
 
 
 # ------------------------------------------------------------------ versiones
+_memo_m = {}   # sha del contenido → arquitectura ya leída y normalizada (el YAML no se vuelve a interpretar en cada página)
+
+
+def _modelo(contenido):
+    """normalizar(yaml) del contenido, memorizado por su huella; se entrega una copia (quien la usa puede modificarla)."""
+    import copy
+    k = hashlib.sha256((contenido or "").encode()).hexdigest()
+    if k not in _memo_m:
+        if len(_memo_m) > 500:
+            _memo_m.clear()
+        _memo_m[k] = normalizar(yaml.safe_load(contenido))
+    return copy.deepcopy(_memo_m[k])
+
+
 def vigente(cliente_id, segmento):
     r = q1("SELECT * FROM arquitecturas WHERE cliente_id=? AND segmento=? AND estado='aprobada' ORDER BY version DESC LIMIT 1",
            cliente_id, segmento)
     if r:
-        r["m"] = normalizar(yaml.safe_load(r["contenido"]))
+        r["m"] = _modelo(r["contenido"])
     return r
 
 
@@ -151,7 +165,7 @@ def vigentes(cliente_id):
     for r in q("SELECT * FROM arquitecturas WHERE cliente_id=? AND estado='aprobada' ORDER BY version", cliente_id):
         out[r["segmento"]] = r
     for r in out.values():
-        r["m"] = normalizar(yaml.safe_load(r["contenido"]))
+        r["m"] = _modelo(r["contenido"])
     return out
 
 

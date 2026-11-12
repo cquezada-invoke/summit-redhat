@@ -263,7 +263,8 @@ def leer_sin_esperar(cliente, equipos, espera=0.8):
     if c and time.time() - c[0] < 60:
         return c[1]
     th = _en_curso.get(k)
-    if not th or not th.is_alive():
+    nuevo = not th or not th.is_alive()
+    if nuevo:
         def _renovar(cl, eqs):
             try:
                 leer(cl, eqs)
@@ -272,7 +273,7 @@ def leer_sin_esperar(cliente, equipos, espera=0.8):
         th = threading.Thread(target=_renovar, args=(dict(cliente), list(equipos)), daemon=True, name=f"certificados-{k}")
         _en_curso[k] = th
         th.start()
-    if not c:
+    if not c and nuevo:   # se espera solo quien lanzó la lectura; las demás páginas no esperan
         th.join(espera)
         c = _cache.get(k)
     return c[1] if c else None
