@@ -1,89 +1,42 @@
-commit: e0ec2f3c3349d2ce65308ccffb24b9d3f00198e1
-inicio: 2026-11-12T19:45:15-03:00
+commit: 22c05e7b0c3b977774f5cd29c23a51788ed5e454
+inicio: 2026-11-12T19:46:27-03:00
 ---
-host: 2026-11-12T22:45:15Z · disco 26G libres
-autodeploy: inactive · 
-desplegado: {"linea": "1.0", "build": 1797, "commit": "27ba8a86ca8c10ed2e6744a676e22c8e216d03c7", "fecha": "2026-11-12 20:46", "rama": "main"}
-AAP ping: 200
-cliente lab id 1 · aap_url host 127.0.0.1
-AUTO 95 Infra · Encender o apagar equipo | aprob 0 | tipo job | prueba: certificada  | tickets None
-AUTO 99 FaceOps · Vincular máquina a la bóveda | aprob 1 | tipo job | prueba: certificada  | tickets None
-AUTO 104 Sistema · Inventariar máquina | aprob 0 | tipo job | prueba: cambiada  | tickets None
-AUTO 102 Sistema · Paquetes · inventario y respaldo | aprob 0 | tipo job | prueba: cambiada  | tickets None
-AUTO 100 Plataforma · Controlar servicio | aprob 1 | tipo job | prueba: certificada  | tickets None
-AUTO 168 Sistema · Quitar agente | aprob 1 | tipo job | prueba: certificada  | tickets None
-AUTO 244 FaceOps · Vincular máquina on-premise | aprob 1 | tipo job | prueba: sin probar  | tickets None
-AUTO FaceOps · Servidores (alta manual) -> no está en el catálogo
-AUTO 80 FaceOps · Incorporar máquinas | aprob 1 | tipo job | prueba: sin probar  | tickets None
-AUTO 60 FaceOps · Apagar equipo | aprob 1 | tipo job | prueba: certificada  | tickets None
-AUTO 61 FaceOps · Agente de monitoreo (Linux) | aprob 0 | tipo job | prueba: cambiada  | tickets None
-AUTO 62 FaceOps · Habilitar servidor | aprob 1 | tipo job | prueba: certificada  | tickets None
-cols equipos: so,ip,estado,energia
-equipos: 111 · por energia {'': 1, 'encendido': 63, 'apagado': 47}
-  EQ 23 anfitrion-kvm | None | energia 
-  EQ 24 anfitrion-stand | None | energia encendido
-  EQ 63 borde | None | energia apagado
-  EQ 64 core | None | energia apagado
-  EQ 1 dc1-ad01 | None | energia apagado
-  EQ 2 dc1-ds01 | None | energia apagado
-  EQ 3 dc1-idm01 | None | energia apagado
-  EQ 4 dc1-iga01 | None | energia apagado
-  EQ 77 dc1-sat01 | None | energia apagado
-  EQ 75 dc1-sql01 | None | energia apagado
-  EQ 5 dc1-sso01 | None | energia apagado
-  EQ 79 dc1-vpn01 | None | energia apagado
-  EQ 76 dc2-sql01 | None | energia apagado
-  EQ 65 dns-dmz | None | energia apagado
-  EQ 13 fgt | None | energia encendido
-  EQ 133 fo-prueba-11121533 | None | energia apagado
-  EQ 134 fo-prueba-11121641 | None | energia encendido
-  EQ 132 fo-prueba-a-1424 | None | energia apagado
-  EQ 14 fw | None | energia encendido
-  EQ 66 fw-interno | None | energia apagado
-  EQ 67 fw-perimetral | None | energia apagado
-  EQ 121 fw-sede-01 | None | energia encendido
-  EQ 68 lb-dmz | None | energia apagado
-  EQ 122 lb-sede-01 | None | energia encendido
-  EQ 69 nas-01 | None | energia apagado
-  EQ 6 nodo-jboss | None | energia encendido
-  EQ 21 nodo-jboss-dev | None | energia encendido
-  EQ 22 nodo-jboss-qa | None | energia apagado
-  EQ 7 nodo-jboss2 | None | energia encendido
-  EQ 20 nodo-jboss3 | None | energia apagado
-  EQ 128 nodo-jboss4 | None | energia encendido
-  EQ 8 nodo-nginx | None | energia encendido
-  EQ 9 nodo-postgres | None | energia encendido
-  EQ 11 nodo-so | None | energia encendido
-  EQ 27 nodo-storage | None | energia encendido
-  EQ 10 nodo-tomcat | None | energia encendido
-  EQ 26 nodo-vault | None | energia encendido
-  EQ 12 nodo-windows | None | energia encendido
-  EQ 29 ocp-sno | None | energia encendido
-  EQ 70 pc-campus-01 | None | energia apagado
-  EQ 81 pc-oficina-01 | None | energia apagado
-  EQ 82 pc-oficina-02 | None | energia apagado
-  EQ 15 pc-usuario | None | energia encendido
-  EQ 71 proxy-dmz | None | energia apagado
-  EQ 16 rtr | None | energia encendido
-  EQ 123 rtr-wan-01 | None | energia encendido
-  EQ 41 sno | None | energia encendido
-  EQ 30 srv-ad-dc02 | None | energia encendido
-  EQ 72 srv-app-01 | None | energia apagado
-  EQ 31 srv-archivos01 | None | energia encendido
-  EQ 73 srv-bd-01 | None | energia apagado
-  EQ 85 srv-cisco-c240-01 | None | energia encendido
-  EQ 37 srv-cliente-nueva-01 | None | energia encendido
-  EQ 93 srv-dell-r660xs-01 | None | energia encendido
-  EQ 86 srv-dell-r760-01 | None | energia encendido
-  EQ 32 srv-erp-app01 | None | energia encendido
-  EQ 33 srv-erp-app02 | None | energia encendido
-  EQ 34 srv-erp-bd01 | None | energia encendido
-  EQ 94 srv-fujitsu-rx2540-01 | None | energia encendido
-  EQ 95 srv-hpe-dl360-01 | None | energia encendido
-usuarios: []
-n usuarios 21
-tablas: ['perfiles', 'pruebas_automatizacion', 'grupos_dueno', 'grupo_miembros', 'rbac_grupos', 'alerta_pruebas', 'edge_grupos', 'cola_acciones']
-ultimo ticket {'id': 2373, 'numero': 'FO-LAB-02373', 'estado': 'fallido'}
-cola: [{'estado': 'cancelado', 'n': 2}, {'estado': 'fallido', 'n': 3}, {'estado': 'lanzado', 'n': 323}]
-playwright host ok
---- fin: 2026-11-12T19:45:22-03:00 · código: 0
+== host: 2026-11-12T22:46:27Z
+id_alopez id_areyes id_carlos id_demo id_ed25519_sno id_jperez id_mgonzalez id_rsoto stand visitantes 
+== IP nodo-so: 192.168.122.12
+acceso: ssh ansible con id_demo
+-- fecha VM: 2026-11-12T22:46:28Z · chrony:  0.000119591 seconds fast of NTP time; Normal;
+-- release: Red Hat Enterprise Linux release 9.8 (Plow)
+-- rhsm status:
++-------------------------------------------+
+   System Status Details
++-------------------------------------------+
+Overall Status: Registered
+Content Access Mode is set to Simple Content Access. This host has access to content, regardless of subscription status.
+
+-- identity registrada: no
+-- sca/owner:
+-- rhsm.conf (sin claves):
+hostname = dc1-sat01.invoke.lab
+proxy_hostname =
+proxy_port =
+no_proxy =
+baseurl = https://dc1-sat01.invoke.lab/pulp/content/
+repo_ca_cert = %(ca_cert_dir)skatello-server-ca.pem
+manage_repos = 1
+-- dnf proxy: 
+-- env proxy: 
+-- resolv: nameserver 192.168.122.1 
+-- DNS cdn.redhat.com: 2600:1480:a000:1f3:: eip-terr-sa.cdn-eipb.redhat.com.akahost.net cdn.redhat.com cdn-eipb.redhat.com.edgekey.net cdn-eipb.redhat.com.splitter-eip.akadns.net cdn-eipb.redhat.com.eip.akadns.net
+-- DNS subscription.rhsm.redhat.com: 2600:14e1:c:3c:: eip-terr-sa.subscription-eipb.rhsm.redhat.com.akahost.net subscription.rhsm.redhat.com subscription-eipb.rhsm.redhat.com.edgekey.net subscription-eipb.rhsm.redhat.com.splitter-eip.akadns.net subscription-eipb.rhsm.redhat.com.eip.akadns.net
+-- ruta: default via 192.168.122.1 dev eth0 proto dhcp src 192.168.122.12 metric 100 ;192.168.122.0/24 dev eth0 proto kernel scope link src 192.168.122.12 metric 100 ;
+-- https cdn: 000 0.333622s
+-- https rhsm: 000 0.328719s
+-- repos habilitados:
+repo id                          repo name
+rhel-9-for-x86_64-appstream-rpms Red Hat Enterprise Linux 9 for x86_64 - AppStream (RPMs)
+rhel-9-for-x86_64-baseos-rpms    Red Hat Enterprise Linux 9 for x86_64 - BaseOS (RPMs)
+-- certificados de entitlement: 2 · vence: notAfter=Nov  5 01:16:17 2027 GMT
+-- prueba metadata baseos:
+Error: Failed to download metadata for repo 'rhel-9-for-x86_64-baseos-rpms': Cannot download repomd.xml: Cannot download repodata/repomd.xml: All mirrors were tried
+--- fin: 2026-11-12T19:47:09-03:00 · código: 0
