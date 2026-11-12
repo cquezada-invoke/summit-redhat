@@ -1,0 +1,80 @@
+commit: 18329d5a05ad6711722b1a8fd29d6dea402b3aea
+inicio: 2026-11-11T23:17:01-03:00
+---
+36 Red · Aplicar configuración | None | Red · laboratorio |inv Red · laboratorio |vis 1 |lim 1 | certificada |campos []
+42 Red · Verificar drift | None | Red · laboratorio |inv Red · laboratorio |vis 1 |lim 0 | certificada |campos []
+41 Red · Solicitar acceso | None | Red · laboratorio |inv Red · laboratorio |vis 1 |lim 1 | certificada |campos [{"var": "acceso_nombre", "etiqueta": "Nombre de la solicitud", "tipo": "text", "requerido": true, "defecto": "usuarios-a-srv-app", "opciones": [], "a
+15 Drift · Incorporar servidor | None | Cumplimiento de servidores |inv Drift · Servidores |vis 1 |lim 0 | certificada |campos [{"var": "servidor", "etiqueta": "Servidor a incorporar", "tipo": "equipo", "requerido": true, "ayuda": "Queda bajo control de cumplimiento con su est
+16 Drift · Retirar servidor | None | Cumplimiento de servidores |inv Drift · Servidores |vis 1 |lim 0 | certificada |campos [{"var": "servidor", "etiqueta": "Servidor a retirar del control", "tipo": "equipo", "requerido": true}]
+37 Red · Bloquear IP | None | Red · laboratorio |inv Red · laboratorio |vis 1 |lim 0 | certificada |campos [{"var": "seg_ip", "etiqueta": "IP a bloquear", "tipo": "ip", "requerido": true, "ayuda": "IP pública sospechosa (nunca redes internas)"}, {"var": "se
+39 Red · Revocar acceso | None | Red · laboratorio |inv Red · laboratorio |vis 1 |lim 1 | certificada |campos [{"var": "rv_ticket", "etiqueta": "Ticket con que se abrió el acceso", "tipo": "text", "ayuda": "RITM original; si no lo tienes, indica origen, destin
+40 Red · Revocar accesos vencidos | None | Red · laboratorio |inv Red · laboratorio |vis 1 |lim 1 | certificada |campos [{"var": "hoy", "etiqueta": "Revisar como si fuera el día", "tipo": "fecha", "ayuda": "Vacío = hoy. Sirve para probar vencimientos futuros"}]
+17 Drift · Windows | None | Cumplimiento de servidores |inv Servidores Windows |vis 1 |lim 0 | certificada |campos [{"var": "servidor", "etiqueta": "Servidor Windows", "tipo": "equipo", "requerido": true}, {"var": "modo", "etiqueta": "Acción", "tipo": "multiplechoi
+33 Nube · Vigilar firewall | None | Nube · GCP |inv Nube GCP |vis 1 |lim 0 | certificada |campos []
+35 Red · Actualizar firmware | None | Red · laboratorio |inv Red · laboratorio |vis 1 |lim 1 | sin probar |campos []
+77 Seguridad · Revisar CVEs | None | FaceOps · automatizaciones |inv Nodos demo |vis 0 |lim 1 | cambiada |campos []
+76 Seguridad · Aplicar parches de seguridad | None | FaceOps · automatizaciones |inv Nodos demo |vis 1 |lim 1 | certificada |campos [{"var": "cves", "etiqueta": "CVE (opcional)", "tipo": "text", "ayuda": "Vacío = todas las erratas de seguridad pendientes; o una lista: CVE-2026-1234
+81 Redis · Preparar servidor | None | FaceOps · automatizaciones |inv Nodos demo |vis 1 |lim 1 | certificada |campos [{"var": "redis_memoria_mb", "etiqueta": "Memoria máxima (MB)", "tipo": "integer", "ayuda": "Vacío = 25 % de la RAM del equipo; al llenarse desaloja l
+97 Redis · Instalar Redis Insight | None | FaceOps · automatizaciones |inv Nodos demo |vis 1 |lim 1 | certificada |campos []
+122 Red · Configurar VLAN | None | Red · laboratorio |inv Red · laboratorio |vis 1 |lim 1 | certificada |campos [{"var": "vlan_accion", "etiqueta": "Acción", "tipo": "multiplechoice", "requerido": true, "defecto": "crear", "opciones": ["crear", "estado", "retira
+130 Seguridad · Escaneo de servidores | None | FaceOps · automatizaciones |inv Nodos demo |vis 1 |lim 1 | certificada |campos []
+149 VPN · Instalar | None | FaceOps · automatizaciones |inv Nodos demo |vis 0 |lim 1 | sin probar |campos []
+148 VPN · Gestionar acceso | None | FaceOps · automatizaciones |inv Nodos demo |vis 0 |lim 1 | certificada |campos []
+200 Red · Preparar red OpenShift | None | Red · laboratorio |inv Red · laboratorio |vis 1 |lim 1 | sin probar |campos []
+226 Red · Inventariar equipo de red | None | FaceOps · automatizaciones |inv Red · laboratorio |vis 1 |lim 1 | certificada |campos []
+58 Red · Solicitar acceso con aprobación | None |  |inv Red · laboratorio |vis 0 |lim 0 | certificada |campos [{"var": "acceso_origen", "etiqueta": "Desde dónde (red o alias)", "tipo": "text", "requerido": true, "defecto": "10.40.40.0/24", "ayuda": "Una o vari
+57 Red · Revocar acceso con aprobación | None |  |inv Red · laboratorio |vis 0 |lim 0 | sin probar |campos [{"var": "rv_ticket", "etiqueta": "Ticket con que se pidió", "tipo": "text", "ayuda": "Ej. RITM0010023. Si no lo tienes, completa origen, destino y pu
+150 VPN · Preparar servidor | None |  |inv  |vis 1 |lim 0 | cambiada |campos [{"var": "hab_nombre_exacto", "etiqueta": "Nombre del servidor", "tipo": "text", "defecto": "dc1-vpn01", "requerido": true}, {"var": "vpn_endpoint", "
+225 Red · Preparar red OpenShift con aprobación | None |  |inv Red · laboratorio |vis 1 |lim 0 | sin probar |campos []
+['id', 'cliente_id', 'aap_tipo', 'aap_id', 'nombre_aap', 'nombre', 'descripcion', 'categoria', 'tipo', 'ambito', 'usa_limite', 'inventario', 'requiere_aprobacion', 'minutos_manual', 'tarifa', 'version', 'proyecto', 'etiquetas', 'campos', 'info', 'visible', 'actualizado', 'guia', 'tecnico', 'demo', 'orden', 'aprobacion_aap', 'aprobacion_wf', 'skills', 'aprobacion_ambientes', 'habilita_skill', 'por_inventario', 'compatibles', 'area', 'aprobacion_etapas', 'descripcion_larga', 'readme_ruta', 'minuto
+cicd-secretos.txt
+configurar_gestion_aap.py
+configurar_paquetes.py
+configurar_windows.py
+desarrollador.txt
+files
+group_vars
+herramientas
+instalar.sh
+instalar-visitante.sh
+aap
+aapq.sh
+actions-runner
+actions-runner-2
+actions-runner-3
+ag2.log
+ag.log
+base_check.html
+bin
+capturas
+cEOS-lab-4.32.2F.tar_(1).xz
+cEOS-lab-4.32.2F.tar.xz.csupload
+claves-stand.sh
+configurar_aap.py
+datacenter
+d.b64
+dd.b64
+demo4
+demo4-instalar.log
+demo-cicd
+demo-datalake-run
+demo-drift
+demo-drift.tgz
+demo-fiscalia-run
+demo-jboss-run
+demo-summit-repo
+demo-vault
+descargas
+despliegue.log
+despliegue.sh
+doble-factor
+doble-factor-instalar.log
+eda.py
+faceops
+faceops.css
+FGT_VM64_KVM-v7.6.8.M-build3744-FORTINET.out.kvm.zip
+instalacion.log
+nav1.b64
+nav2.b64
+nav3.b64
+--- fin: 2026-11-11T23:17:08-03:00 · código: 0
