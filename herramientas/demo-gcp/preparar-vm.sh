@@ -66,8 +66,9 @@ HOSTS="nodo-prueba=192.168.122.1 nodo-web=192.168.122.11 nodo-app=192.168.122.12
 paso "PRUEBA REAL de FaceOps en modo awx (login, inventario, ticket con aprobación, workflow, EDA, licencia)"
 openssl rand -hex 12 > $P/clave_e2e
 for i in $(seq 1 60); do   # el servicio del webhook aparece cuando la activación de EDA queda corriendo
-  WH=$(kubectl -n eda get svc -o json | jq -r '.items[] | select(.spec.ports[]?.port==5000) | .spec.clusterIP' | head -1)
-  [ -n "$WH" ] && curl -s -m 3 -o /dev/null "http://$WH:5000/" ; [ -n "$WH" ] && [ "$?" != 7 ] && break; sleep 10; done
+  WH=$(kubectl -n eda get svc -o json 2>/dev/null | jq -r '.items[] | select(.spec.ports[]?.port==5000) | .spec.clusterIP' 2>/dev/null | head -1 || true)
+  if [ -n "$WH" ]; then rc=0; curl -s -m 3 -o /dev/null "http://$WH:5000/" || rc=$?; [ "$rc" != 7 ] && [ "$rc" != 28 ] && break; fi
+  sleep 10; done
 echo "webhook de EDA: ${WH:-no aparece}"
 podman exec -i -e CLAVE_PRUEBA="$(cat $P/clave_e2e)" -e EDA_WEBHOOK="http://$WH:5000/" faceops python3 - < "$D/prueba-awx/e2e.py" | tee $P/e2e.txt
 grep -q "^[0-9]*/[0-9]* verificaciones OK" $P/e2e.txt && ! grep -q "  ✗ " $P/e2e.txt || { echo "PRUEBA REAL FALLIDA"; exit 1; }
