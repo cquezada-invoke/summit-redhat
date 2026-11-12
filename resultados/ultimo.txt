@@ -1,77 +1,15 @@
-commit: 48024277912d7de8743890685d258a3dca4d30a8
-inicio: 2026-11-12T11:31:15-03:00
+commit: 8dff4ad6e521853b7b48e84db8361b61a1c79e31
+inicio: 2026-11-12T11:32:15-03:00
 ---
-4
-ESTADO cambiada campos= ['cves']
-EQ 24 anfitrion-stand RedHat 9.8 produccion energia= sin datos rev= False pend= 0 cpu= None ram= None
-EQ 2 dc1-ds01 RedHat 9.8 produccion energia= con datos rev= True pend= 0 cpu= 1 ram= 2048
-EQ 3 dc1-idm01 RedHat 9.8 produccion energia= con datos rev= True pend= 0 cpu= 2 ram= 4096
-EQ 4 dc1-iga01 RedHat 9.8 produccion energia= con datos rev= True pend= 0 cpu= 2 ram= 4096
-EQ 77 dc1-sat01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 4 ram= 19741
-EQ 5 dc1-sso01 RedHat 9.8 produccion energia= con datos rev= True pend= 0 cpu= 1 ram= 2048
-EQ 6 nodo-jboss RedHat 9.8 produccion energia= con datos rev= True pend= 0 cpu= 1 ram= 2048
-EQ 21 nodo-jboss-dev RedHat 9.8 desarrollo energia= con datos rev= True pend= 0 cpu= 1 ram= 2048
-EQ 22 nodo-jboss-qa RedHat 9.8 qa energia= con datos rev= True pend= 0 cpu= 1 ram= 2048
-EQ 7 nodo-jboss2 RedHat 9.8 produccion energia= con datos rev= True pend= 0 cpu= 1 ram= 2048
-EQ 20 nodo-jboss3 RedHat 9.8 produccion energia= con datos rev= True pend= 0 cpu= 1 ram= 2048
-EQ 128 nodo-jboss4 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 2 ram= 1771
-EQ 8 nodo-nginx RedHat 9.8 produccion energia= con datos rev= True pend= 1 cpu= 1 ram= 2048
-EQ 9 nodo-postgres RedHat 9.8 produccion energia= con datos rev= True pend= 743 cpu= 1 ram= 2048
-EQ 11 nodo-so RedHat 9.8 produccion energia= con datos rev= True pend= 1 cpu= 1 ram= 2048
-EQ 27 nodo-storage RedHat 9.8 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 2048
-EQ 10 nodo-tomcat RedHat 9.8 produccion energia= con datos rev= True pend= 744 cpu= 1 ram= 2048
-EQ 26 nodo-vault RedHat 9.8 produccion energia= con datos rev= True pend= 0 cpu= 1 ram= 2048
-EQ 41 sno Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow) produccion energia= inventariado rev= False pend= 0 cpu= 8 ram= 24576
-EQ 85 srv-cisco-c240-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-EQ 93 srv-dell-r660xs-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-EQ 86 srv-dell-r760-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-EQ 94 srv-fujitsu-rx2540-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-EQ 95 srv-hpe-dl360-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-EQ 87 srv-hpe-dl380-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-EQ 96 srv-lenovo-sr630-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-EQ 88 srv-lenovo-sr650-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-EQ 130 srv-mig-rhel8-01 RedHat 8.10 desarrollo energia= con datos rev= False pend= 0 cpu= 1 ram= 1778
-EQ 89 srv-supermicro-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-EQ 97 srv-xfusion-2288h-01 RedHat 9.6 produccion energia= con datos rev= False pend= 0 cpu= 1 ram= 765
-== VMs
- Id   Name                         State
----------------------------------------------
- 1    srv-prueba-rhel9-01          running
- 2    srv-prueba-rhel8-01          running
- 4    srv-prueba-resp-01           running
- 5    nodo-jboss4                  running
- 7    srv-no-existe-99             running
- 9    nodo-vault                   running
- 10   nodo-windows                 running
- 11   srv-dell-r660xs-01           running
- 12   srv-hpe-dl360-01             running
- 13   srv-lenovo-sr630-01          running
- 14   srv-fujitsu-rx2540-01        running
- 15   srv-xfusion-2288h-01         running
- 16   srv-dell-r760-01             running
- 17   srv-hpe-dl380-01             running
- 18   srv-lenovo-sr650-01          running
- 19   srv-cisco-c240-01            running
- 20   srv-supermicro-01            running
- 21   sno                          running
- 22   nodo-so                      running
- 23   nodo-tomcat                  running
- 24   nodo-postgres                running
- 25   nodo-nginx                   running
- 26   nodo-jboss-dev               running
- 28   nodo-storage                 running
- 29   nodo-jboss2                  running
- 33   nodo-jboss                   running
- 40   srv-windows-iis-01           running
- -    dc1-ad01                     shut off
- -    dc1-ds01                     shut off
- -    dc1-idm01                    shut off
- -    dc1-iga01                    shut off
- -    dc1-sat01                    shut off
- -    dc1-sso01                    shut off
- -    ee-centro-datos-prod         shut off
- -    nodo-jboss-qa                shut off
- -    nodo-jboss3                  shut off
- -    pc-oficina-01                shut off
- -    pc-oficina-02                shut off
---- fin: 2026-11-12T11:31:27-03:00 · código: 0
+FICHA 8 200 boton_parches= 0 form= True
+DATOS 8 nodo-nginx rev= True pend= 1 en_curso= None
+FICHA 6 200 boton_parches= 0 form= True
+DATOS 6 nodo-jboss rev= True pend= 0 en_curso= None
+POST 8 {} 400 Falta qué aplicar: todos los parches de seguridad pendientes o los CVE seleccionados
+POST 6 {} 400 Falta qué aplicar: todos los parches de seguridad pendientes o los CVE seleccionados
+POST 8 {'pp_alcance': 'todos'} 400 Falta la política de reinicio: no reiniciar, reiniciar si hace falta o programar el reinicio
+POST 6 {'pp_alcance': 'todos'} 400 Falta la política de reinicio: no reiniciar, reiniciar si hace falta o programar el reinicio
+POST 6 {'pp_alcance': 'todos', 'pp_reinicio': 'no', 'pp_limite_min': '60'} 400 nodo-jboss no tiene parches de seguridad pendientes según su última revisión de CVE: no se crea el ticket
+SKILL 400 Esta skill se pide desde su formulario (abre la skill de nuevo)
+tickets nuevos: 0
+--- fin: 2026-11-12T11:32:43-03:00 · código: 0

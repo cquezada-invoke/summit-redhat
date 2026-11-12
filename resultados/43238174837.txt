@@ -1,0 +1,15 @@
+commit: 8dff4ad6e521853b7b48e84db8361b61a1c79e31
+inicio: 2026-11-12T11:32:15-03:00
+---
+FICHA 8 200 boton_parches= 0 form= True
+DATOS 8 nodo-nginx rev= True pend= 1 en_curso= None
+FICHA 6 200 boton_parches= 0 form= True
+DATOS 6 nodo-jboss rev= True pend= 0 en_curso= None
+POST 8 {} 400 Falta qué aplicar: todos los parches de seguridad pendientes o los CVE seleccionados
+POST 6 {} 400 Falta qué aplicar: todos los parches de seguridad pendientes o los CVE seleccionados
+POST 8 {'pp_alcance': 'todos'} 400 Falta la política de reinicio: no reiniciar, reiniciar si hace falta o programar el reinicio
+POST 6 {'pp_alcance': 'todos'} 400 Falta la política de reinicio: no reiniciar, reiniciar si hace falta o programar el reinicio
+POST 6 {'pp_alcance': 'todos', 'pp_reinicio': 'no', 'pp_limite_min': '60'} 400 nodo-jboss no tiene parches de seguridad pendientes según su última revisión de CVE: no se crea el ticket
+SKILL 400 Esta skill se pide desde su formulario (abre la skill de nuevo)
+tickets nuevos: 0
+--- fin: 2026-11-12T11:32:43-03:00 · código: 0
