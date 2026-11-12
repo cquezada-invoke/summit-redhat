@@ -220,8 +220,9 @@ def recoger_opciones(c, iid):
             d.pop("cuenta_servicio", None)
             ej("INSERT OR REPLACE INTO nube_opciones(cliente_id, infra_id, ts, datos) VALUES (?,?,?,?)", c["id"], iid, ahora(), json.dumps(d, ensure_ascii=False))
             for k_, s_ in (d.get("productos") or {}).items():   # salud de cada producto creado por FaceOps
-                ej("UPDATE nube_productos SET salud=?, salud_ts=?, estado=CASE WHEN ?='no existe' AND estado='activo' THEN 'eliminado' ELSE estado END "
-                   "WHERE id=? AND cliente_id=?", s_.get("salud", ""), ahora(), s_.get("salud", ""), int(k_), c["id"])
+                viejo = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(timespec="seconds")   # un «creando» de hace horas que no existe ya no se creará
+            ej("UPDATE nube_productos SET salud=?, salud_ts=?, estado=CASE WHEN ?='no existe' AND (estado IN ('activo','fallido') OR (estado='creando' AND creado<?)) "
+               "THEN 'eliminado' ELSE estado END WHERE id=? AND cliente_id=?", s_.get("salud", ""), ahora(), s_.get("salud", ""), viejo, int(k_), c["id"])
         else:
             auditar("sistema", c["id"], "lectura de opciones de nube sin resultado", str(iid), {"job": t["job"], "estado": st,
                                                                                                "error": (d or {}).get("error", "") if isinstance(d, dict) else ""})
