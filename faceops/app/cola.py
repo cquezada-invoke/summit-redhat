@@ -186,6 +186,9 @@ def cancelar(cliente_id, cid, usuario):
 def _salud_y_capacidad(aap):
     """(ok, motivo, detalle): ping a AAP y capacidad (grupos de instancias con capacidad libre, trabajos pendientes)."""
     from . import aap as aap_mod
+    simulado = float(ajuste("cola_prueba_aap_caido_hasta") or 0)   # plan de prueba: AAP «caído» por unos minutos (vence solo)
+    if simulado > time.time():
+        return False, "AAP no disponible (simulado por el plan de prueba)", {}
     aap_mod._ping(aap.web)   # en este proceso el ping es directo (el vigía de la consola web no corre aquí)
     if not aap_mod.disponible(aap.web):
         return False, "AAP no disponible", {}
