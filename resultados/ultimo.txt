@@ -1,38 +1,9 @@
-commit: 8a01003186d609b288aa6e64dd2c587dc206ae24
-inicio: 2026-11-12T15:58:10-03:00
+commit: 95fc0a56955b526dbfa31a36f75a02ed286a51d1
+inicio: 2026-11-12T16:09:45-03:00
 ---
-desplegado: 8562fdf47 · 2026-11-12T14:53:33-03:00 ok: desplegado 8562fdf4 · /ingresar 200 · configurar=0
-== salud previa
-cola_aap: {"ok": true, "motivo": "", "revisado": 1794509889.8780437, "capacidad": 1230, "grupos": 2, "pendientes": 1}
-pendientes en cola: 0
-== proceso de la cola
-pid 1864 sh -c for p in /proc/[0-9]*; do c=$(tr "\0" " " < $p/cmdline 2>/dev/null); case "$c" in *app.cola*) echo "pid ${p#/proc/} $c";; esac; done 
-pid 8 /opt/app-root/bin/python3.11 -u -m app.cola 
-== camino anterior (sin cola)
-Traceback (most recent call last):
-TypeError: <lambda>() got an unexpected keyword argument 'externo'
-== con cola
-NORMAL CREAR 181 ms · FO-LAB-02261 estado=en_cola job=None
-NORMAL APROBAR 5 ms
-NORMAL FINAL FO-LAB-02261 fallido job=27901
-CAIDO CREAR 116 ms · FO-LAB-02263 estado=en_cola job=None
-CAIDO CON AAP CAIDO tras 25 s: ticket=en_cola job=None · cola: En cola (posición 1) · AAP no disponible (simulado por el plan de prueba)
-CAIDO AAP VUELVE: lanzado en 10 s · job=27936 · cola: Lanzado · job #27936
-CAIDO APROBAR 4 ms
-CAIDO FINAL FO-LAB-02263 fallido job=27936
-== HTTP: la página de la cola y el estado de un ticket
-cola 200 493 ms True
-== log del proceso de la cola
-cola: #104 ticket FO-LAB-02261 aprobación aprobada en AAP
-cola: #105 FO-LAB-02262 lanzado · job 27914
-cola: #106 ticket FO-LAB-02262 aprobación aprobada en AAP
-cola: #108 FO-LAB-02264 lanzado · job 27934
-cola: #107 FO-LAB-02263 lanzado · job 27936
-cola: #109 ticket FO-LAB-02264 aprobación aprobada en AAP
-cola: #110 ticket FO-LAB-02263 aprobación aprobada en AAP
-cola: #111 FO-LAB-02265 lanzado · job 27954
-cola: #112 ticket FO-LAB-02265 aprobación aprobada en AAP
-cola: #113 FO-LAB-02266 lanzado · job 27981
-cola: #114 ticket FO-LAB-02266 aprobación aprobada en AAP
-cola: #115 FO-LAB-02267 lanzado · job 27997
---- fin: 2026-11-12T16:08:55-03:00 · código: 0
+T FO-LAB-02261 fallido workflow 27901 nodo-tomcat ut during banner exchange\r\nConnection to 192.168.122.14 port 22 timed out", "unreachable": true}]}  PLAY RECAP ********************************************************************* nodo-tomcat                : ok=1    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+T FO-LAB-02263 fallido workflow 27936 nodo-tomcat ut during banner exchange\r\nConnection to 192.168.122.14 port 22 timed out", "unreachable": true}]}  PLAY RECAP ********************************************************************* nodo-tomcat                : ok=1    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+M ida y vuelta POST AAP 115 ms
+M ida y vuelta POST AAP 114 ms
+M ida y vuelta POST AAP 102 ms
+--- fin: 2026-11-12T16:09:53-03:00 · código: 0
