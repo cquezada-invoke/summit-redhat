@@ -1,8 +1,12 @@
-commit: 54b0d0ccb6d64e34a4a39f66291b9c4742e1c13d
-inicio: 2026-11-12T12:47:50-03:00
+commit: c0979fff7563752c14459eab6e18eb371363af87
+inicio: 2026-11-12T12:49:10-03:00
 ---
-produccion 0.70s :: 0.68s __init__.py:391:envoltura | 0.68s vistas.py:6537:mapa_datos | 0.17s cves.py:112:por_equipo | 0.16s __init__.py:12:_safe_load | 0.15s topologia.py:899:resumen_segmento | 0.15s vistas.py:74:autos_visibles | 0.14s pruebas.py:224:no_certificadas | 0.14s pruebas.py:204:estado | 0.13s bd.py:180:q | 0.13s pruebas.py:232:<setcomp> | 0.11s arquitectura.py:149:vigentes | 0.11s pruebas.py:176:huella | 0.07s arquitectura.py:311:flujos_de | 0.07s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects> | 0.06s topologia.py:170:construir
-produccion 0.43s :: 0.42s __init__.py:391:envoltura | 0.42s vistas.py:6537:mapa_datos | 0.17s cves.py:112:por_equipo | 0.13s __init__.py:12:_safe_load | 0.13s arquitectura.py:149:vigentes | 0.12s bd.py:180:q | 0.10s topologia.py:899:resumen_segmento | 0.09s arquitectura.py:311:flujos_de | 0.09s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects> | 0.07s topologia.py:170:construir | 0.07s topologia.py:857:resumen_segmentos | 0.03s inventario.py:14:normal | 0.03s vistas.py:62:equipos_visibles | 0.03s bd.py:181:<listcomp> | 0.03s topologia.py:1140:salud_segmento
-qa 0.40s :: 0.38s __init__.py:391:envoltura | 0.38s vistas.py:6537:mapa_datos | 0.15s cves.py:112:por_equipo | 0.12s bd.py:180:q | 0.12s __init__.py:12:_safe_load | 0.12s arquitectura.py:149:vigentes | 0.10s topologia.py:899:resumen_segmento | 0.10s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects> | 0.08s arquitectura.py:311:flujos_de | 0.06s topologia.py:170:construir | 0.05s topologia.py:857:resumen_segmentos | 0.03s vistas.py:62:equipos_visibles | 0.03s topologia.py:1140:salud_segmento | 0.03s inventario.py:69:segmentos_de | 0.03s inventario.py:62:segmentos_candidatos
-qa 0.39s :: 0.38s __init__.py:391:envoltura | 0.37s vistas.py:6537:mapa_datos | 0.16s cves.py:112:por_equipo | 0.13s bd.py:180:q | 0.12s arquitectura.py:149:vigentes | 0.12s __init__.py:12:_safe_load | 0.10s ~:0:<method 'fetchall' of 'sqlite3.Cursor' objects> | 0.09s topologia.py:899:resumen_segmento | 0.08s arquitectura.py:311:flujos_de | 0.07s topologia.py:170:construir | 0.05s topologia.py:857:resumen_segmentos | 0.03s vistas.py:62:equipos_visibles | 0.03s inventario.py:69:segmentos_de | 0.03s topologia.py:1140:salud_segmento | 0.03s inventario.py:62:segmentos_candidatos
---- fin: 2026-11-12T12:47:59-03:00 · código: 0
+== antes (código desplegado)
+produccion grafica 3.27s[200] 1.00s[200] 1.00s[200] · pagina 1.48s[200]
+qa grafica 0.19s[200] 0.19s[200] 0.17s[200] · pagina 0.14s[200]
+produccion grafica 1.01s[200] 1.01s[200] 0.69s[200] · pagina 0.15s[200]
+== después (con memo)
+produccion grafica 1.47s[200] 0.86s[200] 0.87s[200] · pagina 0.49s[200]
+qa grafica 0.06s[200] 0.05s[200] 0.05s[200] · pagina 0.12s[200]
+produccion grafica 0.23s[200] 0.06s[200] 0.06s[200] · pagina 0.12s[200]
+--- fin: 2026-11-12T12:49:42-03:00 · código: 0
