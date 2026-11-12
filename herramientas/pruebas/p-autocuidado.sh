@@ -133,7 +133,7 @@ A0=$(n_ aap); F0=$(n_ faceops); pedir "$N" C1 '{"ac_modo":"evaluar"}' 10; E=$(es
 [ "$E" = exitoso ] && [ "$(n_ aap)" = "$A0" ] && [ "$(n_ faceops)" = "$F0" ] && anotar C1 "Evaluar" ok "sin archivos nuevos" || anotar C1 "Evaluar" falla "$E"
 pedir "$N" C2 '{"ac_modo":"aplicar"}' 40; E=$(estado)
 UA=$(sudo bash -c "ls -t $B/aap-*.gz | head -1"); UF=$(sudo bash -c "ls -t $B/faceops-*.gz | head -1")
-OK2=$(sudo bash -c "gzip -t $UA && gzip -t $UF && zcat $UA | grep -m1 -c 'CREATE DATABASE' && stat -c %a $UA $UF | sort -u | tr '\n' ' ' && zcat $UF > /tmp/ac-prueba.db && python3 -c \"import sqlite3;print(sqlite3.connect('/tmp/ac-prueba.db').execute('PRAGMA integrity_check').fetchone()[0])\"; rm -f /tmp/ac-prueba.db" 2>&1 | tr '\n' ' ')
+OK2=$(sudo bash -c "gzip -t $UA && gzip -t $UF && zcat $UA 2>/dev/null | grep -m1 -c 'CREATE DATABASE' && stat -c %a $UA $UF | sort -u | tr '\n' ' ' && zcat $UF > /tmp/ac-prueba.db && python3 -c \"import sqlite3;print(sqlite3.connect('/tmp/ac-prueba.db').execute('PRAGMA integrity_check').fetchone()[0])\"; rm -f /tmp/ac-prueba.db" 2>&1 | tr '\n' ' ')
 [ "$E" = exitoso ] && [[ "$OK2" == "1 600 ok"* ]] && anotar C2 "Aplicar" ok "gzip ok, CREATE DATABASE, 0600, integrity ok" || anotar C2 "Aplicar" falla "$E $OK2"
 pedir "$N" C3 '{"ac_modo":"aplicar"}' 40; E=$(estado); A3=$(n_ aap); F3=$(n_ faceops)
 [ "$E" = exitoso ] && [ "$A3" -le 7 ] && [ "$F3" -le 7 ] && [ "$A3" -ge 2 ] && anotar C3 "Repetir" ok "aap=$A3 faceops=$F3 (≤7)" || anotar C3 "Repetir" falla "$E aap=$A3 faceops=$F3"
