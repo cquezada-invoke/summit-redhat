@@ -18,10 +18,10 @@ e = q1("SELECT * FROM equipos WHERE nombre=? AND estado!='retirado'", sys.argv[1
 print("si" if e and sys.argv[2] in set(skills_de(dict(e))) else "no")
 Q
 }
-O_RES=$(sk respaldo-git); O_MON=$(sk node-exporter); [ "$M" = nodo-jboss-qa ] && O_RES=si   # nodo-jboss-qa tenía el respaldo continuo antes de las pruebas (corrida del 11-11 lo quitó); echo "prep originales respaldo=$O_RES monitoreo=$O_MON"
+O_RES=$(sk respaldo-git); O_MON=$(sk node-exporter); [ "$M" = nodo-jboss-qa ] && { O_RES=si; O_MON=si; }   # nodo-jboss-qa tenía ambos agentes antes de las pruebas del 11-11; echo "prep originales respaldo=$O_RES monitoreo=$O_MON"
 # preparación: la máquina de prueba con ambos agentes (si ya los tiene, FaceOps no relanza)
-caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-respaldo\"}" >/dev/null; echo "prep respaldo: $(estado) $(ticket) $(jq_ "(r.get('error') or r.get('detalle') or '')[:200]")"
-caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"prep-monitoreo\"}" >/dev/null; echo "prep monitoreo: $(estado) $(ticket) $(jq_ "(r.get('error') or r.get('detalle') or '')[:200]")"
+caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"reinstalar\":true,\"caso\":\"prep-respaldo\"}" >/dev/null; echo "prep respaldo: $(estado) $(ticket) $(jq_ "(r.get('error') or r.get('detalle') or '')[:200]")"
+caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"reinstalar\":true,\"caso\":\"prep-monitoreo\"}" >/dev/null; echo "prep monitoreo: $(estado) $(ticket) $(jq_ "(r.get('error') or r.get('detalle') or '')[:200]")"
 R0=$(en $IP 'systemctl is-active faceops-respaldo.timer node_exporter' | tr '\n' ' '); echo "antes: $R0"
 # C1 · quitar el respaldo continuo
 caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"params\":{\"qa_agente\":\"respaldo-git\"},\"min\":10,\"caso\":\"C1\"}" >/dev/null; E1=$(estado)
@@ -48,7 +48,7 @@ H1=$(en $IP 'ls /etc/systemd/system | md5sum | cut -c1-10')
 echo "EVIDENCIA $CASOS"
 certificar "$N" "Plan quitar agente · C1–C3 (planes-prueba.yml)"
 # deja la máquina de prueba como estaba (solo reinstala los agentes que tenía antes del plan)
-[ "$O_RES" = si ] && { caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"restaurar\"}" >/dev/null; echo "restaurar respaldo: $(estado) $(ticket)"; }
-[ "$O_MON" = si ] && { caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"caso\":\"restaurar\"}" >/dev/null; echo "restaurar monitoreo: $(estado) $(ticket)"; }
+[ "$O_RES" = si ] && { caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"reinstalar\":true,\"caso\":\"restaurar\"}" >/dev/null; echo "restaurar respaldo: $(estado) $(ticket)"; }
+[ "$O_MON" = si ] && { caso "{\"auto\":\"FaceOps · Agente de monitoreo (Linux)\",\"equipo\":\"$M\",\"params\":{},\"min\":15,\"reinstalar\":true,\"caso\":\"restaurar\"}" >/dev/null; echo "restaurar monitoreo: $(estado) $(ticket)"; }
 energia $M apagar   # queda apagada, como estaba
 echo FIN-QUITAR

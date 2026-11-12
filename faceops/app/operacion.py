@@ -568,6 +568,7 @@ def objetivo_aap(aap, auto, ambiente=None):
 
 OPENSHIFT = "OpenShift · Validar e instalar IPI VMware"
 OCP_PREPARAR = "OpenShift · Preparar instalación IPI VMware"
+OCP_GCP, OCP_GCP_ELIMINAR = "OpenShift · Crear en GCP", "OpenShift · Eliminar en GCP"   # Contenedores › Crear plataforma de contenedores
 OCP_INSTALACION = (OCP_PREPARAR, OPENSHIFT)
 INCORPORAR = "FaceOps · Incorporar máquinas"
 
@@ -1074,10 +1075,11 @@ def actualizar_tickets():
                 try:   # el agente retirado deja de figurar en la máquina
                     sk_ = j(t.get("parametros"), {}).get("qa_agente") or ""
                     quitar = {sk_} | ({"node_exporter", "monitoreo"} if sk_ == "node-exporter" else set())
-                    e_ = q1("SELECT id, skills_auto, skills_manual FROM equipos WHERE cliente_id=? AND nombre=?", t["cliente_id"], t["limite"])
-                    if e_ and sk_:
-                        ej("UPDATE equipos SET skills_auto=?, skills_manual=? WHERE id=?",
-                           json.dumps([x for x in j(e_["skills_auto"], []) if x not in quitar]), json.dumps([x for x in j(e_["skills_manual"], []) if x not in quitar]), e_["id"])
+                    e_ = q1("SELECT id, skills_auto, skills_manual, skills_habilitadas FROM equipos WHERE cliente_id=? AND nombre=?", t["cliente_id"], t["limite"])
+                    if e_ and sk_:   # también sale de las habilitadas por FaceOps (si no, la ficha lo sigue mostrando instalado)
+                        ej("UPDATE equipos SET skills_auto=?, skills_manual=?, skills_habilitadas=? WHERE id=?",
+                           json.dumps([x for x in j(e_["skills_auto"], []) if x not in quitar]), json.dumps([x for x in j(e_["skills_manual"], []) if x not in quitar]),
+                           json.dumps({k: v for k, v in (j(e_["skills_habilitadas"], {}) or {}).items() if k not in quitar}), e_["id"])
                 except Exception as x:  # noqa: BLE001
                     print("Quitar agente:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") == "Plataforma · Desinstalar":
@@ -1303,12 +1305,21 @@ def actualizar_tickets():
                         ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error manifiesto OpenShift", t["numero"], {"error": str(x)[:300]})
-            if est == "exitoso" and a and a["nombre_aap"] == OPENSHIFT:
+            if est == "exitoso" and a and a["nombre_aap"] in (OPENSHIFT, OCP_GCP):
                 try:
                     res += "\n" + registrar_cluster(aap, c, t)
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de clúster", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == OCP_GCP_ELIMINAR:
+                try:   # el clúster ya no existe en GCP: sale de Contenedores (el playbook retiró su host y su credencial de AAP)
+                    el_ = (artefactos_ticket(aap, t).get("faceops_openshift_eliminado") or {}).get("eliminados") or []
+                    for n_ in el_:
+                        ej("UPDATE equipos SET estado='retirado' WHERE cliente_id=? AND nombre=?", c["id"], f"ocp-{n_}")
+                    res += "\n" + (f"Retirado de Contenedores: {', '.join('ocp-' + n_ for n_ in el_)}" if el_ else "Nada que retirar")
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except ErrorAAP as x:
+                    auditar("sistema", c["id"], "error retiro de clúster", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "FaceOps · Eliminar servidor":
                 try:   # fuera de los inventarios de AAP y retirado en FaceOps (su respaldo en Git queda)
                     n = j(t["parametros"], {}).get("el_equipo", "")
@@ -1419,7 +1430,8 @@ def registrar_cluster(aap, cliente, t):
     if not d.get("cluster") or d.get("estado") == "validado":
         return "Manifiesto validado: no se creó ningún clúster" if d.get("estado") == "validado" else "No se recibieron datos del clúster"
     inf = q1("SELECT ubicacion FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente["id"], j(t["parametros"], {}).get("ocp_infraestructura", ""))
-    n = alta_cluster(aap, cliente, d, (inf or {}).get("ubicacion", ""), t["numero"])
+    ubi = (inf or {}).get("ubicacion", "") or (f"GCP · {d['region']}" if d.get("plataforma") == "gcp" and d.get("region") else "")
+    n = alta_cluster(aap, cliente, d, ubi, t["numero"])
     return f"Clúster {d['cluster']} ({d.get('estado')}) en el inventario «{INV_CLUSTERS}» como {n} · consola {d.get('consola')}"
 
 
