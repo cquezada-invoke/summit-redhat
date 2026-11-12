@@ -1,0 +1,52 @@
+commit: c8ccd131f410d6a1dd8580158f635353546c8273
+inicio: 2026-11-12T18:45:38-03:00
+---
+1
+ESTADO_ANTES cambiada
+PENDIENTES True ['CVE-2026-8932']
+CASO C7 ok · sin parámetros 400 «Falta qué aplicar: todos los parches de seguridad pendientes o los CVE seleccionados»; skill directa 400; nodo-jboss sin pendientes 400; Acciones/solicitar sin parámetros: Permissi
+TICKET FO-LAB-02366 fallido params={}
+  stats= {}
+  | TASK [Datos válidos] ***********************************************************
+  | fatal: [nodo-so]: FAILED! => {"assertion": "alcance in ['todos', 'seleccion']", "changed": false, "evaluated_to": false, "msg": "Faltan parámetros o no son válidos (pp_alcance todos|seleccion con cves, pp_reinicio no|si_hace_falta
+  | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+  resultado:  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+CASO C5 ok · fallido en «Datos válidos»: nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+TICKET FO-LAB-02367 fallido params={"pp_alcance": "todos", "pp_reinicio": "no", "pp_limite_min": 5, "pp_lote": 20}
+  stats= {}
+  | TASK [Datos válidos] ***********************************************************
+  | fatal: [nodo-so]: FAILED! => {"assertion": "(pp_limite_min | default(0) | int) >= 15 and (pp_limite_min | default(0) | int) <= 720", "changed": false, "evaluated_to": false, "msg": "Faltan parámetros o no son válidos (pp_alcance t
+  | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+  resultado:  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+CASO C6 ok · límite 5 min: fallido en «Datos válidos», no se toca la máquina
+TICKET FO-LAB-02369 fallido params={"pp_alcance": "seleccion", "pp_reinicio": "no", "pp_limite_min": 15, "pp_lote": 1, "pp_parches": 1, "cves": "CVE-2026-8932"}
+  stats= {}
+  | TASK [Datos válidos] ***********************************************************
+  | fatal: [nodo-so]: FAILED! => {"changed": false, "cmd": ["dnf", "-q", "updateinfo", "list", "--security", "--cve=CVE-2026-8932"], "delta": "0:00:14.843898", "end": "2026-11-12 16:54:56.216311", "msg": "non-zero return code", "rc": 
+  | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+  resultado:  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+CASO C1 FALLO · CVE-2026-8932: None aviso(s), None/None lotes, reinicio requerido None, no se reinició; None min
+TICKET FO-LAB-02370 fallido params={"pp_alcance": "todos", "pp_reinicio": "no", "pp_limite_min": 15, "pp_lote": 2}
+  stats= {}
+  | TASK [Datos válidos] ***********************************************************
+  | fatal: [nodo-so]: FAILED! => {"changed": false, "cmd": ["dnf", "-q", "updateinfo", "list", "--security"], "delta": "0:00:14.917585", "end": "2026-11-12 16:56:51.282576", "msg": "non-zero return code", "rc": 1, "start": "2026-11-12
+  | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+  resultado:  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+CASO C2 FALLO · repetición: None avisos, None lotes, exitoso sin cambios
+TICKET FO-LAB-02371 fallido params={"pp_alcance": "todos", "pp_reinicio": "si_hace_falta", "pp_limite_min": 15, "pp_lote": 20}
+  stats= {}
+  | TASK [Datos válidos] ***********************************************************
+  | fatal: [nodo-so]: FAILED! => {"changed": false, "cmd": ["dnf", "-q", "updateinfo", "list", "--security"], "delta": "0:00:14.819788", "end": "2026-11-12 16:57:57.204445", "msg": "non-zero return code", "rc": 1, "start": "2026-11-12
+  | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+  resultado:  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+CASO C3 FALLO · sin reinicio requerido: no reinicia (política «si hace falta» respetada)
+TICKET FO-LAB-02373 fallido params={"pp_alcance": "todos", "pp_reinicio": "programar", "pp_reinicio_hora": "03:30", "pp_limite_min": 15, "pp_lote": 20}
+  stats= {}
+  | TASK [Datos válidos] ***********************************************************
+  | fatal: [nodo-so]: FAILED! => {"changed": false, "cmd": ["dnf", "-q", "updateinfo", "list", "--security"], "delta": "0:00:14.945024", "end": "2026-11-12 17:00:01.040283", "msg": "non-zero return code", "rc": 1, "start": "2026-11-12
+  | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+  resultado:  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=4    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0
+CASO C4 FALLO · sin reinicio requerido: no programa nada (política «programar» respetada)
+RESUMEN [('C7', 'ok'), ('C5', 'ok'), ('C6', 'ok'), ('C1', 'fallo'), ('C2', 'fallo'), ('C3', 'fallo'), ('C4', 'fallo')] ['FO-LAB-02366', 'FO-LAB-02367', 'FO-LAB-02369', 'FO-LAB-02370', 'FO-LAB-02371', 'FO-LAB-02373']
+ESTADO_DESPUES cambiada
+--- fin: 2026-11-12T19:00:49-03:00 · código: 0
