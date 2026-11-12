@@ -1,0 +1,36 @@
+commit: 73fb077fb3223b2a142aceb318bdd174d72bb81d
+inicio: 2026-11-12T10:20:24-03:00
+---
+--- vuelta 1 09:41:26
+estado: sin probar 94d485689388
+== C4 sobre prueba-vo-inexistente (so=Red Hat Enterprise Linux 9, ip=pendiente, energía=)
+  ticket FO-LAB-02138 fallido | ****** ok: [anfitrion-kvm] TASK [Máquina inexistente (falla controlada, sin tocar nada)] ****************** fatal: [anfitrion-kvm]: FAILED! => {"changed": false, "msg": "No existe la máquina prueba-vo-inexistente en el anfitrión KVM"} PLAY RECAP ********************************************************************* anfitrion-kvm : ok=2 changed=0 unreachable=0 failed=1 skipped=0 rescued=0 ignored=0 
+  equipo ahora: so= Red Hat Enterprise Linux 9 | ip= pendiente | recolectado= None | energía= apagado
+  bóveda: {'usuario': None, 'protocolo': None, 'puerto': None, 'conexion': None} False
+  => ok
+C3 sin máquina para el caso
+== C1 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=192.168.122.120, energía=encendido)
+  ticket FO-LAB-02139 exitoso | AAP terminó (successful): ejecución 38 s, espera de aprobación 35 s srv-windows-iis-01: IP 192.168.122.120 · WinRM HTTPS 5986 con «faceops» · credencial «Infra · on-premise Windows · máquinas» y bóveda · inventario lanzado
+Error: container has already been removed
+--- vuelta 2 10:03:34
+estado: sin probar 94d485689388
+C4 ya ok: FO-LAB-02138
+C3 sin máquina para el caso
+== C1 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=192.168.122.120, energía=encendido)
+  reanuda FO-LAB-02139 exitoso
+  ticket FO-LAB-02139 exitoso | AAP terminó (successful): ejecución 38 s, espera de aprobación 35 s srv-windows-iis-01: IP 192.168.122.120 · WinRM HTTPS 5986 con «faceops» · credencial «Infra · on-premise Windows · máquinas» y bóveda · inventario lanzado
+Error: container has already been removed
+--- vuelta 3 10:16:51
+estado: sin probar 94d485689388
+C4 ya ok: FO-LAB-02138
+C3 sin máquina para el caso
+== C1 sobre srv-windows-iis-01 (so=Windows Server 2022, ip=192.168.122.120, energía=encendido)
+  reanuda FO-LAB-02139 exitoso
+  ticket FO-LAB-02139 exitoso | AAP terminó (successful): ejecución 38 s, espera de aprobación 35 s srv-windows-iis-01: IP 192.168.122.120 · WinRM HTTPS 5986 con «faceops» · credencial «Infra · on-premise Windows · máquinas» y bóveda · inventario lanzado
+  siguiente: None
+  equipo ahora: so= Windows Server 2022 | ip= 192.168.122.120 | recolectado= None | energía= encendido
+  bóveda: {'usuario': 'faceops', 'protocolo': 'rdp', 'puerto': 5986, 'conexion': 'winrm'} True
+  => fallido
+C2 espera a C1
+EVIDENCIA {"huella": "94d485689388", "casos": {"C4": {"ticket": "FO-LAB-02138", "estado": "fallido", "so": "Red Hat Enterprise Linux 9", "ip": "pendiente", "boveda": false, "resultado": "ok"}, "C1": {"ticket": "FO-LAB-02139", "estado": "exitoso", "siguiente": null, "so": "Windows Server 2022", "ip": "192.168.122.120", "boveda": true, "resultado": "fallido"}}}
+--- fin: 2026-11-12T10:42:24-03:00 · código: 0
