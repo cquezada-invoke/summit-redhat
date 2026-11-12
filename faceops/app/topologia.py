@@ -121,9 +121,9 @@ def _candado_entrada(cliente, eqs, arq, f):
         url = ((arq or {}).get("m", {}).get("entrada") or {}).get("url") or ""
         if not url.startswith("https") and "443" not in str(f.get("puerto", "")):
             return ""
-        from .certificados_panel import de_equipo, leer
-        r = leer(cliente, eqs)
-        return " 🔒CA interna" if de_equipo(r, f["hacia"]) else " 🔒"
+        from .certificados_panel import de_equipo, leer_sin_esperar
+        r = leer_sin_esperar(cliente, eqs)   # AAP lenta (26 llamadas al vencer la caché) no frena el dibujo del mapa
+        return " 🔒CA interna" if r and de_equipo(r, f["hacia"]) else " 🔒"
     except Exception:  # noqa: BLE001 - la CA puede no responder: sin candado
         return ""
 

@@ -226,6 +226,34 @@ def leer(cliente, equipos):
     return r
 
 
+_en_curso = {}
+
+
+def leer_sin_esperar(cliente, equipos, espera=0.8):
+    """Para vistas que no deben bloquearse (el mapa): la lectura vigente si está en caché; si venció, la renueva en segundo
+    plano (una sola a la vez por cliente) y entrega la anterior sin esperar; sin lectura previa espera a lo más `espera` s
+    y, si no alcanza, devuelve None (sin lectura)."""
+    import threading
+    k = cliente["id"]
+    c = _cache.get(k)
+    if c and time.time() - c[0] < 60:
+        return c[1]
+    th = _en_curso.get(k)
+    if not th or not th.is_alive():
+        def _renovar(cl, eqs):
+            try:
+                leer(cl, eqs)
+            except Exception:  # noqa: BLE001 - AAP caída o lenta: queda la lectura anterior
+                pass
+        th = threading.Thread(target=_renovar, args=(dict(cliente), list(equipos)), daemon=True, name=f"certificados-{k}")
+        _en_curso[k] = th
+        th.start()
+    if not c:
+        th.join(espera)
+        c = _cache.get(k)
+    return c[1] if c else None
+
+
 def buscar_serie(r, serie):
     return next((f for f in r["filas"] if f["serie"] == _serie(serie)), None)
 
