@@ -1,38 +1,25 @@
-commit: 042860b71d4c486ce867cf40d981cc67fd4a743a
-inicio: 2026-11-11T22:03:09-03:00
+commit: 9cacdcf877c48c8b43b425deb9b6c12756655779
+inicio: 2026-11-11T22:03:37-03:00
 ---
-cliente 1 lab
-  nombre = srv-windows-iis-01
-  so = 
-  so_familia = Windows
-  so_version = 
-  categoria = servidor
-  forma = virtual
-  estado = sin datos
-  energia = encendido
-  ip = pendiente
-  inventario = Servidores habilitados
-  inventarios = ["Servidores habilitados"]
-  grupos = ["windows"]
-  skills = None
-  ram_mb = None
-  ambiente = desarrollo
-  datos.keys ['carga_1m', 'componentes_internos', 'hardware', 'hostname', 'jboss', 'kernel', 'logs', 'montajes_red', 'parches_seguridad', 'ram_disponible_mb', 'ram_libre_mb', 'ram_so_mb', 'recolectado', 'registrado', 'selinux', 'servicios_det', 'uptime_dias', 'usuarios', 'virtual', 'virtual_rol']
-  boveda acceso claves: []
-  plan recoleccion invs: ['_plantilla', 'Nodos demo', 'Servidores Windows', 'Servidores habilitados', 'Data center 1']
-  sistema_fino set()
-  manifiesto iis (False, 'en el manifiesto está como «Contener»: no se instala nueva')
-  auto 50 Windows · Preparar IIS iis ["windows"] lim 1 vis 1 (False, 'sistema desconocido')
-  auto 26 Monitoreo · Exportador en Windows windows-exporter ["windows"] lim 1 vis 1 (False, 'sistema desconocido')
-  auto 5 DC · Active Directory active-directory ["windows"] lim 1 vis 1 (False, 'sistema desconocido')
-  auto 134 SQL Server · Preparar servidor sqlserver ["linux"] lim 1 vis 1 (False, 'sistema desconocido')
-  auto 171 PostgreSQL · Preparar servidor postgres ["linux"] lim 1 vis 1 (False, 'sistema desconocido')
-  auto 170 MySQL · Preparar servidor mysql ["linux"] lim 1 vis 1 (False, 'sistema desconocido')
-  win/iis auto 50 Windows · Preparar IIS
-  win/iis auto 45 Remediación · IIS en Windows
-  win/iis auto 51 Windows · Provocar caída de IIS (demo)
-  win/iis auto 103 Windows · Habilitar escritorio remoto
-  win/iis auto 152 Migración · IIS a OpenShift
-  win/iis auto 236 Windows · Activar licencia
-HTTP 404 dlg False
---- fin: 2026-11-11T22:03:21-03:00 · código: 0
+d15bad1 Plan de prueba de Evaluar imágenes: C3 cue
+/opt/faceops/app/mod_hipervisores.py
+  warnings.warn(
+[(1, 'kvm', 'KVM · Santiago'), (6, 'kvm', 'KVM · Valparaíso'), (4, 'vmware', 'VMware · Santiago')]
+1 404 barra False energia False sal False cx False secreto_visible False False
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
+
+6 404 barra False energia False sal False cx False secreto_visible False False
+ 
+ 
+4 404 barra False energia False sal False cx False secreto_visible False False
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
+
+--- fin: 2026-11-11T22:03:45-03:00 · código: 0
