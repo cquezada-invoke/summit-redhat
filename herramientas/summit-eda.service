@@ -1,0 +1,18 @@
+# Reactiva las activaciones de Event-Driven Ansible al encender la VM, cuando la API de EDA y el registro de
+# Automation Hub (de donde bajan la imagen del decision environment) ya responden. Independiente de summit-lab.service
+# para no depender de lo que tarde el laboratorio de red ni de su TimeoutStartSec.
+# Instalar: sudo install -m 644 herramientas/summit-eda.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable summit-eda
+[Unit]
+Description=Reactivar activaciones de EDA (AAP) al encender la VM
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=cquezada
+ExecStart=/usr/bin/python3 /home/cquezada/summit-redhat/herramientas/reactivar-eda.py
+TimeoutStartSec=2700
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
