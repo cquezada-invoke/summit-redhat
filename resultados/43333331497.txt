@@ -1,0 +1,36 @@
+commit: 7604ad22a02aef48574083385ddac400754b918d
+inicio: 2026-11-12T20:59:12-03:00
+---
+virsh: running
+uptime: up 1 minute · kernel: 5.14.0-741.22.1.el9_9.x86_64
+dnf/rpm en curso: 1
+needs-restarting: no
+avisos seguridad pendientes: 0
+con --cve=CVE-2026-8932: 0
+con --cve=CVE-1999-0001 (inexistente): 0
+info CVE-2026-8932: 0
+historial dnf hoy:
+Updating Subscription Management repositories.
+ID     | Command line             | Date and time    | Action(s)      | Altered
+-------------------------------------------------------------------------------
+    35 | -y -q upgrade --advisory | 2026-11-12 18:55 | Upgrade        |    2   
+    34 | -y -q upgrade --advisory | 2026-11-12 18:55 | Upgrade        |    2   
+    33 | -y -q upgrade --advisory | 2026-11-12 18:54 | O, U           |    4   
+    32 | -y -q upgrade --advisory | 2026-11-12 18:52 | Upgrade        |    1   
+    31 | -y -q upgrade --advisory | 2026-11-12 18:52 | Upgrade        |    8   
+FO-LAB-02398 fallido Plan de prueba C3 de «Autocuidado · Revisar estado» (regla d | anfitrion-kvm              : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02399 fallido Plan de prueba C1: CVE-2026-8932 sin reinicio | nodo-so                    : ok=12   changed=1    unreachable=0    failed=1    skipped=4    rescued=0    ignored=0
+FO-LAB-02400 exitoso Plan de prueba C1 de «Autocuidado · Respaldar bases de AAP y | AAP terminó (successful): ejecución 27 s, espera de aprobación 13 s
+FO-LAB-02401 exitoso Plan de prueba C2 de «Autocuidado · Respaldar bases de AAP y | AAP terminó (successful): ejecución 220 s, espera de aprobación 12 s
+FO-LAB-02402 exitoso Plan de prueba C3 de «Autocuidado · Respaldar bases de AAP y | AAP terminó (successful): ejecución 79 s, espera de aprobación 12 s
+FO-LAB-02403 fallido Plan de prueba C4 de «Autocuidado · Respaldar bases de AAP y | anfitrion-kvm              : ok=8    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02404 exitoso Plan de prueba C1 de «Autocuidado · Renovar certificados» (r | AAP terminó (successful): ejecución 33 s, espera de aprobación 13 s
+FO-LAB-02405 exitoso Plan de prueba C2 de «Autocuidado · Renovar certificados» (r | AAP terminó (successful): ejecución 12 s, espera de aprobación 12 s
+FO-LAB-02406 exitoso Plan de prueba C3 de «Autocuidado · Renovar certificados» (r | AAP terminó (successful): ejecución 11 s, espera de aprobación 13 s
+FO-LAB-02407 exitoso Plan de prueba C2: repetir la selección | Revisión de CVE lanzada: FO-LAB-02409
+FO-LAB-02408 fallido Plan de prueba C4 de «Autocuidado · Renovar certificados» (r | anfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02410 exitoso Plan de prueba C3: reiniciar solo si hace falta | Revisión de CVE lanzada: FO-LAB-02413
+FO-LAB-02411 exitoso Plan de prueba C1 de «Autocuidado · Atender alerta» (regla d | AAP terminó (successful): ejecución 9 s, espera de aprobación 15 s
+FO-LAB-02414 exitoso Plan de prueba C2 de «Autocuidado · Atender alerta» (regla d | AAP terminó (successful): ejecución 8 s, espera de aprobación 12 s
+FaceOps nodo-so: con datos None
+--- fin: 2026-11-12T20:59:55-03:00 · código: 0

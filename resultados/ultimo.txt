@@ -1,68 +1,36 @@
-commit: 408bb82b777678113a853eb4620a120a9213c014
-inicio: 2026-11-12T20:22:54-03:00
+commit: 7604ad22a02aef48574083385ddac400754b918d
+inicio: 2026-11-12T20:59:12-03:00
 ---
-1
-ESTADO_ANTES cambiada
-REVISION FO-LAB-02393 pendiente_aprobacion 2026-10-30T11:26:15+00:00 -> 2026-10-30T11:26:15+00:00
-PENDIENTES True 1 [('CVE-2026-8932', 'curl-7.76.1-40.el9_8.9.x86_64')]
-CASO C7 ok · sin parámetros 400 «Falta qué aplicar: todos los parches de seguridad pendientes o los CVE seleccionados»; skill directa 400; nodo-jboss sin pendientes 400; Acciones/solicitar sin parámetros: Permissi
-TICKET FO-LAB-02396 fallido params={}
-  stats= {}
-  | TASK [Datos válidos] ***********************************************************
-  | fatal: [nodo-so]: FAILED! => {"assertion": "alcance in ['todos', 'seleccion']", "changed": false, "evaluated_to": false, "msg": "Faltan parámetros o no son válidos (pp_alcance todos|seleccion con cves, pp_reinicio no|si_hace_falta
-  | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
-  resultado:  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
-CASO C5 ok · fallido en «Datos válidos»: nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
-TICKET FO-LAB-02397 fallido params={"pp_alcance": "todos", "pp_reinicio": "no", "pp_limite_min": 5, "pp_lote": 20}
-  stats= {}
-  | TASK [Datos válidos] ***********************************************************
-  | fatal: [nodo-so]: FAILED! => {"assertion": "(pp_limite_min | default(0) | int) >= 15 and (pp_limite_min | default(0) | int) <= 720", "changed": false, "evaluated_to": false, "msg": "Faltan parámetros o no son válidos (pp_alcance t
-  | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
-  resultado:  | PLAY RECAP ********************************************************************* | nodo-so                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
-CASO C6 ok · límite 5 min: fallido en «Datos válidos», no se toca la máquina
-TICKET FO-LAB-02399 en_ejecucion params={"pp_alcance": "seleccion", "pp_reinicio": "no", "pp_limite_min": 15, "pp_lote": 1, "pp_parches": 1, "cves": "CVE-2026-8932"}
-  stats= {}
-  | ASYNC OK on nodo-so: jid=j840128016933.164863
-  | ASYNC OK on nodo-so: jid=j983748043470.194597
-  | ASYNC POLL on nodo-so: jid=j202090318378.195608 started=1 finished=0
-  | ASYNC OK on nodo-so: jid=j202090318378.195608
-  | ASYNC OK on nodo-so: jid=j200087512322.198091
-  | ASYNC OK on nodo-so: jid=j192133743340.198706
-  | ASYNC OK on nodo-so: jid=j359676396302.199536
-  | ASYNC OK on nodo-so: jid=j112861454430.200183
-  resultado: 
-CASO C1 FALLO · CVE-2026-8932: None aviso(s), None/None lotes, reinicio requerido None, no se reinició; None min
-TICKET FO-LAB-02407 exitoso params={"pp_alcance": "seleccion", "cves": "CVE-2026-8932", "pp_reinicio": "no", "pp_limite_min": 15, "pp_lote": 2}
-  stats= {"nodo-so": {"alcance": "seleccion", "cves": ["CVE-2026-8932"], "avisos": "11", "lotes": "6", "lotes_aplicados": "6", "lotes_con_error": "0", "lotes_sin_tiempo": "0", "reinicio_requerido": true, "politica_reinicio": "no", "reinicio": "no", "minutos": "1.9"}}
-  | ASYNC OK on nodo-so: jid=j701311858784.204959
-  | ASYNC OK on nodo-so: jid=j790390342035.206257
-  | ASYNC OK on nodo-so: jid=j204157531131.206697
-  | ASYNC OK on nodo-so: jid=j266738925541.207453
-  | ASYNC OK on nodo-so: jid=j243423941486.208400
-  | "msg": "nodo-so: 11 avisos en 6 lotes: 6 aplicados, 0 con error, 0 sin aplicar por el límite de 15 min (CVE: CVE-2026-8932) · reinicio requerido: si · no se reinició (política: no)"
-  | TASK [Todo aplicado] ***********************************************************
-  | nodo-so                    : ok=13   changed=1    unreachable=0    failed=0    skipped=4    rescued=0    ignored=0
-  resultado: AAP terminó (successful): ejecución 120 s, espera de aprobación 12 s
-CASO C2 FALLO · repetición: 11 avisos, 6 lotes, exitoso sin cambios
-TICKET FO-LAB-02410 exitoso params={"pp_alcance": "seleccion", "cves": "CVE-2026-8932", "pp_reinicio": "si_hace_falta", "pp_limite_min": 15, "pp_lote": 20}
-  stats= {"nodo-so": {"alcance": "seleccion", "cves": ["CVE-2026-8932"], "avisos": "6", "lotes": "1", "lotes_aplicados": "1", "lotes_con_error": "0", "lotes_sin_tiempo": "0", "reinicio_requerido": true, "politica_reinicio": "si_hace_falta", "reinicio": "reiniciado", "minutos": "0.9"}}
-  | TASK [Datos válidos] ***********************************************************
-  | ASYNC OK on nodo-so: jid=j652865277631.211716
-  | "msg": "nodo-so: 6 avisos en 1 lotes: 1 aplicados, 0 con error, 0 sin aplicar por el límite de 15 min (CVE: CVE-2026-8932) · reinicio requerido: si · reiniciado"
-  | TASK [Todo aplicado] ***********************************************************
-  | nodo-so                    : ok=14   changed=2    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0
-  resultado: AAP terminó (successful): ejecución 62 s, espera de aprobación 15 s | Revisión de CVE lanzada: FO-LAB-02413
-CASO C3 FALLO · sin reinicio requerido: no reinicia (política «si hace falta» respetada)
-Traceback (most recent call last):
-  File "/tmp/p3004.py", line 113, in <module>
-    t, st = correr(dict(sel_, pp_reinicio="programar", pp_reinicio_hora="03:30", pp_limite_min=15, pp_lote=20), "Plan de prueba C4: programar reinicio")
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p3004.py", line 31, in correr
-    t = solicitar_en_equipo(u, cl, a, e, params, motivo, prueba=True)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/operacion.py", line 350, in solicitar_en_equipo
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/operacion.py", line 440, in solicitar
-    raise PermissionError(f"{', '.join(apagados)}: apagad{'as' if len(apagados) > 1 else 'a'}. "
-PermissionError: nodo-so: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la acción
---- fin: 2026-11-12T20:58:12-03:00 · código: 0
+virsh: running
+uptime: up 1 minute · kernel: 5.14.0-741.22.1.el9_9.x86_64
+dnf/rpm en curso: 1
+needs-restarting: no
+avisos seguridad pendientes: 0
+con --cve=CVE-2026-8932: 0
+con --cve=CVE-1999-0001 (inexistente): 0
+info CVE-2026-8932: 0
+historial dnf hoy:
+Updating Subscription Management repositories.
+ID     | Command line             | Date and time    | Action(s)      | Altered
+-------------------------------------------------------------------------------
+    35 | -y -q upgrade --advisory | 2026-11-12 18:55 | Upgrade        |    2   
+    34 | -y -q upgrade --advisory | 2026-11-12 18:55 | Upgrade        |    2   
+    33 | -y -q upgrade --advisory | 2026-11-12 18:54 | O, U           |    4   
+    32 | -y -q upgrade --advisory | 2026-11-12 18:52 | Upgrade        |    1   
+    31 | -y -q upgrade --advisory | 2026-11-12 18:52 | Upgrade        |    8   
+FO-LAB-02398 fallido Plan de prueba C3 de «Autocuidado · Revisar estado» (regla d | anfitrion-kvm              : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02399 fallido Plan de prueba C1: CVE-2026-8932 sin reinicio | nodo-so                    : ok=12   changed=1    unreachable=0    failed=1    skipped=4    rescued=0    ignored=0
+FO-LAB-02400 exitoso Plan de prueba C1 de «Autocuidado · Respaldar bases de AAP y | AAP terminó (successful): ejecución 27 s, espera de aprobación 13 s
+FO-LAB-02401 exitoso Plan de prueba C2 de «Autocuidado · Respaldar bases de AAP y | AAP terminó (successful): ejecución 220 s, espera de aprobación 12 s
+FO-LAB-02402 exitoso Plan de prueba C3 de «Autocuidado · Respaldar bases de AAP y | AAP terminó (successful): ejecución 79 s, espera de aprobación 12 s
+FO-LAB-02403 fallido Plan de prueba C4 de «Autocuidado · Respaldar bases de AAP y | anfitrion-kvm              : ok=8    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02404 exitoso Plan de prueba C1 de «Autocuidado · Renovar certificados» (r | AAP terminó (successful): ejecución 33 s, espera de aprobación 13 s
+FO-LAB-02405 exitoso Plan de prueba C2 de «Autocuidado · Renovar certificados» (r | AAP terminó (successful): ejecución 12 s, espera de aprobación 12 s
+FO-LAB-02406 exitoso Plan de prueba C3 de «Autocuidado · Renovar certificados» (r | AAP terminó (successful): ejecución 11 s, espera de aprobación 13 s
+FO-LAB-02407 exitoso Plan de prueba C2: repetir la selección | Revisión de CVE lanzada: FO-LAB-02409
+FO-LAB-02408 fallido Plan de prueba C4 de «Autocuidado · Renovar certificados» (r | anfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+FO-LAB-02410 exitoso Plan de prueba C3: reiniciar solo si hace falta | Revisión de CVE lanzada: FO-LAB-02413
+FO-LAB-02411 exitoso Plan de prueba C1 de «Autocuidado · Atender alerta» (regla d | AAP terminó (successful): ejecución 9 s, espera de aprobación 15 s
+FO-LAB-02414 exitoso Plan de prueba C2 de «Autocuidado · Atender alerta» (regla d | AAP terminó (successful): ejecución 8 s, espera de aprobación 12 s
+FaceOps nodo-so: con datos None
+--- fin: 2026-11-12T20:59:55-03:00 · código: 0
