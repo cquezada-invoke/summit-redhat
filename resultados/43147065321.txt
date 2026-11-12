@@ -1,0 +1,33 @@
+commit: ba841abcd88d09f15390eb0ab89a8dd9e672205f
+inicio: 2026-11-12T00:47:24-03:00
+---
+1ded111 Skills de red · Bloquear IP: pide la IP en la ventan
+   · Plantilla «OpenShift · Evaluar imágenes (uso y antigüedad)» (id 1170)
+   · Plantilla «OpenShift · Mover imágenes a Quay» (id 1171)
+1ded111
+smtp True
+monitor ('seg-pagos', '')
+propuesto {'id': 1, 'version': 1, 'ticket_id': 2063, 'numero': 'FO-LAB-02063'}
+vigente (1, 'vigente', 'FO-LAB-02063', 'cquezada', 'Aprobado por Claude (regla de Cristian)', 1)
+ticket {'numero': 'FO-LAB-02063', 'estado': 'exitoso', 'resultado': 'SLA v1 de App de pagos vigente desde 2026-11-12 03:52 UTC (aprobado por cquezada)'}
+estado incumple cump 0 consumo None parcial True tickets 478
+ - Disponibilidad sin_medicion sin medición / 99,5 % | Prometheus no tiene muestras de la sonda del VIP (seg-pagos) en el período: activa las alertas del segmento (campana del segmento) para que FaceOps lo
+ - Latencia p95 sin_medicion sin medición / 800 ms | Prometheus no tiene muestras de la sonda del VIP (seg-pagos) en el período: activa las alertas del segmento (campana del segmento) para que FaceOps lo
+ - Tiempo de respuesta incumple 472 de 476 en plazo / por prioridad (P1–P4) | tickets de FaceOps del servicio
+ - Tiempo de resolución incumple 432 de 470 en plazo / por prioridad (P1–P4) | tickets de FaceOps del servicio
+ - Aprobación de cambios incumple 429 de 465 en plazo / máximo 24 h | promedio 15.6 h por etapa
+violaciones 78 ['P2 · FO-LAB-00303: respuesta en 11 d (aún sin atender) · objetivo 60 min', 'Aprobación de FO-LAB-00316 (monitoreo) tardó 10,9 d y sigue pendiente · máximo 24 h', 'P2 · FO-LAB-00316: resolución en 11 d (aún abierto) · objetivo 8 h', 'P2 · FO-LAB-00317: resolución en 11 d (aún abierto) · objetivo 8 h', 'Aprobación de FO-LAB-00475 (monitoreo) tardó 9,9 d y sigue pendiente · máximo 24 h']
+envio {'para': 'cquezada@redhat.com', 'asunto': 'FaceOps · SLA noviembre 2026: 0 de 1 servicio cumplen (medición parcial)', 'resultado': 'enviado a cquezada@redhat.com'}
+envios [{'fecha': '2026-11-12T03:52:15+00:00', 'tipo': 'prueba', 'para': 'cquezada@redhat.com', 'asunto': 'FaceOps · SLA noviembre 2026: 0 de 1 servicio cumplen (medición parcial)', 'resultado': 'enviado a cquezada@redhat.com'}]
+programa {'cliente_id': 1, 'frecuencia': 'mensual', 'dia': 1, 'hora': '08:00', 'proximo': '2026-12-01T11:00:00+00:00', 'actualizado': '2026-11-12T03:52:15+00:00'}
+itil {'vigentes': 1, 'medidos': 1, 'envios': 1, 'programado': True, 'tickets': ['FO-LAB-02063']}
+salud [{'nivel': 'info', 'area': 'Disponibilidad', 'titulo': 'SLA sin medición de disponibilidad', 'detalle': 'Prometheus no tiene muestras de la sonda del VIP (seg-pagos) en el período: activa las alertas del segmento (campana del segmento) para que FaceOps lo mida', 'remedio': 'Activar las alertas del segmento (campana) para que Prometheus mida la sonda del VIP'}, {'nivel': 'media', 'area': 'Excelencia operativa', 'titulo': 'SLA v1 incumplido · Tiempo de respuesta: 472 de 476 en plazo (objetivo por prioridad (P1–P4))', 'detalle': 'tickets de FaceOps del servicio', 'remedio': 'Ver Gobierno › Reportes › SLA: violaciones con su ticket o alerta y la iniciativa de mejora abierta'}, {'nivel': 'media', 'area': 'Excelencia operativa', 'titulo': 'SLA v1 incumplido · Tiempo de resolución: 432 de 470 en plazo (objetivo por prioridad (P1–P4))', 'detalle': 'tickets de FaceOps del servicio', 'remedio': 'Ver Gobierno › Reportes › SLA: violaciones con su ticket o alerta y la iniciativa de mejora abierta'}, {'nivel': 'media', 'area': 'Excelencia operativa', 'titulo': 'SLA v1 incumplido · Aprobación de cambios: 429 de 465 en plazo (objetivo máximo 24 h)', 'detalle': 'promedio 15.6 h por etapa', 'remedio': 'Ver Gobierno › Reportes › SLA: violaciones con su ticket o alerta y la iniciativa de mejora abierta'}]
+/gobierno/sla 200
+/gobierno/sla?servicio=1 200
+/gobierno/reportes/sla 200
+/gobierno/reportes 200
+/monitoreo/itil 200
+/mapa?vista=aplicaciones&segmento=App+de+pagos 200
+Gestión de niveles de servicio: parcial → cubierta · SLA acordado por servicio con aprobación y reporte periódico de cumplimiento (Gobierno › SLA y Reportes › SLA) Validación y prueba del servicio: no cubierta → cubierta · Pruebas nocturnas de punta a punta; pruebas en pod efímero en la Fábrica Desarrollo y gestión del software: no cubierta → cubierta · Fábrica de software completa (nueva desde la versión anterior) Bajaron (1) Gestión de versiones: cubierta → parcial Corregido Seguridad de la in
+{"status":"success","data":{"resultType":"vector","result":[]}}
+--- fin: 2026-11-12T00:52:18-03:00 · código: 0
