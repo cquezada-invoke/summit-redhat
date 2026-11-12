@@ -1,33 +1,17 @@
-commit: f1e3d920b66b6d1307609c983d3495561af67919
-inicio: 2026-11-12T13:07:19-03:00
+commit: 2367d6a58ab77456745cbf0ba2772adfb485488d
+inicio: 2026-11-12T12:50:26-03:00
 ---
-desplegado
-plantillas en AAP: ['Nube · Leer opciones de la nube', 'Nube · Crear máquina', 'Nube · Operar máquina', 'Nube · Producto de la nube']
-  lectura no lanzada: No se pudo lanzar la lectura en AAP: Sincronizando con AAP: el dato aún no está en FaceOps
-C1 job None None | regiones 0 | zonas sw1 None | tipos 0 | imágenes ok 0 / 0 | redes [] | subredes 0 | cuentas 0 | firewall 0 | máquinas [] | precios {} | errores None
-   ROLES de la cuenta de servicio: None
-   PERMISOS QUE FALTAN: None
-   ROLES QUE FALTAN: []
-   APIs: None []
-  lectura no lanzada: No se pudo lanzar la lectura en AAP: Sincronizando con AAP: el dato aún no está en FaceOps
-C2 job None None mismos conteos: False
-Traceback (most recent call last):
-  File "/tmp/m.py", line 81, in <module>
-    j3 = aap.lanzar("job", ao_["aap_id"], extra_vars={"nb_infra_id": IID, "nb_proyecto": "X_no_valido", "nb_entrada": {}}, credenciales=[N.credencial(aap, INF)])
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 358, in lanzar
-    dadas = {(c.get("credential_type")) for c in (self.get(f"credentials/{cid}/") for cid in credenciales)}
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 358, in <setcomp>
-    dadas = {(c.get("credential_type")) for c in (self.get(f"credentials/{cid}/") for cid in credenciales)}
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 358, in <genexpr>
-    dadas = {(c.get("credential_type")) for c in (self.get(f"credentials/{cid}/") for cid in credenciales)}
-                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 281, in get
-    return self._r("GET", ruta, params=params)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 242, in _r
-    raise (ErrorAAP if disponible(self.web) else AAPNoDisponible)("Sincronizando con AAP: el dato aún no está en FaceOps")
-app.aap.ErrorAAP: Sincronizando con AAP: el dato aún no está en FaceOps
---- fin: 2026-11-12T13:08:53-03:00 · código: 0
+disco: 15G libres (98%)
+desplegado: sí (53583e56 o posterior)
+AAP controller: 200
+v0 produccion: pagina 0.96s[200] · grafica 1.10s[200] · total 2.07s
+v0 qa: pagina 0.17s[200] · grafica 0.08s[200] · total 0.25s
+v0 desarrollo: pagina 0.15s[200] · grafica 0.07s[200] · total 0.23s
+v1 produccion: pagina 0.18s[200] · grafica 0.09s[200] · total 0.26s
+v1 qa: pagina 0.17s[200] · grafica 0.06s[200] · total 0.23s
+v1 desarrollo: pagina 0.18s[200] · grafica 0.06s[200] · total 0.24s
+v2 produccion: pagina 0.18s[200] · grafica 0.08s[200] · total 0.27s
+v2 qa: pagina 0.19s[200] · grafica 0.06s[200] · total 0.25s
+v2 desarrollo: pagina 0.19s[200] · grafica 0.08s[200] · total 0.27s
+certificados 0.12s[200] error_503=False
+--- fin: 2026-11-12T13:10:44-03:00 · código: 0
