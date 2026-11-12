@@ -1,28 +1,79 @@
-commit: f998abff9e0df86955401d1389478fcd4867d913
-inicio: 2026-11-12T00:19:12-03:00
+commit: 3de1530a7ef7761e94928676c7274a4722e679c2
+inicio: 2026-11-12T00:28:32-03:00
 ---
-· constructora demo-constructor-202611120317 (n2-standard-4, Rocky Linux 9, anidada, 60 GB) · rama feature/faceops-awx
-== CONSTRUCCION inicio 03:17:50
-  == fuente 4b9a2f1
-  == 03:18:41 nombre fijo del nodo k3s (la imagen se clona con otro hostname e IP)
-  == 03:18:41 KVM/libvirt para las VMs anidadas
-  == 03:20:49 AWX + EDA comunitarios, validador y FaceOps (rama feature/faceops-awx)
-  == 03:20:49 paquetes
-  == 03:20:56 k3s v1.30.6+k3s1
-  == 03:21:10 AWX (awx-operator 2.19.1 → AWX 24.6.1)
-  == 03:21:35 EDA comunitario (eda-server-operator 9120da27dbd15c7d10245ecfbee5dd6d3df01c7e)
-  == 03:22:09 repositorio git local (HTTP tonto en :8088) con playbook y rulebook de prueba
-  == 03:22:10 acceso SSH de AWX a esta misma máquina (host gestionado)
-  == 03:22:10 validador local y FaceOps (feature/faceops-awx) en modo awx
-  == 03:23:34 AWX responde:
-  == 03:25:58 EDA responde: 200
-  == 03:25:58 VMs anidadas (Rocky 9 GenericCloud, 1 vCPU, 1,5 GB, IP fija en virbr0)
-  == 03:27:02 VMs anidadas con SSH: localhost localhost
-  == 03:27:02 esperando AWX y EDA (hasta 30 min)
-  == 03:27:54 AWX 24.6.1 · EDA HTTP 200
-  == 03:27:54 AWX/EDA: inventario, plantillas, workflow con aprobación y activación EDA; FaceOps en modo awx
-  CONSTRUCCION FALLO
-· construcción FALLIDA
-· constructora demo-constructor-202611120317 eliminada
-(sigue corriendo)
---- fin: 2026-11-12T00:28:13-03:00 · código: 0
+PRUEBA /faceops/lab/inventario/14 404 None
+PRUEBA /lab/inventario/14 200 None
+PRUEBA /faceops/lab/inventario 404 None
+== 14 HTTP 200 dlg=True skills=8 habilitadas=2 btn=True
+    ON  Abrir puerto con ticket y expiración | Red · Reglas | 
+    OFF Detección de cambios (drift) contra la línea base | Red · Configuración | sin plan de prueba aprobado
+    OFF Cumplimiento CIS | Red · Seguridad | acción aún no disponible
+    OFF Actualización de firmware (evaluar y aplicar) | Red · Firmware | sin plan de prueba aprobado
+    OFF Auditoría de reglas | Red · Reglas | acción aún no disponible
+    ON  Inventario de interfaces y vecinos (LLDP/CDP) | Red · Topología | 
+    OFF Respaldo de configuración | Red · Configuración | sin plan de prueba aprobado
+    OFF Bloquear IP | Red · Seguridad | pide datos (IP a bloquear): lánzala desde Acciones
+== 16 HTTP 200 dlg=True skills=7 habilitadas=2 btn=True
+    OFF Detección de cambios (drift) contra la línea base | Red · Configuración | sin plan de prueba aprobado
+    OFF Cumplimiento CIS | Red · Seguridad | acción aún no disponible
+    OFF Actualización de firmware (evaluar y aplicar) | Red · Firmware | sin plan de prueba aprobado
+    ON  Inventario de interfaces y vecinos (LLDP/CDP) | Red · Topología | 
+    ON  Rutas y vecinos BGP/OSPF | Red · Enrutamiento | 
+    OFF Respaldo de configuración | Red · Configuración | sin plan de prueba aprobado
+    OFF Prueba de conectividad o MTR | Red · Enrutamiento | acción aún no disponible
+== 121 HTTP 200 dlg=True skills=8 habilitadas=2 btn=True
+    ON  Abrir puerto con ticket y expiración | Red · Reglas | 
+    OFF Detección de cambios (drift) contra la línea base | Red · Configuración | sin plan de prueba aprobado
+    OFF Cumplimiento CIS | Red · Seguridad | acción aún no disponible
+    OFF Actualización de firmware (evaluar y aplicar) | Red · Firmware | sin plan de prueba aprobado
+    OFF Auditoría de reglas | Red · Reglas | acción aún no disponible
+    ON  Inventario de interfaces y vecinos (LLDP/CDP) | Red · Topología | 
+    OFF Respaldo de configuración | Red · Configuración | sin plan de prueba aprobado
+    OFF Bloquear IP | Red · Seguridad | pide datos (IP a bloquear): lánzala desde Acciones
+== 122 HTTP 200 dlg=True skills=8 habilitadas=2 btn=True
+    OFF Detección de cambios (drift) contra la línea base | Red · Configuración | sin plan de prueba aprobado
+    OFF Cumplimiento CIS | Red · Seguridad | acción aún no disponible
+    OFF Actualización de firmware (evaluar y aplicar) | Red · Firmware | sin plan de prueba aprobado
+    OFF Agregar o retirar miembro del pool (drenaje) | Red · Balanceo | acción aún no disponible
+    ON  Inventario de interfaces y vecinos (LLDP/CDP) | Red · Topología | 
+    ON  Ver salud de los backends | Red · Balanceo | 
+    OFF Respaldo de configuración | Red · Configuración | sin plan de prueba aprobado
+    OFF Renovar certificado del VIP | Red · Balanceo | acción aún no disponible
+== 123 HTTP 200 dlg=True skills=7 habilitadas=2 btn=True
+    OFF Detección de cambios (drift) contra la línea base | Red · Configuración | sin plan de prueba aprobado
+    OFF Cumplimiento CIS | Red · Seguridad | acción aún no disponible
+    OFF Actualización de firmware (evaluar y aplicar) | Red · Firmware | sin plan de prueba aprobado
+    ON  Inventario de interfaces y vecinos (LLDP/CDP) | Red · Topología | 
+    ON  Rutas y vecinos BGP/OSPF | Red · Enrutamiento | 
+    OFF Respaldo de configuración | Red · Configuración | sin plan de prueba aprobado
+    OFF Prueba de conectividad o MTR | Red · Enrutamiento | acción aún no disponible
+== 124 HTTP 200 dlg=True skills=8 habilitadas=1 btn=True
+    OFF Detección de cambios (drift) contra la línea base | Red · Configuración | sin plan de prueba aprobado
+    OFF Cumplimiento CIS | Red · Seguridad | acción aún no disponible
+    OFF Actualización de firmware (evaluar y aplicar) | Red · Firmware | sin plan de prueba aprobado
+    OFF Aplicar plantilla de puerto | Red · VLAN y puertos | acción aún no disponible
+    ON  Inventario de interfaces y vecinos (LLDP/CDP) | Red · Topología | 
+    OFF Respaldo de configuración | Red · Configuración | sin plan de prueba aprobado
+    OFF VLANs (crear o asignar) | Red · VLAN y puertos | acción aún no disponible para FRRouting
+    OFF Puertos sin uso | Red · VLAN y puertos | acción aún no disponible
+== 125 HTTP 200 dlg=True skills=8 habilitadas=1 btn=True
+    OFF Detección de cambios (drift) contra la línea base | Red · Configuración | sin plan de prueba aprobado
+    OFF Cumplimiento CIS | Red · Seguridad | acción aún no disponible
+    OFF Actualización de firmware (evaluar y aplicar) | Red · Firmware | sin plan de prueba aprobado
+    OFF Aplicar plantilla de puerto | Red · VLAN y puertos | acción aún no disponible
+    ON  Inventario de interfaces y vecinos (LLDP/CDP) | Red · Topología | 
+    OFF Respaldo de configuración | Red · Configuración | sin plan de prueba aprobado
+    OFF VLANs (crear o asignar) | Red · VLAN y puertos | acción aún no disponible para FRRouting
+    OFF Puertos sin uso | Red · VLAN y puertos | acción aún no disponible
+== 17 HTTP 200 dlg=True skills=7 habilitadas=0 btn=True
+    OFF Detección de cambios (drift) contra la línea base | Red · Configuración | acción aún no disponible para Linux
+    OFF Cumplimiento CIS | Red · Seguridad | acción aún no disponible
+    OFF Actualización de firmware (evaluar y aplicar) | Red · Firmware | sin plan de prueba aprobado
+    OFF Respaldo de configuración | Red · Configuración | acción aún no disponible para Linux
+    OFF Inventario de interfaces y vecinos (LLDP/CDP) | Red · Topología | acción aún no disponible para Linux
+    OFF Rutas y vecinos BGP/OSPF | Red · Enrutamiento | acción aún no disponible para Linux
+    OFF Prueba de conectividad o MTR | Red · Enrutamiento | acción aún no disponible
+== 27 HTTP 200 dlg=True skills=2 habilitadas=1 btn=True
+    ON  Mover a otra infraestructura | Máquina | 
+    OFF Registrar licencia | Sistema operativo | aún no hay una acción del catálogo compatible y certificada para esta máqui
+--- fin: 2026-11-12T00:28:51-03:00 · código: 0
