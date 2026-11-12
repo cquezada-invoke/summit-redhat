@@ -88,7 +88,11 @@ if [ "$FASE" = rocky-ev ]; then
   guardar evaluar; echo "EVALUAR fase rocky: $CASOS" | cut -c1-600
 fi
 if [ "$FASE" = rocky-cr ]; then
-  IK=$(ip_de $RK); echo "IP $RK $IK · $(en $IK 'cat /etc/redhat-release')"
+  if [ "$(sudo virsh domstate $RK 2>/dev/null)" != running ]; then energia $RK encender; fi   # quedó apagada tras el primer arranque
+  IK=$(sudo virsh domifaddr $RK --source lease 2>/dev/null | awk '/ipv4/{print $4}' | cut -d/ -f1 | head -1)
+  [ -n "$IK" ] && [ "$IK" != "$(ip_de $RK)" ] && echo "IP nueva $IK (FaceOps tenía $(ip_de $RK))"
+  [ -s $EST/centos.casos ] || inv $RK
+  IK=$(ip_de $RK); echo "IP $RK $IK · $(en_ssh $IK 'cat /etc/redhat-release')"
   # ── CentOS a RHEL
   CASOS='[]'; TKS='[]'
   S0=$(snaps $RK)
