@@ -1,8 +1,43 @@
-commit: 621cbc80ae6c74502520523521a749d3414b70c9
-inicio: 2026-11-11T23:23:17-03:00
+commit: 71521f0aa00e8ab1c10bc2e641ef909c69c6ec38
+inicio: 2026-11-11T23:24:04-03:00
 ---
-Plataforma · Controlar servicio certificada
-Sistema · Quitar agente certificada
-FaceOps · Agente de monitoreo (Linux) cambiada
-FaceOps · Respaldo continuo en Git certificada
---- fin: 2026-11-11T23:23:45-03:00 · código: 0
+== dc1-ad01 ['adws', 'appxsvc', 'bfe', 'brokerinfrastructure', 'camsvc', 'cdpsvc', 'certpropsvc', 'certsvc', 'coremessagingregistrar', 'cryptsvc', 'dcomlaunch', 'dfs', 'dfsr', 'dhcp', 'diagtrack', 'dispbrokerdesktopsvc', 'dns', 'dnscache', 'dps', 'efs', 'eventlog', 'eventsystem', 'fontcache', 'gpsvc', 'iphlpsvc', 'ismserv', 'kdc', 'keyiso', 'lanmanserver', 'lanmanworkstation', 'lmhosts', 'lsm', 'mdcoresvc', 'mpssvc', 'msdtc', 'ncbservice', 'netlogon', 'netprofm', 'nlasvc', 'nsi', 'ntds', 'pcasvc', 'plugplay', 'policyagent', 'power', 'profsvc', 'samss', 'schedule', 'sens', 'sessionenv', 'shellhwdetection', 'spooler', 'storsvc', 'sysmain', 'systemeventsbroker', 'termservice', 'themes', 'timebrokersvc', 'ualsvc', 'umrdpservice', 'usermanager', 'usosvc', 'vds', 'w32time', 'wcmsvc', 'wdisystemhost', 'wdnissvc', 'windefend', 'winhttpautoproxysvc', 'winmgmt', 'winrm', 'wlidsvc', 'wlms', 'wpnservice', 'wuauserv']
+   det []
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'componentes_internos']
+== dc1-ds01 ['dirsrv@invoke']
+   det []
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
+== dc1-idm01 ['certmonger', 'dirsrv@LINUX-INVOKE-LAB', 'httpd', 'ipa-custodia', 'ipa-dnskeysyncd', 'kadmin', 'krb5kdc', 'named', 'node_exporter', 'oddjobd']
+   det [(None, '')]
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
+== dc1-sat01 ['dynflow-sidekiq@orchestrator', 'dynflow-sidekiq@worker-1', 'dynflow-sidekiq@worker-hosts-queue-1', 'foreman', 'foreman-proxy', 'httpd', 'postgresql', 'pulpcore-api', 'pulpcore-content', 'pulpcore-worker@1', 'pulpcore-worker@2', 'pulpcore-worker@3', 'pulpcore-worker@4', 'redis', 'tomcat']
+   det [(None, ''), (None, ''), (None, ''), (None, '')]
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
+== dc1-sso01 ['keycloak']
+   det []
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
+== nodo-jboss ['eap8-standalone', 'keycloak', 'node_exporter', 'redis', 'redisinsight', 'vigia', 'vigia-jboss']
+   det [(None, ''), (None, ''), (None, ''), (None, '')]
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos', 'versiones', 'puertos_web', 'alertas', 'alertas_plat']
+== nodo-nginx ['kafka', 'nginx', 'node_exporter', 'redis', 'redisinsight', 'vigia']
+   det [(None, ''), (None, ''), (None, ''), (None, '')]
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
+== nodo-postgres ['node_exporter', 'postgresql', 'vigia']
+   det [(None, '')]
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'ram_asignada_estimada', 'componentes_internos']
+== nodo-so ['node_exporter', 'vigia']
+   det []
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'ram_asignada_estimada', 'componentes_internos']
+== nodo-storage ['faceops-storage', 'lake-s3']
+   det [(None, '')]
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos', 'alertas']
+== nodo-tomcat ['app-prueba-flujo-qa', 'artemis', 'consumidor-pagos', 'keycloak', 'node_exporter', 'redisinsight', 'valkey', 'vigia']
+   det [(None, '')]
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
+== nodo-vault ['node_exporter', 'vault']
+   det [(None, ''), (None, '')]
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'red', 'componentes_internos']
+== nodo-windows ['apphostsvc', 'bfe', 'bits', 'brokerinfrastructure', 'cdpsvc', 'certpropsvc', 'coremessagingregistrar', 'cryptsvc', 'dcomlaunch', 'dhcp', 'diagtrack', 'dispbrokerdesktopsvc', 'dnscache', 'dps', 'dssvc', 'eventlog', 'eventsystem', 'fdphost', 'fdrespub', 'fontcache', 'gpsvc', 'iphlpsvc', 'keyiso', 'lanmanserver', 'lanmanworkstation', 'lmhosts', 'lsm', 'mdcoresvc', 'mpssvc', 'msdtc', 'ncbservice', 'netprofm', 'nlasvc', 'nsi', 'pcasvc', 'plugplay', 'policyagent', 'power', 'profsvc', 'samss', 'schedule', 'sens', 'sessionenv', 'shellhwdetection', 'spooler', 'storsvc', 'sysmain', 'systemeventsbroker', 'termservice', 'themes', 'timebrokersvc', 'trkwks', 'ualsvc', 'umrdpservice', 'usermanager', 'usosvc', 'w32time', 'w3svc', 'was', 'wcmsvc', 'wdnissvc', 'windefend', 'windows_exporter', 'winhttpautoproxysvc', 'winmgmt', 'winrm', 'wlms', 'wmiapsrv', 'wpnservice']
+   det []
+   keys ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'ram_so_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'hardware', 'montajes_red', 'usuarios', 'servicios_det', 'logs', 'jboss', 'componentes_internos']
+--- fin: 2026-11-11T23:24:04-03:00 · código: 0
