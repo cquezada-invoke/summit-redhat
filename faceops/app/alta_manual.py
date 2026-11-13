@@ -180,11 +180,16 @@ def agregar(usuario, cliente, seccion, f, prueba=False):
     aap.post(f"groups/{grp['id']}/hosts/", {"id": host["id"]})
     datos = {"alta_manual": {"marca": nombre_m, "modelo": hv["faceops_modelo"], "conexion": conexion, "coleccion": coleccion,
                              "autenticacion": AUTENTICACION[auth][0], "puerto": puerto, "por": usuario["usuario"], "cuando": ahora()}}
-    ej("INSERT INTO equipos(cliente_id, nombre, aap_host_id, inventario, so, ip, datos, ubicacion, ambiente, estado, visto, categoria, forma) "
-       "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-       cliente["id"], nombre, host["id"], inv_n, f"{nombre_m} {hv['faceops_modelo']}".strip(), ip, json.dumps(datos, ensure_ascii=False),
-       (f.get("ubicacion") or "").strip(), (f.get("ambiente") or "").strip(), "inventariado", ahora(), tipo,
-       "virtual" if f.get("forma") == "virtual" else "física")
+    valores = (host["id"], inv_n, f"{nombre_m} {hv['faceops_modelo']}".strip(), ip, json.dumps(datos, ensure_ascii=False),
+               (f.get("ubicacion") or "").strip(), (f.get("ambiente") or "").strip(), "inventariado", ahora(), tipo,
+               "virtual" if f.get("forma") == "virtual" else "física")
+    retirado = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado='retirado'", cliente["id"], nombre)
+    if retirado:   # el nombre ya existió y se retiró: vuelve el mismo registro (el nombre es único por cliente)
+        ej("UPDATE equipos SET aap_host_id=?, inventario=?, so=?, ip=?, datos=?, ubicacion=?, ambiente=?, estado=?, visto=?, categoria=?, forma=? "
+           "WHERE id=?", *valores, retirado["id"])
+    else:
+        ej("INSERT INTO equipos(cliente_id, nombre, aap_host_id, inventario, so, ip, datos, ubicacion, ambiente, estado, visto, categoria, forma) "
+           "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", cliente["id"], nombre, *valores)
     e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente["id"], nombre)
     t = _pedir_credencial(usuario, cliente, a_cred, e, params, secreto, prueba)
     auditar(usuario["usuario"], cliente["id"], "agregar equipo a mano", nombre,
