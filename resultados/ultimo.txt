@@ -1,18 +1,11 @@
-commit: dd871d22328e3e41c6ac2d03938304d4f221adeb
-inicio: 2026-11-13T10:10:24-03:00
+commit: 2865bb771f188ac91162fc4191f76a309e90db89
+inicio: 2026-11-13T10:43:19-03:00
 ---
-desplegado: c1e58d15 · 2026-11-13T10:19:24-03:00 ok: desplegado c1e58d15 · /ingresar 200 · configurar=sin cambios
-catálogo sincronizado 268
-AUTO (274, 1, 0, 'sin probar', ['FaceOps · Bóveda (escritura)'])
-CASO C4 ok · nombre inválido 400 «Nombre: minúsculas, números, puntos o guiones (ej. fw-borde-»; sin secreto 400 «Falta: usuario y clave»; lector 403; sin tickets, equipos ni hosts nuevos
-Traceback (most recent call last):
-  File "/tmp/b04.py", line 89, in <module>
-    eid, t = agregar(u, cl, "inventario", dict(base, nombre="srv-e1alta-01", secreto=sec1), prueba=True)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/alta_manual.py", line 183, in agregar
-    ej("INSERT INTO equipos(cliente_id, nombre, aap_host_id, inventario, so, ip, datos, ubicacion, ambiente, estado, visto, categoria, forma) "
-  File "/opt/faceops/app/bd.py", line 190, in ej
-    cur = con().execute(sql, args)
-          ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.IntegrityError: UNIQUE constraint failed: equipos.cliente_id, equipos.nombre
---- fin: 2026-11-13T10:20:20-03:00 · código: 0
+fo-b05 Up 28 minutes
+fo-b04 Up 27 seconds
+cquezada  803093  0.0  0.0   7280  3624 ?        S    10:10   0:00 bash herramientas/vm/tarea.sh
+cquezada  821190  0.0  0.0   7280  1920 ?        S    10:14   0:00 bash herramientas/vm/tarea.sh
+cquezada  960507  0.0  0.0   7280  3660 ?        S    10:42   0:00 bash herramientas/vm/tarea.sh
+cquezada  962065  0.0  0.0   7280  1948 ?        S    10:42   0:00 bash herramientas/vm/tarea.sh
+cquezada  966766  0.0  0.0   7148  3448 ?        S    10:43   0:00 bash herramientas/vm/tarea.sh
+--- fin: 2026-11-13T10:43:19-03:00 · código: 0
