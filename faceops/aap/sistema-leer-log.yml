@@ -39,9 +39,9 @@
             [ -r "$R" ] || { echo "FACEOPS_ERROR sin permiso de lectura sobre $R" >&2; exit 3; }
             src() { tail -n 200000 -- "$R"; }
           fi
-          if [ -n "$B" ]; then T=$(src | grep -F -i -c -- "$B"); src | grep -F -i -- "$B" | tail -n $((S+N)) | head -n $N
-          else T=$(src | wc -l); src | tail -n $((S+N)) | head -n $N; fi | cut -c1-2000
+          if [ -n "$B" ]; then T=$(src | grep -F -i -c -- "$B"); else T=$(src | wc -l); fi
           echo "FACEOPS_TOTAL=$T" >&2
+          if [ -n "$B" ]; then src | grep -F -i -- "$B" | tail -n $((S+N)) | head -n $N; else src | tail -n $((S+N)) | head -n $N; fi | cut -c1-2000
       environment:
         LG_RUTA: "{{ ruta }}"
         LG_BUSCAR: "{{ buscar }}"
