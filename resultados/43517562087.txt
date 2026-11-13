@@ -1,0 +1,25 @@
+commit: 7ca98313475e21d3c49f42c2996d053da8754318
+inicio: 2026-11-13T19:14:11-03:00
+---
+desplegado: a680a5f2 · 2026-11-13T19:20:18-03:00 ok: desplegado a680a5f2 · /ingresar 200 · configurar=sin cambios
+catálogo: SI
+física: ninguna con logs
+== C1 srv-e1prueba-01 /var/log/messages: exitoso FO-LAB-02561 · 300 líneas · total -1 · error «»
+CASO C1 falla · RHEL virtual: /var/log/messages
+== C2 srv-e1prueba-01 journal: exitoso FO-LAB-02562 · 100 líneas · total -1 · error «»
+CASO C2 ok · journal del sistema
+== C3 srv-e1prueba-01 /var/log/messages: exitoso FO-LAB-02564 · 300 líneas · total -1 · error «»
+CASO C3 ok · Búsqueda
+== C4 srv-e1prueba-01 journal: exitoso FO-LAB-02565 · 50 líneas · total -1 · error «»
+CASO C4 ok · Carga progresiva
+== C5 srv-windows-iis-01 evento:System: exitoso FO-LAB-02567 · 100 líneas · total 1727 · error «»
+CASO C5 ok · Windows: visor de eventos System
+CASO C6 falla · Máquina física
+== C7 srv-e1prueba-01 /var/log/no-existe-a21.log: fallido FO-LAB-02569 · 0 líneas · total -1 · error «no existe el archivo /var/log/no-existe-a21.log en la máquina»
+  VISOR 200 {"error": "AAP no respondió al leer el resultado: Sincronizando con AAP: el dato aún no está en FaceOps", "estado": "fallido", "lineas": [], "numero": "FO-LAB-02569", "total": -1}
+CASO C7 ok · Archivo que ya no existe
+  R8 400 Ese log no está entre los que encontró el inventario de la máquina tickets nuevos 0
+CASO C8 ok · Ruta fuera del inventario
+CASOS_LOG [{"id": "C1", "caso": "RHEL virtual: /var/log/messages", "resultado": "falla", "evidencia": "FO-LAB-02561: 300 líneas de -1, sin aprobación"}, {"id": "C2", "caso": "journal del sistema", "resultado": "ok", "evidencia": "FO-LAB-02562: 100 líneas del journal (88 con fecha ISO)"}, {"id": "C3", "caso": "Búsqueda", "resultado": "ok", "evidencia": "FO-LAB-02564: 300 líneas, todas con «systemd» (-1 coincidencias)"}, {"id": "C4", "caso": "Carga progresiva", "resultado": "ok", "evidencia": "FO-LAB-02565: 50 líneas anteriores del journal (saltar 50)"}, {"id": "C5", "caso": "Windows: visor de eventos System", "resultado": "ok", "evidencia": "FO-LAB-02567: 100 eventos · 2026-11-13 19:12:34 Information Service Control Manager [7036] The Sof"}, {"id": "C6", "caso": "Máquina física", "resultado": "falla", "evidencia": "no hay máquina física Linux con logs en el inventario"}, {"id": "C7", "caso": "Archivo que ya no existe", "resultado": "ok", "evidencia": "FO-LAB-02569 fallido: «no existe el archivo /var/log/no-existe-a21.log en la máquina»; el visor recibe el error"}, {"id": "C8", "caso": "Ruta fuera del inventario", "resultado": "ok", "evidencia": "400 Ese log no está entre los que encontró el inventario de la máquina tickets nuevos 0"}]
+CERT Sistema · Leer log → sin probar
+--- fin: 2026-11-13T19:36:18-03:00 · código: 0
