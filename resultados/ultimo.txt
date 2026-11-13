@@ -1,58 +1,66 @@
-commit: 76a712d37ab7a74832d194f3d20780aa7c4fac63
-inicio: 2026-11-13T11:27:55-03:00
+commit: 8288b9c06d3c58f4bb17424fcda8b13867ab88bb
+inicio: 2026-11-13T11:24:01-03:00
 ---
-TICKET 2484 200 [513, 40, 40, 35]
-         94533 function calls (94043 primitive calls) in 0.067 seconds
-
-   Ordered by: cumulative time
-   List reduced from 881 to 45 due to restriction <45>
-
-   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-        1    0.000    0.000    0.067    0.067 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1163(get)
-        1    0.000    0.000    0.067    0.067 /opt/app-root/lib64/python3.11/site-packages/flask/testing.py:204(open)
-        1    0.000    0.000    0.067    0.067 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1062(open)
-        1    0.000    0.000    0.067    0.067 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:984(run_wsgi_app)
-        1    0.000    0.000    0.067    0.067 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1230(run_wsgi_app)
-        1    0.000    0.000    0.067    0.067 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:1529(__call__)
-        1    0.000    0.000    0.067    0.067 /opt/app-root/lib64/python3.11/site-packages/werkzeug/middleware/proxy_fix.py:126(__call__)
-        1    0.000    0.000    0.067    0.067 /opt/faceops/app/__init__.py:55(__call__)
-        1    0.000    0.000    0.067    0.067 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:1479(wsgi_app)
-        1    0.000    0.000    0.066    0.066 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:904(full_dispatch_request)
-        1    0.000    0.000    0.064    0.064 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:879(dispatch_request)
-        1    0.000    0.000    0.064    0.064 /opt/faceops/app/__init__.py:413(envoltura)
-        1    0.000    0.000    0.064    0.064 /opt/faceops/app/vistas.py:1174(ticket)
-        1    0.000    0.000    0.054    0.054 /opt/app-root/lib64/python3.11/site-packages/flask/templating.py:139(render_template)
-        1    0.000    0.000    0.054    0.054 /opt/app-root/lib64/python3.11/site-packages/flask/templating.py:127(_render)
-        1    0.000    0.000    0.053    0.053 /opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py:1275(render)
-   107/26    0.000    0.000    0.053    0.002 {method 'join' of 'str' objects}
-     1667    0.001    0.000    0.053    0.000 /opt/faceops/app/templates/ticket.html:4(root)
-     1667    0.001    0.000    0.052    0.000 /opt/faceops/app/templates/base.html:4(root)
-    96/93    0.000    0.000    0.047    0.001 /opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py:262(call)
-        2    0.000    0.000    0.044    0.022 /opt/faceops/app/__init__.py:233(_menu)
-        2    0.002    0.001    0.044    0.022 /opt/faceops/app/vistas.py:8510(menu_nav)
-        2    0.000    0.000    0.023    0.011 /opt/faceops/app/vistas.py:62(equipos_visibles)
-       94    0.000    0.000    0.018    0.000 /opt/faceops/app/inventario.py:90(segmentos_de)
-       26    0.000    0.000    0.017    0.001 /opt/faceops/app/bd.py:180(q)
-       94    0.000    0.000    0.016    0.000 /opt/faceops/app/inventario.py:83(segmentos_candidatos)
-       94    0.001    0.000    0.016    0.000 /opt/faceops/app/inventario.py:86(<listcomp>)
-     1690    0.005    0.000    0.014    0.000 /opt/faceops/app/inventario.py:54(cumple_regla)
-        2    0.000    0.000    0.008    0.004 /opt/faceops/app/vistas.py:74(autos_visibles)
-       41    0.007    0.000    0.007    0.000 {method 'execute' of 'sqlite3.Connection' objects}
-     5424    0.002    0.000    0.007    0.000 {built-in method builtins.any}
-       26    0.006    0.000    0.006    0.000 {method 'fetchall' of 'sqlite3.Cursor' objects}
-      257    0.001    0.000    0.005    0.000 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:1003(url_for)
-      215    0.000    0.000    0.005    0.000 /opt/app-root/lib64/python3.11/site-packages/flask/helpers.py:195(url_for)
-       26    0.005    0.000    0.005    0.000 /opt/faceops/app/bd.py:181(<listcomp>)
-        1    0.000    0.000    0.004    0.004 /opt/faceops/app/vistas.py:1071(_flujo_ticket)
-        1    0.000    0.000    0.004    0.004 /opt/faceops/app/flujo.py:74(en_vivo)
-        1    0.000    0.000    0.004    0.004 /opt/faceops/app/flujo.py:34(plan)
-      257    0.001    0.000    0.004    0.000 /opt/app-root/lib64/python3.11/site-packages/werkzeug/routing/map.py:828(build)
-    10624    0.002    0.000    0.004    0.000 /opt/faceops/app/inventario.py:65(<genexpr>)
-      671    0.000    0.000    0.003    0.000 /opt/faceops/app/bd.py:195(j)
-      677    0.001    0.000    0.003    0.000 /usr/lib64/python3.11/json/__init__.py:299(loads)
-        1    0.000    0.000    0.003    0.003 /opt/faceops/app/economia.py:97(beneficio)
-  514/257    0.001    0.000    0.003    0.000 /opt/app-root/lib64/python3.11/site-packages/werkzeug/routing/map.py:787(_partial_build)
-      413    0.000    0.000    0.003    0.000 /opt/faceops/app/templates/ticket.html:38(block_cuerpo)
-
-
---- fin: 2026-11-13T11:28:02-03:00 · código: 0
+VM de prueba srv-e1prueba-01 192.168.122.172 · running
+srv-e1prueba-01 sin repositorio propio (C1 válido)
+== C1 srv-e1prueba-01: exitoso FO-LAB-02487
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'guardado', 'ARCHIVOS': '491', 'CAMBIOS': '507', 'COMMIT': '3852789c2b7d876f2804325ff87cdcb66db7cd32'}}
+  archivos/etc: 430 · meta: cobertura.txt crontab.txt directorios.txt discos.txt excluidos.txt grupos.txt omitidos.txt paquetes.txt permisos.txt red.txt rutas.txt selinux.txt servicios.txt sistema.txt usuarios.txt  · secretos en git: ninguno · paquetes 503
+CASO C1 ok · RHEL 9 sin repositorio propio
+== C2 srv-e1prueba-01: exitoso FO-LAB-02488
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '491', 'CAMBIOS': '0'}}
+CASO C2 ok · Repetir sin cambios
+== C3 srv-e1prueba-01: exitoso FO-LAB-02489
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '491', 'CAMBIOS': '2', 'COMMIT': '48a323c04fba7a4076602d7be2da3573fc6ed9ad'}}
+  último commit: 48a323c0 Inventario diario · 2026-11-13 14:33 · 1 archivo  Archivos: · M archivos/etc/motd 
+  PUNTO PR-SRV-E1PRUEBA-01-0003 no no  · «etc/motd» no aparece
+CASO C3 falla · Cambiar un archivo de /etc y repetir
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 5: $P/lanzar.py: ambiguous redirect
+== C4a srv-e1prueba-01: sin respuesta del arnés 
+{}
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 5: $P/lanzar.py: ambiguous redirect
+== C4b nodo-jboss-dev: sin respuesta del arnés 
+{}
+  zip: configuración 0 · despliegue 0 · data/tmp/log o grande en git 0 · omitido 0 | RPM: configuración 0 · data/tmp/log 0
+CASO C4 falla · JBoss por RPM y desde zip en /opt
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 5: $P/lanzar.py: ambiguous redirect
+== C8 srv-e1prueba-01: sin respuesta del arnés 
+{}
+[]
+  PUNTO PR-SRV-E1PRUEBA-01-0003 no no  · «/app-grande» no aparece
+CASO C8 falla · Cobertura
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 5: $P/lanzar.py: ambiguous redirect
+== C9 srv-e1prueba-01: sin respuesta del arnés 
+{}
+CASO C9 falla · Repetir sin cambios
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 5: $P/lanzar.py: ambiguous redirect
+== C10 srv-e1prueba-01: sin respuesta del arnés 
+{}
+  BOV 5 [] · PUNTO PR-SRV-E1PRUEBA-01-0003 no no  · «almacen-e1.jks» no aparece
+CASO C10 falla · Secretos
+HV srv-e1prueba-01 /usr/bin/python-inexistente-e1
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 5: $P/lanzar.py: ambiguous redirect
+== C5 srv-e1prueba-01: sin respuesta del arnés 
+{}
+HV srv-e1prueba-01 (sin)
+   · commit 48a323c0 Inventario diario · 2026-11-13 14:33 · 1 archivo  Archivos: · M archivos/etc/motd 
+CASO C5 falla · Sin Python utilizable (camino RHEL 5/6)
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 5: $P/lanzar.py: ambiguous redirect
+== C7 srv-e1prueba-01: sin respuesta del arnés 
+{}
+  paquetes 0 (C1: 503) · FA RedHat 9.6 | con datos | 192.168.122.172
+CASO C7 falla · Datos del sistema y paquetes
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 5: $P/lanzar.py: ambiguous redirect
+== C6 srv-windows-iis-01: sin respuesta del arnés 
+{}
+  meta/sitios-iis.txt NO
+  meta/pools-iis.txt NO
+  meta/paquetes.txt NO
+  meta/caracteristicas.txt NO
+  meta/servicios.txt NO
+  meta/tareas.txt NO
+  applicationHost.config 0
+CASO C6 falla · Windows con IIS
+CASOS_INV [{"id": "C1", "caso": "RHEL 9 sin repositorio propio", "resultado": "ok", "evidencia": "FO-LAB-02487: repositorio/maquina-srv-e1prueba-01 rama master con 491 archivos y meta (cobertura.txt crontab.txt directorios.txt discos.txt excluidos.txt grupos.txt omitidos.txt paquetes.txt permisos.txt red.txt rutas.txt selinux.txt servicios.txt sistema.txt usuarios.txt ); sin secretos en Git; 503"}, {"id": "C2", "caso": "Repetir sin cambios", "resultado": "ok", "evidencia": "FO-LAB-02488: CAMBIOS=0, sin commit"}, {"id": "C3", "caso": "Cambiar un archivo de /etc y repetir", "resultado": "falla", "evidencia": "FO-LAB-02489: CAMBIOS=2, commit «48a323c0 Inventario diario · 2026-11-13 14:33 · 1 archivo Archivos: · M archivos/etc/motd»; PUNTO PR-SRV-E1PRUEBA-01-0003 no no  · «etc/motd» no aparece"}, {"id": "C4", "caso": "JBoss por RPM y desde zip en /opt", "resultado": "falla", "evidencia": " y : standalone/configuration y deployments en archivos/ (zip y RPM); data, tmp y log excluidos; grande-e1.bin (30 MB) en meta/omitidos.txt con su huella"}, {"id": "C8", "caso": "Cobertura", "resultado": "falla", "evidencia": ": /data/prueba entra sola a Git; /app-grande (210 MB) y /opt/herramienta (sin paquete) subidos al registro maquina-srv-e1prueba-01 con su huella; el punto muestra 7 · Cobertura"}, {"id": "C9", "caso": "Repetir sin cambios", "resultado": "falla", "evidencia": ": ART_OK (no vuelve a subir artefactos), bóveda «», CAMBIOS="}, {"id": "C10", "caso": "Secretos", "resultado": "falla", "evidencia": ": e1.key y almacen-e1.jks fuera de Git; en la bóveda maquinas/srv-e1prueba-01/archivos (); cobertura «cubierto»"}, {"id": "C5", "caso": "Sin Python utilizable (camino RHEL 5/6)", "resultado": "falla", "evidencia": ": datos por shell (Equipo legado) e instantánea por la salida estándar (base64); commit con solo etc/motd (lo demás igual que en RHEL 9)"}, {"id": "C7", "caso": "Datos del sistema y paquetes", "resultado": "falla", "evidencia": ": facts del sistema (FA RedHat 9.6 | con datos | 192.168.122.172) y 0 paquetes con su fuente (C1: 503), igual que antes"}, {"id": "C6", "caso": "Windows con IIS", "resultado": "falla", "evidencia": ": applicationHost.config, sitios y pools, programas, características, servicios y tareas en repositorio/maquina-srv-windows-iis-01"}]
+TKS_INV ["FO-LAB-02487", "FO-LAB-02488", "FO-LAB-02489"]
+--- fin: 2026-11-13T11:34:57-03:00 · código: 0
