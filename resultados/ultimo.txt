@@ -1,22 +1,15 @@
-commit: 0cf013ec0398a8a2b984db804219cf117f465708
-inicio: 2026-11-13T17:13:10-03:00
+commit: 425c933be945f36c34f51f20be467a7441df830a
+inicio: 2026-11-13T17:16:14-03:00
 ---
-98b944d9 Cristian Quezada <cquezada@invoke.cl> 2026-11-13 15:32:34 -0300
-6ae45a13 Cristian Quezada <cquezada@invoke.cl> 2026-11-13 15:11:44 -0300
-3790cbc2 Cristian Quezada <cquezada@invoke.cl> 2026-11-13 15:09:27 -0300
-f2aeefea Cristian Quezada <cquezada@invoke.cl> 2026-11-13 14:59:07 -0300
- demo5-remediacion/demo-vivo/demo-vivo.inc          |   7 +
- demo5-remediacion/demo-vivo/demo-vivo.service      |  17 ++
- demo5-remediacion/demo-vivo/demo_vivo.py           | 300 +++++++++++++++++++++
- demo5-remediacion/demo-vivo/index.html             | 151 +++++++++++
- .../grafana/dashboards/summit-operacion.json       |  89 +++++-
- 5 files changed, 560 insertions(+), 4 deletions(-)
-Created autostash: 5797e147
-Applied autostash.
-## main...origin/main [ahead 4]
- M faceops/datos/devsecops/app-jboss.yaml
- M faceops/datos/devsecops/app-node-contenedor.yaml
-fatal: unable to access 'https://github.com/cquezada-invoke/summit-redhat/': The requested URL returned error: 403
-push rc=0
-## main...origin/main [ahead 4]
---- fin: 2026-11-13T17:13:15-03:00 · código: 0
+desplegado: 6e855525 · 2026-11-13T17:26:26-03:00 error: git pull --ff-only falló en c3d3317c (¿cambios locales o historia divergente?) · objetivo a0d99740
+srv-windows-iis-01: shut off · clave de instalación en el anfitrión: sí
+srv-e1prueba-01: running
+AUTO 244 sin probar
+Traceback (most recent call last):
+  File "/tmp/b05.py", line 89, in <module>
+    ej("INSERT INTO equipos(cliente_id, nombre, inventario, so, ip, datos, ubicacion, ambiente, estado, visto, categoria, forma) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+  File "/opt/faceops/app/bd.py", line 190, in ej
+    cur = con().execute(sql, args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.IntegrityError: UNIQUE constraint failed: equipos.cliente_id, equipos.nombre
+--- fin: 2026-11-13T17:40:31-03:00 · código: 0
