@@ -49,7 +49,7 @@ def ficha_test(br):
                 if pg.evaluate("document.getElementById('sk-cajon')&&!document.getElementById('sk-cajon').hidden"):
                     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
                 pg.evaluate("([r,n])=>fxVerLog(r,n)", [ru, nm]); t0 = time.time()
-                pg.wait_for_function("(()=>{const t=document.querySelector('#log-dlg .lg-estado').textContent;return /línea|No se|AAP no|error|falló/i.test(t)&&!/Pidiendo|leyendo/i.test(t)})()", timeout=200000)
+                pg.wait_for_function("(()=>{const t=document.querySelector('#log-dlg .lg-estado').textContent;return /línea|No se|AAP no|error|falló|bloquead|Falta|perfil/i.test(t)&&!/Pidiendo|leyendo/i.test(t)})()", timeout=200000)
                 st = pg.evaluate("[document.querySelector('#log-dlg').open, document.querySelector('#log-dlg .lg-estado').textContent.slice(0,140), document.querySelectorAll('#log-dlg .lg-cuerpo').length, document.querySelector('#log-dlg .lg-cuerpo').textContent.split('\\n').length, !document.querySelector('#log-dlg .lg-mas').hidden, Math.abs(document.querySelector('#log-dlg .lg-cuerpo').scrollHeight-document.querySelector('#log-dlg .lg-cuerpo').clientHeight-document.querySelector('#log-dlg .lg-cuerpo').scrollTop)<5]")
                 pags = len(c.pages)
                 lv += f" [{ru}: {round(time.time()-t0)} s · abierto {st[0]} · «{st[1]}» · filas {st[3]} · más {st[4]} · autoscroll {st[5]} · pestañas {pags}]"
@@ -62,6 +62,10 @@ def ficha_test(br):
         except Exception as x:
             lv += " [visor: " + str(x)[:160] + "]"
         fis = ""
+        try:
+            pg.evaluate("(()=>{const d=document.getElementById('log-dlg');if(d&&d.open)d.close();const c=document.getElementById('sk-cajon');if(c&&!c.hidden){c.hidden=true;const v=document.getElementById('sk-velo');if(v)v.hidden=true;}})()")
+        except Exception:
+            pass
         if nom.startswith("física"):
             fis = pg.evaluate("""(()=>{const c=document.getElementById('componentes');const n=c?[...c.querySelectorAll('.comp b')].map(b=>b.textContent.trim()).filter(Boolean):[];
               const h=document.getElementById('hardware');return {plataformas:n.slice(0,6), vacio:c?(c.querySelector('p.sub')||{}).textContent||'':'sin bloque',
