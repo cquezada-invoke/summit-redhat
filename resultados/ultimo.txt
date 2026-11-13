@@ -1,11 +1,36 @@
-commit: 1d5e451ed38b24a01f08cb6b05a4008d5499426f
-inicio: 2026-11-13T17:47:10-03:00
+commit: 0c4ac3d4753db45bc710212551c80129afe1a045
+inicio: 2026-11-13T17:56:29-03:00
 ---
-2026-11-13T17:56:07-03:00 ok: desplegado aabecb3d · /ingresar 200 · configurar=sin cambios
----vin
-AUTO 244 sin probar
+desplegado: aabecb3d · 2026-11-13T17:56:07-03:00 ok: desplegado aabecb3d · /ingresar 200 · configurar=sin cambios
+PREP ok 26 22 2549 95
+ingresar 200
+FICHA RHEL virtual srv-e1prueba-01 200 fría 2246 ms caliente 546 ms {"so": true, "so_op": true, "so_act": true, "so_bloques": ["sub", "Red Hat Enterprise Linux", "comp-acc", "salud-res n-critico", "Actualización del sistema oper", "cajon-bloques", "Operaciones", "Imagen de instalación", "Servicios del sistema operativ", "Logs del sistema operativo", "Historial de cambios", "so-ficha abierto"], "skills": false, "sk_op": false, "sk_act": false, "op_n": 0, "op_bloq": 0, "act_bloq": "", "glosa": "Etapa 2 · aún no liberada", "hscroll": false} · grupos Skills:  · errores: []
+FICHA RHEL virtual nodo-vault 200 fría 975 ms caliente 418 ms {"so": true, "so_op": true, "so_act": true, "so_bloques": ["sub", "Red Hat Enterprise Linux", "comp-acc", "salud-res n-critico", "Actualización del sistema oper", "cajon-bloques", "Operaciones", "Imagen de instalación", "Servicios del sistema operativ", "Logs del sistema operativo", "Historial de cambios", "so-ficha abierto"], "skills": false, "sk_op": false, "sk_act": false, "op_n": 0, "op_bloq": 0, "act_bloq": "", "glosa": "Etapa 2 · aún no liberada", "hscroll": false} · grupos Skills:  · errores: []
+FICHA Windows srv-windows-iis-01 200 fría 584 ms caliente 294 ms {"so": true, "so_op": true, "so_act": true, "so_bloques": ["sub", "Windows Server 2022 Standard E", "comp-acc", "salud-res n-saludable", "Actualización del sistema oper", "cajon-bloques", "Operaciones", "Imagen de instalación", "Servicios del sistema operativ", "Logs del sistema operativo", "Historial de cambios", "so-ficha abierto"], "skills": false, "sk_op": false, "sk_act": false, "op_n": 0, "op_bloq": 0, "act_bloq": "", "glosa": "Etapa 2 · aún no liberada", "hscroll": false} · grupos Skills:  · errores: []
+PASO login 1 /ingresar/codigo?siguiente= | 
+PASO lab sin código /lab/ingresar?siguiente=/? | 
+PASO login 2 /ingresar/codigo?siguiente= | 
+PASO código malo /ingresar/codigo?siguiente= | 
 Traceback (most recent call last):
-sqlite3.IntegrityError: UNIQUE constraint failed: equipos.cliente_id, equipos.nombre
-faceops Up 14 seconds
-2
---- fin: 2026-11-13T17:56:11-03:00 · código: 0
+  File "/tmp/e1pw.py", line 65, in <module>
+    c = br.new_context(ignore_https_errors=True); pg = c.new_page(); ingresar(pg); paso(pg, "login 3"); ok = None
+  File "/tmp/e1pw.py", line 51, in ingresar
+  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/sync_api/_generated.py", line 10998, in fill
+    self._sync(
+  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_page.py", line 917, in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_frame.py", line 610, in fill
+    await self._fill(**locals_to_params(locals()))
+  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_frame.py", line 622, in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_connection.py", line 69, in send
+    return await self._connection.wrap_api_call(
+  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_connection.py", line 559, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("input[name=usuario]")
+
+--- fin: 2026-11-13T17:57:51-03:00 · código: 0
