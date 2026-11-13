@@ -21,7 +21,9 @@ etapas_liberadas: []
 # Se apaga con «activo: false» o desde Administración › Etapas de liberación (ajuste «etapas_bloqueo», que manda).
 # Por regla: etapa (número del Plan de cierre; vacío = «otra etapa»), selectores (el control mismo), contenedores (todo control
 # adentro) y rutas (expresiones sobre la ruta del enlace o del formulario, sin el prefijo del cliente; en POST se rechazan).
-# Las acciones del catálogo toman su etapa de «acciones» de cada etapa y, si no están, de su sección (areas_etapa).
+# Las acciones del catálogo toman su etapa de «acciones» de cada etapa y, si no están, de su sección (areas_etapa); los skills y
+# el bloque «Operaciones» (datos/habilidades.yml) toman la de su acción: escaneo de seguridad y certificados → 5, respaldos → 8,
+# drift → 5, abrir puerto y bloquear IP → 6, etc.
 bloqueo:
   activo: true
   glosa: "Etapa {n} · aún no liberada"
@@ -37,7 +39,7 @@ bloqueo:
     - etapa: 3      # Plataformas, contenedores, sistemas operativos y ciclo de vida de servidores
       selectores: ["#hb-btn", ".hb-btn", ".comp-mas", ".btn-plat", ".btn-desinst", ".ico-en.actualizar:not(.btn-agc)", "[onclick*='fxReplicar']"]
       contenedores: ["#hb-dlg", "#dlg-plat", "#actualizacion", "#usuarios-so"]
-      rutas: ['/evaluar-so', '^/ciclo-vida', '^/sistemas-operativos', '^/so/', '^/plataformas', '/habilidad', '/skills', '^/stack', '^/homologacion', '^/licencias']
+      rutas: ['/evaluar-so', '^/ciclo-vida', '^/sistemas-operativos', '^/so/', '^/plataformas', '/skills', '^/stack', '^/homologacion', '^/licencias']
     - etapa: 5      # Seguridad: CVE, parches y certificados
       contenedores: ["#cves", "#politicas", "#cred-web"]
       rutas: ['^/politicas', '/cves?(/|\?|$)', '/parches', '^/certificados', '/certificado', '^/escaneo', '^/seguridad', '/credencial-web']

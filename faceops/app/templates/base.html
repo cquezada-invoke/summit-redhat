@@ -153,6 +153,7 @@ const aplicar=()=>{const j=document.getElementById('etapa-bloqueo');if(!j){cfg=n
   for(const {r,x} of rx){for(const s of r.sel){try{document.querySelectorAll('main '+s+', dialog '+s).forEach(el=>marcar(el,r.g))}catch(e){}}
     for(const s of r.cont){try{document.querySelectorAll(s).forEach(c=>{if(!c.closest('main')&&c.tagName!=='DIALOG')return;if(!c.dataset.bloqCont){c.dataset.bloqCont='1';c.classList.add('bloq-cont');const s_=document.createElement('div');s_.className='bloq-glosa bloq-glosa-cont';s_.textContent=r.g;c.insertAdjacentElement('afterbegin',s_);}
       c.querySelectorAll(CTRL).forEach(el=>{if(!el.closest('.bloq-glosa'))marcar(el,r.g)})})}catch(e){}}}
+  document.querySelectorAll('[data-op-id], button[data-hid], [data-hab]').forEach(el=>{const k=el.dataset.opId||el.dataset.hid||el.dataset.hab;const o=cfg.ops&&cfg.ops[k];if(o)marcar(el,o.g)});
   document.querySelectorAll('main a[href], main form[action], main [data-url], dialog a[href], dialog [data-url]').forEach(el=>{if(el.classList.contains('bloq-etapa'))return;const u=el.getAttribute('href')||el.getAttribute('action')||el.dataset.url;if(!u||u.startsWith('#')||u.startsWith('javascript:'))return;const p=ruta(u);if(p===null)return;
     const ma=p.match(/^\/automatizaciones\/(\d+)(\/|$|\?)/);if(ma&&cfg.autos[ma[1]]){marcar(el,cfg.autos[ma[1]].g);return}
     for(const {r,x} of rx){if(x.some(t=>t.test(p))){if(el.tagName==='FORM')el.querySelectorAll('button,input[type=submit]').forEach(b=>marcar(b,r.g));else marcar(el,r.g);return}}});};

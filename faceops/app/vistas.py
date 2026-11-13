@@ -8641,6 +8641,8 @@ def _bloqueo_etapas():
     from . import etapas as _et
     b = _et.ruta_bloqueada(request.path)
     aid = (request.view_args or {}).get("aid")
+    if not b and request.endpoint and request.endpoint.endswith("habilidad_ejecutar") and g.get("cliente"):   # skill u operación
+        b = _et.habilidad_bloqueada(g.cliente["id"], request.form.get("hid") or "")
     if not b and aid and g.get("cliente"):   # acción del catálogo de otra etapa (ficha de la acción o ficha de la máquina)
         a_ = q1("SELECT * FROM automatizaciones WHERE id=? AND cliente_id=?", aid, g.cliente["id"])
         gl = _et.accion_bloqueada(dict(a_)) if a_ else None

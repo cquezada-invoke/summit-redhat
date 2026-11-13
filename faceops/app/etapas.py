@@ -168,9 +168,39 @@ def config_cliente(cliente_id):
         n = etapa_de_auto(dict(a))
         if n is None or n > f:
             autos[a["id"]] = {"n": n, "g": glosa(n)}
-    out = {"reglas": reglas, "autos": autos}
+    ops = {}   # skills y bloque «Operaciones» (datos/habilidades.yml): su etapa es la de su acción del catálogo
+    try:
+        for hid, a in acciones_de_habilidades(cliente_id).items():
+            n = etapa_de_auto(a)
+            if n is None or n > f:
+                ops[hid] = {"n": n, "g": glosa(n), "a": a.get("nombre")}
+    except Exception:  # noqa: BLE001
+        pass
+    out = {"reglas": reglas, "autos": autos, "ops": ops}
     _cfg[cliente_id] = (time.time(), (f, _c["m"]), out)
     return out
 
 
 _cfg = {}
+
+
+def acciones_de_habilidades(cliente_id):
+    """{id de habilidad: acción del catálogo (la primera de sus nombre_aap que exista en el cliente)}."""
+    from .bd import q
+    from .habilidades import mapa
+    por = {a["nombre_aap"]: dict(a) for a in q("SELECT * FROM automatizaciones WHERE cliente_id=?", cliente_id)}
+    out = {}
+    for h in mapa():
+        ns = h.get("nombre_aap") or []
+        ns = [ns] if isinstance(ns, str) else ns
+        a = next((por[n] for n in ns if n in por), None)
+        if a and h.get("id"):
+            out[h["id"]] = a
+    return out
+
+
+def habilidad_bloqueada(cliente_id, hid):
+    if not bloqueo_activo():
+        return None
+    a = acciones_de_habilidades(cliente_id).get(hid)
+    return (etapa_de_auto(a), accion_bloqueada(a)) if a and accion_bloqueada(a) else None
