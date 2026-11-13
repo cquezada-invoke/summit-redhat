@@ -1,0 +1,17 @@
+[Unit]
+Description=Demo 5 en vivo · estado de solo lectura de la autorremediación
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 -I /opt/demo-vivo/demo_vivo.py
+LoadCredential=token:/etc/demo-vivo/token
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

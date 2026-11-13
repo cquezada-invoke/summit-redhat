@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 5 en vivo</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --tx:#16181d; --tx2:#5b6270; --line:#d9dde4;
+  --gris:#8a919e; --gris-bg:#f1f2f5;
+  --ambar:#b26a00; --ambar-bg:#fff4dc;
+  --rojo:#c62828; --rojo-bg:#fde8e8;
+  --verde:#1e7d3a; --verde-bg:#e3f4e7;
+  --link:#1d5fbf; --btn:#16181d; --btn-tx:#fff;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#111317; --panel:#1a1d23; --tx:#eef0f3; --tx2:#a3aab6; --line:#2e333c;
+  --gris:#8b93a1; --gris-bg:#1f2329;
+  --ambar:#f2b445; --ambar-bg:#3a2c10;
+  --rojo:#ff6b6b; --rojo-bg:#3d1717;
+  --verde:#5cd17f; --verde-bg:#143222;
+  --link:#7fb0ff; --btn:#eef0f3; --btn-tx:#111317;
+}}
+:root[data-theme="dark"]{
+  --bg:#111317; --panel:#1a1d23; --tx:#eef0f3; --tx2:#a3aab6; --line:#2e333c;
+  --gris:#8b93a1; --gris-bg:#1f2329;
+  --ambar:#f2b445; --ambar-bg:#3a2c10;
+  --rojo:#ff6b6b; --rojo-bg:#3d1717;
+  --verde:#5cd17f; --verde-bg:#143222;
+  --link:#7fb0ff; --btn:#eef0f3; --btn-tx:#111317;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--link);text-decoration:none} a:hover{text-decoration:underline}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-size:22px;margin:0;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--tx2);font-size:14px}
+.acciones{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;background:var(--btn);color:var(--btn-tx);font-weight:600;font-size:15px}
+.btn:hover{text-decoration:none;opacity:.9}
+.btn.sec{background:transparent;color:var(--tx);border:1px solid var(--line)}
+main{padding:20px 24px 32px;max-width:1500px;margin:0 auto}
+.leyenda{display:flex;flex-wrap:wrap;gap:16px;color:var(--tx2);font-size:14px;margin-bottom:16px}
+.leyenda span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;background:var(--c)}
+section.caso{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px 18px;margin-bottom:18px}
+.caso h2{font-size:19px;margin:0 0 2px;font-weight:650}
+.caso .desc{color:var(--tx2);font-size:14px;margin-bottom:14px}
+.flujo{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:26px}
+.caja{position:relative;border:2px solid var(--c);background:var(--cb);border-radius:10px;padding:10px 12px 12px;min-height:150px;display:flex;flex-direction:column;gap:4px;transition:background .3s,border-color .3s}
+.caja:not(:last-child)::after{content:"";position:absolute;right:-22px;top:50%;width:18px;height:2px;background:var(--line)}
+.caja:not(:last-child)::before{content:"";position:absolute;right:-24px;top:calc(50% - 5px);border:6px solid transparent;border-left:7px solid var(--line);border-right:0}
+.caja[data-c="gris"]{--c:var(--gris);--cb:var(--gris-bg)}
+.caja[data-c="ambar"]{--c:var(--ambar);--cb:var(--ambar-bg);animation:pulso 1.4s ease-in-out infinite}
+.caja[data-c="rojo"]{--c:var(--rojo);--cb:var(--rojo-bg)}
+.caja[data-c="verde"]{--c:var(--verde);--cb:var(--verde-bg)}
+@keyframes pulso{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 30%,transparent)}}
+@media (prefers-reduced-motion:reduce){.caja[data-c="ambar"]{animation:none}}
+.etapa{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);font-weight:600}
+.titulo{font-weight:650;font-size:16px}
+.estado{font-weight:700;color:var(--c);font-size:15px}
+.det{font-size:13px;color:var(--tx2);word-break:break-word}
+.links{margin-top:auto;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:13px;padding-top:6px}
+.provocar{display:inline-block;margin-top:4px;padding:5px 10px;border-radius:7px;border:1px solid var(--c);font-weight:650;font-size:14px;color:var(--tx);background:var(--panel)}
+.provocar:hover{text-decoration:none}
+.pie{color:var(--tx2);font-size:13px;margin-top:6px}
+.err{color:var(--rojo)}
+@media (max-width:1100px){.flujo{grid-template-columns:repeat(3,minmax(0,1fr))}.caja:nth-child(3n)::after,.caja:nth-child(3n)::before{display:none}}
+@media (max-width:640px){header,main{padding-left:16px;padding-right:16px}.flujo{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.caja::after,.caja::before{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Autorremediación en vivo</h1>
+    <div class="sub">Sistema → Monitoreo → EDA → AAP → Ticket Odoo → Resuelto · <span id="act">…</span></div>
+  </div>
+  <div class="acciones">
+    <a class="btn" id="reset" target="_blank" rel="noopener" href="https://34-176-42-56.sslip.io/execution/templates/workflow-job-template/1308/details">⟲ Volver al estado inicial</a>
+    <span class="sub" id="reset-est"></span>
+    <button class="btn sec" id="tema" type="button" aria-label="Cambiar tema">◐</button>
+  </div>
+</header>
+<main>
+  <div class="leyenda">
+    <span style="--c:var(--gris)">En reposo</span><span style="--c:var(--ambar)">En curso</span>
+    <span style="--c:var(--rojo)">Falla o alerta disparada</span><span style="--c:var(--verde)">Completado</span>
+  </div>
+  <div id="casos"></div>
+  <div class="pie">Actualiza cada 3 s · <span id="gen">sin datos</span> <span id="errs" class="err"></span></div>
+</main>
+<script>
+const AAP="https://34-176-42-56.sslip.io", GRAF="https://34.176.42.56:8843/grafana",
+  GH="https://github.com/cquezada-invoke/summit-redhat/blob/main/demo5-remediacion",
+  ODOO="https://invoke.odoo.com/odoo/action-helpdesk.helpdesk_ticket_action_main_tree",
+  ACT=AAP+"/decisions/rulebook-activations/17/details";
+const CASOS={
+  cola:{t:"Caso 1 · Cola de mensajes acumulada",d:"AMQ Broker (Artemis): la cola pagos.entrada supera 100 mensajes; Ansible reactiva el consumidor.",
+    sis:"Cola pagos.entrada",prov:1305,tpl:44,tplN:"Remediación · Cola de pagos",graf:GRAF+"/d/summit-operacion?viewPanel=6",al:5,rb:13},
+  certificado:{t:"Caso 2 · Certificado TLS por vencer",d:"El certificado HTTPS vence en menos de 15 días; Ansible lo renueva sin corte.",
+    sis:"Servidor web · Nginx",prov:1306,tpl:45,tplN:"Remediación · Renovar certificado",graf:GRAF+"/d/summit-operacion?viewPanel=7",al:11,rb:27},
+  windows:{t:"Caso 3 · Sitio web en Windows (IIS) caído",d:"El sitio IIS deja de responder; Ansible levanta el servicio por WinRM.",
+    sis:"Windows · IIS",prov:1307,tpl:49,tplN:"Remediación · IIS en Windows",graf:GRAF+"/d/summit-ecosistema",al:17,rb:40}
+};
+const EST={gris:"En reposo",ambar:"En curso",rojo:"Falla / alerta",verde:"Completado"};
+const JOB={successful:"exitoso",failed:"falló",error:"error",canceled:"cancelado",running:"en ejecución",pending:"pendiente",waiting:"en espera",new:"nuevo"};
+const ALE={inactiva:"Inactiva",pendiente:"Pendiente",disparada:"Disparada",resuelta:"Resuelta"};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hora=s=>s?new Date(s).toLocaleTimeString("es-CL",{timeZone:"America/Santiago",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}):"";
+const L=(h,t)=>`<a href="${esc(h)}" target="_blank" rel="noopener">${esc(t)}</a>`;
+const jobUrl=j=>AAP+"/execution/jobs/"+(j.tipo==="workflow_job"?"workflow":"playbook")+"/"+j.id+"/output";
+const jobTx=j=>j?`#${j.id} · ${JOB[j.estado]||j.estado} · ${hora(j.fin||j.inicio)}`:"sin ejecuciones";
+
+function caja(etapa,col,titulo,estadoTx,det,links,extra=""){
+  return `<div class="caja" data-c="${col}"><div class="etapa">${etapa}</div><div class="titulo">${titulo}</div>
+  <div class="estado">${esc(estadoTx||EST[col])}</div><div class="det">${det}</div>${extra}<div class="links">${links.join("")}</div></div>`;
+}
+function render(e){
+  document.getElementById("act").textContent="Activación EDA 17: "+(e.activacion?.estado||"?");
+  const r=e.volver_estado_inicial; document.getElementById("reset-est").innerHTML=r?"Último: "+L(jobUrl(r),jobTx(r)):"";
+  document.getElementById("gen").textContent="actualizado "+hora(e.generado);
+  document.getElementById("errs").textContent=(e.errores||[]).length?"· sin datos de: "+e.errores.join(", "):"";
+  document.getElementById("casos").innerHTML=e.casos.map(c=>{
+    const k=CASOS[c.id], b=c.cajas, p=c.provocar, a=c.alerta||{}, ed=c.eda, j=c.remediacion, tk=c.ticket;
+    return `<section class="caso"><h2>${k.t}</h2><div class="desc">${k.d}</div><div class="flujo">
+    ${caja("Sistema",b.sistema,k.sis,b.sistema==="rojo"?"Con problema":b.sistema==="verde"?"Normal":b.sistema==="ambar"?"Provocando…":"En reposo",
+      "Provocar: "+(p?L(jobUrl(p),jobTx(p)):"sin ejecuciones"),[],
+      `<a class="provocar" href="${AAP}/execution/templates/job-template/${k.prov}/details" target="_blank" rel="noopener">▶ Provocar</a>`)}
+    ${caja("Monitoreo",b.monitoreo,"Prometheus · Alertmanager",ALE[a.estado]||a.estado,esc(a.nombre)+(a.desde?" · desde "+hora(a.desde):""),
+      [L(k.graf,"Grafana"),L(GH+"/monitoreo/alertas.yml#L"+k.al,"Regla"),L("/alertmanager/#/alerts","Alertmanager")])}
+    ${caja("EDA",b.eda,"Rulebook monitoreo.yml",ed?(ed.estado==="successful"?"Regla disparada":ed.estado):"Sin disparos",
+      ed?esc(ed.regla.split("→")[1]?.trim()||ed.regla)+" · "+hora(ed.hora):"—",[L(ACT,"Activación 17"),L(GH+"/operacion/rulebooks/monitoreo.yml#L"+k.rb,"Regla")])}
+    ${caja("AAP",b.aap,esc(k.tplN),j?(JOB[j.estado]||j.estado):"Sin jobs","Job "+(j?L(jobUrl(j),jobTx(j)):"—"),
+      [L(AAP+"/execution/templates/job-template/"+k.tpl+"/details","Plantilla "+k.tpl)])}
+    ${caja("Ticket Odoo",b.odoo,tk?"Ticket #"+tk.numero:"Helpdesk",tk?tk.estado:"Sin ticket en el ciclo","Etiqueta «Demo 5 · Remediación»",
+      [tk?L(tk.url,"Ver ticket"):"",L(ODOO,"Tickets")])}
+    ${caja("Resuelto",b.resuelto,"Servicio normal",b.resuelto==="verde"?"Resuelto":b.resuelto==="rojo"?"No resuelto":b.resuelto==="ambar"?"En curso":"En reposo",
+      c.ciclo?.inicio&&!c.ciclo.en_reposo?"Ciclo desde "+hora(c.ciclo.inicio):"",[L(GRAF+"/d/summit-operacion?viewPanel=8","Alertas activas")])}
+    </div></section>`;}).join("");
+}
+async function tick(){
+  try{const r=await fetch("estado.json",{cache:"no-store"}); if(!r.ok) throw 0; render(await r.json());}
+  catch(_){document.getElementById("errs").textContent="· sin conexión con el estado";}
+}
+tick(); setInterval(tick,3000);
+const raiz=document.documentElement;
+try{const t=localStorage.getItem("dv-tema"); if(t) raiz.dataset.theme=t;}catch(_){}
+document.getElementById("tema").onclick=()=>{const osc=raiz.dataset.theme?raiz.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;
+  raiz.dataset.theme=osc?"light":"dark"; try{localStorage.setItem("dv-tema",raiz.dataset.theme);}catch(_){}};
+</script>
+</body>
+</html>
