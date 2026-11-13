@@ -12,6 +12,7 @@
 {% endif %}{% if skm.total or sk_fijo_ %}
 <style>
 #btn-mover{display:none!important}
+.al-titulo .sk-en-titulo{display:inline-flex;margin-left:8px;vertical-align:middle}.al-titulo{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 /* botón «Skills»: mismo estilo que la campana de alertas (degradado naranja, borde, sombra al pasar), pero cuadrado */
 .eq-energia-acc .sk-abrir{position:relative;display:inline-grid;place-items:center;box-sizing:border-box;width:40px;height:40px;padding:0;border-radius:8px;border:1px solid #c2410c;
  background:linear-gradient(135deg,#ff8a00,#f0561d);color:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s}
@@ -127,4 +128,6 @@ c.querySelectorAll('[data-sk-ir]').forEach(b=>b.addEventListener('click',()=>{co
  fetch({{ url_for('consola.equipo_inventariar', eid=e.id)|tojson }},{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{b.disabled=false;
   if(t.error){x.textContent='';fxAviso(t.error,'error');return;}x.innerHTML='<a href="'+t.url+'">'+t.numero+'</a> · '+(ETQ[t.estado]||t.estado);window.fxNuevoTicket&&window.fxNuevoTicket(t);})
  .catch(()=>{b.disabled=false;x.textContent='';fxAviso('No se pudo crear el ticket','error');});};}}
+{/* el botón Skills va en el título, junto a la campana de alertas; la caja de encendido queda solo con Encender/Apagar */
+ const w_=skb&&skb.closest('.eq-energia-acc'),t_=document.querySelector('.al-titulo');if(w_&&t_){t_.appendChild(w_);w_.classList.add('sk-en-titulo');}}
 if(location.hash==='#skills')abrir();})();</script>{% endif %}
