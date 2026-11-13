@@ -47,7 +47,7 @@ CF
 sudo podman build -q -t $IMG "$D" >/dev/null
 CLAVE=$(head -c 18 /dev/urandom | base64 | tr -d '/+=' | cut -c1-20)
 sudo podman rm -f $CT >/dev/null 2>&1 || true
-sudo podman run -d --name $CT --restart=always -p 192.168.122.1:$PUERTO:22 $IMG >/dev/null
+sudo podman run -d --name $CT --restart=always --cap-add AUDIT_WRITE -p 192.168.122.1:$PUERTO:22 $IMG >/dev/null
 for i in $(seq 1 20); do sudo podman exec $CT true 2>/dev/null && break; sleep 1; done
 printf 'Administrator:%s\n' "$CLAVE" | sudo podman exec -i $CT chpasswd
 # credencial en la bóveda (mismo camino que las demás: faceops/data/maquinas/<nodo>-bmc), con el token raíz del nodo de la bóveda
