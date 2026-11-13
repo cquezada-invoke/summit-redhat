@@ -1,4 +1,2 @@
-# Tarea de prueba del canal: muestra que el runner corre en la VM.
-set -e
-echo "Host: $(hostname) · Usuario: $(whoami) · $(date)"
-systemctl is-active panel-cumplimiento.service || true
+#!/bin/bash
+sudo podman ps --format '{{.Names}} {{.Status}}' | grep -E "^fo-" ; ps aux | grep -E "tarea.sh|herramientas/vm" | grep -v grep | cut -c1-160 | head
