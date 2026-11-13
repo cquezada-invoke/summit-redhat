@@ -1,12 +1,9 @@
-commit: fda2c58575c7e2874e412699bff168bd8dd5f94e
-inicio: 2026-11-13T09:05:22-03:00
+commit: c8653bf2a925efb7fedc73578cdae8d4390bd9e7
+inicio: 2026-11-13T09:07:00-03:00
 ---
-fo-prueba-11121533 [(179, 16), (177, 10)]
-  error AAP DELETE hosts/177/ → 409: {"error":"Resource is being used by running jobs.","active_jobs":[{"id":27038,"type":"job"},{"id":30263,"type":"job"},{"i
-fo-prueba-a-1424 [(175, 10), (176, 16)]
-  error AAP DELETE hosts/175/ → 409: {"error":"Resource is being used by running jobs.","active_jobs":[{"id":27038,"type":"job"},{"id":30263,"type":"job"},{"i
-fo-prueba-11121641 [(178, 10), (180, 16)]
-  error AAP DELETE hosts/178/ → 409: {"error":"Resource is being used by running jobs.","active_jobs":[{"id":27038,"type":"job"},{"id":30263,"type":"job"},{"i
-[{'inventory_source': 560, 'status': 'started', 'id': 30278, 'type': 'inventory_
-LICENCIA {'instance_count': 50, 'current_instances': 50, 'free_instances': 0}
---- fin: 2026-11-13T09:06:32-03:00 · código: 0
+Traceback (most recent call last):
+  File "/tmp/b18.py", line 44, in <module>
+    print(jb["id"], jb["status"], jb["name"][:60], jb.get("started", "")[:19], "inv", jb.get("inventory"), "lim", (jb.get("limit") or "")[:40], "lanzado por", (jb.get("summary_fields", {}).get("created_by") or {}).get("username"), jb.get("launch_type"))
+                                                   ~~~~~~~~~~~~~~~~~~~~~^^^^^
+TypeError: 'NoneType' object is not subscriptable
+--- fin: 2026-11-13T09:07:37-03:00 · código: 0
