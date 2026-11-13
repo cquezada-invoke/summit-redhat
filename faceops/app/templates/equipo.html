@@ -399,7 +399,8 @@ const pSO=caj.querySelector('.cajon-p[data-so]');
    «Operaciones» y «Actualización del sistema operativo» pasan a la ventana Skills (grupos fijos #sk-op y #sk-act). */
 if(pSO){const op_=pSO.querySelector('.op-card'),act_=pSO.querySelector('#actualizacion'),dOp=document.getElementById('sk-op'),dAct=document.getElementById('sk-act');
   if(op_&&dOp){dOp.appendChild(op_);dOp.closest('details').hidden=false;}
-  if(act_&&dAct){dAct.appendChild(act_);dAct.closest('details').hidden=false;}}
+  if(act_&&dAct){dAct.appendChild(act_);dAct.closest('details').hidden=false;}
+  const skb_=document.getElementById('sk-btn');if(skb_&&dOp&&dAct&&!dOp.children.length&&!dAct.children.length&&!document.querySelector('#sk-cajon .sk-item'))skb_.closest('.eq-energia-acc').hidden=true;}
 const caja=(n,xs,det,cb)=>{cb=cb||cabs;const m=cb&&cb.querySelector('[data-pil="'+n+'"]');if(!m)return null;const c=m.cloneNode(true);if(!det){const d_=c.querySelector('.pil-det');if(d_)d_.remove();}
   const g=document.createElement('details');g.className='pil-caja '+[...c.classList].filter(k=>k.startsWith('pg-')).join(' ');
   const su=document.createElement('summary');su.innerHTML='<span class="pil-chev"></span>'+c.innerHTML;g.appendChild(su);
