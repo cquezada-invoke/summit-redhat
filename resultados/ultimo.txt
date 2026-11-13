@@ -1,11 +1,21 @@
-commit: fde8fb4ae483d27c243abbf3535d480c20b0e6e2
-inicio: 2026-11-13T08:10:00-03:00
+commit: 23ff3c35fb53b7f60de20154899990424ce9ddc6
+inicio: 2026-11-13T08:09:54-03:00
 ---
-56:   · Plantilla «FaceOps · Guardar credencial en la bóveda» (id 1293)
-127:ERROR GET https://localhost/api/controller/v2/job_templates/ -> 503: {"status": "error", "message": "Service Unavailable", "code": 503, "request_id": "4e142218-e21a-44ed-8735-47600f8138d6"}
-   · Plantilla «Ciclo de vida · Evaluar destino» (id 428)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-   · Plantilla «Integración · PostgreSQL» (id 155)
-   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
-ERROR GET https://localhost/api/controller/v2/job_templates/ -> 503: {"status": "error", "message": "Service Unavailable", "code": 503, "request_id": "4e142218-e21a-44ed-8735-47600f8138d6"}
---- fin: 2026-11-13T08:10:00-03:00 · código: 0
+desplegado: 6cac31ac · 2026-11-13T07:58:19-03:00 ok: desplegado 6cac31ac · /ingresar 200 · configurar=1
+catálogo sincronizado 268
+AUTO (274, 1, 0, 'sin probar', ['FaceOps · Bóveda (escritura)'])
+CASO C4 ok · nombre inválido 400 ««Guardar credencial en la bóveda» está bloqueada hasta pasar»; sin secreto 400 «Falta: usuario y clave»; lector 403; sin tickets, equipos ni hosts nuevos
+Traceback (most recent call last):
+  File "/tmp/b04.py", line 89, in <module>
+    eid, t = agregar(u, cl, "inventario", dict(base, nombre="srv-e1alta-01", secreto=sec1), prueba=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/alta_manual.py", line 179, in agregar
+    host = aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv, ensure_ascii=False)})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 284, in post
+    return self._r("POST", ruta, json=datos or {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 277, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP POST hosts/ → 403: {"detail":"License count of 50 instances has been reached."}
+--- fin: 2026-11-13T08:10:41-03:00 · código: 0
