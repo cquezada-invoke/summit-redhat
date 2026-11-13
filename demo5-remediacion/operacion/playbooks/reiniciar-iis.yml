@@ -74,7 +74,7 @@
           ansible.builtin.include_tasks: tareas/odoo_ticket.yml
           vars:
             odoo_accion: escalar
-            odoo_nota: "{{ ansible_failed_result.msg | default('no se pudo levantar IIS') }}"
+            odoo_nota: "{{ ansible_failed_result.msg | default('no se pudo levantar IIS', true) }}"
         - name: No se pudo reparar
           ansible.builtin.fail:
             msg: "IIS no se pudo levantar: queda escalado en ServiceNow"

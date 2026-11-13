@@ -94,7 +94,7 @@
           ansible.builtin.include_tasks: tareas/odoo_ticket.yml
           vars:
             odoo_accion: escalar
-            odoo_nota: "{{ ansible_failed_result.msg | default('no se pudo renovar el certificado') }} (se dejó el certificado anterior)"
+            odoo_nota: "{{ ansible_failed_result.msg | default('no se pudo renovar el certificado', true) }} (se dejó el certificado anterior)"
         - name: No se pudo renovar
           ansible.builtin.fail:
             msg: "No se pudo renovar el certificado: queda escalado en ServiceNow"
