@@ -1,0 +1,21 @@
+# Demo 5 · Provocar cola de pagos (solo para la demo): detiene el consumidor de pagos y publica mensajes en pagos.entrada.
+# Prometheus ve la cola sobre 100 mensajes, EDA lanza «Remediación · Cola de pagos» y la cola baja sola.
+# Variable: mensajes (600 por defecto)
+- name: Demo 5 · Provocar cola de pagos acumulada
+  hosts: nodo-tomcat
+  gather_facts: false
+  become: true
+  vars:
+    n: "{{ mensajes | default(600) | int }}"
+  tasks:
+    - name: Detener el consumidor de pagos
+      ansible.builtin.systemd_service:
+        name: consumidor-pagos
+        state: stopped
+
+    - name: Publicar {{ n }} pagos en pagos.entrada (sin nadie que los procese)
+      ansible.builtin.shell: >-
+        podman exec artemis sh -c '/var/lib/artemis-instance/bin/artemis producer --user "$ARTEMIS_USER"
+        --password "$ARTEMIS_PASSWORD" --url tcp://localhost:61616 --destination queue://pagos.entrada
+        --message-count {{ n }} --message-size 200 --silent' >/dev/null 2>&1
+      changed_when: true

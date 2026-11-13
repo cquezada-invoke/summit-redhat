@@ -1,0 +1,14 @@
+# Demo 5 · Provocar certificado por vencer (solo para la demo): instala en Nginx un certificado que vence en pocos días.
+# Prometheus (blackbox) lo ve bajo 15 días, EDA lanza «Remediación · Renovar certificado» y se renueva sin corte.
+# Variable: dias (5 por defecto)
+- name: Demo 5 · Provocar certificado por vencer
+  hosts: nodo-nginx
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Certificado de {{ dias | default(5) | int }} días y recarga de Nginx
+      ansible.builtin.shell: >-
+        openssl req -x509 -newkey rsa:2048 -nodes -days {{ dias | default(5) | int }} -subj /CN=app.summit.lab
+        -keyout /etc/pki/nginx/private/summit.key -out /etc/pki/nginx/summit.crt 2>/dev/null
+        && chmod 600 /etc/pki/nginx/private/summit.key && systemctl reload nginx
+      changed_when: true
