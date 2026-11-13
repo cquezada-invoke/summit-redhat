@@ -1,8 +1,11 @@
-commit: 13a491cf442f971d2e9c4bf1333ad4f0c45b33ba
-inicio: 2026-11-13T09:12:23-03:00
+commit: aa0a1e6fda177a6862b7c4542eb141059df4b2a2
+inicio: 2026-11-13T09:20:32-03:00
 ---
 LICENCIA antes {'instance_count': 50, 'current_instances': 50, 'free_instances': 0, 'automated_instances': 50}
 cancelado trabajo atascado 27038
+se salta fo-prueba-11121533 AAP DELETE hosts/177/ → 409: {"error":"Resource is being used by running jobs.","active_jobs":[{"id":27038,"type":"job"},{"id":30327,"type":"job"}]}
+se salta fo-prueba-a-1424 AAP DELETE hosts/175/ → 409: {"error":"Resource is being used by running jobs.","active_jobs":[{"id":27038,"type":"job"}]}
+se salta fo-prueba-11121641 AAP DELETE hosts/178/ → 409: {"error":"Resource is being used by running jobs.","active_jobs":[{"id":27038,"type":"job"}]}
 HOSTS retirados de AAP 0 []
 LICENCIA después {'instance_count': 50, 'current_instances': 50, 'free_instances': 0}
 Traceback (most recent call last):
@@ -18,4 +21,4 @@ Traceback (most recent call last):
   File "/opt/faceops/app/aap.py", line 277, in _r
     raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
 app.aap.ErrorAAP: AAP POST hosts/ → 403: {"detail":"License count of 50 instances has been reached."}
---- fin: 2026-11-13T09:19:47-03:00 · código: 0
+--- fin: 2026-11-13T09:53:15-03:00 · código: 0
