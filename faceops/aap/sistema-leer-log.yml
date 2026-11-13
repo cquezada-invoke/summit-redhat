@@ -1,0 +1,100 @@
+---
+# Sistema · Leer log (solo lectura). Lo usa el visor de logs de la ficha de la máquina en FaceOps: FaceOps no entra a la
+# máquina; este trabajo lee un tramo del log y lo deja en faceops_log (set_stats) para que la consola lo muestre embebido.
+# Variables:
+#   lg_ruta    archivo de log absoluto (el que encontró el inventario), «journal» (journalctl) o, en Windows,
+#              «evento:System», «evento:Application» o «evento:Security» (visor de eventos)
+#   lg_lineas  líneas a traer (1..2000, por defecto 300)
+#   lg_saltar  líneas más recientes que se saltan (carga progresiva hacia atrás; por defecto 0)
+#   lg_buscar  texto a buscar (sin distinguir mayúsculas; vacío = todas las líneas)
+# Salida: faceops_log = {ruta, lineas: [...], saltar, n, total, buscar, error}
+- name: Sistema · Leer log
+  hosts: all:!localhost:!anfitrion-snapshots:!anfitrion_kvm
+  gather_facts: false
+  vars:
+    ruta: "{{ lg_ruta | default('') | string }}"
+    n: "{{ [[lg_lineas | default(300) | int, 1] | max, 2000] | min }}"
+    saltar: "{{ [lg_saltar | default(0) | int, 0] | max }}"
+    buscar: "{{ lg_buscar | default('') | string | truncate(120, true, '') }}"
+    es_win: "{{ (ansible_connection | default('ssh')) in ['winrm', 'psrp'] }}"
+  tasks:
+    - name: Datos válidos (ruta absoluta sin «..», journal o evento de Windows)
+      ansible.builtin.assert:
+        that:
+          - ruta | length > 0
+          - "'..' not in ruta"
+          - (ruta == 'journal') or (ruta is match('^/[^\\x00]+$')) or (ruta is match('^evento:(System|Application|Security)$')) or (ruta is match('^[A-Za-z]:\\\\'))
+        fail_msg: "Ruta de log no válida: {{ ruta }}"
+        quiet: true
+
+    - name: Leer el tramo del log (Linux)
+      ansible.builtin.shell:
+        cmd: |
+          R="$LG_RUTA"; N={{ n }}; S={{ saltar }}; B="$LG_BUSCAR"
+          if [ "$R" = journal ]; then
+            command -v journalctl >/dev/null 2>&1 || { echo "FACEOPS_ERROR la máquina no tiene journalctl" >&2; exit 3; }
+            src() { journalctl --no-pager -q -o short-iso -n 20000; }
+          else
+            [ -f "$R" ] || { echo "FACEOPS_ERROR no existe el archivo $R en la máquina" >&2; exit 3; }
+            [ -r "$R" ] || { echo "FACEOPS_ERROR sin permiso de lectura sobre $R" >&2; exit 3; }
+            src() { tail -n 200000 -- "$R"; }
+          fi
+          if [ -n "$B" ]; then T=$(src | grep -F -i -c -- "$B"); src | grep -F -i -- "$B" | tail -n $((S+N)) | head -n $N
+          else T=$(src | wc -l); src | tail -n $((S+N)) | head -n $N; fi | cut -c1-2000
+          echo "FACEOPS_TOTAL=$T" >&2
+      environment:
+        LG_RUTA: "{{ ruta }}"
+        LG_BUSCAR: "{{ buscar }}"
+      become: true
+      register: r_lx
+      changed_when: false
+      failed_when: false
+      when: not (es_win | bool)
+
+    - name: Leer el tramo del log (Windows)
+      ansible.windows.win_shell: |
+        $R = $env:LG_RUTA; $N = {{ n }}; $S = {{ saltar }}; $B = $env:LG_BUSCAR
+        try {
+          if ($R -like 'evento:*') {
+            $ev = @(Get-WinEvent -LogName $R.Substring(7) -MaxEvents 20000 -ErrorAction Stop | ForEach-Object {
+              "{0:yyyy-MM-dd HH:mm:ss} {1,-11} {2} [{3}] {4}" -f $_.TimeCreated, $_.LevelDisplayName, $_.ProviderName, $_.Id, (($_.Message -replace '\s+', ' '))
+            })
+            [array]::Reverse($ev)
+          } else {
+            if (-not (Test-Path -LiteralPath $R)) { [Console]::Error.WriteLine("FACEOPS_ERROR no existe el archivo $R en la máquina"); exit 3 }
+            $ev = @(Get-Content -LiteralPath $R -Tail 200000 -ErrorAction Stop)
+          }
+          if ($B) { $ev = @($ev | Where-Object { $_ -and $_.ToLower().Contains($B.ToLower()) }) }
+          $T = $ev.Count; $fin = $T - $S; $ini = [Math]::Max(0, $fin - $N)
+          if ($fin -gt 0) { $ev[$ini..($fin - 1)] | ForEach-Object { if ($_.Length -gt 2000) { $_.Substring(0, 2000) } else { $_ } } }
+          [Console]::Error.WriteLine("FACEOPS_TOTAL=$T")
+        } catch { [Console]::Error.WriteLine("FACEOPS_ERROR " + $_.Exception.Message); exit 3 }
+      environment:
+        LG_RUTA: "{{ ruta }}"
+        LG_BUSCAR: "{{ buscar }}"
+      register: r_win
+      changed_when: false
+      failed_when: false
+      when: es_win | bool
+
+    - name: Resultado para FaceOps
+      vars:
+        r: "{{ r_win if (es_win | bool) else r_lx }}"
+        err: "{{ (r.stderr | default('')) | regex_search('FACEOPS_ERROR (.*)', '\\1') }}"
+        tot: "{{ (r.stderr | default('')) | regex_search('FACEOPS_TOTAL=([0-9]+)', '\\1') }}"
+      ansible.builtin.set_stats:
+        data:
+          faceops_log:
+            equipo: "{{ inventory_hostname }}"
+            ruta: "{{ ruta }}"
+            lineas: "{{ r.stdout_lines | default([]) }}"
+            saltar: "{{ saltar | int }}"
+            n: "{{ n | int }}"
+            total: "{{ (tot[0] | int) if tot else -1 }}"
+            buscar: "{{ buscar }}"
+            error: "{{ err[0] if err else ('' if (r.rc | default(0)) == 0 else ((r.stderr | default('') | trim | truncate(300)) or 'falló la lectura')) }}"
+
+    - name: Falla controlada si no se pudo leer
+      ansible.builtin.fail:
+        msg: "{{ ((r_win if (es_win | bool) else r_lx).stderr | default('') | regex_search('FACEOPS_ERROR (.*)', '\\1') or ['No se pudo leer el log'])[0] }}"
+      when: ((r_win if (es_win | bool) else r_lx).rc | default(0)) != 0

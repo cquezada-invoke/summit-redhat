@@ -52,11 +52,34 @@ bloqueo:
       contenedores: ["#dlg-mover", "#rec-velo"]
       rutas: ['^/hipervisores', '^/nubes', '^/infraestructuras', '^/centros-datos', '^/ecosistema', '/traslado', '/recursos(/|$)', '/mover']
     - etapa: 8      # Gobierno: stack, reportes, SLA, segmentos de negocio, respaldos
-      contenedores: ["#puntos", "#pr-velo", "#segmentos-negocio", "#rep-dlg", "#rec-velo-pr"]
-      rutas: ['/puntos(/|$)', '/recuperar', '/volver', '/versiones', '/respaldo', '^/respaldos', '^/mapa', '/replicar', '^/sla', '^/reportes', '^/gobierno', '^/arquitectura', '/segmentos']
+      contenedores: ["#segmentos-negocio", "#rep-dlg"]
+      rutas: ['/respaldo', '^/respaldos', '^/mapa', '/replicar', '^/sla', '^/reportes', '^/gobierno', '^/arquitectura', '/segmentos']
+    - etapa: 11     # Agente en máquina (provisoria): historial de cambios, puntos de restauración, recuperación y restauración
+      selectores: [".pr-ver", "[data-volver]", ".btn-pr-conf"]
+      contenedores: ["#puntos", "#pr-velo", "#pr-cajon", "#rec-velo-pr", ".hist-caja", ".hist-comp"]
+      rutas: ['/puntos(/|$)', '/recuperar', '/volver', '/versiones', '/restaurar', '/historial']
     - etapa: 9      # Fábrica de software, DevSecOps e IA
       rutas: ['^/devsecops', '^/fabrica', '^/politicas-desarrollo', '^/ia(/|$)']
 etapas:
+  # 11 · Agente en máquina (número PROVISORIO; no está en el Plan de cierre): lo que requiere el agente de respaldo en la
+  # máquina. Sale de la Etapa 1 por decisión de Cristian (13-11-2026). En la ficha solo se muestra si la máquina tiene el
+  # agente «respaldo-git»; dentro de las pantallas de la Etapa 1 queda bloqueado con su glosa.
+  11:
+    nombre: Agente en máquina
+    alcance: "Historial de cambios, puntos de restauración, recuperación y restauración (requieren el agente en la máquina)"
+    color: "#7c3aed"
+    requiere_agente: true
+    glosa: "Etapa {n} · requiere agente · aún no liberada"
+    endpoints:
+      - consola.punto                       # detalle de un punto de restauración
+    menu: []
+    rutas:
+      - "/lab/inventario/<id>/puntos/<código> · /lab/inventario/<id>/versiones · …/recuperar · …/volver · …/restaurar"
+    acciones:
+      - "FaceOps · Recuperar servidor"
+      - "FaceOps · Volver a una versión"
+      - "FaceOps · Restaurar desde respaldo"
+      - "FaceOps · Restaurar punto"
   1:
     nombre: Núcleo
     alcance: "Consola, inventario, tickets, aprobaciones, cola de acciones y AAP"
@@ -122,3 +145,4 @@ etapas:
       - "Sistema · Paquetes · inventario y respaldo"
       - "Plataforma · Controlar servicio"
       - "Sistema · Quitar agente"
+      - "Sistema · Leer log"                  # visor de logs embebido en la ficha (solo lectura)

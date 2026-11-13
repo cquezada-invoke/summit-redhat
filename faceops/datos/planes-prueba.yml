@@ -611,6 +611,17 @@ planes:
       - {id: C10, caso: "Secretos: un .jks y una llave TLS en la configuración", tipo: Seguridad, verificar: "no aparecen en Git; quedan en la bóveda en maquinas/<nombre>/archivos; cobertura «cubierto»"}
       # La recuperación de lo capturado (antes C11) se prueba en el plan de «FaceOps · Recuperar servidor» (C2 y C4), que es de
       # la Etapa 8 (respaldos): este plan certifica la captura, que es lo que libera la Etapa 1.
+  "Sistema · Leer log":
+    # Visor de logs embebido en la ficha (sin otra ventana): cada tramo lo lee este trabajo de AAP. Solo lectura.
+    casos:
+      - {id: C1, caso: "RHEL virtual (srv-e1prueba-01): /var/log/messages", verificar: "ticket exitoso sin aprobación; 300 líneas como máximo y el total del archivo; el visor las muestra en la ficha"}
+      - {id: C2, caso: "journal del sistema (journalctl)", verificar: "líneas del journal con fecha ISO"}
+      - {id: C3, caso: "Búsqueda («sshd»)", verificar: "solo líneas que contienen el texto; total = coincidencias"}
+      - {id: C4, caso: "Carga progresiva (líneas anteriores: saltar 300)", verificar: "trae el tramo anterior, distinto del primero, sin repetir líneas"}
+      - {id: C5, caso: "Windows (srv-windows-iis-01): visor de eventos «System»", verificar: "eventos con fecha, nivel, origen e id"}
+      - {id: C6, caso: "Máquina física", verificar: "lee su log del sistema igual que una virtual"}
+      - {id: C7, caso: "Archivo que ya no existe en la máquina", tipo: Error controlado, verificar: "ticket fallido con «no existe el archivo …»; el visor muestra el mensaje en vez de quedar en blanco"}
+      - {id: C8, caso: "Ruta fuera de los logs del inventario (/etc/shadow) pedida a la consola", tipo: Seguridad, verificar: "FaceOps responde 400 sin crear ticket"}
   "Sistema · Paquetes · inventario y respaldo":
     casos:
       - {id: C1, caso: "RHEL 9 (srv-e1prueba-01)", verificar: "ticket exitoso; faceops_paquetes con la lista de paquetes, su repositorio de origen y huella; los RPM que faltaban quedan en el registro propio (repositorio/rpm)"}

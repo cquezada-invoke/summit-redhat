@@ -4280,12 +4280,26 @@ def servicio_fijo(n):
     return "Servicio esencial del sistema: se controla solo desde la máquina (sin él se pierde el acceso o el monitoreo)" if SERVICIOS_FIJOS.match(n or "") else ""
 
 
+def _es_windows(e):
+    return "windows" in f"{e.get('so') or ''} {e.get('inventario') or ''}".lower()
+
+
+LOGS_WINDOWS = [{"ruta": "evento:System", "nombre": "Sistema (visor de eventos)", "kb": None, "fecha": ""},
+                {"ruta": "evento:Application", "nombre": "Aplicación (visor de eventos)", "kb": None, "fecha": ""},
+                {"ruta": "evento:Security", "nombre": "Seguridad (visor de eventos)", "kb": None, "fecha": ""}]
+
+
 def logs_de(e, c):
+    """Logs que el visor de la ficha puede abrir: los archivos que encontró el inventario y, del sistema operativo, el
+    journal (Linux) o el visor de eventos (Windows)."""
     import re as _re
     lg = j(e["datos"], {}).get("logs") or []
     if c.get("so"):
+        if _es_windows(e):
+            return LOGS_WINDOWS + lg
         todos = "|".join(LOGS_PLATAFORMA.values())
-        return [x for x in lg if not _re.search(todos, x["ruta"])]
+        fijos = [{"ruta": "journal", "nombre": "journal del sistema (journalctl)", "kb": None, "fecha": ""}] if lg or j(e["datos"], {}).get("servicios_det") else []
+        return fijos + [x for x in lg if not _re.search(todos, x["ruta"])]
     rx = LOGS_PLATAFORMA.get(familia(c["codigo"]))
     return [x for x in lg if rx and _re.search(rx, x["ruta"])]
 
@@ -4847,6 +4861,84 @@ def eliminar_equipo(eid):
     except (PermissionError, ErrorAAP) as x:
         return {"error": str(x)}, 400
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
+LEER_LOG = "Sistema · Leer log"
+
+
+def _logs_permitidos(e):
+    rs = {x["ruta"] for x in j(e["datos"], {}).get("logs") or []} | {"journal"}
+    return rs | ({x["ruta"] for x in LOGS_WINDOWS} if _es_windows(e) else set())
+
+
+@bp.route("/inventario/<int:eid>/log", methods=["POST"])
+@requiere_login
+def log_leer(eid):
+    """Visor de logs embebido en la ficha: pide un tramo del log a AAP («Sistema · Leer log», solo lectura, ticket sin
+    aprobación). FaceOps no entra a la máquina. Respuesta: {tid, numero} para seguirlo con GET .../log/<tid>."""
+    if request.form.get("_csrf") != session.get("csrf"):
+        return {"error": "Sesión vencida: recarga la página"}, 403
+    if g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura para leer logs de la máquina"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    ruta = request.form.get("ruta", "")
+    if ruta not in _logs_permitidos(e):
+        return {"error": "Ese log no está entre los que encontró el inventario de la máquina"}, 400
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], LEER_LOG)
+    if not a:
+        return {"error": f"Falta «{LEER_LOG}» en el catálogo de AAP (sincroniza el catálogo)"}, 503
+    def _int(k, d, lo, hi):
+        try:
+            return max(lo, min(hi, int(request.form.get(k, d))))
+        except ValueError:
+            return d
+    par = {"lg_ruta": ruta, "lg_lineas": _int("lineas", 300, 1, 2000), "lg_saltar": _int("saltar", 0, 0, 10 ** 7),
+           "lg_buscar": (request.form.get("buscar") or "").strip()[:120]}
+    from .operacion import solicitar_en_equipo
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, dict(a), dict(e), par, f"Ver log {ruta} de {e['nombre']} en la consola")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)[:300]}, 409
+    auditar(g.usuario["usuario"], g.cliente["id"], "ver log", e["nombre"], {"archivo": ruta, "ticket": t["numero"]})
+    return {"tid": t["id"], "numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
+_LOG_CACHE = {}
+
+
+@bp.route("/inventario/<int:eid>/log/<int:tid>")
+@requiere_login
+def log_tramo(eid, tid):
+    """Estado del tramo pedido: {estado, lineas, total, error}. Mientras corre: {estado, cola}."""
+    t = q1("SELECT * FROM tickets WHERE id=? AND cliente_id=?", tid, g.cliente["id"])
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not t or not e or t["limite"] != e["nombre"]:
+        abort(404)
+    if t["estado"] in ("en_cola", "en_ejecucion", "pendiente_aprobacion"):
+        from .cola import info_ticket
+        cq = info_ticket(tid) or {}
+        return {"estado": t["estado"], "numero": t["numero"],
+                "cola": cq.get("texto") if cq.get("estado") in ("pendiente", "en_curso") else ""}
+    if tid in _LOG_CACHE:
+        return _LOG_CACHE[tid]
+    out = {"estado": t["estado"], "numero": t["numero"], "lineas": [], "total": -1, "error": ""}
+    try:
+        from .operacion import artefactos_ticket
+        lg = (artefactos_ticket(AAP.de_cliente(g.cliente), dict(t)) or {}).get("faceops_log") or {}
+        out.update(lineas=lg.get("lineas") or [], total=int(lg.get("total") if lg.get("total") not in (None, "") else -1),
+                   saltar=int(lg.get("saltar") or 0), error=lg.get("error") or "")
+    except ErrorAAP as x:
+        out["error"] = f"AAP no respondió al leer el resultado: {str(x)[:160]}"
+    except Exception as x:  # noqa: BLE001
+        out["error"] = f"No se pudo leer el resultado: {type(x).__name__}"
+    if t["estado"] != "exitoso" and not out["error"]:
+        out["error"] = ((t["resultado"] or "").strip().splitlines() or ["La lectura falló en AAP"])[-1][:300]
+    if len(_LOG_CACHE) > 200:
+        _LOG_CACHE.clear()
+    _LOG_CACHE[tid] = out
+    return out
 
 
 @bp.route("/inventario/<int:eid>/consola")

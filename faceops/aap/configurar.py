@@ -144,7 +144,7 @@ shutil.copy(f"{AQUI}/iis-servidor.yml", f"{tmp}/playbooks/iis-servidor.yml")   #
 shutil.copy(f"{AQUI}/files/inventario-a-git.py", f"{tmp}/playbooks/files/inventario-a-git.py")
 shutil.copytree(f"{AQUI}/files/lib", f"{tmp}/playbooks/files/lib", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
-           "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "openshift-imagenes-evaluar.yml", "openshift-imagenes-quay.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
+           "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "openshift-imagenes-evaluar.yml", "openshift-imagenes-quay.yml", "homologacion-relevar.yml", "sistema-leer-log.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
            "fiscalia-aviso-complemento.yml", "storage-lake-s3.yml", "respaldo-restic.yml", "nube-validar.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
@@ -469,6 +469,13 @@ jho = asegurar("job_templates", "Homologación · Relevar entorno", {   # solo l
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 1800,
     "description": "Huella del entorno (sistema, recursos, condiciones, JBoss/Java) para homologar ambientes. Solo lectura"})
 paso(f"Plantilla «Homologación · Relevar entorno» (id {jho['id']})")
+
+jll = asegurar("job_templates", "Sistema · Leer log", {   # solo lectura: visor de logs de la ficha; inventario, credencial y límite al lanzar
+    "organization": org["id"], "project": proy, "playbook": "playbooks/sistema-leer-log.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": False, "timeout": 300,
+    "description": "Lee un tramo de un log de la máquina (archivo, journal o visor de eventos de Windows) para el visor de FaceOps. Solo lectura"})
+paso(f"Plantilla «Sistema · Leer log» (id {jll['id']})")
 
 jpm = asegurar("job_templates", "Plataforma · Medir salud", {   # solo lectura, sin agente: inventario, credencial y límite al lanzar
     "organization": org["id"], "project": proy, "playbook": "playbooks/plataforma-medir.yml", "inventory": inv["id"],

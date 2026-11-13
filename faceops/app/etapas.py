@@ -114,6 +114,8 @@ def foco():
 
 def glosa(n):
     b = _bloqueo()
+    if n and (etapas().get(n) or {}).get("glosa"):   # etapa con glosa propia (p. ej. «requiere agente»)
+        return etapas()[n]["glosa"].format(n=n)
     return (b.get("glosa") or "Etapa {n} · aún no liberada").format(n=n) if n else (b.get("glosa_sin_etapa") or "Otra etapa · aún no liberada")
 
 

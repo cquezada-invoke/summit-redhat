@@ -286,13 +286,60 @@ v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;document.addEventLis
 <label class="svc-sw{{ ' fijo' if fijo_ }}" title="{{ fijo_ if fijo_ else (('Apagar ' if on_ else 'Encender ') ~ s.n ~ ' (ticket con aprobación)') }}"><input type="checkbox" {{ 'checked' if on_ }} {{ 'disabled' if fijo_ or perfil_actual.modo != 'escritura' }}><i></i></label>
 <div class="svc-txt"><b class="mono">{{ s.n }}</b><small>{% if s.estado == 'error' %}<span style="color:var(--bad)">con error</span>{% elif s.estado == 'detenido' %}<span style="color:var(--warn)">detenido · debería estar arriba</span>{% elif on_ %}encendido{% else %}apagado · {{ "se activa a demanda" if s.tipo == "dbus" else ("corre y termina" if s.tipo == "oneshot" else "inactivo") }}{% endif %} · arranque {{ {'enabled': 'automático', 'disabled': 'manual', 'static': 'estático'}.get(s.arranque, s.arranque or '—') }}{% if s.resultado and s.resultado != 'success' %} · {{ s.resultado }}{% endif %}</small></div>
 <span class="svc-tk"></span>{% if on_ and not fijo_ and perfil_actual.modo == 'escritura' %}<button type="button" class="svc-re" title="Reiniciar {{ s.n }} (ticket con aprobación)" aria-label="Reiniciar"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5"/></svg></button>{% endif %}</li>{% endfor %}<li class="svc-nada" hidden>Ningún servicio con ese filtro.</li></ul>{% endif %}</div>
-<div class="card log-caja" data-pilar="Excelencia operativa" style="margin-top:14px"><div class="fila"><h3 style="margin:0;font-size:15px">Logs {{ 'del sistema operativo' if c.so else 'de ' ~ c.nombre }}</h3><span class="sub der" style="font-size:12px">clic: se abre en la consola SSH de la máquina</span></div>
+<div class="card log-caja" data-pilar="Excelencia operativa" style="margin-top:14px"><div class="fila"><h3 style="margin:0;font-size:15px">Logs {{ 'del sistema operativo' if c.so else 'de ' ~ c.nombre }}</h3><span class="sub der" style="font-size:12px">clic: se ve aquí mismo, leído por AAP</span></div>
 {% if not lgs %}<p class="sub" style="font-size:12.5px;margin:6px 0 0">{{ 'Sin datos: se completan con la próxima recolección del inventario.' if not datos.logs else 'No se encontraron archivos de log de esta plataforma.' }}</p>{% else %}
-<table class="no-apilar" style="font-size:12.5px;margin-top:6px"><tr><th>Archivo</th><th class="num">Tamaño</th><th>Modificado</th></tr>{% for x in lgs %}<tr><td class="mono"><a href="{{ url_for('consola.consola_equipo', eid=e.id, log=x.ruta) }}" target="_blank" rel="noopener" title="Abrir {{ x.ruta }} en la consola SSH">{{ x.ruta }}</a></td><td class="num">{{ ('%.1f'|format(x.kb/1024) ~ ' MB') if x.kb and x.kb > 1024 else ((x.kb ~ ' KB') if x.kb is not none else '—') }}</td><td class="sub">{{ x.fecha|fecha if (x.fecha or '')[-5:-4] in ('+', '-') else x.fecha }}</td></tr>{% endfor %}</table>{% endif %}</div>{% endif %}
-<div class="card hist-caja" data-pilar="Recuperación" style="margin-top:14px"><div class="fila"><h3 style="margin:0;font-size:15px">Historial de cambios</h3><span class="sub der" style="font-size:12px">cambios de {{ 'el sistema operativo' if c.so else c.nombre }} con su commit en Git <a class="ver-git" target="_blank"></a></span></div>
-<div class="hist-comp" data-comp="{{ c.codigo }}"><p class="sub">Cargando…</p></div></div>
+<table class="no-apilar" style="font-size:12.5px;margin-top:6px"><tr><th>Archivo</th><th class="num">Tamaño</th><th>Modificado</th></tr>{% for x in lgs %}<tr><td class="mono"><a href="#" class="log-ver" data-log="{{ x.ruta }}" data-log-n="{{ x.nombre or x.ruta }}" title="Ver {{ x.nombre or x.ruta }} en el visor de la consola (lectura vía AAP)">{{ x.nombre or x.ruta }}</a></td><td class="num">{{ ('%.1f'|format(x.kb/1024) ~ ' MB') if x.kb and x.kb > 1024 else ((x.kb ~ ' KB') if x.kb is not none else '—') }}</td><td class="sub">{{ x.fecha|fecha if (x.fecha or '')[-5:-4] in ('+', '-') else x.fecha }}</td></tr>{% endfor %}</table>{% endif %}</div>{% endif %}
+{% if 'respaldo-git' in (e.skills or []) %}{# historial de cambios: requiere el agente de respaldo en la máquina #}<div class="card hist-caja" data-pilar="Recuperación" style="margin-top:14px"><div class="fila"><h3 style="margin:0;font-size:15px">Historial de cambios</h3><span class="sub der" style="font-size:12px">cambios de {{ 'el sistema operativo' if c.so else c.nombre }} con su commit en Git <a class="ver-git" target="_blank"></a></span></div>
+<div class="hist-comp" data-comp="{{ c.codigo }}"><p class="sub">Cargando…</p></div></div>{% endif %}
 </section>{% endfor %}
 <div id="cred-web" class="caja" style="display:none;margin:8px 0 0"></div></aside>
+{# Visor de logs embebido: cada tramo lo lee AAP («Sistema · Leer log», solo lectura); FaceOps no entra a la máquina. #}
+<style>
+#log-dlg{width:min(1100px,96vw);max-width:96vw;height:min(80vh,820px);padding:0;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:inherit}
+#log-dlg[open]{display:flex;flex-direction:column}
+#log-dlg .lg-cab{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+#log-dlg .lg-cab h3{margin:0;font-size:15px;flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#log-dlg .lg-busca{flex:1 1 160px;min-width:120px;padding:5px 9px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:13px}
+#log-dlg .lg-cuerpo{flex:1;overflow:auto;margin:0;padding:8px 12px;background:#0f172a;color:#e2e8f0;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-all}
+#log-dlg .lg-cuerpo mark{background:#facc15;color:#111}
+#log-dlg .lg-pie{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);font-size:12.5px}
+#log-dlg .lg-estado{flex:1;min-width:0}#log-dlg .lg-err{color:var(--bad);font-weight:600}
+</style>
+<dialog id="log-dlg" aria-labelledby="lg-tit"><div class="lg-cab"><h3 id="lg-tit">Log</h3>
+<input type="search" class="lg-busca" placeholder="Buscar en el log…" aria-label="Buscar en el log">
+<button type="button" class="btn chico gris lg-buscar">Buscar</button>
+<label class="chk" style="font-size:12.5px"><input type="checkbox" class="lg-auto" checked> auto-scroll</label>
+<button type="button" class="cajon-x" aria-label="Cerrar" onclick="this.closest('dialog').close()">×</button></div>
+<pre class="lg-cuerpo" tabindex="0"></pre>
+<div class="lg-pie"><span class="lg-estado sub"></span><button type="button" class="btn chico gris lg-mas" hidden>Cargar líneas anteriores</button><button type="button" class="btn chico lg-act">Actualizar</button></div></dialog>
+<script>(()=>{const dlg=document.getElementById('log-dlg');if(!dlg)return;
+const cuerpo=dlg.querySelector('.lg-cuerpo'),est=dlg.querySelector('.lg-estado'),mas=dlg.querySelector('.lg-mas'),bq=dlg.querySelector('.lg-busca'),auto=dlg.querySelector('.lg-auto');
+const URL_={{ url_for('consola.log_leer', eid=e.id)|tojson }},N=300;let ruta='',saltar=0,buscar='',lineas=[],gen=0;
+const esc=v=>String(v).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const pintar=()=>{const t=buscar.toLowerCase();cuerpo.innerHTML=lineas.length?lineas.map(l=>{let h=esc(l);if(t){const i=l.toLowerCase().indexOf(t);if(i>=0)h=esc(l.slice(0,i))+'<mark>'+esc(l.slice(i,i+t.length))+'</mark>'+esc(l.slice(i+t.length));}return h;}).join('\n'):'<span style="color:#94a3b8">'+(buscar?'Ninguna línea contiene «'+esc(buscar)+'».':'El log está vacío.')+'</span>';};
+const error=m=>{est.innerHTML='<span class="lg-err"></span>';est.firstChild.textContent=m;if(!lineas.length)cuerpo.innerHTML='<span style="color:#fca5a5"></span>',cuerpo.firstChild.textContent='No se pudo mostrar el log: '+m;};
+function pedir(anteriores){const g_=++gen;mas.disabled=true;dlg.querySelector('.lg-act').disabled=true;
+  est.textContent=(anteriores?'Pidiendo líneas anteriores':'Pidiendo el log')+' a AAP…';if(!anteriores&&!lineas.length)cuerpo.innerHTML='<span style="color:#94a3b8">Leyendo el log vía AAP…</span>';
+  const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('ruta',ruta);fd.append('lineas',N);fd.append('saltar',anteriores?saltar:0);fd.append('buscar',buscar);
+  const fin=()=>{mas.disabled=false;dlg.querySelector('.lg-act').disabled=false;};
+  fetch(URL_,{method:'POST',body:fd}).then(r=>r.json().then(x=>[r,x])).then(([r,x])=>{if(g_!==gen)return;if(!r.ok||x.error){fin();error(x.error||('Error '+r.status));return;}
+    const t0=Date.now();const seguir=()=>fetch(URL_+'/'+x.tid).then(r2=>r2.json()).then(y=>{if(g_!==gen)return;
+      if(['en_cola','en_ejecucion','pendiente_aprobacion'].includes(y.estado)){if(Date.now()-t0>180000){fin();error('AAP no terminó la lectura en 3 min ('+x.numero+')');return;}
+        est.textContent=(y.cola||'AAP leyendo el log…')+' · '+x.numero;setTimeout(seguir,1500);return;}
+      fin();if(y.error&&!(y.lineas||[]).length){error(y.error+' · '+x.numero);return;}
+      const nuevas=y.lineas||[];if(anteriores){lineas=nuevas.concat(lineas);}else{lineas=nuevas;saltar=0;}saltar+=nuevas.length;
+      const alto=cuerpo.scrollHeight,arriba=cuerpo.scrollTop;pintar();
+      if(anteriores)cuerpo.scrollTop=arriba+(cuerpo.scrollHeight-alto);else if(auto.checked)cuerpo.scrollTop=cuerpo.scrollHeight;
+      const tot=y.total>=0?y.total:null;mas.hidden=!(tot!==null?saltar<tot:nuevas.length>=N);
+      est.textContent=lineas.length+' línea'+(lineas.length!==1?'s':'')+(tot!==null?' de '+tot:'')+(buscar?' con «'+buscar+'»':'')+' · leído vía AAP ('+x.numero+')'+(y.error?' · '+y.error:'');
+    }).catch(()=>{if(g_!==gen)return;fin();error('Se perdió la conexión con FaceOps al seguir '+x.numero);});seguir();
+  }).catch(()=>{fin();error('No se pudo contactar a FaceOps');});}
+window.fxVerLog=(r,n)=>{ruta=r;saltar=0;buscar='';bq.value='';lineas=[];dlg.querySelector('#lg-tit').textContent=n||r;if(!dlg.open)dlg.showModal();pedir(false);};
+document.addEventListener('click',ev=>{const a=ev.target.closest('.log-ver');if(!a)return;ev.preventDefault();fxVerLog(a.dataset.log,a.dataset.logN);});
+mas.onclick=()=>pedir(true);dlg.querySelector('.lg-act').onclick=()=>pedir(false);
+const hacer=()=>{buscar=bq.value.trim();lineas=[];pedir(false);};dlg.querySelector('.lg-buscar').onclick=hacer;bq.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();hacer();}});
+auto.onchange=()=>{if(auto.checked)cuerpo.scrollTop=cuerpo.scrollHeight;};dlg.addEventListener('close',()=>{gen++;});})();</script>
+
 <script>(()=>{document.querySelectorAll('.svc-caja').forEach(caja=>{const L=caja.querySelector('.svc-lista');if(!L)return;let f='todos';
  const pintar=()=>{const t=(caja.querySelector('.svc-busca').value||'').toLowerCase();let n=0;L.querySelectorAll('li[data-n]').forEach(li=>{const ok=(f==='todos'||(f==='on')===(li.dataset.on==='1'))&&(!t||li.dataset.n.toLowerCase().includes(t));li.hidden=!ok;n+=ok?1:0;});L.querySelector('.svc-nada').hidden=n>0;};
  caja.querySelectorAll('.svc-filtro button').forEach(b=>b.onclick=()=>{f=b.dataset.f;caja.querySelectorAll('.svc-filtro button').forEach(x=>x.classList.toggle('on',x===b));pintar();});
@@ -540,11 +587,11 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('.ag-acc .btn-a
 {% if us_.sudoers %}<p class="sub" style="font-size:12px;padding:6px 16px 12px;margin:0">Reglas de sudo adicionales: {{ us_.sudoers|join(', ') }}</p>{% endif %}
 {% else %}<p class="vacio" style="padding:0 16px 14px">Aún sin datos de usuarios: se completan en el próximo inventario de la máquina.</p>{% endif %}</div>{% endif %}
 {% endif %}
-{% if not es_red %}<div class="card" style="margin-top:14px" id="puntos"><div class="fila"><h2 style="margin:0">Puntos de restauración</h2><button type="button" class="btn-pr-conf" id="pr-conf" title="Configurar puntos de restauración e inventario, y crear un punto ahora" aria-label="Configurar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button><span class="sub der" style="font-size:12px">cada punto une en un código el estado completo: imagen del sistema, paquetes, plataformas, configuración, aplicaciones y datos</span></div>
+{% if not es_red and 'respaldo-git' in (e.skills or []) %}{# puntos de restauración: requieren el agente de respaldo #}<div class="card" style="margin-top:14px" id="puntos"><div class="fila"><h2 style="margin:0">Puntos de restauración</h2><button type="button" class="btn-pr-conf" id="pr-conf" title="Configurar puntos de restauración e inventario, y crear un punto ahora" aria-label="Configurar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button><span class="sub der" style="font-size:12px">cada punto une en un código el estado completo: imagen del sistema, paquetes, plataformas, configuración, aplicaciones y datos</span></div>
 
 {% if not puntos_r %}<p class="vacio">Aún no hay puntos de restauración. FaceOps los crea según la frecuencia elegida y cada vez que se inventaría la máquina y algo cambió; también puedes crear uno ahora.</p>{% else %}
 <div style="overflow-x:auto"><table class="hist"><tr><th style="width:190px">Código</th><th style="width:105px">Fecha</th><th style="width:120px">Origen</th><th>Cadena de restauración</th><th>Qué cambió respecto del anterior</th><th style="width:96px" title="Qué tan completa volvería la máquina si se restaura desde este punto">Recuperación</th><th style="width:44px"></th></tr>
-{% for p in puntos_r %}<tr><td><a href="{{ url_for('consola.punto', eid=e.id, cod=p.codigo) }}" class="mono pr-ver" style="font-size:12.5px"><b>{{ p.codigo }}</b></a>{% if loop.first %} <span class="chip e-exitoso" style="font-size:10.5px">último</span>{% endif %}{% if p.nota %}<div class="sub" style="font-size:11.5px">{{ p.nota }}</div>{% endif %}</td>
+{% for p in puntos_r %}<tr class="pr-fila" data-i="{{ loop.index0 }}"><td><a href="{{ url_for('consola.punto', eid=e.id, cod=p.codigo) }}" class="mono pr-ver" style="font-size:12.5px"><b>{{ p.codigo }}</b></a>{% if loop.first %} <span class="chip e-exitoso" style="font-size:10.5px">último</span>{% endif %}{% if p.nota %}<div class="sub" style="font-size:11.5px">{{ p.nota }}</div>{% endif %}</td>
 <td class="sub" style="font-size:12px;white-space:nowrap">{{ p.creado|fecha }}</td><td style="font-size:12px">{{ p.origen }}{% if p.usuario %}<div class="sub">{{ p.usuario }}</div>{% endif %}</td>
 <td>{% for es, st, det in p.estado %}<span class="chip pr-chip{{ ' cambio' if p.cambio[loop.index0] }}" title="{{ es }}: {{ det }}{{ ' · cambió respecto del punto anterior' if p.cambio[loop.index0] else ' · igual al punto anterior' }}">{{ es }}</span> {% endfor %}</td>
 <td style="font-size:12px">{{ p.diferencias|join(' · ') }}</td>
@@ -552,6 +599,12 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('.ag-acc .btn-a
 <td style="text-align:right">{% if p.bloqueado %}<span class="chip s-alta" style="font-size:10.5px" title="{{ p.bloqueado }}">no restaurable</span>{% elif perfil_actual.modo == 'escritura' and not loop.first and (p.f.configuracion or {}).commit %}<form method="post" action="{{ url_for('consola.punto_restaurar', eid=e.id, cod=p.codigo) }}" style="margin:0" onsubmit="return confirm('¿Restaurar {{ e.nombre }} al punto {{ p.codigo }}? FaceOps orquesta la vuelta de configuración, paquetes, plataformas y aplicaciones con un ticket con aprobación en AAP.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn-ico-sola" title="Restaurar este punto" aria-label="Restaurar este punto"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button></form>{% endif %}</td></tr>{% endfor %}</table></div>
 {% endif %}
 </div>
+<script>(()=>{/* Puntos de restauración: 10 por página con paginador */const filas=[...document.querySelectorAll('#puntos tr.pr-fila')],P=10;if(filas.length<=P)return;
+ const tab=filas[0].closest('table'),nav=document.createElement('div');nav.className='fila pr-pag';nav.style.cssText='gap:8px;justify-content:flex-end;margin:8px 0 0;font-size:12.5px';
+ tab.parentElement.after(nav);let pg=0;const tot=Math.ceil(filas.length/P);
+ const ir=k=>{pg=Math.max(0,Math.min(tot-1,k));filas.forEach((f,i)=>f.hidden=Math.floor(i/P)!==pg);
+  nav.innerHTML='<button type="button" class="btn chico gris" data-k="-1"'+(pg?'':' disabled')+'>‹ Anterior</button><span class="sub">Página '+(pg+1)+' de '+tot+' · '+filas.length+' puntos</span><button type="button" class="btn chico gris" data-k="1"'+(pg<tot-1?'':' disabled')+'>Siguiente ›</button>';
+  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>ir(pg+(+b.dataset.k)));};ir(0);})();</script>
 <div id="pr-velo" class="cajon-velo" hidden></div>
 <aside id="pr-cajon" class="cajon" hidden aria-label="Configuración de puntos de restauración"><div class="cajon-barra"><b style="font-size:15px">Puntos de restauración · {{ e.nombre }}</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
 <h3 style="margin:8px 0 4px;font-size:15px">Crear un punto ahora</h3><p class="sub" style="font-size:12.5px;margin:0 0 8px">Guarda el estado completo actual: imagen del sistema, paquetes, plataformas, configuración, aplicaciones y datos.</p>
@@ -575,7 +628,7 @@ fetch({{ url_for('consola.punto_frecuencia', eid=e.id)|tojson }},{method:'POST',
   const clasif=t=>{t=(t||'').toLowerCase();const m=COMP.filter(c=>!c.so&&c.alias.some(a=>a&&t.includes(a))).map(c=>c.codigo);return m.length?m:[SO]};
   const esc=x=>String(x||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let filas={{ hist_tickets|tojson }}.map(t=>Object.assign(t,{tipo:'ejecución',comps:clasif(t.auto+' '+t.nombre_aap)}));
-  let filtro='', info={}, mostrar={};
+  let filtro='', info={}, mostrar={}, busq={}, pag={};
   window.fxNuevoTicket=t=>{filas.unshift({numero:t.numero,auto:t.auto||t.automatizacion||'',nombre_aap:t.nombre_aap||'',estado:t.estado||'pendiente_aprobacion',autor:{{ (usuario.nombre if usuario else '')|tojson }},
     fecha:new Date().toISOString(),inicio:new Date().toISOString(),fin:'',url:t.url,tipo:'ejecución',comps:clasif((t.auto||'')+' '+(t.nombre_aap||'')),nuevo:true});
     pintar();const sec=document.getElementById('tickets-maquina');sec.scrollIntoView({behavior:'smooth',block:'start'});sec.classList.add('resalta');setTimeout(()=>sec.classList.remove('resalta'),2500);};
@@ -614,16 +667,21 @@ fetch({{ url_for('consola.punto_frecuencia', eid=e.id)|tojson }},{method:'POST',
     const tkDe={}; todas.filter(f=>!f.directo).forEach(t=>(t.commits||[]).forEach(c=>tkDe[c.sha]=t));
     const cambios=filas.filter(f=>f.tipo==='versión').map(c=>({c, t:tkDe[c.sha], comps:(tkDe[c.sha]?tkDe[c.sha].comps:c.comps)})).sort((a,b)=>T(b.c.fecha)-T(a.c.fecha));
     const tickets=todas.filter(f=>!f.directo);
-    document.querySelectorAll('.hist-comp').forEach(cont=>{ const k=cont.dataset.comp, n=mostrar[k]||10;
-    const vc=cambios.filter(f=>f.comps.includes(k));
+    document.querySelectorAll('.hist-comp').forEach(cont0=>{ const k=cont0.dataset.comp, P=10;
+    /* buscador (fijo, fuera de lo que se repinta) y 10 cambios por página con paginador */
+    if(!cont0.querySelector('.hist-cuerpo')){cont0.innerHTML='<input type="search" class="hist-q" placeholder="Buscar en el historial (archivo, paquete, usuario, ticket, commit)…" aria-label="Buscar en el historial" style="width:100%;box-sizing:border-box;margin:4px 0 6px;padding:5px 9px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:12.5px"><div class="hist-cuerpo"></div>';
+      cont0.querySelector('.hist-q').addEventListener('input',ev=>{busq[k]=ev.target.value.trim().toLowerCase();pag[k]=0;pintar();});}
+    const cont=cont0.querySelector('.hist-cuerpo'), qq=busq[k]||'';
+    const vc=cambios.filter(f=>f.comps.includes(k)).filter(({c,t})=>!qq||[c.titulo,c.detalle,c.autor,c.corto,c.sha,t&&t.numero,t&&t.autor,(c.archivos||[]).join(' '),(c.paquetes||[]).join(' ')].join(' ').toLowerCase().includes(qq));
+    const tot=Math.max(1,Math.ceil(vc.length/P)), pg=Math.min(pag[k]||0,tot-1), n=(pg+1)*P;
     cont.innerHTML=!vc.length?'<p class="vacio">'+(info.error?esc(info.error):'Sin cambios registrados para '+esc(NOM[k]||k))+'</p>'
       :'<div style="overflow-x:auto"><table class="hist no-apilar"><tr><th style="width:100px">Fecha</th><th style="width:110px">Usuario</th><th style="width:80px">Commit</th><th>Qué cambió</th><th style="width:100px">Ticket</th><th style="width:40px"></th></tr>'
-      +vc.slice(0,n).map(({c,t})=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+fch(c.fecha)+'</td><td style="font-size:12.5px">'+esc(t?t.autor:c.autor)+'</td>'
+      +vc.slice(pg*P,n).map(({c,t})=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+fch(c.fecha)+'</td><td style="font-size:12.5px">'+esc(t?t.autor:c.autor)+'</td>'
         +'<td><a class="mono" style="font-size:12px" href="'+c.url+'" target="_blank" title="'+esc(c.titulo)+'">'+c.corto+'</a></td><td style="font-size:12.5px">'+resumen(c)+detalle(c)+'</td>'
         +'<td>'+(t?'<a class="mono" style="font-size:12px" href="'+t.url+'">'+esc(t.numero)+'</a>':'<span class="sub" style="font-size:12px">cambio directo</span>')+'</td>'
         +'<td style="text-align:right">'+(c.actual?'<span class="chip e-exitoso" style="font-size:10.5px" title="estado actual">actual</span>':(info.puede?'<span><button class="btn-ico-sola" data-volver="'+c.sha+'" title="Volver a este estado: restablecer al commit '+c.corto+'" aria-label="Volver a este estado"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button><span class="res"></span></span>':''))+'</td></tr>').join('')+'</table></div>'
-      +(vc.length>n?'<p style="margin:8px 0 0"><a href="#" class="hist-mas">ver '+(vc.length-n)+' más</a></p>':'');
-    const mas=cont.querySelector('.hist-mas'); if(mas) mas.onclick=ev=>{ev.preventDefault();mostrar[k]=n+20;pintar()};
+      +(tot>1?'<div class="fila hist-pag" style="gap:8px;justify-content:flex-end;margin:8px 0 0;font-size:12.5px"><button type="button" class="btn chico gris" data-k="-1"'+(pg?'':' disabled')+'>‹ Anterior</button><span class="sub">Página '+(pg+1)+' de '+tot+' · '+vc.length+' cambios</span><button type="button" class="btn chico gris" data-k="1"'+(pg<tot-1?'':' disabled')+'>Siguiente ›</button></div>':'');
+    cont.querySelectorAll('.hist-pag button').forEach(b=>b.onclick=()=>{pag[k]=pg+(+b.dataset.k);pintar();});
     cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>{ if(confirm('¿Volver la máquina al estado del commit '+b.dataset.volver.slice(0,7)+'? Se crea un ticket con aprobación en AAP.')) enviar(b,info.volver,{sha:b.dataset.volver}); });
     });
     // 2) tickets ejecutados para la instancia
