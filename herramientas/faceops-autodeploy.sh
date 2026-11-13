@@ -19,7 +19,8 @@ cd "$REPO" || { estado "error: no existe $REPO"; exit 1; }
 for i in 1 2 3; do git fetch -q origin main 2>>"$LOG" && break; sleep 10; done
 NUEVO=$(git rev-parse origin/main) || { estado "error: fetch"; exit 1; }
 ANT=$(cat "$DEP" 2>/dev/null || true)
-if [ "$NUEVO" = "$ANT" ] && [ "${1:-}" != "--forzar" ]; then exit 0; fi
+# Con commits locales rebasados, lo desplegado es un descendiente de origin/main: no se vuelve a desplegar cada 10 min
+if [ "${1:-}" != "--forzar" ] && { [ "$NUEVO" = "$ANT" ] || { [ -n "$ANT" ] && git merge-base --is-ancestor "$NUEVO" "$ANT" 2>/dev/null; }; }; then exit 0; fi
 log "== despliegue ${ANT:0:8} -> ${NUEVO:0:8}"
 
 # pull --ff-only (con reintento: puede haber otro git trabajando en el mismo árbol)
