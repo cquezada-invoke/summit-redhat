@@ -61,15 +61,16 @@ planes:
       - {id: C3, caso: "Estación Windows 11 (WinRM) con BitLocker y Defender", verificar: "ticket exitoso; 13 controles; BitLocker, firewall y antivirus «cumple» con su evidencia"}
       - {id: C4, caso: "Repetir la evaluación", tipo: Idempotencia, verificar: "ticket exitoso sin changed; mismos resultados"}
       - {id: C5, caso: "Control no disponible (Windows Home sin BitLocker)", tipo: Error controlado, verificar: "ticket exitoso; el control queda «no evaluable» con su evidencia, sin fallar el resto"}
-  "Seguridad · Aplicar parches de seguridad":   # una VM RHEL del laboratorio (no producción) registrada, con CVE pendientes revisados
+  "Seguridad · Aplicar parches de seguridad":   # una VM RHEL del laboratorio registrada en Red Hat, con CVE pendientes revisados (nodo-so)
     casos:
-      - {id: C1, caso: "Formulario (skill de la ficha) con un CVE seleccionado, reinicio «no reiniciar», límite 60 min", verificar: "ticket exitoso con pp_alcance seleccion, cves, pp_reinicio y pp_limite_min en su detalle; parches_seguridad: 1 lote aplicado, 0 con error, 0 sin tiempo; la máquina no se reinicia; tras la revisión automática el CVE sale de pendientes"}
-      - {id: C2, caso: "Todos los pendientes, pp_lote 2 (varios lotes), «reiniciar si hace falta»", verificar: "ticket exitoso; lotes = ceil(avisos/2) y todos aplicados; si needs-restarting lo pide, la máquina reinicia y vuelve; resumen con avisos, lotes y minutos"}
-      - {id: C3, caso: "Repetir «todos» sin pendientes (forzado por AAP)", tipo: Idempotencia, verificar: "ticket exitoso «sin avisos de seguridad pendientes, nada que aplicar»; 0 lotes; sin cambios"}
-      - {id: C4, caso: "Programar reinicio a una hora (con reinicio requerido)", verificar: "ticket exitoso; shutdown programado visible en la máquina (/run/systemd/shutdown/scheduled) y luego cancelado; sin reinicio inmediato"}
+      - {id: C1, caso: "Un CVE pendiente seleccionado (paquete que no exige reinicio), «no reiniciar», límite 15 min, lote 1", verificar: "ticket exitoso con pp_alcance, cves, pp_reinicio y pp_limite_min en su detalle; parches_seguridad: lotes aplicados = lotes, 0 sin tiempo; la máquina no se reinicia"}
+      - {id: C2, caso: "Repetir la misma selección (forzado por AAP)", tipo: Idempotencia, verificar: "ticket exitoso «sin avisos de seguridad pendientes, nada que aplicar»; 0 lotes; sin cambios"}
+      - {id: C3, caso: "«Reiniciar si hace falta» sin reinicio requerido", verificar: "ticket exitoso; needs-restarting no lo pide y la máquina no se reinicia"}
+      - {id: C4, caso: "«Programar reinicio» sin reinicio requerido", verificar: "ticket exitoso; no se programa ningún reinicio"}
       - {id: C5, caso: "Lanzado sin parámetros por AAP (prueba)", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos» con el motivo; no se toca la máquina (sin dnf)"}
-      - {id: C6, caso: "Límite de tiempo: pp_lote 1 con límite agotado (pp_limite_min 15 y lotes que no alcanzan a empezar)", tipo: Error controlado, verificar: "ticket fallido en «Todo aplicado»; el resumen informa lotes sin aplicar por el límite; los aplicados quedan"}
-      - {id: C7, caso: "FaceOps sin parámetros o sin parches pendientes (skill, CVE pendientes, Acciones)", tipo: Error controlado, verificar: "no se crea ticket: la skill solo abre el formulario; el POST sin reinicio/límite o sobre una máquina sin pendientes responde 400 con el motivo"}
+      - {id: C6, caso: "Límite de tiempo fuera de rango (5 min)", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; no se toca la máquina"}
+      - {id: C7, caso: "FaceOps sin parámetros o sin parches pendientes (formulario, skill, Acciones)", tipo: Error controlado, verificar: "no se crea ticket: la skill solo abre el formulario; el POST sin reinicio/límite o sobre una máquina sin pendientes responde 400 con el motivo"}
+    pendiente: "el reinicio real (si hace falta / programado) y el agotamiento del límite por lotes no se ejercitan en vivo: la consigna del laboratorio es no reiniciar nodo-so"
   "Windows · Aplicar actualizaciones":   # requiere una estación o servidor Windows del laboratorio con actualizaciones pendientes
     casos:
       - {id: C1, caso: "Modo evaluar", verificar: "ticket exitoso; actualizaciones_windows con encontradas y KB; nada instalado"}

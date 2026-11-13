@@ -65,27 +65,39 @@
           o carga la credencial «Red Hat · Llave de activación» en AAP para que se registre aquí
         quiet: true
 
-    - name: Avisos de seguridad pendientes
-      ansible.builtin.command: >-
-        dnf -q updateinfo list --security
-        {{ lista | map('regex_replace', '^', '--cve=') | join(' ') if alcance == 'seleccion' else '' }}
+    # «todos»: los avisos de seguridad pendientes. «seleccion»: SOLO los paquetes que corrigen los CVE elegidos (de
+    # «updateinfo list --security cves»); nunca se usa --cve en el listado, porque si no calza dnf lista todos los avisos.
+    - name: Avisos de seguridad pendientes (todos)
+      ansible.builtin.command: dnf -q updateinfo list --security
       register: r_av
       changed_when: false
+      when: alcance == 'todos'
+
+    - name: Paquetes que corrigen los CVE elegidos (selección)
+      ansible.builtin.command: dnf -q updateinfo list --security cves
+      register: r_cv
+      changed_when: false
+      when: alcance == 'seleccion'
 
     - name: Lotes
       ansible.builtin.set_fact:
-        avisos: "{{ r_av.stdout_lines | map('trim') | select('match', '^[A-Za-z]+-[0-9]+:[0-9]+\\s') | map('regex_replace', '\\s.*$', '') | unique | list }}"
+        avisos: >-
+          {{ (r_av.stdout_lines | map('trim') | select('match', '^[A-Za-z]+-[0-9]+:[0-9]+\\s') | map('regex_replace', '\\s.*$', '') | unique | list)
+             if alcance == 'todos' else
+             (r_cv.stdout_lines | map('trim') | map('split') | selectattr('2', 'defined') | selectattr('0', 'in', lista)
+              | map(attribute='2') | unique | list) }}
+        prefijo: "{{ '--advisory=' if alcance == 'todos' else '' }}"
 
     - name: Lotes de avisos
       ansible.builtin.set_fact:
         lotes: "{{ avisos | batch(lote | int) | list }}"
 
     - name: Parches por lotes (dentro del límite de tiempo)
-      ansible.builtin.command: "dnf -y -q upgrade {{ item | map('regex_replace', '^', '--advisory=') | join(' ') }}"
+      ansible.builtin.command: "dnf -y -q upgrade {{ item | map('regex_replace', '^', prefijo) | join(' ') }}"
       loop: "{{ lotes }}"
       loop_control:
         index_var: i_lote
-        label: "lote {{ i_lote + 1 }} de {{ lotes | length }} ({{ item | length }} avisos)"
+        label: "lote {{ i_lote + 1 }} de {{ lotes | length }} ({{ item | length }} {{ 'avisos' if alcance == 'todos' else 'paquetes' }})"
       when: (lookup('ansible.builtin.pipe', 'date +%s') | int) - (t0 | int) < (limite_s | int) - 60
       async: "{{ limite_s | int }}"
       poll: 15
@@ -144,8 +156,8 @@
     - name: Resultado
       ansible.builtin.debug:
         msg: >-
-          {{ inventory_hostname }}: {{ 'sin avisos de seguridad pendientes, nada que aplicar' if not avisos else
-          (avisos | length | string) ~ ' avisos en ' ~ (lotes | length | string) ~ ' lotes: ' ~ n_ok ~ ' aplicados, ' ~ n_err ~ ' con error, '
+          {{ inventory_hostname }}: {{ ('sin avisos de seguridad pendientes' if alcance == 'todos' else 'los CVE elegidos ya no tienen parche pendiente') ~ ', nada que aplicar' if not avisos else
+          (avisos | length | string) ~ (' avisos' if alcance == 'todos' else ' paquetes') ~ ' en ' ~ (lotes | length | string) ~ ' lotes: ' ~ n_ok ~ ' aplicados, ' ~ n_err ~ ' con error, '
           ~ n_sin ~ ' sin aplicar por el límite de ' ~ (pp_limite_min | int | string) ~ ' min' }}{{ ' (CVE: ' ~ (lista | join(', ')) ~ ')' if lista else '' }}
           · reinicio requerido: {{ r_reboot.stdout }} · {{ 'reiniciado' if r_rb is not skipped else ('reinicio programado a las ' ~ hora)
           if r_prog is not skipped else 'no se reinició (política: ' ~ reinicio ~ ')' }}
