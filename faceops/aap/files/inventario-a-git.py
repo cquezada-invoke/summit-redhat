@@ -52,9 +52,10 @@ def leer(ruta):
     out = {}
     if ruta.endswith(".zip"):
         with zipfile.ZipFile(io.BytesIO(datos)) as z:
-            for n in z.namelist():
-                if not n.endswith("/"):
-                    out[n.replace("\\", "/")] = z.read(n)
+            for i in z.infolist():   # Compress-Archive de Windows usa «\\» y deja entradas de carpeta («archivos\\C\\»): no son archivos
+                n = i.filename.replace("\\", "/")
+                if not n.endswith("/") and not i.is_dir():
+                    out[n] = z.read(i)
     else:
         with tarfile.open(fileobj=io.BytesIO(datos), mode="r:gz") as t:
             for m in t.getmembers():
