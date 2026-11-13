@@ -83,3 +83,94 @@ def chip(ep):
         return None
     e = etapas().get(n, {})
     return {"n": n, "nombre": e.get("nombre", ""), "color": e.get("color") or "#0066cc"}
+
+
+# ── Bloqueo temporal de controles de otras etapas (datos/etapas.yml › bloqueo) ──────────────────────────────────────────
+def _bloqueo():
+    return _datos().get("bloqueo") or {}
+
+
+def bloqueo_activo():
+    try:
+        from .bd import ajuste
+        a = ajuste("etapas_bloqueo")
+        if a not in (None, ""):
+            return a == "1"
+    except Exception:  # noqa: BLE001
+        pass
+    return bool(_bloqueo().get("activo"))
+
+
+def fijar_bloqueo(activo):
+    from .bd import ajuste
+    ajuste("etapas_bloqueo", "1" if activo else "0")
+
+
+def foco():
+    """Etapa en revisión: la mayor liberada o, sin restricción, la primera definida."""
+    lib = liberadas()
+    return max(lib) if lib else min(etapas() or {1: None})
+
+
+def glosa(n):
+    b = _bloqueo()
+    return (b.get("glosa") or "Etapa {n} · aún no liberada").format(n=n) if n else (b.get("glosa_sin_etapa") or "Otra etapa · aún no liberada")
+
+
+def etapa_de_auto(a):
+    """Etapa de una acción del catálogo: la que la declara en «acciones»; si no, la de su sección del menú (areas_etapa)."""
+    n = de_accion(a.get("nombre_aap") or "")
+    if n is not None:
+        return n
+    try:
+        from .areas import seccion_de
+        return (_bloqueo().get("areas_etapa") or {}).get(seccion_de(a))
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def accion_bloqueada(a):
+    """Glosa si la acción es de una etapa posterior a la en revisión (o sin etapa) y el bloqueo está activo; si no, None."""
+    if not bloqueo_activo():
+        return None
+    n = etapa_de_auto(a)
+    return None if (n is not None and n <= foco()) else glosa(n)
+
+
+def ruta_bloqueada(ruta):
+    """(etapa, glosa) si la ruta (sin el prefijo del cliente) es de otra etapa según las reglas; si no, None."""
+    import re
+    if not bloqueo_activo():
+        return None
+    for r in _bloqueo().get("reglas") or []:
+        if (r.get("etapa") or 99) <= foco():
+            continue
+        for rx in r.get("rutas") or []:
+            if re.search(rx, ruta):
+                return r.get("etapa"), glosa(r.get("etapa"))
+    return None
+
+
+def config_cliente(cliente_id):
+    """Lo que necesita el navegador para bloquear controles: reglas y la etapa de cada acción del catálogo."""
+    if not bloqueo_activo():
+        return None
+    import time
+    from .bd import q
+    f = foco()
+    c = _cfg.get(cliente_id)
+    if c and time.time() - c[0] < 60 and c[1] == (f, _c["m"]):
+        return c[2]
+    reglas = [{"n": r.get("etapa"), "g": glosa(r.get("etapa")), "sel": r.get("selectores") or [], "cont": r.get("contenedores") or [],
+               "rutas": r.get("rutas") or []} for r in _bloqueo().get("reglas") or [] if (r.get("etapa") or 99) > f]
+    autos = {}
+    for a in q("SELECT * FROM automatizaciones WHERE cliente_id=?", cliente_id):
+        n = etapa_de_auto(dict(a))
+        if n is None or n > f:
+            autos[a["id"]] = {"n": n, "g": glosa(n)}
+    out = {"reglas": reglas, "autos": autos}
+    _cfg[cliente_id] = (time.time(), (f, _c["m"]), out)
+    return out
+
+
+_cfg = {}

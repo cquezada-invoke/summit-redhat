@@ -14,6 +14,46 @@
 #   rutas:     referencia legible (planilla «FaceOps - Funcionalidades y módulos» › columna Pantalla); no la usa el código
 #   acciones:  acciones (plantillas de AAP) que la etapa libera
 etapas_liberadas: []
+
+# Bloqueo TEMPORAL de controles de otras etapas dentro de las pantallas de la etapa en revisión (la mayor liberada, o la 1):
+# todo botón, enlace o acción que lleve a funcionalidad de otra etapa queda deshabilitado con la glosa «Etapa N · aún no
+# liberada» (también para administradores y con el filtro del menú apagado), y si es una acción el servidor la rechaza.
+# Se apaga con «activo: false» o desde Administración › Etapas de liberación (ajuste «etapas_bloqueo», que manda).
+# Por regla: etapa (número del Plan de cierre; vacío = «otra etapa»), selectores (el control mismo), contenedores (todo control
+# adentro) y rutas (expresiones sobre la ruta del enlace o del formulario, sin el prefijo del cliente; en POST se rechazan).
+# Las acciones del catálogo toman su etapa de «acciones» de cada etapa y, si no están, de su sección (areas_etapa).
+bloqueo:
+  activo: true
+  glosa: "Etapa {n} · aún no liberada"
+  glosa_sin_etapa: "Otra etapa · aún no liberada"
+  areas_etapa: {monitoreo: 2, servidores: 3, so: 3, plataformas: 3, contenedores: 3, bd: 4, seguridad: 5, redes: 6, storage: 6,
+                infraestructura: 7, hipervisores: 7, nube: 7, aplicaciones: 8, arquitectura: 8, disponibilidad: 8, respaldos: 8,
+                devsecops: 9, integraciones: null}
+  reglas:
+    - etapa: 2      # Monitoreo, salud y alertas
+      selectores: [".al-btn", ".sl-barra", ".btn-prev", "#hb-btn ~ .al-btn"]
+      contenedores: ["#al-dlg", "#sl-dlg"]
+      rutas: ['/alertas(/|\?|$)', '^/monitoreo/(radar|kpi-okr|itil|alertas)', '^/autocuidado', '^/incidentes', '^/grafana/', '^/deudas']
+    - etapa: 3      # Plataformas, contenedores, sistemas operativos y ciclo de vida de servidores
+      selectores: ["#hb-btn", ".hb-btn", ".comp-mas", ".btn-plat", ".btn-desinst", ".ico-en.actualizar:not(.btn-agc)", "[onclick*='fxReplicar']"]
+      contenedores: ["#hb-dlg", "#dlg-plat", "#actualizacion", "#usuarios-so"]
+      rutas: ['/evaluar-so', '^/ciclo-vida', '^/sistemas-operativos', '^/so/', '^/plataformas', '/habilidad', '/skills', '^/stack', '^/homologacion', '^/licencias']
+    - etapa: 5      # Seguridad: CVE, parches y certificados
+      contenedores: ["#cves", "#politicas", "#cred-web"]
+      rutas: ['^/politicas', '/cves?(/|\?|$)', '/parches', '^/certificados', '/certificado', '^/escaneo', '^/seguridad', '/credencial-web']
+    - etapa: 6      # Redes, storage, estaciones y Edge
+      selectores: [".disco-clic", ".dk-tab", ".btn-disco-det"]
+      contenedores: ["#dk-velo"]
+      rutas: ['^/redes', '^/storage', '^/estaciones', '^/edge', '/discos?(/|$)']
+    - etapa: 7      # Hipervisores, nubes e infraestructuras conectadas
+      selectores: [".btn-energ.mover", "[onclick*='fxAbrirRecursos']", "#rend_cpu"]
+      contenedores: ["#dlg-mover", "#rec-velo"]
+      rutas: ['^/hipervisores', '^/nubes', '^/infraestructuras', '^/centros-datos', '^/ecosistema', '/traslado', '/recursos(/|$)', '/mover']
+    - etapa: 8      # Gobierno: stack, reportes, SLA, segmentos de negocio, respaldos
+      contenedores: ["#puntos", "#pr-velo", "#segmentos-negocio", "#rep-dlg", "#rec-velo-pr"]
+      rutas: ['/puntos(/|$)', '/recuperar', '/volver', '/versiones', '/respaldo', '^/respaldos', '^/mapa', '/replicar', '^/sla', '^/reportes', '^/gobierno', '^/arquitectura', '/segmentos']
+    - etapa: 9      # Fábrica de software, DevSecOps e IA
+      rutas: ['^/devsecops', '^/fabrica', '^/politicas-desarrollo', '^/ia(/|$)']
 etapas:
   1:
     nombre: Núcleo

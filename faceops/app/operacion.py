@@ -371,6 +371,12 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     ok, por_que = puede_ejecutar(usuario, cliente["id"], auto)
     if not ok:
         raise PermissionError(por_que)
+    from flask import has_request_context, session as _ses
+    if has_request_context() and _ses.get("uid") and not prueba:   # bloqueo temporal por etapas: desde la consola (sesión de una persona) solo las acciones de la etapa en revisión
+        from .etapas import accion_bloqueada
+        g_ = accion_bloqueada(auto)
+        if g_:
+            raise PermissionError(f"«{auto['nombre']}»: {g_}")
     from .pruebas import estado as estado_prueba
     ep_ = estado_prueba(dict(auto, cliente_id=cliente["id"]))
     from .pruebas import exceptuada as _exceptuada

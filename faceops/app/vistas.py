@@ -2177,8 +2177,11 @@ def configuracion_etapas():
     validas = set(_et.etapas())
     lib = [int(x) for x in request.form.getlist("etapa") if x.isdigit() and int(x) in validas]
     _et.fijar_liberadas(lib)
-    auditar(g.usuario["usuario"], g.cliente["id"], "etapas liberadas", ", ".join(map(str, lib)) or "sin restricción", {"etapas": lib})
-    flash("Etapas liberadas: " + (", ".join(f"Etapa {n}" for n in lib) if lib else "sin restricción (todo visible)"), "ok")
+    bq = request.form.get("bloqueo") == "1"
+    _et.fijar_bloqueo(bq)
+    auditar(g.usuario["usuario"], g.cliente["id"], "etapas liberadas", ", ".join(map(str, lib)) or "sin restricción", {"etapas": lib, "bloqueo": bq})
+    flash("Etapas liberadas: " + (", ".join(f"Etapa {n}" for n in lib) if lib else "sin restricción (todo visible)")
+          + (" · controles de otras etapas bloqueados" if bq else " · sin bloqueo de controles"), "ok")
     return redirect(url_for("consola.configuracion") + "#etapas")
 
 
@@ -8628,6 +8631,22 @@ def _menu_permitido(t, acc):
     if t == "Acciones":
         return bool(acc["ns"])
     return True
+
+
+@bp.before_request
+def _bloqueo_etapas():
+    """Bloqueo temporal (datos/etapas.yml › bloqueo): una acción (POST) de una funcionalidad de otra etapa se rechaza en el servidor."""
+    if request.method in ("GET", "HEAD", "OPTIONS") or not g.get("usuario") or request.endpoint in ("consola.configuracion_etapas", "consola.salir", "consola.ingresar", "consola.ingresar_codigo"):
+        return None
+    from . import etapas as _et
+    b = _et.ruta_bloqueada(request.path)
+    if not b:
+        return None
+    auditar(g.usuario["usuario"], (g.get("cliente") or {}).get("id"), "acción bloqueada por etapa", request.path, {"etapa": b[0]})
+    if request.is_json or request.accept_mimetypes.best == "application/json" or request.headers.get("X-Requested-With") or "fetch" in (request.headers.get("Sec-Fetch-Mode") or "") and request.headers.get("Sec-Fetch-Dest") == "empty":
+        return {"error": b[1], "bloqueo_etapa": b[0]}, 403
+    flash(b[1], "error")
+    return redirect(request.referrer or url_for("consola.inicio"))
 
 
 @bp.before_request

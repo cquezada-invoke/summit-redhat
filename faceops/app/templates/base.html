@@ -132,6 +132,7 @@
 {% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
 <div class="contenido">
 {% set et_ = etapa_pantalla() %}{% if et_ %}<span class="etapa-chip" data-etapa-chip="{{ et_.n }}" title="Pantalla de la Etapa {{ et_.n }} · {{ et_.nombre }}" style="--et:{{ et_.color }}">Etapa {{ et_.n }}</span>{% else %}<span hidden data-etapa-chip=""></span>{% endif %}
+{% set bq_ = etapa_bloqueo() if et_ else None %}{% if bq_ %}<script type="application/json" id="etapa-bloqueo">{{ dict(bq_, pre=(request.script_root or ''))|tojson }}</script>{% endif %}
 <p class="aviso-fuera-etapa">Esta pantalla no es de la etapa en revisión: se muestra atenuada. Desmarca «Ver solo Etapa …» en el pie del menú para verla normal.</p>
 {% block cuerpo %}{% endblock %}
 <p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops.texto }}{% if version_faceops.commit %} ({{ version_faceops.commit[:7] }} · {{ version_faceops.fecha|fecha }}){% endif %} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
@@ -140,6 +141,25 @@
 <script>/* distintivo «Etapa N»: va junto al título de la pantalla */
 (()=>{const mover=()=>{const ch=document.querySelector('main .contenido>.etapa-chip');if(!ch)return;const h=document.querySelector('main .contenido h1')||document.querySelector('main .contenido h2');if(h)h.appendChild(ch);};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mover);else mover();document.addEventListener('faceops:pagina',mover);})();</script>
+<script>/* Bloqueo temporal por etapas (datos/etapas.yml › bloqueo): en las pantallas de la etapa en revisión, todo control que
+   lleve a funcionalidad de otra etapa queda deshabilitado con su glosa; el servidor además rechaza esas acciones. */
+(()=>{let cfg=null,rx=[];const CTRL='a[href],button,input:not([type=hidden]),select,textarea,summary,[onclick],[role=button]';
+const ruta=u=>{try{const p=new URL(u,location.href);if(p.origin!==location.origin)return p.pathname.startsWith('/grafana')?p.pathname:null;let r=p.pathname;const pre=(cfg&&cfg.pre)||'';if(pre&&r.startsWith(pre+'/'))r=r.slice(pre.length);else{const raiz={{ (request.script_root or '')|tojson }};if(raiz&&r.startsWith(raiz+'/'))r=r.slice(raiz.length);}return r+(p.search||'');}catch(e){return null}};
+const marcar=(el,g)=>{if(el.classList.contains('bloq-etapa'))return;el.classList.add('bloq-etapa');el.setAttribute('aria-disabled','true');el.dataset.bloqGlosa=g;el.title=g;
+  if('disabled' in el&&el.tagName!=='A')el.disabled=true;if(el.tagName==='A'||el.tagName==='BUTTON'||el.tagName==='SUMMARY'){const s=document.createElement('span');s.className='bloq-glosa';s.textContent=g;el.insertAdjacentElement('afterend',s);}};
+const aplicar=()=>{const j=document.getElementById('etapa-bloqueo');if(!j){cfg=null;return}if(!cfg||j.dataset.leido!=='1'){try{cfg=JSON.parse(j.textContent)}catch(e){cfg=null;return}j.dataset.leido='1';rx=cfg.reglas.map(r=>({r,x:r.rutas.map(t=>new RegExp(t))}))}
+  const m=document.querySelector('main');if(!m)return;
+  for(const {r,x} of rx){for(const s of r.sel){try{document.querySelectorAll('main '+s+', dialog '+s).forEach(el=>marcar(el,r.g))}catch(e){}}
+    for(const s of r.cont){try{document.querySelectorAll(s).forEach(c=>{if(!c.closest('main')&&c.tagName!=='DIALOG')return;if(!c.dataset.bloqCont){c.dataset.bloqCont='1';c.classList.add('bloq-cont');const s_=document.createElement('div');s_.className='bloq-glosa bloq-glosa-cont';s_.textContent=r.g;c.insertAdjacentElement('afterbegin',s_);}
+      c.querySelectorAll(CTRL).forEach(el=>{if(!el.closest('.bloq-glosa'))marcar(el,r.g)})})}catch(e){}}}
+  document.querySelectorAll('main a[href], main form[action], main [data-url], dialog a[href], dialog [data-url]').forEach(el=>{if(el.classList.contains('bloq-etapa'))return;const u=el.getAttribute('href')||el.getAttribute('action')||el.dataset.url;if(!u||u.startsWith('#')||u.startsWith('javascript:'))return;const p=ruta(u);if(p===null)return;
+    const ma=p.match(/^\/automatizaciones\/(\d+)(\/|$|\?)/);if(ma&&cfg.autos[ma[1]]){marcar(el,cfg.autos[ma[1]].g);return}
+    for(const {r,x} of rx){if(x.some(t=>t.test(p))){if(el.tagName==='FORM')el.querySelectorAll('button,input[type=submit]').forEach(b=>marcar(b,r.g));else marcar(el,r.g);return}}});};
+let pend=0;const programar=()=>{if(pend)return;pend=requestAnimationFrame(()=>{pend=0;aplicar()})};
+document.addEventListener('click',e=>{const b=e.target.closest('.bloq-etapa');if(!b)return;e.preventDefault();e.stopImmediatePropagation();window.fxAviso&&fxAviso(b.dataset.bloqGlosa||'Aún no liberada','error');},true);
+document.addEventListener('submit',e=>{const f=e.target;if(f.querySelector('.bloq-etapa[type=submit],button.bloq-etapa')&&!f.querySelector('button:not(.bloq-etapa),input[type=submit]:not(.bloq-etapa)')){e.preventDefault();e.stopImmediatePropagation();}},true);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',aplicar);else aplicar();document.addEventListener('faceops:pagina',()=>{cfg=null;aplicar()});
+try{new MutationObserver(ms=>{if(ms.some(x=>[...x.addedNodes].some(n=>n.nodeType===1&&!n.classList.contains('bloq-glosa'))))programar()}).observe(document.body,{childList:true,subtree:true})}catch(e){}})();</script>
 <div id="glosa" class="glosa" hidden></div><div id="fx-avisos" class="fx-avisos" aria-live="polite"></div>
 <script>/* avisos flotantes (errores y confirmaciones breves) */
 window.fxAviso=function(t,tipo){var c=document.getElementById('fx-avisos'),d=document.createElement('div');d.className='fx-aviso '+(tipo||'');d.innerHTML='<span></span><button type="button" aria-label="Cerrar">×</button>';d.firstChild.textContent=t;
@@ -427,6 +447,9 @@ marcar();document.addEventListener('faceops:pagina',marcar);})();</script>
 body.solo-etapa .fuera-etapa{display:none!important}
 .aviso-fuera-etapa{display:none}main.pantalla-fuera-etapa .aviso-fuera-etapa{display:block;background:#eef3fb;border:1px solid #c7d8f2;color:#1d4ea8;border-radius:8px;padding:6px 12px;font-size:13px}
 main.pantalla-fuera-etapa .contenido>*:not(.aviso-fuera-etapa){opacity:.4}
+.bloq-etapa{opacity:.45!important;filter:grayscale(1);cursor:not-allowed!important;pointer-events:auto}
+.bloq-glosa{display:inline-block;margin:0 4px;padding:0 6px;border-radius:999px;background:#f2f2f2;border:1px dashed #8a8d90;color:#4f5255;font-size:10.5px;font-weight:600;line-height:16px;white-space:nowrap;vertical-align:middle}
+.bloq-glosa-cont{display:block;width:max-content;margin:0 0 6px}
 </style>
 <script>/* Sin esperas: lo que depende de un servicio externo o de la máquina en vivo se pinta primero como marcador
    (elemento con id y data-pendiente) y se rehidrata aquí, trayendo de nuevo la página cuando el dato ya llegó en segundo plano. */

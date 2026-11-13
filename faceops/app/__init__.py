@@ -202,7 +202,7 @@ def create_app():
                 "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "acceso": g.get("acceso"), "ver_como": g.get("ver_como"), "bloqueo": g.get("bloqueo") or {},
                 "ve_gobierno": bool(g.get("usuario") and (g.usuario.get("es_admin") or (g.get("acceso") or {}).get("gobierno"))), "version_faceops": version_info(), "j": bd.j,
                 "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos, "logo_ocp": _logo_ocp, "marca_auto": _marca_auto,
-                "etapa_pantalla": _etapa_pantalla, "etapa_foco": _etapa_foco, "etapas_config": _etapas_config}
+                "etapa_pantalla": _etapa_pantalla, "etapa_foco": _etapa_foco, "etapas_config": _etapas_config, "etapa_bloqueo": _etapa_bloqueo}
 
     def _etapa_pantalla():   # distintivo «Etapa N» del título de la pantalla (datos/etapas.yml)
         try:
@@ -211,9 +211,22 @@ def create_app():
         except Exception:  # noqa: BLE001 - el distintivo nunca debe tumbar la página
             return None
 
+    def _etapa_bloqueo():   # reglas para deshabilitar en el navegador los controles de otras etapas (solo en pantallas de la etapa en revisión)
+        try:
+            from .etapas import config_cliente, foco, chip
+            ch = chip(request.endpoint or "")
+            if not ch or ch["n"] > foco():
+                return None
+            cid = (g.get("cliente") or {}).get("id")
+            return config_cliente(cid) if cid else None
+        except Exception:  # noqa: BLE001
+            app.logger.exception("bloqueo por etapas")
+            return None
+
     def _etapas_config():
         from .etapas import etapas, liberadas
-        return {"etapas": etapas(), "lib": liberadas()}
+        from .etapas import bloqueo_activo
+        return {"etapas": etapas(), "lib": liberadas(), "bloqueo": bloqueo_activo()}
 
     def _etapa_foco():   # la etapa del filtro «Ver solo …» del menú: la mayor liberada, o la 1 si no hay restricción
         try:
