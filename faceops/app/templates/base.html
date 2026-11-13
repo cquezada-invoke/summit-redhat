@@ -160,7 +160,8 @@ const aplicar=()=>{const j=document.getElementById('etapa-bloqueo');if(!j){cfg=n
 let pend=0;const programar=()=>{if(pend)return;pend=requestAnimationFrame(()=>{pend=0;aplicar()})};
 document.addEventListener('click',e=>{const b=e.target.closest('.bloq-etapa');if(!b)return;e.preventDefault();e.stopImmediatePropagation();window.fxAviso&&fxAviso(b.dataset.bloqGlosa||'Aún no liberada','error');},true);
 document.addEventListener('submit',e=>{const f=e.target;if(f.querySelector('.bloq-etapa[type=submit],button.bloq-etapa')&&!f.querySelector('button:not(.bloq-etapa),input[type=submit]:not(.bloq-etapa)')){e.preventDefault();e.stopImmediatePropagation();}},true);
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',aplicar);else aplicar();document.addEventListener('faceops:pagina',()=>{cfg=null;aplicar()});
+window.fxBloqEtapas=aplicar;aplicar();   /* ya, sobre el HTML recién servido (antes de pintar): <main> está completo arriba */
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',aplicar);addEventListener('load',aplicar);addEventListener('pageshow',aplicar);document.addEventListener('faceops:pagina',()=>{cfg=null;aplicar()});
 try{new MutationObserver(ms=>{if(ms.some(x=>[...x.addedNodes].some(n=>n.nodeType===1&&!n.classList.contains('bloq-glosa'))))programar()}).observe(document.body,{childList:true,subtree:true})}catch(e){}})();</script>
 <div id="glosa" class="glosa" hidden></div><div id="fx-avisos" class="fx-avisos" aria-live="polite"></div>
 <script>/* avisos flotantes (errores y confirmaciones breves) */
@@ -414,6 +415,7 @@ const base=location.origin, raiz={{ (request.script_root or '')|tojson }};let ca
 const normal=(a)=>{const h=a.getAttribute('href')||'';return !h||h.startsWith('#')||h.startsWith('javascript:')||a.target||a.hasAttribute('download')||a.dataset.completo!==undefined||
   a.origin!==base||/\/(salir|static|admin|cliente\/\d+|ver-como|ingresar)(\/|$)|\.(pdf|conf|log|zip|csv|json|png|svg)(\?|$)|\/consola-web\/|\/web\//.test(a.pathname)||a.closest('dialog,.top-ic-menu')};
 async function correr(cont){const ins=[];for(const v of [...cont.querySelectorAll('script')]){
+  const ty=(v.getAttribute('type')||'').trim().toLowerCase();if(ty&&!/^(text|application)\/(java|ecma)script$/.test(ty))continue;   /* datos (application/json…): quedan en la página, no se ejecutan */
   if(v.src){if(![...document.querySelectorAll('script[src="'+v.getAttribute('src')+'"]')].some(x=>!cont.contains(x))){const n=document.createElement('script');n.src=v.src;await new Promise(r=>{n.onload=n.onerror=r;document.head.appendChild(n);});}}
   else ins.push(v.textContent);v.remove()}
   if(ins.length){const n=document.createElement('script');n.textContent='{\n'+ins.join('\n;\n')+'\n}';document.body.appendChild(n);n.remove()}}

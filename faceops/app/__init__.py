@@ -348,6 +348,8 @@ def create_app():
     def _comprimir(resp):
         """Rendimiento: comprime con gzip el HTML, CSS, JS y JSON (las páginas pesan ~80 KB y quedan en ~12 KB)."""
         import gzip as _gz
+        if (resp.mimetype or "") == "text/html" and "Cache-Control" not in resp.headers:
+            resp.headers["Cache-Control"] = "no-cache, private"   # el HTML depende de la sesión y de las etapas: el navegador siempre revalida
         try:
             if resp.direct_passthrough and request.path.startswith(app.static_url_path or "/static") and (resp.mimetype or "") in ("text/css", "text/javascript", "application/javascript"):
                 resp.direct_passthrough = False   # la hoja de estilos (145 KB) también va comprimida
