@@ -1,0 +1,30 @@
+commit: bcc7572ffcd5167b5ce510c737b15266447e9505
+inicio: 2026-11-13T12:08:32-03:00
+---
+C9 commit: Inventario diario · 2026-11-13 14:54 · 0 archivos
+
+['meta/discos.txt']
+diff --git a/meta/discos.txt b/meta/discos.txt
+index 785eea9..a065e80 100644
+--- a/meta/discos.txt
++++ b/meta/discos.txt
+@@ -4,7 +4,7 @@ tmpfs tmpfs 907104 /dev/shm
+ tmpfs tmpfs 362844 /run
+ /dev/vda4 xfs 19650540 /
+ /dev/vda3 xfs 983040 /boot
+-/dev/vda2 vfat 204580 /boot/efi
++/dev/vda2 vfat 204580 /efi
+ tmpfs tmpfs 181420 /run/user/1000
+ 
+ UUID=b977dbef-b985-4f0d-8c41-0a34281d3838	/	xfs	defaults	0	0
+@@ -15,6 +15,6 @@ NAME    SIZE TYPE FSTYPE  MOUNTPOINT
+ sr0     368K rom  iso9660 
+ vda      20G disk         
+ ├─vda1    1M part         
+-├─vda2  200M part vfat    /boot/efi
++├─vda2  200M part vfat    /efi
+ ├─vda3    1G part xfs     /boot
+ └─vda4 18.8G part xfs     /
+PUNTO PR-SRV-E1PRUEBA-01-0010 500 None 265 False False False False False
+IIS sin probar
+--- fin: 2026-11-13T12:08:41-03:00 · código: 0
