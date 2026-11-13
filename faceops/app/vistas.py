@@ -8640,6 +8640,12 @@ def _bloqueo_etapas():
         return None
     from . import etapas as _et
     b = _et.ruta_bloqueada(request.path)
+    aid = (request.view_args or {}).get("aid")
+    if not b and aid and g.get("cliente"):   # acción del catálogo de otra etapa (ficha de la acción o ficha de la máquina)
+        a_ = q1("SELECT * FROM automatizaciones WHERE id=? AND cliente_id=?", aid, g.cliente["id"])
+        gl = _et.accion_bloqueada(dict(a_)) if a_ else None
+        if gl:
+            b = (_et.etapa_de_auto(dict(a_)), gl)
     if not b:
         return None
     auditar(g.usuario["usuario"], (g.get("cliente") or {}).get("id"), "acción bloqueada por etapa", request.path, {"etapa": b[0]})

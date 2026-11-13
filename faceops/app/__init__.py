@@ -218,7 +218,11 @@ def create_app():
             if not ch or ch["n"] > foco():
                 return None
             cid = (g.get("cliente") or {}).get("id")
-            return config_cliente(cid) if cid else None
+            cfg = config_cliente(cid) if cid else None
+            aid = (request.view_args or {}).get("aid")
+            if cfg and request.endpoint == "consola.automatizacion" and aid in cfg["autos"]:
+                cfg = dict(cfg, pagina=cfg["autos"][aid]["g"])   # ficha de una acción de otra etapa: no se puede solicitar
+            return cfg
         except Exception:  # noqa: BLE001
             app.logger.exception("bloqueo por etapas")
             return None
