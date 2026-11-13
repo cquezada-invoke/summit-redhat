@@ -1,12 +1,27 @@
-commit: d2028a4a9c8c35dea4779fbcd86206c832326f92
-inicio: 2026-11-13T09:08:17-03:00
+commit: 0862447674cc8b1b7a271e38c9a094d505a849a8
+inicio: 2026-11-13T09:08:58-03:00
 ---
-30263 pending Plataforma · Medir salud  inv 10 lim dc1-sat01:nodo-jboss4:nodo-storage:nodo- lanzado por None scheduled
-30264 pending Plataforma · Medir salud  inv 2 lim nodo-jboss:nodo-jboss-dev:nodo-jboss-qa: lanzado por None scheduled
-30265 pending Plataforma · Medir salud  inv 6 lim nodo-windows lanzado por None scheduled
-30281 pending Certificados · Renovar (EDA)  inv 2 lim nodo-tomcat lanzado por admin manual
-30283 pending OpenShift · Eliminar en GCP  inv 9 lim  lanzado por None scheduled
-30284 pending Autocuidado · Atender alerta  inv 9 lim  lanzado por admin manual
-30285 pending Autocuidado · Liberar disco  inv 9 lim  lanzado por faceops workflow
-30286 pending OpenShift · Recolectar clúster  inv 12 lim ocp-sno lanzado por admin manual
---- fin: 2026-11-13T09:08:24-03:00 · código: 0
+automation-gateway-proxy Up 2 hours
+automation-gateway Up 2 hours
+receptor Up About an hour
+automation-controller-rsyslog Up 2 hours
+automation-controller-task Up About an hour
+automation-controller-web Up 2 hours
+[default capacity=617]
+	[92mdemo-ansible-summit capacity=617 node_type=hybrid version=4.8.11 heartbeat="2026-11-13 12:08:19"[0m
+
+[controlplane capacity=617]
+	[92mdemo-ansible-summit capacity=617 node_type=hybrid version=4.8.11 heartbeat="2026-11-13 12:08:19"[0m
+
+Error: creating temporary passwd file for container a381a11ecc8879d65fe8cd54e36caf8a9b20a4a260c04adf86370434f7954aa8: container a381a11ecc8879d65fe8cd54e36caf8a9b20a4a260c04adf86370434f7954aa8: open /home/cquezada/.local/share/containers/storage/overlay/8eda07756da41776a3c4ed464b54bd394f06125c96ef1d97b0f03df92eb5751a/merged/etc/passwd: no such file or directory
+reiniciado automation-controller-task
+Error: creating temporary passwd file for container 8f5bd370a4c090df3b5bfe695ca9accf1030530c774f435662bb59072d998be2: container 8f5bd370a4c090df3b5bfe695ca9accf1030530c774f435662bb59072d998be2: open /home/cquezada/.local/share/containers/storage/overlay/fc59f2732d8abda09c051150896e95f7433d45d82dd558d7ed00106a6a0387cc/merged/etc/passwd: no such file or directory
+reiniciado automation-controller-web
+[default capacity=617]
+	[92mdemo-ansible-summit capacity=617 node_type=hybrid version=4.8.11 heartbeat="2026-11-13 12:09:33"[0m
+
+[controlplane capacity=617]
+	[92mdemo-ansible-summit capacity=617 node_type=hybrid version=4.8.11 heartbeat="2026-11-13 12:09:33"[0m
+
+ping 200
+--- fin: 2026-11-13T09:10:22-03:00 · código: 0
