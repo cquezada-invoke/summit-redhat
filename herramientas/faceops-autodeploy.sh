@@ -23,7 +23,10 @@ if [ "$NUEVO" = "$ANT" ] && [ "${1:-}" != "--forzar" ]; then exit 0; fi
 log "== despliegue ${ANT:0:8} -> ${NUEVO:0:8}"
 
 # pull --ff-only (con reintento: puede haber otro git trabajando en el mismo árbol)
-ok=0; for i in 1 2 3 4 5; do git pull -q --ff-only origin main >>"$LOG" 2>&1 && { ok=1; break; }; sleep 10; done
+# Si el anfitrión tiene commits locales (no puede hacer push), se rebasan sobre origin/main en vez de frenar el despliegue.
+ok=0; for i in 1 2 3 4 5; do git pull -q --ff-only origin main >>"$LOG" 2>&1 && { ok=1; break; }
+  if git -c user.name='FaceOps autodeploy' -c user.email=cquezada@invoke.cl pull -q --rebase --autostash origin main >>"$LOG" 2>&1; then ok=1; log "commits locales rebasados sobre origin/main"; break; fi
+  git rebase --abort >/dev/null 2>&1; sleep 10; done
 [ $ok = 1 ] || { estado "error: git pull --ff-only falló en $(git rev-parse --short HEAD) (¿cambios locales o historia divergente?) · objetivo ${NUEVO:0:8}"; exit 1; }
 HEADSHA=$(git rev-parse HEAD)
 
