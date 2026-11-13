@@ -1,23 +1,7 @@
-commit: 200813faa1036fa03518b228651a8c448a88a2fa
-inicio: 2026-11-13T08:13:33-03:00
+commit: 12aa6ef6ceae878d1c5db4895dfcb2dea73e4102
+inicio: 2026-11-13T08:29:15-03:00
 ---
-LICENCIA antes {'instance_count': 50, 'current_instances': 50, 'free_instances': 0, 'automated_instances': 50}
-se salta fo-prueba-11121533 179 AAP DELETE hosts/179/ → 400: {"error":"Delete constructed inventory hosts from i
-se salta fo-prueba-a-1424 176 AAP DELETE hosts/176/ → 400: {"error":"Delete constructed inventory hosts from i
-se salta fo-prueba-11121641 180 AAP DELETE hosts/180/ → 400: {"error":"Delete constructed inventory hosts from i
-HOSTS retirados de AAP 0 []
-LICENCIA después {'instance_count': 50, 'current_instances': 50, 'free_instances': 0}
-Traceback (most recent call last):
-  File "/tmp/b08.py", line 63, in <module>
-    alta = registrar_servidores(aap, cl, t); print("ALTA", alta[:300])
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/operacion.py", line 1877, in registrar_servidores
-    h = existe or aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv)})
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 284, in post
-    return self._r("POST", ruta, json=datos or {})
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 277, in _r
-    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
-app.aap.ErrorAAP: AAP POST hosts/ → 403: {"detail":"License count of 50 instances has been reached."}
---- fin: 2026-11-13T08:28:56-03:00 · código: 0
+LICENCIA {'instance_count': 50, 'current_instances': 50, 'free_instances': 0}
+EQUIPO None
+FO [('fo-prueba-a-1424', 'retirado'), ('fo-prueba-11121533', 'retirado'), ('fo-prueba-11121641', 'retirado')]
+--- fin: 2026-11-13T08:29:23-03:00 · código: 0
