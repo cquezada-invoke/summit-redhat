@@ -4897,9 +4897,9 @@ def log_leer(eid):
             return d
     par = {"lg_ruta": ruta, "lg_lineas": _int("lineas", 300, 1, 2000), "lg_saltar": _int("saltar", 0, 0, 10 ** 7),
            "lg_buscar": (request.form.get("buscar") or "").strip()[:120]}
-    from .operacion import solicitar_en_equipo
-    try:
-        t = solicitar_en_equipo(g.usuario, g.cliente, dict(a), dict(e), par, f"Ver log {ruta} de {e['nombre']} en la consola")
+    try:   # acción interna del visor (no publicada en Acciones): se lanza directo sobre la máquina, como la ficha
+        t = solicitar(g.usuario, g.cliente, dict(a), None, par, f"Ver log {ruta} de {e['nombre']} en la consola", None,
+                      {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=dict(e))
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)[:300]}, 409
     auditar(g.usuario["usuario"], g.cliente["id"], "ver log", e["nombre"], {"archivo": ruta, "ticket": t["numero"]})
