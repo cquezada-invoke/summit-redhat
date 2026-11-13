@@ -1,9 +1,12 @@
-commit: c8653bf2a925efb7fedc73578cdae8d4390bd9e7
-inicio: 2026-11-13T09:07:00-03:00
+commit: d2028a4a9c8c35dea4779fbcd86206c832326f92
+inicio: 2026-11-13T09:08:17-03:00
 ---
-Traceback (most recent call last):
-  File "/tmp/b18.py", line 44, in <module>
-    print(jb["id"], jb["status"], jb["name"][:60], jb.get("started", "")[:19], "inv", jb.get("inventory"), "lim", (jb.get("limit") or "")[:40], "lanzado por", (jb.get("summary_fields", {}).get("created_by") or {}).get("username"), jb.get("launch_type"))
-                                                   ~~~~~~~~~~~~~~~~~~~~~^^^^^
-TypeError: 'NoneType' object is not subscriptable
---- fin: 2026-11-13T09:07:37-03:00 · código: 0
+30263 pending Plataforma · Medir salud  inv 10 lim dc1-sat01:nodo-jboss4:nodo-storage:nodo- lanzado por None scheduled
+30264 pending Plataforma · Medir salud  inv 2 lim nodo-jboss:nodo-jboss-dev:nodo-jboss-qa: lanzado por None scheduled
+30265 pending Plataforma · Medir salud  inv 6 lim nodo-windows lanzado por None scheduled
+30281 pending Certificados · Renovar (EDA)  inv 2 lim nodo-tomcat lanzado por admin manual
+30283 pending OpenShift · Eliminar en GCP  inv 9 lim  lanzado por None scheduled
+30284 pending Autocuidado · Atender alerta  inv 9 lim  lanzado por admin manual
+30285 pending Autocuidado · Liberar disco  inv 9 lim  lanzado por faceops workflow
+30286 pending OpenShift · Recolectar clúster  inv 12 lim ocp-sno lanzado por admin manual
+--- fin: 2026-11-13T09:08:24-03:00 · código: 0
