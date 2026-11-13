@@ -17,13 +17,21 @@
     maximo: "{{ pq_maximo | default(600) | int }}"
     token: "{{ faceops_respaldo_token | default('') }}"
   tasks:
-    - name: Solo sistemas con gestor de paquetes (Linux) y con módulos de Ansible (RHEL 5/6 quedan fuera)
+    - name: Solo sistemas con gestor de paquetes (Linux; Windows y equipos de red quedan fuera)
       ansible.builtin.meta: end_host
-      when: (ansible_connection | default('ssh')) in ['winrm', 'psrp', 'network_cli', 'ansible.netcommon.network_cli'] or (faceops_legado | default('')) | length > 0
+      when: (ansible_connection | default('ssh')) in ['winrm', 'psrp', 'network_cli', 'ansible.netcommon.network_cli']
 
+    # RHEL 5/6 (Python sin módulos de Ansible) se detectan aquí, en cada corrida: el dato faceops_legado de la caché de facts
+    # puede haber quedado de una corrida anterior y no debe dejar fuera a una máquina que hoy sí tiene Python
     - name: Gestor de paquetes de la máquina
       ansible.builtin.setup:
         gather_subset: [min, pkg_mgr]
+      register: r_pm
+      ignore_errors: true
+
+    - name: Sin módulos de Ansible (RHEL 5/6) · quedan fuera
+      ansible.builtin.meta: end_host
+      when: r_pm is failed
 
     - name: Paquetes RPM instalados y su repositorio de origen
       ansible.builtin.command: >-

@@ -118,7 +118,8 @@
         (for u in $(cut -d: -f1 /etc/passwd); do crontab -l -u "$u" 2>/dev/null | sed "s|^|$u: |"; done) > "$W/meta/crontab.txt"
         # solo lo estable (sin contadores ni tiempos que cambian cada día)
         (/sbin/ip -br addr 2>/dev/null || /sbin/ifconfig -a 2>/dev/null | grep -E 'inet |Link'; /sbin/ip route 2>/dev/null) > "$W/meta/red.txt"
-        (df -PT 2>/dev/null | awk '{print $1, $2, $3, $7}'; echo; cat /etc/fstab 2>/dev/null; echo; lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT 2>/dev/null) > "$W/meta/discos.txt"
+        # la partición EFI aparece a veces como /efi (montaje automático de systemd) y a veces como /boot/efi: se anota siempre igual
+        (df -PT 2>/dev/null | awk '{print $1, $2, $3, $7}'; echo; cat /etc/fstab 2>/dev/null; echo; lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT 2>/dev/null) | sed -E 's#([[:space:]])/efi$#\1/boot/efi#' > "$W/meta/discos.txt"
         # estructura de carpetas (también las vacías, que Git no guarda): se recrean con su dueño y permisos al recuperar
         for d in /home /root /opt /srv /var/www $(ls -d /*/ 2>/dev/null | sed 's|/$||' | grep -vxE '/(bin|boot|dev|etc|home|lib|lib32|lib64|libx32|media|mnt|opt|proc|root|run|sbin|srv|sys|tmp|usr|var|lost\+found|afs|snap|cdrom)'); do
           [ -d "$d" ] && find "$d" -xdev -type d -printf '%m %u %g %p\n' 2>/dev/null | head -20000; done | sort -k4 > "$W/meta/directorios.txt"
