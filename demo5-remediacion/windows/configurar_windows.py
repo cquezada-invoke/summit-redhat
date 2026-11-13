@@ -74,7 +74,7 @@ paso("AAP: inventario 'Servidores Windows' con nodo-windows (WinRM 5985, NTLM)")
 # 4. Plantillas (Gitea y proyecto los sincroniza configurar_monitoreo.py)
 subprocess.run([sys.executable, os.path.join(os.path.dirname(AQUI), "monitoreo", "configurar_monitoreo.py")], check=True)
 proy = uno("projects", name="Operación · remediación")["id"]
-sn = uno("credentials", name="ServiceNow · ansible.automatizacion")["id"]
+sn = uno("credentials", name="ServiceNow · ansible.automatizacion")   # ya no se usa: el ticket va a Odoo
 odoo = uno("credentials", name="Odoo · Helpdesk Operación")   # la crea configurar_monitoreo.py
 nt = uno("notification_templates", name="Correo · aprobaciones de red")
 for nombre, pb, desc, correo in (
@@ -84,9 +84,11 @@ for nombre, pb, desc, correo in (
     jt = asegurar("job_templates", nombre, {"organization": org, "project": proy, "inventory": inv, "playbook": pb,
                                             "description": desc, "ask_variables_on_launch": True})["id"]
     ya = {c["id"] for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]}
-    for c in (cred, sn) + ((odoo["id"],) if odoo and correo else ()):
+    for c in (cred,) + ((odoo["id"],) if odoo and correo else ()):
         if c not in ya:
             aap("POST", f"job_templates/{jt}/credentials/", {"id": c})
+    if sn and sn["id"] in ya:
+        aap("POST", f"job_templates/{jt}/credentials/", {"id": sn["id"], "disassociate": True})
     if correo and nt:
         for ev in ("success", "error"):
             aap("POST", f"job_templates/{jt}/notification_templates_{ev}/", {"id": nt["id"]}, True)

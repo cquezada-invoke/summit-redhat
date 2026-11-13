@@ -1,6 +1,5 @@
 # Remediación · IIS en Windows (Demo 5 · monitoreo). Lo lanza EDA cuando Prometheus (blackbox) ve que el sitio
-# de nodo-windows no responde. Riesgo bajo: sin aprobación. Abre y resuelve un incidente en ServiceNow y un ticket en Odoo
-# con la evidencia.
+# de nodo-windows no responde. Riesgo bajo: sin aprobación. Abre y cierra un ticket en Odoo con la evidencia.
 - name: Remediación · Sitio IIS caído en Windows
   hosts: nodo-windows
   gather_facts: false
@@ -11,16 +10,6 @@
           ansible.windows.win_service_info:
             name: W3SVC
           register: r_antes
-
-        - name: ServiceNow · abrir incidente
-          ansible.builtin.include_tasks: tareas/snow_incidente.yml
-          vars:
-            inc_accion: abrir
-            inc_producto: Windows
-            inc_titulo: "El sitio web de nodo-windows no responde (IIS {{ r_antes.services[0].state | default('desconocido') }})"
-            inc_detalle: >-
-              Prometheus detectó que el sitio web de nodo-windows (Windows Server 2022 · IIS) dejó de responder.
-              El servicio IIS está {{ r_antes.services[0].state | default('desconocido') }}. Ansible lo levanta automáticamente.
 
         - name: Odoo · abrir ticket
           ansible.builtin.include_tasks: tareas/odoo_ticket.yml
@@ -46,17 +35,6 @@
           retries: 6
           delay: 3
 
-        - name: ServiceNow · resolver incidente
-          ansible.builtin.include_tasks: tareas/snow_incidente.yml
-          vars:
-            inc_accion: resolver
-            inc_cierre: >-
-              Resuelto automáticamente: el sitio web de nodo-windows volvió a responder. El servicio IIS estaba
-              {{ r_antes.services[0].state | default('detenido') }} y se levantó; quedó en inicio automático.
-            inc_tecnico: >-
-              nodo-windows: W3SVC {{ r_antes.services[0].state | default('?') }} (inicio {{ r_antes.services[0].start_mode | default('?') }})
-              → running (auto) con ansible.windows.win_service. Verificado con win_uri http://localhost/ → {{ r_web.status_code }}.
-
         - name: Odoo · cerrar ticket
           ansible.builtin.include_tasks: tareas/odoo_ticket.yml
           vars:
@@ -65,11 +43,6 @@
               Acción: el servicio IIS (W3SVC) estaba {{ r_antes.services[0].state | default('detenido') }}; se levantó y quedó en
               inicio automático. Verificación: http://localhost/ en nodo-windows responde {{ r_web.status_code }}.
       rescue:
-        - name: ServiceNow · escalar
-          ansible.builtin.include_tasks: tareas/snow_incidente.yml
-          vars:
-            inc_accion: escalar
-            inc_tecnico: "{{ ansible_failed_result.msg | default('no se pudo levantar IIS') }}"
         - name: Odoo · dejar el ticket abierto con el error
           ansible.builtin.include_tasks: tareas/odoo_ticket.yml
           vars:
@@ -77,4 +50,4 @@
             odoo_nota: "{{ ansible_failed_result.msg | default('no se pudo levantar IIS', true) }}"
         - name: No se pudo reparar
           ansible.builtin.fail:
-            msg: "IIS no se pudo levantar: queda escalado en ServiceNow"
+            msg: "IIS no se pudo levantar: el ticket de Odoo queda abierto"

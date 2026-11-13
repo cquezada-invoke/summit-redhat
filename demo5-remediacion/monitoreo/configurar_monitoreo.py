@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # Demo 5 · monitoreo: publica playbooks y rulebook en Gitea (invoke/operacion), crea en AAP las plantillas
-# "Remediación · Cola de pagos" y "Remediación · Renovar certificado" (con ServiceNow, Odoo y correo) y la activación
+# "Remediación · Cola de pagos" y "Remediación · Renovar certificado" (con ticket en Odoo y correo) y la activación
 # de EDA "Monitoreo · Alertas de Prometheus" (fuente ansible.eda.alertmanager, :5004). Idempotente.
 import base64, glob, json, os, re, shutil, ssl, subprocess, sys, tempfile, time, urllib.error, urllib.parse, urllib.request
 
@@ -57,7 +57,8 @@ u = aap("POST", f"projects/{proy}/update/", {})
 while aap("GET", f"project_updates/{u['id']}/")["status"] not in ("successful", "failed", "error", "canceled"):
     time.sleep(3)
 inv = uno(aap, "inventories", name="Nodos demo")["id"]
-creds = [uno(aap, "credentials", name="Nodos demo (ansible)")["id"], uno(aap, "credentials", name="ServiceNow · ansible.automatizacion")["id"]]
+creds = [uno(aap, "credentials", name="Nodos demo (ansible)")["id"]]
+sn = uno(aap, "credentials", name="ServiceNow · ansible.automatizacion")   # ya no se usa aquí: el ticket va a Odoo
 # Odoo Helpdesk: cada remediación abre y cierra un ticket. Credencial «Odoo · Helpdesk Operación» (tipo «Odoo · Helpdesk», que crea
 # portal-automatizacion/configurar_aap.py); se crea o actualiza si vienen ODOO_URL, ODOO_DB, ODOO_USUARIO y ODOO_CLAVE en el entorno.
 tipo_o = uno(aap, "credential_types", name="Odoo · Helpdesk")
@@ -83,6 +84,8 @@ for nombre, pb, desc in (("Remediación · Cola de pagos", "playbooks/cola-pagos
     for c in creds:
         if c not in ya:
             aap("POST", f"job_templates/{jt}/credentials/", {"id": c})
+    if sn and sn["id"] in ya:
+        aap("POST", f"job_templates/{jt}/credentials/", {"id": sn["id"], "disassociate": True})
     if nt:
         ok = all(aap("POST", f"job_templates/{jt}/notification_templates_{ev}/", {"id": nt["id"]}, True) is not None
                  for ev in ("success", "error"))
@@ -90,16 +93,19 @@ for nombre, pb, desc in (("Remediación · Cola de pagos", "playbooks/cola-pagos
     paso(f"AAP: plantilla '{nombre}' (id {jt})")
 if nt:  # el mismo notificador sirve a Redes (bloqueo de IP) y a las remediaciones: textos según la plantilla
     m = nt.get("messages") or {}
-    L = "https://dev459364.service-now.com/incident_list.do?sysparm_query=short_descriptionSTARTSWITH%5BDemo%205%5D%5EORDERBYDESCsys_created_on"
+    L = "https://invoke.odoo.com/odoo/action-helpdesk.helpdesk_ticket_action_main_tree"
     for ev in ("success", "error"):
         o = m.get(ev) or {}
         if "es_remed" in (o.get("message") or ""):
-            continue
+            if "Odoo" in (o.get("body") or ""):
+                continue
+            for k in ("message", "body"):   # versión anterior (ServiceNow): se recupera el texto original y se rehace
+                o[k] = (o.get(k) or "").split("{% else %}", 1)[1].rsplit("{% endif %}", 1)[0]
         n = "{{ job.name | replace('Remediación · ','') }}"
         gm = f"Corregido automáticamente: {n}" if ev == "success" else f"No se pudo corregir solo: {n} (escalado)"
         gb = (f"Hola Cristian,\n\nUna alerta de monitoreo (Prometheus) se corrigió automáticamente con Ansible: {n}.\n"
-              f"El incidente quedó registrado y resuelto en ServiceNow:\n{L}\n\nDetalle técnico: {{{{ url }}}}\n") if ev == "success" else (
-              f"Hola Cristian,\n\nAnsible no pudo corregir solo: {n}. El incidente quedó abierto en ServiceNow:\n{L}\n\nDetalle técnico: {{{{ url }}}}\n")
+              f"El ticket quedó registrado y cerrado en Odoo (etiqueta «Demo 5 · Remediación»):\n{L}\n\nDetalle técnico: {{{{ url }}}}\n") if ev == "success" else (
+              f"Hola Cristian,\n\nAnsible no pudo corregir solo: {n}. El ticket quedó abierto en Odoo con el error:\n{L}\n\nDetalle técnico: {{{{ url }}}}\n")
         pre = "{%- set es_remed = 'Remediación' in job.name -%}"
         o["message"] = pre + "{% if es_remed %}" + gm + "{% else %}" + o.get("message", "{{ job_friendly_name }}") + "{% endif %}"
         o["body"] = pre + "{% if es_remed %}" + gb + "{% else %}" + o.get("body", "{{ url }}") + "{% endif %}"

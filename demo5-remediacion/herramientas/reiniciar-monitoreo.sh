@@ -1,6 +1,6 @@
 #!/bin/bash
 # Demo 5 · monitoreo: deja los tres casos listos para repetir (consumidor activo y cola vacía, certificado de
-# 90 días, alerta de Keycloak terminada e IP desbloqueada). Los incidentes de ServiceNow se mantienen.
+# 90 días, alerta de Keycloak terminada e IP desbloqueada). Los tickets de Odoo se mantienen.
 D=$(cd "$(dirname "$0")/../.." && pwd)
 ssh nodo-tomcat 'sudo systemctl start consumidor-pagos'
 ssh nodo-nginx "sudo openssl req -x509 -newkey rsa:2048 -nodes -days 90 -subj /CN=app.summit.lab \

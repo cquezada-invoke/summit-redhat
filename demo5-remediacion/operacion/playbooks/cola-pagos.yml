@@ -1,6 +1,6 @@
 # Remediación · Cola de pagos (Demo 5 · monitoreo). Lo lanza EDA cuando Prometheus/Alertmanager avisa que
 # la cola pagos.entrada acumula mensajes. Riesgo bajo: sin aprobación.
-#   1) incidente en ServiceNow y ticket en Odoo  2) diagnóstico: ¿está vivo el consumidor?  3) lo reactiva  4) espera que la cola baje
+#   1) ticket en Odoo  2) diagnóstico: ¿está vivo el consumidor?  3) lo reactiva  4) espera que la cola baje
 - name: Remediación · Cola de pagos acumulada
   hosts: nodo-tomcat
   gather_facts: false
@@ -17,16 +17,6 @@
           ansible.builtin.shell: "{{ stat_cmd }} | awk -F'|' '$2 ~ /{{ cola }}/ {gsub(/ /,\"\",$5); print $5}'"
           register: r_antes
           changed_when: false
-
-        - name: ServiceNow · abrir incidente
-          ansible.builtin.include_tasks: tareas/snow_incidente.yml
-          vars:
-            inc_accion: abrir
-            inc_producto: AMQ Broker (Artemis)
-            inc_titulo: "Cola {{ cola }} acumulando mensajes ({{ r_antes.stdout | default('?') }} pendientes)"
-            inc_detalle: >-
-              Prometheus detectó que la cola {{ cola }} acumula {{ r_antes.stdout | default('?') }} pagos sin procesar
-              (umbral: 100). Ansible está diagnosticando y corrigiendo automáticamente.
 
         - name: Odoo · abrir ticket
           ansible.builtin.include_tasks: tareas/odoo_ticket.yml
@@ -59,18 +49,6 @@
           delay: 5
           changed_when: false
 
-        - name: ServiceNow · resolver incidente
-          ansible.builtin.include_tasks: tareas/snow_incidente.yml
-          vars:
-            inc_accion: resolver
-            inc_cierre: >-
-              Resuelto automáticamente: el consumidor de pagos estaba detenido; se reactivó y la cola {{ cola }}
-              bajó de {{ r_antes.stdout }} a {{ r_despues.stdout }} mensajes pendientes.
-            inc_tecnico: >-
-              Diagnóstico: consumidor-pagos {{ r_cons.status.ActiveState }} en nodo-tomcat.
-              Acción: systemctl {{ 'start' if r_cons.status.ActiveState != 'active' else 'restart' }} consumidor-pagos.
-              Cola {{ cola }}: {{ r_antes.stdout }} → {{ r_despues.stdout }} mensajes.
-
         - name: Odoo · cerrar ticket
           ansible.builtin.include_tasks: tareas/odoo_ticket.yml
           vars:
@@ -80,11 +58,6 @@
               systemctl {{ 'start' if r_cons.status.ActiveState != 'active' else 'restart' }} consumidor-pagos en nodo-tomcat.
               Verificación: la cola {{ cola }} bajó de {{ r_antes.stdout }} a {{ r_despues.stdout }} mensajes pendientes.
       rescue:
-        - name: ServiceNow · escalar
-          ansible.builtin.include_tasks: tareas/snow_incidente.yml
-          vars:
-            inc_accion: escalar
-            inc_tecnico: "{{ ansible_failed_result.msg | default('la cola no bajó') }}"
         - name: Odoo · dejar el ticket abierto con el error
           ansible.builtin.include_tasks: tareas/odoo_ticket.yml
           vars:
@@ -92,4 +65,4 @@
             odoo_nota: "{{ ansible_failed_result.msg | default('la cola no bajó', true) }}"
         - name: No se pudo resolver solo
           ansible.builtin.fail:
-            msg: "La cola {{ cola }} no bajó: queda escalado en ServiceNow"
+            msg: "La cola {{ cola }} no bajó: el ticket de Odoo queda abierto"
