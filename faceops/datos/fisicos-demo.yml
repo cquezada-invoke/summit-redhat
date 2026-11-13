@@ -1,0 +1,13 @@
+# Datos de DEMOSTRACIÓN de los nodos físicos del laboratorio (no hay hardware real detrás). En un cliente real las plataformas
+# del nodo llegan del inventario (datos.plataformas_nodo) y el BMC por Redfish; este archivo solo existe para el laboratorio.
+# Clave: nombre del equipo en FaceOps o «#<id>» (id de su ficha, /lab/inventario/<id>).
+#   plataformas: lo que corre en el nodo (hipervisor y otras), en el mismo bloque «Plataformas instaladas» que una VM.
+#                infra / infra_tipo: la infraestructura de FaceOps a la que enlaza (p. ej. el vCenter simulado, faceops-vcsim).
+#   bmc:         controlador de administración simulado (herramientas/lab/bmc-simulado.sh: sshd con prompt «iBMC:/->»).
+equipos:
+  "#97":
+    plataformas:
+      - {codigo: vmware-esxi, nombre: "VMware ESXi", version: "8.0 U3", edicion: "vSphere 8 Enterprise Plus",
+         licencia: "licencia vSphere Enterprise Plus · 2 CPU", vcenter: "vCenter simulado (faceops-vcsim)", infra_tipo: vmware, estado: "en ejecución"}
+    bmc: {ip: "192.168.122.1", puerto: 2222, simulado: "contenedor faceops-bmc-sim en el anfitrión KVM",
+          glosa_web: "Sin web del BMC en el laboratorio: el BMC simulado solo atiende SSH"}

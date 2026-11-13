@@ -4942,6 +4942,26 @@ def log_tramo(eid, tid):
     return out
 
 
+@bp.route("/inventario/<int:eid>/bmc/consola")
+@requiere_login
+def consola_bmc(eid):
+    """Consola SSH del controlador de administración (BMC) del nodo físico, en el navegador vía Guacamole, como la de la
+    máquina. La credencial sale de la bóveda (maquinas/<nodo>-bmc); FaceOps no la ve en claro ni la imprime."""
+    from .consola import disponible, url_consola
+    from .hardware_fisico import es_fisico, ficha
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or g.perfil["modo"] != "escritura" or not disponible() or not es_fisico(e):
+        abort(403)
+    b = ficha(e)["bmc"]
+    from .boveda import acceso
+    if not acceso(b["credencial"]):
+        flash(f"El BMC de {e['nombre']} aún no tiene credencial en la bóveda (maquinas/{b['credencial']})", "error")
+        return redirect(url_for("consola.equipo", eid=eid) + "#hardware")
+    auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola del BMC", e["nombre"], {"ip": b["ip"], "bmc": b["tipo"]})
+    destino = url_consola(g.usuario, {"nombre": b["credencial"], "ip": b["ip"]}, "ssh", puerto=b.get("puerto") or 22)
+    return _abrir_guacamole(f"BMC de {e['nombre']}", destino)
+
+
 @bp.route("/inventario/<int:eid>/consola")
 @requiere_login
 def consola_equipo(eid):
@@ -4965,6 +4985,11 @@ def consola_equipo(eid):
         comando = f"sudo less -R +G {shlex.quote(ruta)}; exec bash -l"
         auditar(g.usuario["usuario"], g.cliente["id"], "ver log", e["nombre"], {"archivo": ruta})
     destino = url_consola(g.usuario, e, tipo, comando)
+    return _abrir_guacamole(e["nombre"], destino)
+
+
+def _abrir_guacamole(nombre_, destino):
+    e = {"nombre": nombre_}
     # Guacamole reutiliza la sesión anterior (otra máquina) y responde «no existe»: se cierra antes de abrir esta
     return f"""<!doctype html><meta charset="utf-8"><title>Abriendo {e['nombre']}…</title>
 <body style="font-family:sans-serif;color:#555;padding:24px">Abriendo la consola de {e['nombre']}…
@@ -5170,6 +5195,21 @@ def equipo(eid):
                 continue
             componentes.append({"codigo": "op-" + o_["n"], "nombre": o_.get("nombre") or o_["n"], "so": False, "op": o_, "errores": 0, "activos": 0,
                                 "prevenidos": 0, "integracion": None, "acciones": [], "lista": [], "salud": None, "version": None})
+    from .hardware_fisico import es_fisico as _es_fis_c, plataformas_nodo as _plats_nodo
+    if _es_fis_c(e):   # nodo físico: sus plataformas (hipervisor ESXi/KVM/Hyper-V/Nutanix, OpenShift bare metal…) en el mismo bloque que una VM
+        _infs = {i_["nombre"]: i_ for i_ in q("SELECT * FROM infraestructuras WHERE cliente_id=?", g.cliente["id"])}
+        for p_ in _plats_nodo(e):
+            if any(c["codigo"] == p_.get("codigo") for c in componentes):
+                continue
+            inf_ = _infs.get(p_.get("infra") or "") or next((i_ for i_ in _infs.values() if p_.get("infra_tipo") and i_["tipo"] == p_["infra_tipo"]), None)
+            acc_ = []
+            if inf_:
+                acc_.append({"t": p_.get("vcenter") or inf_["nombre"], "url": url_for("consola.hipervisor", iid=inf_["id"]) if inf_["tipo"] in TIPOS_HIPERVISOR
+                             else url_for("consola.infraestructuras") + f"#infra-{inf_['id']}", "ic": "abrir", "nueva": False})
+            nom_ = " · ".join(x for x in (f"{p_.get('nombre', '')} {p_.get('version', '')}".strip(), p_.get("edicion")) if x)
+            componentes.append({"codigo": p_.get("codigo") or (p_.get("nombre") or "plataforma").lower().replace(" ", "-"), "nombre": nom_, "so": False,
+                                "errores": 0, "activos": 0, "prevenidos": 0, "integracion": p_.get("licencia"), "acciones": acc_, "lista": [],
+                                "nodo_fisico": p_, "estado_vivo": p_.get("estado")})
     nodo_c = j(e["datos"], {}).get("nodo_ocp") or {}
     if nodo_c and not any(c["codigo"] == "openshift-nodo" for c in componentes):   # un nodo de OpenShift corre la plataforma OpenShift
         cl_ = q1("SELECT id, nombre, so FROM equipos WHERE id=?", nodo_c.get("cluster_id")) if nodo_c.get("cluster_id") else None

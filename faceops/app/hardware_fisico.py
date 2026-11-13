@@ -3,10 +3,36 @@ firmware y eventos). Lo que entrega el SMBIOS de la máquina (fabricante, modelo
 que exista la integración con el BMC de cada marca (Redfish: iDRAC, iLO, XClarity, CIMC, iRMC, iBMC). Lo emulado es
 determinista por número de serie y queda marcado como tal en la ficha."""
 import hashlib
+import os
 import re
 from datetime import date, timedelta
 
+import yaml
+
 from .bd import j
+
+_DEMO = {}
+
+
+def demo(e):
+    """Datos de demostración del nodo físico (datos/fisicos-demo.yml, por nombre): plataformas instaladas (hipervisor…) y su
+    BMC simulado. En un cliente real estos datos llegan del inventario; el archivo solo existe para el laboratorio."""
+    ruta = os.path.join(os.path.dirname(__file__), "..", "datos", "fisicos-demo.yml")
+    try:
+        mt = os.path.getmtime(ruta)
+    except OSError:
+        return {}
+    if _DEMO.get("mt") != mt:
+        with open(ruta, encoding="utf-8") as f_:
+            _DEMO.update(mt=mt, d=(yaml.safe_load(f_) or {}).get("equipos") or {})
+    return _DEMO["d"].get(e.get("nombre") or "") or _DEMO["d"].get(f"#{e.get('id')}") or {}
+
+
+def plataformas_nodo(e):
+    """Plataformas instaladas en el nodo físico (hipervisor y otras): las del inventario (datos.plataformas_nodo) o, en el
+    laboratorio, las de datos/fisicos-demo.yml. [{codigo, nombre, version, edicion, licencia, vcenter, infra}]"""
+    d = e.get("_datos") if isinstance(e.get("_datos"), dict) else (j(e.get("datos"), {}) or {})
+    return d.get("plataformas_nodo") or demo(e).get("plataformas") or []
 
 MARCAS = [  # (clave, nombre, patrón del fabricante, BMC, color)
     ("dell", "Dell", r"dell", "iDRAC9", "#0076ce"),
@@ -149,8 +175,9 @@ def ficha(e):
     return {
         "emulado": True, "marca": m, "modelo": modelo or "—", "serie": hw.get("serie") or "—", "bios": hw.get("bios") or "—", "u": p["u"],
         "estado": "crítico" if psu_mal else ("advertencia" if alertas else "OK"), "alertas": alertas,
-        "bmc": {"tipo": m["bmc"], "firmware": fw_bmc, "ip": f"10.20.{oct3}.{10 + _r(serie, 'ipb', 200)}", "redfish": True,
-                "licencia": {"dell": "iDRAC9 Enterprise", "hpe": "iLO Advanced", "lenovo": "XCC2 Platinum", "cisco": "IMC estándar"}.get(m["clave"], "estándar")},
+        "bmc": dict({"tipo": m["bmc"], "firmware": fw_bmc, "ip": f"10.20.{oct3}.{10 + _r(serie, 'ipb', 200)}", "redfish": True,
+                     "licencia": {"dell": "iDRAC9 Enterprise", "hpe": "iLO Advanced", "lenovo": "XCC2 Platinum", "cisco": "IMC estándar"}.get(m["clave"], "estándar"),
+                     "credencial": f"{e.get('nombre')}-bmc", "puerto": 22, "web": None}, **(demo(e).get("bmc") or {})),
         "garantia": {"inicio": inicio.isoformat(), "fin": fin_g.isoformat(), "dias": (fin_g - hoy).days,
                      "nivel": ["ProSupport Plus 4h", "Foundation Care 24x7", "Premier Support", "Smart Net Total Care", "Soporte estándar NBD"][_r(serie, "gar", 5)]},
         "cpu": {"modelo": cpu, "sockets": sockets, "cores_socket": cores, "cores": sockets * cores, "ghz": ghz},

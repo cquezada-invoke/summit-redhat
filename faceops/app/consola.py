@@ -54,12 +54,12 @@ def _cifrar(datos):
     return base64.b64encode(c.update(plano) + c.finalize()).decode()
 
 
-def url_consola(usuario, e, tipo, comando=None):
+def url_consola(usuario, e, tipo, comando=None, puerto=None):
     """La credencial sale de la bóveda (Vault) si la tiene; si no, de la llave local de FaceOps (o la escribe la persona en RDP)."""
     from .boveda import acceso
     cred = acceso(e["nombre"]) or {}
     if tipo == "ssh":
-        param = {"hostname": e["ip"], "port": "22", "username": cred.get("usuario") or "ansible", "color-scheme": "gray-black", "font-size": "12"}
+        param = {"hostname": e["ip"], "port": str(puerto or 22), "username": cred.get("usuario") or "ansible", "color-scheme": "gray-black", "font-size": "12"}
         if cred.get("clave") and not cred.get("llave_privada"):   # equipos de red: usuario y clave
             param["password"] = cred["clave"]
         else:
