@@ -1,18 +1,264 @@
-commit: 761636b2f8bad3896d3cefb26385417d2649efc0
-inicio: 2026-11-13T12:09:22-03:00
+commit: 62e8971a8d2f7bcb226e010bc39e03b7100e8634
+inicio: 2026-11-13T12:36:15-03:00
 ---
-    {% extends "base.html" %}{% block titulo %}{{ p.codigo }} · {{ e.nombre }}{% endblock %}
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/templates/base.html", line 136, in top-level template code
-    {% block cuerpo %}{% endblock %}
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/templates/punto.html", line 81, in block 'cuerpo'
-    <div style="overflow-x:auto"><table class="hist"><tr><th>Qué</th><th>Detalle</th><th>Mecanismo</th><th>Estado</th></tr>{% for x in cb.items|sort(attribute='ok') %}<tr><td>{{ x.que }}</td><td class="mono" style="font-size:12px">{{ x.detalle }}</td><td style="font-size:12.5px">{{ x.mecanismo }}{% if x.ref %} <span class="sub mono" style="font-size:11px">{{ x.ref }}</span>{% endif %}{% if x.nota %}<div class="sub" style="font-size:11.5px">{{ x.nota }}</div>{% endif %}</td><td>{% if x.ok %}<span class="chip s-ok" style="font-size:11px">cubierto</span>{% else %}<span class="chip s-alta" style="font-size:11px">sin cubrir</span>{% endif %}</td></tr>{% endfor %}</table></div>
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/filters.py", line 438, in do_sort
-    return sorted(value, key=key_func, reverse=reverse)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: 'builtin_function_or_method' object is not iterable
-PR-SRV-E1PRUEBA-01-0001 200
-nodo-vault PR-NODO-VAULT-0012 200
---- fin: 2026-11-13T12:09:35-03:00 · código: 0
+===== /lab/inventario/6 474051
+a | /lab/inventario |  |  | Inventario
+button | event.stopPropagation();document.getElementById('al-dlg').sh | al-btn al-solo al-on | alertas | 
+button | this.closest('dialog').close() | al-x |  | ✕
+a | /grafana/d/faceops-al-nodo-jboss?orgId=1&amp;from=now-24h&am |  |  | Ver todas en Grafana ↗
+a | /grafana/d/faceops-al-nodo-jboss?orgId=1&amp;from=now-24h&am |  |  | Ver en Grafana ↗
+select | event.stopPropagation() |  |  | 
+select |  |  |  | 
+button | fxAlExportador(this, &#34;/lab/inventario/6/ejecutar/243&#34 | btn chico gris |  | Instalar exportador (ticket)
+a | /grafana/d/faceops-al-nodo-jboss--jboss?orgId=1&amp;from=now |  |  | Ver todas en Grafana ↗
+a | /grafana/d/faceops-al-nodo-jboss--jboss?orgId=1&amp;from=now |  |  | Ver en Grafana ↗
+a | /lab/inventario/6/alertas/regla?aid=J01&amp;ambito=plataform |  |  | Regla en el monitoreo ↗
+button | /lab/inventario/6/alertas/probar | btn chico gris al-probar | J01 | Probar
+a | /lab/inventario/6/alertas/regla?aid=J02&amp;ambito=plataform |  |  | Regla en el monitoreo ↗
+button | /lab/inventario/6/alertas/probar | btn chico gris al-probar | J02 | Probar
+button | fxAlTicketTodos(this.closest('dialog')) | btn |  | Generar ticket
+a | '+t.url+' |  |  | '+t.numero+'
+a | # |  |  | editar descripción
+button |  | btn chico |  | Guardar
+button | document.getElementById('hb-dlg').showModal() | hb-btn | hb-btn | 
+button | this.closest('dialog').close() | cajon-x |  | ×
+button |  | on |  | Todas
+button |  |  |  | Diferenciador
+button |  |  |  | Quick win
+button |  | btn chico | jboss-eap8 | Ejecutar…
+button |  | btn chico |  | Ejecutar
+button |  | btn chico | evaluar-so | Ejecutar
+button |  | btn chico | escaneo | Ejecutar
+button |  | btn chico gris |  | Cancelar
+button |  | btn chico |  | Solicitar con aprobación
+button |  | cajon-x |  | ×
+button |  | btn chico gris |  | ‹ anterior
+button |  | btn chico gris |  | siguiente ›
+a | '+esc(x.en_curso.url)+' |  |  | '+esc(x.en_curso.numero)+'
+a | '+a.href+' |  |  | '+t.numero+'
+button | window.fxAbrirSalud ? fxAbrirSalud() : document.getElementBy | sl-barra sl-ok |  | 
+a | /lab/monitoreo/radar | btn gris |  | Radar de salud del parque ›
+button | this.closest('dialog').close() | btn |  | Cerrar
+button |  | btn-energ prender |  | 
+button |  | btn-energ apagar |  | 
+a | #p-rhel | so-ficha |  | RedHat 9.8
+a | /lab/hipervisores/1 |  |  | KVM · Santiago ›
+a | http://localhost/git/repositorio/maquina-nodo-jboss/src/bran | mono |  | maquina-nodo-jboss ↗
+a | '+so.url+' |  |  | Solicitar certificado ›
+button | window.fxAbrirRecursos&&fxAbrirRecursos('cpu') | disco-clic |  | 
+button | window.fxAbrirRecursos&&fxAbrirRecursos('ram') | disco-clic |  | 
+button |  | disco-clic btn-disco-det |  | 
+button |  | dk-tab |  | 
+button |  | dk-tab dk-nuevo |  | 
+button |  | btn |  | Solicitar ampliación
+button |  | btn |  | Crear ticket
+button | event.stopPropagation();window.fxAbrirSalud&&fxAbrirSalud(th | sl-barra sl-ok slb-plat |  | 
+button | this.form.accion_.value='Encender' | ico-en encender |  | 
+button | this.form.accion_.value='Apagar' | ico-en apagar |  | 
+button |  | ico-en btn-desinst |  | 
+a | /lab/inventario/6/consola-web/jboss-eap/ | con-btn con-plat |  | 
+a | /lab/inventario/6/consola-web/redis/ | con-btn con-plat |  | 
+a | /lab/inventario/6/consola-web/keycloak/ | con-btn con-plat |  | 
+button | document.getElementById('dlg-plat').showModal() | comp comp-mas |  | 
+button |  | btn chico btn-plat | 9 | Incorporar
+button |  | btn chico btn-plat | 128 | Incorporar
+button |  | btn chico btn-plat | 134 | Incorporar
+button | this.closest('dialog').close();window.fxAbrirRecursos&&fxAbr | btn chico gris |  | Ajustar memoria
+a | # | pend-t |  | 
+button |  | btn chico gris |  | Expandir todo
+button |  | btn chico gris |  | Contraer todo
+a | /lab/incidentes/conocido/31 |  |  | 
+a | /lab/incidentes/conocido/31 |  |  | aplicar prevención
+a | /lab/incidentes/conocido/424 |  |  | 
+button |  | btn chico btn-prev | 18 | Aplicar
+a | /lab/incidentes/conocido/26 |  |  | 
+a | /lab/incidentes/conocido/30 |  |  | 
+a | /lab/incidentes/conocido/29 |  |  | 
+button |  | btn chico btn-prev | 87 | Aplicar
+a | /lab/incidentes/conocido/27 |  |  | 
+a | /lab/incidentes/conocido/32 |  |  | 
+a | /lab/incidentes/conocido/28 |  |  | 
+a | /lab/equipos/6/evaluar-so?destino=10 | ver |  | 
+button |  | btn chico gris |  | Revisar CVEs
+a | /lab/politicas/APP-02 |  |  | 
+a | /lab/tickets/1584 |  |  | FO-LAB-01584
+a | /lab/politicas/AUD-01 |  |  | 
+a | /lab/tickets/1680 |  |  | FO-LAB-01680
+a | /lab/politicas/COM-01 |  |  | 
+a | /lab/tickets/1681 |  |  | FO-LAB-01681
+a | /lab/politicas/COM-02 |  |  | 
+a | /lab/tickets/1682 |  |  | FO-LAB-01682
+a | /lab/politicas/CON-01 |  |  | 
+a | /lab/tickets/1683 |  |  | FO-LAB-01683
+a | /lab/politicas/CON-02 |  |  | 
+a | /lab/tickets/1770 |  |  | FO-LAB-01770
+a | /lab/politicas/DAT-01 |  |  | 
+a | /lab/tickets/41 |  |  | FO-LAB-00041
+a | /lab/politicas/IDN-01 |  |  | 
+a | /lab/tickets/1685 |  |  | FO-LAB-01685
+a | /lab/politicas/RED-01 |  |  | 
+a | /lab/tickets/1766 |  |  | FO-LAB-01766
+a | /lab/politicas/RED-02 |  |  | 
+a | /lab/tickets/1756 |  |  | FO-LAB-01756
+a | /lab/politicas/SO-01 |  |  | 
+a | /lab/tickets/44 |  |  | FO-LAB-00044
+a | /lab/politicas/SO-02 |  |  | 
+a | /lab/tickets/1688 |  |  | FO-LAB-01688
+a | /lab/politicas/SO-03 |  |  | 
+a | /lab/tickets/1689 |  |  | FO-LAB-01689
+a | http://localhost/git/repositorio/-/packages/generic/imagen-r |  |  | registro propio · imagen-rhel9
+button |  | on |  | Todos
+button |  |  |  | Encendidos
+button |  |  |  | Apagados
+button |  | svc-re |  | 
+a | /lab/inventario/6/consola?log=/var/log/audit/audit.log |  |  | /var/log/audit/audit.log
+a | /lab/inventario/6/consola?log=/var/log/cloud-init-output.log |  |  | /var/log/cloud-init-output.log
+a | /lab/inventario/6/consola?log=/var/log/cloud-init.log |  |  | /var/log/cloud-init.log
+a | /lab/inventario/6/consola?log=/var/log/cron |  |  | /var/log/cron
+a | /lab/inventario/6/consola?log=/var/log/dnf.librepo.log |  |  | /var/log/dnf.librepo.log
+a | /lab/inventario/6/consola?log=/var/log/dnf.log |  |  | /var/log/dnf.log
+a | /lab/inventario/6/consola?log=/var/log/dnf.rpm.log |  |  | /var/log/dnf.rpm.log
+a | /lab/inventario/6/consola?log=/var/log/hawkey.log |  |  | /var/log/hawkey.log
+a | /lab/inventario/6/consola?log=/var/log/messages |  |  | /var/log/messages
+a | /lab/inventario/6/consola?log=/var/log/rhsm/rhsm.log |  |  | /var/log/rhsm/rhsm.log
+a | /lab/inventario/6/consola?log=/var/log/rhsm/rhsmcertd.log |  |  | /var/log/rhsm/rhsmcertd.log
+a | /lab/inventario/6/consola?log=/var/log/secure |  |  | /var/log/secure
+a | /lab/inventario/6/consola?log=/var/log/sudo.log |  |  | /var/log/sudo.log
+a | /lab/inventario/6/consola?log=/var/log/tuned/tuned.log |  |  | /var/log/tuned/tuned.log
+a |  | ver-git |  | 
+button | this.form.accion_.value='Encender' | btn chico  |  | Encender
+button | this.form.accion_.value='Apagar' | btn chico gris |  | Apagar
+a | /lab/incidentes/conocido/4 |  |  | 
+a | /lab/incidentes/conocido/6 |  |  | 
+a | /lab/incidentes/conocido/9 |  |  | 
+a | /lab/incidentes/conocido/7 |  |  | 
+a | /lab/incidentes/conocido/394 |  |  | 
+a | /lab/incidentes/conocido/5 |  |  | 
+a | /lab/incidentes/conocido/8 |  |  | 
+a | /lab/automatizaciones/22 | acc-item |  | 
+a | /lab/automatizaciones/25 | acc-item |  | 
+a | /lab/automatizaciones/47 | acc-item |  | 
+a | /lab/automatizaciones/114 | acc-item |  | 
+a | /lab/inventario/6/consola?log=/var/opt/rh/eap8/log/wildfly/s |  |  | /var/opt/rh/eap8/log/wildfly/s
+a | /lab/incidentes/conocido/24 |  |  | 
+a | /lab/incidentes/conocido/25 |  |  | 
+a | /lab/automatizaciones/81 | acc-item |  | 
+a | /lab/automatizaciones/97 | acc-item |  | 
+a | /lab/inventario/6/consola?log=/var/log/redis/redis.log |  |  | /var/log/redis/redis.log
+a | /lab/automatizaciones/10 | acc-item |  | 
+a | /lab/inventario/7 |  |  | nodo-jboss2
+a | /lab/inventario/128 |  |  | nodo-jboss4
+a | /lab/mapa?vista=aplicaciones&amp;segmento=App+de+pagos |  |  | App de pagos
+button | window.fxReplicar&&fxReplicar() | btn chico |  | Solicitar réplica adicional
+button |  | btn chico | rend_cpu | Bajar a 1 vCPU
+button |  | btn chico |  | Respaldar datos
+button |  | btn chico |  | Inventariar ahora
+button |  | btn chico gris |  | Programar inventario diario
+button | this.closest('dialog').close() | btn gris |  | Cancelar
+button |  | btn |  | Generar ticket
+a | '+a.commit_url+' | mono |  | '+esc(String(a.commit).slice(0
+a | '+esc(a.repo)+' | sub |  | repositorio ↗
+a | '+esc(a.artefacto)+' |  |  | '+esc(String(a.artefacto).spli
+button |  | btn chico gris |  | volver a esta
+a | /lab/mapa?vista=aplicaciones&amp;segmento=App+de+pagos&amp;a |  |  | 
+button |  | btn chico gris |  | ✕
+button |  | ico-en encender |  | 
+button |  | ico-en apagar |  | 
+button |  | ico-en actualizar |  | 
+button |  | ico-en quitar |  | 
+button |  | ico-en actualizar btn-agc |  | 
+button |  | ico-en quitar btn-agc |  | 
+button |  | ico-en apagar btn-agc |  | 
+button |  | btn chico |  | Actualizar
+button |  | btn-pr-conf | pr-conf | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0018 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0018#recuperacion | pr-rec |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0017 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0017#recuperacion | pr-rec |  | 
+button |  | btn-ico-sola |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0016 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0016#recuperacion | pr-rec |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0015 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0015#recuperacion | pr-rec |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0014 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0014#recuperacion | pr-rec |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0013 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0013#recuperacion | pr-rec |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0012 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0012#recuperacion | pr-rec |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0011 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0010 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0009 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0008 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0007 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0006 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0005 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0004 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0003 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0002 | mono pr-ver |  | 
+a | /lab/inventario/6/puntos/PR-NODO-JBOSS-0001 | mono pr-ver |  | 
+button |  | btn |  | Crear punto
+a | http://localhost/git/repositorio/puntos-restauracion/src/bra |  |  | Ver los puntos de esta máquina
+summary |  | sub |  | ver detalle
+a | '+c.url+' | mono |  | '+c.corto+'
+a | '+t.url+' | mono |  | '+esc(t.numero)+'
+a | # | hist-mas |  | ver '+(vc.length-n)+' más
+a | # |  | tk-mas | ver '+(vt.length-mostrarT)+' m
+button |  | btn gris rec-cerrar |  | Cancelar
+button |  | btn-energ mover | btn-mover | 
+button |  | btn | mv-ok | Crear ticket de traslado
+button |  |  |  | ×
+button |  | btn gris | fx-no | Cancelar
+button |  | btn | fx-si | Confirmar
+select |  |  |  | '+[10,25,50,100].map(function(
+summary |  |  |  | 
+button |  | btn chico | atj-guardar | Guardar
+button |  | btn chico gris | atj-restablecer | Restablecer
+button | this.closest('dialog').close() | btn gris |  | Cerrar
+button |  | as-btn | as-btn | 
+a | /lab/configuracion/ia#ia-agente | ia-badge |  | IA
+button |  | as-limpiar | as-limpiar | Limpiar
+button |  |  | as-x | ×
+button |  | as-mic | as-mic | 
+button |  | as-voz | as-voz | 
+button |  | btn chico |  | Enviar
+button |  | ver-todo-btn | ver-todo | 
+===== /lab/inventario/12 277973
+a | /lab/inventario |  |  | Inventario
+button | event.stopPropagation();document.getElementById('al-dlg').sh | al-btn al-solo al-off | alertas | 
+button | this.closest('dialog').close() | al-x |  | ✕
+select | event.stopPropagation() |  |  | 
+select |  |  |  | 
+button | fxAlTicketTodos(this.closest('dialog')) | btn |  | Generar ticket
+a | '+t.url+' |  |  | '+t.numero+'
+a | # |  |  | editar descripción
+button |  | btn chico |  | Guardar
+button | document.getElementById('hb-dlg').showModal() | hb-btn | hb-btn | 
+button | this.closest('dialog').close() | cajon-x |  | ×
+button |  | on |  | Todas
+button |  |  |  | Diferenciador
+button |  |  |  | Quick win
+button |  | btn chico | iis-ocp | Ejecutar
+button |  | btn chico |  | Ejecutar
+button |  | btn chico | win-escaneo | Ejecutar
+button |  | btn chico gris |  | Cancelar
+button |  | btn chico |  | Solicitar con aprobación
+button |  | cajon-x |  | ×
+button |  | btn chico gris |  | ‹ anterior
+button |  | btn chico gris |  | siguiente ›
+a | '+esc(x.en_curso.url)+' |  |  | '+esc(x.en_curso.numero)+'
+a | '+a.href+' |  |  | '+t.numero+'
+button | window.fxAbrirSalud ? fxAbrirSalud() : document.getElementBy | sl-barra sl-med |  | 
+a | /lab/monitoreo/radar | btn gris |  | Radar de salud del parque ›
+button | this.closest('dialog').close() | btn |  | Cerrar
+button |  | btn-energ prender |  | 
+button |  | btn-energ apagar |  | 
+a | #p-so | so-ficha |  | Windows Server 2022 Standard E
+a | /lab/hipervisores/1 |  |  | KVM · Santiago ›
+a | http://localhost/git/invoke/estado-servidores | mono |  | estado-servidores ↗
+a | '+so.url+' |  |  | Solicitar certificado ›
+button | window.fxAbrirRecursos&&fxAbrirRecursos('cpu') | disco-clic |  | 
+button | window.fxAbrirRecursos&&fxAbrirRecursos('ram') | disco-clic |  | 
+button |  | dk-tab dk-nuevo |  | 
+button |  | btn |  | Crear ticket
+--- fin: 2026-11-13T12:36:26-03:00 · código: 0
