@@ -1,26 +1,7 @@
-commit: 5124ceb937c40cd98bc026cd0b1de3ad404ec1bd
-inicio: 2026-11-12T20:56:23-03:00
+commit: 95b6ebb10ab5f067acc60b13bad18743cd131af8
+inicio: 2026-11-12T21:17:59-03:00
 ---
-desplegado d4ccca741
-   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 29 reglas en Prometheus y ruta a EDA :5023
-   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
-   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
-repo d4ccca7
-herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
-SINCRONIZADO lab
-== Autocuidado · Atender alerta
-  C1 → exitoso FO-LAB-02411
-CASO C1 ok · Solo avisar
-  C2 → exitoso FO-LAB-02414
-CASO C2 ok · Riesgo bajo certificada
-  C3 → fallido FO-LAB-02416
-CASO C3 falla · Riesgo alto
-  C4a → exitoso FO-LAB-02417
-  C4b → exitoso FO-LAB-02419
-CASO C4 ok · Agrupar
-  C5 → fallido FO-LAB-02420
-CASO C5 ok · Regla inválida
-alertmanager 200
-CASO C6 ok · Cadena completa
-CERT Autocuidado · Atender alerta → sin probar
---- fin: 2026-11-12T21:16:31-03:00 · código: 0
+fallido
+
+{'cuando': '2026-11-12T23:08:39+00:00', 'regla': 'AC07', 'decision': 'propuesta: «Ampliar disco del anfitrión (GCP)» necesita tamaño nuevo del disco (ac_gb) y aprobación humana (capacidad: cuesta dinero y no se puede deshacer)'}
+--- fin: 2026-11-12T21:18:05-03:00 · código: 0
