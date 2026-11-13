@@ -1,108 +1,60 @@
-commit: 776cafd7dab16f44f9f9d720dc608d38dc1435bd
-inicio: 2026-11-13T07:29:25-03:00
+commit: 0b6c363a368044096b3a618eccec42110ea5244e
+inicio: 2026-11-13T07:34:22-03:00
 ---
- 07:29:25 up 5 min,  0 users,  load average: 126.99, 92.96, 39.79
-faceops 200
-aap ping 200
-[]
-summit-dns Up About a minute
-faceops-vcsim Up 6 minutes
-faceops-maqueta Up 6 minutes
-kc-doble-factor Up 7 minutes
-faceops-validador Up 7 minutes
-faceops Up 7 minutes
-faceops-sni Up 7 minutes
-faceops-guacd Up 6 minutes (healthy)
-summit-prometheus Up 7 minutes
-summit-alertmanager Up 7 minutes
-summit-blackbox Up 7 minutes
-summit-grafana Up 7 minutes
-faceops-kb Up 7 minutes
-faceops-publico Up 6 minutes
-faceops-guacamole Up 6 minutes
-clab-summit-red-fw Up 5 minutes
-clab-summit-red-rtr Up 5 minutes
-clab-summit-red-pc-usuario Up 5 minutes
-clab-summit-red-srv-app Up 5 minutes
-clab-summit-red-isp Up 5 minutes
-suc1 Up 2 minutes
-suc2 Up 2 minutes
-suc3 Up 2 minutes
-clab-red-sede-srv-web-01 Up 2 minutes
-clab-red-sede-pc-piso1 Up 2 minutes
-clab-red-sede-pc-piso2 Up 2 minutes
-clab-red-sede-fw-sede-01 Up 2 minutes
-clab-red-sede-srv-web-02 Up 2 minutes
-clab-red-sede-sw-acc-01 Up 2 minutes
-clab-red-sede-sw-core-01 Up 2 minutes
-clab-red-sede-lb-sede-01 Up 2 minutes
-clab-red-sede-rtr-wan-01 Up 2 minutes
-clab-red-sede-pe-isp Up 2 minutes
-postgresql Up 6 minutes
-redis-unix Up 6 minutes
-redis-tcp Up 6 minutes
-automation-gateway-proxy Up 6 minutes
-automation-gateway Up 6 minutes
-receptor Up 5 minutes
-automation-controller-rsyslog Up 5 minutes
-automation-controller-task Up 5 minutes
-automation-controller-web Up 5 minutes
-automation-eda-api Up 7 minutes
-automation-eda-daphne Up 6 minutes
-automation-eda-web Up 6 minutes
-automation-eda-worker-1 Up 7 minutes
-automation-eda-worker-2 Up 6 minutes
-automation-eda-activation-worker-1 Up 7 minutes
-automation-eda-activation-worker-2 Up 6 minutes
-automation-hub-api Up 6 minutes
-automation-hub-content Up 7 minutes
-automation-hub-web Up 6 minutes
-automation-hub-worker-1 Up 6 minutes
-automation-hub-worker-2 Up 6 minutes
-automation-metrics-web Up 6 minutes
-automation-metrics-tasks Up 7 minutes
-automation-metrics-scheduler Up 6 minutes
-gitea Up 6 minutes
-vault Up 3 minutes
- Id   Name                         State
----------------------------------------------
- 1    srv-windows-iis-01           running
- 2    srv-no-existe-99             running
- 4    srv-prueba-resp-01           running
- 6    srv-prueba-rhel8-01          running
- 7    nodo-vault                   running
- 9    srv-prueba-rhel9-01          running
- 10   nodo-jboss4                  running
- 11   nodo-windows                 running
- 12   srv-dell-r660xs-01           running
- 13   srv-hpe-dl360-01             running
- 14   srv-lenovo-sr630-01          running
- 15   srv-fujitsu-rx2540-01        running
- 16   srv-xfusion-2288h-01         running
- 17   srv-dell-r760-01             running
- 18   srv-hpe-dl380-01             running
- 19   srv-lenovo-sr650-01          running
- 20   srv-cisco-c240-01            running
- 21   srv-supermicro-01            running
- 22   sno                          running
- 23   nodo-so                      running
- 24   nodo-tomcat                  running
- 25   nodo-postgres                running
- 26   nodo-nginx                   running
- 27   nodo-jboss-dev               running
- -    dc1-ad01                     shut off
- -    dc1-ds01                     shut off
- -    dc1-idm01                    shut off
- -    dc1-iga01                    shut off
- -    dc1-sat01                    shut off
- -    dc1-sso01                    shut off
- -    ee-centro-datos-prod         shut off
- -    nodo-jboss                   shut off
- -    nodo-jboss-qa                shut off
- -    nodo-jboss2                  shut off
- -    nodo-jboss3                  shut off
- -    nodo-storage                 shut off
- -    pc-oficina-01                shut off
- -    pc-oficina-02                shut off
-788152e Arnés de autocuidado: la alerta sintética de la cadena completa usa un objeto único (EDA ded
---- fin: 2026-11-13T07:31:57-03:00 · código: 0
+== Sistema · Inventariar máquina 104 cambiada visible 1 pb playbooks/inventariar-maquina.yml nodos [] tipo None
+== Sistema · Paquetes · inventario y respaldo 102 cambiada visible 1 pb playbooks/paquetes-registro.yml nodos [] tipo None
+== FaceOps · Vincular máquina on-premise 244 sin probar visible 0 pb playbooks/vincular-onprem.yml nodos [] tipo None
+== FaceOps · Vincular máquina a la bóveda 99 certificada visible 1 pb playbooks/vincular-maquina.yml nodos [] tipo None
+== Infra · Encender o apagar equipo 95 certificada visible 0 pb playbooks/energia.yml nodos [] tipo None
+{'id': 6, 'nombre': 'nodo-jboss', 'estado': 'con datos', 'ip': '192.168.122.15', 'so': 'RedHat 9.8', 'inventario': 'Servidores de aplicación', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 6}
+{'id': 21, 'nombre': 'nodo-jboss-dev', 'estado': 'con datos', 'ip': '192.168.122.21', 'so': 'RedHat 9.8', 'inventario': 'Servidores de aplicación', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 40}
+{'id': 22, 'nombre': 'nodo-jboss-qa', 'estado': 'con datos', 'ip': '192.168.122.20', 'so': 'RedHat 9.8', 'inventario': 'Servidores de aplicación', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 38}
+{'id': 7, 'nombre': 'nodo-jboss2', 'estado': 'con datos', 'ip': '192.168.122.18', 'so': 'RedHat 9.8', 'inventario': 'Servidores de aplicación', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 23}
+{'id': 20, 'nombre': 'nodo-jboss3', 'estado': 'con datos', 'ip': '192.168.122.19', 'so': 'RedHat 9.8', 'inventario': 'Servidores de aplicación', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 36}
+{'id': 128, 'nombre': 'nodo-jboss4', 'estado': 'con datos', 'ip': '192.168.122.105', 'so': 'RedHat 9.6', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 166}
+{'id': 8, 'nombre': 'nodo-nginx', 'estado': 'con datos', 'ip': '192.168.122.11', 'so': 'RedHat 9.8', 'inventario': 'Servidores de aplicación', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 2}
+{'id': 9, 'nombre': 'nodo-postgres', 'estado': 'con datos', 'ip': '192.168.122.13', 'so': 'RedHat 9.8', 'inventario': 'Servidores de aplicación', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 4}
+{'id': 11, 'nombre': 'nodo-so', 'estado': 'con datos', 'ip': '192.168.122.12', 'so': 'RedHat 9.8', 'inventario': 'Nodos demo', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 3}
+{'id': 27, 'nombre': 'nodo-storage', 'estado': 'con datos', 'ip': '192.168.122.167', 'so': 'RedHat 9.8', 'inventario': 'Servidores habilitados', 'categoria': 'almacenamiento', 'forma': 'virtual', 'aap_host_id': 46}
+{'id': 10, 'nombre': 'nodo-tomcat', 'estado': 'con datos', 'ip': '192.168.122.14', 'so': 'RedHat 9.8', 'inventario': 'Servidores de aplicación', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 5}
+{'id': 26, 'nombre': 'nodo-vault', 'estado': 'con datos', 'ip': '192.168.122.210', 'so': 'RedHat 9.8', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 45}
+{'id': 12, 'nombre': 'nodo-windows', 'estado': 'con datos', 'ip': '192.168.122.17', 'so': 'Windows Server 2022 Standard Evaluation', 'inventario': 'Servidores Windows', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 22}
+{'id': 47, 'nombre': 'srv-pn-rhel10-01', 'estado': 'retirado', 'ip': '192.168.122.223', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 66}
+{'id': 48, 'nombre': 'srv-pn-rhel5-01', 'estado': 'retirado', 'ip': '192.168.122.22', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 67}
+{'id': 46, 'nombre': 'srv-pn-rhel6-01', 'estado': 'retirado', 'ip': 'pendiente', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 65}
+{'id': 45, 'nombre': 'srv-pn-rhel7-01', 'estado': 'retirado', 'ip': '192.168.122.200', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 64}
+{'id': 44, 'nombre': 'srv-pn-rhel8-01', 'estado': 'retirado', 'ip': '192.168.122.154', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 63}
+{'id': 43, 'nombre': 'srv-pn-rhel9-01', 'estado': 'retirado', 'ip': '192.168.122.143', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 62}
+{'id': 49, 'nombre': 'srv-pn-ubuntu-01', 'estado': 'retirado', 'ip': '192.168.122.52', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 68}
+{'id': 42, 'nombre': 'srv-pn-vmware-01', 'estado': 'retirado', 'ip': '', 'so': 'Red Hat Enterprise Linux 9', 'inventario': 'Infra · VMware · Santiago', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 61}
+{'id': 50, 'nombre': 'srv-pn-win-01', 'estado': 'retirado', 'ip': 'pendiente', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 69}
+{'id': 52, 'nombre': 'srv-pn2-rhel5-01', 'estado': 'retirado', 'ip': '192.168.122.235', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 72}
+{'id': 51, 'nombre': 'srv-pn2-rhel6-01', 'estado': 'retirado', 'ip': 'pendiente', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 71}
+{'id': 54, 'nombre': 'srv-pn3-rhel5-01', 'estado': 'retirado', 'ip': '192.168.122.230', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 75}
+{'id': 53, 'nombre': 'srv-pn3-rhel6-01', 'estado': 'retirado', 'ip': 'pendiente', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 73}
+{'id': 55, 'nombre': 'srv-pn4-rhel6-01', 'estado': 'retirado', 'ip': '192.168.122.124', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 76}
+{'id': 57, 'nombre': 'srv-pn5-rhel5-01', 'estado': 'retirado', 'ip': '192.168.122.125', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 78}
+{'id': 56, 'nombre': 'srv-pn5-rhel6-01', 'estado': 'retirado', 'ip': '192.168.122.252', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 77}
+{'id': 59, 'nombre': 'srv-pn6-rhel5-01', 'estado': 'retirado', 'ip': '192.168.122.136', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 80}
+{'id': 58, 'nombre': 'srv-pn6-rhel6-01', 'estado': 'retirado', 'ip': '192.168.122.178', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 79}
+{'id': 61, 'nombre': 'srv-pn7-rhel5-01', 'estado': 'retirado', 'ip': '192.168.122.69', 'so': 'RedHat 5.11', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 82}
+{'id': 60, 'nombre': 'srv-pn7-rhel6-01', 'estado': 'retirado', 'ip': '192.168.122.211', 'so': '', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 81}
+{'id': 92, 'nombre': 'srv-prueba-rhel8-01', 'estado': 'retirado', 'ip': '192.168.122.64', 'so': 'RedHat 8.10', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 145}
+{'id': 91, 'nombre': 'srv-prueba-rhel9-01', 'estado': 'retirado', 'ip': '192.168.122.247', 'so': 'RedHat 9.6', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 144}
+{'id': 90, 'nombre': 'srv-prueba-rocky-01', 'estado': 'retirado', 'ip': '192.168.122.216', 'so': 'RedHat 9.8', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 142}
+{'id': 131, 'nombre': 'srv-windows-iis-01', 'estado': 'sin datos', 'ip': '192.168.122.120', 'so': 'Windows Server 2022', 'inventario': 'Servidores habilitados', 'categoria': 'servidor', 'forma': 'virtual', 'aap_host_id': 173}
+usuarios qa: [('cquezada', 1), ('emora', 1), ('qa.nucleo', 1), ('qa.lector', 0)]
+Id:             2
+Name:           srv-no-existe-99
+UUID:           754746e1-93cd-47d0-8c0c-4f9e154afbc7
+OS Type:        hvm
+State:          running
+CPU(s):         1
+CPU time:       43.5s
+Max memory:     2097152 KiB
+srv-prueba-rhel9-01 192.168.122.247/24 
+srv-prueba-rhel8-01 192.168.122.64/24 
+srv-windows-iis-01 192.168.122.120/24 
+srv-prueba-resp-01 192.168.122.149/24 
+srv-no-existe-99 192.168.122.197/24 
+--- fin: 2026-11-13T07:35:14-03:00 · código: 0
