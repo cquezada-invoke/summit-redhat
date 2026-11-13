@@ -1,16 +1,20 @@
-commit: 091cde377f47d03c46cd431ebbce731b18f215f7
-inicio: 2026-11-13T08:46:07-03:00
+commit: f634d231fa02df309e02234402f10c2907d8354a
+inicio: 2026-11-13T08:48:19-03:00
 ---
-fo-prueba-11121533 179 FaceOps · Todos los servidores 'constructed' True
-fo-prueba-11121533 177 Servidores habilitados '' False
-fo-prueba-a-1424 175 Servidores habilitados '' False
-fo-prueba-a-1424 176 FaceOps · Todos los servidores 'constructed' True
-fo-prueba-11121641 178 Servidores habilitados '' False
-fo-prueba-11121641 180 FaceOps · Todos los servidores 'constructed' True
-CONSTRUIDO 16 FaceOps · Todos los servidores 29
-  actualizar [{'inventory_source': 560, 'status': 'started', 'id': 30246, 'type': 'inventory_update', 'url': '/api/controller/v2/inve
-LICENCIA {'instance_count': 50, 'current_instances': 50, 'free_instances': 0}
-QUEDA fo-prueba-11121533 [(179, 16), (177, 10)]
-QUEDA fo-prueba-a-1424 [(175, 10), (176, 16)]
-QUEDA fo-prueba-11121641 [(178, 10), (180, 16)]
---- fin: 2026-11-13T08:47:48-03:00 · código: 0
+LICENCIA antes {'instance_count': 50, 'current_instances': 50, 'free_instances': 0, 'automated_instances': 50}
+HOSTS retirados de AAP 0 []
+LICENCIA después {'instance_count': 50, 'current_instances': 50, 'free_instances': 0}
+Traceback (most recent call last):
+  File "/tmp/b08.py", line 65, in <module>
+    alta = registrar_servidores(aap, cl, t); print("ALTA", alta[:300])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/operacion.py", line 1877, in registrar_servidores
+    h = existe or aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv)})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 284, in post
+    return self._r("POST", ruta, json=datos or {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 277, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP POST hosts/ → 403: {"detail":"License count of 50 instances has been reached."}
+--- fin: 2026-11-13T09:04:41-03:00 · código: 0
