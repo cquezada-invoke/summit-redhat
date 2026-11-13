@@ -1,0 +1,15 @@
+commit: d95f60107fd8fa2934cedf8da1a7220865c47c53
+inicio: 2026-11-13T07:55:13-03:00
+---
+virsh fo-prueba-11121533: error: failed to get domain 'fo-prueba-11121533'
+virsh fo-prueba-a-1424: error: failed to get domain 'fo-prueba-a-1424'
+virsh fo-prueba-11121641: error: failed to get domain 'fo-prueba-11121641'
+Traceback (most recent call last):
+  File "/tmp/b11.py", line 45, in <module>
+    print(n, e and {k: (str(e[k])[:160]) for k in ("estado", "ip", "ubicacion", "forma", "so", "visto", "datos", "skills")})
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/b11.py", line 45, in <dictcomp>
+    print(n, e and {k: (str(e[k])[:160]) for k in ("estado", "ip", "ubicacion", "forma", "so", "visto", "datos", "skills")})
+                            ~^^^
+KeyError: 'skills'
+--- fin: 2026-11-13T07:55:35-03:00 · código: 0
