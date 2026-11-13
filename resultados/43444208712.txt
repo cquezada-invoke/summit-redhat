@@ -1,0 +1,51 @@
+commit: 47f8cbcf5f4bebbee057481bbd5b3027d2a46a8d
+inicio: 2026-11-13T11:35:53-03:00
+---
+VM de prueba srv-e1prueba-01 192.168.122.172 · running
+AVISO: srv-e1prueba-01 ya tenía repositorio
+== C3 srv-e1prueba-01: exitoso FO-LAB-02490
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '495', 'CAMBIOS': '11', 'COMMIT': '45c3ecd67b385a944868236df79dc0715983faea'}}
+  último commit: 45c3ecd6 Inventario diario · 2026-11-13 14:39 · 5 archivos  Archivos: · M archivos/etc/motd · + archivos/opt/jboss-eap-7.4/bin/standalone.conf · + archivos/opt/jboss-eap-7.4/standalone/configuration/standalone
+  PUNTO PR-SRV-E1PRUEBA-01-0004 configuracion no cobertura no  · «motd» no aparece
+CASO C3 falla · Cambiar un archivo de /etc y repetir
+== C4a srv-e1prueba-01: exitoso FO-LAB-02492
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '495', 'CAMBIOS': '1', 'COMMIT': 'd7849a56a2bc379ee256d3c4b468d9b33862afaa'}}
+== C4b nodo-jboss-dev: exitoso FO-LAB-02493
+{'nodo-jboss-dev': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'guardado', 'ARCHIVOS': '715', 'CAMBIOS': '731', 'COMMIT': 'cf3dabb10650bb07d9dde20081fc9b9a0a9ee148'}}
+  zip: configuración 1 · despliegue 2 · data/tmp/log o grande en git 0 · omitido 1 | RPM: configuración 1 · data/tmp/log 0
+CASO C4 ok · JBoss por RPM y desde zip en /opt
+== C8 srv-e1prueba-01: exitoso FO-LAB-02495
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '497', 'CAMBIOS': '6', 'COMMIT': 'ea26e3301a11e6fc7af6ed21dc657d5b2094690d'}}
+['COB_AUTO=/home/ansible|1|4', 'COB_AUTO=/home/faceops|1|4', 'COB_AUTO=/root|1|6', 'COB_RUTA=/app-grande|210|1', 'COB_AUTO=/data|1|1', 'COB_AUTO=/efi|8|9', 'COB_AUTO=/opt/herramienta|1|1', 'COB_AUTO=/var/lib/cloud|1|38', 'COB_SINPAQ=/opt/herramienta|1', 'ART_SUBIDO=/app-grande|app-grande-69bdf25cd486', 'ART_SUBIDO=/opt/herramienta|opt-herramienta-abc2bbc13819', 'ART_OK=/opt/jboss-eap-7.4/standalone/configuration/grande-e1.bin|opt-jboss-eap-7.4-standalone-configuration-grande-e1.bin-eaeb84ecb3dd']
+  PUNTO PR-SRV-E1PRUEBA-01-0006 configuracion no cobertura no  · «/app-grande» no aparece
+CASO C8 falla · Cobertura
+== C9 srv-e1prueba-01: exitoso FO-LAB-02496
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '497', 'CAMBIOS': '1', 'COMMIT': 'db9a986cbbd308139dc0e1646fbdff5c7e918bbb'}}
+CASO C9 falla · Repetir sin cambios
+== C10 srv-e1prueba-01: exitoso FO-LAB-02497
+{'srv-e1prueba-01': {'SECRETOS': '7', 'SECRETOS_BOVEDA': 'guardado', 'ARCHIVOS': '498', 'CAMBIOS': '5', 'COMMIT': 'c7c5b69230deb9624dd00947502712ae4cc5730c'}}
+  BOV 7 ['/etc/pki/tls/private/e1.key', '/opt/app-e1/conf/almacen-e1.jks'] · PUNTO PR-SRV-E1PRUEBA-01-0008 configuracion no cobertura no  · «almacen-e1.jks» no aparece
+CASO C10 falla · Secretos
+HV srv-e1prueba-01 /usr/bin/python-inexistente-e1
+== C5 srv-e1prueba-01: exitoso FO-LAB-02498
+{'srv-e1prueba-01': {'SECRETOS': '7', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '498', 'CAMBIOS': '2', 'COMMIT': 'b7b22c65a1203c5084b5bdad58e9fd27924c6aff'}}
+HV srv-e1prueba-01 (sin)
+  LEGADO False BASE64 True · commit b7b22c65 Inventario diario · 2026-11-13 14:59 · 1 archivo  Archivos: · M archivos/etc/motd 
+CASO C5 falla · Sin Python utilizable (camino RHEL 5/6)
+== C7 srv-e1prueba-01: exitoso FO-LAB-02499
+{'srv-e1prueba-01': {'SECRETOS': '7', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '498', 'CAMBIOS': '0'}}
+  paquetes 0 (C1: 503) · FA RedHat 9.6 | con datos | 192.168.122.172
+CASO C7 falla · Datos del sistema y paquetes
+== C6 srv-windows-iis-01: exitoso FO-LAB-02500
+{'srv-windows-iis-01': {'SECRETOS': '0', 'ARCHIVOS': '5', 'CAMBIOS': '16', 'COMMIT': 'a0ebdc86c072788a5abb9b5cac1a7cc3ee303815'}}
+  meta/sitios-iis.txt sí
+  meta/pools-iis.txt NO
+  meta/paquetes.txt sí
+  meta/caracteristicas.txt sí
+  meta/servicios.txt sí
+  meta/tareas.txt sí
+  applicationHost.config 0
+CASO C6 falla · Windows con IIS
+CASOS_INV [{"id": "C3", "caso": "Cambiar un archivo de /etc y repetir", "resultado": "falla", "evidencia": "FO-LAB-02490: CAMBIOS=11, commit «45c3ecd6 Inventario diario · 2026-11-13 14:39 · 5 archivos Archivos: · M archivos/etc/motd»; PUNTO PR-SRV-E1PRUEBA-01-0004 configuracion no cobertura no  · «motd» no aparece"}, {"id": "C4", "caso": "JBoss por RPM y desde zip en /opt", "resultado": "ok", "evidencia": "FO-LAB-02492 y FO-LAB-02493: standalone/configuration y deployments en archivos/ (zip y RPM); data, tmp y log excluidos; grande-e1.bin (30 MB) en meta/omitidos.txt con su huella"}, {"id": "C8", "caso": "Cobertura", "resultado": "falla", "evidencia": "FO-LAB-02495: /data/prueba entra sola a Git; /app-grande (210 MB) y /opt/herramienta (sin paquete) subidos al registro maquina-srv-e1prueba-01 con su huella; el punto muestra 7 · Cobertura"}, {"id": "C9", "caso": "Repetir sin cambios", "resultado": "falla", "evidencia": "FO-LAB-02496: ART_OK (no vuelve a subir artefactos), bóveda «igual», CAMBIOS=1"}, {"id": "C10", "caso": "Secretos", "resultado": "falla", "evidencia": "FO-LAB-02497: e1.key y almacen-e1.jks fuera de Git; en la bóveda maquinas/srv-e1prueba-01/archivos (guardado); cobertura «cubierto»"}, {"id": "C5", "caso": "Sin Python utilizable (camino RHEL 5/6)", "resultado": "falla", "evidencia": "FO-LAB-02498: datos por shell (Equipo legado) e instantánea por la salida estándar (base64); commit con solo etc/motd (lo demás igual que en RHEL 9)"}, {"id": "C7", "caso": "Datos del sistema y paquetes", "resultado": "falla", "evidencia": "FO-LAB-02499: facts del sistema (FA RedHat 9.6 | con datos | 192.168.122.172) y 0 paquetes con su fuente (C1: 503), igual que antes"}, {"id": "C6", "caso": "Windows con IIS", "resultado": "falla", "evidencia": "FO-LAB-02500: applicationHost.config, sitios y pools, programas, características, servicios y tareas en repositorio/maquina-srv-windows-iis-01"}]
+TKS_INV ["FO-LAB-02490", "FO-LAB-02493", "FO-LAB-02495", "FO-LAB-02496", "FO-LAB-02497", "FO-LAB-02498", "FO-LAB-02499", "FO-LAB-02500"]
+--- fin: 2026-11-13T12:07:29-03:00 · código: 0
