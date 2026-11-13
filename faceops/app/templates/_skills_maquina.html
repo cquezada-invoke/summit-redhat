@@ -39,6 +39,7 @@
 #sk-cajon .sk-tk{font-size:12px;text-align:right}#sk-cajon .sk-tk a{font-weight:600}
 #sk-cajon .sk-form{grid-column:1/-1;margin-top:6px}#sk-cajon .sk-form .fila{justify-content:flex-end;gap:6px;margin-top:6px}
 #sk-cajon .sk-vacio{font-size:12.5px;color:var(--muted);margin:10px 0}
+#sk-cajon .sk-fijo-c>.card,#sk-cajon .sk-fijo-c>#actualizacion{margin-top:4px!important}#sk-cajon .sk-fijo-c .op-card>.fila h2{display:none}
 #sk-dlg .sk-d-txt{font-size:13.5px;margin:6px 0 10px}#sk-dlg .sk-d-pie{display:flex;justify-content:flex-end;gap:8px}
 </style>
 <div id="sk-velo" class="cajon-velo" hidden></div>
@@ -51,6 +52,11 @@
 <span class="sk-chips">{% if s.aprob %}<span class="chip s-media" title="El ticket espera la aprobación de su área antes de ejecutarse">con aprobación</span>{% else %}<span class="chip" title="Se ejecuta al crear el ticket">sin aprobación</span>{% endif %}{% if s.lectura %}<span class="chip s-ok" title="Solo lee: no cambia la máquina">solo lectura</span>{% endif %}{% if s.bloqueo %}<span class="chip s-alta">bloqueada · falta su prueba</span>{% elif s.aid %}<span class="chip" title="Pasó su plan de prueba (regla de prueba)">certificada</span>{% endif %}{% if s.tipo == 'form' %}<span class="chip" title="Pide datos antes de crear el ticket">pide datos</span>{% endif %}</span>
 <span class="sk-acc"><button type="button" class="btn chico{{ ' peligro' if s.destructiva and not dis }}{{ ' gris' if s.tipo == 'abrir' }}" data-sk-ir="{{ s.id }}" {{ 'disabled' if dis }}{% if dis %} title="{{ dis }}"{% endif %}>{{ 'Abrir' if s.tipo == 'abrir' else ('Completar datos' if s.tipo == 'form' else 'Ejecutar') }}</button><span class="sk-tk"></span></span>
 </div>{% endfor %}</details>{% endfor %}
+{# Operaciones del día a día y actualización del sistema operativo: viven aquí, no en el flotante del sistema operativo. La ficha
+   (equipo.html) mueve a estos contenedores el bloque «Operaciones» (_operaciones.html) y «Actualización del sistema operativo»
+   del flotante del SO, con su bloqueo por etapas. Aplica a toda máquina virtual o física. #}
+<details class="sk-grupo sk-fijo" data-g="operaciones" open hidden><summary>Operaciones <span class="sub">del sistema operativo</span></summary><div class="sk-fijo-c" id="sk-op"></div></details>
+<details class="sk-grupo sk-fijo" data-g="actualizacion" open hidden><summary>Actualización del sistema <span class="sub">versiones y evaluación de impacto</span></summary><div class="sk-fijo-c" id="sk-act"></div></details>
 <p class="sk-vacio" hidden>Ninguna skill coincide con la búsqueda.</p>
 </aside>
 <dialog id="sk-dlg" class="dlg" aria-labelledby="sk-d-tit"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
@@ -60,7 +66,7 @@
 const c=document.getElementById('sk-cajon'),v=document.getElementById('sk-velo'),dlg=document.getElementById('sk-dlg'),bq=c.querySelector('.sk-busca'),CSRF={{ csrf|tojson }},MAQ={{ e.nombre|tojson }};
 const ETQ={exitoso:'exitoso',fallido:'fallido',rechazado:'rechazado',vencido:'aprobación vencida',pendiente_aprobacion:'espera aprobación',en_ejecucion:'en ejecución',en_cola:'en cola',cancelado:'cancelado'};
 let plat='',platN='';
-const filtrar=()=>{const t=bq.value.trim().toLowerCase();let n=0;c.querySelectorAll('.sk-grupo').forEach(gr=>{let k=0;gr.querySelectorAll('.sk-item').forEach(it=>{const ok=(!t||it.dataset.q.includes(t))&&(plat?it.dataset.plats.includes(','+plat+','):it.dataset.plats===',,');it.hidden=!ok;if(ok)k++;});gr.hidden=!k;if((t||plat)&&k)gr.open=true;gr.querySelector('summary .sub').textContent=k;n+=k;});c.querySelector('.sk-vacio').hidden=!!n;};
+const filtrar=()=>{const t=bq.value.trim().toLowerCase();let n=0;c.querySelectorAll('.sk-grupo').forEach(gr=>{if(gr.classList.contains('sk-fijo')){const ok=!plat&&!!gr.querySelector('.sk-fijo-c>*')&&(!t||gr.textContent.toLowerCase().includes(t));gr.hidden=!ok;if(ok)n++;return;}let k=0;gr.querySelectorAll('.sk-item').forEach(it=>{const ok=(!t||it.dataset.q.includes(t))&&(plat?it.dataset.plats.includes(','+plat+','):it.dataset.plats===',,');it.hidden=!ok;if(ok)k++;});gr.hidden=!k;if((t||plat)&&k)gr.open=true;gr.querySelector('summary .sub').textContent=k;n+=k;});c.querySelector('.sk-vacio').hidden=!!n;};
 const abrir=window.fxAbrirSkills=(cod,nom)=>{plat=typeof cod==='string'?cod:'';platN=nom||plat;c.querySelector('.sk-h').textContent='Skills · '+(plat?platN:SO);
  const fi=c.querySelector('.sk-filtro');fi.hidden=!plat||!c.querySelector('.sk-item[data-plats=",,"]');bq.value='';filtrar();c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'));setTimeout(()=>bq.focus(),60);};
 const cerrar=()=>{c.classList.remove('abierto');v.hidden=true;setTimeout(()=>c.hidden=true,180);};
