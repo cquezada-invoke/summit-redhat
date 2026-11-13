@@ -1,11 +1,19 @@
-commit: 2865bb771f188ac91162fc4191f76a309e90db89
-inicio: 2026-11-13T10:43:19-03:00
+commit: 319d71dcd98bfab3c906f2770b59f2959d096053
+inicio: 2026-11-13T10:42:32-03:00
 ---
-fo-b05 Up 28 minutes
-fo-b04 Up 27 seconds
-cquezada  803093  0.0  0.0   7280  3624 ?        S    10:10   0:00 bash herramientas/vm/tarea.sh
-cquezada  821190  0.0  0.0   7280  1920 ?        S    10:14   0:00 bash herramientas/vm/tarea.sh
-cquezada  960507  0.0  0.0   7280  3660 ?        S    10:42   0:00 bash herramientas/vm/tarea.sh
-cquezada  962065  0.0  0.0   7280  1948 ?        S    10:42   0:00 bash herramientas/vm/tarea.sh
-cquezada  966766  0.0  0.0   7148  3448 ?        S    10:43   0:00 bash herramientas/vm/tarea.sh
---- fin: 2026-11-13T10:43:19-03:00 · código: 0
+desplegado: c44fd33e · 2026-11-13T10:29:11-03:00 ok: desplegado c44fd33e · /ingresar 200 · configurar=sin cambios
+catálogo sincronizado 268
+AUTO (274, 1, 0, 'sin probar', ['FaceOps · Bóveda (escritura)'])
+CASO C4 ok · nombre inválido 400 «Nombre: minúsculas, números, puntos o guiones (ej. fw-borde-»; sin secreto 400 «Falta: usuario y clave»; lector 403; sin tickets, equipos ni hosts nuevos
+CASO C1 ok · FO-LAB-02478 exitoso con aprobación en AAP; host en «FaceOps · Servidores (alta manual)» sin secretos (ansible_host, ansible_port, faceops_alta, faceops_categoria, faceops_coleccion, ); equipo inventariado y vinculado; bóveda maquinas/srv-e
+  | localhost                  : ok=6    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CASO C2 ok · FO-LAB-02479 exitoso; credencial actualizada (otra clave) en la bóveda; 1 host en AAP y 1 equipo en FaceOps
+CASO C5 ok · FO-LAB-02480 fallido en «Datos válidos»; la bóveda no cambió
+CASO C6 ok · FO-LAB-02481 rechazado tras rechazar la aprobación; la bóveda no cambió
+CASO C3 ok · FO-LAB-02482 exitoso; host con ansible_network_os cisco.ios.ios y ansible.netcommon.network_cli; llave privada en la bóveda; el trabajo corre en el entorno de ejecución (no entra al equipo)
+RESUMEN [('C4', 'ok'), ('C1', 'ok'), ('C2', 'ok'), ('C5', 'ok'), ('C6', 'ok'), ('C3', 'ok')] ['FO-LAB-02478', 'FO-LAB-02479', 'FO-LAB-02480', 'FO-LAB-02481', 'FO-LAB-02482']
+ESTADO certificada
+PANTALLA 200 {'mensaje': 'Equipo agregado. La credencial la guarda AAP en la bóveda con el ticket FO-LAB-02484 (requiere aprobación)', 'ok': True, 'ticket': 'FO-LAB-02484', 'ticket_url': '/lab/tickets/2484'}
+PANTALLA-TICKET FO-LAB-02484 exitoso True True
+LIMPIEZA ok
+--- fin: 2026-11-13T10:53:36-03:00 · código: 0
