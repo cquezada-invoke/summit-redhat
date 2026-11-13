@@ -197,14 +197,15 @@ sleep 5; pedir "$N" C4b '{"ac_regla":"AC22","ac_accion":"reiniciar_faceops","ac_
 pedir "$N" C5 '{"ac_regla":"xx; rm","ac_accion":"avisar"}' 10; E=$(estado); D=$(jq_ "r.get('detalle','')[:120]")
 [ "$E" = fallido ] && [[ "$D" == *"Datos válidos"* ]] && anotar C5 "Regla inválida" ok "fallido en «Datos válidos»" || anotar C5 "Regla inválida" falla "$E $D"
 # C6: alerta sintética en Alertmanager (regla AC01, solo avisar) → EDA :5023 → Atender alerta → FaceOps
-AHORA=$(date -u +%Y-%m-%dT%H:%M:%SZ); FIN=$(date -u -d '+3 min' +%Y-%m-%dT%H:%M:%SZ)
+AHORA=$(date -u +%Y-%m-%dT%H:%M:%SZ); FIN=$(date -u -d '+3 min' +%Y-%m-%dT%H:%M:%SZ); OBJ=prueba-cadena-$(date +%s)   # objeto único: EDA deduplica regla+objeto 30 min
 curl -s -o /dev/null -w 'alertmanager %{http_code}\n' -H 'Content-Type: application/json' -X POST http://127.0.0.1:9093/api/v2/alerts \
-  -d "[{\"labels\":{\"alertname\":\"FaceOpsAutocuidadoAC01\",\"faceops_autocuidado\":\"si\",\"faceops_ac_regla\":\"AC01\",\"faceops_ac_accion\":\"avisar\",\"faceops_ac_objeto\":\"prueba-cadena\",\"severity\":\"warning\"},\"annotations\":{\"summary\":\"Prueba de la cadena completa\"},\"startsAt\":\"$AHORA\",\"endsAt\":\"$FIN\"}]"
-V=""; for i in $(seq 1 24); do sleep 10; V=$(sudo podman exec -i faceops python3 - <<'Q' 2>/dev/null | tail -1
+  -d "[{\"labels\":{\"alertname\":\"FaceOpsAutocuidadoAC01\",\"faceops_autocuidado\":\"si\",\"faceops_ac_regla\":\"AC01\",\"faceops_ac_accion\":\"avisar\",\"faceops_ac_objeto\":\"$OBJ\",\"severity\":\"warning\"},\"annotations\":{\"summary\":\"Prueba de la cadena completa\"},\"startsAt\":\"$AHORA\",\"endsAt\":\"$FIN\"}]"
+V=""; for i in $(seq 1 24); do sleep 10; V=$(sudo podman exec -i faceops python3 - "$OBJ" <<'Q' 2>/dev/null | tail -1
+import sys
 from app import create_app
 create_app()
 from app.bd import q1
-e = q1("SELECT decision FROM autocuidado_eventos WHERE objeto='prueba-cadena' ORDER BY id DESC LIMIT 1"); print(e["decision"] if e else "")
+e = q1("SELECT decision FROM autocuidado_eventos WHERE objeto=? ORDER BY id DESC LIMIT 1", sys.argv[1]); print(e["decision"] if e else "")
 Q
 ); [ -n "$V" ] && break; done
 [[ "$V" == "solo aviso"* ]] && anotar C6 "Cadena completa" ok "Alertmanager → EDA → Atender alerta → FaceOps ($V)" || anotar C6 "Cadena completa" falla "sin evento en FaceOps ($V)"
