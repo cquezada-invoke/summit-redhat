@@ -61,11 +61,23 @@ bloqueo:
     - etapa: 9      # Fábrica de software, DevSecOps e IA
       rutas: ['^/devsecops', '^/fabrica', '^/politicas-desarrollo', '^/ia(/|$)']
 etapas:
+  # Etapas 2..10 del Plan de cierre: nombre y códigos de módulo (hoja «Módulos y venta»); sus pantallas se declaran al liberarlas
+  # (mientras tanto quedan bloqueadas por las reglas de «bloqueo»). La asignación de módulos es la propuesta del 13-11-2026.
+  2: {nombre: "Monitoreo, salud y alertas", alcance: "Radar de salud, alertas, autocuidado", color: "#0e7490", modulos: [M11, M12]}
+  3: {nombre: Plataformas, alcance: "Plataformas, contenedores, sistemas operativos y ciclo de vida de servidores (incluye el hardware de los físicos)", color: "#4d7c0f", modulos: [M02, M05]}
+  4: {nombre: "Bases de datos", alcance: "Motores de bases de datos", color: "#a16207", modulos: [M02]}
+  5: {nombre: Seguridad, alcance: "CVE, parches y certificados", color: "#b91c1c", modulos: [M07]}
+  6: {nombre: "Redes y Edge", alcance: "Redes, storage, estaciones y sitios Edge", color: "#1d4ed8", modulos: [M03]}
+  7: {nombre: Nube, alcance: "Hipervisores, nubes e infraestructuras conectadas", color: "#0369a1", modulos: [M04]}
+  8: {nombre: Gobierno, alcance: "Stack, reportes y SLA; segmentos de negocio; respaldos", color: "#6d28d9", modulos: [M06, M08, M01]}
+  9: {nombre: Fábrica, alcance: "Fábrica de software, DevSecOps e IA", color: "#be185d", modulos: [M09, M10, M13]}
+  10: {nombre: "Multicliente y FaceAdmin", alcance: "Multicliente, enlace con FaceAdmin y resumen del contrato", color: "#475569", modulos: [MULTI]}
   # 11 · Agente en máquina (número PROVISORIO; no está en el Plan de cierre): lo que requiere el agente de respaldo en la
   # máquina. Sale de la Etapa 1 por decisión de Cristian (13-11-2026). En la ficha solo se muestra si la máquina tiene el
   # agente «respaldo-git»; dentro de las pantallas de la Etapa 1 queda bloqueado con su glosa.
   11:
     nombre: Agente en máquina
+    modulos: [M01]
     alcance: "Historial de cambios, puntos de restauración, recuperación y restauración (requieren el agente en la máquina)"
     color: "#7c3aed"
     requiere_agente: true
@@ -82,6 +94,7 @@ etapas:
       - "FaceOps · Restaurar punto"
   1:
     nombre: Núcleo
+    modulos: [Núcleo]
     alcance: "Consola, inventario, tickets, aprobaciones, cola de acciones y AAP"
     color: "#0066cc"
     endpoints:
