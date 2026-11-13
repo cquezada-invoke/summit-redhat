@@ -1,7 +1,21 @@
-commit: f9692a8bd37cd74650a42b5b3395ce8965eaace9
-inicio: 2026-11-12T21:18:41-03:00
+commit: 3bcd6965ce6931c3c61fc1f2f0d06103bad1b198
+inicio: 2026-11-12T21:17:09-03:00
 ---
-trabajo 29651 workflow
-nodos: ['Etapa 1/1 · Monitoreo · ¿Ejecutar «Atender alerta :successful', 'Autocuidado · Atender alerta:failed']
-job 29653 failed Previous Task Failed: {"job_type": "project_update", "job_name": "FaceOps · automatizaciones", "job_id": "29654"}
---- fin: 2026-11-12T21:19:02-03:00 · código: 0
+desplegado 779cac4c4
+   · autocuidado: anfitrión listo: herramienta, exportador :9469, vigía cada 2 min, sudo acotado de aap-kvm, 29 reglas en Prometheus y ruta a EDA :5023
+   · autocuidado: 11 plantillas «Autocuidado · …» en AAP
+   · autocuidado: EDA: activación «FaceOps · autocuidado» vigente (running)
+repo 779cac4
+herramienta: {"ok": true, "version": "1.0.0"} · AAP 200
+SINCRONIZADO lab
+== Autocuidado · Reiniciar despachador de AAP
+  C1 → exitoso FO-LAB-02421
+CASO C1 ok · Evaluar con AAP sano
+  C2 → exitoso FO-LAB-02422
+  C3 → exitoso FO-LAB-02423
+CASO C2 ok · Aplicar programado
+CASO C3 ok · Repetir tras el reinicio
+  C4 → fallido FO-LAB-02424
+CASO C4 ok · Modo inválido
+CERT Autocuidado · Reiniciar despachador de AAP → certificada
+--- fin: 2026-11-12T21:27:28-03:00 · código: 0
