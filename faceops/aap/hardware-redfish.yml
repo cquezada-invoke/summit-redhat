@@ -1,0 +1,137 @@
+---
+# Hardware · operaciones de servidores físicos por su BMC (Redfish: iDRAC, iLO, XClarity, CIMC, iRMC, iBMC) con Ansible
+# (community.general.redfish_*). NUEVAS · SIN PROBAR: quedan bloqueadas por la regla de prueba hasta que su plan
+# (datos/planes-prueba.yml) se ejecute completo sobre hardware real o un BMC con Redfish.
+# Corre en el nodo de ejecución (no entra al sistema operativo del servidor): habla con el BMC por HTTPS.
+# La credencial del BMC sale de la bóveda (faceops/maquinas/<nodo>-bmc) con la credencial «FaceOps · Bóveda (escritura)»
+# (su token puede leer faceops/data/maquinas/*); nunca viaja en las variables del trabajo ni se imprime.
+# Variables (las fija FaceOps desde la ficha del nodo):
+#   hw_operacion   validar | disco_nuevo | disco_fallado | firmware | nic_hba | gpu   (cada plantilla de AAP fija la suya)
+#   hw_nodo        nombre del nodo en FaceOps; hw_bmc_ip: IP de administración del BMC
+#   disco_nuevo:   hw_disco (id Redfish del disco, vacío = el primero sin usar), hw_modo (raid1 | raid5 | hot_spare | jbod), hw_volumen (nombre)
+#   disco_fallado: hw_disco (id del disco fallado; vacío = el que el BMC marca con falla)
+#   firmware:      hw_imagenes (lista de URL de imágenes del fabricante: BMC, BIOS, RAID, NIC), hw_ventana (texto de la ventana aprobada)
+#   nic_hba:       hw_slot (ranura PCIe), hw_imagen (firmware opcional)
+#   gpu:           hw_modo_gpu (passthrough | vgpu)
+#   validar:       hw_antes (inventario previo, opcional: lo deja «validar» en faceops_hw de un trabajo anterior)
+# Salida: faceops_hw = {nodo, operacion, inventario, salud, cambios, diferencias, error}
+- name: Hardware · operación por el BMC (Redfish)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    op: "{{ hw_operacion | default('validar') }}"
+    bmc: "{{ hw_bmc_ip | default('') }}"
+    nodo: "{{ hw_nodo | default('') }}"
+    bov_addr: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_ADDR') }}"
+    bov_token: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_TOKEN') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - op in ['validar', 'disco_nuevo', 'disco_fallado', 'firmware', 'nic_hba', 'gpu']
+          - nodo is match('^[a-z0-9][a-z0-9.-]{1,62}$')
+          - bmc | length > 0
+          - op != 'firmware' or ((hw_imagenes | default([])) | length > 0 and (hw_ventana | default('')) | length > 0)
+          - op != 'gpu' or (hw_modo_gpu | default('passthrough')) in ['passthrough', 'vgpu']
+        fail_msg: "Faltan datos: operación válida, nodo, IP del BMC; firmware pide imágenes y ventana; GPU pide passthrough o vgpu"
+        quiet: true
+
+    - name: Credencial del BMC desde la bóveda (no se muestra)
+      ansible.builtin.uri:
+        url: "{{ bov_addr }}/v1/faceops/data/maquinas/{{ nodo }}-bmc"
+        headers: {X-Vault-Token: "{{ bov_token }}"}
+        return_content: true
+      register: r_cred
+      no_log: true
+
+    - name: Usuario y clave del BMC
+      ansible.builtin.set_fact:
+        bmc_usuario: "{{ r_cred.json.data.data.usuario }}"
+        bmc_clave: "{{ r_cred.json.data.data.clave }}"
+      no_log: true
+
+    - name: Inventario y salud del hardware (Redfish)
+      community.general.redfish_info:
+        baseuri: "{{ bmc }}"
+        username: "{{ bmc_usuario }}"
+        password: "{{ bmc_clave }}"
+        validate_certs: false
+        category: [Systems, Chassis, Manager, Update]
+        command: [GetSystemInventory, GetHealthReport, GetCpuInventory, GetMemoryInventory, GetDiskInventory, GetVolumeInventory,
+                  GetNicInventory, GetPsuInventory, GetFirmwareInventory, GetChassisThermals]
+      register: r_inv
+
+    - name: Disco nuevo · crear el volumen RAID o dejarlo como hot spare
+      community.general.redfish_config:
+        baseuri: "{{ bmc }}"
+        username: "{{ bmc_usuario }}"
+        password: "{{ bmc_clave }}"
+        validate_certs: false
+        category: Systems
+        command: CreateVolume
+        storage_subsystem_id: "{{ hw_controladora | default(omit) }}"
+        volume_details:
+          Name: "{{ hw_volumen | default('faceops-' ~ nodo) }}"
+          RAIDType: "{{ {'raid1': 'RAID1', 'raid5': 'RAID5', 'jbod': 'None'}[hw_modo | default('raid1')] | default('RAID1') }}"
+          Drives: "{{ [hw_disco] if hw_disco | default('') else omit }}"
+      when: op == 'disco_nuevo' and (hw_modo | default('raid1')) != 'hot_spare'
+      register: r_disco
+
+    - name: Disco fallado · encender el LED de ubicación del chasis para identificarlo
+      community.general.redfish_command:
+        baseuri: "{{ bmc }}"
+        username: "{{ bmc_usuario }}"
+        password: "{{ bmc_clave }}"
+        validate_certs: false
+        category: Chassis
+        command: IndicatorLedBlink
+      when: op == 'disco_fallado'
+
+    - name: Firmware · aplicar cada imagen (BMC, BIOS, RAID, NIC) en la ventana aprobada
+      community.general.redfish_command:
+        baseuri: "{{ bmc }}"
+        username: "{{ bmc_usuario }}"
+        password: "{{ bmc_clave }}"
+        validate_certs: false
+        category: Update
+        command: SimpleUpdate
+        update_image_uri: "{{ item }}"
+        update_protocol: HTTPS
+      loop: "{{ hw_imagenes | default([]) }}"
+      when: op == 'firmware' or (op == 'nic_hba' and (hw_imagen | default('')) | length > 0)
+      register: r_fw
+
+    - name: GPU · habilitar virtualización de E/S (VT-d / IOMMU) en el BIOS para passthrough o vGPU
+      community.general.redfish_config:
+        baseuri: "{{ bmc }}"
+        username: "{{ bmc_usuario }}"
+        password: "{{ bmc_clave }}"
+        validate_certs: false
+        category: Systems
+        command: SetBiosAttributes
+        bios_attributes: {ProcVirtualization: Enabled, IntelVtForDirectIo: Enabled, SriovGlobalEnable: Enabled}
+      when: op == 'gpu'
+      register: r_gpu
+
+    - name: Inventario después del cambio (validar y verificar)
+      community.general.redfish_info:
+        baseuri: "{{ bmc }}"
+        username: "{{ bmc_usuario }}"
+        password: "{{ bmc_clave }}"
+        validate_certs: false
+        category: [Systems, Chassis, Update]
+        command: [GetHealthReport, GetDiskInventory, GetVolumeInventory, GetNicInventory, GetFirmwareInventory]
+      register: r_post
+      when: op != 'validar'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_hw:
+            nodo: "{{ nodo }}"
+            operacion: "{{ op }}"
+            inventario: "{{ r_inv.redfish_facts | default({}) }}"
+            despues: "{{ r_post.redfish_facts | default({}) }}"
+            antes: "{{ hw_antes | default({}) }}"
+            cambios: "{{ [r_disco | default({}), r_fw | default({}), r_gpu | default({})] | selectattr('changed', 'defined') | selectattr('changed') | list | length }}"

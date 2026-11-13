@@ -622,6 +622,35 @@ planes:
       - {id: C6, caso: "Máquina física", verificar: "lee su log del sistema igual que una virtual"}
       - {id: C7, caso: "Archivo que ya no existe en la máquina", tipo: Error controlado, verificar: "ticket fallido con «no existe el archivo …»; el visor muestra el mensaje en vez de quedar en blanco"}
       - {id: C8, caso: "Ruta fuera de los logs del inventario (/etc/shadow) pedida a la consola", tipo: Seguridad, verificar: "FaceOps responde 400 sin crear ticket"}
+  # Hardware por el BMC (Redfish): nuevas · sin probar. Requieren un servidor físico real (o un BMC con Redfish) de prueba.
+  "Hardware · Validar inventario de hardware":
+    casos:
+      - {id: C1, caso: "Inventario de un físico de prueba sin cambios", verificar: "CPU, memoria, discos, volúmenes, NIC, fuentes y firmware; salud OK; sin diferencias"}
+      - {id: C2, caso: "Después de retirar un componente (disco de prueba)", verificar: "la diferencia aparece y la salud lo marca"}
+      - {id: C3, caso: "BMC sin credencial en la bóveda", tipo: Error controlado, verificar: "falla controlada sin tocar el servidor"}
+  "Hardware · Incorporar disco nuevo":
+    casos:
+      - {id: C1, caso: "Disco nuevo como RAID 1 con otro libre", verificar: "volumen creado y visible en el sistema o hipervisor"}
+      - {id: C2, caso: "Disco nuevo como hot spare", verificar: "queda como repuesto global de la controladora"}
+      - {id: C3, caso: "Sin discos libres", tipo: Error controlado, verificar: "se detiene sin cambios"}
+  "Hardware · Reemplazar disco fallado":
+    casos:
+      - {id: C1, caso: "Disco marcado con falla en un RAID 1 de prueba", verificar: "LED encendido; tras el cambio físico, reconstrucción hasta Optimal"}
+      - {id: C2, caso: "Sin discos con falla", tipo: Error controlado, verificar: "informa que no hay discos fallados"}
+  "Hardware · Actualizar firmware":
+    casos:
+      - {id: C1, caso: "BIOS y BMC de un físico de prueba a la versión recomendada en ventana", verificar: "versiones nuevas en el inventario; servidor arriba"}
+      - {id: C2, caso: "Sin ventana aprobada", tipo: Error controlado, verificar: "no aplica nada"}
+      - {id: C3, caso: "Imagen inválida", tipo: Error controlado, verificar: "el BMC la rechaza y el firmware no cambia"}
+  "Hardware · Configurar NIC o HBA nueva":
+    casos:
+      - {id: C1, caso: "NIC nueva en una ranura libre", verificar: "firmware al día; puerto presentado al sistema o hipervisor con su VLAN"}
+      - {id: C2, caso: "Ranura vacía", tipo: Error controlado, verificar: "informa que no hay tarjeta"}
+  "Hardware · Habilitar GPU para VMs":
+    casos:
+      - {id: C1, caso: "GPU en passthrough a una VM de prueba", verificar: "VT-d habilitado; la VM ve la GPU"}
+      - {id: C2, caso: "vGPU con perfil", verificar: "perfil asignado; la VM ve su vGPU"}
+      - {id: C3, caso: "Servidor sin GPU", tipo: Error controlado, verificar: "se detiene sin cambios"}
   "Sistema · Paquetes · inventario y respaldo":
     casos:
       - {id: C1, caso: "RHEL 9 (srv-e1prueba-01)", verificar: "ticket exitoso; faceops_paquetes con la lista de paquetes, su repositorio de origen y huella; los RPM que faltaban quedan en el registro propio (repositorio/rpm)"}

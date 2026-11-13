@@ -27,6 +27,14 @@
 #   clase: skill | operacion (opcional; fija la clase cuando la habilidad no tiene acción del catálogo o difiere de ella)
 #   control: dónde está su control propio en la pantalla (una operación con control no se repite en «Operaciones»)
 habilidades:
+  # ── Hardware del nodo físico (por su BMC con Redfish). Nuevas · sin probar: bloqueadas por la regla de prueba hasta su plan.
+  #    solo_fisico: solo en servidores físicos. Etapa: 3 (ciclo de vida de servidores); la GPU, 7 (hipervisores).
+  - {id: hw-disco-nuevo, tipo: quick win, clase: skill, grupo: Hardware, solo_fisico: true, nombre: Incorporar disco nuevo, valor: "Detecta el disco, crea el RAID o lo deja como hot spare y crea el volumen o datastore.", nombre_aap: ["Hardware · Incorporar disco nuevo"]}
+  - {id: hw-disco-fallado, tipo: quick win, clase: skill, grupo: Hardware, solo_fisico: true, nombre: Reemplazar disco fallado, valor: "Lo identifica con su LED, sigue la reconstrucción del RAID y verifica la salud.", nombre_aap: ["Hardware · Reemplazar disco fallado"]}
+  - {id: hw-firmware, tipo: diferenciador, clase: skill, grupo: Hardware, solo_fisico: true, nombre: Actualizar firmware, valor: "BMC, BIOS, controladora RAID y NIC con un plan por componente y una ventana aprobada.", nombre_aap: ["Hardware · Actualizar firmware"]}
+  - {id: hw-validar, tipo: quick win, clase: skill, grupo: Hardware, solo_fisico: true, nombre: Validar inventario de hardware, valor: "Compara el antes y el después de un cambio y revisa la salud de cada componente.", nombre_aap: ["Hardware · Validar inventario de hardware"]}
+  - {id: hw-nic-hba, tipo: quick win, clase: skill, grupo: Hardware, solo_fisico: true, nombre: Configurar NIC o HBA nueva, valor: "Firmware, red/VLAN o zoning y presentación al sistema o hipervisor.", nombre_aap: ["Hardware · Configurar NIC o HBA nueva"]}
+  - {id: hw-gpu, tipo: diferenciador, clase: skill, grupo: Hardware, solo_fisico: true, nombre: Habilitar GPU para VMs, valor: "Passthrough o vGPU: prepara el BIOS (VT-d, SR-IOV) y la presenta al hipervisor.", nombre_aap: ["Hardware · Habilitar GPU para VMs"]}
   # ── Migraciones (diferenciadores)
   - id: centos-rhel
     tipo: diferenciador

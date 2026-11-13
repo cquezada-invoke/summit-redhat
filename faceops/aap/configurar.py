@@ -161,7 +161,8 @@ shutil.copy(f"{AQUI}/origen-maquinas.yml", f"{tmp}/playbooks/origen-maquinas.yml
 shutil.copy(f"{AQUI}/registro-imagenes.yml", f"{tmp}/playbooks/registro-imagenes.yml")
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
 shutil.copy(f"{AQUI}/vincular-onprem.yml", f"{tmp}/playbooks/vincular-onprem.yml")   # Vincular máquina on-premise (KVM)
-shutil.copy(f"{AQUI}/credencial-boveda.yml", f"{tmp}/playbooks/credencial-boveda.yml")   # alta manual: la credencial la escribe AAP en la bóveda
+shutil.copy(f"{AQUI}/credencial-boveda.yml", f"{tmp}/playbooks/credencial-boveda.yml")
+shutil.copy(f"{AQUI}/hardware-redfish.yml", f"{tmp}/playbooks/hardware-redfish.yml")   # Hardware · operaciones por el BMC (Redfish), nuevas · sin probar   # alta manual: la credencial la escribe AAP en la bóveda
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/licencias-levantar.yml", f"{tmp}/playbooks/licencias-levantar.yml")
 shutil.copy(f"{AQUI}/politicas-dev-evaluar.yml", f"{tmp}/playbooks/politicas-dev-evaluar.yml")
@@ -781,6 +782,20 @@ jcb = asegurar("job_templates", "FaceOps · Guardar credencial en la bóveda", {
 if cr_bov and cr_bov["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jcb['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jcb['id']}/credentials/", {"id": cr_bov["id"]})
 paso(f"Plantilla «FaceOps · Guardar credencial en la bóveda» (id {jcb['id']})" + ("" if cr_bov else " · falta la credencial «FaceOps · Bóveda (escritura)»"))
+# Hardware de servidores físicos por su BMC (Redfish): una plantilla por operación, mismo playbook. Nuevas · sin probar.
+for n_, op_, d_ in [("Hardware · Incorporar disco nuevo", "disco_nuevo", "Detecta el disco nuevo, crea el RAID o lo deja como hot spare y crea el volumen"),
+                    ("Hardware · Reemplazar disco fallado", "disco_fallado", "Identifica el disco fallado (LED), sigue la reconstrucción del RAID y verifica"),
+                    ("Hardware · Actualizar firmware", "firmware", "BMC, BIOS, controladora RAID y NIC con plan y ventana aprobada"),
+                    ("Hardware · Validar inventario de hardware", "validar", "Compara el inventario antes y después de un cambio y revisa la salud de los componentes"),
+                    ("Hardware · Configurar NIC o HBA nueva", "nic_hba", "Firmware de la tarjeta nueva y su presentación al sistema o hipervisor"),
+                    ("Hardware · Habilitar GPU para VMs", "gpu", "Prepara el BIOS (VT-d, SR-IOV) para passthrough o vGPU")]:
+    jhw = asegurar("job_templates", n_, {
+        "organization": org["id"], "project": proy, "playbook": "playbooks/hardware-redfish.yml", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_limit_on_launch": True, "timeout": 7200,
+        "extra_vars": f"hw_operacion: {op_}\n", "description": d_ + " (por el BMC, Redfish)"})
+    if cr_bov and cr_bov["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jhw['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{jhw['id']}/credentials/", {"id": cr_bov["id"]})
+    paso(f"Plantilla «{n_}» (id {jhw['id']})")
 jst = asegurar("job_templates", "Arquitectura · Evaluar stack tecnológico", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/evaluar-stack.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10,

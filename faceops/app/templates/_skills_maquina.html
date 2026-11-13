@@ -59,6 +59,11 @@
 {# Operaciones del día a día y actualización del sistema operativo: viven aquí, no en el flotante del sistema operativo. La ficha
    (equipo.html) mueve a estos contenedores el bloque «Operaciones» (_operaciones.html) y «Actualización del sistema operativo»
    del flotante del SO, con su bloqueo por etapas. Aplica a toda máquina virtual o física. #}
+{% set hw_ = (habilidades_maquina(e)|selectattr('grupo', 'equalto', 'Hardware')|list) if sk_fijo_ and hw_fis is defined and hw_fis else [] %}{% if hw_ and not skm.total %}
+<details class="sk-grupo sk-fijo" data-g="hardware" open><summary>Hardware del nodo <span class="sub">por el BMC (Redfish)</span></summary><div class="sk-fijo-c">{% for h in hw_ %}
+<div class="sk-item{{ ' bloq' if h.bloqueo }}" data-q="{{ (h.nombre ~ ' ' ~ h.valor ~ ' hardware')|lower }}"{% if h.bloqueo %} title="{{ h.bloqueo }}"{% endif %}><b>{{ h.nombre }}</b><span class="sk-que">{{ h.valor }}</span>
+<span class="sk-chips">{% if h.bloqueo %}<span class="chip s-alta">nueva · sin probar</span>{% endif %}<span class="chip s-media">con aprobación</span></span>
+<span class="sk-acc"><button type="button" class="btn chico" disabled title="{{ h.bloqueo or 'Se ejecuta desde Acciones cuando esté certificada' }}">Ejecutar</button></span></div>{% endfor %}</div></details>{% endif %}
 <details class="sk-grupo sk-fijo" data-g="operaciones" open hidden><summary>Operaciones <span class="sub">del sistema operativo</span></summary>
 {% if perfil_actual.modo == 'escritura' and sk_fijo_ %}<div class="sk-item sk-inv" data-q="inventariar máquina inventario paquetes servicios sistema"><b>Inventariar máquina</b><span class="sk-que">Inventario completo ahora (sistema, servicios, paquetes y configuración), lo trae AAP. El inventario automático diario sigue corriendo una vez al día.</span>
 <span class="sk-chips"><label class="chk" style="font-size:12px" title="Sube al registro propio los RPM que aún no están respaldados"><input type="checkbox" class="sk-inv-pq" checked> respaldar paquetes en el registro</label></span>

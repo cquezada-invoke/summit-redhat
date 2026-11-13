@@ -302,6 +302,9 @@ def _resolver(h, e):
     Un equipo de red solo recibe las skills «red» de su subcategoría."""
     if h.get("plataforma"):
         return None   # las de una plataforma viven en su ficha (habilidades_plataforma), no en la lista de la máquina
+    if h.get("solo_fisico"):   # hardware del nodo (por su BMC): solo servidores físicos
+        from .hardware_fisico import es_fisico
+        return h if es_fisico(e) else None
     sub = subcategoria_red(e)
     if h.get("red"):
         return h if sub and (h["red"] == "todos" or sub in h["red"]) else None
