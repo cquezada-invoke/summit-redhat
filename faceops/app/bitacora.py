@@ -88,10 +88,30 @@ def _error_sin_tarea(aap, job_id, pasos):
                   "mensajes": ["\n".join(msg)[:2500]], "hora": r.get("finished", "")})
 
 
+_FINALES = ("exitoso", "fallido", "rechazado", "cancelado", "error", "vencido")
+_cache = {}   # bitácora de tickets terminados: ya no cambia en AAP; evita releerla en cada carga de la pantalla (~1 s)
+
+
 def construir(aap, ticket):
-    """[{titulo, tipo (plantilla|aprobacion|workflow), estado, job_id, pasos, omitidos, detalle}]"""
+    """[{titulo, tipo (plantilla|aprobacion|workflow), estado, job_id, pasos, omitidos, detalle}]
+    La de un ticket terminado se guarda 30 min en memoria (la pantalla del ticket carga en caliente sin volver a AAP)."""
     if not ticket.get("aap_job_id"):
         return []
+    if ticket.get("estado") not in _FINALES:
+        return _construir(aap, ticket)
+    import time
+    k = (getattr(aap, "base", ""), ticket["aap_job_tipo"], ticket["aap_job_id"])
+    c = _cache.get(k)
+    if c and time.time() - c[0] < 1800:
+        return c[1]
+    r = _construir(aap, ticket)
+    if len(_cache) > 500:
+        _cache.clear()
+    _cache[k] = (time.time(), r)
+    return r
+
+
+def _construir(aap, ticket):
     if ticket["aap_job_tipo"] == "job":
         pasos, om = pasos_de_trabajo(aap, ticket["aap_job_id"])
         r = aap.trabajo("job", ticket["aap_job_id"])
