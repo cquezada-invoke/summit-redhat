@@ -1,7 +1,20 @@
-commit: 12aa6ef6ceae878d1c5db4895dfcb2dea73e4102
-inicio: 2026-11-13T08:29:15-03:00
+commit: f683e3347bd6676d0a9ac80e43191e558ef6fdd5
+inicio: 2026-11-13T08:30:03-03:00
 ---
-LICENCIA {'instance_count': 50, 'current_instances': 50, 'free_instances': 0}
-EQUIPO None
-FO [('fo-prueba-a-1424', 'retirado'), ('fo-prueba-11121533', 'retirado'), ('fo-prueba-11121641', 'retirado')]
---- fin: 2026-11-13T08:29:23-03:00 · código: 0
+LICENCIA antes {'instance_count': 50, 'current_instances': 50, 'free_instances': 0, 'automated_instances': 50}
+HOSTS retirados de AAP 0 []
+LICENCIA después {'instance_count': 50, 'current_instances': 50, 'free_instances': 0}
+Traceback (most recent call last):
+  File "/tmp/b08.py", line 65, in <module>
+    alta = registrar_servidores(aap, cl, t); print("ALTA", alta[:300])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/operacion.py", line 1877, in registrar_servidores
+    h = existe or aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv)})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 284, in post
+    return self._r("POST", ruta, json=datos or {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 277, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP POST hosts/ → 403: {"detail":"License count of 50 instances has been reached."}
+--- fin: 2026-11-13T08:45:30-03:00 · código: 0
