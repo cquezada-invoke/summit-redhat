@@ -1,0 +1,21 @@
+commit: 34fe1b099d4f0f66912db784e52a212cc13c5530
+inicio: 2026-11-13T09:53:50-03:00
+---
+trabajo 27038: new -> canceled 
+LICENCIA antes {'instance_count': 50, 'current_instances': 50, 'free_instances': 0, 'automated_instances': 50}
+HOSTS retirados de AAP 3 ['fo-prueba-11121533#177', 'fo-prueba-a-1424#175', 'fo-prueba-11121641#178']
+LICENCIA después {'instance_count': 50, 'current_instances': 47, 'free_instances': 0}
+Traceback (most recent call last):
+  File "/tmp/b08.py", line 70, in <module>
+    alta = registrar_servidores(aap, cl, t); print("ALTA", alta[:300])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/operacion.py", line 1877, in registrar_servidores
+    h = existe or aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv)})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 284, in post
+    return self._r("POST", ruta, json=datos or {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 277, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP POST hosts/ → 403: {"detail":"License count of 50 instances has been reached."}
+--- fin: 2026-11-13T09:55:16-03:00 · código: 0
