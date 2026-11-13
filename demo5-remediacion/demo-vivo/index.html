@@ -95,11 +95,11 @@ const AAP="https://34-176-42-56.sslip.io", GRAF="https://34.176.42.56:8843/grafa
   ACT=AAP+"/decisions/rulebook-activations/17/details";
 const CASOS={
   cola:{t:"Caso 1 · Cola de mensajes acumulada",d:"AMQ Broker (Artemis): la cola pagos.entrada supera 100 mensajes; Ansible reactiva el consumidor.",
-    sis:"Cola pagos.entrada",prov:1305,tpl:44,tplN:"Remediación · Cola de pagos",graf:GRAF+"/d/summit-operacion?viewPanel=6",al:5,rb:13},
+    sis:"Cola pagos.entrada",prov:1305,tpl:44,tplN:"Remediación · Cola de pagos",graf:GRAF+"/d/summit-operacion?viewPanel=6",ex:'artemis_cola_mensajes{cola="pagos.entrada"}',al:5,rb:13},
   certificado:{t:"Caso 2 · Certificado TLS por vencer",d:"El certificado HTTPS vence en menos de 15 días; Ansible lo renueva sin corte.",
-    sis:"Servidor web · Nginx",prov:1306,tpl:45,tplN:"Remediación · Renovar certificado",graf:GRAF+"/d/summit-operacion?viewPanel=7",al:11,rb:27},
+    sis:"Servidor web · Nginx",prov:1306,tpl:45,tplN:"Remediación · Renovar certificado",graf:GRAF+"/d/summit-operacion?viewPanel=7",ex:'(probe_ssl_earliest_cert_expiry{job="certificados"} - time()) / 86400',al:11,rb:27},
   windows:{t:"Caso 3 · Sitio web en Windows (IIS) caído",d:"El sitio IIS deja de responder; Ansible levanta el servicio por WinRM.",
-    sis:"Windows · IIS",prov:1307,tpl:49,tplN:"Remediación · IIS en Windows",graf:GRAF+"/d/summit-ecosistema",al:17,rb:40}
+    sis:"Windows · IIS",prov:1307,tpl:49,tplN:"Remediación · IIS en Windows",graf:GRAF+"/d/summit-ecosistema",ex:'probe_success{job="sitios-windows"}',al:17,rb:40}
 };
 const EST={gris:"En reposo",ambar:"En curso",rojo:"Falla / alerta",verde:"Completado"};
 const JOB={successful:"exitoso",failed:"falló",error:"error",canceled:"cancelado",running:"en ejecución",pending:"pendiente",waiting:"en espera",new:"nuevo"};
@@ -126,7 +126,7 @@ function render(e){
       "Provocar: "+(p?L(jobUrl(p),jobTx(p)):"sin ejecuciones"),[],
       `<a class="provocar" href="${AAP}/execution/templates/job-template/${k.prov}/details" target="_blank" rel="noopener">▶ Provocar</a>`)}
     ${caja("Monitoreo",b.monitoreo,"Prometheus · Alertmanager",ALE[a.estado]||a.estado,esc(a.nombre)+(a.desde?" · desde "+hora(a.desde):""),
-      [L(k.graf,"Grafana"),L(GH+"/monitoreo/alertas.yml#L"+k.al,"Regla"),L("/alertmanager/#/alerts","Alertmanager")])}
+      [L("/prometheus/graph?g0.expr="+encodeURIComponent(k.ex)+"&g0.tab=0&g0.range_input=1h","Prometheus"),L(k.graf,"Grafana"),L(GH+"/monitoreo/alertas.yml#L"+k.al,"Regla"),L("/alertmanager/#/alerts","Alertmanager")])}
     ${caja("EDA",b.eda,"Rulebook monitoreo.yml",ed?(ed.estado==="successful"?"Regla disparada":ed.estado):"Sin disparos",
       ed?esc(ed.regla.split("→")[1]?.trim()||ed.regla)+" · "+hora(ed.hora):"—",[L(ACT,"Activación 17"),L(GH+"/operacion/rulebooks/monitoreo.yml#L"+k.rb,"Regla")])}
     ${caja("AAP",b.aap,esc(k.tplN),j?(JOB[j.estado]||j.estado):"Sin jobs","Job "+(j?L(jobUrl(j),jobTx(j)):"—"),
