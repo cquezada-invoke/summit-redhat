@@ -133,6 +133,20 @@ def ticket_de(job):
     return t
 
 
+ODOO_LISTA = "https://invoke.odoo.com/odoo/action-helpdesk.helpdesk_ticket_action_main_tree"
+ALIAS = {"cola": "cola", "certificado": "certificado", "iis": "windows", "windows": "windows"}
+
+
+def ultimo_ticket(plantilla):
+    """Ticket más reciente entre los últimos jobs de la plantilla de remediación."""
+    r = aap("controller/v2/unified_jobs/?unified_job_template=%d&order_by=-id&page_size=5" % plantilla)["results"]
+    for j in r:
+        t = ticket_de({"id": j["id"], "estado": j["status"]})
+        if t:
+            return dict(t, job=j["id"])
+    return None
+
+
 # ---------- semáforo ----------
 CORRIENDO = ("pending", "waiting", "running", "new")
 FALLA = ("failed", "error", "canceled")
@@ -200,6 +214,7 @@ def armar_caso(c, alertas, audits, reset):
 
     return {"id": c["id"], "alerta": {"nombre": c["alerta"], "estado": estado_alerta, "desde": al.get("desde")},
             "provocar": prov, "eda": eda, "remediacion": rem, "ticket": tk,
+            "ultimo_ticket": tk or ultimo_ticket(c["remediacion"]),
             "ciclo": {"inicio": iso(t0) if t0 else None, "en_reposo": reposo}, "cajas": cajas}
 
 
@@ -256,6 +271,18 @@ class H(BaseHTTPRequestHandler):
 
     def do_GET(self):
         p = self.path.split("?")[0]
+        if p.startswith("/ticket/"):
+            caso = ALIAS.get(p[len("/ticket/"):].strip("/"))
+            if not caso:
+                return self._env(404, b"caso desconocido", "text/plain")
+            c = next(x for x in estado()["casos"] if x["id"] == caso)
+            t = c.get("ultimo_ticket")
+            url = t["url"] if t and t.get("url", "").startswith("https://invoke.odoo.com/") else ODOO_LISTA
+            self.send_response(302)
+            self.send_header("Location", url)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", "0")
+            return self.end_headers()
         if p in ("/", "/index.html"):
             with open(os.path.join(AQUI, "index.html"), "rb") as f:
                 return self._env(200, f.read(), "text/html; charset=utf-8")

@@ -120,7 +120,7 @@ function render(e){
   document.getElementById("gen").textContent="actualizado "+hora(e.generado);
   document.getElementById("errs").textContent=(e.errores||[]).length?"· sin datos de: "+e.errores.join(", "):"";
   document.getElementById("casos").innerHTML=e.casos.map(c=>{
-    const k=CASOS[c.id], b=c.cajas, p=c.provocar, a=c.alerta||{}, ed=c.eda, j=c.remediacion, tk=c.ticket;
+    const k=CASOS[c.id], b=c.cajas, p=c.provocar, a=c.alerta||{}, ed=c.eda, j=c.remediacion, tk=c.ticket, ut=c.ultimo_ticket;
     return `<section class="caso"><h2>${k.t}</h2><div class="desc">${k.d}</div><div class="flujo">
     ${caja("Sistema",b.sistema,k.sis,b.sistema==="rojo"?"Con problema":b.sistema==="verde"?"Normal":b.sistema==="ambar"?"Provocando…":"En reposo",
       "Provocar: "+(p?L(jobUrl(p),jobTx(p)):"sin ejecuciones"),[],
@@ -131,8 +131,8 @@ function render(e){
       ed?esc(ed.regla.split("→")[1]?.trim()||ed.regla)+" · "+hora(ed.hora):"—",[L(ACT,"Activación 17"),L(GH+"/operacion/rulebooks/monitoreo.yml#L"+k.rb,"Regla")])}
     ${caja("AAP",b.aap,esc(k.tplN),j?(JOB[j.estado]||j.estado):"Sin jobs","Job "+(j?L(jobUrl(j),jobTx(j)):"—"),
       [L(AAP+"/execution/templates/job-template/"+k.tpl+"/details","Plantilla "+k.tpl)])}
-    ${caja("Ticket Odoo",b.odoo,tk?"Ticket #"+tk.numero:"Helpdesk",tk?tk.estado:"Sin ticket en el ciclo","Etiqueta «Demo 5 · Remediación»",
-      [tk?L(tk.url,"Ver ticket"):"",L(ODOO,"Tickets")])}
+    ${caja("Ticket Odoo",b.odoo,ut?L(ut.url,"Ticket #"+ut.numero):"Helpdesk",tk?tk.estado:(ut?"Último: "+ut.estado:"Sin ticket"),"Etiqueta «Demo 5 · Remediación»",
+      [ut?L(ut.url,"Abrir ticket #"+ut.numero):"",L(ODOO,"Tickets")])}
     ${caja("Resuelto",b.resuelto,"Servicio normal",b.resuelto==="verde"?"Resuelto":b.resuelto==="rojo"?"No resuelto":b.resuelto==="ambar"?"En curso":"En reposo",
       c.ciclo?.inicio&&!c.ciclo.en_reposo?"Ciclo desde "+hora(c.ciclo.inicio):"",[L(GRAF+"/d/summit-operacion?viewPanel=8","Alertas activas")])}
     </div></section>`;}).join("");
