@@ -1,0 +1,25 @@
+{# Bloque «Operaciones» del sistema de la máquina o de una plataforma: las acciones del día a día (clase «operacion» de
+   datos/habilidades.yml) que no tienen un control propio en la pantalla. Desde la regla «Skills solo lo diferenciado» ya no van
+   en la ventana «Skills». Cada una crea un ticket con aprobación en AAP (mismo endpoint que la ventana); las que piden datos se
+   abren en la ficha de la acción. Datos: operaciones_de(e, rep, cod) (app/habilidades.py). Entrada: op_cod (opcional). #}
+{% set op_ = operaciones_de(e, rep_maq if rep_maq is defined else none, op_cod if op_cod is defined else none, op_ambito if op_ambito is defined else '') %}
+{% if op_ %}<div class="card op-card" data-pilar="Otros" style="margin-top:14px" id="operaciones{{ '-' ~ op_cod if op_cod is defined and op_cod }}"><div class="fila"><h2 style="margin:0">Operaciones</h2><span class="sub der" style="font-size:12px">acciones del día a día · cada una crea un ticket con aprobación en AAP</span></div>
+<table class="no-apilar sin-pag op-tab"><tbody>{% for h in op_ %}<tr class="op-it{{ ' bloq' if h.bloqueo }}"><td><b>{{ h.nombre }}</b>{% if h.grupo %} <span class="sub" style="font-size:11.5px">· {{ h.grupo }}</span>{% endif %}<div class="sub" style="font-size:12px">{{ h.valor }}</div>{% if h.bloqueo %}<div class="sub op-motivo">Bloqueada: {{ h.bloqueo }}</div>{% endif %}</td>
+<td class="op-a">{% if h.ticket and h.ticket.abierto %}<button type="button" class="btn chico" disabled>En curso</button> <a class="ult-t e-{{ h.ticket.estado }}" href="{{ url_for('consola.ticket', tid=h.ticket.id) }}" data-op-poll="{{ h.ticket.id }}">{{ h.ticket.numero }}</a>
+{% elif h.bloqueo and 'Acciones' in h.bloqueo %}<a class="btn chico gris" href="{{ url_for('consola.automatizacion', aid=h.aid) }}" target="_blank" rel="noopener" title="«{{ h.auto }}» pide datos: se abre en la ficha de la acción">Abrir…</a>
+{% elif h.bloqueo %}<button type="button" class="btn chico" disabled title="«{{ h.auto }}»: {{ h.bloqueo }}">Ejecutar</button>
+{% elif not h.escritura %}<span class="sub">solo lectura</span>
+{% elif h.campos %}<a class="btn chico gris" href="{{ url_for('consola.automatizacion', aid=h.aid) }}" target="_blank" rel="noopener" title="«{{ h.auto }}» pide datos: se abre en la ficha de la acción">Abrir…</a>
+{% else %}<button type="button" class="btn chico" data-op-url="{{ h.url }}" data-op-id="{{ h.id }}" title="«{{ h.auto }}»: ticket con aprobación">Ejecutar</button>{% if h.ticket %} <a class="ult-t e-exitoso" href="{{ url_for('consola.ticket', tid=h.ticket.id) }}" title="Última vez">{{ h.ticket.numero }}</a>{% endif %}{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+<style>.op-tab{width:100%}.op-tab td{padding:8px 16px;border-top:1px solid var(--line);vertical-align:middle}.op-tab .op-a{text-align:right;white-space:nowrap;width:1%}.op-it.bloq{opacity:.75}.op-motivo{font-size:12px;color:var(--warn,#b45309)}</style>
+<script>(()=>{const EST={{ url_for('consola.ticket_estado', tid=0)|tojson }},ABIERTO=['pendiente_aprobacion','en_cola','en_ejecucion','en curso','ejecutando','esperando'];
+const vigilar=a=>{const tick=()=>fetch(EST.replace(/0$/,a.dataset.opPoll)).then(r=>r.json()).then(t=>{a.className='ult-t e-'+t.estado;if(ABIERTO.includes(t.estado)){setTimeout(tick,8000);return;}
+  const b=a.parentElement.querySelector('button');if(b){b.disabled=false;b.textContent='Ejecutar';}a.textContent=t.numero+(t.estado==='exitoso'?'':' · '+(t.estado||'').replace(/_/g,' '));}).catch(()=>setTimeout(tick,15000));tick();};
+document.querySelectorAll('[data-op-poll]').forEach(vigilar);
+document.addEventListener('click',ev=>{const b=ev.target.closest('button[data-op-url]');if(!b||b.disabled)return;
+ b.disabled=true;b.textContent='En curso';const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('hid',b.dataset.opId);
+ fetch(b.dataset.opUrl,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.text().then(x=>{try{return JSON.parse(x);}catch(_){return {error:'No se pudo crear el ticket (error '+r.status+')'};}})).then(t=>{
+  if(t.error){b.disabled=false;b.textContent='Ejecutar';(window.fxAviso||alert)(t.error,'error');return;}
+  b.parentElement.querySelectorAll('a.ult-t').forEach(x=>x.remove());const a=document.createElement('a');a.className='ult-t e-'+(t.estado||'pendiente_aprobacion');a.href=t.url;a.textContent=t.numero;a.dataset.opPoll=t.id;b.after(' ',a);vigilar(a);
+  window.fxAviso&&fxAviso(t.numero+(t.existente?' ya estaba en curso':' creado')+(t.estado==='pendiente_aprobacion'?' (espera aprobación)':''),'ok');
+ }).catch(()=>{b.disabled=false;b.textContent='Ejecutar';(window.fxAviso||alert)('No se pudo crear el ticket','error');});});})();</script>{% endif %}

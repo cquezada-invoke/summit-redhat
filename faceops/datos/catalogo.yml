@@ -172,3 +172,207 @@ fichas:
   "Autocuidado · Atender alerta": {nombre: "Atender alerta de autocuidado", descripcion: "Lo lanza Event-Driven Ansible: entrega la alerta a FaceOps, que crea el ticket y aplica la política de riesgo", categoria: "Autocuidado de la plataforma", usa_limite: 0, visible: 0, tipo: escritura, requiere_aprobacion: 0, minutos_manual: 5, tarifa: 0, etiquetas: [autocuidado, eda, alerta]}
 # Se muestran habilitadas aunque aún no tengan una ejecución exitosa (las prueba el usuario)
 desbloqueadas: ["Satellite · Instalar servidor", "VPN · Preparar servidor", "Satellite · Incorporar RHEL", "Migración · CentOS a RHEL"]
+
+# Clase de cada automatización (regla de producto): «skill» = capacidad diferenciada de alto valor que no tiene control propio
+# en la pantalla (migraciones, modernización, mover o replicar máquinas, cambio de versión mayor, consolidación, evaluación de
+# destino, alta disponibilidad y DR, cumplimiento o hardening completos); «operacion» = acción básica del día a día que vive en
+# su botón o control de la pantalla (encender, apagar, reiniciar, controlar servicio, inventariar, logs, discos, recursos,
+# parches, certificados, respaldos, abrir puerto…). Las secciones «Skills» (máquina, red, estación, clúster, hipervisor,
+# plataforma y segmento) solo muestran las de clase skill (app/habilidades.py › es_skill). Fuera de «fichas» a propósito: la
+# huella de la regla de prueba (app/pruebas.py) lee la ficha y no debe cambiar por esta clasificación.
+clases:
+  "Active Directory · Diagnosticar": operacion
+  "AMQ · Actualizar broker": skill
+  "Arquitectura · Evaluar stack tecnológico": skill
+  "Certificados · Emitir para servicio": operacion
+  "Certificados · Renovar por vencer": operacion
+  "Ciclo de vida · Evaluar destino": skill
+  "Data lake · Auditar buckets": operacion
+  "Data lake · Derivar segmento": skill
+  "Data lake · Política de ciclo de vida": operacion
+  "Data lake · Rotar credenciales S3": operacion
+  "Data lake · Réplica a otro sitio": skill
+  "DC · Base de los equipos": operacion
+  "DC · Registrar en Red Hat": operacion
+  "Despliegue · Cambiar tráfico": operacion
+  "DevSecOps · Pipeline Tekton": operacion
+  "Directorio · Respaldar LDIF": operacion
+  "Drift · Incorporar servidor": operacion
+  "Drift · Retirar servidor": operacion
+  "Estaciones · Cumplimiento CIS": skill
+  "Estaciones · Limpieza de disco": operacion
+  "Estado · Volver a un commit": operacion
+  "FaceOps · Agente de monitoreo (Linux)": operacion
+  "FaceOps · Apagar equipo": operacion
+  "FaceOps · Aplicar política de seguridad": operacion
+  "FaceOps · Eliminar servidor": operacion
+  "FaceOps · Exportador de plataforma": operacion
+  "FaceOps · Habilitar servidor": operacion
+  "FaceOps · Incorporar máquinas": operacion
+  "FaceOps · Nuevo segmento de negocio": operacion
+  "FaceOps · Recuperar servidor": operacion
+  "FaceOps · Replicar con alta disponibilidad": skill
+  "FaceOps · Respaldo continuo en Git": operacion
+  "FaceOps · Retirar del balanceo": operacion
+  "FaceOps · Verificar flujos de red": operacion
+  "FaceOps · Vincular máquina a la bóveda": operacion
+  "FaceOps · Vincular máquina on-premise": operacion
+  "FaceOps · Volver a una versión": operacion
+  "Homologación · Relevar entorno": skill
+  "Identidad · Fuente de usuarios de FaceOps": operacion
+  "IdM · Respaldar": operacion
+  "IIS · Preparar servidor": operacion
+  "Incidentes · Diagnosticar PostgreSQL": operacion
+  "Incidentes · Verificar error conocido": operacion
+  "Infra · Agregar disco (anfitrión)": operacion
+  "Infra · Ajustar recursos de máquinas": operacion
+  "Infra · Cargar imágenes base al registro": operacion
+  "Infra · Encender o apagar equipo": operacion
+  "Infra · Encendido automático de máquinas": operacion
+  "Infra · Evaluar consolidación de hipervisores": skill
+  "Infra · Informe de capacidad del hipervisor": operacion
+  "Infra · Limpiar snapshots viejos": operacion
+  "Infra · Mover máquina entre centros de datos": skill
+  "Infra · Parchear anfitrión": operacion
+  "Infra · Preparar centro de datos emulado": operacion
+  "Infra · Replicar máquina": skill
+  "Infra · Respaldar configuración del anfitrión": operacion
+  "Integración · PostgreSQL": operacion
+  "JBoss · Aplicar configuración": operacion
+  "JBoss · Restablecer a versión": operacion
+  "Jenkins · Preparar servidor": operacion
+  "Kafka · Actualizar versión": skill
+  "Kafka · Ajustar retención": operacion
+  "Kafka · Crear tópico": operacion
+  "Kafka · Habilitar TLS": operacion
+  "Kafka · Rebalancear particiones": operacion
+  "Keycloak · Actualizar versión": skill
+  "Keycloak · Configurar observabilidad": operacion
+  "Keycloak · Habilitar HTTPS": operacion
+  "Keycloak · Respaldar realms": operacion
+  "Licencias · Levantar desde las plataformas": operacion
+  "Migración a GCP · Evaluar servidor": skill
+  "Migración a GCP · Servidor Linux": skill
+  "Migración K8s → OpenShift · Convertir manifiestos": skill
+  "Migración K8s → OpenShift · Evaluar origen": skill
+  "Migración K8s → OpenShift · Migrar aplicación": skill
+  "Migración K8s → OpenShift · Preparar destino": skill
+  "Migración K8s → OpenShift · Validar y conmutar": skill
+  "Migración · CentOS a RHEL": skill
+  "Migración · Evaluar sistema operativo": skill
+  "Migración · IIS a OpenShift": skill
+  "Migración · JBoss a EAP 8": skill
+  "Migración · RHEL a versión soportada": skill
+  "Migración · VMware a OpenShift Virtualization": skill
+  "Migración · WebLogic a OpenShift": skill
+  "Migración · WebLogic a OpenShift · Evaluar": skill
+  "Migración · Windows Server a versión soportada": skill
+  "MongoDB · Preparar servidor": operacion
+  "Monitoreo · Configurar alertas del equipo": operacion
+  "Monitoreo · Grafana de OpenShift": operacion
+  "Monitoreo · Responder alerta": operacion
+  "MySQL · Preparar servidor": operacion
+  "Nube · Dar de baja VM": operacion
+  "Nube · Recuperar consumo y estado": operacion
+  "Nube · Reporte de huérfanos": operacion
+  "Nube · Solicitar VM con aprobación": operacion
+  "Nube · Validar conexión e inventariar": operacion
+  "Nube · Vigilar firewall": operacion
+  "OpenShift · Agente de ACS": skill
+  "OpenShift · Crear en GCP": operacion
+  "OpenShift · Desinstalar operador": operacion
+  "OpenShift · Desplegar segmento": operacion
+  "OpenShift · Eliminar en GCP": operacion
+  "OpenShift · Evaluar imágenes (uso y antigüedad)": skill
+  "OpenShift · Habilitar OpenShift Virtualization": skill
+  "OpenShift · Informe de seguridad del clúster": skill
+  "OpenShift · Instalar operador": operacion
+  "OpenShift · Modelo de alertamiento": skill
+  "OpenShift · Mover imágenes a Quay": skill
+  "OpenShift · Optimizar recursos y limpiar": operacion
+  "OpenShift · Preparar instalación IPI VMware": operacion
+  "OpenShift · Relevamiento de imágenes": operacion
+  "OpenShift · Remediar alerta": operacion
+  "OpenShift · Respaldo con OADP": operacion
+  "OpenShift · Respaldo de etcd": operacion
+  "OpenShift · Validar e instalar IPI VMware": operacion
+  "OpenShift · Versión del clúster": skill
+  "Plataforma · Controlar servicio": operacion
+  "Plataforma · Medir salud": operacion
+  "Plataforma · Programar medición": operacion
+  "Políticas de desarrollo · Evaluar aplicaciones": skill
+  "PostgreSQL · Actualizar versión": skill
+  "PostgreSQL · Preparar servidor": operacion
+  "PostgreSQL · Respaldo continuo": operacion
+  "PostgreSQL · Vacuum y análisis": operacion
+  "Recuperación · Respaldar volúmenes con restic": operacion
+  "Red · Actualizar firmware": skill
+  "Red · Aplicar plantilla de puerto": operacion
+  "Red · Auditar reglas de firewall": skill
+  "Red · Bloquear IP": operacion
+  "Red · Configurar VLAN": operacion
+  "Red · Cumplimiento CIS": skill
+  "Red · Detectar cambios de configuración": operacion
+  "Red · Estado de túneles VPN": operacion
+  "Red · Inventariar equipo de red": operacion
+  "Red · Miembro del pool": operacion
+  "Red · Prueba de conectividad": operacion
+  "Red · Puertos sin uso": operacion
+  "Red · Renovar certificado del VIP": operacion
+  "Red · Respaldar configuración": operacion
+  "Red · Restablecer BGP": operacion
+  "Red · Revocar acceso con aprobación": operacion
+  "Red · Rotar PSK o certificados": operacion
+  "Red · Solicitar acceso con aprobación": operacion
+  "Red · Verificar drift": operacion
+  "Redis · Configurar memoria y acceso": operacion
+  "Redis · Instalar Redis Insight": operacion
+  "Redis · Preparar servidor": operacion
+  "Redis · Respaldar": operacion
+  "Remediación · Cola de pagos": operacion
+  "Remediación · Diagnosticar app": operacion
+  "Remediación · IIS en Windows": operacion
+  "Remediación · Limpiar logs": operacion
+  "Remediación · Reiniciar JBoss": operacion
+  "Remediación · Renovar certificado": operacion
+  "Remediación · Volver a la versión validada": operacion
+  "Satellite · Actualizar": skill
+  "Satellite · Convertir a RHEL": skill
+  "Satellite · Incorporar RHEL": operacion
+  "Satellite · Instalar": operacion
+  "Satellite · Instalar servidor": operacion
+  "Satellite · Reiniciar servicios": operacion
+  "Seguridad · Aplicar parches de seguridad": operacion
+  "Seguridad · Contención de incidente": operacion
+  "Seguridad · Escaneo de servidores": operacion
+  "Seguridad · Revisar CVEs": operacion
+  "SIEM · Enviar logs al SIEM": operacion
+  "SIEM · Enviar logs de AAP": operacion
+  "SIEM · Instalar Wazuh": operacion
+  "Sistema · Cambio de hora del país": operacion
+  "Sistema · Paquetes · inventario y respaldo": operacion
+  "Sistema · Quitar agente": operacion
+  "Sistema · Registrar en Red Hat": operacion
+  "SQL Server · Configurar alta disponibilidad": skill
+  "SQL Server · Conmutar réplica primaria": operacion
+  "SQL Server · Levantamiento y medición": skill
+  "SQL Server · Preparar servidor": operacion
+  "Storage · Ampliar volumen": operacion
+  "Storage · Asignar volumen a servidor": operacion
+  "Storage · Crear volumen": operacion
+  "Storage · Servicio S3 del data lake": operacion
+  "Storage · Snapshot de volumen": operacion
+  "Vault · Configurar auto-unseal": operacion
+  "Vault · Habilitar TLS": operacion
+  "Vault · Snapshots programados": operacion
+  "VPN · Gestionar acceso": operacion
+  "VPN · Instalar": operacion
+  "VPN · Preparar servidor": operacion
+  "Windows · Activar licencia": operacion
+  "Windows · Actualizaciones de seguridad": operacion
+  "Windows · Actualizar a versión soportada": skill
+  "Windows · Aplicar actualizaciones": operacion
+  "Windows · Escaneo de seguridad": operacion
+  "Windows · Instalar IIS": operacion
+  "Windows · Preparar IIS": operacion
+  "Windows · Provocar caída de IIS (demo)": operacion

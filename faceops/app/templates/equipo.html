@@ -256,7 +256,7 @@ v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;document.addEventLis
 {% endif %}
 {% if c.codigo == 'openshift' and plataforma %}<div class="ocp-panel">{% include "_openshift.html" %}</div>{% endif %}
 {% if familia(c.codigo) in ('jboss', 'tomcat') %}<div class="card apps-dep" data-pilar="Otros" data-apps="{{ url_for('consola.aplicaciones_equipo', eid=e.id) }}"><div class="fila"><h2 style="margin:0">Aplicaciones desplegadas</h2></div><div class="apps-lista"><p class="sub">Cargando…</p></div></div>{% endif %}
-{% if not c.so %}{{ bloque_acc(c.acc, c.compat) }}{% endif %}
+{% if not c.so %}{{ bloque_acc(c.acc, c.compat) }}{% else %}{% include "_operaciones.html" %}{% endif %}
 {% if c.op %}{% set o = c.op %}<div class="card op-caja" data-pilar="Otros" style="margin-top:14px"><h3 style="margin:0 0 6px;font-size:15px">Operador</h3><dl class="caja-info" style="grid-template-columns:170px 1fr">
 <dt>Paquete</dt><dd class="mono">{{ o.n }}</dd><dt>Namespace</dt><dd class="mono">{{ o.ns }}</dd><dt>Canal</dt><dd>{{ o.canal or '—' }}</dd>
 <dt>Estrategia de aprobación</dt><dd>{% if o.aprob %}<span class="chip {{ 's-ok' if o.aprob == 'Manual' else 's-media' }}">{{ o.aprob }}</span>{% else %}<span class="chip s-alta" title="Sin declarar: OLM la trata como Automatic y el operador puede actualizarse solo (T-05)">sin declarar</span>{% endif %}</dd>

@@ -19,6 +19,13 @@
 # F5 BIG-IP/HAProxy → balanceador…). Un equipo de red solo muestra las skills de su categoría. «so_accion»: sistemas donde
 # la acción del catálogo funciona hoy; en los demás, y si la acción aún no existe, se muestra deshabilitada con el motivo
 # «acción aún no disponible».
+# «Skills» muestra solo capacidades diferenciadas (regla de producto): una habilidad es skill si su «clase» lo dice o, sin
+# «clase», si alguna de sus acciones es «skill» en datos/catalogo.yml › clases. Las de clase operación (encender, reiniciar,
+# inventariar, respaldar, parches…) no van en «Skills»: viven en su control de la pantalla y, si no tienen uno propio, en el
+# bloque «Operaciones» del sistema o de la plataforma (app/templates/_operaciones.html). Se mantienen aquí porque la salud de
+# las plataformas las usa como acción de sus puntos (app/ficha_plataforma.py › _acc_skill).
+#   clase: skill | operacion (opcional; fija la clase cuando la habilidad no tiene acción del catálogo o difiere de ella)
+#   control: dónde está su control propio en la pantalla (una operación con control no se repite en «Operaciones»)
 habilidades:
   # ── Migraciones (diferenciadores)
   - id: centos-rhel
@@ -170,6 +177,7 @@ habilidades:
       - so: "(?i)windows"
         nombre_aap: ["Windows · Escaneo de seguridad", "Seguridad · Escaneo de servidores"]
   - id: win-iis
+    control: Incorporar plataforma
     tipo: quick win
     grupo: Plataformas
     ambito: IIS
@@ -231,6 +239,7 @@ habilidades:
     valor: Respalda los volúmenes de datos en S3 con restic, cifrado y versionado.
     nombre_aap: ["Recuperación · Respaldar volúmenes con restic"]
   - id: registrar-licencia
+    control: registro en la ficha (Registrar en Red Hat / activar licencia)
     tipo: quick win
     grupo: Seguridad y continuidad
     nombre: Registrar licencia
@@ -369,6 +378,7 @@ habilidades:
     ambito: Segmento
     requiere: vm
   - id: seg-failover
+    clase: skill   # sin acción del catálogo aún: la clase va aquí
     tipo: diferenciador
     grupo: Continuidad
     nombre: Prueba de failover controlada
@@ -378,6 +388,7 @@ habilidades:
     categoria: segmento
     ambito: Segmento
   - id: seg-escalar
+    clase: operacion   # la vista del segmento ya tiene «Agregar réplica de <componente>» (Réplicas y paridad)
     tipo: diferenciador
     grupo: Capacidad
     nombre: Escalar (agregar nodo)
@@ -387,6 +398,7 @@ habilidades:
     ambito: Segmento
     requiere: balanceador
   - id: seg-impacto
+    clase: skill   # sin acción del catálogo aún: la clase va aquí
     tipo: diferenciador
     grupo: Cambios
     nombre: Análisis de impacto de un cambio
@@ -396,6 +408,7 @@ habilidades:
     categoria: segmento
     ambito: Segmento
   - id: seg-ocp
+    clase: skill   # sin acción del catálogo aún: la clase va aquí
     tipo: diferenciador
     grupo: Modernización
     nombre: Mover el segmento a OpenShift
@@ -441,6 +454,7 @@ habilidades:
     valor: Evalúa la versión contra la recomendada del fabricante y la aplica en ventana, con respaldo previo y vuelta atrás.
     nombre_aap: ["Red · Actualizar firmware"]
   - id: red-inventario
+    control: botón Inventariar de la ficha
     tipo: quick win
     red: todos
     grupo: Todos los equipos de red
@@ -503,6 +517,7 @@ habilidades:
     valor: Renueva el certificado TLS del servicio publicado antes de que venza, sin corte.
     nombre_aap: ["Red · Renovar certificado del VIP"]
   - id: lb-salud
+    control: botón Inventariar de la ficha
     tipo: quick win
     red: [balanceador]
     grupo: Balanceador
@@ -537,6 +552,7 @@ habilidades:
     valor: Deja el puerto con la plantilla estándar (acceso, troncal, seguridad de puerto) en un solo paso.
     nombre_aap: ["Red · Aplicar plantilla de puerto"]
   - id: rt-rutas
+    control: botón Inventariar de la ficha
     tipo: quick win
     red: [router]
     grupo: Router
@@ -574,6 +590,7 @@ habilidades:
   # Foco: Linux y desarrolladores, apps de terceros, remediación y evidencia de cumplimiento unificada (en Windows, Intune o
   # SCCM suelen cubrir lo básico). nombre_aap vacío = la acción aún no existe: se muestra deshabilitada «acción aún no disponible».
   - id: est-dev
+    clase: skill   # aprovisionamiento completo de la estación (sin acción del catálogo aún)
     tipo: diferenciador
     grupo: Ciclo de vida de la estación
     categoria: "estación de trabajo"
@@ -584,6 +601,7 @@ habilidades:
       - {so: "(?i)windows", nombre_aap: []}
       - {so: "(?i)mac ?os|darwin|os x", nombre_aap: []}
   - id: est-win11
+    clase: skill   # migración de versión mayor (sin acción del catálogo aún)
     tipo: diferenciador
     grupo: Ciclo de vida de la estación
     categoria: "estación de trabajo"
@@ -769,7 +787,7 @@ habilidades:
   #    Ámbito = la plataforma. Las que aún no tienen acción en AAP o no están certificadas se ven deshabilitadas con su motivo.
   #    Las «Reiniciar …» usan «Plataforma · Controlar servicio» con las unidades de esa plataforma.
   # Data lake (S3 de SeaweedFS + Trino)
-  - {id: dl-reiniciar, plataforma: data-lake, ambito: Data lake, tipo: quick win, grupo: Operación, nombre: Reiniciar el servicio S3, valor: "Reinicia el S3 del lake (master, volumen, filer y S3) y verifica que responda.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [lake-s3], sp_plataforma: Data lake}}
+  - {id: dl-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: data-lake, ambito: Data lake, tipo: quick win, grupo: Operación, nombre: Reiniciar el servicio S3, valor: "Reinicia el S3 del lake (master, volumen, filer y S3) y verifica que responda.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [lake-s3], sp_plataforma: Data lake}}
   - {id: dl-ciclo-vida, plataforma: data-lake, ambito: Data lake, tipo: diferenciador, grupo: Datos, nombre: Política de retención y ciclo de vida, valor: "Fija la retención (TTL) por bucket: la data vieja expira sola y el disco no se llena.", nombre_aap: ["Data lake · Política de ciclo de vida"]}
   - {id: dl-replica, plataforma: data-lake, ambito: Data lake, tipo: diferenciador, grupo: Continuidad, nombre: Réplica a otro sitio, valor: "Deja la sincronización continua del filer hacia otro sitio o nube (filer.sync), verificada.", nombre_aap: ["Data lake · Réplica a otro sitio"]}
   - {id: dl-credenciales, plataforma: data-lake, ambito: Data lake, tipo: quick win, grupo: Seguridad, nombre: Rotar credenciales de acceso, valor: "Crea o rota las llaves S3 de cada aplicación (en la bóveda) y cierra el acceso anónimo.", nombre_aap: ["Data lake · Rotar credenciales S3"]}
@@ -777,44 +795,44 @@ habilidades:
   - {id: dl-ampliar, plataforma: data-lake, ambito: Data lake, tipo: quick win, grupo: Capacidad, nombre: Ampliar el disco del lake, valor: "Agrega capacidad al disco dedicado del lake sin detener el S3.", nombre_aap: ["Storage · Ampliar volumen", "Infra · Agregar disco (anfitrión)"]}
   - {id: dl-respaldo, plataforma: data-lake, ambito: Data lake, tipo: quick win, grupo: Continuidad, nombre: Respaldar el lake, valor: "Respalda el disco del lake con restic, cifrado y versionado.", nombre_aap: ["Recuperación · Respaldar volúmenes con restic"]}
   # Kafka / AMQ Streams
-  - {id: kf-reiniciar, plataforma: kafka, ambito: Kafka, tipo: quick win, grupo: Operación, nombre: Reiniciar el broker, valor: "Reinicia el broker de Kafka y verifica que vuelva al quórum.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [kafka, amq-streams], sp_plataforma: Kafka}}
+  - {id: kf-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: kafka, ambito: Kafka, tipo: quick win, grupo: Operación, nombre: Reiniciar el broker, valor: "Reinicia el broker de Kafka y verifica que vuelva al quórum.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [kafka, amq-streams], sp_plataforma: Kafka}}
   - {id: kf-rebalanceo, plataforma: kafka, ambito: Kafka, tipo: diferenciador, grupo: Operación, nombre: Rebalancear particiones, valor: "Reparte líderes y réplicas entre los brokers y elimina particiones sub-replicadas.", nombre_aap: ["Kafka · Rebalancear particiones"]}
   - {id: kf-topico, plataforma: kafka, ambito: Kafka, tipo: quick win, grupo: Operación, nombre: Crear tópico con su política, valor: "Crea el tópico con particiones, réplicas, retención y ACL según el estándar.", nombre_aap: ["Kafka · Crear tópico"]}
   - {id: kf-retencion, plataforma: kafka, ambito: Kafka, tipo: quick win, grupo: Capacidad, nombre: Ajustar retención de tópicos, valor: "Ajusta retention.ms y bytes de los tópicos que más ocupan para liberar log.dirs.", nombre_aap: ["Kafka · Ajustar retención"]}
   - {id: kf-tls, plataforma: kafka, ambito: Kafka, tipo: quick win, grupo: Seguridad, nombre: Habilitar TLS y SASL, valor: "Cambia los listeners PLAINTEXT por TLS con autenticación SASL.", nombre_aap: ["Kafka · Habilitar TLS"]}
   - {id: kf-actualizar, plataforma: kafka, ambito: Kafka, tipo: diferenciador, grupo: Ciclo de vida, nombre: Actualizar versión, valor: "Actualiza Kafka broker por broker (rolling), sin perder mensajes.", nombre_aap: ["Kafka · Actualizar versión"]}
   # Keycloak
-  - {id: kc-reiniciar, plataforma: keycloak, ambito: Keycloak, tipo: quick win, grupo: Operación, nombre: Reiniciar Keycloak, valor: "Reinicia Keycloak y verifica que el OIDC responda.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [keycloak, rhbk], sp_plataforma: Keycloak}}
+  - {id: kc-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: keycloak, ambito: Keycloak, tipo: quick win, grupo: Operación, nombre: Reiniciar Keycloak, valor: "Reinicia Keycloak y verifica que el OIDC responda.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [keycloak, rhbk], sp_plataforma: Keycloak}}
   - {id: kc-certificado, plataforma: keycloak, ambito: Keycloak, tipo: quick win, grupo: Seguridad, nombre: Publicar por HTTPS, valor: "Deja Keycloak con certificado y HTTPS, sin cortar los logins.", nombre_aap: ["Keycloak · Habilitar HTTPS", "Certificados · Renovar por vencer"]}
   - {id: kc-config, plataforma: keycloak, ambito: Keycloak, tipo: quick win, grupo: Operación, nombre: Habilitar métricas y health, valor: "Activa metrics-enabled y health-enabled para vigilar logins y sesiones.", nombre_aap: ["Keycloak · Configurar observabilidad"]}
   - {id: kc-respaldo, plataforma: keycloak, ambito: Keycloak, tipo: quick win, grupo: Continuidad, nombre: Respaldar realms, valor: "Exporta los realms (sin secretos en claro) a Git, versionados.", nombre_aap: ["Keycloak · Respaldar realms"]}
   - {id: kc-actualizar, plataforma: keycloak, ambito: Keycloak, tipo: diferenciador, grupo: Ciclo de vida, nombre: Actualizar a Red Hat build of Keycloak, valor: "Lleva Keycloak a la versión con soporte de Red Hat, con respaldo previo.", nombre_aap: ["Keycloak · Actualizar versión"]}
   # JBoss EAP
-  - {id: jb-reiniciar, plataforma: jboss-eap, ambito: JBoss, tipo: quick win, grupo: Operación, nombre: Reiniciar JBoss, valor: "Reinicia JBoss EAP y valida que la aplicación responda.", nombre_aap: ["Remediación · Reiniciar JBoss", "Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [eap8-standalone, eap7-standalone, jboss-eap, wildfly, jboss], sp_plataforma: JBoss}}
+  - {id: jb-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: jboss-eap, ambito: JBoss, tipo: quick win, grupo: Operación, nombre: Reiniciar JBoss, valor: "Reinicia JBoss EAP y valida que la aplicación responda.", nombre_aap: ["Remediación · Reiniciar JBoss", "Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [eap8-standalone, eap7-standalone, jboss-eap, wildfly, jboss], sp_plataforma: JBoss}}
   - {id: jb-restablecer, plataforma: jboss-eap, ambito: JBoss, tipo: quick win, grupo: Operación, nombre: Volver a la versión validada, valor: "Restablece la aplicación y la configuración a la última versión que funcionó.", nombre_aap: ["JBoss · Restablecer a versión"]}
   - {id: jb-config, plataforma: jboss-eap, ambito: JBoss, tipo: quick win, grupo: Seguridad, nombre: Aplicar configuración estándar, valor: "Aplica la configuración estándar (consola solo local, logs, JVM) con vuelta atrás.", nombre_aap: ["JBoss · Aplicar configuración"]}
   - {id: jb-eap8, plataforma: jboss-eap, ambito: JBoss, tipo: diferenciador, grupo: Ciclo de vida, nombre: Migrar a JBoss EAP 8, valor: "Lleva el servidor y sus despliegues a EAP 8 (Jakarta EE 10).", nombre_aap: ["Migración · JBoss a EAP 8"], origen: mj_origen}
   # Redis / Valkey
-  - {id: rd-reiniciar, plataforma: redis, ambito: Redis, tipo: quick win, grupo: Operación, nombre: Reiniciar Redis, valor: "Reinicia Redis y verifica que responda PING.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [redis, valkey], sp_plataforma: Redis}}
+  - {id: rd-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: redis, ambito: Redis, tipo: quick win, grupo: Operación, nombre: Reiniciar Redis, valor: "Reinicia Redis y verifica que responda PING.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [redis, valkey], sp_plataforma: Redis}}
   - {id: rd-config, plataforma: redis, ambito: Redis, tipo: quick win, grupo: Seguridad, nombre: Límite de memoria y contraseña, valor: "Fija maxmemory, su política de desalojo y la contraseña (en la bóveda).", nombre_aap: ["Redis · Configurar memoria y acceso"]}
   - {id: rd-respaldo, plataforma: redis, ambito: Redis, tipo: quick win, grupo: Continuidad, nombre: Respaldar Redis, valor: "Copia el RDB a S3 con restic, versionado.", nombre_aap: ["Redis · Respaldar", "Recuperación · Respaldar volúmenes con restic"]}
   - {id: rd-insight, plataforma: redis, ambito: Redis, tipo: quick win, grupo: Operación, nombre: Consola Redis Insight, valor: "Instala Redis Insight publicado a través de FaceOps.", nombre_aap: ["Redis · Instalar Redis Insight"]}
   # PostgreSQL
-  - {id: pg-reiniciar, plataforma: postgresql, ambito: PostgreSQL, tipo: quick win, grupo: Operación, nombre: Reiniciar PostgreSQL, valor: "Reinicia PostgreSQL y verifica que acepte conexiones.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [postgresql, postgresql-16, postgresql-15, postgresql-13], sp_plataforma: PostgreSQL}}
+  - {id: pg-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: postgresql, ambito: PostgreSQL, tipo: quick win, grupo: Operación, nombre: Reiniciar PostgreSQL, valor: "Reinicia PostgreSQL y verifica que acepte conexiones.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [postgresql, postgresql-16, postgresql-15, postgresql-13], sp_plataforma: PostgreSQL}}
   - {id: pg-diagnostico, plataforma: postgresql, ambito: PostgreSQL, tipo: quick win, grupo: Operación, nombre: Diagnosticar PostgreSQL, valor: "Conexiones, bloqueos, consultas lentas y réplicas, sin cambiar nada.", nombre_aap: ["Incidentes · Diagnosticar PostgreSQL"]}
   - {id: pg-respaldo, plataforma: postgresql, ambito: PostgreSQL, tipo: diferenciador, grupo: Continuidad, nombre: Respaldo continuo (PITR), valor: "Archivado WAL y respaldo base con pgBackRest: recuperación a un punto en el tiempo.", nombre_aap: ["PostgreSQL · Respaldo continuo"]}
   - {id: pg-vacuum, plataforma: postgresql, ambito: PostgreSQL, tipo: quick win, grupo: Operación, nombre: VACUUM y análisis, valor: "Congela XID viejos y actualiza estadísticas en ventana controlada.", nombre_aap: ["PostgreSQL · Vacuum y análisis"]}
   - {id: pg-actualizar, plataforma: postgresql, ambito: PostgreSQL, tipo: diferenciador, grupo: Ciclo de vida, nombre: Actualizar versión mayor, valor: "pg_upgrade a la versión con soporte, con respaldo y vuelta atrás.", nombre_aap: ["PostgreSQL · Actualizar versión"]}
   # AMQ Broker (Artemis)
-  - {id: am-reiniciar, plataforma: activemq, ambito: AMQ Broker, tipo: quick win, grupo: Operación, nombre: Reiniciar el broker, valor: "Reinicia el broker y verifica el acceptor.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [artemis, amq-broker, activemq], sp_plataforma: AMQ Broker}}
+  - {id: am-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: activemq, ambito: AMQ Broker, tipo: quick win, grupo: Operación, nombre: Reiniciar el broker, valor: "Reinicia el broker y verifica el acceptor.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [artemis, amq-broker, activemq], sp_plataforma: AMQ Broker}}
   - {id: am-cola, plataforma: activemq, ambito: AMQ Broker, tipo: quick win, grupo: Operación, nombre: Reprocesar la cola de pagos, valor: "Reprocesa los mensajes detenidos de la cola de pagos y su DLQ.", nombre_aap: ["Remediación · Cola de pagos"]}
   - {id: am-actualizar, plataforma: activemq, ambito: AMQ Broker, tipo: diferenciador, grupo: Ciclo de vida, nombre: Actualizar AMQ Broker, valor: "Actualiza el broker a la versión con soporte, con respaldo del journal.", nombre_aap: ["AMQ · Actualizar broker"]}
   # nginx
-  - {id: ng-reiniciar, plataforma: nginx, ambito: nginx, tipo: quick win, grupo: Operación, nombre: Reiniciar nginx, valor: "Reinicia nginx (valida la configuración antes).", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [nginx], sp_plataforma: nginx}}
+  - {id: ng-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: nginx, ambito: nginx, tipo: quick win, grupo: Operación, nombre: Reiniciar nginx, valor: "Reinicia nginx (valida la configuración antes).", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [nginx], sp_plataforma: nginx}}
   - {id: ng-certificado, plataforma: nginx, ambito: nginx, tipo: quick win, grupo: Seguridad, nombre: Renovar certificado HTTPS, valor: "Renueva el certificado y recarga sin corte.", nombre_aap: ["Remediación · Renovar certificado", "Certificados · Renovar por vencer"]}
   - {id: ng-derivar, plataforma: nginx, ambito: nginx, tipo: diferenciador, grupo: Datos, nombre: Derivar el segmento al data lake, valor: "Copia cada request al data lake sin afectar la respuesta (espejo).", nombre_aap: ["Data lake · Derivar segmento"]}
   # Vault
-  - {id: vt-reiniciar, plataforma: vault, ambito: Vault, tipo: quick win, grupo: Operación, nombre: Reiniciar Vault, valor: "Reinicia Vault (queda sellado hasta desellarlo).", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [vault], sp_plataforma: Vault}}
+  - {id: vt-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: vault, ambito: Vault, tipo: quick win, grupo: Operación, nombre: Reiniciar Vault, valor: "Reinicia Vault (queda sellado hasta desellarlo).", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [vault], sp_plataforma: Vault}}
   - {id: vt-desellar, plataforma: vault, ambito: Vault, tipo: quick win, grupo: Operación, nombre: Desellar con auto-unseal, valor: "Configura auto-unseal (KMS/HSM) para que Vault no quede sellado tras un reinicio.", nombre_aap: ["Vault · Configurar auto-unseal"]}
   - {id: vt-tls, plataforma: vault, ambito: Vault, tipo: quick win, grupo: Seguridad, nombre: Habilitar TLS en Vault, valor: "Certificado en el listener y clientes actualizados.", nombre_aap: ["Vault · Habilitar TLS"]}
   - {id: vt-snapshot, plataforma: vault, ambito: Vault, tipo: diferenciador, grupo: Continuidad, nombre: Snapshots programados, valor: "Snapshots de raft cifrados y fuera del nodo.", nombre_aap: ["Vault · Snapshots programados"]}
@@ -822,16 +840,16 @@ habilidades:
   - {id: st-reiniciar, plataforma: satellite, ambito: Satellite, tipo: quick win, grupo: Operación, nombre: Reiniciar servicios de Satellite, valor: "satellite-maintain service restart y verificación.", nombre_aap: ["Satellite · Reiniciar servicios"]}
   - {id: st-actualizar, plataforma: satellite, ambito: Satellite, tipo: diferenciador, grupo: Ciclo de vida, nombre: Actualizar Satellite, valor: "Lleva Satellite a una versión más nueva con chequeos previos y snapshot.", nombre_aap: ["Satellite · Actualizar"], parametros: {sat_version_destino: "6.18"}}
   # Red Hat IdM
-  - {id: id-reiniciar, plataforma: red-hat-idm, ambito: IdM, tipo: quick win, grupo: Operación, nombre: Reiniciar IdM, valor: "ipactl restart y verificación de cada servicio.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [ipa], sp_plataforma: IdM}}
+  - {id: id-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: red-hat-idm, ambito: IdM, tipo: quick win, grupo: Operación, nombre: Reiniciar IdM, valor: "ipactl restart y verificación de cada servicio.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [ipa], sp_plataforma: IdM}}
   - {id: id-respaldo, plataforma: red-hat-idm, ambito: IdM, tipo: quick win, grupo: Continuidad, nombre: Respaldo de IdM, valor: "ipa-backup en línea, fuera del servidor.", nombre_aap: ["IdM · Respaldar"]}
   # 389 Directory Server
-  - {id: ds-reiniciar, plataforma: 389-directory-server, ambito: Directorio LDAP, tipo: quick win, grupo: Operación, nombre: Reiniciar el directorio, valor: "Reinicia la instancia dirsrv y verifica LDAP.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: ["dirsrv@"], sp_plataforma: 389 Directory Server}}
+  - {id: ds-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: 389-directory-server, ambito: Directorio LDAP, tipo: quick win, grupo: Operación, nombre: Reiniciar el directorio, valor: "Reinicia la instancia dirsrv y verifica LDAP.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: ["dirsrv@"], sp_plataforma: 389 Directory Server}}
   - {id: ds-respaldo, plataforma: 389-directory-server, ambito: Directorio LDAP, tipo: quick win, grupo: Continuidad, nombre: Respaldo LDIF, valor: "Exporta el directorio a LDIF cifrado, fuera del servidor.", nombre_aap: ["Directorio · Respaldar LDIF"]}
   # Active Directory
-  - {id: ad-reiniciar, plataforma: active-directory, ambito: Active Directory, tipo: quick win, grupo: Operación, nombre: Reiniciar servicios del dominio, valor: "Reinicia NTDS y servicios dependientes del controlador.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [NTDS], sp_plataforma: Active Directory}, apagada_ok: false}
+  - {id: ad-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: active-directory, ambito: Active Directory, tipo: quick win, grupo: Operación, nombre: Reiniciar servicios del dominio, valor: "Reinicia NTDS y servicios dependientes del controlador.", nombre_aap: ["Plataforma · Controlar servicio"], parametros: {sp_accion: reiniciar, sp_unidades: [NTDS], sp_plataforma: Active Directory}, apagada_ok: false}
   - {id: ad-diagnostico, plataforma: active-directory, ambito: Active Directory, tipo: quick win, grupo: Operación, nombre: Diagnóstico del dominio, valor: "dcdiag y repadmin con hallazgos priorizados (solo lectura).", nombre_aap: ["Active Directory · Diagnosticar"]}
   # IIS
-  - {id: is-reiniciar, plataforma: iis, ambito: IIS, tipo: quick win, grupo: Operación, nombre: Levantar IIS, valor: "Levanta W3SVC, sitios y pools detenidos.", nombre_aap: ["Remediación · IIS en Windows"]}
+  - {id: is-reiniciar, control: "control del servicio de la plataforma (Encender / Reiniciar / Apagar)", plataforma: iis, ambito: IIS, tipo: quick win, grupo: Operación, nombre: Levantar IIS, valor: "Levanta W3SVC, sitios y pools detenidos.", nombre_aap: ["Remediación · IIS en Windows"]}
   - {id: is-migrar, plataforma: iis, ambito: IIS, tipo: diferenciador, grupo: Ciclo de vida, nombre: IIS a OpenShift, valor: "Lleva las aplicaciones .NET de IIS a contenedores en OpenShift.", nombre_aap: ["Migración · IIS a OpenShift"]}
   # VyOS (firewall) y FRRouting (router)
   - {id: vy-respaldo, plataforma: [vyos-firewall, frrouting], ambito: Red, tipo: quick win, grupo: Continuidad, nombre: Respaldar configuración, valor: "Configuración a Git con los secretos enmascarados.", nombre_aap: ["Red · Respaldar configuración"]}

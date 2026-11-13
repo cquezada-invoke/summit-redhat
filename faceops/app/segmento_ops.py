@@ -290,14 +290,14 @@ def _ticket(seg, aid):
 def habilidades_segmento(seg):
     """Skills de la vista del segmento (habilidades.yml, categoria: segmento), mismas columnas y estados que las de la máquina."""
     from .arquitectura import vigente
-    from .habilidades import mapa
+    from .habilidades import es_skill, mapa
     if not seg:
         return []
     escritura = g.perfil["modo"] == "escritura"
     cx = _contexto_skill(seg, vigente(g.cliente["id"], seg["nombre"]), equipos_visibles())
     out = []
     for h in mapa():
-        if h.get("categoria") != "segmento":
+        if h.get("categoria") != "segmento" or not es_skill(h):   # solo lo diferenciado: las operaciones viven en la vista del segmento
             continue
         a, motivo = _skill(h, cx)
         out.append({"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"], "valor": h.get("valor") or "",

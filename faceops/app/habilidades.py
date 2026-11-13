@@ -34,6 +34,33 @@ def mapa():
     return _cache["h"]
 
 
+_CLASES = {}
+
+
+def clases():
+    """{nombre_aap: «skill» | «operacion»} de datos/catalogo.yml › clases (regla de producto: en «Skills» solo lo diferenciado)."""
+    ruta = os.path.join(os.path.dirname(__file__), "..", "datos", "catalogo.yml")
+    try:
+        mt = os.path.getmtime(ruta)
+    except OSError:
+        return {}
+    if _CLASES.get("mt") != mt:
+        with open(ruta, encoding="utf-8") as f_:
+            _CLASES.update(mt=mt, c=(yaml.safe_load(f_) or {}).get("clases") or {})
+    return _CLASES["c"]
+
+
+def es_skill(h):
+    """La habilidad va en «Skills» si es una capacidad diferenciada: su «clase» explícita en habilidades.yml o, si no la
+    tiene, la clase en el catálogo de alguna de sus acciones (también las variantes por sistema). Lo demás es operación:
+    vive en su botón o control de la pantalla (o en «Acciones»), no en «Skills»."""
+    if h.get("clase"):
+        return h["clase"] == "skill"
+    c = clases()
+    ns = list(h.get("nombre_aap") or []) + [n_ for v in h.get("por_so") or [] for n_ in v.get("nombre_aap") or []]
+    return any(c.get(n_) == "skill" for n_ in ns)
+
+
 def _motivo_prueba(a):
     from .pruebas import estado, exceptuada
     if exceptuada(a["nombre_aap"]):
@@ -314,13 +341,16 @@ def _faltan_datos(a, h):
 
 
 @bp.app_template_global("habilidades_maquina")
-def habilidades_maquina(e, rep=None):
-    """[{id, tipo, grupo, nombre, valor, auto, aid, ui, bloqueo, ticket, url}] de la máquina, diferenciadores primero."""
+def habilidades_maquina(e, rep=None, clase="skill"):
+    """[{id, tipo, grupo, nombre, valor, auto, aid, ui, bloqueo, ticket, url}] de la máquina, diferenciadores primero.
+    clase «skill»: las de la sección «Skills»; «operacion»: las operaciones (su control en la pantalla, app/templates/_operaciones.html)."""
     escritura = getattr(g, "perfil", None) and g.perfil["modo"] == "escritura"
     if (e.get("categoria") or "") == "hipervisor":   # ficha del hipervisor: sus propias skills (Ámbito = Hipervisor)
-        return habilidades_hipervisor(e, bool(escritura))
+        return habilidades_hipervisor(e, bool(escritura), clase)
     out = []
     for h in mapa():
+        if es_skill(h) != (clase == "skill"):
+            continue
         h = _resolver(h, e)
         if not h:
             continue
@@ -494,12 +524,14 @@ def _ticket_hv(e, aid):
     return None
 
 
-def habilidades_hipervisor(e, escritura):
+def habilidades_hipervisor(e, escritura, clase="skill"):
     """Skills de la ficha del hipervisor (datos/habilidades.yml, categoria: hipervisor), mismas columnas y estados que las de
     la máquina. Las que no tienen acción publicada o certificada se muestran deshabilitadas con su motivo."""
     out = []
     for h in mapa():
         if h.get("categoria") != "hipervisor" or (h.get("hipervisor") and not re.search(h["hipervisor"], e.get("hv_tipo") or "")):
+            continue
+        if es_skill(h) != (clase == "skill"):
             continue
         a, motivo = _skill_hv(e, h)
         out.append({"id": h["id"], "tipo": h.get("tipo") or "quick win", "grupo": h.get("grupo") or "", "nombre": h["nombre"], "valor": h.get("valor") or "",
@@ -587,13 +619,14 @@ def skill_plataforma(e, hid, escritura=True):
 
 
 @bp.app_template_global("habilidades_plataforma")
-def habilidades_plataforma(e, cod, ambito=""):
+def habilidades_plataforma(e, cod, ambito="", clase="skill"):
     """Skills de la ficha de una plataforma (habilidades.yml › plataforma: <código>), con Ámbito = la plataforma. Las que no
-    tienen acción publicada o no están certificadas se muestran deshabilitadas con su motivo."""
+    tienen acción publicada o no están certificadas se muestran deshabilitadas con su motivo. clase «operacion»: las
+    operaciones de la plataforma (van en su control de la pantalla, no en «Skills»)."""
     escritura = bool(getattr(g, "perfil", None) and g.perfil["modo"] == "escritura")
     out = []
     for h in mapa():
-        if cod in _lista(h.get("plataforma")):
+        if cod in _lista(h.get("plataforma")) and es_skill(h) == (clase == "skill"):
             x = skill_plataforma(e, h["id"], escritura)
             if x:
                 x["ambito"] = x["ambito"] or ambito
@@ -601,3 +634,13 @@ def habilidades_plataforma(e, cod, ambito=""):
     out.sort(key=lambda x: (x["tipo"] != "diferenciador", bool(x["bloqueo"])))
     return out
 
+
+
+@bp.app_template_global("operaciones_de")
+def operaciones_de(e, rep=None, cod=None, ambito=""):
+    """Operaciones (clase «operacion» de habilidades.yml) de la máquina o, con cod, de su plataforma, que NO tienen un control
+    propio en la pantalla («control:» en habilidades.yml, o su formulario propio: parches, réplica, mover) y cuya acción ya está
+    en el catálogo. Van en el bloque «Operaciones» del sistema o de la plataforma (app/templates/_operaciones.html), no en «Skills»."""
+    con_control = {h["id"] for h in mapa() if h.get("control")}
+    xs = habilidades_plataforma(e, cod, ambito, "operacion") if cod else habilidades_maquina(e, rep, "operacion")
+    return [x for x in xs if x.get("aid") and not x.get("ui") and x["id"] not in con_control]
