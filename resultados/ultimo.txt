@@ -1,30 +1,18 @@
-commit: bcc7572ffcd5167b5ce510c737b15266447e9505
-inicio: 2026-11-13T12:08:32-03:00
+commit: 761636b2f8bad3896d3cefb26385417d2649efc0
+inicio: 2026-11-13T12:09:22-03:00
 ---
-C9 commit: Inventario diario · 2026-11-13 14:54 · 0 archivos
-
-['meta/discos.txt']
-diff --git a/meta/discos.txt b/meta/discos.txt
-index 785eea9..a065e80 100644
---- a/meta/discos.txt
-+++ b/meta/discos.txt
-@@ -4,7 +4,7 @@ tmpfs tmpfs 907104 /dev/shm
- tmpfs tmpfs 362844 /run
- /dev/vda4 xfs 19650540 /
- /dev/vda3 xfs 983040 /boot
--/dev/vda2 vfat 204580 /boot/efi
-+/dev/vda2 vfat 204580 /efi
- tmpfs tmpfs 181420 /run/user/1000
- 
- UUID=b977dbef-b985-4f0d-8c41-0a34281d3838	/	xfs	defaults	0	0
-@@ -15,6 +15,6 @@ NAME    SIZE TYPE FSTYPE  MOUNTPOINT
- sr0     368K rom  iso9660 
- vda      20G disk         
- ├─vda1    1M part         
--├─vda2  200M part vfat    /boot/efi
-+├─vda2  200M part vfat    /efi
- ├─vda3    1G part xfs     /boot
- └─vda4 18.8G part xfs     /
-PUNTO PR-SRV-E1PRUEBA-01-0010 500 None 265 False False False False False
-IIS sin probar
---- fin: 2026-11-13T12:08:41-03:00 · código: 0
+    {% extends "base.html" %}{% block titulo %}{{ p.codigo }} · {{ e.nombre }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 136, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/punto.html", line 81, in block 'cuerpo'
+    <div style="overflow-x:auto"><table class="hist"><tr><th>Qué</th><th>Detalle</th><th>Mecanismo</th><th>Estado</th></tr>{% for x in cb.items|sort(attribute='ok') %}<tr><td>{{ x.que }}</td><td class="mono" style="font-size:12px">{{ x.detalle }}</td><td style="font-size:12.5px">{{ x.mecanismo }}{% if x.ref %} <span class="sub mono" style="font-size:11px">{{ x.ref }}</span>{% endif %}{% if x.nota %}<div class="sub" style="font-size:11.5px">{{ x.nota }}</div>{% endif %}</td><td>{% if x.ok %}<span class="chip s-ok" style="font-size:11px">cubierto</span>{% else %}<span class="chip s-alta" style="font-size:11px">sin cubrir</span>{% endif %}</td></tr>{% endfor %}</table></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/filters.py", line 438, in do_sort
+    return sorted(value, key=key_func, reverse=reverse)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'builtin_function_or_method' object is not iterable
+PR-SRV-E1PRUEBA-01-0001 200
+nodo-vault PR-NODO-VAULT-0012 200
+--- fin: 2026-11-13T12:09:35-03:00 · código: 0
