@@ -1,0 +1,12 @@
+commit: 7f003d57387c4b593691b18f1df41347ff3acc4e
+inicio: 2026-11-13T19:57:32-03:00
+---
+desplegado: 2b439326 · 2026-11-13T19:44:44-03:00 ok: desplegado 2b439326 · /ingresar 200 · configurar=0
+PREP ok 26 22 2581 95
+ingresar 200
+  File "/tmp/e1pw.py", line 54
+    lv += f" [búsqueda {round(time.time()-t0)} s · «{pg.evaluate('document.querySelector(\'#log-dlg .lg-estado\').textContent.slice(0,100)')}» · marcas {pg.evaluate('document.querySelectorAll(\'#log-dlg mark\').length')}]"
+                                                                                                                                                                                                                                   ^
+SyntaxError: f-string expression part cannot include a backslash
+BMC| Connection to 192.168.122.1 closed by remote host.
+--- fin: 2026-11-13T19:58:16-03:00 · código: 0
