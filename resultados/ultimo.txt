@@ -1,28 +1,53 @@
-commit: b765bb50001e79b430d7e92a5450721945ddf5f1
-inicio: 2026-11-13T07:52:44-03:00
+commit: 81df7acecd0fcd02f96e5292597f7ffd0e6f1ab7
+inicio: 2026-11-13T07:53:43-03:00
 ---
-2026-11-12T20:16:38-03:00 ESTADO ok: desplegado 69cd3730 · /ingresar 200 · configurar=sin cambios
-2026-11-12T20:25:58-03:00 == despliegue 69cd3730 -> 8a1df2ad
-2026-11-12T20:25:58-03:00 configurar.py (cambió faceops/aap)
-2026-11-12T20:31:44-03:00 configurar.py código 0
-2026-11-12T20:32:10-03:00 ESTADO ok: desplegado 8a1df2ad · /ingresar 200 · configurar=0
-2026-11-12T20:36:00-03:00 == despliegue 8a1df2ad -> d4ccca74
-2026-11-12T20:36:23-03:00 ESTADO ok: desplegado d4ccca74 · /ingresar 200 · configurar=sin cambios
-2026-11-12T21:06:08-03:00 == despliegue d4ccca74 -> 779cac4c
-2026-11-12T21:06:08-03:00 configurar.py (cambió faceops/aap)
-2026-11-12T21:13:53-03:00 configurar.py código 0
-2026-11-12T21:14:32-03:00 ESTADO ok: desplegado 779cac4c · /ingresar 200 · configurar=0
-2026-11-12T22:06:08-03:00 == despliegue 779cac4c -> 788152e4
-2026-11-12T22:06:50-03:00 ESTADO ok: desplegado 788152e4 · /ingresar 200 · configurar=sin cambios
-2026-11-13T07:47:30-03:00 == despliegue 788152e4 -> 6cac31ac
-2026-11-13T07:47:42-03:00 configurar.py (cambió faceops/aap)
-cquezada  108401  0.0  0.0   7148  3508 ?        Ss   07:47   0:00 /bin/bash /home/cquezada/summit-redhat/herramientas/faceops-autodeploy.sh
-cquezada  110317  0.0  0.0   5612  2036 ?        S    07:47   0:00 timeout 900 python3 faceops/aap/configurar.py
-cquezada  110318  0.1  0.0  33388 28896 ?        S    07:47   0:00 python3 faceops/aap/configurar.py
-HOSTS 98 nombres distintos 50
-POR INVENTARIO {'FaceOps · Infraestructura': 1, 'Plataforma del stand': 1, 'Data center 1': 5, 'Servidores habilitados': 20, 'FaceOps · Todos los servidores': 29, 'Red · laboratorio': 15, 'Servidores de aplicación': 9, 'Drift · Servidores': 6, 'Nodos demo': 9, 'Servidores Windows': 1, 'OpenShift · clústeres': 1, 'OpenShift · nodos': 1}
-HOST_METRICS 89
-METRICAS sin host 2 ['srv-mover-01', 'localhost']
-METRICAS borradas 39
-AAP no en FaceOps (vivos) ['anfitrion-kvm', 'fo-prueba-11121641']
---- fin: 2026-11-13T07:53:01-03:00 · código: 0
+anfitrion-stand | sin datos | encendido | servidor | Plataforma del stand | 2026-11-12 | AAP: Plataforma del stand
+dc1-ad01 | con datos | apagado | servidor | Data center 1 | 2026-11-12 | AAP: Data center 1
+dc1-ds01 | con datos | apagado | servidor | Data center 1 | 2026-11-12 | AAP: Data center 1
+dc1-idm01 | con datos | apagado | servidor | Data center 1 | 2026-11-12 | AAP: Data center 1
+dc1-iga01 | con datos | apagado | servidor | Data center 1 | 2026-11-12 | AAP: Data center 1
+dc1-sat01 | con datos | apagado | servidor | Servidores habilitados | 2026-11-12 | AAP: Servidores habilitados,FaceOps · Todos los servidores
+dc1-sso01 | con datos | apagado | servidor | Data center 1 | 2026-11-12 | AAP: Data center 1
+fo-prueba-11121533 | sin datos | apagado | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+fo-prueba-a-1424 | sin datos | apagado | servidor | Servidores habilitados | 2026-11-12 | AAP: Servidores habilitados,FaceOps · Todos los servidores
+fw | con datos | encendido | firewall | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+fw-sede-01 | con datos | encendido | firewall | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+lb-sede-01 | con datos | encendido | balanceador | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+nodo-jboss | con datos | encendido | servidor | Servidores de aplicación | 2026-11-12 | AAP: Red · laboratorio,Servidores de aplicación,Drift · Servidores,FaceOps · Todos los servidores,Nodos demo
+nodo-jboss-dev | con datos | encendido | servidor | Servidores de aplicación | 2026-11-12 | AAP: Nodos demo,Servidores de aplicación,FaceOps · Todos los servidores
+nodo-jboss-qa | con datos | apagado | servidor | Servidores de aplicación | 2026-11-12 | AAP: Nodos demo,Servidores de aplicación,FaceOps · Todos los servidores
+nodo-jboss2 | con datos | encendido | servidor | Servidores de aplicación | 2026-11-12 | AAP: Drift · Servidores,FaceOps · Todos los servidores,Servidores de aplicación,Nodos demo
+nodo-jboss3 | con datos | apagado | servidor | Servidores de aplicación | 2026-11-12 | AAP: Servidores de aplicación,Nodos demo,FaceOps · Todos los servidores
+nodo-jboss4 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: Servidores habilitados,FaceOps · Todos los servidores,Servidores de aplicación
+nodo-nginx | con datos | encendido | servidor | Servidores de aplicación | 2026-11-12 | AAP: Drift · Servidores,Nodos demo,Servidores de aplicación,Red · laboratorio,FaceOps · Todos los servidores
+nodo-postgres | con datos | encendido | servidor | Servidores de aplicación | 2026-11-12 | AAP: FaceOps · Todos los servidores,Drift · Servidores,Servidores de aplicación,Nodos demo,Red · laboratorio
+nodo-so | con datos | encendido | servidor | Nodos demo | 2026-11-12 | AAP: Drift · Servidores,Red · laboratorio,FaceOps · Todos los servidores,Nodos demo
+nodo-storage | con datos | encendido | almacenamiento | Servidores habilitados | 2026-11-12 | AAP: Servidores habilitados,FaceOps · Todos los servidores
+nodo-tomcat | con datos | encendido | servidor | Servidores de aplicación | 2026-11-12 | AAP: Drift · Servidores,Nodos demo,Servidores de aplicación,FaceOps · Todos los servidores
+nodo-vault | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: Servidores habilitados,FaceOps · Todos los servidores
+nodo-windows | con datos | encendido | servidor | Servidores Windows | 2026-11-12 | AAP: Servidores Windows
+ocp-sno | con datos | encendido | clúster openshift | OpenShift · clústeres | 2026-11-12 | AAP: OpenShift · clústeres
+pc-usuario | inventariado | encendido | estación de trabajo | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+rtr | con datos | encendido | router | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+rtr-wan-01 | con datos | encendido | router | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+sno | inventariado | encendido | servidor | OpenShift · nodos | 2026-11-12 | AAP: OpenShift · nodos
+srv-cisco-c240-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: Servidores habilitados,FaceOps · Todos los servidores
+srv-dell-r660xs-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+srv-dell-r760-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: Servidores habilitados,FaceOps · Todos los servidores
+srv-fujitsu-rx2540-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: Servidores habilitados,FaceOps · Todos los servidores
+srv-hpe-dl360-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+srv-hpe-dl380-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+srv-lenovo-sr630-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: Servidores habilitados,FaceOps · Todos los servidores
+srv-lenovo-sr650-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+srv-mig-rhel8-01 | con datos | apagado | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+srv-mig-rocky-01 | con datos | apagado | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+srv-supermicro-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+srv-windows-iis-01 | sin datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+srv-xfusion-2288h-01 | con datos | encendido | servidor | Servidores habilitados | 2026-11-12 | AAP: FaceOps · Todos los servidores,Servidores habilitados
+suc1 | inventariado | encendido | router | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+suc2 | inventariado | encendido | router | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+suc3 | inventariado | encendido | router | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+sw-acc-01 | con datos | encendido | switch | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+sw-core-01 | con datos | encendido | switch | Red · laboratorio | 2026-11-12 | AAP: Red · laboratorio
+RUNNING [(30126, 'Plataforma · Medir salud', '2026-11-13T10:53')]
+--- fin: 2026-11-13T07:54:28-03:00 · código: 0
