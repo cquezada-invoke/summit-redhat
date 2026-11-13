@@ -1,0 +1,65 @@
+commit: f9fa057ccae239b249c43b4c945f12b8efe31fcb
+inicio: 2026-11-13T13:11:46-03:00
+---
+desplegado: b1ea4dfe · 2026-11-13T13:27:35-03:00 ok: desplegado b1ea4dfe · /ingresar 200 · configurar=0
+VM de prueba srv-e1prueba-01 192.168.122.172 · running
+repositorio previo borrado: 403
+artefacto previo borrado app-grande-e952e2de2bf5
+artefacto previo borrado opt-herramienta-f82428ff533e
+artefacto previo borrado opt-jboss-eap-7.4-standalone-configuration-grande-e1.bin-c5935ca26fa5
+AVISO: srv-e1prueba-01 ya tenía repositorio
+== C1 srv-e1prueba-01: exitoso FO-LAB-02518
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'guardado', 'ARCHIVOS': '491', 'CAMBIOS': '14', 'COMMIT': 'ce3f500bde073d80311e2d9ff4b01a56a2ee73c5'}}
+  archivos/etc: 430 · meta: cobertura.txt crontab.txt directorios.txt discos.txt excluidos.txt grupos.txt omitidos.txt paquetes.txt permisos.txt red.txt rutas.txt selinux.txt servicios.txt sistema.txt usuarios.txt  · secretos en git: ninguno · paquetes 503
+CASO C1 ok · RHEL 9 sin repositorio propio
+== C2 srv-e1prueba-01: exitoso FO-LAB-02519
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '491', 'CAMBIOS': '0'}}
+CASO C2 ok · Repetir sin cambios
+== C3 srv-e1prueba-01: sin respuesta del arnés 
+{}
+  último commit: e3cac171 Inventario diario · 2026-11-13 16:39 · 1 archivo  Archivos: · M archivos/etc/motd 
+  PUNTO PR-SRV-E1PRUEBA-01-0020 configuracion si cobertura si cubierto · «motd» aparece
+CASO C3 falla · Cambiar un archivo de /etc y repetir
+== C4a srv-e1prueba-01: exitoso FO-LAB-02521
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '495', 'CAMBIOS': '9', 'COMMIT': '0f9558a7a6c65808056c9afcb2cd5193430dfc5a'}}
+== C4b nodo-jboss-dev: exitoso FO-LAB-02523
+{'nodo-jboss-dev': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '715', 'CAMBIOS': '0'}}
+  zip: configuración 1 · despliegue 2 · data/tmp/log o grande en git 0 · omitido 1 | RPM: configuración 1 · data/tmp/log 0
+CASO C4 ok · JBoss por RPM y desde zip en /opt
+== C8 srv-e1prueba-01: exitoso FO-LAB-02524
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '497', 'CAMBIOS': '6', 'COMMIT': 'f41ef9c3feefd2e602744ceb2ac86de18b35e838'}}
+['COB_AUTO=/home/ansible|1|4', 'COB_AUTO=/home/faceops|1|4', 'COB_AUTO=/root|1|6', 'COB_RUTA=/app-grande|210|1', 'COB_AUTO=/data|1|1', 'COB_AUTO=/efi|8|9', 'COB_AUTO=/opt/herramienta|1|1', 'COB_AUTO=/var/lib/cloud|1|38', 'COB_SINPAQ=/opt/herramienta|1', 'ART_SUBIDO=/app-grande|app-grande-ad37d2ab49c6', 'ART_SUBIDO=/opt/herramienta|opt-herramienta-56c0ec3a72b9', 'ART_OK=/opt/jboss-eap-7.4/standalone/configuration/grande-e1.bin|opt-jboss-eap-7.4-standalone-configuration-grande-e1.bin-b0fdd47490ac']
+  PUNTO PR-SRV-E1PRUEBA-01-0022 configuracion si cobertura si cubierto · «/app-grande» aparece
+CASO C8 ok · Cobertura
+== C9 srv-e1prueba-01: exitoso FO-LAB-02525
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '497', 'CAMBIOS': '0'}}
+CASO C9 ok · Repetir sin cambios
+== C10 srv-e1prueba-01: exitoso FO-LAB-02526
+{'srv-e1prueba-01': {'SECRETOS': '7', 'SECRETOS_BOVEDA': 'guardado', 'ARCHIVOS': '498', 'CAMBIOS': '5', 'COMMIT': 'a4118da4b744a18ede7ec94f7e89f0df6fa24da1'}}
+  BOV 7 ['/etc/pki/tls/private/e1.key', '/opt/app-e1/conf/almacen-e1.jks'] · PUNTO PR-SRV-E1PRUEBA-01-0023 configuracion si cobertura si cubierto · «almacen-e1.jks» no aparece
+CASO C10 ok · Secretos
+HV srv-e1prueba-01 /usr/bin/python-inexistente-e1
+== C5 srv-e1prueba-01: exitoso FO-LAB-02527
+{'srv-e1prueba-01': {'SECRETOS': '7', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '498', 'CAMBIOS': '1', 'COMMIT': '42f7d8155c52bfda6f0099708b01a57d66fd8ea9'}}
+HV srv-e1prueba-01 (sin)
+  LEGADO True BASE64 True · commit 42f7d815 Inventario diario · 2026-11-13 16:59 · 1 archivo  Archivos: · M archivos/etc/motd 
+CASO C5 ok · Sin Python utilizable (camino RHEL 5/6)
+== C7 srv-e1prueba-01: exitoso FO-LAB-02528
+{'srv-e1prueba-01': {'SECRETOS': '7', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '498', 'CAMBIOS': '0'}}
+  paquetes 503 (C1: 503) · FA RedHat 9.6 | con datos | 192.168.122.172
+CASO C7 ok · Datos del sistema y paquetes
+IIS en srv-windows-iis-01 (preparación de C6): rechazado al solicitar 
+== C6 srv-windows-iis-01: exitoso FO-LAB-02529
+{'srv-windows-iis-01': {'SECRETOS': '0', 'ARCHIVOS': '14', 'CAMBIOS': '19', 'COMMIT': '5bd68d2cdadc2380a727a86a25e3c17a7bf78365'}}
+  detalle: 
+  meta/sitios-iis.txt sí
+  meta/pools-iis.txt sí
+  meta/paquetes.txt sí
+  meta/caracteristicas.txt sí
+  meta/servicios.txt sí
+  meta/tareas.txt sí
+  applicationHost.config 1
+CASO C6 ok · Windows con IIS
+CASOS_INV [{"id": "C1", "caso": "RHEL 9 sin repositorio propio", "resultado": "ok", "evidencia": "FO-LAB-02518: repositorio/maquina-srv-e1prueba-01 rama master con 491 archivos y meta (cobertura.txt crontab.txt directorios.txt discos.txt excluidos.txt grupos.txt omitidos.txt paquetes.txt permisos.txt red.txt rutas.txt selinux.txt servicios.txt sistema.txt usuarios.txt ); sin secretos en Git; 503"}, {"id": "C2", "caso": "Repetir sin cambios", "resultado": "ok", "evidencia": "FO-LAB-02519: CAMBIOS=0, sin commit"}, {"id": "C3", "caso": "Cambiar un archivo de /etc y repetir", "resultado": "falla", "evidencia": ": CAMBIOS=, commit «e3cac171 Inventario diario · 2026-11-13 16:39 · 1 archivo Archivos: · M archivos/etc/motd»; PUNTO PR-SRV-E1PRUEBA-01-0020 configuracion si cobertura si cubierto · «motd» aparece"}, {"id": "C4", "caso": "JBoss por RPM y desde zip en /opt", "resultado": "ok", "evidencia": "FO-LAB-02521 y FO-LAB-02523: standalone/configuration y deployments en archivos/ (zip y RPM); data, tmp y log excluidos; grande-e1.bin (30 MB) en meta/omitidos.txt con su huella"}, {"id": "C8", "caso": "Cobertura", "resultado": "ok", "evidencia": "FO-LAB-02524: /data/prueba entra sola a Git; /app-grande (210 MB) y /opt/herramienta (sin paquete) subidos al registro maquina-srv-e1prueba-01 con su huella; el punto muestra 7 · Cobertura"}, {"id": "C9", "caso": "Repetir sin cambios", "resultado": "ok", "evidencia": "FO-LAB-02525: ART_OK (no vuelve a subir artefactos), bóveda «igual», CAMBIOS=0"}, {"id": "C10", "caso": "Secretos", "resultado": "ok", "evidencia": "FO-LAB-02526: e1.key y almacen-e1.jks fuera de Git; en la bóveda maquinas/srv-e1prueba-01/archivos (guardado); cobertura «cubierto»"}, {"id": "C5", "caso": "Sin Python utilizable (camino RHEL 5/6)", "resultado": "ok", "evidencia": "FO-LAB-02527: datos por shell (Equipo legado) e instantánea por la salida estándar (base64); commit con solo etc/motd (lo demás igual que en RHEL 9)"}, {"id": "C7", "caso": "Datos del sistema y paquetes", "resultado": "ok", "evidencia": "FO-LAB-02528: facts del sistema (FA RedHat 9.6 | con datos | 192.168.122.172) y 503 paquetes con su fuente (C1: 503), igual que antes"}, {"id": "C6", "caso": "Windows con IIS", "resultado": "ok", "evidencia": "FO-LAB-02529: applicationHost.config, sitios y pools, programas, características, servicios y tareas en repositorio/maquina-srv-windows-iis-01"}]
+TKS_INV ["FO-LAB-02518", "FO-LAB-02519", "FO-LAB-02523", "FO-LAB-02524", "FO-LAB-02525", "FO-LAB-02526", "FO-LAB-02527", "FO-LAB-02528", "FO-LAB-02529"]
+--- fin: 2026-11-13T14:08:51-03:00 · código: 0
