@@ -1,10 +1,12 @@
-commit: 404f60a1f0900f79308b96eed85ae5ef7cf9b084
-inicio: 2026-11-13T13:10:44-03:00
+commit: 35e589c464bc194222b1988c29b32b40471c2947
+inicio: 2026-11-13T13:12:58-03:00
 ---
-RES er\"}\\n'"], "stdout": "SECRETOS=0\nREPO=repositorio/maquina-srv-windows-iis-01\nRAMA=master\nARCHIVOS=20\nURL=https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-srv-windows-iis-01", "stdout_lines": ["SECRETOS=0", "REPO=repositorio/maquina-srv-windows-iis-01", "RAMA=master", "ARCHIVOS=20", "URL=https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-srv-windows-iis-01"]}
-
-PLAY RECAP *********************************************************************
-srv-windows-iis-01         : ok=8    changed=1    unreachable=0    failed=1    skipped=19   rescued=0    ignored=0   
-ev 30846 AAP GET jobs/30846/job_events/ → 404: {"detail":"No Job matches the given query."}
-FALLO Commit en repositorio/maquina-srv-windows-iis-01 (rama master) | non-zero return code | ERROR=Gitea POST /repos/repositorio/maquina-srv-windows-iis-01/contents: 422 b'{"message":"a directory exists where you\xe2\x80\x99re trying to create a file [path: archivos/C]","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}\n' | 
---- fin: 2026-11-13T13:10:51-03:00 · código: 0
+desplegado: b1ea4dfe
+Error: "/tmp/e1bq.json" could not be found on container faceops: no such file or directory
+chown: cannot access '/tmp/e1bq.json': No such file or directory
+chmod: cannot access '/tmp/e1bq.json': No such file or directory
+Traceback (most recent call last):
+  File "/tmp/e1bq.py", line 5, in <module>
+    D = json.load(open(sys.argv[1])); B = D["base"]
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/e1bq.json'
+--- fin: 2026-11-13T13:27:46-03:00 · código: 0

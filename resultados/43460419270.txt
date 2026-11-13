@@ -1,0 +1,12 @@
+commit: 35e589c464bc194222b1988c29b32b40471c2947
+inicio: 2026-11-13T13:12:58-03:00
+---
+desplegado: b1ea4dfe
+Error: "/tmp/e1bq.json" could not be found on container faceops: no such file or directory
+chown: cannot access '/tmp/e1bq.json': No such file or directory
+chmod: cannot access '/tmp/e1bq.json': No such file or directory
+Traceback (most recent call last):
+  File "/tmp/e1bq.py", line 5, in <module>
+    D = json.load(open(sys.argv[1])); B = D["base"]
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/e1bq.json'
+--- fin: 2026-11-13T13:27:46-03:00 · código: 0
