@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block titulo %}Pantalla aún no liberada{% endblock %}
+{% block cuerpo %}
+<h1>Esta pantalla aún no está liberada</h1>
+<p>FaceOps se libera por etapas. Tu instancia tiene liberada{{ 's' if etapas_lib|length > 1 }} la{{ 's' if etapas_lib|length > 1 }} etapa{{ 's' if etapas_lib|length > 1 }} {{ etapas_lib|join(', ') }}; esta pantalla llega en una etapa posterior.</p>
+<p><a class="btn chico" href="{{ url_for('consola.inicio') }}">Volver al panel</a></p>
+{% endblock %}

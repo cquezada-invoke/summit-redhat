@@ -24,6 +24,7 @@ tareas:
   limpiar-logs:          {nombre: "Limpiar logs y liberar disco", manual: 15, auto: 0.2}
   apagar-equipo:         {nombre: "Apagar un equipo de forma ordenada", manual: 10, auto: 0.3}
   vincular-maquina:      {nombre: "Crear usuario de servicio con llave propia y guardar la credencial en la bóveda", manual: 30, auto: 0.5}
+  guardar-credencial:    {nombre: "Guardar en la bóveda la credencial de un equipo incorporado a mano", manual: 20, auto: 0.3}
   barrer-stack:          {nombre: "Inventariar versiones de sistema, plataformas y lenguajes en cada máquina", manual: 240, auto: 2, alcance: ejecucion}
   levantar-licencias:    {nombre: "Leer suscripciones y licencias de cada máquina y su fecha de término", manual: 180, auto: 2, alcance: ejecucion}
   derivar-datalake:      {nombre: "Configurar el espejo de tráfico en el balanceador, el colector y validar la llegada de datos al lake", manual: 240, auto: 2, alcance: ejecucion}
@@ -191,6 +192,7 @@ automatizaciones:
   "Remediación · Volver a la versión validada":   [respaldo-previo, app-desplegar, reiniciar-servicio, app-validar]
   "Plataforma · Controlar servicio":              [controlar-servicio]
   "FaceOps · Vincular máquina a la bóveda":       [vincular-maquina]
+  "FaceOps · Guardar credencial en la bóveda":    [guardar-credencial]
   "Arquitectura · Evaluar stack tecnológico":     [barrer-stack, informe-obsolescencia]
   "Licencias · Levantar desde las plataformas":     [levantar-licencias]
   "Data lake · Derivar segmento": [derivar-datalake]

@@ -161,6 +161,7 @@ shutil.copy(f"{AQUI}/origen-maquinas.yml", f"{tmp}/playbooks/origen-maquinas.yml
 shutil.copy(f"{AQUI}/registro-imagenes.yml", f"{tmp}/playbooks/registro-imagenes.yml")
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
 shutil.copy(f"{AQUI}/vincular-onprem.yml", f"{tmp}/playbooks/vincular-onprem.yml")   # Vincular máquina on-premise (KVM)
+shutil.copy(f"{AQUI}/credencial-boveda.yml", f"{tmp}/playbooks/credencial-boveda.yml")   # alta manual: la credencial la escribe AAP en la bóveda
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/licencias-levantar.yml", f"{tmp}/playbooks/licencias-levantar.yml")
 shutil.copy(f"{AQUI}/politicas-dev-evaluar.yml", f"{tmp}/playbooks/politicas-dev-evaluar.yml")
@@ -765,6 +766,14 @@ jvm = asegurar("job_templates", "FaceOps · Vincular máquina a la bóveda", {
 cr_bov = uno("credentials", name="FaceOps · Bóveda (escritura)")
 if cr_bov and cr_bov["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jvm['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jvm['id']}/credentials/", {"id": cr_bov["id"]})
+# Alta manual de equipos: FaceOps no escribe en la bóveda; la credencial entregada la guarda este trabajo (solo en localhost)
+jcb = asegurar("job_templates", "FaceOps · Guardar credencial en la bóveda", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/credencial-boveda.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_limit_on_launch": True,
+    "description": "Guarda en la bóveda la credencial de un equipo incorporado a mano (no entra al equipo); FaceOps solo la lee"})
+if cr_bov and cr_bov["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jcb['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jcb['id']}/credentials/", {"id": cr_bov["id"]})
+paso(f"Plantilla «FaceOps · Guardar credencial en la bóveda» (id {jcb['id']})" + ("" if cr_bov else " · falta la credencial «FaceOps · Bóveda (escritura)»"))
 jst = asegurar("job_templates", "Arquitectura · Evaluar stack tecnológico", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/evaluar-stack.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10,

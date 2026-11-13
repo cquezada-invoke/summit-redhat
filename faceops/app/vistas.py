@@ -2167,6 +2167,21 @@ def configuracion():
     return render_template("configuracion.html")
 
 
+@bp.route("/configuracion/etapas", methods=["POST"])
+@requiere_login
+def configuracion_etapas():
+    """Administración › Etapas de liberación: qué etapas ven los clientes (ajuste «etapas_liberadas»)."""
+    from . import etapas as _et
+    if request.form.get("_csrf") != session.get("csrf") or not g.usuario.get("es_admin"):
+        abort(403)
+    validas = set(_et.etapas())
+    lib = [int(x) for x in request.form.getlist("etapa") if x.isdigit() and int(x) in validas]
+    _et.fijar_liberadas(lib)
+    auditar(g.usuario["usuario"], g.cliente["id"], "etapas liberadas", ", ".join(map(str, lib)) or "sin restricción", {"etapas": lib})
+    flash("Etapas liberadas: " + (", ".join(f"Etapa {n}" for n in lib) if lib else "sin restricción (todo visible)"), "ok")
+    return redirect(url_for("consola.configuracion") + "#etapas")
+
+
 def _solo_admin():
     """Administración: administradores de Invoke y cluster-admin; cluster-viewer la ve sin cambiar nada."""
     acc = g.get("acceso") or {}
@@ -2535,7 +2550,7 @@ def sistemas_operativos():
 @bp.route("/equipos/agregar/<seccion>", methods=["POST"])
 @requiere_login
 def equipo_agregar(seccion):
-    """Alta manual de un equipo que ya existe (servidor, periférico de red o storage): bóveda + host en AAP + equipo en FaceOps."""
+    """Alta manual de un equipo que ya existe (servidor, periférico de red o storage): host en AAP + equipo en FaceOps + ticket para que AAP guarde la credencial en la bóveda."""
     from .alta_manual import agregar
     d = request.get_json(silent=True) or {}
     if d.get("_csrf") != session.get("csrf"):
@@ -2545,12 +2560,15 @@ def equipo_agregar(seccion):
     if seccion not in ("redes", "storage", "inventario", "estaciones"):
         abort(404)
     try:
-        eid = agregar(g.usuario, g.cliente, seccion, d)
+        eid, t = agregar(g.usuario, g.cliente, seccion, d)
+    except PermissionError as x:
+        return {"error": str(x)}, 403
     except ValueError as x:
         return {"error": str(x)}, 400
     except ErrorAAP as x:
         return {"error": f"AAP no aceptó el registro: {x}"}, 400
-    return {"ok": True, "url": url_for("consola.equipo", eid=eid)}
+    return {"ok": True, "url": url_for("consola.equipo", eid=eid), "ticket": t["numero"], "ticket_url": url_for("consola.ticket", tid=t["id"]),
+            "mensaje": f"Equipo agregado. La credencial la guarda AAP en la bóveda con el ticket {t['numero']} (requiere aprobación)"}
 
 
 TIPOS_HIPERVISOR = ("kvm", "vmware", "vsphere", "hyperv", "proxmox", "nutanix", "openshift-virt")
@@ -8563,9 +8581,10 @@ def menu_nav():
                                                              ("KPI y OKR", {"_ep": "consola.kpi_okr"}),   # «Control de deuda» quitado del menú por ahora
                                                              ("ITIL (temporal)", {"_ep": "consola.itil"})]),   # «Arquitectura modular» quitada del menú
                  ("consola.cuenta_datos", "Mi perfil", "clientes", [("Mis datos", {}), ("Cerrar sesión", {"_ep": "consola.salir"})])]
+    from . import etapas as _et
     out = []
     for ep, t, ic, hijos in secciones:
-        it = {"t": t, "ic": ic, "url": url_for(ep), "abierto": activo == ep, "on": activo == ep, "hijos": []}
+        it = {"t": t, "ic": ic, "url": url_for(ep), "abierto": activo == ep, "on": activo == ep, "hijos": [], "etapa": _et.de_menu(t)}
         claves = {k for _, a in (hijos or []) for k in a if not k.startswith("_")}
         actuales = {k: v for k in claves if (v := request.args.get(k)) and DEF_ARGS.get(k) != v}
         for ht, args in hijos or []:
@@ -8576,7 +8595,7 @@ def menu_nav():
                 on = request.endpoint == hep and "_ancla" not in args and {k: v for k, v in limpios.items() if DEF_ARGS.get(k) != v} == actuales
             else:   # hijo de otra página (p. ej. Seguridad › CVEs): calza por sus parámetros
                 on = (request.endpoint == hep or EP_ALIAS.get(request.endpoint) == hep) and all(request.args.get(k) == v for k, v in limpios.items())
-            it["hijos"].append({"t": ht, "url": url, "on": on, "titulo": args.get("_titulo"), "sub": args.get("_sub")})
+            it["hijos"].append({"t": ht, "url": url, "on": on, "titulo": args.get("_titulo"), "sub": args.get("_sub"), "etapa": _et.de_menu(t, ht)})
         out.append(it)
         EP_MENU.setdefault(ep, set()).add(t)
         for _, a_ in hijos or []:
@@ -8586,6 +8605,11 @@ def menu_nav():
     acc = g.get("acceso")
     if acc is not None:   # grupos y roles: solo las funcionalidades de sus espacios; Gobierno, solo cluster-admin/viewer
         out = [it for it in out if _menu_permitido(it["t"], acc)]
+    if _et.restringe(g.get("usuario")):   # liberación progresiva: el cliente solo ve las etapas liberadas (datos/etapas.yml)
+        lib = set(_et.liberadas())
+        for it in out:
+            it["hijos"] = [h for h in it["hijos"] if h["etapa"] in lib]
+        out = [it for it in out if it["etapa"] in lib or it["hijos"]]
     return out
 
 
@@ -8604,6 +8628,18 @@ def _menu_permitido(t, acc):
     if t == "Acciones":
         return bool(acc["ns"])
     return True
+
+
+@bp.before_request
+def _guardia_etapas():
+    """Liberación progresiva: un cliente que entra por URL a una pantalla del menú que no es de una etapa liberada ve el aviso."""
+    from . import etapas as _et
+    ep = request.endpoint or ""
+    if request.method != "GET" or not g.get("usuario") or not _et.restringe(g.usuario) or ep not in EP_MENU:
+        return None
+    if _et.de_endpoint(ep) in _et.liberadas():
+        return None
+    return render_template("etapa_no_liberada.html", etapas_lib=_et.liberadas()), 404
 
 
 @bp.before_request

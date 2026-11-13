@@ -13,7 +13,7 @@ nucleo:
         admin.py, fuentes_usuarios.py, doble_factor.py, creditos.py, economia.py, pruebas.py, compatibilidad.py, inventario.py, inventariado.py,
         radar.py, salud.py, bitacora.py, correo.py, atajos.py, buscador.py, iconos_auto.py, objetos_aap.py, semillas.py, versiones.py, avance.py, activacion.py, bloqueo_admin.py, rbac.py, vistas.py, demo_historia.py, multicliente.py]
   templates: [base.html, _macros.html, _radar.html, _alertas.html, ingresar.html, ticket.html, tickets.html, automatizacion*.html, configuracion*.html, _bitacora.html, _buscador.html, _caja.html, _calidad.html, _costo.html, _dueno.html, _kpi.html, _login_fondo.html, _plan_prueba.html, _plano_ejecucion.html, activar.html, definir_clave.html, doble_factor.html, ingresar_codigo.html, inicio.html, buscar.html, cuenta_*.html, auditoria.html, aprobaciones_traza.html, movil.html, multicliente.html, resumen.html, pruebas.html, facturacion.html, usuarios_rbac.html]
-  aap: [recolectar, inventariar-maquina, inventario-archivos, paquetes-registro, vincular-maquina, incorporar-maquinas, energia, apagar, quitar-agente]
+  aap: [recolectar, inventariar-maquina, inventario-archivos, paquetes-registro, vincular-maquina, credencial-boveda, incorporar-maquinas, energia, apagar, quitar-agente]
 modulos:
   - {clave: infraestructura, nombre: Infraestructura, repo: faceops-invoke/mod-infraestructura, dueno: Dueño de Infraestructura, menu: [Infraestructura],
      que: "Centros de datos, anfitriones KVM, físicos por marca, capacidad, origen de las máquinas e imágenes base",

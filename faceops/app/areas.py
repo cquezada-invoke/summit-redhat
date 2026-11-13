@@ -82,7 +82,7 @@ SECCION_EXPLICITA = {
     "Infra · Mover máquina entre centros de datos": "infraestructura", "Infra · Preparar centro de datos emulado": "infraestructura",
     "Infra · Ajustar recursos de máquinas": "hipervisores", "Infra · Encender o apagar equipo": "hipervisores", "Infra · Encendido automático de máquinas": "hipervisores",
     "FaceOps · Habilitar servidor": "servidores", "FaceOps · Incorporar máquinas": "servidores", "FaceOps · Eliminar servidor": "servidores",
-    "FaceOps · Apagar equipo": "servidores", "FaceOps · Vincular máquina a la bóveda": "seguridad", "FaceOps · Aplicar política de seguridad": "seguridad",
+    "FaceOps · Apagar equipo": "servidores", "FaceOps · Vincular máquina a la bóveda": "seguridad", "FaceOps · Guardar credencial en la bóveda": "seguridad", "FaceOps · Aplicar política de seguridad": "seguridad",
     "FaceOps · Respaldo continuo en Git": "respaldos", "FaceOps · Recuperar servidor": "respaldos", "FaceOps · Volver a una versión": "respaldos",
     "Estado · Volver a un commit": "respaldos", "FaceOps · Replicar con alta disponibilidad": "disponibilidad",
     "FaceOps · Nuevo segmento de negocio": "arquitectura", "Arquitectura · Evaluar stack tecnológico": "arquitectura", "Homologación · Relevar entorno": "arquitectura",

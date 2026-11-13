@@ -1,7 +1,9 @@
 """Alta manual de equipos que ya existen en la infraestructura (no los creó FaceOps): servidores, periféricos de red y storage.
 Cada marca se integra distinto (SSH, API REST con token, NETCONF, WinRM…): el catálogo dice qué pide el formulario.
-El secreto va a la bóveda (Vault); en AAP queda el host con sus variables de conexión; en FaceOps el equipo «inventariado»
-(en gris hasta que una recolección lo deje «con datos»). FaceOps no se conecta al equipo: todo lo hace AAP."""
+El secreto va a la bóveda (Vault) por AAP: FaceOps nunca toca máquinas ni secretos directo. El alta deja en AAP el host con
+sus variables de conexión (sin secretos), en FaceOps el equipo «inventariado» (en gris hasta que una recolección lo deje
+«con datos») y un ticket de «FaceOps · Guardar credencial en la bóveda» (con aprobación): la credencial viaja solo a AAP
+(enmascarada en FaceOps) y la escribe ese trabajo con su token acotado a faceops/maquinas/*."""
 import json
 import re
 
@@ -99,10 +101,16 @@ INVENTARIOS = {"redes": "FaceOps · Red (alta manual)", "storage": "FaceOps · S
                "estaciones": "FaceOps · Estaciones (alta manual)"}
 
 
-def agregar(usuario, cliente, seccion, f):
-    """Valida el formulario, guarda el secreto en la bóveda, registra el host en AAP y el equipo en FaceOps. Devuelve el id del equipo."""
+CREDENCIAL = "FaceOps · Guardar credencial en la bóveda"
+
+
+def agregar(usuario, cliente, seccion, f, prueba=False):
+    """Valida el formulario, registra el host en AAP y el equipo en FaceOps y pide a AAP (ticket con aprobación) que guarde
+    la credencial en la bóveda. Devuelve (id del equipo, ticket)."""
     from .aap import AAP
-    from .boveda import disponible as bov_ok, escribir
+    from .boveda import disponible as bov_ok
+    from .permisos import puede_ejecutar
+    from .pruebas import estado as estado_prueba, exceptuada
     marca = next((x for x in CATALOGO.get(seccion, []) if x[0] == f.get("marca")), None)
     if not marca:
         raise ValueError("Elige la marca o plataforma")
@@ -134,18 +142,21 @@ def agregar(usuario, cliente, seccion, f):
         raise ValueError("Puerto inválido") from None
     if not bov_ok():
         raise ValueError("No hay bóveda conectada: el secreto no se puede guardar de forma segura")
+    a_cred = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], CREDENCIAL)
+    if not a_cred:
+        raise ValueError(f"Falta «{CREDENCIAL}» en el catálogo (sincroniza con AAP)")
+    ok_, por_que = puede_ejecutar(usuario, cliente["id"], a_cred)
+    if not ok_:
+        raise PermissionError(por_que)
+    if not prueba and estado_prueba(dict(a_cred, cliente_id=cliente["id"]))["estado"] != "certificada" and not exceptuada(CREDENCIAL):
+        raise ValueError(f"«{a_cred['nombre']}» está bloqueada hasta pasar su plan de prueba: el alta manual no se puede completar todavía")
     protocolo = "rdp" if clave.startswith(("windows", "win-")) and conexion == "winrm" else ("ssh" if conexion in ("ssh", "network_cli") else conexion)
-    cred = {"usuario": usuario_eq, AUTENTICACION[auth][1]: secreto, "protocolo": protocolo, "metodo": auth, "puerto": puerto}
-    if not escribir(f"maquinas/{nombre}", cred):
-        raise ValueError("La bóveda no aceptó el secreto (revisa los permisos de escritura de FaceOps)")
-    if existente:   # vincular un equipo que FaceOps ya conoce: basta su credencial en la bóveda
-        auditar(usuario["usuario"], cliente["id"], "vincular equipo a la bóveda (a mano)", nombre, {"metodo": auth, "protocolo": protocolo, "puerto": puerto})
-        try:
-            from .boveda import _lista
-            _lista.update(t=0, v=None)
-        except Exception:  # noqa: BLE001
-            pass
-        return existente["id"]
+    params = {"cb_maquina": nombre, "cb_metodo": auth, "cb_usuario": usuario_eq, "cb_protocolo": protocolo, "cb_puerto": puerto, "cb_secreto": "••••••"}
+    if existente:   # vincular un equipo que FaceOps ya conoce: basta su credencial en la bóveda (la guarda AAP)
+        t = _pedir_credencial(usuario, cliente, a_cred, existente, params, secreto, prueba)
+        auditar(usuario["usuario"], cliente["id"], "vincular equipo a la bóveda (a mano)", nombre,
+                {"metodo": auth, "protocolo": protocolo, "puerto": puerto, "ticket": t["numero"]})
+        return existente["id"], t
     # host en AAP con sus variables de conexión (sin secretos)
     hv = {"ansible_host": ip, "ansible_port": puerto, "faceops_categoria": tipo, "faceops_fabricante": nombre_m,
           "faceops_modelo": (f.get("modelo") or "").strip(), "faceops_coleccion": coleccion, "faceops_alta": "manual",
@@ -174,5 +185,33 @@ def agregar(usuario, cliente, seccion, f):
        cliente["id"], nombre, host["id"], inv_n, f"{nombre_m} {hv['faceops_modelo']}".strip(), ip, json.dumps(datos, ensure_ascii=False),
        (f.get("ubicacion") or "").strip(), (f.get("ambiente") or "").strip(), "inventariado", ahora(), tipo,
        "virtual" if f.get("forma") == "virtual" else "física")
-    auditar(usuario["usuario"], cliente["id"], "agregar equipo a mano", nombre, {k: v for k, v in datos["alta_manual"].items()} | {"ip": ip, "seccion": seccion})
-    return q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)["id"]
+    e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente["id"], nombre)
+    t = _pedir_credencial(usuario, cliente, a_cred, e, params, secreto, prueba)
+    auditar(usuario["usuario"], cliente["id"], "agregar equipo a mano", nombre,
+            {k: v for k, v in datos["alta_manual"].items()} | {"ip": ip, "seccion": seccion, "ticket": t["numero"]})
+    return e["id"], t
+
+
+def _pedir_credencial(usuario, cliente, a_cred, e, params, secreto, prueba=False):
+    """Ticket de «Guardar credencial en la bóveda» sobre el equipo: el secreto solo viaja a AAP (enmascarado en FaceOps)."""
+    from .operacion import solicitar
+    return solicitar(usuario, cliente, a_cred, None, params, f"Alta manual: credencial de {e['nombre']} en la bóveda",
+                     {"cb_secreto": secreto}, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=dict(e), prueba=prueba)
+
+
+def credencial_guardada(cliente, t):
+    """Tras el ticket exitoso: el equipo queda con su vínculo a la bóveda (FaceOps solo lee la credencial)."""
+    nombre = (t["limite"] or "").split(":")[0]
+    e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente["id"], nombre)
+    if not e:
+        return f"{nombre}: no está en el inventario"
+    d = json.loads(e["datos"] or "{}")
+    p = json.loads(t["parametros"] or "{}")
+    d["vinculo"] = {"ok": True, "protocolo": p.get("cb_protocolo", ""), "metodo": p.get("cb_metodo", ""), "ticket": t["numero"], "cuando": ahora()}
+    ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d, ensure_ascii=False), e["id"])
+    try:
+        from .boveda import _lista
+        _lista.update(t=0, v=None)   # la lista de máquinas con credencial se relee
+    except Exception:  # noqa: BLE001
+        pass
+    return f"{nombre}: credencial en la bóveda (la guardó AAP)"

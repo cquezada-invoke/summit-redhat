@@ -618,6 +618,7 @@ def registrar_incorporadas(aap, cliente, t):
 
 
 VINCULAR_ONPREM = "FaceOps · Vincular máquina on-premise"
+CREDENCIAL_BOVEDA = "FaceOps · Guardar credencial en la bóveda"   # alta manual: AAP guarda la credencial entregada
 INFRA_ONPREM = "on-premise"   # clave del usuario de servicio Windows de las máquinas del anfitrión KVM (bóveda infra/on-premise/maquinas)
 INV_HAB = "Servidores habilitados"
 
@@ -862,6 +863,12 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
         if a["nombre_aap"] in ("Nube · Crear máquina", "Nube · Operar máquina", "Nube · Producto de la nube"):   # ficha de nube: credencial cifrada de su conexión
             from .nube_recursos import lanzar as _nube_lanzar
             tipo, job = _nube_lanzar(aap, c, a, params, amb)
+            ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+            return
+        if a["nombre_aap"] == CREDENCIAL_BOVEDA:   # alta manual: corre en el entorno de ejecución (no entra al equipo), sin límite
+            params["cb_maquina"] = (t["limite"] or "").split(":")[0] or params.get("cb_maquina", "")
+            tipo, id_ = objetivo_aap(aap, a, amb)
+            job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
         if a["nombre_aap"] == VINCULAR_ONPREM:   # en el anfitrión KVM (credencial fija de la plantilla), no en la máquina
@@ -1427,6 +1434,13 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error registrar vinculada on-premise", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == CREDENCIAL_BOVEDA:   # alta manual: el equipo queda vinculado
+                try:
+                    from .alta_manual import credencial_guardada
+                    res += "\n" + credencial_guardada(c, t)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error registrar credencial de alta manual", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == INCORPORAR:   # acceso en la bóveda e inventario agentless de cada una
                 try:
                     res += "\n" + registrar_incorporadas(aap, c, t)

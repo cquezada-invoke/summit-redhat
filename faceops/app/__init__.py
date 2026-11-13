@@ -201,7 +201,28 @@ def create_app():
         return {"usuario": g.get("usuario"), "clientes": g.get("clientes", []), "cliente": g.get("cliente"),
                 "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "acceso": g.get("acceso"), "ver_como": g.get("ver_como"), "bloqueo": g.get("bloqueo") or {},
                 "ve_gobierno": bool(g.get("usuario") and (g.usuario.get("es_admin") or (g.get("acceso") or {}).get("gobierno"))), "version_faceops": version_info(), "j": bd.j,
-                "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos, "logo_ocp": _logo_ocp, "marca_auto": _marca_auto}
+                "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos, "logo_ocp": _logo_ocp, "marca_auto": _marca_auto,
+                "etapa_pantalla": _etapa_pantalla, "etapa_foco": _etapa_foco, "etapas_config": _etapas_config}
+
+    def _etapa_pantalla():   # distintivo «Etapa N» del título de la pantalla (datos/etapas.yml)
+        try:
+            from .etapas import chip
+            return chip(request.endpoint or "")
+        except Exception:  # noqa: BLE001 - el distintivo nunca debe tumbar la página
+            return None
+
+    def _etapas_config():
+        from .etapas import etapas, liberadas
+        return {"etapas": etapas(), "lib": liberadas()}
+
+    def _etapa_foco():   # la etapa del filtro «Ver solo …» del menú: la mayor liberada, o la 1 si no hay restricción
+        try:
+            from .etapas import etapas, liberadas
+            lib = liberadas()
+            n = max(lib) if lib else min(etapas() or {1: None})
+            return {"n": n, "lib": lib, "nombre": (etapas().get(n) or {}).get("nombre", "")}
+        except Exception:  # noqa: BLE001
+            return {"n": 1, "lib": [], "nombre": ""}
 
     def _atajos():
         if request.blueprint != "consola" or not g.get("usuario"):

@@ -1,0 +1,71 @@
+---
+# FaceOps · Guardar credencial en la bóveda: guarda en la bóveda (HashiCorp Vault, KV v2 faceops/maquinas/<máquina>) la
+# credencial de un equipo que ya existía y que se incorporó a mano (Servidores › Agregar, Redes, Storage, Estaciones).
+# FaceOps nunca escribe secretos: la credencial llega solo a AAP (variable cb_secreto, enmascarada en FaceOps) y la escribe
+# este trabajo con la credencial «FaceOps · Bóveda (escritura)» (token acotado a faceops/data/maquinas/*). No entra al equipo.
+# Variables: cb_maquina (nombre en FaceOps), cb_metodo (clave | llave | token | certificado | kubeconfig | s3), cb_usuario,
+#            cb_secreto (secreto), cb_protocolo (ssh | rdp | winrm | httpapi | netconf | kubernetes), cb_puerto.
+- name: FaceOps · Guardar credencial en la bóveda
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    maquina: "{{ cb_maquina | default('') }}"
+    metodo: "{{ cb_metodo | default('clave') }}"
+    campo: "{{ {'clave': 'clave', 'llave': 'llave_privada', 'token': 'token', 'certificado': 'certificado', 'kubeconfig': 'token', 's3': 'clave'}[metodo] | default('') }}"
+    bov_addr: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_ADDR') }}"
+    bov_token: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_TOKEN') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - maquina is match('^[a-z0-9][a-z0-9.-]{1,62}$')
+          - metodo in ['clave', 'llave', 'token', 'certificado', 'kubeconfig', 's3']
+          - (cb_secreto | default('') | string | length) > 0
+          - metodo in ['token', 'certificado', 'kubeconfig'] or (cb_usuario | default('') | length) > 0
+          - (cb_puerto | default(22) | int) > 0 and (cb_puerto | default(22) | int) < 65536
+        fail_msg: "Faltan datos: máquina (minúsculas, números, puntos o guiones), método válido, secreto y usuario (salvo token o certificado), puerto 1-65535"
+        quiet: true
+
+    - name: Hay bóveda con escritura
+      ansible.builtin.assert:
+        that: [bov_addr | length > 0, bov_token | length > 0]
+        fail_msg: "Falta la credencial «FaceOps · Bóveda (escritura)» en la plantilla: sin ella la credencial no se puede guardar"
+        quiet: true
+
+    - name: Credencial en la bóveda (faceops/maquinas/<máquina>)
+      ansible.builtin.uri:
+        url: "{{ bov_addr }}/v1/faceops/data/maquinas/{{ maquina }}"
+        method: POST
+        headers: {X-Vault-Token: "{{ bov_token }}"}
+        body_format: json
+        body:
+          data: "{{ {'usuario': cb_usuario | default(''), campo: cb_secreto | string, 'protocolo': cb_protocolo | default('ssh'),
+                    'metodo': metodo, 'puerto': cb_puerto | default(22) | int, 'origen': 'alta manual'} }}"
+        status_code: [200, 204]
+      register: r_bov
+      no_log: true
+
+    - name: La credencial quedó legible en la bóveda (sin mostrarla)
+      ansible.builtin.uri:
+        url: "{{ bov_addr }}/v1/faceops/data/maquinas/{{ maquina }}"
+        headers: {X-Vault-Token: "{{ bov_token }}"}
+        return_content: true
+      register: r_lee
+      no_log: true
+
+    - name: Comprobación
+      ansible.builtin.assert:
+        that:
+          - (r_lee.json.data.data[campo] | default('')) == (cb_secreto | string)
+          - (r_lee.json.data.data.metodo | default('')) == metodo
+        fail_msg: "La bóveda no devolvió la credencial recién guardada"
+        success_msg: "Credencial de {{ maquina }} guardada (versión {{ r_lee.json.data.metadata.version | default('?') }})"
+        quiet: true
+      no_log: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_credencial: {maquina: "{{ maquina }}", metodo: "{{ metodo }}", protocolo: "{{ cb_protocolo | default('ssh') }}",
+                               puerto: "{{ cb_puerto | default(22) | int }}", version: "{{ r_lee.json.data.metadata.version | default(0) }}", guardada: true}

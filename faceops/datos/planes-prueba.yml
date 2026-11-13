@@ -393,11 +393,13 @@ planes:
       - {id: C5, caso: "Repetir sobre la misma VM Windows", verificar: "«ya estaba», sin reinicio"}
       - {id: C6, caso: "inc_maquina inexistente", verificar: "falla controlada «No existe la máquina…» sin tocar otras VM"}
   "FaceOps · Vincular máquina on-premise":
+    # Máquinas de prueba del laboratorio (no producción): srv-windows-iis-01 (Windows creada por FaceOps sin vínculo) y
+    # srv-e1prueba-01 (RHEL 9 pequeña creada con «Habilitar servidor» para la Etapa 1; al terminar queda apagada o eliminada)
     casos:
-      - {id: C1, caso: "Windows on-premise apagada y sin IP (creada por FaceOps sin vínculo)", verificar: "se enciende; IP registrada en FaceOps y AAP; usuario de servicio entra por WinRM HTTPS 5986; credencial en la bóveda y en AAP (plan de recolección del grupo windows); se inventaría sola y la ficha muestra el SO desde los facts"}
-      - {id: C2, caso: "Repetir sobre la misma Windows", verificar: "idempotente: sin cambios en WinRM, misma IP y misma credencial"}
-      - {id: C3, caso: "Linux on-premise existente", verificar: "IP registrada; se lanza «Vincular máquina a la bóveda» (llave propia) y luego el inventario"}
-      - {id: C4, caso: "Máquina inexistente en el anfitrión", verificar: "falla controlada «No existe la máquina…» sin tocar nada"}
+      - {id: C1, caso: "Windows on-premise apagada y sin vínculo (srv-windows-iis-01, apagada antes en el anfitrión)", verificar: "se enciende; IP registrada en FaceOps y AAP; usuario de servicio entra por WinRM HTTPS 5986; credencial en la bóveda y en AAP (plan de recolección del grupo windows); se inventaría sola y la ficha muestra el SO desde los facts"}
+      - {id: C2, caso: "Repetir sobre la misma Windows", tipo: Idempotencia, verificar: "idempotente: sin cambios en WinRM, misma IP y misma credencial"}
+      - {id: C3, caso: "Linux on-premise existente (srv-e1prueba-01)", verificar: "IP registrada; se lanza «Vincular máquina a la bóveda» (llave propia) y luego el inventario"}
+      - {id: C4, caso: "Máquina inexistente en el anfitrión (equipo de prueba srv-e1-inexistente-01 solo en FaceOps)", tipo: Error controlado, verificar: "falla controlada «No existe la máquina…» sin tocar nada"}
   "Satellite · Instalar":
     casos:
       - {id: C1, caso: "Paso del workflow «Satellite · Instalar servidor» sobre una RHEL de prueba con 4 vCPU y 20 GB", verificar: "satellite-installer termina; hammer ping ok"}
@@ -594,18 +596,38 @@ planes:
       - {id: C2, caso: "Quitar node_exporter", verificar: "servicio y binario retirados; puerto 9100 cerrado"}
       - {id: C3, caso: "Agente desconocido", verificar: "falla controlada sin tocar la máquina"}
   "Sistema · Inventariar máquina":
+    # Máquina de prueba de la Etapa 1: srv-e1prueba-01 (RHEL 9 pequeña creada con «Habilitar servidor», sin repositorio propio
+    # al nacer). Windows: srv-windows-iis-01 (vinculada por «Vincular máquina on-premise»). JBoss RPM: nodo-jboss-dev.
     casos:
-      - {id: C1, caso: "RHEL 9 sin repositorio propio (srv-prueba-rhel9-01)", verificar: "crea repositorio/maquina-<nombre> rama master con archivos/ (etc, cron) y meta/ (paquetes, servicios, SELinux, usuarios, permisos, sistema); sin secretos (shadow, llaves)"}
-      - {id: C2, caso: "Repetir sin cambios", verificar: "no hace commit (CAMBIOS=0)"}
+      - {id: C1, caso: "RHEL 9 sin repositorio propio (srv-e1prueba-01)", verificar: "crea repositorio/maquina-<nombre> rama master con archivos/ (etc, cron) y meta/ (paquetes, servicios, SELinux, usuarios, permisos, sistema); sin secretos (shadow, llaves)"}
+      - {id: C2, caso: "Repetir sin cambios", tipo: Idempotencia, verificar: "no hace commit (CAMBIOS=0)"}
       - {id: C3, caso: "Cambiar un archivo de /etc y repetir", verificar: "un commit con solo ese archivo en el mensaje; aparece en «4 · Configuración» del punto nuevo"}
-      - {id: C4, caso: "Máquina con JBoss EAP 8 por RPM y con JBoss desde zip en /opt (nodo-jboss y una máquina de prueba con el zip en /opt)", verificar: "standalone/configuration y deployments en archivos/; data, tmp y log excluidos; archivos sobre 25 MB en meta/omitidos.txt con su huella"}
-      - {id: C5, caso: "RHEL 5 o 6 (Python antiguo)", verificar: "la instantánea llega por la salida estándar (base64) y queda igual que en RHEL 9"}
-      - {id: C6, caso: "Windows con IIS (srv-pn-win-01)", verificar: "applicationHost.config, sitios y pools, programas instalados, características, servicios y tareas en el repositorio"}
+      - {id: C4, caso: "Máquina con JBoss EAP 8 por RPM y con JBoss desde zip en /opt (nodo-jboss-dev y srv-e1prueba-01 con un JBoss de prueba en /opt)", verificar: "standalone/configuration y deployments en archivos/; data, tmp y log excluidos; archivos sobre 25 MB en meta/omitidos.txt con su huella"}
+      - {id: C5, caso: "Equipo sin Python utilizable por Ansible (RHEL 5 o 6; en el laboratorio, srv-e1prueba-01 con un intérprete inexistente para forzar el mismo camino)", verificar: "datos por shell (faceops_legado) y la instantánea llega por la salida estándar (base64) y queda igual que en RHEL 9"}
+      - {id: C6, caso: "Windows con IIS (srv-windows-iis-01)", verificar: "applicationHost.config, sitios y pools, programas instalados, características, servicios y tareas en el repositorio"}
       - {id: C7, caso: "Datos del sistema y paquetes (partes 1 y 2)", verificar: "sin cambios respecto de antes: facts, paquetes con su fuente y respaldo de RPM"}
       - {id: C8, caso: "Cobertura: crear /data/prueba (pequeña), /app-grande (sobre 200 MB) y un binario sin paquete en /opt/herramienta", verificar: "la pequeña entra sola a Git; la grande y el binario quedan en el registro como artefacto maquina-<nombre> con su huella; el punto muestra 7 · Cobertura"}
-      - {id: C9, caso: "Repetir sin cambios", verificar: "no vuelve a subir artefactos (ART_OK) ni crea versión nueva en la bóveda (igual)"}
-      - {id: C10, caso: "Secretos: un .jks y una llave TLS en la configuración", verificar: "no aparecen en Git; quedan en la bóveda en maquinas/<nombre>/archivos; cobertura «cubierto»"}
+      - {id: C9, caso: "Repetir sin cambios", tipo: Idempotencia, verificar: "no vuelve a subir artefactos (ART_OK) ni crea versión nueva en la bóveda (igual)"}
+      - {id: C10, caso: "Secretos: un .jks y una llave TLS en la configuración", tipo: Seguridad, verificar: "no aparecen en Git; quedan en la bóveda en maquinas/<nombre>/archivos; cobertura «cubierto»"}
       - {id: C11, caso: "Recuperar la máquina de C8 a C10 sin agente", verificar: "vuelven configuración, rutas, software sin paquete y secretos; tiempo de recuperación medido"}
+  "Sistema · Paquetes · inventario y respaldo":
+    casos:
+      - {id: C1, caso: "RHEL 9 (srv-e1prueba-01)", verificar: "ticket exitoso; faceops_paquetes con la lista de paquetes, su repositorio de origen y huella; los RPM que faltaban quedan en el registro propio (repositorio/rpm)"}
+      - {id: C2, caso: "Repetir sin cambios", tipo: Idempotencia, verificar: "ticket exitoso; no vuelve a subir RPM (0 nuevos en el registro)"}
+      - {id: C3, caso: "RHEL 8 (srv-prueba-rhel8-01 o nodo con RHEL 8): sin python3, con platform-python", verificar: "ticket exitoso; huellas de origen calculadas con platform-python"}
+      - {id: C4, caso: "Sin respaldo (pq_respaldar no)", verificar: "ticket exitoso; lista de paquetes sin subir nada al registro"}
+      - {id: C5, caso: "Windows (srv-windows-iis-01)", tipo: Error controlado, verificar: "la máquina se salta sin error (sin gestor de paquetes RPM/DEB) y no se toca"}
+  "FaceOps · Guardar credencial en la bóveda":
+    # Alta manual (Servidores, Redes, Storage, Estaciones › Agregar): FaceOps no escribe en la bóveda; lo hace este trabajo de
+    # AAP con su token acotado a faceops/data/maquinas/*. Equipos de prueba en direcciones de documentación (192.0.2.0/24):
+    # el trabajo no entra al equipo. Se retiran al terminar.
+    casos:
+      - {id: C1, caso: "Alta manual de un servidor Linux por SSH con clave (srv-e1alta-01) desde Servidores › Agregar", verificar: "host en AAP «FaceOps · Servidores (alta manual)» sin secretos en sus variables; equipo «inventariado» en FaceOps; ticket con aprobación en AAP → exitoso; credencial en la bóveda maquinas/<nombre> (FaceOps la lee); el secreto no aparece en el ticket, la auditoría ni la salida del trabajo"}
+      - {id: C2, caso: "Vincular de nuevo el mismo equipo (vincular=1) con otra clave", tipo: Idempotencia, verificar: "nueva versión de la credencial en la bóveda; sin duplicar el host en AAP ni el equipo en FaceOps"}
+      - {id: C3, caso: "Equipo de red (Cisco IOS) con llave SSH (rtr-e1alta-01)", verificar: "host con ansible_network_os; credencial con llave_privada en la bóveda; no se entra al equipo"}
+      - {id: C4, caso: "Formulario inválido (nombre con mayúsculas o sin secreto) y usuario lector", tipo: Error controlado, verificar: "400 o 403 sin crear host, equipo ni ticket"}
+      - {id: C5, caso: "Lanzada por AAP sin secreto", tipo: Error controlado, verificar: "ticket fallido en «Datos válidos»; la bóveda no cambia"}
+      - {id: C6, caso: "Rechazar la aprobación", tipo: Aprobación, verificar: "ticket rechazado; la bóveda no cambia"}
   "SQL Server · Configurar alta disponibilidad":
     casos:
       - {id: C1, caso: "AG síncrono entre dc1-sql01 y dc2-sql01 con una base de prueba", verificar: "réplicas sincronizadas; la marca escrita en el primario se lee en la secundaria"}

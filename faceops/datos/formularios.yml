@@ -245,6 +245,15 @@
     - {var: vm_usuario, etiqueta: "Usuario de servicio", tipo: text, defecto: faceops}
     - {var: vm_tipo, etiqueta: "Tipo de equipo", tipo: multiplechoice, defecto: linux, opciones: [linux, red, windows]}
     - {var: vm_clave, etiqueta: "Clave (solo red y Windows)", tipo: password}
+"FaceOps · Guardar credencial en la bóveda":
+  usa_limite: true
+  campos:
+    - {var: cb_maquina, etiqueta: "Equipo", tipo: equipo, requerido: true}
+    - {var: cb_metodo, etiqueta: "Autenticación", tipo: multiplechoice, defecto: clave, opciones: [clave, llave, token, certificado, kubeconfig, s3]}
+    - {var: cb_usuario, etiqueta: "Usuario", tipo: text}
+    - {var: cb_secreto, etiqueta: "Clave, llave o token", tipo: password, requerido: true}
+    - {var: cb_protocolo, etiqueta: "Protocolo", tipo: text, defecto: ssh}
+    - {var: cb_puerto, etiqueta: "Puerto", tipo: integer, defecto: 22}
 "FaceOps · Vincular máquina on-premise":
   usa_limite: true
   campos:

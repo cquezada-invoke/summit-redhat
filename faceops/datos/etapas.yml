@@ -1,0 +1,82 @@
+# Etapas de liberación de FaceOps: qué pantallas, opciones de menú y acciones entran en cada etapa. Es el único lugar
+# donde se define: la consola pinta el distintivo «Etapa N» en el título de cada pantalla y en su opción del menú lateral,
+# y el filtro «Ver solo la etapa liberada» del pie del menú atenúa lo demás. Para sumar la etapa 2..10 basta agregarla
+# aquí (sin tocar plantillas).
+#
+# etapas_liberadas: etapas que ven los clientes. Vacío (o sin la clave) = sin restricción (laboratorio, preventa).
+#   Con [1], quien no es administrador de Invoke no ve en el menú lo que no es de la etapa 1 y, si entra por URL directa a
+#   una pantalla de otra etapa, recibe el aviso «aún no liberada». Se puede fijar por instancia desde Administración ›
+#   Etapas (ajuste «etapas_liberadas», que manda sobre este archivo).
+#
+# Por etapa:
+#   endpoints: pantallas (endpoint de Flask) que pertenecen a la etapa: llevan el distintivo en su título
+#   menu:      opciones del menú lateral o de Gobierno («Sección» o «Sección › Opción») que llevan el punto de la etapa
+#   rutas:     referencia legible (planilla «FaceOps - Funcionalidades y módulos» › columna Pantalla); no la usa el código
+#   acciones:  acciones (plantillas de AAP) que la etapa libera
+etapas_liberadas: []
+etapas:
+  1:
+    nombre: Núcleo
+    alcance: "Consola, inventario, tickets, aprobaciones, cola de acciones y AAP"
+    color: "#0066cc"
+    endpoints:
+      - consola.inicio                      # Panel (productividad y valor generado)
+      - consola.riesgo_estado               # indicador de riesgo de la cabecera
+      - consola.buscar_vista                # buscador global
+      - consola.automatizaciones            # Acciones › Todas / por sección
+      - consola.automatizacion              # ficha de la acción
+      - consola.tickets                     # Monitoreo › Tickets
+      - consola.ticket                      # ticket en vivo
+      - consola.inventario                  # Servidores › Virtuales / Físicos (y alta manual)
+      - consola.equipo                      # ficha del servidor
+      - consola.consola_equipo              # consola SSH / RDP en el navegador
+      - consola.consola_web_plataforma      # consolas web de productos
+      - consola.aprobaciones_pendientes     # Monitoreo › Aprobaciones pendientes
+      - consola.aprobaciones_traza          # Monitoreo › Trazabilidad de aprobaciones
+      - consola.eventos_aap                 # Monitoreo › Eventos de AAP
+      - consola.cola_acciones               # Monitoreo › Cola de acciones
+      - consola.configuracion_usuarios      # Administración › Usuarios y perfiles
+      - consola.configuracion_usuario       # usuario (ver como otro usuario)
+      - consola.pruebas_automatizaciones    # Administración › Pruebas de acciones
+      - consola.auditoria                   # Administración › Auditoría
+      - consola.doble_factor                # Mi perfil › Doble factor
+      - consola.ingresar                    # ingreso
+      - consola.ingresar_codigo             # ingreso con doble factor
+      - admin.catalogo                      # FaceOps-admin › Catálogo y tarifas
+      - admin.panel                         # FaceOps-admin › Panel (datos de demostración)
+    menu:
+      - "Acciones"
+      - "Acciones › Todas"
+      - "Servidores"
+      - "Servidores › Virtuales"
+      - "Servidores › Físicos"
+      - "Monitoreo"
+      - "Monitoreo › Productividad"
+      - "Monitoreo › Eventos de AAP"
+      - "Monitoreo › Tickets"
+      - "Monitoreo › Todos"
+      - "Monitoreo › En ejecución"
+      - "Monitoreo › Exitosos"
+      - "Monitoreo › Fallidos"
+      - "Monitoreo › Cola de acciones"
+      - "Monitoreo › Trazabilidad de aprobaciones"
+      - "Mi perfil"
+      - "Mi perfil › Mis datos"
+    rutas:
+      - "/lab/ · /lab/riesgo/estado · /lab/buscar"
+      - "/lab/automatizaciones · /lab/automatizaciones/<id>"
+      - "/lab/tickets · /lab/tickets/<id> · /lab/cola"
+      - "/lab/inventario · /lab/inventario/<id> · /lab/inventario/<id>/consola · /lab/inventario/<id>/consola-web/<plataforma>/"
+      - "/lab/monitoreo/aprobaciones-pendientes · /lab/aprobaciones/trazabilidad · /lab/monitoreo/eventos-aap"
+      - "/lab/configuracion/usuarios · /lab/configuracion/usuarios/<id> · /lab/configuracion/pruebas · /lab/auditoria"
+      - "/ingresar · /ingresar/codigo · /cuenta/doble-factor · /admin/catalogo · /admin/"
+    acciones:
+      - "Infra · Encender o apagar equipo"
+      - "FaceOps · Apagar equipo"
+      - "FaceOps · Vincular máquina a la bóveda"
+      - "FaceOps · Vincular máquina on-premise"
+      - "FaceOps · Guardar credencial en la bóveda"
+      - "Sistema · Inventariar máquina"
+      - "Sistema · Paquetes · inventario y respaldo"
+      - "Plataforma · Controlar servicio"
+      - "Sistema · Quitar agente"
