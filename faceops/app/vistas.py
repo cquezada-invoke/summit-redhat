@@ -3466,7 +3466,8 @@ def equipo_inventariar(eid):
         return redirect(url_for("consola.equipo", eid=eid) + "#inventario-maq")
     fetch_ = request.headers.get("X-Requested-With") == "fetch"
     try:
-        t = solicitar(g.usuario, g.cliente, a, None, {"pq_respaldar": "si"}, f"Inventariar {e['nombre']}", None,
+        pq_ = "no" if request.form.get("pq_respaldar") == "no" else "si"   # personalizable desde Skills › Operaciones
+        t = solicitar(g.usuario, g.cliente, a, None, {"pq_respaldar": pq_}, f"Inventariar {e['nombre']}", None,
                       {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
         if fetch_:
             return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]),

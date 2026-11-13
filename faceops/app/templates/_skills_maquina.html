@@ -58,7 +58,11 @@
 {# Operaciones del día a día y actualización del sistema operativo: viven aquí, no en el flotante del sistema operativo. La ficha
    (equipo.html) mueve a estos contenedores el bloque «Operaciones» (_operaciones.html) y «Actualización del sistema operativo»
    del flotante del SO, con su bloqueo por etapas. Aplica a toda máquina virtual o física. #}
-<details class="sk-grupo sk-fijo" data-g="operaciones" open hidden><summary>Operaciones <span class="sub">del sistema operativo</span></summary><div class="sk-fijo-c" id="sk-op"></div></details>
+<details class="sk-grupo sk-fijo" data-g="operaciones" open hidden><summary>Operaciones <span class="sub">del sistema operativo</span></summary>
+{% if perfil_actual.modo == 'escritura' and sk_fijo_ %}<div class="sk-item sk-inv" data-q="inventariar máquina inventario paquetes servicios sistema"><b>Inventariar máquina</b><span class="sk-que">Inventario completo ahora (sistema, servicios, paquetes y configuración), lo trae AAP. El inventario automático diario sigue corriendo una vez al día.</span>
+<span class="sk-chips"><label class="chk" style="font-size:12px" title="Sube al registro propio los RPM que aún no están respaldados"><input type="checkbox" class="sk-inv-pq" checked> respaldar paquetes en el registro</label></span>
+<span class="sk-acc"><button type="button" class="btn chico sk-inv-ir">Ejecutar</button><span class="sk-tk"></span></span></div>{% endif %}
+<div class="sk-fijo-c" id="sk-op"></div></details>
 <details class="sk-grupo sk-fijo" data-g="actualizacion" open hidden><summary>Actualización del sistema <span class="sub">versiones y evaluación de impacto</span></summary><div class="sk-fijo-c" id="sk-act"></div></details>
 <p class="sk-vacio" hidden>Ninguna skill coincide con la búsqueda.</p>
 </aside>
@@ -69,7 +73,7 @@
 const c=document.getElementById('sk-cajon'),v=document.getElementById('sk-velo'),dlg=document.getElementById('sk-dlg'),bq=c.querySelector('.sk-busca'),CSRF={{ csrf|tojson }},MAQ={{ e.nombre|tojson }};
 const ETQ={exitoso:'exitoso',fallido:'fallido',rechazado:'rechazado',vencido:'aprobación vencida',pendiente_aprobacion:'espera aprobación',en_ejecucion:'en ejecución',en_cola:'en cola',cancelado:'cancelado'};
 let plat='',platN='';
-const filtrar=()=>{const t=bq.value.trim().toLowerCase();let n=0;c.querySelectorAll('.sk-grupo').forEach(gr=>{if(gr.classList.contains('sk-fijo')){const ok=!plat&&!!gr.querySelector('.sk-fijo-c>*')&&(!t||gr.textContent.toLowerCase().includes(t));gr.hidden=!ok;if(ok)n++;return;}let k=0;gr.querySelectorAll('.sk-item').forEach(it=>{const ok=(!t||it.dataset.q.includes(t))&&(plat?it.dataset.plats.includes(','+plat+','):it.dataset.plats===',,');it.hidden=!ok;if(ok)k++;});gr.hidden=!k;if((t||plat)&&k)gr.open=true;gr.querySelector('summary .sub').textContent=k;n+=k;});c.querySelector('.sk-vacio').hidden=!!n;};
+const filtrar=()=>{const t=bq.value.trim().toLowerCase();let n=0;c.querySelectorAll('.sk-grupo').forEach(gr=>{if(gr.classList.contains('sk-fijo')){const ok=!plat&&!!gr.querySelector('.sk-fijo-c>*,.sk-inv')&&(!t||gr.textContent.toLowerCase().includes(t));gr.hidden=!ok;if(ok)n++;return;}let k=0;gr.querySelectorAll('.sk-item').forEach(it=>{const ok=(!t||it.dataset.q.includes(t))&&(plat?it.dataset.plats.includes(','+plat+','):it.dataset.plats===',,');it.hidden=!ok;if(ok)k++;});gr.hidden=!k;if((t||plat)&&k)gr.open=true;gr.querySelector('summary .sub').textContent=k;n+=k;});c.querySelector('.sk-vacio').hidden=!!n;};
 const abrir=window.fxAbrirSkills=(cod,nom)=>{plat=typeof cod==='string'?cod:'';platN=nom||plat;c.querySelector('.sk-h').textContent='Skills · '+(plat?platN:SO);
  const fi=c.querySelector('.sk-filtro');fi.hidden=!plat||!c.querySelector('.sk-item[data-plats=",,"]');bq.value='';filtrar();c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'));setTimeout(()=>bq.focus(),60);};
 const cerrar=()=>{c.classList.remove('abierto');v.hidden=true;setTimeout(()=>c.hidden=true,180);};
@@ -118,4 +122,9 @@ const ABRIR={recursos:()=>window.fxAbrirRecursos&&fxAbrirRecursos('cpu'),mover:(
 c.querySelectorAll('[data-sk-ir]').forEach(b=>b.addEventListener('click',()=>{const s=SK[b.dataset.skIr],it=b.closest('.sk-item');if(!s||b.disabled)return;
  if(s.tipo==='abrir'){cerrar();setTimeout(()=>(ABRIR[s.abrir]||(()=>{}))(),200);return;}
  if(s.tipo==='form'){formulario(s,it);return;}confirmar(s,it);}));
+{const it=c.querySelector('.sk-inv');if(it){const b=it.querySelector('.sk-inv-ir'),x=it.querySelector('.sk-tk');b.onclick=()=>{b.disabled=true;x.textContent='creando…';
+ const fd=new FormData();fd.append('_csrf',CSRF);fd.append('pq_respaldar',it.querySelector('.sk-inv-pq').checked?'si':'no');
+ fetch({{ url_for('consola.equipo_inventariar', eid=e.id)|tojson }},{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{b.disabled=false;
+  if(t.error){x.textContent='';fxAviso(t.error,'error');return;}x.innerHTML='<a href="'+t.url+'">'+t.numero+'</a> · '+(ETQ[t.estado]||t.estado);window.fxNuevoTicket&&window.fxNuevoTicket(t);})
+ .catch(()=>{b.disabled=false;x.textContent='';fxAviso('No se pudo crear el ticket','error');});};}}
 if(location.hash==='#skills')abrir();})();</script>{% endif %}
