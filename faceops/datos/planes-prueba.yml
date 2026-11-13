@@ -609,7 +609,8 @@ planes:
       - {id: C8, caso: "Cobertura: crear /data/prueba (pequeña), /app-grande (sobre 200 MB) y un binario sin paquete en /opt/herramienta", verificar: "la pequeña entra sola a Git; la grande y el binario quedan en el registro como artefacto maquina-<nombre> con su huella; el punto muestra 7 · Cobertura"}
       - {id: C9, caso: "Repetir sin cambios", tipo: Idempotencia, verificar: "no vuelve a subir artefactos (ART_OK) ni crea versión nueva en la bóveda (igual)"}
       - {id: C10, caso: "Secretos: un .jks y una llave TLS en la configuración", tipo: Seguridad, verificar: "no aparecen en Git; quedan en la bóveda en maquinas/<nombre>/archivos; cobertura «cubierto»"}
-      - {id: C11, caso: "Recuperar la máquina de C8 a C10 sin agente", verificar: "vuelven configuración, rutas, software sin paquete y secretos; tiempo de recuperación medido"}
+      # La recuperación de lo capturado (antes C11) se prueba en el plan de «FaceOps · Recuperar servidor» (C2 y C4), que es de
+      # la Etapa 8 (respaldos): este plan certifica la captura, que es lo que libera la Etapa 1.
   "Sistema · Paquetes · inventario y respaldo":
     casos:
       - {id: C1, caso: "RHEL 9 (srv-e1prueba-01)", verificar: "ticket exitoso; faceops_paquetes con la lista de paquetes, su repositorio de origen y huella; los RPM que faltaban quedan en el registro propio (repositorio/rpm)"}
