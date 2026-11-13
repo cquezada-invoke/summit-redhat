@@ -1,0 +1,25 @@
+commit: 8e090a958f8d81c42baad80367f8126028ae50cb
+inicio: 2026-11-13T07:51:51-03:00
+---
+timer: active · - - Fri 2026-11-13 07:47:14 -03 4min 37s ago faceops-autodeploy.timer faceops-autodeploy.service
+estado: 2026-11-12T22:06:50-03:00 ok: desplegado 788152e4 · /ingresar 200 · configurar=sin cambios
+LICENCIA antes {'instance_count': 50, 'current_instances': 50, 'free_instances': 0, 'automated_instances': 50}
+no se pudo borrar fo-prueba-11121641 AAP DELETE hosts/178/ → 409: {"error":"Resource is being used by running jobs.","active_jobs":[{"id"
+HOSTS retirados de AAP 0 []
+LICENCIA después {'instance_count': 50, 'current_instances': 50, 'free_instances': 0}
+Traceback (most recent call last):
+  File "/tmp/b08.py", line 65, in <module>
+    alta = registrar_servidores(aap, cl, t); print("ALTA", alta[:300])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/operacion.py", line 1863, in registrar_servidores
+    h = existe or aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv)})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 284, in post
+    return self._r("POST", ruta, json=datos or {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 277, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP POST hosts/ → 403: {"detail":"License count of 50 instances has been reached."}
+otro despliegue en curso
+estado: 2026-11-12T22:06:50-03:00 ok: desplegado 788152e4 · /ingresar 200 · configurar=sin cambios
+--- fin: 2026-11-13T07:52:05-03:00 · código: 0
