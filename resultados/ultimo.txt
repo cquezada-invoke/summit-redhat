@@ -1,3 +1,26 @@
-commit: 13f9fc3b086df585718a396add3176eabd27b473
-inicio: 2026-11-13T18:53:49-03:00
+commit: fdbb0192393f252ae2c4fa3b4eee5472003dae15
+inicio: 2026-11-13T19:37:49-03:00
 ---
+desplegado: 2b439326 · 2026-11-13T19:44:44-03:00 ok: desplegado 2b439326 · /ingresar 200 · configurar=0
+catálogo: SI
+física: srv-xfusion-2288h-01
+== C1 srv-e1prueba-01 /var/log/messages: exitoso FO-LAB-02572 · 300 líneas · total 8547 · error «»
+CASO C1 ok · RHEL virtual: /var/log/messages
+== C2 srv-e1prueba-01 journal: fallido FO-LAB-02573 · 0 líneas · total -1 · error «falló la lectura»
+CASO C2 falla · journal del sistema
+== C3 srv-e1prueba-01 /var/log/messages: fallido FO-LAB-02575 · 0 líneas · total -1 · error «falló la lectura»
+CASO C3 falla · Búsqueda
+== C4 srv-e1prueba-01 /var/log/messages: exitoso FO-LAB-02578 · 300 líneas · total 8805 · error «»
+CASO C4 ok · Carga progresiva
+== C5 srv-windows-iis-01 evento:System: exitoso FO-LAB-02579 · 100 líneas · total 1738 · error «»
+CASO C5 ok · Windows: visor de eventos System
+== C6 srv-xfusion-2288h-01 journal: exitoso FO-LAB-02581 · 100 líneas · total 2124 · error «»
+CASO C6 ok · Máquina física
+== C7 srv-e1prueba-01 /var/log/no-existe-a21.log: fallido FO-LAB-02582 · 0 líneas · total -1 · error «no existe el archivo /var/log/no-existe-a21.log en la máquina»
+  VISOR 200 {"error": "AAP no respondió al leer el resultado: Sincronizando con AAP: el dato aún no está en FaceOps", "estado": "fallido", "lineas": [], "numero": "FO-LAB-02582", "total": -1}
+CASO C7 ok · Archivo que ya no existe
+  R8 400 Ese log no está entre los que encontró el inventario de la máquina tickets nuevos 0
+CASO C8 ok · Ruta fuera del inventario
+CASOS_LOG [{"id": "C1", "caso": "RHEL virtual: /var/log/messages", "resultado": "ok", "evidencia": "FO-LAB-02572: 300 líneas de 8547, sin aprobación"}, {"id": "C2", "caso": "journal del sistema", "resultado": "falla", "evidencia": "FO-LAB-02573: 0 líneas del journal (0 con fecha ISO)"}, {"id": "C3", "caso": "Búsqueda", "resultado": "falla", "evidencia": "FO-LAB-02575: 0 líneas, todas con «systemd» (-1 coincidencias)"}, {"id": "C4", "caso": "Carga progresiva", "resultado": "ok", "evidencia": "FO-LAB-02578: 300 líneas anteriores (saltar 300)"}, {"id": "C5", "caso": "Windows: visor de eventos System", "resultado": "ok", "evidencia": "FO-LAB-02579: 100 eventos · 2026-11-13 19:48:25 Information Service Control Manager [7036] The Win"}, {"id": "C6", "caso": "Máquina física", "resultado": "ok", "evidencia": "FO-LAB-02581: srv-xfusion-2288h-01 · 100 líneas"}, {"id": "C7", "caso": "Archivo que ya no existe", "resultado": "ok", "evidencia": "FO-LAB-02582 fallido: «no existe el archivo /var/log/no-existe-a21.log en la máquina»; el visor recibe el error"}, {"id": "C8", "caso": "Ruta fuera del inventario", "resultado": "ok", "evidencia": "400 Ese log no está entre los que encontró el inventario de la máquina tickets nuevos 0"}]
+CERT Sistema · Leer log → sin probar
+--- fin: 2026-11-13T19:55:42-03:00 · código: 0
