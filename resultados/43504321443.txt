@@ -1,0 +1,14 @@
+commit: 5aeb4066f092199710b385bee8990504156bb5f5
+inicio: 2026-11-13T17:45:01-03:00
+---
+desplegado: 72b82a0d · 2026-11-13T17:43:37-03:00 ok: desplegado 72b82a0d · /ingresar 200 · configurar=sin cambios
+Error: container "faceops" does not exist
+chown: cannot access '/tmp/e1pw.json': No such file or directory
+chmod: cannot access '/tmp/e1pw.json': No such file or directory
+Error: no container with name or ID "faceops" found: no such container
+ingresar 502
+Traceback (most recent call last):
+  File "/tmp/e1pw.py", line 3, in <module>
+    D = json.load(open(sys.argv[1]))
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/e1pw.json'
+--- fin: 2026-11-13T17:45:50-03:00 · código: 0
