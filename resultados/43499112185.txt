@@ -1,0 +1,28 @@
+commit: 287db63d93e644a11f5f2fcaf9e3cbe7ee97f647
+inicio: 2026-11-13T17:11:21-03:00
+---
+desplegado: 6e855525 · 2026-11-13T17:03:15-03:00 error: git pull --ff-only falló en 98b944d9 (¿cambios locales o historia divergente?) · objeti
+AUTO Infra · Encender o apagar equipo · certificada · {}
+AUTO FaceOps · Apagar equipo · certificada · {}
+AUTO FaceOps · Vincular máquina a la bóveda · certificada · {}
+AUTO FaceOps · Vincular máquina on-premise · sin probar · {}
+AUTO FaceOps · Guardar credencial en la bóveda · certificada · {}
+AUTO Sistema · Inventariar máquina · cambiada · {}
+AUTO Sistema · Paquetes · inventario y respaldo · cambiada · {}
+AUTO Plataforma · Controlar servicio · certificada · {}
+AUTO Sistema · Quitar agente · certificada · {}
+EQ {'nombre': 'rtr-e1alta-01', 'estado': 'retirado', 'ip': '192.0.2.21'}
+EQ {'nombre': 'srv-e1-inexistente-01', 'estado': 'retirado', 'ip': 'pendiente'}
+EQ {'nombre': 'srv-e1alta-01', 'estado': 'retirado', 'ip': '192.0.2.11'}
+EQ {'nombre': 'srv-e1alta-02', 'estado': 'retirado', 'ip': '192.0.2.12'}
+EQ {'nombre': 'srv-e1prueba-01', 'estado': 'con datos', 'ip': '192.168.122.172'}
+EQ {'nombre': 'srv-windows-iis-01', 'estado': 'con datos', 'ip': '192.168.122.120'}
+ 4    srv-prueba-resp-01           running
+ 6    srv-prueba-rhel8-01          running
+ 9    srv-prueba-rhel9-01          running
+ 31   srv-e1prueba-01              running
+ 32   srv-windows-iis-01           running
+ -    srv-prueba-rocky-01          shut off
+ -    srv-rocky-prueba-01          shut off
+aap ping 200
+--- fin: 2026-11-13T17:11:35-03:00 · código: 0
