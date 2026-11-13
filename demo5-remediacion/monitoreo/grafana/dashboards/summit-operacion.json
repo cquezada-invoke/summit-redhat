@@ -260,7 +260,7 @@
    "gridPos": {
     "x": 0,
     "y": 8,
-    "w": 12,
+    "w": 8,
     "h": 9
    },
    "targets": [
@@ -319,9 +319,9 @@
     "uid": "prometheus"
    },
    "gridPos": {
-    "x": 12,
+    "x": 8,
     "y": 8,
-    "w": 12,
+    "w": 8,
     "h": 9
    },
    "targets": [
@@ -341,6 +341,87 @@
      "custom": {
       "lineWidth": 2,
       "fillOpacity": 15
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   }
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Sitio IIS (nodo-windows): disponibilidad",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 8,
+    "w": 8,
+    "h": 9
+   },
+   "timeFrom": "1h",
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "probe_success{job=\"sitios-windows\"}",
+     "legendFormat": "sitio IIS",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "min": 0,
+     "max": 1,
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "1": {
+         "text": "Arriba",
+         "color": "green",
+         "index": 0
+        },
+        "0": {
+         "text": "Caído",
+         "color": "red",
+         "index": 1
+        }
+       }
+      }
+     ],
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 15,
+      "thresholdsStyle": {
+       "mode": "line+area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
      }
     },
     "overrides": []
