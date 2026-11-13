@@ -1,36 +1,15 @@
-commit: 0c4ac3d4753db45bc710212551c80129afe1a045
-inicio: 2026-11-13T17:56:29-03:00
+commit: ace9804c65a5dd4463fd8cd94e726725ad9964c5
+inicio: 2026-11-13T18:39:05-03:00
 ---
-desplegado: aabecb3d · 2026-11-13T17:56:07-03:00 ok: desplegado aabecb3d · /ingresar 200 · configurar=sin cambios
-PREP ok 26 22 2549 95
-ingresar 200
-FICHA RHEL virtual srv-e1prueba-01 200 fría 2246 ms caliente 546 ms {"so": true, "so_op": true, "so_act": true, "so_bloques": ["sub", "Red Hat Enterprise Linux", "comp-acc", "salud-res n-critico", "Actualización del sistema oper", "cajon-bloques", "Operaciones", "Imagen de instalación", "Servicios del sistema operativ", "Logs del sistema operativo", "Historial de cambios", "so-ficha abierto"], "skills": false, "sk_op": false, "sk_act": false, "op_n": 0, "op_bloq": 0, "act_bloq": "", "glosa": "Etapa 2 · aún no liberada", "hscroll": false} · grupos Skills:  · errores: []
-FICHA RHEL virtual nodo-vault 200 fría 975 ms caliente 418 ms {"so": true, "so_op": true, "so_act": true, "so_bloques": ["sub", "Red Hat Enterprise Linux", "comp-acc", "salud-res n-critico", "Actualización del sistema oper", "cajon-bloques", "Operaciones", "Imagen de instalación", "Servicios del sistema operativ", "Logs del sistema operativo", "Historial de cambios", "so-ficha abierto"], "skills": false, "sk_op": false, "sk_act": false, "op_n": 0, "op_bloq": 0, "act_bloq": "", "glosa": "Etapa 2 · aún no liberada", "hscroll": false} · grupos Skills:  · errores: []
-FICHA Windows srv-windows-iis-01 200 fría 584 ms caliente 294 ms {"so": true, "so_op": true, "so_act": true, "so_bloques": ["sub", "Windows Server 2022 Standard E", "comp-acc", "salud-res n-saludable", "Actualización del sistema oper", "cajon-bloques", "Operaciones", "Imagen de instalación", "Servicios del sistema operativ", "Logs del sistema operativo", "Historial de cambios", "so-ficha abierto"], "skills": false, "sk_op": false, "sk_act": false, "op_n": 0, "op_bloq": 0, "act_bloq": "", "glosa": "Etapa 2 · aún no liberada", "hscroll": false} · grupos Skills:  · errores: []
-PASO login 1 /ingresar/codigo?siguiente= | 
-PASO lab sin código /lab/ingresar?siguiente=/? | 
-PASO login 2 /ingresar/codigo?siguiente= | 
-PASO código malo /ingresar/codigo?siguiente= | 
-Traceback (most recent call last):
-  File "/tmp/e1pw.py", line 65, in <module>
-    c = br.new_context(ignore_https_errors=True); pg = c.new_page(); ingresar(pg); paso(pg, "login 3"); ok = None
-  File "/tmp/e1pw.py", line 51, in ingresar
-  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/sync_api/_generated.py", line 10998, in fill
-    self._sync(
-  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
-    return task.result()
-  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_page.py", line 917, in fill
-    return await self._main_frame.fill(**locals_to_params(locals()))
-  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_frame.py", line 610, in fill
-    await self._fill(**locals_to_params(locals()))
-  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_frame.py", line 622, in _fill
-    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
-  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_connection.py", line 69, in send
-    return await self._connection.wrap_api_call(
-  File "/home/cquezada/pw/lib64/python3.9/site-packages/playwright/_impl/_connection.py", line 559, in wrap_api_call
-    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
-playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
-Call log:
-  - waiting for locator("input[name=usuario]")
-
---- fin: 2026-11-13T17:57:51-03:00 · código: 0
+INFCOLS ['id', 'cliente_id', 'nombre', 'tipo', 'region', 'detalle', 'credencial', 'inventario', 'ubicacion', 'estado', 'verificado', 'mensaje', 'creado', 'centro_datos']
+INF 2 gcp Cloud GCP · invoke-summit-cloud | ubic Cloud GCP | {'region': 'southamerica-west1 (Santiago)', 'detalle': '{"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "defa', 'inventario': 'Nube GCP', 'estado': 'conectada', 'verificado': '2026-11-12T13:34:05+00:00', 'mensaje': 'AAP lee la nube: 0 máquina(s) en su inventario', 'creado': '2026-10-30T12:35:57+00:00', 'centro_datos': 'Cloud GCP'}
+INF 5 fisico Dell · Centro de datos Santiago | ubic Dell · Centro de datos Santiago | {'region': '', 'detalle': '{"fabricante": "Dell", "emulado": true, "bmc_tipo": "iDRAC (emulado sobre KVM)",', 'inventario': '', 'estado': 'ok', 'verificado': 'None', 'mensaje': 'Servidor físico emulado: máquina virtual del laboratorio', 'creado': '2026-11-01T02:21:08+00:00', 'centro_datos': 'Centro de datos Santiago'}
+INF 1 kvm KVM · Santiago | ubic Centro de datos Santiago | {'region': 'Santiago, Chile', 'detalle': '{"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.122.0/24", ', 'inventario': 'FaceOps · Infraestructura', 'estado': 'conectada', 'verificado': '2026-11-11T22:02:28+00:00', 'mensaje': '1 equipo(s) en su inventario de AAP', 'creado': '2026-10-30T12:35:57+00:00', 'centro_datos': 'Centro de datos Santiago'}
+INF 6 kvm KVM · Valparaíso | ubic Centro de datos Valparaíso | {'region': 'Valparaíso, Chile', 'detalle': '{"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.150.0/24", ', 'inventario': 'FaceOps · Infraestructura', 'estado': 'conectada', 'verificado': '2026-11-11T22:02:14+00:00', 'mensaje': '1 equipo(s) en su inventario de AAP', 'creado': '2026-11-06T00:40:31+00:00', 'centro_datos': 'Centro de datos Valparaíso'}
+INF 3 openshift OpenShift · SNO | ubic OpenShift · SNO | {'region': 'Santiago, Chile', 'detalle': '{"api": "https://192.168.122.50:6443", "consola": "https://console.sno.34.176.42', 'inventario': 'OpenShift · clústeres', 'estado': 'conectada', 'verificado': '2026-11-01T03:55:20+00:00', 'mensaje': 'API responde (Kubernetes v1.32.13) · token en la credencial «OpenShift · SNO (le', 'creado': '2026-10-31T00:23:34+00:00', 'centro_datos': 'Centro de datos Santiago'}
+INF 4 vmware VMware · Santiago | ubic VMware · Santiago | {'region': '', 'detalle': '{"host": "192.168.122.1:8989", "usuario": "faceops", "datacenter": "Santiago", "', 'inventario': 'Infra · VMware · Santiago', 'estado': 'conectada', 'verificado': '2026-10-31T03:32:36+00:00', 'mensaje': '7 equipo(s) en su inventario de AAP', 'creado': '2026-10-31T03:28:10+00:00', 'centro_datos': 'Centro de datos Santiago'}
+2026-11-13T17:56:07-03:00 ok: desplegado aabecb3d · /ingresar 200 · configurar=sin cambios
+Applied autostash.
+2026-11-13T18:05:42-03:00 commits locales rebasados sobre origin/main
+2026-11-13T18:05:42-03:00 configurar.py (cambió faceops/aap)
+--- fin: 2026-11-13T18:39:28-03:00 · código: 0
