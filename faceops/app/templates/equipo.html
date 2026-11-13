@@ -233,7 +233,7 @@ v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;document.addEventLis
   <div><span>SELinux · registro</span><b>{{ datos.selinux or '—' }} · {{ 'registrado' if datos.registrado else ('sin registro' if datos.registrado == false else '—') }}</b></div>
   <div><span>Parches de seguridad pendientes</span><b>{{ datos.parches_seguridad if datos.parches_seguridad is not none else '—' }}</b></div></div>
 </div>{% endif %}
-{% if c.salud is not none %}<div class="salud-res n-{{ c.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}"><div class="fila"><b>Salud de la plataforma</b><span class="der"><b class="pct">{{ c.salud }} %</b> <span class="sub">mínimo aceptable {{ c.umbral }} %</span></span></div>
+{% if c.salud is not none and not c.so %}<div class="salud-res n-{{ c.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}"><div class="fila"><b>Salud de la plataforma</b><span class="der"><b class="pct">{{ c.salud }} %</b> <span class="sub">mínimo aceptable {{ c.umbral }} %</span></span></div>
 <div class="barra-u"><i style="width:{{ c.salud }}%"></i><u style="left:{{ c.umbral }}%" title="mínimo aceptable {{ c.umbral }} %"></u></div>
 </div>{% endif %}
 {% if c.lista or c.so %}<div class="comp-err" data-pilar="Excelencia operativa"><h3 style="margin:0 0 4px;font-size:14px">Remediaciones preventivas {{ barra_sec(c if c is defined else none, "remediaciones") }}</h3>{% if not c.lista %}<p class="sub" style="font-size:12.5px;margin:4px 0">Sin errores conocidos registrados para {{ c.nombre }}.</p>{% endif %}
