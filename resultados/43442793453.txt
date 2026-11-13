@@ -1,0 +1,42 @@
+commit: 4bd6990070ee43f906b250c9ef19a62c17450fd6
+inicio: 2026-11-13T11:27:03-03:00
+---
+TICKET 2486 200 [619, 37, 35, 36]
+TICKET 2484 200 [1048, 1043, 1057, 1042]
+TICKET 2478 200 [1048, 1046, 1040, 1037]
+TICKET 2392 200 [133, 36, 40, 38]
+TICKET 2300 200 [1052, 1043, 1042, 1045]
+         95129 function calls (94642 primitive calls) in 0.070 seconds
+
+   Ordered by: cumulative time
+   List reduced from 875 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.070    0.070 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1163(get)
+        1    0.000    0.000    0.069    0.069 /opt/app-root/lib64/python3.11/site-packages/flask/testing.py:204(open)
+        1    0.000    0.000    0.069    0.069 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1062(open)
+        1    0.000    0.000    0.069    0.069 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:984(run_wsgi_app)
+        1    0.000    0.000    0.069    0.069 /opt/app-root/lib64/python3.11/site-packages/werkzeug/test.py:1230(run_wsgi_app)
+        1    0.000    0.000    0.069    0.069 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:1529(__call__)
+        1    0.000    0.000    0.069    0.069 /opt/app-root/lib64/python3.11/site-packages/werkzeug/middleware/proxy_fix.py:126(__call__)
+        1    0.000    0.000    0.069    0.069 /opt/faceops/app/__init__.py:55(__call__)
+        1    0.000    0.000    0.069    0.069 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:1479(wsgi_app)
+        1    0.000    0.000    0.068    0.068 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:904(full_dispatch_request)
+        1    0.000    0.000    0.066    0.066 /opt/app-root/lib64/python3.11/site-packages/flask/app.py:879(dispatch_request)
+        1    0.000    0.000    0.066    0.066 /opt/faceops/app/__init__.py:413(envoltura)
+        1    0.000    0.000    0.066    0.066 /opt/faceops/app/vistas.py:1174(ticket)
+        1    0.000    0.000    0.055    0.055 /opt/app-root/lib64/python3.11/site-packages/flask/templating.py:139(render_template)
+        1    0.000    0.000    0.055    0.055 /opt/app-root/lib64/python3.11/site-packages/flask/templating.py:127(_render)
+        1    0.000    0.000    0.054    0.054 /opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py:1275(render)
+   106/26    0.000    0.000    0.054    0.002 {method 'join' of 'str' objects}
+     1715    0.001    0.000    0.054    0.000 /opt/faceops/app/templates/ticket.html:4(root)
+     1715    0.001    0.000    0.053    0.000 /opt/faceops/app/templates/base.html:4(root)
+   102/99    0.000    0.000    0.047    0.000 /opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py:262(call)
+        2    0.000    0.000    0.045    0.022 /opt/faceops/app/__init__.py:233(_menu)
+        2    0.002    0.001    0.045    0.022 /opt/faceops/app/vistas.py:8510(menu_nav)
+        2    0.000    0.000    0.022    0.011 /opt/faceops/app/vistas.py:62(equipos_visibles)
+       26    0.000    0.000    0.018    0.001 /opt/faceops/app/bd.py:180(q)
+       94    0.000    0.000    0.017    0.000 /opt/faceops/app/inventario.py:90(segmentos_de)
+
+
+--- fin: 2026-11-13T11:27:24-03:00 · código: 0
