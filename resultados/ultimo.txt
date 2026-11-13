@@ -1,25 +1,51 @@
-commit: 7ca98313475e21d3c49f42c2996d053da8754318
-inicio: 2026-11-13T19:14:11-03:00
+commit: f4f7c6e5b1bab8858537ee13047aecf7ba504a2c
+inicio: 2026-11-13T18:52:57-03:00
 ---
-desplegado: a680a5f2 · 2026-11-13T19:20:18-03:00 ok: desplegado a680a5f2 · /ingresar 200 · configurar=sin cambios
-catálogo: SI
-física: ninguna con logs
-== C1 srv-e1prueba-01 /var/log/messages: exitoso FO-LAB-02561 · 300 líneas · total -1 · error «»
-CASO C1 falla · RHEL virtual: /var/log/messages
-== C2 srv-e1prueba-01 journal: exitoso FO-LAB-02562 · 100 líneas · total -1 · error «»
-CASO C2 ok · journal del sistema
-== C3 srv-e1prueba-01 /var/log/messages: exitoso FO-LAB-02564 · 300 líneas · total -1 · error «»
-CASO C3 ok · Búsqueda
-== C4 srv-e1prueba-01 journal: exitoso FO-LAB-02565 · 50 líneas · total -1 · error «»
-CASO C4 ok · Carga progresiva
-== C5 srv-windows-iis-01 evento:System: exitoso FO-LAB-02567 · 100 líneas · total 1727 · error «»
-CASO C5 ok · Windows: visor de eventos System
-CASO C6 falla · Máquina física
-== C7 srv-e1prueba-01 /var/log/no-existe-a21.log: fallido FO-LAB-02569 · 0 líneas · total -1 · error «no existe el archivo /var/log/no-existe-a21.log en la máquina»
-  VISOR 200 {"error": "AAP no respondió al leer el resultado: Sincronizando con AAP: el dato aún no está en FaceOps", "estado": "fallido", "lineas": [], "numero": "FO-LAB-02569", "total": -1}
-CASO C7 ok · Archivo que ya no existe
-  R8 400 Ese log no está entre los que encontró el inventario de la máquina tickets nuevos 0
-CASO C8 ok · Ruta fuera del inventario
-CASOS_LOG [{"id": "C1", "caso": "RHEL virtual: /var/log/messages", "resultado": "falla", "evidencia": "FO-LAB-02561: 300 líneas de -1, sin aprobación"}, {"id": "C2", "caso": "journal del sistema", "resultado": "ok", "evidencia": "FO-LAB-02562: 100 líneas del journal (88 con fecha ISO)"}, {"id": "C3", "caso": "Búsqueda", "resultado": "ok", "evidencia": "FO-LAB-02564: 300 líneas, todas con «systemd» (-1 coincidencias)"}, {"id": "C4", "caso": "Carga progresiva", "resultado": "ok", "evidencia": "FO-LAB-02565: 50 líneas anteriores del journal (saltar 50)"}, {"id": "C5", "caso": "Windows: visor de eventos System", "resultado": "ok", "evidencia": "FO-LAB-02567: 100 eventos · 2026-11-13 19:12:34 Information Service Control Manager [7036] The Sof"}, {"id": "C6", "caso": "Máquina física", "resultado": "falla", "evidencia": "no hay máquina física Linux con logs en el inventario"}, {"id": "C7", "caso": "Archivo que ya no existe", "resultado": "ok", "evidencia": "FO-LAB-02569 fallido: «no existe el archivo /var/log/no-existe-a21.log en la máquina»; el visor recibe el error"}, {"id": "C8", "caso": "Ruta fuera del inventario", "resultado": "ok", "evidencia": "400 Ese log no está entre los que encontró el inventario de la máquina tickets nuevos 0"}]
-CERT Sistema · Leer log → sin probar
---- fin: 2026-11-13T19:36:18-03:00 · código: 0
+desplegado: b1835d28 · 2026-11-13T19:00:14-03:00 ok: desplegado b1835d28 · /ingresar 200 · configurar=sin cambios
+VM de prueba srv-e1prueba-01 192.168.122.172 · running
+repositorio previo borrado: 403
+artefacto previo borrado app-grande-7c088e9fcd3d
+artefacto previo borrado opt-herramienta-fd193674bd40
+artefacto previo borrado opt-jboss-eap-7.4-standalone-configuration-grande-e1.bin-339a146f8f3f
+AVISO: srv-e1prueba-01 ya tenía repositorio
+== C1 srv-e1prueba-01: exitoso FO-LAB-02555
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '491', 'CAMBIOS': '14', 'COMMIT': 'ed5c3dec10b66b11e24f81d73a5a02a2f1e988a8'}}
+  archivos/etc: 430 · meta: cobertura.txt crontab.txt directorios.txt discos.txt excluidos.txt grupos.txt omitidos.txt paquetes.txt permisos.txt red.txt rutas.txt selinux.txt servicios.txt sistema.txt usuarios.txt  · secretos en git: ninguno · paquetes 503
+CASO C1 ok · RHEL 9 sin repositorio propio
+== C2 srv-e1prueba-01: fallido FO-LAB-02556
+{}
+CASO C2 falla · Repetir sin cambios
+== C3 srv-e1prueba-01: exitoso FO-LAB-02558
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '491', 'CAMBIOS': '1', 'COMMIT': '8e6aac454b5d19a298e4667b6d8480e05d5ad526'}}
+  último commit: 8e6aac45 Inventario diario · 2026-11-13 22:26 · 1 archivo  Archivos: · M archivos/etc/motd 
+  PUNTO PR-SRV-E1PRUEBA-01-0032 configuracion si cobertura si cubierto · «motd» aparece
+CASO C3 ok · Cambiar un archivo de /etc y repetir
+== C4a srv-e1prueba-01: exitoso FO-LAB-02563
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '495', 'CAMBIOS': '9', 'COMMIT': '13e7d2fbe8de0a91816f2778f46f15a6d1db455a'}}
+== C4b nodo-jboss-dev: exitoso FO-LAB-02566
+{'nodo-jboss-dev': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '715', 'CAMBIOS': '0'}}
+  zip: configuración 1 · despliegue 2 · data/tmp/log o grande en git 0 · omitido 1 | RPM: configuración 1 · data/tmp/log 0
+CASO C4 ok · JBoss por RPM y desde zip en /opt
+== C8 srv-e1prueba-01: exitoso FO-LAB-02568
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '497', 'CAMBIOS': '6', 'COMMIT': '4332897707e1abfe8cf263d269333eec89ea75dc'}}
+['COB_AUTO=/home/ansible|1|4', 'COB_AUTO=/home/faceops|1|4', 'COB_AUTO=/root|1|6', 'COB_RUTA=/app-grande|210|1', 'COB_AUTO=/data|1|1', 'COB_AUTO=/efi|8|9', 'COB_AUTO=/opt/herramienta|1|1', 'COB_AUTO=/var/lib/cloud|1|38', 'COB_SINPAQ=/opt/herramienta|1', 'ART_SUBIDO=/app-grande|app-grande-d52cb750c805', 'ART_SUBIDO=/opt/herramienta|opt-herramienta-f0627144f51e', 'ART_OK=/opt/jboss-eap-7.4/standalone/configuration/grande-e1.bin|opt-jboss-eap-7.4-standalone-configuration-grande-e1.bin-3316676c189b']
+  PUNTO PR-SRV-E1PRUEBA-01-0034 configuracion si cobertura si cubierto · «/app-grande» aparece
+CASO C8 ok · Cobertura
+== C9 srv-e1prueba-01: exitoso FO-LAB-02570
+{'srv-e1prueba-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '497', 'CAMBIOS': '0'}}
+CASO C9 ok · Repetir sin cambios
+== C10 srv-e1prueba-01: exitoso FO-LAB-02571
+{'srv-e1prueba-01': {'SECRETOS': '7', 'SECRETOS_BOVEDA': 'guardado', 'ARCHIVOS': '498', 'CAMBIOS': '5', 'COMMIT': '8db999a72de6d0569a52ec681518345ed5a5f35e'}}
+  BOV 7 ['/etc/pki/tls/private/e1.key', '/opt/app-e1/conf/almacen-e1.jks'] · PUNTO PR-SRV-E1PRUEBA-01-0035 configuracion si cobertura si cubierto · «almacen-e1.jks» no aparece
+CASO C10 ok · Secretos
+HV srv-e1prueba-01 /usr/bin/python-inexistente-e1
+== C5 srv-e1prueba-01: exitoso FO-LAB-02574
+{'srv-e1prueba-01': {'SECRETOS': '7', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '498', 'CAMBIOS': '1', 'COMMIT': '28d2a7466b2fc52545560205daf51a9052fe5779'}}
+HV srv-e1prueba-01 (sin)
+  LEGADO True BASE64 True · commit 28d2a746 Inventario diario · 2026-11-13 22:48 · 1 archivo  Archivos: · M archivos/etc/motd 
+CASO C5 ok · Sin Python utilizable (camino RHEL 5/6)
+== C7 srv-e1prueba-01: exitoso FO-LAB-02577
+{'srv-e1prueba-01': {'SECRETOS': '7', 'SECRETOS_BOVEDA': 'igual', 'ARCHIVOS': '498', 'CAMBIOS': '0'}}
+  paquetes 503 (C1: 503) · FA RedHat 9.6 | con datos | 192.168.122.172
+CASO C7 ok · Datos del sistema y paquetes
+IIS en srv-windows-iis-01 (preparación de C6): rechazado al solicitar 
