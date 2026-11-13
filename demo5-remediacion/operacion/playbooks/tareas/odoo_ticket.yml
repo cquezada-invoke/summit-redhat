@@ -1,0 +1,89 @@
+# Ticket de Odoo Helpdesk para cada remediación (Demo 5 · monitoreo): Ansible lo abre al empezar y lo cierra al terminar.
+#   odoo_accion: abrir   (odoo_alerta, odoo_instancia, odoo_detalle)   → hostvars.localhost._odoo {id, url}
+#   odoo_accion: cerrar  (odoo_nota: acción tomada y verificación)     → nota en el ticket y etapa «Solved»
+#   odoo_accion: escalar (odoo_nota: el error)                         → nota en el ticket; queda abierto «In Progress»
+# Conexión: credencial de AAP de tipo «Odoo · Helpdesk» (inyecta ODOO_URL, ODOO_DB, ODOO_USUARIO y ODOO_CLAVE como
+# variables de entorno). Los tickets llevan la etiqueta «Demo 5 · Remediación». Si Odoo no responde, solo se avisa.
+- name: Odoo · ticket ({{ odoo_accion }})
+  delegate_to: localhost
+  run_once: true
+  become: false
+  vars:
+    _job: "https://34.176.42.56/execution/jobs/playbook/{{ awx_job_id | default(tower_job_id | default('0')) }}/output"
+  block:
+    - name: Odoo · {{ odoo_accion }} el ticket
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - |
+            import html, json, os, sys, urllib.request
+            d = json.load(sys.stdin); u = os.environ.get("ODOO_URL", "").rstrip("/")
+            if not u or not os.environ.get("ODOO_CLAVE"):
+                print(json.dumps({"aviso": "sin credencial de Odoo en la plantilla"})); sys.exit(0)
+            def rpc(srv, met, *a):
+                r = urllib.request.Request(u + "/jsonrpc", headers={"Content-Type": "application/json"}, data=json.dumps(
+                    {"jsonrpc": "2.0", "method": "call", "id": 1, "params": {"service": srv, "method": met, "args": list(a)}}).encode())
+                x = json.load(urllib.request.urlopen(r, timeout=30))
+                if x.get("error"):
+                    raise SystemExit("Odoo: " + str((x["error"].get("data") or {}).get("message") or x["error"].get("message"))[:200])
+                return x["result"]
+            db, us, cl = os.environ["ODOO_DB"], os.environ["ODOO_USUARIO"], os.environ["ODOO_CLAVE"]
+            uid = rpc("common", "authenticate", db, us, cl, {})
+            if not uid:
+                raise SystemExit("Odoo: autenticación rechazada")
+            x = lambda m, me, a, k=None: rpc("object", "execute_kw", db, uid, cl, m, me, a, k or {})
+            e = lambda s: html.escape(str(s))
+            etapa = lambda n: (x("helpdesk.stage", "search", [[["name", "=ilike", n]]], {"limit": 1}) or [None])[0]
+            nota = lambda t, txt: x("helpdesk.ticket", "message_post", [[t]], {"body": txt, "message_type": "comment",
+                                                                              "subtype_xmlid": "mail.mt_note"})
+            pie = f"<p>Ejecución AAP: <a href=\"{e(d['job'])}\">{e(d['job'])}</a></p>"
+            if d["accion"] == "abrir":
+                tag = x("helpdesk.tag", "search", [[["name", "=", "Demo 5 · Remediación"]]], {"limit": 1}) \
+                      or [x("helpdesk.tag", "create", [{"name": "Demo 5 · Remediación"}])]
+                equipo = x("helpdesk.team", "search", [[]], {"limit": 1})
+                datos = {"name": f"[Demo 5 · Remediación] {d['alerta']} en {d['instancia']}",
+                         "description": f"<p>{e(d['detalle'])}</p><p>Detectado por Prometheus; Event-Driven Ansible lanzó la "
+                                        f"remediación automática en Ansible Automation Platform.</p>" + pie,
+                         "tag_ids": [(6, 0, tag if isinstance(tag, list) else [tag])]}
+                if equipo:
+                    datos["team_id"] = equipo[0]
+                t = x("helpdesk.ticket", "create", [datos])
+                t = t[0] if isinstance(t, list) else t
+                s = etapa("In Progress") or etapa("En curso")
+                if s:
+                    x("helpdesk.ticket", "write", [[t], {"stage_id": s}])
+            else:
+                t = int(d["ticket"]); ok = d["accion"] == "cerrar"
+                nota(t, (f"<p><b>Resuelto automáticamente por Ansible.</b></p><p>{e(d['nota'])}</p>" if ok else
+                         f"<p><b>Ansible no pudo resolverlo solo:</b> {e(d['nota'])}</p><p>El ticket queda abierto.</p>") + pie)
+                s = etapa("Solved") or etapa("Resuelto") if ok else etapa("In Progress") or etapa("En curso")
+                if s:
+                    x("helpdesk.ticket", "write", [[t], {"stage_id": s}])
+            st = x("helpdesk.ticket", "read", [[t]], {"fields": ["stage_id"]})[0]["stage_id"]
+            print(json.dumps({"id": t, "etapa": st[1] if st else "-", "url": f"{u}/odoo/helpdesk.ticket/{t}"}))
+        stdin: >-
+          {{ {'accion': odoo_accion, 'alerta': odoo_alerta | default(''), 'instancia': odoo_instancia | default(inventory_hostname),
+              'detalle': odoo_detalle | default(''), 'nota': odoo_nota | default(''), 'job': _job,
+              'ticket': hostvars.localhost._odoo.id | default(0)} | to_json }}
+      register: _ro
+      changed_when: true
+      no_log: true
+      when: odoo_accion == 'abrir' or hostvars.localhost._odoo is defined
+
+    - name: Odoo · ticket abierto
+      ansible.builtin.set_fact:
+        _odoo: "{{ _ro.stdout | from_json }}"
+      delegate_facts: true
+      when: odoo_accion == 'abrir' and (_ro.stdout | default('{}') | from_json).id is defined
+
+    - name: Odoo
+      ansible.builtin.debug:
+        msg: >-
+          {{ ('Ticket #' ~ (_ro.stdout | from_json).id ~ ' · ' ~ (_ro.stdout | from_json).etapa ~ ' · ' ~ (_ro.stdout | from_json).url)
+             if (_ro.stdout | default('{}') | from_json).id is defined
+             else ((_ro.stdout | default('{}') | from_json).aviso | default('sin ticket de Odoo que actualizar')) }}
+  rescue:
+    - name: Odoo no respondió (la remediación sigue)
+      ansible.builtin.debug:
+        msg: "Aviso: no se pudo {{ odoo_accion }} el ticket en Odoo: {{ (_ro.stderr | default('') | regex_search('Odoo: .*')) or 'error de conexión' }}"

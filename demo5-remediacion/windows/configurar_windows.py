@@ -75,6 +75,7 @@ paso("AAP: inventario 'Servidores Windows' con nodo-windows (WinRM 5985, NTLM)")
 subprocess.run([sys.executable, os.path.join(os.path.dirname(AQUI), "monitoreo", "configurar_monitoreo.py")], check=True)
 proy = uno("projects", name="Operación · remediación")["id"]
 sn = uno("credentials", name="ServiceNow · ansible.automatizacion")["id"]
+odoo = uno("credentials", name="Odoo · Helpdesk Operación")   # la crea configurar_monitoreo.py
 nt = uno("notification_templates", name="Correo · aprobaciones de red")
 for nombre, pb, desc, correo in (
         ("Windows · Preparar IIS", "playbooks/preparar-windows.yml", "Instala IIS y la página de la app en nodo-windows (también reinicia el caso)", False),
@@ -83,7 +84,7 @@ for nombre, pb, desc, correo in (
     jt = asegurar("job_templates", nombre, {"organization": org, "project": proy, "inventory": inv, "playbook": pb,
                                             "description": desc, "ask_variables_on_launch": True})["id"]
     ya = {c["id"] for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]}
-    for c in (cred, sn):
+    for c in (cred, sn) + ((odoo["id"],) if odoo and correo else ()):
         if c not in ya:
             aap("POST", f"job_templates/{jt}/credentials/", {"id": c})
     if correo and nt:

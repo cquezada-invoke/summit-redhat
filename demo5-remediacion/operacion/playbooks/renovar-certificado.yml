@@ -26,6 +26,15 @@
               Prometheus detectó que el certificado HTTPS de la aplicación (nodo-nginx) vence pronto
               ({{ r_antes.stdout | regex_replace('^notAfter=', '') }}). Ansible lo renueva automáticamente, sin cortar el servicio.
 
+        - name: Odoo · abrir ticket
+          ansible.builtin.include_tasks: tareas/odoo_ticket.yml
+          vars:
+            odoo_accion: abrir
+            odoo_alerta: CertificadoPorVencer
+            odoo_detalle: >-
+              {{ alerta_resumen | default('Certificado TLS por vencer') }}. Prometheus detectó que el certificado HTTPS
+              de la aplicación vence pronto ({{ r_antes.stdout | regex_replace('^notAfter=', '') }}).
+
         - name: Generar el certificado nuevo ({{ dias }} días)
           ansible.builtin.command: >-
             openssl req -x509 -newkey rsa:2048 -nodes -days {{ dias }} -subj "/CN=app.summit.lab"
@@ -61,6 +70,16 @@
             inc_tecnico: >-
               nodo-nginx: openssl req -x509 -days {{ dias }}; respaldo en {{ crt }}.anterior; nginx -t y systemctl reload nginx.
               Verificado con openssl s_client en 127.0.0.1:443.
+
+        - name: Odoo · cerrar ticket
+          ansible.builtin.include_tasks: tareas/odoo_ticket.yml
+          vars:
+            odoo_accion: cerrar
+            odoo_nota: >-
+              Acción: se generó un certificado nuevo de {{ dias }} días (respaldo del anterior en {{ crt }}.anterior)
+              y se recargó Nginx sin corte (nginx -t y systemctl reload nginx).
+              Verificación: el servicio en 127.0.0.1:443 entrega el certificado nuevo; antes vencía el
+              {{ r_antes.stdout | regex_replace('^notAfter=', '') }}, ahora vence el {{ r_despues.stdout | regex_replace('^notAfter=', '') }}.
       rescue:
         - name: Volver al certificado anterior
           ansible.builtin.shell: |
@@ -71,6 +90,11 @@
           vars:
             inc_accion: escalar
             inc_tecnico: "{{ ansible_failed_result.msg | default('no se pudo renovar el certificado') }} (se dejó el certificado anterior)"
+        - name: Odoo · dejar el ticket abierto con el error
+          ansible.builtin.include_tasks: tareas/odoo_ticket.yml
+          vars:
+            odoo_accion: escalar
+            odoo_nota: "{{ ansible_failed_result.msg | default('no se pudo renovar el certificado') }} (se dejó el certificado anterior)"
         - name: No se pudo renovar
           ansible.builtin.fail:
             msg: "No se pudo renovar el certificado: queda escalado en ServiceNow"

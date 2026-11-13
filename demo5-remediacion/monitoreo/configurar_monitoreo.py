@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # Demo 5 · monitoreo: publica playbooks y rulebook en Gitea (invoke/operacion), crea en AAP las plantillas
-# "Remediación · Cola de pagos" y "Remediación · Renovar certificado" (con ServiceNow y correo) y la activación
+# "Remediación · Cola de pagos" y "Remediación · Renovar certificado" (con ServiceNow, Odoo y correo) y la activación
 # de EDA "Monitoreo · Alertas de Prometheus" (fuente ansible.eda.alertmanager, :5004). Idempotente.
 import base64, glob, json, os, re, shutil, ssl, subprocess, sys, tempfile, time, urllib.error, urllib.parse, urllib.request
 
@@ -58,6 +58,17 @@ while aap("GET", f"project_updates/{u['id']}/")["status"] not in ("successful", 
     time.sleep(3)
 inv = uno(aap, "inventories", name="Nodos demo")["id"]
 creds = [uno(aap, "credentials", name="Nodos demo (ansible)")["id"], uno(aap, "credentials", name="ServiceNow · ansible.automatizacion")["id"]]
+# Odoo Helpdesk: cada remediación abre y cierra un ticket. Credencial «Odoo · Helpdesk Operación» (tipo «Odoo · Helpdesk», que crea
+# portal-automatizacion/configurar_aap.py); se crea o actualiza si vienen ODOO_URL, ODOO_DB, ODOO_USUARIO y ODOO_CLAVE en el entorno.
+tipo_o = uno(aap, "credential_types", name="Odoo · Helpdesk")
+odoo = uno(aap, "credentials", name="Odoo · Helpdesk Operación")
+if tipo_o and all(os.environ.get(k) for k in ("ODOO_URL", "ODOO_DB", "ODOO_USUARIO", "ODOO_CLAVE")):
+    d = {"organization": org, "credential_type": tipo_o["id"], "inputs": {"url": os.environ["ODOO_URL"], "db": os.environ["ODOO_DB"],
+         "usuario": os.environ["ODOO_USUARIO"], "clave": os.environ["ODOO_CLAVE"]}}
+    odoo = aap("PATCH", f"credentials/{odoo['id']}/", d) if odoo else aap("POST", "credentials/", dict(d, name="Odoo · Helpdesk Operación"))
+if odoo:
+    creds.append(odoo["id"])
+paso(f"Odoo: credencial 'Odoo · Helpdesk Operación' {'en las remediaciones' if odoo else 'NO existe (exporta ODOO_* y vuelve a correr)'}")
 nt = uno(aap, "notification_templates", name="Correo · aprobaciones de red")
 correo = "no"
 for nombre, pb, desc in (("Remediación · Cola de pagos", "playbooks/cola-pagos.yml",
