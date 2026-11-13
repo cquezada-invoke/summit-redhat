@@ -1,21 +1,10 @@
-commit: 34fe1b099d4f0f66912db784e52a212cc13c5530
-inicio: 2026-11-13T09:53:50-03:00
+commit: fb8c6ce46cad62e0544823d1ec26e8a674fa902b
+inicio: 2026-11-13T09:55:49-03:00
 ---
-trabajo 27038: new -> canceled 
-LICENCIA antes {'instance_count': 50, 'current_instances': 50, 'free_instances': 0, 'automated_instances': 50}
-HOSTS retirados de AAP 3 ['fo-prueba-11121533#177', 'fo-prueba-a-1424#175', 'fo-prueba-11121641#178']
-LICENCIA después {'instance_count': 50, 'current_instances': 47, 'free_instances': 0}
-Traceback (most recent call last):
-  File "/tmp/b08.py", line 70, in <module>
-    alta = registrar_servidores(aap, cl, t); print("ALTA", alta[:300])
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/operacion.py", line 1877, in registrar_servidores
-    h = existe or aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv)})
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 284, in post
-    return self._r("POST", ruta, json=datos or {})
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 277, in _r
-    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
-app.aap.ErrorAAP: AAP POST hosts/ → 403: {"detail":"License count of 50 instances has been reached."}
---- fin: 2026-11-13T09:55:16-03:00 · código: 0
+LICENCIA antes {'instance_count': 50, 'current_instances': 47, 'free_instances': 0, 'automated_instances': 50}
+HOSTS retirados de AAP 4 ['métrica fo-prueba-11121641', 'métrica fo-prueba-11121533', 'métrica fo-prueba-a-1424', 'métrica srv-mover-01']
+LICENCIA después {'instance_count': 50, 'current_instances': 47, 'free_instances': 4}
+ALTA Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-e1prueba-01 · 192.168.122.172
+TK FO-LAB-02469 exitoso FaceOps · Vincular máquina a la bóveda | AAP terminó (successful): ejecución 11 s, espera de aprobación 21 s
+EQUIPO {'id': 135, 'nombre': 'srv-e1prueba-01', 'estado': 'sin datos', 'ip': '192.168.122.172', 'so': 'Red Hat Enterprise Linux 9', 'inventario': 'Servidores habilitados'}
+--- fin: 2026-11-13T10:00:01-03:00 · código: 0
