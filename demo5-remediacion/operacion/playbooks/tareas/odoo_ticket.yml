@@ -35,8 +35,8 @@
             x = lambda m, me, a, k=None: rpc("object", "execute_kw", db, uid, cl, m, me, a, k or {})
             e = lambda s: html.escape(str(s))
             etapa = lambda n: (x("helpdesk.stage", "search", [[["name", "=ilike", n]]], {"limit": 1}) or [None])[0]
-            nota = lambda t, txt: x("helpdesk.ticket", "message_post", [[t]], {"body": txt, "message_type": "comment",
-                                                                              "subtype_xmlid": "mail.mt_note"})
+            nota = lambda t, txt: x("helpdesk.ticket", "message_post", [[t]], {"body": txt, "body_is_html": True,
+                                                                              "message_type": "comment", "subtype_xmlid": "mail.mt_note"})
             pie = f"<p>Ejecución AAP: <a href=\"{e(d['job'])}\">{e(d['job'])}</a></p>"
             if d["accion"] == "abrir":
                 tag = x("helpdesk.tag", "search", [[["name", "=", "Demo 5 · Remediación"]]], {"limit": 1}) \
