@@ -1,21 +1,8 @@
-commit: b228032f32c85374fb082e7b020957ab8d0f03af
-inicio: 2026-11-13T07:40:59-03:00
+commit: ddc633492d247dd06f267459c11d92f978bee77a
+inicio: 2026-11-13T07:50:21-03:00
 ---
-infra KVM · Santiago Centro de datos Santiago
-HABILITAR FO-LAB-02458 exitoso | AAP terminó (successful): ejecución 223 s, espera de aprobación 97 s
-  | TASK [Clave de cada servidor (queda solo en el anfitrión)] *********************
-  | TASK [Guardar las claves en el anfitrión (solo lectura del usuario aap-kvm)] ***
-  | TASK [Respuestas de la instalación desatendida] ********************************
-  | TASK [Espacio libre en el anfitrión (Windows ocupa ~15 GB reales; el disco es dinámico)] ***
-  | TASK [Hay espacio para instalar Windows] ***************************************
-  | TASK [Crear y encender cada servidor Windows] **********************************
-  | TASK [IP de cada servidor (DHCP del anfitrión)] ********************************
-  | TASK [Esperar SSH (Linux)] *****************************************************
-  | TASK [Resultado para FaceOps] **************************************************
-  | TASK [Servidores creados] ******************************************************
-  | "msg": [
-  | TASK [Solo si el destino es GCP] ***********************************************
-  | anfitrion-kvm              : ok=13   changed=4    unreachable=0    failed=0    skipped=8    rescued=0    ignored=0
-  | localhost                  : ok=4    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
-EQUIPO None
---- fin: 2026-11-13T07:49:03-03:00 · código: 0
+RES AAP terminó (successful): ejecución 223 s, espera de aprobación 97 s
+La máquina se creó, pero no se pudo dar de alta en AAP ni en FaceOps: AAP POST hosts/ → 403: {"detail":"License count of 50 instances has been reached."}
+ 31   srv-e1prueba-01              running
+2026-11-12T22:06:50-03:00 ok: desplegado 788152e4 · /ingresar 200 · configurar=sin cambios
+--- fin: 2026-11-13T07:50:44-03:00 · código: 0
