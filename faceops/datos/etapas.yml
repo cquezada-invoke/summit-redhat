@@ -40,8 +40,8 @@ bloqueo:
   libres: [".al-x", ".cajon-x", ".sk-busca", "[data-sk-todo]", ".sk-todas", "[data-ver]"]
   reglas:
     - etapa: 2      # Monitoreo, salud y alertas
-      selectores: [".sl-barra", ".btn-prev"]
-      contenedores: [".al-dlg", "#sl-dlg", "#hw-eventos-bmc"]   # .al-dlg: se VE en la Etapa 1 (solo_ver); sus acciones siguen aquí
+      selectores: [".btn-prev"]   # «.sl-barra» y «#sl-dlg» (Salud de la máquina y de cada plataforma) quedan libres: gráfica y usabilidad listas, implementación real en fases siguientes
+      contenedores: [".al-dlg", "#hw-eventos-bmc"]   # .al-dlg: se VE en la Etapa 1 (solo_ver); sus acciones siguen aquí
       rutas: ['/alertas(/|\?|$)', '^/monitoreo/(radar|kpi-okr|itil|alertas)', '^/autocuidado', '^/incidentes', '^/grafana/', '^/deudas']
     - etapa: 3      # Plataformas, contenedores, sistemas operativos y ciclo de vida de servidores
       selectores: [".comp-mas", ".btn-plat", ".btn-desinst", ".ico-en.actualizar:not(.btn-agc)", "[onclick*='fxReplicar']"]
