@@ -75,7 +75,7 @@ window.fxAlPagInit=window.fxAlPagInit||function(f){ f.dataset.pag='1'; const q=f
     const ver=new Set(vis.slice(p*N,(p+1)*N)); filas.forEach(r=>r.style.display=ver.has(r)?'':'none');
     cabs.forEach(h=>{let n=h.nextElementSibling,x=false;while(n&&n.tagName!=='H3'){if(n.style.display!=='none')x=true;n=n.nextElementSibling;}h.style.display=x?'':'none';});
     nav.innerHTML='<span class="sub">'+(vis.length?p*N+1:0)+'–'+Math.min((p+1)*N,vis.length)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(p?'':'disabled')+'>‹ anterior</button><span class="sub">pág '+(p+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(p<tot-1?'':'disabled')+'>siguiente ›</button>'; }
-  nav.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){p+=+b.dataset.p;pintar();}}); q.addEventListener('input',()=>{p=0;pintar();}); pintar(); };
+  nav.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){p+=+b.dataset.p;pintar();}}); ['input','search','keyup'].forEach(ev=>q.addEventListener(ev,()=>{if(q._v===q.value)return;q._v=q.value;p=0;pintar();})); pintar(); };
 document.querySelectorAll('form.al-form:not([data-pag])').forEach(fxAlPagInit);
 // secciones por ámbito (máquina y SO, cada plataforma): se comprimen y expanden desde su encabezado; el estado se recuerda por sección.
 // Comprimir solo oculta (display:none): los campos siguen en el formulario y se envían igual.

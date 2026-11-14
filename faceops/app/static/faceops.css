@@ -1395,3 +1395,7 @@ main:has(#fx-ficha-cuad) .al-titulo #hb-btn::after{content:"Skills"}
 main:has(#fx-ficha-cuad) .al-titulo .al-btn.al-solo:not(.al-chica) .al-ic{width:30px;height:30px}
 main:has(#fx-ficha-cuad) .al-titulo :is(.al-btn.al-solo:not(.al-chica) .al-ic,#hb-btn) svg{width:28px;height:28px}
 main:has(#fx-ficha-cuad) .al-titulo :is(.al-btn.al-solo:not(.al-chica) .al-n,#hb-btn .hb-n){top:-8px;right:-8px;min-width:20px;height:20px;font-size:11px;padding:0 5px}
+/* Buscador del flotante de alertas: mismo formato que el de las listas (lupa, borde, radio), en versión pequeña */
+.al-busca{padding:8px 18px 2px}
+.al-busca input.al-q{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:6px 10px 6px 30px;border:1px solid var(--line);border-radius:8px;background:var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a8d90' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 9px 50%}
+.al-busca input.al-q:focus{outline:2px solid var(--acc,#0066cc);outline-offset:0}
