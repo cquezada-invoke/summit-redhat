@@ -1375,3 +1375,15 @@ main:has(#fx-ficha-cuad) :is(.al-ic,.hb-btn,.sk-abrir,.sk-mini,.btn-energ,.ico-e
 main:has(#fx-ficha-cuad) .al-btn .al-n{top:-7px;right:-7px;min-width:15px;height:15px;font-size:9.5px;padding:0 3px}
 main:has(#fx-ficha-cuad) .hb-btn .hb-n{top:-7px;right:-7px;min-width:15px;height:15px;font-size:9.5px;padding:0 3px;border-width:1px}
 main:has(#fx-ficha-cuad) .caja-energia .der~.der{margin-left:0}
+/* Alertas con umbral: un selector de acción junto a Aviso y otro junto a Crítico; las binarias conservan uno solo */
+.al-ac{display:flex;flex-direction:column;gap:2px;min-width:0}.al-ac small{font-size:10.5px;color:var(--muted)}.al-ac select{width:100%;min-width:0;padding:5px 6px;font-size:12.5px;box-sizing:border-box}
+.al-dlg .al-diag{display:none}
+@media (min-width:761px){
+  .al-dlg:has(.al-fila){width:min(760px,100vw)}
+  .al-dlg .al-fila{grid-template-columns:40px minmax(0,1fr) 54px 104px 54px 104px 28px 54px}
+  .al-dlg .al-fila>.al-acc{grid-column:4/7;grid-row:1}
+  .al-dlg .al-fila>.al-umb>.al-u.aviso{grid-column:3}.al-dlg .al-fila>.al-umb>.al-ac.aa{grid-column:4;grid-row:1}
+  .al-dlg .al-fila>.al-umb>.al-u.critico{grid-column:5}.al-dlg .al-fila>.al-umb>.al-ac.cc{grid-column:6;grid-row:1}
+  .al-dlg .al-fila>.al-umb>em{grid-column:7}.al-dlg .al-fila>.al-umb>.al-u:not(.aviso):not(.critico){grid-column:8}
+}
+@media (max-width:760px){.al-dlg .al-fila>.al-umb .al-ac{flex:1 1 130px}.al-dlg .al-fila>.al-umb .al-ac select{width:100%}.al-dlg .al-fila>.al-acc{width:100%}}
