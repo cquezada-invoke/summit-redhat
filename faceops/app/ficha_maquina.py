@@ -106,6 +106,22 @@ def asociados(cliente_id, nombre):
     return list((_clasif(cliente_id).get("_equipos", {}).get(nombre) or {}).get("segmentos") or [])
 
 
+AMBIENTES_SEG = ["Producción", "QA/Pruebas", "Desarrollo", "DR/Contingencia", "Otro"]
+
+
+def _amb_norm(txt):
+    """Ambiente de la máquina (texto libre del inventario) → uno de AMBIENTES_SEG, o '' si no se reconoce."""
+    t = (txt or "").strip().lower()
+    if not t:
+        return ""
+    for clave, val in (("prod", "Producción"), ("qa", "QA/Pruebas"), ("test", "QA/Pruebas"), ("prueba", "QA/Pruebas"), ("calidad", "QA/Pruebas"),
+                       ("dev", "Desarrollo"), ("desarrollo", "Desarrollo"), ("dr", "DR/Contingencia"), ("contingencia", "DR/Contingencia"),
+                       ("respaldo", "DR/Contingencia")):
+        if t.startswith(clave) or clave in t.split():
+            return val
+    return "Otro"
+
+
 @bp.app_template_global("segmentos_ficha")
 def segmentos_ficha(e):
     """Segmentos de negocio a los que pertenece la máquina, con su grupo, responsable y salud agregada. Solo datos reales:
@@ -117,6 +133,7 @@ def segmentos_ficha(e):
     mios = list(dict.fromkeys(list(e.get("segmentos") or []) + list(j(e.get("segmentos_fijos"), [])) + asociados(cid, e["nombre"])))
     out = []
     eqs = hs = None
+    amb_sel = {r["segmento"]: r["ambiente"] for r in q("SELECT segmento, ambiente FROM segmento_maquina WHERE equipo_id=?", e["id"])}
     for n in mios:
         s = todos.get(n)
         if not s:
@@ -136,8 +153,9 @@ def segmentos_ficha(e):
             salud = None
         out.append({"nombre": n, "grupo": NOMBRE.get(grupo_de(s), ""), "area": s.get("area") or "", "responsable": resp, "salud": salud,
                     "descripcion": s.get("descripcion") or "",
+                    "ambiente": amb_sel.get(n) or _amb_norm(e.get("ambiente")),   # sin valor propio: el ambiente de la máquina
                     "url": url_for("consola.mapa", vista="aplicaciones", segmento=n, ambiente=e.get("ambiente") or None)})
-    return {"lista": out, "todos": [{"nombre": n, "grupo": NOMBRE.get(grupo_de(s), ""), "sel": n in mios} for n, s in todos.items()]}
+    return {"ambientes": AMBIENTES_SEG, "lista": out, "todos": [{"nombre": n, "grupo": NOMBRE.get(grupo_de(s), ""), "sel": n in mios} for n, s in todos.items()]}
 
 
 @bp.route("/inventario/<int:eid>/segmentos", methods=["POST"])
@@ -158,6 +176,23 @@ def equipo_segmentos(eid):
     ya = [x for x in j(e.get("segmentos_fijos"), []) if x not in validos or x in sel]
     ej("UPDATE equipos SET segmentos_fijos=? WHERE id=?", json.dumps(sorted(set(ya) | set(sel)), ensure_ascii=False), eid)
     auditar(g.usuario["usuario"], g.cliente["id"], "segmentos de la máquina", e["nombre"], {"segmentos": sel})
+    return redirect(url_for("consola.equipo", eid=eid) + "#segmentos-negocio")
+
+
+@bp.route("/inventario/<int:eid>/segmento-ambiente", methods=["POST"])
+@requiere_login
+def equipo_segmento_ambiente(eid):
+    """Ambiente que representa la máquina dentro de un segmento. Dato interno de FaceOps: se guarda directo (queda en auditoría)."""
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    seg, amb = request.form.get("segmento", ""), request.form.get("ambiente", "")
+    if amb not in AMBIENTES_SEG + [""] or not q1("SELECT 1 FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], seg):
+        abort(400)
+    ej("INSERT INTO segmento_maquina(equipo_id, segmento, ambiente) VALUES (?,?,?) "
+       "ON CONFLICT(equipo_id, segmento) DO UPDATE SET ambiente=excluded.ambiente", eid, seg, amb)
+    auditar(g.usuario["usuario"], g.cliente["id"], "ambiente en segmento", e["nombre"], {"segmento": seg, "ambiente": amb})
     return redirect(url_for("consola.equipo", eid=eid) + "#segmentos-negocio")
 
 

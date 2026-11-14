@@ -165,6 +165,8 @@ def iniciar():
 CREATE TABLE IF NOT EXISTS energia_historial (id INTEGER PRIMARY KEY, equipo_id INTEGER NOT NULL, estado TEXT NOT NULL,
                                               desde TEXT NOT NULL, hasta TEXT);
 CREATE INDEX IF NOT EXISTS energia_historial_eq ON energia_historial(equipo_id, desde);
+CREATE TABLE IF NOT EXISTS segmento_maquina (   -- ambiente que representa una máquina dentro de un segmento (la pertenencia vive en la clasificación del cliente)
+  equipo_id INTEGER NOT NULL, segmento TEXT NOT NULL, ambiente TEXT DEFAULT '', PRIMARY KEY (equipo_id, segmento));
 CREATE TRIGGER IF NOT EXISTS energia_historial_cambio AFTER UPDATE OF energia ON equipos
 WHEN COALESCE(OLD.energia, '') != COALESCE(NEW.energia, '') AND COALESCE(NEW.energia, '') != ''
 BEGIN
