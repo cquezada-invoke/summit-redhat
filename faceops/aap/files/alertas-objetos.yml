@@ -72,9 +72,9 @@ alertas:
   - {id: C03, tipos: [linux, storage], grupo: Capacidad, nombre: "Disco lleno", unidad: "%", acciones: [avisar, limpiar_logs, ampliar_disco, ampliar_volumen],
      descripcion: "Cualquier sistema de archivos (sin tmpfs ni overlay) sobre el umbral",
      expr: 'max by (faceops_equipo, mountpoint) (100 - 100 * node_filesystem_avail_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"}) > __UMBRAL__', aviso: 80, critico: 90, para: 5m}
-  - {id: C04, tipos: [linux, storage], grupo: Capacidad, nombre: "Disco se llenará en 24 h", acciones: [avisar, limpiar_logs, ampliar_disco],
-     descripcion: "Tendencia de las últimas 6 horas: el espacio libre llega a cero dentro de un día",
-     expr: 'predict_linear(node_filesystem_avail_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"}[6h], 86400) < 0', umbral: false, severidad: aviso, para: 30m}
+  - {id: C04, tipos: [linux, storage], grupo: Capacidad, nombre: "Disco se llenará en 24 h", unidad: "%", acciones: [avisar, limpiar_logs, ampliar_disco],
+     descripcion: "Uso proyectado a 24 h (tendencia de las últimas 6 horas) de algún sistema de archivos sobre el umbral",
+     expr: 'max by (faceops_equipo, mountpoint) (100 - 100 * predict_linear(node_filesystem_avail_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"}[6h], 86400) / node_filesystem_size_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"}) > __UMBRAL__', aviso: 70, critico: 90, para: 30m}
   - {id: C05, tipos: [linux, storage], grupo: Capacidad, nombre: "Inodos agotándose", unidad: "%", acciones: [avisar, limpiar_logs],
      descripcion: "Inodos usados en algún sistema de archivos",
      expr: 'max by (faceops_equipo, mountpoint) (100 - 100 * node_filesystem_files_free{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_files{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"}) > __UMBRAL__', aviso: 80, critico: 90, para: 10m}
@@ -225,9 +225,9 @@ alertas:
   - {id: X17, tipos: [openshift], grupo: Capacidad, nombre: "Registro de imágenes con riesgo de llenado", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Uso del volumen del registro interno (PVC del image-registry); en revisión además la predicción de llenado en 24 h: predict_linear(kubelet_volume_stats_available_bytes{namespace=\"openshift-image-registry\"}[6h], 86400) < 0. Podar imágenes (oc adm prune images): sin acción automática aún",
      expr: 'max(100 * kubelet_volume_stats_used_bytes{namespace="openshift-image-registry"} / kubelet_volume_stats_capacity_bytes{namespace="openshift-image-registry"}) > __UMBRAL__', aviso: 75, critico: 90, para: 10m}
-  - {id: X18, tipos: [openshift], grupo: Capacidad, nombre: "PVC se llenará en 24 h", acciones: [avisar, diagnosticar, remediar_ocp],
-     descripcion: "Tendencia de las últimas 6 horas: el espacio libre de algún PVC llega a cero dentro de un día",
-     expr: 'min by (namespace, persistentvolumeclaim) (predict_linear(kubelet_volume_stats_available_bytes[6h], 86400)) < 0', umbral: false, severidad: aviso, para: 30m}
+  - {id: X18, tipos: [openshift], grupo: Capacidad, nombre: "PVC se llenará en 24 h", unidad: "%", acciones: [avisar, diagnosticar, remediar_ocp],
+     descripcion: "Uso proyectado a 24 h (tendencia de las últimas 6 horas) de algún PVC sobre el umbral",
+     expr: 'max by (namespace, persistentvolumeclaim) (100 - 100 * predict_linear(kubelet_volume_stats_available_bytes[6h], 86400) / kubelet_volume_stats_capacity_bytes) > __UMBRAL__', aviso: 70, critico: 90, para: 30m}
   - {id: X19, tipos: [openshift], grupo: Capacidad, nombre: "etcd: base de datos cerca de la cuota", unidad: "%", acciones: [avisar, diagnosticar],
      descripcion: "Tamaño de la base de etcd respecto de su cuota de backend (al llegar al 100 % etcd deja de aceptar escrituras)",
      expr: 'max(100 * etcd_mvcc_db_total_size_in_bytes / etcd_server_quota_backend_bytes) > __UMBRAL__', aviso: 75, critico: 90, para: 10m}
@@ -280,7 +280,7 @@ alertas:
   - {id: G02, tipos: [segmento], grupo: Rendimiento, nombre: "Latencia p95 alta", unidad: ms, acciones: [avisar],
      descripcion: "Percentil 95 del tiempo de respuesta de la entrada en los últimos 15 minutos (sonda HTTP por el balanceador)",
      expr: '1000 * max by (faceops_equipo) (quantile_over_time(0.95, probe_duration_seconds{job="faceops-segmentos",faceops_equipo="__EQ__",faceops_rol="vip"}[15m])) > __UMBRAL__', aviso: 800, critico: 2000, para: 10m}
-  - {id: G03, tipos: [segmento], grupo: Rendimiento, nombre: "Tasa de errores 5xx", unidad: "%",
+  - {id: G03, tipos: [segmento], grupo: Rendimiento, nombre: "Tasa de errores 5xx", unidad: "%", aviso: 5, critico: 20,
      pendiente: "requiere medición: falta el exportador de métricas del balanceador (códigos de respuesta del tráfico real, p. ej. nginx-vts o haproxy_exporter); la sonda sintética no mide la tasa de errores de los usuarios"}
   - {id: G04, tipos: [segmento], grupo: Seguridad, nombre: "Certificado del VIP por vencer", unidad: días, acciones: [avisar],
      descripcion: "Días que le quedan al certificado TLS que presenta la entrada del segmento",
@@ -311,9 +311,9 @@ alertas:
   - {id: H06, tipos: [kvm], grupo: Capacidad, nombre: "Sobreasignación de CPU excesiva", pendiente: "requiere métricas de libvirt en el anfitrión (libvirt_exporter o textfile del node_exporter)"}
   - {id: H07, tipos: [kvm], grupo: Operación, nombre: "Snapshots viejos", pendiente: "requiere métricas de libvirt en el anfitrión (libvirt_exporter o textfile del node_exporter)"}
   # ───────── Hipervisor VMware vSphere (ficha del hipervisor) ─────────
-  - {id: V01, tipos: [vmware], grupo: Capacidad, nombre: "CPU de los hosts ESXi alta", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
-  - {id: V02, tipos: [vmware], grupo: Capacidad, nombre: "Memoria de los hosts ESXi alta", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
-  - {id: V03, tipos: [vmware], grupo: Capacidad, nombre: "Datastore casi lleno", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V01, tipos: [vmware], grupo: Capacidad, nombre: "CPU de los hosts ESXi alta", unidad: "%", aviso: 80, critico: 95, pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V02, tipos: [vmware], grupo: Capacidad, nombre: "Memoria de los hosts ESXi alta", unidad: "%", aviso: 85, critico: 95, pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
+  - {id: V03, tipos: [vmware], grupo: Capacidad, nombre: "Datastore casi lleno", unidad: "%", aviso: 80, critico: 90, pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
   - {id: V04, tipos: [vmware], grupo: Disponibilidad, nombre: "Máquina virtual en error o suspendida", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
   - {id: V05, tipos: [vmware], grupo: Disponibilidad, nombre: "vSphere HA desactivado o degradado", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
   - {id: V06, tipos: [vmware], grupo: Disponibilidad, nombre: "vMotion fallido", pendiente: "requiere vmware_exporter (:9272) apuntando al vCenter"}
