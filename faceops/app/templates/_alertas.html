@@ -10,8 +10,6 @@
 {% macro cuerpo_alertas(al) %}{% if al.monitoreo %}<p class="sub al-ult">Estado leído ahora del monitoreo: {{ al.n }} alerta{{ 's' if al.n != 1 }} cargada{{ 's' if al.n != 1 }}{% if al.disparadas %}, {{ al.disparadas }} disparada{{ 's' if al.disparadas != 1 }}{% endif %} (el verde = cargada en el monitoreo)</p>{% endif %}
 {% if not al.disponible %}<div class="flash error">{{ al.por_que }}</div>{% endif %}
 {% if al.grafana_ocp %}<p class="sub al-ult al-donde">Visualización en Grafana del monitoreo del clúster (Thanos Querier, solo lectura); las acciones están por definir · <a href="{{ al.grafana_ocp }}" target="_blank" rel="noopener">Ver todas en Grafana ↗</a></p>{% endif %}
-{% if al.n %}<p class="sub al-ult al-donde">Reglas en Prometheus: <code>{{ al.archivo }}</code> (grupo <code>{{ al.grupo_prom }}</code>) ·
-  <a href="{{ al.grafana }}" target="_blank" rel="noopener">Ver todas en Grafana ↗</a></p>{% endif %}
 {% if al.grupos %}<div class="al-busca"><input type="search" form="al-sin-form" class="al-q" placeholder="Buscar alerta por nombre" aria-label="Buscar alerta"></div>{% endif %}
 <div class="al-cuerpo">
 {% if not al.grupos %}<div class="vacio" style="padding:22px 6px;text-align:center"><b>Aún no hay alertas definidas para {{ al.tipo_nombre|lower }}.</b><br><span class="sub">Se agregan al catálogo a medida que se necesitan; cuando exista una, aparecerá aquí para activarla.</span></div>{% endif %}
