@@ -362,6 +362,21 @@ planes:
       - {id: C1, caso: "Java 17 → 21 en nodo-jboss-dev", verificar: "semáforo con versión instalada, destino en repositorios, disco y memoria; no cambia nada (mismos paquetes antes y después)"}
       - {id: C2, caso: "Destino inexistente", verificar: "semáforo rojo explicando por qué"}
       - {id: C3, caso: "Repetir", verificar: "mismo resultado (solo lectura)"}
+  "Incidentes · Verificar error conocido":   # Etapa 2 (Monitoreo)
+    casos:
+      - {id: C1, caso: "Alerta con error conocido en la base de conocimiento (nodo-jboss-dev)", verificar: "encuentra el artículo, lo enlaza en el ticket y no cambia nada en la máquina"}
+      - {id: C2, caso: "Alerta sin error conocido", verificar: "termina bien e indica que no hay coincidencia; no inventa remedio"}
+      - {id: C3, caso: "Repetir", verificar: "mismo resultado (solo lectura)"}
+  "Remediación · IIS en Windows":   # Etapa 2 (Monitoreo)
+    casos:
+      - {id: C1, caso: "IIS detenido en srv-windows-iis-01 (Windows · Provocar caída de IIS)", verificar: "W3SVC vuelve a correr, el sitio responde 200 y el ticket de Odoo se cierra con la acción y la verificación"}
+      - {id: C2, caso: "IIS ya corriendo", verificar: "no reinicia nada y lo informa"}
+      - {id: C3, caso: "Máquina apagada", verificar: "falla controlada con motivo claro; escala el ticket"}
+  "Remediación · Limpiar logs":   # Etapa 2 (Monitoreo)
+    casos:
+      - {id: C1, caso: "Disco de logs sobre el umbral en la VM de prueba (archivos de prueba en /var/log/e2)", verificar: "borra o comprime solo logs rotados/antiguos; el uso baja bajo el umbral"}
+      - {id: C2, caso: "Disco bajo el umbral", verificar: "no borra nada"}
+      - {id: C3, caso: "Logs activos abiertos", verificar: "no toca el archivo en uso de ningún servicio"}
   "Monitoreo · Exportador en Windows":
     casos:
       - {id: C1, caso: "Instalar windows_exporter en nodo-windows", verificar: "servicio corriendo y /metrics responde en 9182"}
