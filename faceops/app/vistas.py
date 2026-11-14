@@ -9709,7 +9709,7 @@ def equipo_energia(eid):
     accion = request.form.get("accion", "")
     if not e or accion not in ("encender", "apagar", "reiniciar"):
         return {"error": "Equipo o acción no válidos"}, 400
-    if not energia_posible(e):
+    if not energia_posible(e) and not __import__("app.hardware_fisico", fromlist=["x"]).es_fisico(e):
         return {"error": "Este equipo no se enciende ni apaga desde FaceOps (solo máquinas virtuales del anfitrión KVM)"}, 400
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ENERGIA)
     if not a:
