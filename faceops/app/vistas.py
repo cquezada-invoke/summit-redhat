@@ -7432,6 +7432,9 @@ def alertas_conmutar():
                 continue
             f[f"on_{x['id']}"] = "1"
             f[f"acc_{x['id']}"] = x.get("valor_accion") or "avisar"
+            if x.get("umbral", True) is not False:
+                f[f"accion_aviso_{x['id']}"] = x.get("valor_accion_aviso") or x.get("valor_accion") or "avisar"
+                f[f"accion_critico_{x['id']}"] = x.get("valor_accion_critico") or x.get("valor_accion") or "avisar"
             f[f"para_{x['id']}"] = str(x.get("valor_para") or 0)
             if x.get("umbral", True) is False:
                 f[f"sev_{x['id']}"] = x.get("valor_sev") or "aviso"
@@ -9427,11 +9430,13 @@ def _alertas_pedir(e, amb_, form):
     from . import alertas_objeto as ao
     from .operacion import solicitar
     par = ao.pedido_de_formulario(e, form, amb_)
-    _ya = {x["id"]: x.get("accion") for x in ao.aplicadas(e, amb_).get("alertas") or []}
+    _ya = {x["id"]: x for x in ao.aplicadas(e, amb_).get("alertas") or []}
     for x_ in par["al_alertas"]:   # una acción bloqueada por la regla de prueba no se puede elegir (sí mantener la vigente)
-        bl_ = ao.bloqueo_accion(g.cliente["id"], ao.catalogo(), x_["accion"])
-        if bl_ and _ya.get(x_["id"]) != x_["accion"]:
-            raise ValueError(f"Alerta {x_['id']}: la acción elegida está bloqueada ({bl_})")
+        for sev_ in ("aviso", "critico"):
+            ac_ = ao.accion_de(x_, sev_)
+            bl_ = ao.bloqueo_accion(g.cliente["id"], ao.catalogo(), ac_)
+            if bl_ and ao.accion_de(_ya.get(x_["id"]) or {}, sev_) != ac_:
+                raise ValueError(f"Alerta {x_['id']}: la acción elegida para el {'aviso' if sev_ == 'aviso' else 'crítico'} está bloqueada ({bl_})")
     if ao.requiere_acceso(par):   # la respuesta entra a la máquina: con el inventario y la credencial de AAP del equipo
         from .operacion import acceso_equipo
         try:

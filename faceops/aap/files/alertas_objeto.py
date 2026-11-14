@@ -91,15 +91,18 @@ def reglas(cat, ped):
             raise SystemExit(f"La alerta {a['id']} es del ámbito «{a.get('ambito', 'maquina')}», no de «{ambito(ped)}»")
         base = a["expr"].replace("__EQ__", eq)
         nombre = "FaceOps" + re.sub(r"[^A-Za-z0-9]", "", a["nombre"].title()) + a["id"]
-        acc = x.get("accion") or "avisar"
-        if acc not in (a.get("acciones") or ["avisar"]):
-            raise SystemExit(f"{a['id']}: la acción «{acc}» no corresponde a esta alerta")
-        etiq = {"faceops_equipo": eq, "faceops_ambito": ambito(ped), "faceops_alerta": a["id"], "faceops_pilar": a.get("grupo", ""), "faceops_accion": acc,
-                "faceops_automatizacion": (cat.get("acciones") or {}).get(acc, {}).get("auto", "")}
-        if (cat.get("acciones") or {}).get(acc, {}).get("acceso") == "equipo":   # la respuesta entra a la máquina
-            if not ped.get("inventario") or not ped.get("credencial"):
-                raise SystemExit(f"{a['id']}: la acción «{acc}» necesita el inventario y la credencial de AAP del equipo")
-            etiq.update(faceops_inventario=ped["inventario"], faceops_credencial=ped["credencial"])
+        acc = x.get("accion") or "avisar"   # acción única: valor por defecto de aviso y crítico
+        def etiquetas(ac):
+            if ac not in (a.get("acciones") or ["avisar"]):
+                raise SystemExit(f"{a['id']}: la acción «{ac}» no corresponde a esta alerta")
+            et = {"faceops_equipo": eq, "faceops_ambito": ambito(ped), "faceops_alerta": a["id"], "faceops_pilar": a.get("grupo", ""), "faceops_accion": ac,
+                  "faceops_automatizacion": (cat.get("acciones") or {}).get(ac, {}).get("auto", "")}
+            if (cat.get("acciones") or {}).get(ac, {}).get("acceso") == "equipo":   # la respuesta entra a la máquina
+                if not ped.get("inventario") or not ped.get("credencial"):
+                    raise SystemExit(f"{a['id']}: la acción «{ac}» necesita el inventario y la credencial de AAP del equipo")
+                et.update(faceops_inventario=ped["inventario"], faceops_credencial=ped["credencial"])
+            return et
+        etiq = etiquetas(acc)
         ann = {"summary": f"{eq} · {a['nombre']}", "description": a.get("descripcion", "") + (f" (valor: {{{{ $value | humanize }}}} {a.get('unidad', '')})" if a.get("unidad") else "")}
         if a.get("umbral", True) is False:
             sev = x.get("severidad") or a.get("severidad", "aviso")
@@ -117,9 +120,10 @@ def reglas(cat, ped):
             if u is None:
                 continue
             out.append({"alert": nombre + ("Critico" if sev == "critico" else "Aviso"), "expr": base.replace("__UMBRAL__", str(_num(u))),
-                        "for": x.get("para") or a.get("para", "5m"), "labels": dict(etiq, severity=SEV[sev]), "annotations": dict(ann)})
+                        "for": x.get("para") or a.get("para", "5m"), "labels": dict(etiquetas(x.get(f"accion_{sev}") or acc), severity=SEV[sev]), "annotations": dict(ann)})
             umb.append(_umbral(eq, a["id"], SEV[sev], u))
-        resumen.append(f"{a['id']} {a['nombre']} → {acc} (aviso {'—' if av is None else av} · crítico {'—' if cr is None else cr} {a.get('unidad', '')})".strip())
+        aa, ac_ = x.get("accion_aviso") or acc, x.get("accion_critico") or acc
+        resumen.append(f"{a['id']} {a['nombre']} → {aa if aa == ac_ else f'aviso: {aa} · crítico: {ac_}'} (aviso {'—' if av is None else av} · crítico {'—' if cr is None else cr} {a.get('unidad', '')})".strip())
     return out + umb, resumen
 
 

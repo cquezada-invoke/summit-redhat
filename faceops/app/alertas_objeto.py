@@ -306,6 +306,7 @@ def contexto(cliente_id, e, puede_escribir, ambito="maquina", nombre_amb=""):
             grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x) if prom is None else a["id"] in prom, mon=(prom or {}).get(a["id"]),
                                                                          en_reflejo=bool(x), transito=trans.get(a["id"]), acciones_l=accs, prueba=_ult_prueba(cliente_id, e, ambito, a["id"]) if prom and a["id"] in prom else None, grafana=url_grafana(e["nombre"], a["id"], ambito),
                                                                          regla=nombre_regla(a), valor_accion=(x or {}).get("accion", "avisar"),
+                                                                         valor_accion_aviso=accion_de(x or {}, "aviso"), valor_accion_critico=accion_de(x or {}, "critico"),
                                                                          valor_aviso=(x or {}).get("aviso", a.get("aviso")),
                                                                          valor_critico=(x or {}).get("critico", a.get("critico")),
                                                                          valor_sev=(x or {}).get("severidad", a.get("severidad", "aviso")),
@@ -348,7 +349,18 @@ def requiere_acceso(par):
     """¿Alguna alerta del pedido tiene una acción que entra a la máquina (acceso: equipo)? Entonces el ticket lleva el
     inventario y la credencial de AAP del equipo para que la regla de la alerta los entregue a la respuesta."""
     acc = catalogo().get("acciones") or {}
-    return any((acc.get(x.get("accion")) or {}).get("acceso") == "equipo" for x in par.get("al_alertas") or [])
+    return any((acc.get(k) or {}).get("acceso") == "equipo" for x in par.get("al_alertas") or [] for k in acciones_de(x))
+
+
+def acciones_de(x):
+    """Acciones de una alerta configurada: aviso y crítico por separado; la `accion` única es el valor por defecto de ambas."""
+    base = x.get("accion") or "avisar"
+    return {x.get("accion_aviso") or base, x.get("accion_critico") or base}
+
+
+def accion_de(x, sev):
+    """Acción de la severidad ('aviso' o 'critico'); sin acción propia, la `accion` única (compatibilidad)."""
+    return x.get(f"accion_{sev}") or x.get("accion") or "avisar"
 
 
 def pedido_de_formulario(e, form, ambito="maquina"):
@@ -370,10 +382,19 @@ def pedido_de_formulario(e, form, ambito="maquina"):
         if not form.get(f"on_{a['id']}"):
             fuera.append(a["id"])
             continue
-        acc = form.get(f"acc_{a['id']}") or "avisar"
-        if acc not in (a.get("acciones") or ["avisar"]):
+        permitidas = a.get("acciones") or ["avisar"]
+        # aviso y crítico son eventos distintos, cada uno con su acción (campos accion_aviso_<id> y accion_critico_<id>);
+        # acc_<id> (acción única) sigue valiendo como valor por defecto de ambas
+        acc = form.get(f"acc_{a['id']}") or form.get(f"accion_aviso_{a['id']}") or "avisar"
+        if acc not in permitidas:
             raise ValueError(f"«{a['nombre']}»: elige una acción de la lista")
         x = {"id": a["id"], "accion": acc}
+        if a.get("umbral", True) is not False:
+            for k in ("aviso", "critico"):
+                ak = form.get(f"accion_{k}_{a['id']}") or acc
+                if ak not in permitidas:
+                    raise ValueError(f"«{a['nombre']}»: la acción del {'aviso' if k == 'aviso' else 'crítico'} no está en la lista")
+                x[f"accion_{k}"] = ak
         pm = (form.get(f"para_{a['id']}") or "").strip()
         if pm:
             if not pm.isdigit() or not 0 <= int(pm) <= 240:
@@ -557,6 +578,9 @@ def tabla_cliente(cliente_id, equipos):
                     ("critical" if (rf or {}).get("severidad", a.get("severidad")) == "critico" else "warning") if a.get("umbral", True) is False
                     else ("warning" if (rf or a).get("aviso") is not None else "critical")]
                 acc = ((m or {}).get("reglas") or [{}])[0].get("labels", {}).get("faceops_accion") or (rf or {}).get("accion") or ("por definir" if t == "openshift" else "avisar")
+                accs_sev = {({"warning": "aviso", "critical": "crítico"}.get(r_["labels"].get("severity", ""), "")): r_["labels"].get("faceops_accion") for r_ in (m or {}).get("reglas", [])}
+                accs_sev.pop("", None)
+                distintas = len({v for v in accs_sev.values() if v}) > 1
                 tipo_acc = "avisar" if acc == "avisar" else ("por definir" if acc == "por definir" else
                                                             ("diagnóstico" if acc_cat.get(acc, {}).get("informe") or "diagn" in acc else "remediación"))
                 ts = ult.get((e["nombre"], a["id"]))
@@ -566,7 +590,7 @@ def tabla_cliente(cliente_id, equipos):
                                                                           {"linux": "máquina", "windows": "máquina", "storage": "storage", "red": "red"}.get(t, t)),
                               "aid": a["id"], "nombre": a["nombre"], "grupo": a.get("grupo", ""), "severidad": "/".join(
                                   {"warning": "aviso", "critical": "crítico"}.get(x_, x_) for x_ in sevs if x_),
-                              "accion": acc_cat.get(acc, {}).get("texto", acc), "tipo_accion": tipo_acc,
+                              "accion": (" · ".join(f"{s_}: {acc_cat.get(v_, {}).get('texto', v_)}" for s_, v_ in accs_sev.items()) if distintas else acc_cat.get(acc, {}).get("texto", acc)), "tipo_accion": tipo_acc,
                               "encendida": encendida, "disparando": bool(m and m["estado"] == "firing"), "pendiente": bool(m and m["estado"] == "pending"),
                               "salud": (m or {}).get("salud", ""), "ultimo": texto_utc(ts) if ts else "",
                               "responsable": resp[1] if resp else "", "correo": resp[0] if resp else "",
