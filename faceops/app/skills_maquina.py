@@ -303,3 +303,236 @@ def armar(e, acciones, de_comp, so_cod, energia_ok, puede_eliminar, recursos_ok,
     return {"grupos": grupos, "total": len(out), "bloqueadas": sum(1 for s in out if s["bloqueo"]), "por_plat": por_plat,
             "maquina": sum(1 for s in maq if not s["bloqueo"]), "maquina_total": len(maq), "so_nombre": nombre_so(e),
             "plat_nombre": {c["codigo"]: c["nombre"] for c in componentes if not c.get("so")}}
+
+
+
+
+# ── Catálogo comercial de skills ──────────────────────────────────────────────────────────────────────────────────────
+# En la ficha (consola del cliente) el flotante «Skills» es una vitrina: cada skill, por ámbito de la máquina («maquina»,
+# «so» o «plat:<código>»), está «Disponible» («Solicitar activación»), «Solicitada» (espera a Invoke) o «Activa» («Ir a la
+# skill»). La solicitud queda registrada y auditada en FaceOps (no va a AAP). La activación la decide Invoke en FaceAdmin
+# (blueprint admin › «Skills por cliente», solo administradores de Invoke): aprueba o rechaza solicitudes y activa o desactiva
+# por cliente, segmento o máquina. Cada cambio es una fila nueva en skills_activas (fecha y usuario: base del cobro); rige
+# la última de cada alcance y la máquina manda sobre el segmento y éste sobre el cliente. FaceAdmin no tiene hoy un canal
+# hacia la instancia más que el latido de salida, así que el estado vive en la BD de FaceOps y FaceAdmin lo lee y cambia por
+# /admin/skills/api (JSON, solo Invoke). Sin ninguna fila rige el modelo anterior: activa si ya tiene un ticket desde la ficha.
+# Ejecutar una skill activa sigue creando su ticket en AAP, como siempre.
+_RX_AMB = re.compile(r"^(maquina|so|plat:[\w.\-]{1,80})$")
+_RX_SKILL = re.compile(r"^[\w:.\-]{1,120}$")
+ESTADOS = {"solicitada": "Solicitada", "aprobada": "Aprobada", "rechazada": "Rechazada"}
+ALCANCES = {"cliente": "Todo el cliente", "segmento": "Segmento", "maquina": "Máquina"}
+_ok_sol = set()
+
+
+def _tabla_sol():
+    from .bd import con
+    k = id(con())
+    if k in _ok_sol:
+        return
+    con().executescript("""CREATE TABLE IF NOT EXISTS skills_solicitudes (
+      id INTEGER PRIMARY KEY, numero TEXT DEFAULT '', cliente_id INTEGER NOT NULL, equipo_id INTEGER NOT NULL,
+      equipo TEXT DEFAULT '', ambito TEXT NOT NULL, ambito_nombre TEXT DEFAULT '', skill TEXT NOT NULL, nombre TEXT DEFAULT '',
+      precio TEXT DEFAULT '', estado TEXT NOT NULL DEFAULT 'solicitada', solicitante TEXT DEFAULT '', creada TEXT,
+      resolvio TEXT DEFAULT '', resuelta TEXT, nota TEXT DEFAULT '');
+    CREATE INDEX IF NOT EXISTS skills_solicitudes_eq ON skills_solicitudes(cliente_id, equipo_id, ambito, skill, id);
+    CREATE TABLE IF NOT EXISTS skills_activas (   -- historial de activaciones (cobro): rige la última fila de cada alcance
+      id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, alcance TEXT NOT NULL, objetivo TEXT NOT NULL DEFAULT '',
+      ambito TEXT NOT NULL DEFAULT '*', skill TEXT NOT NULL, nombre TEXT DEFAULT '', activa INTEGER NOT NULL,
+      usuario TEXT DEFAULT '', fecha TEXT, solicitud_id INTEGER);
+    CREATE INDEX IF NOT EXISTS skills_activas_c ON skills_activas(cliente_id, alcance, objetivo, ambito, skill, id);""")
+    _ok_sol.add(k)
+
+
+def precios():
+    """{id de skill: precio} de datos/habilidades.yml (clave «precio»); sin precio la vitrina dice «Precio a solicitud»."""
+    from .habilidades import mapa
+    return {h["id"]: str(h["precio"]) for h in mapa() if h.get("id") and h.get("precio") not in (None, "")}
+
+
+def _vigentes(cliente_id):
+    """Última fila de cada (alcance, objetivo, ámbito, skill) del cliente."""
+    from .bd import q
+    _tabla_sol()
+    return q("SELECT a.* FROM skills_activas a JOIN (SELECT MAX(id) m FROM skills_activas WHERE cliente_id=? "
+             "GROUP BY alcance, objetivo, ambito, skill) u ON u.m=a.id ORDER BY a.id DESC", cliente_id)
+
+
+def estados(cliente_id, e):
+    """Para la ficha: {"sol": {"<ámbito>|<skill>": {estado, numero}}, "maq": {"<ámbito>|<skill>": 0/1}, "glob": {skill: 0/1}}.
+    glob junta segmento (manda) y cliente; maq son las de la máquina (mandan sobre glob)."""
+    from .bd import q
+    _tabla_sol()
+    sol = {}
+    for r in q("SELECT numero, ambito, skill, estado FROM skills_solicitudes WHERE cliente_id=? AND equipo_id=? ORDER BY id", cliente_id, e["id"]):
+        sol[f"{r['ambito']}|{r['skill']}"] = {"estado": r["estado"], "numero": r["numero"]}
+    segs = set(e.get("segmentos") or [])
+    maq, cli, seg = {}, {}, {}
+    for r in sorted(_vigentes(cliente_id), key=lambda r: r["id"]):
+        if r["alcance"] == "maquina" and r["objetivo"] == str(e["id"]):
+            maq[f"{r['ambito']}|{r['skill']}"] = r["activa"]   # ámbito «*»: todos los ámbitos de la máquina
+        elif r["alcance"] == "segmento" and r["objetivo"] in segs:
+            seg[r["skill"]] = r["activa"]
+        elif r["alcance"] == "cliente":
+            cli[r["skill"]] = r["activa"]
+    return {"sol": sol, "maq": maq, "glob": dict(cli, **seg)}
+
+
+def solicitar(cliente_id, equipo, ambito_, skill, nombre, ambito_nombre, usuario):
+    """Crea la solicitud (o devuelve la pendiente que ya hay). (fila, nueva)."""
+    from .bd import ahora, auditar, ej, q1
+    _tabla_sol()
+    ult = q1("SELECT * FROM skills_solicitudes WHERE cliente_id=? AND equipo_id=? AND ambito=? AND skill=? ORDER BY id DESC LIMIT 1",
+             cliente_id, equipo["id"], ambito_, skill)
+    if ult and ult["estado"] == "solicitada":
+        return ult, False
+    sid = ej("INSERT INTO skills_solicitudes(cliente_id, equipo_id, equipo, ambito, ambito_nombre, skill, nombre, precio, estado, solicitante, creada) "
+             "VALUES (?,?,?,?,?,?,?,?,?,?,?)", cliente_id, equipo["id"], equipo["nombre"], ambito_, ambito_nombre[:120], skill, nombre[:160],
+             precios().get(skill.split(":", 1)[-1], ""), "solicitada", usuario, ahora())
+    numero = f"SKL-{sid:05d}"
+    ej("UPDATE skills_solicitudes SET numero=? WHERE id=?", numero, sid)
+    auditar(usuario, cliente_id, "skill_solicitar", equipo["nombre"], {"numero": numero, "skill": skill, "ambito": ambito_, "nombre": nombre})
+    return q1("SELECT * FROM skills_solicitudes WHERE id=?", sid), True
+
+
+def fijar(cliente_id, alcance, objetivo, ambito_, skill, activa, usuario, nombre="", solicitud_id=None):
+    """Activa o desactiva una skill (fila nueva: queda la fecha y el usuario para el cobro)."""
+    from .bd import ahora, auditar, ej
+    _tabla_sol()
+    if alcance not in ALCANCES or not _RX_SKILL.match(skill or "") or not (ambito_ == "*" or _RX_AMB.match(ambito_ or "")):
+        return "Alcance, skill o ámbito no válidos"
+    if alcance == "cliente":
+        objetivo = ""
+    if alcance != "maquina":
+        ambito_ = "*"
+    if alcance != "cliente" and not objetivo:
+        return "Falta el segmento o la máquina"
+    ej("INSERT INTO skills_activas(cliente_id, alcance, objetivo, ambito, skill, nombre, activa, usuario, fecha, solicitud_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
+       cliente_id, alcance, str(objetivo), ambito_, skill, nombre[:160], 1 if activa else 0, usuario, ahora(), solicitud_id)
+    auditar(usuario, cliente_id, "skill_activar" if activa else "skill_desactivar", f"{alcance}:{objetivo}" if objetivo else alcance,
+            {"skill": skill, "ambito": ambito_, "solicitud": solicitud_id})
+    return None
+
+
+def resolver(cliente_id, sid, aprobar, usuario, nota=""):
+    """Aprueba (activa la skill en esa máquina y ámbito) o rechaza una solicitud."""
+    from .bd import ahora, auditar, ej, q1
+    _tabla_sol()
+    r = q1("SELECT * FROM skills_solicitudes WHERE id=? AND cliente_id=?", sid, cliente_id)
+    if not r:
+        return None, "Solicitud no encontrada"
+    if r["estado"] != "solicitada":
+        return None, f"La solicitud {r['numero']} ya está {ESTADOS.get(r['estado'], r['estado']).lower()}"
+    est = "aprobada" if aprobar else "rechazada"
+    ej("UPDATE skills_solicitudes SET estado=?, resolvio=?, resuelta=?, nota=? WHERE id=?", est, usuario, ahora(), nota[:300], sid)
+    auditar(usuario, cliente_id, "skill_aprobar" if aprobar else "skill_rechazar", r["equipo"],
+            {"numero": r["numero"], "skill": r["skill"], "ambito": r["ambito"], "nota": nota[:300]})
+    if aprobar:
+        fijar(cliente_id, "maquina", r["equipo_id"], r["ambito"], r["skill"], True, usuario, r["nombre"], sid)
+    return dict(r, estado=est), None
+
+
+def _catalogo_admin():
+    """[(clave, nombre)] de las skills del catálogo (habilidades.yml) para activar por cliente o segmento."""
+    from .habilidades import es_skill, mapa
+    out = []
+    for h in mapa():
+        if h.get("id") and es_skill(h):
+            out.append((("hp:" if h.get("plataforma") else "hb:") + h["id"], h.get("nombre") or h["id"]))
+    return out
+
+
+def _rutas():
+    from flask import flash, jsonify, redirect, render_template, request, session
+    from . import requiere_admin, requiere_login
+    from .admin import bp as admin_bp
+    from .bd import q, q1
+    from .vistas import bp, equipos_visibles
+
+    @bp.app_template_global("skills_estados")
+    def _sk_est(e):
+        try:
+            return estados(g.cliente["id"], e)
+        except Exception:  # noqa: BLE001 - sin la tabla la ficha sigue (todo «Disponible»)
+            return {}
+
+    @bp.app_template_global("skills_precios")
+    def _sk_precios():
+        try:
+            return precios()
+        except Exception:  # noqa: BLE001
+            return {}
+
+    @bp.route("/inventario/<int:eid>/solicitud-skill", methods=["POST"])   # solicitud comercial, no una acción: fuera de la regla «/skills» de etapas
+    @requiere_login
+    def equipo_skill_solicitar(eid):
+        """«Solicitar activación»: solicitud comercial hacia Invoke (no va a AAP), registrada y auditada."""
+        if request.form.get("_csrf") != session.get("csrf"):
+            return {"error": "Sesión vencida: recarga la página"}, 403
+        if g.perfil["modo"] != "escritura":
+            return {"error": "Necesitas perfil de escritura para solicitar skills"}, 403
+        e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+        if not e:
+            return {"error": "Máquina no encontrada"}, 404
+        amb = (request.form.get("ambito") or "").strip()
+        sk = (request.form.get("skill") or "").strip()
+        if not _RX_AMB.match(amb) or not _RX_SKILL.match(sk):
+            return {"error": "Skill o ámbito no válidos"}, 400
+        r, nueva = solicitar(g.cliente["id"], e, amb, sk, (request.form.get("nombre") or sk).strip(),
+                             (request.form.get("ambito_nombre") or amb).strip(), g.usuario["usuario"])
+        return {"ok": True, "nueva": nueva, "numero": r["numero"], "estado": r["estado"], "ambito": amb, "skill": sk}
+
+    def _datos(cid):
+        _tabla_sol()
+        sols = q("SELECT * FROM skills_solicitudes WHERE cliente_id=? ORDER BY (estado='solicitada') DESC, id DESC LIMIT 300", cid)
+        vig = [r for r in _vigentes(cid) if r["activa"]]
+        eqs = {str(x["id"]): x["nombre"] for x in q("SELECT id, nombre FROM equipos WHERE cliente_id=? AND estado!='retirado' ORDER BY nombre", cid)}
+        for r in vig:
+            r["objetivo_nombre"] = eqs.get(r["objetivo"], r["objetivo"]) if r["alcance"] == "maquina" else (r["objetivo"] or "todas sus máquinas")
+        return sols, vig, eqs
+
+    def _accion(cid, f):
+        """Una acción de FaceAdmin sobre las skills del cliente: aprobar | rechazar (solicitud) · activar | desactivar."""
+        acc, u = f.get("accion") or "", g.usuario["usuario"]
+        if acc in ("aprobar", "rechazar"):
+            r, err = resolver(cid, int(f.get("sid") or 0), acc == "aprobar", u, (f.get("nota") or "").strip())
+            return err, (f"{r['numero']}: «{r['nombre']}» en {r['equipo']} {'activada' if acc == 'aprobar' else 'rechazada'}" if r else "")
+        if acc in ("activar", "desactivar"):
+            al, obj = f.get("alcance") or "", (f.get("objetivo") or "").strip()
+            err = fijar(cid, al, obj, (f.get("ambito") or "*").strip(), (f.get("skill") or "").strip(), acc == "activar", u, (f.get("nombre") or "").strip())
+            return err, f"Skill {'activada' if acc == 'activar' else 'desactivada'} ({ALCANCES.get(al, al).lower()})"
+        return "Acción no válida", ""
+
+    @admin_bp.route("/skills", methods=["GET", "POST"])
+    @requiere_admin
+    def skills():
+        """FaceAdmin › Skills por cliente: solicitudes pendientes (aprobar o rechazar) y activación o desactivación por cliente,
+        segmento o máquina. Solo administradores de Invoke. Queda registrada (fecha y usuario) para el cobro."""
+        cid = int(request.values.get("cliente") or (g.cliente["id"] if g.get("cliente") else 0) or 0)
+        c = q1("SELECT * FROM clientes WHERE id=?", cid)
+        if request.method == "POST" and c:
+            err, ok = _accion(cid, request.form)
+            flash(err or ok, "error" if err else "ok")
+            return redirect(url_for("admin.skills", cliente=cid))
+        sols, vig, eqs = _datos(cid) if c else ([], [], {})
+        segs = [r["nombre"] for r in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY nombre", cid)] if c else []
+        return render_template("admin/skills.html", c=c, clientes=q("SELECT * FROM clientes ORDER BY nombre"), sols=sols, vig=vig,
+                               eqs=eqs, segs=segs, catalogo=_catalogo_admin(), ESTADOS=ESTADOS, ALCANCES=ALCANCES)
+
+    @admin_bp.route("/skills/api", methods=["GET", "POST"])
+    @requiere_admin
+    def skills_api():
+        """API para FaceAdmin (solo Invoke): GET ?cliente=<id> → solicitudes y activaciones vigentes; POST (form o JSON) con
+        cliente y accion=aprobar|rechazar (sid, nota) o activar|desactivar (alcance, objetivo, ambito, skill)."""
+        f = request.get_json(silent=True) or request.values
+        cid = int(f.get("cliente") or 0)
+        if not q1("SELECT 1 FROM clientes WHERE id=?", cid):
+            return jsonify(error="Cliente no encontrado"), 404
+        if request.method == "POST":
+            err, ok = _accion(cid, f)
+            if err:
+                return jsonify(error=err), 400
+        sols, vig, _ = _datos(cid)
+        return jsonify(ok=True, solicitudes=sols, activas=vig)
+
+
+_rutas()
