@@ -31,10 +31,10 @@
   <span class="al-acc"><small>Acción al dispararse</small><select name="acc_{{ a.id }}" {{ 'disabled' if not al.puede }} onclick="event.stopPropagation()" onchange="this.parentElement.querySelector('.al-diag').hidden=!{{ al.informe.acciones|tojson|forceescape }}.includes(this.value)">{% for k, t, bl in a.acciones_l %}<option value="{{ k }}" {{ 'selected' if a.valor_accion == k }} {{ 'disabled' if bl and a.valor_accion != k }} title="{{ bl }}">{{ t }}{{ ' — bloqueada: ' ~ bl if bl }}</option>{% endfor %}</select>
     <small class="al-diag" {{ 'hidden' if a.valor_accion not in al.informe.acciones }}>{% if al.informe.para %}El diagnóstico se envía a {{ al.informe.quien }} ({{ al.informe.para }}){% else %}El grupo {{ al.informe.quien }} no tiene correo: configúralo en Grupos dueños para recibir el diagnóstico{% endif %}</small></span>
   <span class="al-umb">{% if a.umbral is sameas false %}
-    <select name="sev_{{ a.id }}" {{ 'disabled' if not al.disponible }}>{% for k, t in [('aviso', 'Aviso'), ('critico', 'Crítico')] %}<option value="{{ k }}" {{ 'selected' if a.valor_sev == k }}>{{ t }}</option>{% endfor %}</select>
+    <input type="hidden" name="sev_{{ a.id }}" value="{{ a.valor_sev }}" {{ 'disabled' if not al.disponible }}>
   {% else %}
     <span class="al-u aviso"><small>Aviso</small><input name="aviso_{{ a.id }}" value="{{ a.valor_aviso if a.valor_aviso is not none }}" inputmode="decimal" {{ 'disabled' if not al.disponible }}></span>
-    <input type="hidden" name="critico_{{ a.id }}" value="{{ a.valor_critico if a.valor_critico is not none }}" {{ 'disabled' if not al.disponible }}>
+    <span class="al-u critico"><small>Crítico</small><input name="critico_{{ a.id }}" value="{{ a.valor_critico if a.valor_critico is not none }}" inputmode="decimal" {{ 'disabled' if not al.disponible }}></span>
     <em>{{ a.unidad or '' }}</em>
   {% endif %}
     <span class="al-u" title="Minutos que la condición debe mantenerse antes de disparar la alerta (0 = de inmediato)"><small>Durante (min)</small><input name="para_{{ a.id }}" value="{{ a.valor_para }}" inputmode="numeric" {{ 'disabled' if not al.disponible }}></span></span>

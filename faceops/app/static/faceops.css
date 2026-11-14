@@ -1349,15 +1349,14 @@ table.sl-tab td.sl-a .sa-acc,table.sl-tab td.sl-a .sa-motivo{background:none!imp
 .al-dlg .al-fila{min-width:0;box-sizing:border-box}.al-dlg .al-fila input,.al-dlg .al-fila select{min-width:0;box-sizing:border-box}
 .al-dlg .al-def{min-width:0;overflow-wrap:anywhere}
 @media (min-width:761px){
-  .al-dlg .al-fila{grid-template-columns:40px minmax(0,1fr) 64px 30px 64px 130px;gap:8px;align-items:end}
+  .al-dlg .al-fila{grid-template-columns:40px minmax(0,1fr) 58px 58px 30px 58px 130px;gap:8px;align-items:end}
   .al-dlg .al-fila>.al-sw{align-self:center}.al-dlg .al-fila>.al-def{align-self:center}
-  .al-dlg .al-fila>.al-acc{grid-column:6;grid-row:1;min-width:0}.al-dlg .al-fila>.al-acc select{width:100%}
+  .al-dlg .al-fila>.al-acc{grid-column:7;grid-row:1;min-width:0}.al-dlg .al-fila>.al-acc select{width:100%}
   .al-dlg .al-fila>.al-umb{display:contents}
   .al-dlg .al-fila>.al-umb>.al-u{min-width:0;grid-row:1}.al-dlg .al-fila>.al-umb>.al-u input{width:100%}
-  .al-dlg .al-fila>.al-umb>.al-u.aviso{grid-column:3}.al-dlg .al-fila>.al-umb>.al-u:not(.aviso){grid-column:5}
-  .al-dlg .al-fila>.al-umb>em{grid-column:4;grid-row:1;min-width:0;align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .al-dlg .al-fila>.al-umb>select{grid-column:3/5;grid-row:1;width:100%}
-  .al-dlg .al-fila.al-pend>.al-def,.al-dlg .al-fila.al-rev>.al-def{grid-column:2/-1}
+  .al-dlg .al-fila>.al-umb>.al-u.aviso{grid-column:3}.al-dlg .al-fila>.al-umb>.al-u.critico{grid-column:4}.al-dlg .al-fila>.al-umb>.al-u:not(.aviso):not(.critico){grid-column:6}
+  .al-dlg .al-fila>.al-umb>em{grid-column:5;grid-row:1;min-width:0;align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .al-dlg .al-fila.al-pend>.al-def,.al-dlg .al-fila.al-rev>.al-def{grid-column:2/-1}
 }
 @media (max-width:760px){
   .al-dlg .al-fila{grid-template-columns:40px minmax(0,1fr);gap:8px 10px}
