@@ -1401,3 +1401,5 @@ main:has(#fx-ficha-cuad) .al-titulo :is(.al-btn.al-solo:not(.al-chica) .al-n,#hb
 .caja-energia:has(>.bloq-glosa)::after{content:"";flex:0 0 100%;height:0;order:98}
 .caja-energia>.bloq-glosa{order:99;margin:2px auto 0 0;max-width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:600px){.caja-energia>.bloq-glosa{white-space:normal;line-height:1.25;border-radius:10px}}
+/* Glosa de etapa en las tarjetas de plataforma: solo texto, gris discreto y pequeño (sin píldora) */
+.caja-energia>.bloq-glosa{background:none;border:0;border-radius:0;padding:0;color:var(--muted,#6a6e73);font-size:11px;font-weight:400;line-height:1.3}
