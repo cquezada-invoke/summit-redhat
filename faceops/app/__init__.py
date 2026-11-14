@@ -66,6 +66,10 @@ def create_app():
     from . import replay
     replay.activar()   # solo la maqueta: grabar o reproducir los servicios externos
     app = Flask(__name__)
+    if os.environ.get("FACEOPS_DEV") == "1":   # modo desarrollo del lab (herramientas/lab/faceops-dev.sh): plantillas y estáticos se releen en cada carga
+        app.config["TEMPLATES_AUTO_RELOAD"] = True
+        app.jinja_env.auto_reload = True
+        app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
     app.extensions["prefijo_cliente"] = pc_ = PrefijoCliente(app.wsgi_app, app)
     app.wsgi_app = ProxyFix(pc_, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
     clave = os.environ.get("FACEOPS_CLAVE_SESION")
@@ -353,7 +357,7 @@ def create_app():
         try:
             if resp.direct_passthrough and request.path.startswith(app.static_url_path or "/static") and (resp.mimetype or "") in ("text/css", "text/javascript", "application/javascript"):
                 resp.direct_passthrough = False   # la hoja de estilos (145 KB) también va comprimida
-                resp.headers["Cache-Control"] = "public, max-age=86400"   # se versiona con ?v=<build>
+                resp.headers["Cache-Control"] = "no-cache" if os.environ.get("FACEOPS_DEV") == "1" else "public, max-age=86400"   # se versiona con ?v=<build>; en modo desarrollo siempre revalida
             if (resp.status_code != 200 or resp.direct_passthrough or resp.headers.get("Content-Encoding")
                     or "gzip" not in (request.headers.get("Accept-Encoding") or "")
                     or not (resp.mimetype or "").startswith(("text/", "application/json", "application/javascript"))):
