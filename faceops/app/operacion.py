@@ -364,6 +364,12 @@ def preparar_jenkins(equipo, parametros):
     return dict(parametros, jk_ruta=f"{pre}/inventario/{equipo['id']}/consola-web/jenkins")
 
 
+# Únicas acciones que se lanzan sin pedir aprobación (decisión de Cristian, 14-11-2026): «Sistema · Leer log» es solo lectura e
+# interna del visor de logs de la ficha (no se publica en Acciones); cada tramo esperaba una aprobación y el visor cortaba a los
+# 3 min. Mantiene su ticket y su auditoría. No se amplía a otras acciones.
+SIN_APROBACION = ("Sistema · Leer log",)
+
+
 def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None, filtros=None, equipo=None, equipos=None, prueba=False):
     """FaceOps orquesta: crea el ticket (propio y, si corresponde, en la herramienta del cliente) y lanza en AAP.
     Si requiere aprobación, la aprobación vive en AAP (nodo de aprobación del workflow): FaceOps la muestra y
@@ -477,7 +483,10 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
             {"automatizacion": auto["nombre"], "version": auto["version"], "segmento": segmento, "filtros": filtros,
              "limite": limite, "parametros": parametros})
     # el ticket en la herramienta del cliente (ServiceNow, Odoo…) también lo crea la cola: la petición no espera a nadie
-    ejecutar(tid, secretos, externo=True)  # las claves van solo a AAP: en el ticket y la auditoría quedan enmascaradas
+    sin_aprob = auto.get("nombre_aap") in SIN_APROBACION
+    if sin_aprob:
+        auditar(usuario["usuario"], cliente["id"], "sin aprobación (solo lectura · decisión de Cristian)", t["numero"], {"automatizacion": auto["nombre_aap"]})
+    ejecutar(tid, secretos, externo=True, aprobado=sin_aprob)  # las claves van solo a AAP: en el ticket y la auditoría quedan enmascaradas
     return q1("SELECT * FROM tickets WHERE id=?", tid)
 
 
