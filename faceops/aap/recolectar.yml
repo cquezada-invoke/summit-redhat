@@ -16,6 +16,10 @@
         gather_timeout: 30
       register: r_setup
       ignore_errors: true
+      # WinRM a veces corta la primera sesión («winrm send_input failed»), sobre todo con la máquina recién encendida: reintenta
+      retries: 2
+      delay: 15
+      until: r_setup is succeeded or (ansible_connection | default('ssh')) not in ['winrm', 'psrp']
 
     # RHEL 5 y 6 traen un Python que los módulos de Ansible ya no soportan (2.4 / 2.6): sus datos se leen por shell
     - name: Equipo legado (sin módulos de Ansible)
