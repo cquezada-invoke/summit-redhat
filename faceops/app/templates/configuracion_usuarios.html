@@ -1,4 +1,18 @@
-{% extends "base.html" %}{% block titulo %}Usuarios y perfiles{% endblock %}
+{% extends "base.html" %}{% block titulo %}Usuarios y perfiles<style>.gd-caja.gd-sel{outline:2px solid var(--info);outline-offset:1px}</style>
+<script>
+(function () {
+  function ir() {
+    var m = /^#g-([\w-]+)$/.exec(location.hash || "");
+    document.querySelectorAll(".gd-caja.gd-sel").forEach(function (x) { x.classList.remove("gd-sel"); });
+    var el = m && document.getElementById("g-" + m[1]);
+    if (!el) return;
+    el.classList.add("gd-sel");
+    el.scrollIntoView({block: "center"});
+  }
+  window.addEventListener("hashchange", ir); ir();
+})();
+</script>
+{% endblock %}
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion') }}">← Administración</a></p>
 <div class="fila"><div><h1>Usuarios y perfiles</h1><p class="sub">Los usuarios locales se administran aquí. Los que vienen de una fuente externa (Active Directory, LDAP o IGA) los administra esa fuente: FaceOps solo los muestra.</p></div>
@@ -6,9 +20,9 @@
 
 <h2 style="margin:14px 0 8px">Fuentes de usuarios</h2>
 <div class="fu-grid">
-  <a class="card fu-caja{{ ' on' if origen == 'local' }}" href="{{ url_for('consola.configuracion_usuarios', fuente='local') if origen != 'local' else url_for('consola.configuracion_usuarios') }}">
+  <a class="card fu-caja{{ ' on' if origen == 'local' }}" href="{{ url_for('consola.configuracion_usuarios', fuente='local', clasico=request.args.get('clasico')) if origen != 'local' else url_for('consola.configuracion_usuarios', clasico=request.args.get('clasico')) }}">
     <span class="fu-tipo">Local</span><b>FaceOps</b><span class="sub">Se crean aquí o se cargan desde un archivo HTPasswd</span><span class="chip s-ok">● operativa</span></a>
-  {% for f in fuentes %}<a class="card fu-caja{{ ' on' if origen == 'fuente:' ~ f.id }}" href="{{ url_for('consola.configuracion_usuarios', fuente='fuente:' ~ f.id) }}">
+  {% for f in fuentes %}<a class="card fu-caja{{ ' on' if origen == 'fuente:' ~ f.id }}" href="{{ url_for('consola.configuracion_usuarios', fuente='fuente:' ~ f.id, clasico=request.args.get('clasico')) }}">
     <span class="fu-tipo">{{ tipos[f.tipo].nombre }}</span><b>{{ f.nombre }}</b><span class="sub">{{ f.estado or 'Sin probar todavía' }}</span>
     <span class="chip {{ 's-ok' if f.activo else '' }}">{{ '● activa' if f.activo else '○ inactiva' }} · {{ f.n_usuarios }} usuario{{ 's' if f.n_usuarios != 1 }}</span><span class="sub" style="font-size:11px">Se administra en Integraciones</span></a>{% endfor %}
   <a class="card fu-caja fu-nueva" href="{{ url_for('consola.integraciones', cat='usuarios') }}"><b>Conectar una fuente</b><span class="sub">AD, LDAP o midPoint se conectan en Integraciones, desde Ansible. Puede haber más de una: cada usuario queda con su fuente.</span><span class="btn chico gris" style="align-self:flex-start;margin-top:6px">Ir a Integraciones →</span></a>
@@ -20,7 +34,7 @@
 <div class="fila"><b>Dueño de {{ gr.nombre }}</b><button type="button" class="btn chico gris der" onclick="document.getElementById('gd-{{ gr.clave }}').showModal()">Administrar</button></div>
 <span class="sub" style="font-size:11.5px">{{ gr.explica }}</span>
 <div class="gd-fila"><span class="gd-et">Dueños</span>{% for m in gr.duenos %}<span class="chip gd-dueno">{{ m.nombre }}</span>{% else %}<span class="chip s-alta">sin dueño</span>{% endfor %}</div>
-<div class="gd-fila"><span class="gd-et">Miembros</span>{% for m in gr.miembros %}<span class="chip">{{ m.nombre }}</span>{% else %}<span class="sub" style="font-size:12px">—</span>{% endfor %}</div>
+<div class="gd-fila"><span class="gd-et">Miembros</span><a class="sub" style="font-size:11.5px;margin-right:4px" href="{{ url_for('consola.configuracion_usuarios', clasico=1, dueno=gr.clave) }}#usuarios" title="Ver sus usuarios en la lista">{{ gr.todos|length }} ›</a>{% for m in gr.miembros %}<span class="chip">{{ m.nombre }}</span>{% else %}<span class="sub" style="font-size:12px">—</span>{% endfor %}</div>
 <div class="gd-fila"><span class="gd-et">Correo</span>{% if gr.correo %}<span class="mono" style="font-size:12px">{{ gr.correo }}</span>{% else %}<span class="chip s-media">sin correo de grupo</span>{% endif %}</div>
 <dialog class="al-dlg" id="gd-{{ gr.clave }}"><header class="al-cab"><div><h2>Dueño de {{ gr.nombre }}</h2><p class="sub">{{ gr.explica }}</p></div><button type="button" class="al-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">✕</button></header>
 <div style="padding:12px 18px">
@@ -39,10 +53,10 @@
 </div></dialog></div>{% endfor %}</div>
 
 <div class="card" style="padding:0;margin-top:14px">
-<div class="fila" style="padding:12px 16px 4px"><h2 style="margin:0">Usuarios{% if origen %} <span class="sub" style="font-size:13px">· filtrados por fuente · <a href="{{ url_for('consola.configuracion_usuarios') }}">ver todos</a></span>{% endif %}</h2></div>
+<div class="fila" style="padding:12px 16px 4px"><h2 style="margin:0" id="usuarios">Usuarios · {{ usuarios|length }}{% if origen or dueno_f %} <span class="sub" style="font-size:13px">· filtrados{{ ' por fuente' if origen }}{{ ' por grupo dueño' if dueno_f }} · <a href="{{ url_for('consola.configuracion_usuarios', clasico=1) }}">ver todos</a></span>{% endif %}</h2></div>
 <table><tr><th>Usuario</th><th>Nombre</th><th>Fuente</th><th>Perfil</th><th>Grupos dueños</th><th>Segmentos</th><th>Último ingreso</th><th>Estado</th><th></th></tr>
 {% for u in usuarios %}<tr><td class="mono">{{ u.usuario }}</td><td>{{ u.nombre }}</td>
-<td><span class="chip {{ 'fu-ext' if u.externo else 'fu-loc' }}">{{ u.fuente }}</span></td><td>{{ u.modo }}</td><td style="font-size:12px">{% for x in u.grupos %}<span class="chip {{ 'gd-dueno' if x.rol == 'dueño' }}" style="font-size:11px">{{ 'Dueño de ' if x.rol == 'dueño' }}{{ x.nombre }}</span> {% else %}{{ 'aprobador (sin grupo)' if u.aprobador else '—' }}{% endfor %}</td>
+<td><span class="chip {{ 'fu-ext' if u.externo else 'fu-loc' }}">{{ u.fuente }}</span></td><td>{{ u.modo }}</td><td style="font-size:12px">{% for x in u.grupos %}<a class="chip {{ 'gd-dueno' if x.rol == 'dueño' }}" style="font-size:11px" href="#g-{{ x.clave }}">{{ 'Dueño de ' if x.rol == 'dueño' }}{{ x.nombre }}</a> {% else %}{{ 'aprobador (sin grupo)' if u.aprobador else '—' }}{% endfor %}</td>
 <td style="font-size:12px">{{ 'todos' if '*' in u.segmentos else u.segmentos|join(', ') }}</td><td style="font-size:12px">{{ u.ultimo_ingreso|fecha }}</td>
 <td><span class="chip {{ 's-ok' if u.activo else 's-alta' }}">{{ 'activo' if u.activo else 'inactivo' }}</span></td>
 <td>{% if u.externo %}<a class="sub" style="font-size:12px" href="{{ url_for('consola.configuracion_usuario', uid=u.id) }}">ver</a>{% else %}<a class="btn chico gris" href="{{ url_for('consola.configuracion_usuario', uid=u.id) }}">Administrar</a>{% endif %}</td></tr>
@@ -59,4 +73,18 @@
 <label class="chk"><input type="checkbox" name="aprobador"> Aprobadores</label><label class="chk"><input type="checkbox" name="reemplazar"> Actualizar la clave de los que ya existen</label></div>
 <p class="sub" style="font-size:12px">Las claves no se ven ni se guardan en claro: FaceOps conserva el hash del archivo. Los usuarios cargados quedan como locales (se administran aquí). Hash DES o texto plano: no se aceptan.</p>
 <button class="btn">Cargar</button></form></details>
+<style>.gd-caja.gd-sel{outline:2px solid var(--info);outline-offset:1px}</style>
+<script>
+(function () {
+  function ir() {
+    var m = /^#g-([\w-]+)$/.exec(location.hash || "");
+    document.querySelectorAll(".gd-caja.gd-sel").forEach(function (x) { x.classList.remove("gd-sel"); });
+    var el = m && document.getElementById("g-" + m[1]);
+    if (!el) return;
+    el.classList.add("gd-sel");
+    el.scrollIntoView({block: "center"});
+  }
+  window.addEventListener("hashchange", ir); ir();
+})();
+</script>
 {% endblock %}
