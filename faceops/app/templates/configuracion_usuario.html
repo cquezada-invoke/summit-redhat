@@ -2,6 +2,11 @@
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion_usuarios') }}">← Usuarios y perfiles</a></p>
 <div class="fila"><div><h1>{{ u.nombre if u else 'Nuevo usuario local' }}</h1><p class="sub">{% if u %}<span class="mono">{{ u.usuario }}</span> · {% endif %}Fuente: <b>{{ fuente_txt }}</b></p></div></div>
+{% if u %}<div class="card" style="padding:10px 16px;margin-bottom:12px"><b>Grupos</b>
+{% for gg in g_rbac %}<a class="chip" href="{{ url_for('consola.configuracion_usuarios', tab='grupos', gid=gg.id) }}">{{ gg.nombre }}</a> {% endfor %}
+{% for d in g_duenos %}<a class="chip {{ 'gd-dueno' if d.rol == 'dueño' }}" href="{{ url_for('consola.configuracion_usuarios', tab='duenos', sec=d.clave, clasico=None if rbac_on else 1) }}#g-{{ d.clave }}">{{ 'Dueño de ' if d.rol == 'dueño' else 'Miembro de ' }}{{ d.nombre }}</a> {% endfor %}
+{% if not g_rbac and not g_duenos %}<span class="sub">no pertenece a ningún grupo</span>{% endif %}
+{% if rbac_on %}<a class="sub" style="font-size:12px;margin-left:6px" href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', uid=u.id) }}">ver su acceso efectivo ›</a>{% endif %}</div>{% endif %}
 {% if externo %}
 <div class="card" style="padding:14px 16px">
 <p style="margin:0 0 10px"><b>Lo administra su fuente.</b> Identidad, clave, estado y perfil vienen de <b>{{ fuente_txt }}</b>: cámbialos allá. FaceOps los actualiza en cada sincronización que hace Ansible; la clave la valida el Gateway de AAP{% if fuente %} (<a href="{{ url_for('consola.configuracion_fuente', fid=fuente.id) }}">ver la fuente y su mapeo</a>){% endif %}.</p>
@@ -21,6 +26,7 @@
 <label>Perfil<select name="modo">{% for m in ['lectura', 'escritura'] %}<option {{ 'selected' if u and u.modo == m }}>{{ m }}</option>{% endfor %}</select></label>
 <label>Segmentos<select name="segmentos" multiple size="5"><option value="*" {{ 'selected' if not u or '*' in u.segmentos_l }}>todos</option>{% for s in segs %}<option {{ 'selected' if u and s in u.segmentos_l }}>{{ s }}</option>{% endfor %}</select></label>
 <label>Vigente hasta (opcional)<input type="date" name="expira" value="{{ (u.expira or '')[:10] if u }}"></label></div>
+{% if rbac_on %}<p class="sub" style="font-size:12px;margin:0">Con grupos y roles activos, el perfil y «aprueba» se recalculan desde sus grupos al cambiar sus roles: escritura si administra alguna funcionalidad.</p>{% endif %}
 <label class="chk"><input type="checkbox" name="aprobador" {{ 'checked' if u and u.aprobador }}> Aprueba tickets</label>
 <label class="chk"><input type="checkbox" name="activo" {{ 'checked' if not u or u.activo }}> Activo</label>
 {% if u and u.origen == 'htpasswd' %}<p class="sub" style="font-size:12px">Cargado desde HTPasswd: entra con la clave del archivo hasta que se le asigne una nueva aquí.</p>{% endif %}
