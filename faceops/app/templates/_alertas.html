@@ -13,6 +13,7 @@
 {% if al.grafana_ocp %}<p class="sub al-ult al-donde">Visualización en Grafana del monitoreo del clúster (Thanos Querier, solo lectura); las acciones están por definir · <a href="{{ al.grafana_ocp }}" target="_blank" rel="noopener">Ver todas en Grafana ↗</a></p>{% endif %}
 {% if al.n %}<p class="sub al-ult al-donde">Reglas en Prometheus: <code>{{ al.archivo }}</code> (grupo <code>{{ al.grupo_prom }}</code>) ·
   <a href="{{ al.grafana }}" target="_blank" rel="noopener">Ver todas en Grafana ↗</a></p>{% endif %}
+{% if al.grupos %}<div class="al-busca"><input type="search" form="al-sin-form" class="al-q" placeholder="Buscar alerta por nombre" aria-label="Buscar alerta"></div>{% endif %}
 <div class="al-cuerpo">
 {% if not al.grupos %}<div class="vacio" style="padding:22px 6px;text-align:center"><b>Aún no hay alertas definidas para {{ al.tipo_nombre|lower }}.</b><br><span class="sub">Se agregan al catálogo a medida que se necesitan; cuando exista una, aparecerá aquí para activarla.</span></div>{% endif %}
 {% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
@@ -40,6 +41,7 @@
     <span class="al-u" title="Minutos que la condición debe mantenerse antes de disparar la alerta (0 = de inmediato)"><small>Durante (min)</small><input name="para_{{ a.id }}" value="{{ a.valor_para }}" inputmode="numeric" {{ 'disabled' if not al.disponible }}></span></span>
 </label>{% endif %}{% endfor %}{% endfor %}
 </div>
+{% if al.grupos %}<div class="pag-js al-pag"></div>{% endif %}
 {% endmacro %}
 {% macro form_alertas(al, accion, nombre, titulo='') %}<form method="post" action="{{ accion }}" class="al-form" data-nombre="{{ nombre }}" data-ambito="{{ al.ambito or 'maquina' }}" onsubmit="return false">
 <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="ambito" value="{{ al.ambito or 'maquina' }}">
@@ -72,6 +74,15 @@
 </dialog>
 <script>
 // «Generar ticket»: un solo ticket con todas las alertas del flotante; se cierra y el ticket aparece al final de la ficha
+window.fxAlPagInit=window.fxAlPagInit||function(f){ f.dataset.pag='1'; const q=f.querySelector('.al-q'),nav=f.querySelector('.al-pag'),cu=f.querySelector('.al-cuerpo'); if(!q||!nav||!cu)return;
+  const filas=[...cu.querySelectorAll('.al-fila')],cabs=[...cu.querySelectorAll('h3')],N=10; let p=0;
+  const nom=r=>((r.querySelector('.al-def b')||{}).textContent||'').toLowerCase();   // las ocultas siguen en el formulario: solo display:none
+  function pintar(){ const v=q.value.toLowerCase().trim(),vis=filas.filter(r=>!v||nom(r).includes(v)),tot=Math.max(1,Math.ceil(vis.length/N)); p=Math.min(p,tot-1);
+    const ver=new Set(vis.slice(p*N,(p+1)*N)); filas.forEach(r=>r.style.display=ver.has(r)?'':'none');
+    cabs.forEach(h=>{let n=h.nextElementSibling,x=false;while(n&&n.tagName!=='H3'){if(n.style.display!=='none')x=true;n=n.nextElementSibling;}h.style.display=x?'':'none';});
+    nav.hidden=vis.length<=N&&!v; nav.innerHTML='<span class="sub">'+(vis.length?p*N+1:0)+'–'+Math.min((p+1)*N,vis.length)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(p?'':'disabled')+'>‹ anterior</button><span class="sub">pág '+(p+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(p<tot-1?'':'disabled')+'>siguiente ›</button>'; }
+  nav.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){p+=+b.dataset.p;pintar();}}); q.addEventListener('input',()=>{p=0;pintar();}); pintar(); };
+document.querySelectorAll('form.al-form:not([data-pag])').forEach(fxAlPagInit);
 window.fxAlProbar=window.fxAlProbar||function(b){ const out=b.closest('.al-def').querySelector('.al-prueba'); b.disabled=true; out.hidden=false; out.textContent='enviando la alerta de prueba…';
   const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('aid',b.dataset.aid); fd.append('ambito',b.dataset.ambito);
   fetch(b.dataset.url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(x=>{
