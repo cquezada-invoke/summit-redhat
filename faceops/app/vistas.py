@@ -2232,7 +2232,7 @@ def configuracion_usuarios():
             flash(str(e), "error")
         if rbac.activo(cid) and not request.args.get("clasico"):
             return redirect(url_for("consola.configuracion_usuarios", tab="duenos", sec=f.get("seccion") or None) + "#g-" + (f.get("seccion") or ""))
-        return redirect(request.full_path.rstrip("?").split("#")[0] + "#g-" + (f.get("seccion") or ""))
+        return redirect(url_for("consola.configuracion_usuarios", **request.args.to_dict()) + "#g-" + (f.get("seccion") or ""))
     fs = fu.fuentes(cid)
     fs_id = {f["id"]: f for f in fs}
     usuarios_ = q("SELECT u.id, u.usuario, u.nombre, u.correo, u.activo, u.ultimo_ingreso, u.origen, u.expira, p.modo, p.aprobador, p.segmentos "
@@ -2309,7 +2309,7 @@ def _usuarios_rbac(cid):
             flash("Accesos actualizados", "ok")
         except ValueError as e:
             flash(str(e), "error")
-        return redirect(request.full_path.rstrip("?"))
+        return redirect(url_for("consola.configuracion_usuarios", **request.args.to_dict()))
     fs_id = {x["id"]: x for x in fu.fuentes(cid)}
     grupos_ = q("SELECT * FROM rbac_grupos WHERE cliente_id=? ORDER BY nombre", cid)
     miembros = q("SELECT m.* FROM rbac_miembros m JOIN rbac_grupos g ON g.id=m.grupo_id WHERE g.cliente_id=?", cid)
