@@ -49,8 +49,7 @@
 </style>
 <div id="sk-velo" class="cajon-velo" hidden></div>
 <aside id="sk-cajon" class="cajon" hidden aria-label="Skills de la máquina"><div class="cajon-barra"><input type="search" class="sk-busca" placeholder="Buscar skill…" aria-label="Buscar skill"><button type="button" class="btn chico gris" data-sk-todo="abrir">Expandir</button><button type="button" class="btn chico gris" data-sk-todo="cerrar">Contraer</button><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
-<div class="sk-tit"><span class="sub" style="font-size:12px">{{ cod_eq(e) }} · skills</span><h2 class="sk-h">Skills · {{ sk_so_ }}</h2><span class="sk-filtro" hidden style="font-size:12.5px;margin-top:4px"><a href="#" class="sk-todas">ver las skills del sistema operativo</a></span>
-<span class="sub" style="font-size:12.5px;margin-top:4px">Cada skill es una automatización del catálogo con contexto propio en {{ e.nombre }}: crea su ticket (con aprobación si la pide). Las bloqueadas por la regla de prueba se muestran deshabilitadas con su motivo.</span></div>
+<div class="sk-tit"><span class="sub" style="font-size:12px">{{ cod_eq(e) }} · skills</span><h2 class="sk-h">Skills · {{ sk_so_ }}</h2><span class="sub" style="font-size:12.5px;margin-top:4px">Cada skill es una automatización del catálogo con contexto propio en {{ e.nombre }}: crea su ticket (con aprobación si la pide). Las bloqueadas por la regla de prueba se muestran deshabilitadas con su motivo.</span></div>
 {% if hbv_ %}<details class="sk-grupo" data-g="habilidades" open><summary>Skills de la máquina <span class="sub">{{ hbv_|length }}</span></summary>
 {% for h in hbv_ %}<div class="sk-item{{ ' bloq' if h.bloqueo }}" data-plats=",," data-q="{{ (h.nombre ~ ' ' ~ (h.valor or '') ~ ' ' ~ (h.grupo or '') ~ ' ' ~ h.tipo)|lower }}">
 <b>{{ h.nombre }}</b><span class="sk-que">{{ h.valor or '—' }}</span>
@@ -91,7 +90,7 @@ const paginar=()=>{const todas=[...c.querySelectorAll('.sk-grupo:not(.sk-fijo) .
 const filtrar=keep=>{if(keep!==true)pg=0;filtrarB();paginar();};
 PAG.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){pg+=+b.dataset.p;filtrar(true);}});
 const abrir=window.fxAbrirSkills=(cod,nom)=>{plat=typeof cod==='string'?cod:'';platN=nom||plat;c.querySelector('.sk-h').textContent='Skills · '+(plat?platN:SO);
- const fi=c.querySelector('.sk-filtro');fi.hidden=!plat||!c.querySelector('.sk-item[data-plats=",,"]');bq.value='';filtrar();c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'));setTimeout(()=>bq.focus(),60);};
+ bq.value='';filtrar();c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'));setTimeout(()=>bq.focus(),60);};
 const cerrar=()=>{c.classList.remove('abierto');v.hidden=true;setTimeout(()=>c.hidden=true,180);};
 const skb=document.getElementById('sk-btn');if(skb)skb.onclick=()=>abrir();
 {const hb=document.getElementById('hb-btn');if(hb){hb.removeAttribute('onclick');hb.setAttribute('aria-controls','sk-cajon');hb.onclick=ev=>{ev.preventDefault();abrir();};}}
@@ -99,7 +98,7 @@ c.querySelectorAll('[data-hb-i]').forEach(b=>b.addEventListener('click',()=>{if(
  const tr=d_&&d_.querySelectorAll('tr.hb-it')[+b.dataset.hbI],t_=tr&&tr.querySelector('.hb-a button:not([disabled])');if(!t_)return;cerrar();d_.showModal();t_.click();}));v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!c.hidden&&!dlg.open)cerrar();});
 c.querySelectorAll('[data-sk-todo]').forEach(b=>b.onclick=()=>c.querySelectorAll('.sk-grupo').forEach(d=>d.open=b.dataset.skTodo==='abrir'));
-bq.oninput=filtrar;c.querySelector('.sk-todas').onclick=ev=>{ev.preventDefault();abrir();};
+bq.oninput=filtrar;
 const tk=(it,t)=>{const x=it.querySelector('.sk-tk');x.textContent='';const a=document.createElement('a');a.href=t.url;a.textContent=t.numero;a.title='Abrir el ticket';x.append(a,' · '+(ETQ[t.estado]||String(t.estado||'').replace(/_/g,' ')));};
 function crear(s,it,extra){const b=it.querySelector('[data-sk-ir]');b.disabled=true;const x=it.querySelector('.sk-tk');x.textContent='creando…';
  const fd=new FormData();fd.append('_csrf',CSRF);fd.append('motivo',s.nombre+' en '+MAQ+' (skill desde su ficha)');Object.entries(s.datos||{}).forEach(([k,v_])=>fd.append(k,v_));

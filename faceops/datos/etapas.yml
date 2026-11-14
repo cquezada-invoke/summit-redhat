@@ -37,7 +37,7 @@ bloqueo:
   solo_ver:
     - {etapa: 1, nombre: "Alertas de la máquina", abrir: [".al-btn"], flotante: ".al-dlg", ejecuta: "Etapa 2 (activar o desactivar alertas)"}
     - {etapa: 1, nombre: "Skills de la máquina", abrir: ["#hb-btn"], flotante: "#sk-cajon", ejecuta: "la etapa de la acción de cada skill u operación"}
-  libres: [".al-x", ".cajon-x", ".sk-busca", "[data-sk-todo]", ".sk-todas", "[data-ver]"]
+  libres: [".al-x", ".cajon-x", ".sk-busca", "[data-sk-todo]", "[data-ver]", ".al-q", ".al-pag button", ".sk-pag button"]   # buscador y paginador de los flotantes: solo vista
   reglas:
     - etapa: 2      # Monitoreo, salud y alertas
       selectores: [".btn-prev"]   # «.sl-barra» y «#sl-dlg» (Salud de la máquina y de cada plataforma) quedan libres: gráfica y usabilidad listas, implementación real en fases siguientes
