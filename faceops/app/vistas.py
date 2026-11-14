@@ -2208,7 +2208,7 @@ def configuracion_usuarios():
     _solo_admin()
     cid = g.cliente["id"]
     from . import rbac
-    if rbac.activo(cid) and not request.args.get("clasico"):
+    if rbac.activo(cid) and not request.args.get("clasico") and not (request.form.get("accion") or "").startswith("grupo_"):
         return _usuarios_rbac(cid)
     resultado = None
     if request.method == "POST" and request.form.get("accion") == "htpasswd":
@@ -2230,7 +2230,9 @@ def configuracion_usuarios():
             flash(f"Grupo «Dueño de {GD.nombre(f.get('seccion'))}» actualizado", "ok")
         except ValueError as e:
             flash(str(e), "error")
-        return redirect(url_for("consola.configuracion_usuarios") + "#g-" + (f.get("seccion") or ""))
+        if rbac.activo(cid) and not request.args.get("clasico"):
+            return redirect(url_for("consola.configuracion_usuarios", tab="duenos", sec=f.get("seccion") or None) + "#g-" + (f.get("seccion") or ""))
+        return redirect(url_for("consola.configuracion_usuarios", **request.args.to_dict()) + "#g-" + (f.get("seccion") or ""))
     fs = fu.fuentes(cid)
     fs_id = {f["id"]: f for f in fs}
     usuarios_ = q("SELECT u.id, u.usuario, u.nombre, u.correo, u.activo, u.ultimo_ingreso, u.origen, u.expira, p.modo, p.aprobador, p.segmentos "
@@ -2252,7 +2254,10 @@ def configuracion_usuarios():
             por_u.setdefault(m["id"], []).append({"clave": gr["clave"], "nombre": gr["nombre"], "rol": m["rol"]})
     for x in usuarios_:
         x["grupos"] = por_u.get(x["id"], [])
-    return render_template("configuracion_usuarios.html", grupos_d=grupos_, roles_g=GD.ROLES, usuarios=usuarios_, fuentes=fs, tipos=fu.TIPOS, segs=segs, resultado=resultado, origen=origen,
+    dueno_f = request.args.get("dueno", "")
+    if dueno_f:
+        usuarios_ = [x for x in usuarios_ if any(gg["clave"] == dueno_f for gg in x["grupos"])]
+    return render_template("configuracion_usuarios.html", dueno_f=dueno_f, grupos_d=grupos_, roles_g=GD.ROLES, usuarios=usuarios_, fuentes=fs, tipos=fu.TIPOS, segs=segs, resultado=resultado, origen=origen,
                            n_locales=sum(1 for x in usuarios_ if not x["externo"]))
 
 
@@ -2304,7 +2309,7 @@ def _usuarios_rbac(cid):
             flash("Accesos actualizados", "ok")
         except ValueError as e:
             flash(str(e), "error")
-        return redirect(request.full_path.rstrip("?"))
+        return redirect(url_for("consola.configuracion_usuarios", **request.args.to_dict()))
     fs_id = {x["id"]: x for x in fu.fuentes(cid)}
     grupos_ = q("SELECT * FROM rbac_grupos WHERE cliente_id=? ORDER BY nombre", cid)
     miembros = q("SELECT m.* FROM rbac_miembros m JOIN rbac_grupos g ON g.id=m.grupo_id WHERE g.cliente_id=?", cid)
@@ -2322,16 +2327,44 @@ def _usuarios_rbac(cid):
         u_["cluster"] = sorted(a_["cluster"])
         u_["espacios"] = sorted(a_["ns"], key=lambda k: [x for x, _ in rbac.ESPACIOS].index(k) if k in rbac.NOMBRE_ESPACIO else 99)
         u_["acc"] = a_
+    from . import grupos_dueno as GD
+    perf = {p_["usuario_id"]: p_ for p_ in q("SELECT usuario_id, modo, aprobador FROM perfiles WHERE cliente_id=?", cid)}
+    gd_ = GD.grupos(cid)
+    gd_u = {}
+    for gr in gd_:
+        for m in gr["todos"]:
+            gd_u.setdefault(m["id"], []).append({"clave": gr["clave"], "nombre": gr["nombre"], "rol": m["rol"]})
+    for u_ in usuarios_:
+        u_["modo"] = (perf.get(u_["id"]) or {}).get("modo") or "sin perfil"
+        u_["duenos"] = gd_u.get(u_["id"], [])
+    por_id = {x["id"]: x for x in usuarios_}
+    n_total = len(usuarios_)
     tab = request.args.get("tab", "usuarios")
-    sel_u = next((x for x in usuarios_ if str(x["id"]) == request.args.get("uid", "")), None)
+    if tab not in ("usuarios", "grupos", "duenos", "roles"):
+        tab = "usuarios"
+    sel_u = por_id.get(int(request.args.get("uid") or 0)) if (request.args.get("uid") or "").isdigit() else None
     sel_g = next((x for x in grupos_ if str(x["id"]) == request.args.get("gid", "")), None) if tab == "grupos" else None
     if tab == "grupos" and not sel_g and grupos_:
         sel_g = grupos_[0]
+    sel_d = next((x for x in gd_ if x["clave"] == request.args.get("sec", "")), None) if tab == "duenos" else None
+    # filtros de la lista de usuarios: texto, grupo (rbac), grupo dueño y estado
     texto = (request.args.get("q") or "").strip().lower()
+    f_gid = request.args.get("grupo", "")
+    f_sec = request.args.get("dueno", "")
+    f_est = request.args.get("estado", "")
     if texto:
-        usuarios_ = [x for x in usuarios_ if texto in (x["usuario"] + " " + x["nombre"] + " " + " ".join(gg["nombre"] for gg in x["grupos"])).lower()]
-    return render_template("usuarios_rbac.html", usuarios=usuarios_, grupos=grupos_, tab=tab, sel_u=sel_u, sel_g=sel_g, por_id={x["id"]: x for x in usuarios_},
-                           todos_u=q(f"SELECT id, usuario, nombre FROM usuarios WHERE id IN ({','.join('?' * len(ids_u))}) ORDER BY nombre", *ids_u) if ids_u else [],
+        usuarios_ = [x for x in usuarios_ if texto in " ".join([x["usuario"], x["nombre"] or "", x.get("correo") or ""] + [gg["nombre"] for gg in x["grupos"]]
+                                                              + ["dueño de " + d["nombre"] for d in x["duenos"]]).lower()]
+    if f_gid:
+        usuarios_ = [x for x in usuarios_ if any(str(gg["id"]) == f_gid for gg in x["grupos"])]
+    if f_sec:
+        usuarios_ = [x for x in usuarios_ if any(d["clave"] == f_sec for d in x["duenos"])]
+    if f_est in ("activo", "inactivo"):
+        usuarios_ = [x for x in usuarios_ if bool(x["activo"]) == (f_est == "activo")]
+    return render_template("usuarios_rbac.html", usuarios=usuarios_, grupos=grupos_, tab=tab, sel_u=sel_u, sel_g=sel_g, por_id=por_id,
+                           grupos_d=gd_, sel_d=sel_d, roles_g=GD.ROLES, n_total=n_total, f_gid=f_gid, f_sec=f_sec, f_est=f_est,
+                           filtrado=bool(texto or f_gid or f_sec or f_est),
+                           todos_u=q(f"SELECT id, usuario, nombre, activo FROM usuarios WHERE id IN ({','.join('?' * len(ids_u))}) ORDER BY nombre", *ids_u) if ids_u else [],
                            espacios=rbac.ESPACIOS, roles_esp=rbac.ROLES_ESPACIO, desc_rol=rbac.DESC_ROL, roles_cl=rbac.roles_cluster(cid), texto=texto,
                            menu_esp={v: k for k, v in reversed(list(rbac.MENU_ESPACIO.items()))}, puede=bool(g.usuario.get("es_admin") or (g.get("acceso") or {}).get("admin_total")),
                            enlaces_u=[dict(e, txt=rbac.enlaces_txt(e, cid)) for e in enlaces if e["sujeto"] == "usuario"])
@@ -2418,7 +2451,18 @@ def configuracion_usuario(uid=None):
         return redirect(url_for("consola.configuracion_usuario", uid=uid))
     segs = [r["nombre"] for r in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY orden, nombre", cid)]
     return render_template("configuracion_usuario.html", u=u, externo=externo, fuente_txt=fu.etiqueta_origen(u) if u else "Local", segs=segs,
-                           fuente=fu.fuente_de(u) if externo else None)
+                           fuente=fu.fuente_de(u) if externo else None, **_grupos_de_ficha(cid, u))
+
+
+def _grupos_de_ficha(cid, u):
+    """Grupos (roles) y grupos dueños de un usuario, para enlazarlos desde su ficha."""
+    if not u:
+        return {"g_rbac": [], "g_duenos": [], "rbac_on": False}
+    from . import grupos_dueno as GD
+    from . import rbac
+    de = GD.de_usuario(u, cid)
+    return {"g_rbac": rbac.grupos_de(u["id"], cid), "rbac_on": rbac.activo(cid),
+            "g_duenos": [{"clave": k, "nombre": GD.nombre(k), "rol": r} for k, r in de.items()]}
 
 
 @bp.route("/configuracion/fuentes/nueva/<tipo>", methods=["GET", "POST"])

@@ -7,13 +7,15 @@
 .rb-acc{width:100%;font-size:13px}.rb-acc td,.rb-acc th{padding:4px 6px}.rb-acc .si{color:var(--ok);font-weight:700}.rb-acc .no{color:var(--line)}
 .rb-cl{background:#fdeaea;color:#a30000;border-color:transparent}.rb-cv{background:var(--infobg);color:var(--info);border-color:transparent}
 .rb-form{display:flex;gap:6px;flex-wrap:wrap;align-items:end;margin-top:8px}.rb-form select,.rb-form input{font-size:13px}
+.gd-sel{outline:2px solid var(--info);outline-offset:-2px}.rb-lista tr.gd-sel td{background:var(--infobg)}
+.rb-filtros{padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}.rb-filtros select{font-size:13px;max-width:200px}
 @media(max-width:1000px){.rb{grid-template-columns:1fr}.rb-panel{position:static}}
 </style>
 <p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion') }}">← Administración</a></p>
 <div class="fila"><div><h1>Usuarios y grupos</h1>
 <p class="sub" style="margin:0">Como en OpenShift: cada funcionalidad del menú es un espacio. Los grupos reciben roles: de clúster (<b>cluster-admin</b>, <b>cluster-viewer</b> o propios) o de un espacio (<b>admin</b>, <b>aprobador</b> o <b>auditor</b>). Cada usuario ve solo las funcionalidades de sus grupos; Gobierno y Administración, solo cluster-admin y cluster-viewer.</p></div>
 <div class="der">{% if puede %}<a class="btn gris" href="{{ url_for('consola.configuracion_usuario') }}">+ Usuario local</a>{% endif %}</div></div>
-<div class="tabs-pf" style="margin:10px 0 12px">{% for k, t in [('usuarios', 'Usuarios · ' ~ usuarios|length), ('grupos', 'Grupos · ' ~ grupos|length), ('roles', 'Roles')] %}<a class="{{ 'on' if tab == k }}" href="{{ url_for('consola.configuracion_usuarios', tab=k) }}">{{ t }}</a>{% endfor %}
+<div class="tabs-pf" style="margin:10px 0 12px">{% for k, t in [('usuarios', 'Usuarios · ' ~ ((usuarios|length ~ ' de ' ~ n_total) if filtrado and tab == 'usuarios' else n_total)), ('grupos', 'Grupos · ' ~ grupos|length), ('duenos', 'Grupos dueños · ' ~ grupos_d|length), ('roles', 'Roles')] %}<a class="{{ 'on' if tab == k }}" href="{{ url_for('consola.configuracion_usuarios', tab=k) }}">{{ t }}</a>{% endfor %}
 <a class="sub" style="margin-left:auto;font-size:12.5px" href="{{ url_for('consola.configuracion_usuarios', clasico=1) }}">fuentes de usuarios y vista anterior</a></div>
 
 {% macro acceso_tabla(u) %}
@@ -25,15 +27,22 @@
 {% if tab == 'usuarios' %}
 <div class="rb">
 <div class="card rb-lista" style="padding:0">
-<form method="get" style="padding:10px 12px;display:flex;gap:8px"><input type="hidden" name="tab" value="usuarios"><input name="q" value="{{ texto }}" placeholder="Buscar por usuario, nombre o grupo" style="flex:1"><button class="btn chico">Buscar</button></form>
-<table><tr><th>Usuario</th><th>Grupos</th><th>Acceso</th><th>Origen</th></tr>
-{% for u in usuarios %}<tr class="{{ 'on' if sel_u and sel_u.id == u.id }}"><td><a class="fila-a" href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', uid=u.id, q=texto or None) }}"><b>{{ u.nombre }}</b><br><span class="sub mono" style="font-size:12px">{{ u.usuario }}</span></a></td>
-<td>{% for gg in u.grupos %}<a class="chip" href="{{ url_for('consola.configuracion_usuarios', tab='grupos', gid=gg.id) }}">{{ gg.nombre }}</a> {% else %}<span class="sub">sin grupo</span>{% endfor %}</td>
+<form method="get" class="rb-filtros"><input type="hidden" name="tab" value="usuarios"><input type="search" name="q" value="{{ texto }}" placeholder="Buscar por usuario, nombre, correo o grupo" style="flex:1;min-width:180px">
+<select name="grupo" onchange="this.form.submit()" title="Filtrar por grupo"><option value="">Todos los grupos</option>{% for gr in grupos %}<option value="{{ gr.id }}" {{ 'selected' if f_gid == gr.id|string }}>{{ gr.nombre }} ({{ gr.miembros|length }})</option>{% endfor %}</select>
+<select name="dueno" onchange="this.form.submit()" title="Filtrar por grupo dueño"><option value="">Todos los grupos dueños</option>{% for gr in grupos_d %}<option value="{{ gr.clave }}" {{ 'selected' if f_sec == gr.clave }}>Dueño de {{ gr.nombre }} ({{ gr.todos|length }})</option>{% endfor %}</select>
+<select name="estado" onchange="this.form.submit()"><option value="">Activos e inactivos</option><option value="activo" {{ 'selected' if f_est == 'activo' }}>Solo activos</option><option value="inactivo" {{ 'selected' if f_est == 'inactivo' }}>Solo inactivos</option></select>
+<button class="btn chico">Buscar</button>{% if filtrado %}<a class="sub" style="font-size:12.5px" href="{{ url_for('consola.configuracion_usuarios', tab='usuarios') }}">limpiar</a>{% endif %}</form>
+<table><tr><th>Usuario</th><th>Grupos</th><th>Acceso</th><th>Perfil</th><th>Origen</th></tr>
+{% for u in usuarios %}<tr class="{{ 'on' if sel_u and sel_u.id == u.id }}"><td><a class="fila-a" href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', uid=u.id, q=texto or None, grupo=f_gid or None, dueno=f_sec or None, estado=f_est or None) }}"><b>{{ u.nombre }}</b><br><span class="sub mono" style="font-size:12px">{{ u.usuario }}</span></a></td>
+<td>{% for gg in u.grupos %}<a class="chip" href="{{ url_for('consola.configuracion_usuarios', tab='grupos', gid=gg.id) }}">{{ gg.nombre }}</a> {% else %}<span class="sub">sin grupo</span>{% endfor %}{% for d in u.duenos %}<a class="chip {{ 'gd-dueno' if d.rol == 'dueño' }}" style="font-size:11px" href="{{ url_for('consola.configuracion_usuarios', tab='duenos', sec=d.clave) }}#g-{{ d.clave }}">{{ 'Dueño de ' if d.rol == 'dueño' else '' }}{{ d.nombre }}</a> {% endfor %}</td>
 <td>{% for c in u.cluster %}<span class="chip {{ 'rb-cl' if c == 'cluster-admin' else 'rb-cv' }}">{{ c }}</span> {% endfor %}{% if not u.acc.admin_total %}{% for k in u.espacios if k in menu_esp %}<span class="chip">{{ menu_esp[k] }}</span> {% endfor %}{% endif %}{% if not u.cluster and not u.espacios %}<span class="sub">sin acceso</span>{% endif %}</td>
-<td class="sub" style="font-size:12px">{{ u.fuente }}{% if not u.activo %} · inactivo{% endif %}</td></tr>{% endfor %}</table></div>
+<td style="font-size:12px">{{ u.modo }}</td>
+<td class="sub" style="font-size:12px">{{ u.fuente }}{% if not u.activo %} <span class="chip s-alta" style="font-size:11px">inactivo</span>{% endif %}</td></tr>{% else %}<tr><td colspan="5" class="vacio">Ningún usuario coincide con el filtro.</td></tr>{% endfor %}</table></div>
 <aside class="card rb-panel">{% if sel_u %}{% set u = sel_u %}
-<h2>{{ u.nombre }}</h2><p class="sub mono" style="margin:0 0 8px">{{ u.usuario }} · {{ u.correo }}</p>
+<h2>{{ u.nombre }}</h2><p class="sub mono" style="margin:0 0 8px">{{ u.usuario }}{{ ' · ' ~ u.correo if u.correo }}</p>
+<p style="margin:0 0 10px"><span class="chip {{ 's-ok' if u.activo else 's-alta' }}">{{ 'activo' if u.activo else 'inactivo' }}</span> <span class="chip" title="Se deriva de los roles: escritura si administra alguna funcionalidad">perfil {{ u.modo }}</span> <span class="sub" style="font-size:12px">{{ u.fuente }}</span></p>
 <p style="margin:0 0 4px"><b>Grupos</b></p><p style="margin:0 0 10px">{% for gg in u.grupos %}<a class="chip" href="{{ url_for('consola.configuracion_usuarios', tab='grupos', gid=gg.id) }}">{{ gg.nombre }}</a> {% else %}<span class="sub">no pertenece a ningún grupo</span>{% endfor %}</p>
+<p style="margin:0 0 4px"><b>Grupos dueños</b></p><p style="margin:0 0 10px">{% for d in u.duenos %}<a class="chip {{ 'gd-dueno' if d.rol == 'dueño' }}" href="{{ url_for('consola.configuracion_usuarios', tab='duenos', sec=d.clave) }}#g-{{ d.clave }}">{{ 'Dueño de ' if d.rol == 'dueño' else 'Miembro de ' }}{{ d.nombre }}</a> {% else %}<span class="sub">ninguno</span>{% endfor %}</p>
 <p style="margin:0 0 4px"><b>Roles de clúster</b></p><p style="margin:0 0 10px">{% for c in u.cluster %}<span class="chip {{ 'rb-cl' if c == 'cluster-admin' else 'rb-cv' }}">{{ c }}</span> {% else %}<span class="sub">ninguno: solo las funcionalidades de sus grupos</span>{% endfor %}</p>
 <p style="margin:0 0 6px"><b>Gobierno y Administración:</b> {% if u.acc.gobierno %}<span class="chip s-ok">sí</span>{% else %}<span class="chip">no</span>{% endif %}</p>
 <p style="margin:10px 0 4px"><b>Acceso efectivo por funcionalidad</b></p>{% if u.acc.ns %}{{ acceso_tabla(u) }}{% else %}<p class="sub">Sin acceso a ninguna funcionalidad.</p>{% endif %}
@@ -46,7 +55,7 @@
 <div class="rb">
 <div class="card rb-lista" style="padding:0"><table><tr><th>Grupo</th><th>Roles</th><th>Miembros</th></tr>
 {% for gr in grupos %}<tr class="{{ 'on' if sel_g and sel_g.id == gr.id }}"><td><a class="fila-a" href="{{ url_for('consola.configuracion_usuarios', tab='grupos', gid=gr.id) }}"><b>{{ gr.nombre }}</b><br><span class="sub" style="font-size:12px">{{ gr.descripcion }}{{ ' · ' ~ gr.origen if gr.origen != 'local' }}</span></a></td>
-<td>{% for e in gr.enlaces %}<span class="chip {{ 'rb-cl' if e.rol == 'cluster-admin' else ('rb-cv' if e.ambito == 'cluster' else '') }}">{{ e.txt }}</span> {% else %}<span class="sub">sin roles</span>{% endfor %}</td><td>{{ gr.miembros|length }}</td></tr>{% endfor %}</table>
+<td>{% for e in gr.enlaces %}<span class="chip {{ 'rb-cl' if e.rol == 'cluster-admin' else ('rb-cv' if e.ambito == 'cluster' else '') }}">{{ e.txt }}</span> {% else %}<span class="sub">sin roles</span>{% endfor %}</td><td><a href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', grupo=gr.id) }}" title="Ver sus usuarios">{{ gr.miembros|length }}</a></td></tr>{% endfor %}</table>
 {% if puede %}<form method="post" class="rb-form" style="padding:10px 12px;border-top:1px solid var(--line)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_crear">
 <label>Grupo nuevo<input name="nombre" required placeholder="ej. storage-admins"></label><label>Descripción<input name="descripcion"></label><label>Correo<input name="correo" type="email"></label><button class="btn chico">Crear</button></form>{% endif %}</div>
 <aside class="card rb-panel">{% if sel_g %}{% set gr = sel_g %}
@@ -60,12 +69,43 @@
 <label id="rr-cl">Rol de clúster<select name="rol_cluster">{% for r in roles_cl %}<option value="{{ r.clave }}">{{ r.clave }}</option>{% endfor %}</select></label>
 <label id="rr-esp" hidden>Rol<select name="rol">{% for k, n in roles_esp.items() %}<option value="{{ k }}">{{ n }}</option>{% endfor %}</select></label><button class="btn chico">Asignar</button></form>{% endif %}
 <p style="margin:14px 0 4px"><b>Miembros · {{ gr.miembros|length }}</b></p>
-<table class="rb-acc">{% for uid_ in gr.miembros %}{% set m = por_id.get(uid_) %}{% if m %}<tr><td><a href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', uid=m.id) }}">{{ m.nombre }}</a> <span class="sub mono" style="font-size:11.5px">{{ m.usuario }}</span></td>
-<td style="text-align:right">{% if puede %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="miembro_quitar"><input type="hidden" name="grupo_id" value="{{ gr.id }}"><input type="hidden" name="usuario_id" value="{{ m.id }}"><button class="btn chico gris" title="Quitar del grupo">×</button></form>{% endif %}</td></tr>{% endif %}
+<table class="rb-acc">{% for uid_ in gr.miembros %}{% set m = por_id.get(uid_) %}{% if m %}<tr><td><a href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', uid=m.id) }}">{{ m.nombre }}</a> <span class="sub mono" style="font-size:11.5px">{{ m.usuario }}</span>{% if not m.activo %} <span class="chip s-alta" style="font-size:11px">inactivo</span>{% endif %}</td>
+<td style="text-align:right">{% if puede %}<form method="post" onsubmit="return confirm('¿Quitar a {{ m.nombre|e }} del grupo {{ gr.nombre|e }}?')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="miembro_quitar"><input type="hidden" name="grupo_id" value="{{ gr.id }}"><input type="hidden" name="usuario_id" value="{{ m.id }}"><button class="btn chico gris" title="Quitar del grupo">×</button></form>{% endif %}</td></tr>{% endif %}
 {% else %}<tr><td class="sub">Sin miembros.</td></tr>{% endfor %}</table>
 {% if puede %}<form method="post" class="rb-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="miembro_poner"><input type="hidden" name="grupo_id" value="{{ gr.id }}">
-<label>Agregar usuario<select name="usuario_id">{% for x in todos_u if x.id not in gr.miembros %}<option value="{{ x.id }}">{{ x.nombre }} · {{ x.usuario }}</option>{% endfor %}</select></label><button class="btn chico">Agregar</button></form>{% endif %}
+<label>Agregar usuario<select name="usuario_id">{% for x in todos_u if x.id not in gr.miembros %}<option value="{{ x.id }}">{{ x.nombre }} · {{ x.usuario }}{{ ' (inactivo)' if not x.activo }}</option>{% endfor %}</select></label><button class="btn chico">Agregar</button></form>{% endif %}
+<p style="margin:10px 0 0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', grupo=gr.id) }}">ver sus usuarios en la lista ›</a></p>
 {% else %}<p class="sub" style="margin:0">Elige un grupo.</p>{% endif %}</aside>
+</div>
+
+{% elif tab == 'duenos' %}
+<p class="sub" style="margin:0 0 10px">Cada sección del menú tiene su grupo dueño: sus <b>dueños</b> (responsables) y sus <b>miembros</b>. Las aprobaciones de la sección van al correo del grupo y cualquier integrante las toma.</p>
+<div class="rb">
+<div class="card rb-lista" style="padding:0"><table><tr><th>Grupo dueño</th><th>Dueños</th><th>Miembros</th><th>Correo</th></tr>
+{% for gr in grupos_d %}<tr id="g-{{ gr.clave }}" class="{{ 'on gd-sel' if sel_d and sel_d.clave == gr.clave }}"><td><a class="fila-a" href="{{ url_for('consola.configuracion_usuarios', tab='duenos', sec=gr.clave) }}#g-{{ gr.clave }}"><b>Dueño de {{ gr.nombre }}</b><br><span class="sub" style="font-size:12px">{{ gr.explica }}</span></a></td>
+<td style="font-size:12px">{% for m in gr.duenos %}{{ m.nombre }}{{ ', ' if not loop.last }}{% else %}<span class="chip s-alta">sin dueño</span>{% endfor %}</td>
+<td><a href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', dueno=gr.clave) }}" title="Ver sus usuarios">{{ gr.todos|length }}</a></td>
+<td style="font-size:12px">{% if gr.correo %}<span class="mono">{{ gr.correo }}</span>{% else %}<span class="chip s-media">sin correo</span>{% endif %}</td></tr>{% endfor %}</table></div>
+<aside class="card rb-panel">{% if sel_d %}{% set gr = sel_d %}
+<h2>Dueño de {{ gr.nombre }}</h2><p class="sub" style="margin:0 0 8px">{{ gr.descripcion or gr.explica }}</p>
+<p style="margin:0 0 4px"><b>Dueños · {{ gr.duenos|length }}</b></p>
+<table class="rb-acc">{% for m in gr.duenos %}<tr><td><a href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', uid=m.id) }}">{{ m.nombre }}</a> <span class="sub mono" style="font-size:11.5px">{{ m.usuario }}</span>{% if not m.activo %} <span class="chip s-alta" style="font-size:11px">inactivo</span>{% endif %}</td>
+<td style="text-align:right;white-space:nowrap">{% if puede %}<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_poner"><input type="hidden" name="seccion" value="{{ gr.clave }}"><input type="hidden" name="usuario_id" value="{{ m.id }}"><input type="hidden" name="rol" value="miembro"><button class="btn chico gris" title="Deja de ser dueño y queda como miembro">↓ miembro</button></form>
+<form method="post" style="display:inline" onsubmit="return confirm('¿Quitar a {{ m.nombre|e }} del grupo?')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_quitar"><input type="hidden" name="seccion" value="{{ gr.clave }}"><input type="hidden" name="usuario_id" value="{{ m.id }}"><button class="btn chico gris" title="Quitar del grupo">×</button></form>{% endif %}</td></tr>
+{% else %}<tr><td><span class="chip s-alta">sin dueño</span> <span class="sub">las aprobaciones no tienen responsable</span></td></tr>{% endfor %}</table>
+<p style="margin:12px 0 4px"><b>Miembros · {{ gr.miembros|length }}</b></p>
+<table class="rb-acc">{% for m in gr.miembros %}<tr><td><a href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', uid=m.id) }}">{{ m.nombre }}</a> <span class="sub mono" style="font-size:11.5px">{{ m.usuario }}</span>{% if not m.activo %} <span class="chip s-alta" style="font-size:11px">inactivo</span>{% endif %}</td>
+<td style="text-align:right;white-space:nowrap">{% if puede %}<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_poner"><input type="hidden" name="seccion" value="{{ gr.clave }}"><input type="hidden" name="usuario_id" value="{{ m.id }}"><input type="hidden" name="rol" value="dueño"><button class="btn chico gris" title="Hacerlo dueño del grupo">↑ dueño</button></form>
+<form method="post" style="display:inline" onsubmit="return confirm('¿Quitar a {{ m.nombre|e }} del grupo?')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_quitar"><input type="hidden" name="seccion" value="{{ gr.clave }}"><input type="hidden" name="usuario_id" value="{{ m.id }}"><button class="btn chico gris" title="Quitar del grupo">×</button></form>{% endif %}</td></tr>
+{% else %}<tr><td class="sub">Sin miembros.</td></tr>{% endfor %}</table>
+{% if puede %}{% set ids_ = gr.todos|map(attribute='id')|list %}<form method="post" class="rb-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_poner"><input type="hidden" name="seccion" value="{{ gr.clave }}">
+<label>Agregar persona<select name="usuario_id" required>{% for x in por_id.values()|sort(attribute='nombre') if x.id not in ids_ and x.activo and x.modo != 'sin perfil' %}<option value="{{ x.id }}">{{ x.nombre }} · {{ x.usuario }}</option>{% endfor %}</select></label>
+<label>Rol<select name="rol">{% for k, n in roles_g %}<option value="{{ k }}" {{ 'selected' if k == 'miembro' }}>{{ n }}</option>{% endfor %}</select></label><button class="btn chico">Agregar</button></form>
+<form method="post" class="rb-form" style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_correo"><input type="hidden" name="seccion" value="{{ gr.clave }}">
+<label style="flex:1;min-width:200px">Correo del grupo<input name="correo" value="{{ gr.correo or '' }}" placeholder="dueños-{{ gr.clave }}@cliente.cl"></label>
+<label style="flex:1;min-width:160px">Descripción<input name="descripcion" value="{{ gr.descripcion or '' }}" maxlength="300"></label><button class="btn chico">Guardar</button></form>{% endif %}
+<p style="margin:10px 0 0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', dueno=gr.clave) }}">ver sus usuarios en la lista ›</a></p>
+{% else %}<p class="sub" style="margin:0">Elige un grupo dueño para ver sus dueños y miembros.</p>{% endif %}</aside>
 </div>
 
 {% else %}
@@ -82,4 +122,18 @@
 <p class="sub" style="font-size:12.5px;margin:10px 0 0">Espacios: {% for k, n in espacios %}{{ n }}{{ ', ' if not loop.last }}{% endfor %}. Los de Gobierno (Seguridad, Disponibilidad, Arquitectura…) sirven para aprobar sus tickets; su menú lo ven solo cluster-admin y cluster-viewer.</p></div>
 </div>
 {% endif %}
+<script>
+(function () {
+  var m = /^#g-([\w-]+)$/.exec(location.hash || "");
+  if (!m) return;
+  var p = new URLSearchParams(location.search);
+  if (p.get("tab") !== "duenos" || p.get("sec") !== m[1]) {
+    p.set("tab", "duenos"); p.set("sec", m[1]); p.delete("uid"); p.delete("gid");
+    location.replace(location.pathname + "?" + p.toString() + location.hash);
+    return;
+  }
+  var el = document.getElementById("g-" + m[1]);
+  if (el) el.scrollIntoView({block: "center"});
+})();
+</script>
 {% endblock %}
