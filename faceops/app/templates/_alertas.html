@@ -7,7 +7,7 @@
   · <a href="{{ (al.url_regla ~ '?' ~ {'aid': a.id, 'ambito': al.ambito or 'maquina'}|urlencode) if al.url_regla else url_for('consola.equipo_alerta_regla', eid=al.eid, aid=a.id, ambito=al.ambito or 'maquina') }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Regla en el monitoreo ↗</a>
   {% if al.puede %}· <button type="button" class="btn chico gris al-probar" data-url="{{ al.url_probar or url_for('consola.equipo_alerta_probar', eid=al.eid) }}" data-aid="{{ a.id }}" data-ambito="{{ al.ambito or 'maquina' }}" onclick="event.preventDefault();event.stopPropagation();fxAlProbar(this)" title="Dispara una alerta de prueba por la cadena real (Alertmanager → EDA → acción) sin tocar la máquina">Probar</button>{% endif %}</small>
   <small class="al-prueba" {{ 'hidden' if not a.prueba }}>{% if a.prueba %}Prueba {{ a.prueba.inicio|fecha }} · {{ a.prueba.estado }}: {{ (a.prueba.pasos or [])[-1]|fechas_texto if a.prueba.pasos else '' }}{% endif %}</small>{% elif al.monitoreo and a.en_reflejo %}<small class="al-ver"><span class="chip s-alta" style="font-size:10px">no está cargada en el monitoreo</span></small>{% endif %}{% endmacro %}
-{% macro cuerpo_alertas(al) %}{% if al.monitoreo %}<p class="sub al-ult">Estado leído ahora del monitoreo: {{ al.n }} alerta{{ 's' if al.n != 1 }} cargada{{ 's' if al.n != 1 }}{% if al.disparadas %}, {{ al.disparadas }} disparada{{ 's' if al.disparadas != 1 }}{% endif %} (el verde = cargada en el monitoreo)</p>{% endif %}
+{% macro cuerpo_alertas(al) %}{% if al.monitoreo %}<p class="sub al-ult">Estado leído ahora del monitoreo: {{ al.n }} alerta{{ 's' if al.n != 1 }} cargada{{ 's' if al.n != 1 }}{% if al.disparadas %}, {{ al.disparadas }} disparada{{ 's' if al.disparadas != 1 }}{% endif %}</p>{% endif %}
 {% if not al.disponible %}<div class="flash error">{{ al.por_que }}</div>{% endif %}
 {% if al.grafana_ocp %}<p class="sub al-ult al-donde">Visualización en Grafana del monitoreo del clúster (Thanos Querier, solo lectura); las acciones están por definir · <a href="{{ al.grafana_ocp }}" target="_blank" rel="noopener">Ver todas en Grafana ↗</a></p>{% endif %}
 {% if al.grupos %}<div class="al-busca"><input type="search" form="al-sin-form" class="al-q" placeholder="Buscar alerta por nombre" aria-label="Buscar alerta"></div>{% endif %}
@@ -56,10 +56,6 @@
 <header class="al-cab"><span class="al-ic grande al-{{ est_ }}">{{ campana(26) }}</span>
   <div><h2>Alertas de {{ nombre }}</h2><p class="sub">{% if al.tipo in ('kvm', 'vmware') %}El hipervisor: su anfitrión y su capa de virtualización{% elif al.ambito and al.ambito != 'maquina' %}Solo de esta plataforma (la máquina y su sistema operativo tienen su propia campana arriba){% else %}La máquina y su sistema operativo (cada plataforma tiene su campana en su tarjeta){% endif %} · métricas de {{ al.fuente }} · {{ al.total }} alertas posibles · la configuración queda en Ansible y Prometheus, no en FaceOps</p></div>
   <button type="button" class="al-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">✕</button></header>
-<p class="al-leyenda" aria-label="Colores del botón Alertas">
-  <span><i class="al-lg al-off">{{ campana(12) }}</i>Naranja pulsando: sin alertas configuradas</span>
-  <span><i class="al-lg al-on">{{ campana(12) }}<b>N</b></i>Verde con número: N alertas activas en Prometheus</span>
-  <span><i class="al-lg al-curso">{{ campana(12) }}</i>Azul girando: cambio de alertas en curso (ticket)</span></p>
 
 {{ form_alertas(al, accion, nombre, 'Máquina y sistema operativo' if extras else '') }}
 {% for x in extras %}{{ form_alertas(x, accion, (x.nombre_amb or x.ambito) ~ ' en ' ~ nombre, x.nombre_amb or x.ambito) }}{% endfor %}
