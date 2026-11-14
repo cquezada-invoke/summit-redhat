@@ -72,6 +72,7 @@
 <span class="sk-acc"><button type="button" class="btn chico sk-inv-ir">Ejecutar</button><span class="sk-tk"></span></span></div>{% endif %}
 <div class="sk-fijo-c" id="sk-op"></div></details>
 <details class="sk-grupo sk-fijo" data-g="actualizacion" open hidden><summary>Actualización del sistema <span class="sub">versiones y evaluación de impacto</span></summary><div class="sk-fijo-c" id="sk-act"></div></details>
+<div class="pag-js sk-pag"></div>
 <p class="sk-vacio" hidden>Ninguna skill coincide con la búsqueda.</p>
 </aside>
 <dialog id="sk-dlg" class="dlg" aria-labelledby="sk-d-tit"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
@@ -80,8 +81,15 @@
 <script>(()=>{const SO={{ sk_so_|tojson }};const SK=Object.fromEntries({{ skm.grupos|map(attribute='skills')|sum(start=[])|tojson }}.map(s=>[s.id,s]));
 const c=document.getElementById('sk-cajon'),v=document.getElementById('sk-velo'),dlg=document.getElementById('sk-dlg'),bq=c.querySelector('.sk-busca'),CSRF={{ csrf|tojson }},MAQ={{ e.nombre|tojson }};
 const ETQ={exitoso:'exitoso',fallido:'fallido',rechazado:'rechazado',vencido:'aprobación vencida',pendiente_aprobacion:'espera aprobación',en_ejecucion:'en ejecución',en_cola:'en cola',cancelado:'cancelado'};
-let plat='',platN='';
-const filtrar=()=>{const t=bq.value.trim().toLowerCase();let n=0;c.querySelectorAll('.sk-grupo').forEach(gr=>{if(gr.classList.contains('sk-fijo')){const ok=!plat&&!!gr.querySelector('.sk-fijo-c>*,.sk-inv')&&(!t||gr.textContent.toLowerCase().includes(t));gr.hidden=!ok;if(ok)n++;return;}let k=0;gr.querySelectorAll('.sk-item').forEach(it=>{const ok=(!t||it.dataset.q.includes(t))&&(plat?it.dataset.plats.includes(','+plat+','):it.dataset.plats===',,');it.hidden=!ok;if(ok)k++;});gr.hidden=!k;if((t||plat)&&k)gr.open=true;gr.querySelector('summary .sub').textContent=k;n+=k;});const vc=c.querySelector('.sk-vacio');vc.textContent=(plat&&!t)?'Sin skills para esta plataforma por ahora':'Ninguna skill coincide con la búsqueda.';vc.hidden=!!n;};
+let plat='',platN='',pg=0;
+const filtrarB=()=>{const t=bq.value.trim().toLowerCase();let n=0;c.querySelectorAll('.sk-grupo').forEach(gr=>{if(gr.classList.contains('sk-fijo')){const ok=!plat&&!!gr.querySelector('.sk-fijo-c>*,.sk-inv')&&(!t||gr.textContent.toLowerCase().includes(t));gr.hidden=!ok;if(ok)n++;return;}let k=0;gr.querySelectorAll('.sk-item').forEach(it=>{const ok=(!t||it.dataset.q.includes(t))&&(plat?it.dataset.plats.includes(','+plat+','):it.dataset.plats===',,');it.hidden=!ok;if(ok)k++;});gr.hidden=!k;if((t||plat)&&k)gr.open=true;gr.querySelector('summary .sub').textContent=k;n+=k;});const vc=c.querySelector('.sk-vacio');vc.textContent=(plat&&!t)?'Sin skills para esta plataforma por ahora':'Ninguna skill coincide con la búsqueda.';vc.hidden=!!n;};
+const PAG=c.querySelector('.sk-pag'),NP=10;
+const paginar=()=>{const todas=[...c.querySelectorAll('.sk-grupo:not(.sk-fijo) .sk-item')],vis=todas.filter(it=>!it.hidden),tot=Math.max(1,Math.ceil(vis.length/NP));pg=Math.min(pg,tot-1);
+  todas.forEach(it=>it.classList.remove('sk-off'));vis.forEach((it,i)=>it.classList.toggle('sk-off',!(i>=pg*NP&&i<(pg+1)*NP)));
+  c.querySelectorAll('.sk-grupo:not(.sk-fijo)').forEach(gr=>gr.classList.toggle('sk-off',!gr.hidden&&!gr.querySelector('.sk-item:not([hidden]):not(.sk-off)')));
+  PAG.innerHTML='<span class="sub">'+(vis.length?pg*NP+1:0)+'–'+Math.min((pg+1)*NP,vis.length)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(pg?'':'disabled')+'>‹ anterior</button><span class="sub">pág '+(pg+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(pg<tot-1?'':'disabled')+'>siguiente ›</button>';};
+const filtrar=keep=>{if(keep!==true)pg=0;filtrarB();paginar();};
+PAG.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){pg+=+b.dataset.p;filtrar(true);}});
 const abrir=window.fxAbrirSkills=(cod,nom)=>{plat=typeof cod==='string'?cod:'';platN=nom||plat;c.querySelector('.sk-h').textContent='Skills · '+(plat?platN:SO);
  const fi=c.querySelector('.sk-filtro');fi.hidden=!plat||!c.querySelector('.sk-item[data-plats=",,"]');bq.value='';filtrar();c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'));setTimeout(()=>bq.focus(),60);};
 const cerrar=()=>{c.classList.remove('abierto');v.hidden=true;setTimeout(()=>c.hidden=true,180);};
