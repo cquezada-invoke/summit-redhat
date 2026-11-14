@@ -169,20 +169,34 @@
 
     - name: Usuarios, grupos con privilegios e identidad centralizada (Linux)
       ansible.builtin.shell: |
-        # u|usuario|uid|origen|grupos|shell   ·   d|dominio|proveedor   ·   s|archivo de sudoers
+        # u|usuario|uid|origen|grupos|shell|fuente   ·   d|dominio|proveedor   ·   s|archivo de sudoers
+        # fuente: local | ad | ldap | ipa | sssd | otra (proveedor real según sssd.conf o realm list)
         while IFS=: read -r n x uid gid gecos home sh; do
           [ "$uid" -ge 1000 ] 2>/dev/null || [ "$uid" = 0 ] || continue
           case "$sh" in */nologin|*/false) continue;; esac
-          echo "u|$n|$uid|local|$(id -nG "$n" 2>/dev/null | tr ' ' ',')|$sh"
+          echo "u|$n|$uid|local|$(id -nG "$n" 2>/dev/null | tr ' ' ',')|$sh|local"
         done < /etc/passwd
+        doms=""
         if [ -r /etc/sssd/sssd.conf ]; then
-          awk -F'[][ =]+' '/^\[domain\//{d=$0; sub(/^\[domain\//,"",d); sub(/\]$/,"",d)} /^id_provider/{print "d|" d "|" $2}' /etc/sssd/sssd.conf
+          doms=$(awk -F'[][ =]+' '/^\[domain\//{d=$0; sub(/^\[domain\//,"",d); sub(/\]$/,"",d)} /^id_provider/{print d "|" $2}' /etc/sssd/sssd.conf)
         fi
+        if [ -z "$doms" ] && command -v realm >/dev/null; then
+          doms=$(realm list 2>/dev/null | awk '/^[^ \t]/{d=$1} /server-software:/{s=$2; print d "|" (s=="active-directory" ? "ad" : s)}')
+        fi
+        [ -n "$doms" ] && echo "$doms" | sed 's/^/d|/'
+        nss=$(awk -F: '$1=="passwd"{print $2}' /etc/nsswitch.conf 2>/dev/null)
+        fuente_de() {  # proveedor real de un usuario que no está en /etc/passwd
+          local dom="" p=""; case "$1" in *@*) dom="${1#*@}";; *\\*) dom="${1%%\\*}";; esac
+          [ -n "$dom" ] && p=$(echo "$doms" | awk -F'|' -v d="$dom" 'tolower($1)==tolower(d){print $2; exit}')
+          [ -z "$p" ] && [ -n "$doms" ] && [ "$(echo "$doms" | wc -l)" = 1 ] && p=$(echo "$doms" | cut -d'|' -f2)
+          case "$p" in ad|ldap|ipa) echo "$p"; return;; esac
+          case "$nss" in *sss*) echo sssd;; *ldap*) echo ldap;; *winbind*) echo ad;; *) echo otra;; esac
+        }
         # usuarios del dominio que entraron a la máquina (no están en /etc/passwd)
         last -w -n 200 2>/dev/null | awk '{print $1}' | grep -v -E '^(reboot|wtmp|$)' | sort -u | while read -r n; do
           grep -q "^$n:" /etc/passwd && continue
           ent=$(getent passwd "$n") || continue
-          echo "u|$n|$(echo "$ent" | cut -d: -f3)|central|$(id -nG "$n" 2>/dev/null | tr ' ' ',')|$(echo "$ent" | cut -d: -f7)"
+          echo "u|$n|$(echo "$ent" | cut -d: -f3)|central|$(id -nG "$n" 2>/dev/null | tr ' ' ',')|$(echo "$ent" | cut -d: -f7)|$(fuente_de "$n")"
         done
         for g in wheel sudo admins; do getent group "$g" >/dev/null && echo "g|$g|$(getent group "$g" | cut -d: -f4)"; done
         ls /etc/sudoers.d 2>/dev/null | sed 's/^/s|/'
@@ -196,9 +210,19 @@
       ansible.windows.win_shell: |
         $cs = Get-CimInstance Win32_ComputerSystem
         if ($cs.PartOfDomain) { "d|$($cs.Domain)|ad" }
-        $adm = @(Get-LocalGroupMember -Group Administrators -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
-        foreach ($u in Get-LocalUser) { if ($u.Enabled) { "u|$($u.Name)|$($u.SID.Value.Split('-')[-1])|local|$(if ($adm -contains "$env:COMPUTERNAME\$($u.Name)") {'Administrators'} else {'Users'})|" } }
-        foreach ($m in $adm) { if ($m -notlike "$env:COMPUTERNAME\*") { "u|$m||central|Administrators|" } }
+        # u|usuario|rid|origen|grupos||fuente · fuente según PrincipalSource: local | ad | azuread | msa | otra
+        $fu = @{ 'Local'='local'; 'ActiveDirectory'='ad'; 'AzureAD'='azuread'; 'MicrosoftAccount'='msa' }
+        $adm = @(Get-LocalGroupMember -SID S-1-5-32-544 -ErrorAction SilentlyContinue)
+        $admN = @($adm | ForEach-Object { $_.Name })
+        foreach ($u in Get-LocalUser) { if ($u.Enabled) { $f = $fu["$($u.PrincipalSource)"]; "u|$($u.Name)|$($u.SID.Value.Split('-')[-1])|local|$(if ($admN -contains "$env:COMPUTERNAME\$($u.Name)") {'Administrators'} else {'Users'})||$(if ($f) {$f} else {'local'})" } }
+        $vistos = @{}
+        foreach ($g in @(@{s='S-1-5-32-544'; n='Administrators'}, @{s='S-1-5-32-555'; n='Remote Desktop Users'}, @{s='S-1-5-32-545'; n='Users'})) {
+          foreach ($m in @(Get-LocalGroupMember -SID $g.s -ErrorAction SilentlyContinue)) {
+            if ($m.Name -like "$env:COMPUTERNAME\*" -or $m.Name -like 'NT AUTHORITY\*' -or $m.Name -like 'BUILTIN\*' -or $vistos[$m.Name]) { continue }
+            $vistos[$m.Name] = 1; $f = $fu["$($m.PrincipalSource)"]
+            "u|$($m.Name)||central|$($g.n)||$(if ($f) {$f} else {'otra'})"
+          }
+        }
       register: r_usr_win
       changed_when: false
       failed_when: false

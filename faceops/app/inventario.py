@@ -251,11 +251,16 @@ def _red_facts(f):
     return {"red": {"gateway": gw or "", "interfaces": itfs}} if gw or itfs else {}
 
 
+FUENTES_USUARIO = {"local": "Local", "ad": "Active Directory", "ldap": "LDAP", "ipa": "FreeIPA/IdM", "sssd": "SSSD",
+                   "azuread": "Azure AD (Entra ID)", "msa": "Cuenta Microsoft", "otra": "Otra"}
+
+
 def _usuarios(lineas):
-    """{usuarios: [{n, uid, origen: local|central, grupos, privilegiado}], dominios: [{n, proveedor}], sudoers: [...]}"""
+    """{usuarios: [{n, uid, origen: local|central, fuente, grupos, privilegiado}], dominios: [{n, proveedor}], sudoers: [...]}
+    fuente: de dónde viene el usuario (local, ad, ldap, ipa, sssd, azuread, msa, otra); None en inventarios antiguos."""
     us, doms, priv, sudo = [], [], {}, []
     for l in lineas:
-        p = (l.strip().split("|") + [""] * 6)
+        p = (l.strip().split("|") + [""] * 7)
         if p[0] == "g":
             for m in filter(None, p[2].split(",")):
                 priv.setdefault(m, []).append(p[1])
@@ -264,11 +269,12 @@ def _usuarios(lineas):
         elif p[0] == "s" and p[1]:
             sudo.append(p[1])
     for l in lineas:
-        p = (l.strip().split("|") + [""] * 6)
+        p = (l.strip().split("|") + [""] * 7)
         if p[0] == "u" and p[1]:
             grupos = [g for g in p[4].split(",") if g]
             rol = "administrador" if (p[2] == "0" or {"wheel", "sudo", "admins", "Administrators"} & set(grupos) or p[1] in priv) else "usuario"
-            us.append({"n": p[1], "uid": p[2], "origen": p[3] or "local", "grupos": grupos, "rol": rol})
+            us.append({"n": p[1], "uid": p[2], "origen": p[3] or "local", "grupos": grupos, "rol": rol,
+                       "fuente": FUENTES_USUARIO.get(p[6], "Otra") if p[6] else None})
     return {"usuarios": us, "dominios": doms, "sudoers": sudo} if lineas else None
 
 
