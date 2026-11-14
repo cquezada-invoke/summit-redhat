@@ -10,7 +10,7 @@
 {% macro cuerpo_alertas(al) %}{% if al.monitoreo %}<p class="sub al-ult">Estado leído ahora del monitoreo: {{ al.n }} alerta{{ 's' if al.n != 1 }} cargada{{ 's' if al.n != 1 }}{% if al.disparadas %}, {{ al.disparadas }} disparada{{ 's' if al.disparadas != 1 }}{% endif %}</p>{% endif %}
 {% if not al.disponible %}<div class="flash error">{{ al.por_que }}</div>{% endif %}
 {% if al.grafana_ocp %}<p class="sub al-ult al-donde">Visualización en Grafana del monitoreo del clúster (Thanos Querier, solo lectura); las acciones están por definir · <a href="{{ al.grafana_ocp }}" target="_blank" rel="noopener">Ver todas en Grafana ↗</a></p>{% endif %}
-{% if al.grupos %}<div class="al-busca"><input type="search" form="al-sin-form" class="al-q" placeholder="Buscar alerta por nombre" aria-label="Buscar alerta"></div>{% endif %}
+<div class="al-busca"><input type="search" form="al-sin-form" class="al-q" placeholder="Buscar alerta por nombre" aria-label="Buscar alerta"></div>
 <div class="al-cuerpo">
 {% if not al.grupos %}<div class="vacio" style="padding:22px 6px;text-align:center"><b>Aún no hay alertas definidas para {{ al.tipo_nombre|lower }}.</b><br><span class="sub">Se agregan al catálogo a medida que se necesitan; cuando exista una, aparecerá aquí para activarla.</span></div>{% endif %}
 {% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
@@ -38,7 +38,7 @@
     <span class="al-u" title="Minutos que la condición debe mantenerse antes de disparar la alerta (0 = de inmediato)"><small>Durante (min)</small><input name="para_{{ a.id }}" value="{{ a.valor_para }}" inputmode="numeric" {{ 'disabled' if not al.disponible }}></span></span>
 </label>{% endif %}{% endfor %}{% endfor %}
 </div>
-{% if al.grupos %}<div class="pag-js al-pag"></div>{% endif %}
+<div class="pag-js al-pag"></div>
 {% endmacro %}
 {% macro form_alertas(al, accion, nombre, titulo='') %}<form method="post" action="{{ accion }}" class="al-form" data-nombre="{{ nombre }}" data-ambito="{{ al.ambito or 'maquina' }}" onsubmit="return false">
 <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="ambito" value="{{ al.ambito or 'maquina' }}">
@@ -57,7 +57,7 @@
   <div><h2>Alertas de {{ nombre }}</h2><p class="sub">{% if al.tipo in ('kvm', 'vmware') %}El hipervisor: su anfitrión y su capa de virtualización{% elif al.ambito and al.ambito != 'maquina' %}Solo de esta plataforma (la máquina y su sistema operativo tienen su propia campana arriba){% else %}La máquina y su sistema operativo (cada plataforma tiene su campana en su tarjeta){% endif %} · métricas de {{ al.fuente }} · {{ al.total }} alertas posibles · la configuración queda en Ansible y Prometheus, no en FaceOps</p></div>
   <button type="button" class="al-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">✕</button></header>
 
-{{ form_alertas(al, accion, nombre, 'Máquina y sistema operativo' if extras else '') }}
+{{ form_alertas(al, accion, nombre, ('Máquina y sistema operativo' if (not al.ambito or al.ambito == 'maquina') else (al.nombre_amb or al.ambito))) }}
 {% for x in extras %}{{ form_alertas(x, accion, (x.nombre_amb or x.ambito) ~ ' en ' ~ nombre, x.nombre_amb or x.ambito) }}{% endfor %}
 <footer class="al-pie">
   <input type="text" class="al-motivo" placeholder="Motivo del cambio (opcional)" {{ 'disabled' if not al.disponible }}>
@@ -73,7 +73,7 @@ window.fxAlPagInit=window.fxAlPagInit||function(f){ f.dataset.pag='1'; const q=f
   function pintar(){ const v=q.value.toLowerCase().trim(),vis=filas.filter(r=>!v||nom(r).includes(v)),tot=Math.max(1,Math.ceil(vis.length/N)); p=Math.min(p,tot-1);
     const ver=new Set(vis.slice(p*N,(p+1)*N)); filas.forEach(r=>r.style.display=ver.has(r)?'':'none');
     cabs.forEach(h=>{let n=h.nextElementSibling,x=false;while(n&&n.tagName!=='H3'){if(n.style.display!=='none')x=true;n=n.nextElementSibling;}h.style.display=x?'':'none';});
-    nav.hidden=vis.length<=N&&!v; nav.innerHTML='<span class="sub">'+(vis.length?p*N+1:0)+'–'+Math.min((p+1)*N,vis.length)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(p?'':'disabled')+'>‹ anterior</button><span class="sub">pág '+(p+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(p<tot-1?'':'disabled')+'>siguiente ›</button>'; }
+    nav.innerHTML='<span class="sub">'+(vis.length?p*N+1:0)+'–'+Math.min((p+1)*N,vis.length)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(p?'':'disabled')+'>‹ anterior</button><span class="sub">pág '+(p+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(p<tot-1?'':'disabled')+'>siguiente ›</button>'; }
   nav.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){p+=+b.dataset.p;pintar();}}); q.addEventListener('input',()=>{p=0;pintar();}); pintar(); };
 document.querySelectorAll('form.al-form:not([data-pag])').forEach(fxAlPagInit);
 // secciones por ámbito (máquina y SO, cada plataforma): se comprimen y expanden desde su encabezado; el estado se recuerda por sección.
