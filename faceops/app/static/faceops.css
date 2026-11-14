@@ -1387,3 +1387,11 @@ main:has(#fx-ficha-cuad) .caja-energia .der~.der{margin-left:0}
   .al-dlg .al-fila>.al-umb>em{grid-column:7}.al-dlg .al-fila>.al-umb>.al-u:not(.aviso):not(.critico){grid-column:8}
 }
 @media (max-width:760px){.al-dlg .al-fila>.al-umb .al-ac{flex:1 1 130px}.al-dlg .al-fila>.al-umb .al-ac select{width:100%}.al-dlg .al-fila>.al-acc{width:100%}}
+/* Botones de la máquina (Alertas y Skills): cajas grandes con icono y texto, juntas; los de plataforma siguen en 32×32 */
+main:has(#fx-ficha-cuad) .al-titulo{gap:10px}
+main:has(#fx-ficha-cuad) .al-titulo :is(.al-btn.al-solo:not(.al-chica),#hb-btn){width:88px!important;height:72px!important;border-radius:10px!important;display:inline-flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px;margin:0 0 0 6px;border-width:2px;font:inherit;font-size:12.5px;font-weight:600;line-height:1.1;color:#fff}
+main:has(#fx-ficha-cuad) .al-titulo .al-btn.al-solo:not(.al-chica)::after{content:"Alertas"}
+main:has(#fx-ficha-cuad) .al-titulo #hb-btn::after{content:"Skills"}
+main:has(#fx-ficha-cuad) .al-titulo .al-btn.al-solo:not(.al-chica) .al-ic{width:30px;height:30px}
+main:has(#fx-ficha-cuad) .al-titulo :is(.al-btn.al-solo:not(.al-chica) .al-ic,#hb-btn) svg{width:28px;height:28px}
+main:has(#fx-ficha-cuad) .al-titulo :is(.al-btn.al-solo:not(.al-chica) .al-n,#hb-btn .hb-n){top:-8px;right:-8px;min-width:20px;height:20px;font-size:11px;padding:0 5px}
