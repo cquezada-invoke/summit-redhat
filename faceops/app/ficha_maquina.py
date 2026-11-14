@@ -194,3 +194,26 @@ def vinculo_maquina(e, datos):
             "incorporar": a, "motivo_incorporar": motivo, "infra": (inf or {}).get("nombre", ""), "onprem": onprem, "etiqueta": etiqueta,
             "aviso": "" if facts else (f"Sin vínculo {'WinRM' if win else 'SSH'}: FaceOps no puede inventariar ni medir el sistema operativo. "
                                        + ("Vincúlala" if onprem else "Incorpórala") + " para inventariarla y medirla sin agente.")}
+
+
+@bp.route("/inventario/cluster-vmware/<nombre>")
+@requiere_login
+def cluster_vmware(nombre):
+    """Vista del clúster de VMware (segmento de negocio de los nodos ESXi): sus hosts físicos y las VMs del inventario que
+    corren en ellos (si las hay)."""
+    from flask import render_template
+    from .hardware_fisico import cluster_vmware as cl_de, es_fisico
+    eqs = equipos_visibles()
+    hosts = []
+    for x in eqs:
+        if (x.get("estado") or "") == "retirado" or not es_fisico(x):
+            continue
+        c = cl_de(x)
+        if c and c["nombre"] == nombre:
+            hosts.append({"e": x, "cl": c})
+    if not hosts:
+        abort(404)
+    nombres = {h["e"]["nombre"] for h in hosts}
+    vms = [x for x in eqs if (x.get("forma") or "") == "virtual" and (x.get("estado") or "") != "retirado"
+           and (j(x.get("datos"), {}) or {}).get("esxi_host") in nombres]
+    return render_template("cluster_vmware.html", nombre=nombre, cl=hosts[0]["cl"], hosts=hosts, vms=vms)

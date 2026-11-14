@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block titulo %}{{ nombre }} · clúster VMware{% endblock %}
+{% block cuerpo %}
+{# Clúster de vCenter = segmento de negocio de los nodos físicos con ESXi. Lista sus hosts y las VMs del inventario que corren en ellos. #}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.inventario', forma='fisico') }}">Servidores › Físicos</a> › clúster VMware</p>
+<h1 style="margin:0 0 4px">{{ nombre }}</h1>
+<p class="sub" style="margin:0 0 12px">Clúster vSphere{% if cl.datacenter %} · datacenter <b>{{ cl.datacenter }}</b>{% endif %}{% if cl.vcenter %} · {{ cl.vcenter }}{% endif %} · segmento de negocio de sus hosts</p>
+<div class="card" id="cl-hosts"><h2 style="margin:0">Hosts ESXi ({{ hosts|length }})</h2>
+<table class="hist" style="margin-top:8px"><tr><th>Host</th><th>Hardware</th><th>ESXi</th><th>IP</th><th>Energía</th></tr>
+{% for h in hosts %}{% set x = h.e %}{% set hw_ = (j(x.datos, {}) or {}).get('hardware') or {} %}<tr><td><a href="{{ url_for('consola.equipo', eid=x.id) }}"><b>{{ x.nombre }}</b></a></td>
+<td>{{ hw_.fabricante or '—' }} {{ hw_.modelo or '' }}</td><td>{{ h.cl.version or '—' }}</td><td class="mono">{{ x.ip or '—' }}</td><td>{{ x.energia or '—' }}</td></tr>{% endfor %}</table></div>
+<div class="card" style="margin-top:14px" id="cl-vms"><h2 style="margin:0">Máquinas virtuales ({{ vms|length }})</h2>
+{% if vms %}<table class="hist" style="margin-top:8px"><tr><th>Máquina</th><th>Host</th><th>Sistema</th><th>IP</th></tr>
+{% for v in vms %}<tr><td><a href="{{ url_for('consola.equipo', eid=v.id) }}"><b>{{ v.nombre }}</b></a></td><td>{{ (j(v.datos, {}) or {}).get('esxi_host') }}</td><td>{{ v.so or '—' }}</td><td class="mono">{{ v.ip or '—' }}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">No hay máquinas virtuales del inventario corriendo en estos hosts.</p>{% endif %}</div>
+{% endblock %}

@@ -3,11 +3,28 @@
 # Clave: nombre del equipo en FaceOps o «#<id>» (id de su ficha, /lab/inventario/<id>).
 #   plataformas: lo que corre en el nodo (hipervisor y otras), en el mismo bloque «Plataformas instaladas» que una VM.
 #                infra / infra_tipo: la infraestructura de FaceOps a la que enlaza (p. ej. el vCenter simulado, faceops-vcsim).
+#   cluster:     (en la plataforma ESXi) clúster de vCenter = segmento de negocio del host; sus datos en «clusters».
 #   bmc:         controlador de administración simulado (herramientas/lab/bmc-simulado.sh: sshd con prompt «iBMC:/->»).
 equipos:
   "#97":
     plataformas:
-      - {codigo: vmware-esxi, nombre: "VMware ESXi", version: "8.0 U3", edicion: "vSphere 8 Enterprise Plus",
+      - {codigo: vmware-esxi, nombre: "VMware ESXi", version: "8.0 U3", edicion: "vSphere 8 Enterprise Plus", cluster: CL-PROD-01,
          licencia: "licencia vSphere Enterprise Plus · 2 CPU", vcenter: "vCenter simulado (faceops-vcsim)", infra_tipo: vmware, estado: "en ejecución"}
     bmc: {ip: "192.168.122.1", puerto: 2222, simulado: "contenedor faceops-bmc-sim en el anfitrión KVM",
           glosa_web: "Sin web del BMC en el laboratorio: el BMC simulado solo atiende SSH"}
+  "#93":   # srv-dell-r660xs-01 · segundo host del clúster
+    plataformas:
+      - {codigo: vmware-esxi, nombre: "VMware ESXi", version: "8.0 U3", edicion: "vSphere 8 Enterprise Plus", cluster: CL-PROD-01,
+         licencia: "licencia vSphere Enterprise Plus · 2 CPU", vcenter: "vCenter simulado (faceops-vcsim)", infra_tipo: vmware, estado: "en ejecución"}
+    bmc: {ip: "192.168.122.1", puerto: 2222, simulado: "contenedor faceops-bmc-sim en el anfitrión KVM",
+          glosa_web: "Sin web del BMC en el laboratorio: el BMC simulado solo atiende SSH"}
+  "#86":   # srv-dell-r760-01 · tercer host del clúster
+    plataformas:
+      - {codigo: vmware-esxi, nombre: "VMware ESXi", version: "8.0 U3", edicion: "vSphere 8 Enterprise Plus", cluster: CL-PROD-01,
+         licencia: "licencia vSphere Enterprise Plus · 2 CPU", vcenter: "vCenter simulado (faceops-vcsim)", infra_tipo: vmware, estado: "en ejecución"}
+    bmc: {ip: "192.168.122.1", puerto: 2222, simulado: "contenedor faceops-bmc-sim en el anfitrión KVM",
+          glosa_web: "Sin web del BMC en el laboratorio: el BMC simulado solo atiende SSH"}
+
+# Clústeres de vCenter de los nodos ESXi del laboratorio (segmento de negocio de sus hosts): nombre → datacenter y vCenter.
+clusters:
+  CL-PROD-01: {datacenter: DC-Lab, vcenter: "vCenter simulado (faceops-vcsim)"}

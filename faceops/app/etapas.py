@@ -178,7 +178,7 @@ def config_cliente(cliente_id):
                 ops[hid] = {"n": n, "g": glosa(n), "a": a.get("nombre")}
     except Exception:  # noqa: BLE001
         pass
-    out = {"reglas": reglas, "autos": autos, "ops": ops}
+    out = {"reglas": reglas, "autos": autos, "ops": ops, "libres": _bloqueo().get("libres") or []}
     _cfg[cliente_id] = (time.time(), (f, _c["m"]), out)
     return out
 

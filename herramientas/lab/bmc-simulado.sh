@@ -3,11 +3,14 @@
 # («iBMC:/->») y unos pocos comandos de consulta. Escucha en el anfitrión KVM (192.168.122.1:2222), donde lo alcanza la
 # consola de FaceOps (Guacamole · faceops-guacd). Su credencial queda en la bóveda (faceops/maquinas/<nodo>-bmc), igual que
 # la de las máquinas; la clave se genera aquí, no se imprime y no queda en el disco.
-# Uso (en el anfitrión): bash bmc-simulado.sh <nombre-del-nodo-físico | #id> [puerto]
+# Uso (en el anfitrión): bash bmc-simulado.sh <nodo | #id>[,<nodo | #id>…] [puerto]   (un solo BMC simulado atiende a todos;
+# cada nodo queda con su credencial faceops/maquinas/<nodo>-bmc en la bóveda)
 set -euo pipefail
-NODO=${1:?nombre del nodo físico o #<id>}; PUERTO=${2:-2222}; CT=faceops-bmc-sim; IMG=localhost/faceops-bmc-sim:1
-if [ "${NODO#\#}" != "$NODO" ]; then   # «#97»: el nombre del equipo con ese id en FaceOps
-  NODO=$(sudo podman exec -i -e FACEOPS_VIGIA=0 -w /opt/faceops -e PYTHONPATH=/opt/faceops faceops python3 - "${NODO#\#}" 2>/dev/null <<'Q' | tail -1
+LISTA=${1:?nombre del nodo físico o #<id> (varios separados por coma: «#97,#93,#86»)}; PUERTO=${2:-2222}; CT=faceops-bmc-sim; IMG=localhost/faceops-bmc-sim:1
+NODOS=()
+for NODO in ${LISTA//,/ }; do
+  if [ "${NODO#\#}" != "$NODO" ]; then   # «#97»: el nombre del equipo con ese id en FaceOps
+    NODO=$(sudo podman exec -i -e FACEOPS_VIGIA=0 -w /opt/faceops -e PYTHONPATH=/opt/faceops faceops python3 - "${NODO#\#}" 2>/dev/null <<'Q' | tail -1
 import sys
 from app import create_app
 create_app()
@@ -15,7 +18,9 @@ from app.bd import q1
 print((q1("SELECT nombre FROM equipos WHERE id=?", int(sys.argv[1])) or {}).get("nombre", ""))
 Q
 ); [ -n "$NODO" ] || { echo "no existe ese equipo"; exit 1; }; echo "nodo físico: $NODO"
-fi
+  fi
+  NODOS+=("$NODO")
+done
 D=$(mktemp -d); trap 'rm -rf "$D"' EXIT
 cat > "$D/ibmc.sh" <<'SH'
 #!/bin/bash
@@ -55,6 +60,7 @@ VAULT=${FACEOPS_VAULT:-http://192.168.122.210:8200}; IPV=$(echo "$VAULT" | sed -
 K=$(mktemp); sudo podman exec faceops cat /var/lib/faceops/llaves/id_demo > "$K"; chmod 600 "$K"
 ROOT=$(ssh -i "$K" -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR ansible@$IPV "sudo cat /root/vault-init.json" | python3 -c 'import json,sys;print(json.load(sys.stdin)["root_token"])')
 rm -f "$K"
+for NODO in "${NODOS[@]}"; do
 python3 - "$VAULT" "$NODO-bmc" "$PUERTO" <<PY
 import json, sys, urllib.request
 v, n, p = sys.argv[1], sys.argv[2], int(sys.argv[3])
@@ -63,5 +69,6 @@ r = urllib.request.Request(f"{v}/v1/faceops/data/maquinas/{n}", method="POST", d
 urllib.request.urlopen(r, timeout=20).read()
 print(f"credencial del BMC en la bóveda: maquinas/{n}")
 PY
+done
 unset CLAVE ROOT
 echo "BMC simulado $CT en 192.168.122.1:$PUERTO · $(sudo podman ps --filter name=$CT --format '{{.Status}}')"

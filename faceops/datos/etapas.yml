@@ -31,13 +31,20 @@ bloqueo:
   areas_etapa: {monitoreo: 2, servidores: 3, so: 3, plataformas: 3, contenedores: 3, bd: 4, seguridad: 5, redes: 6, storage: 6,
                 infraestructura: 7, hipervisores: 7, nube: 7, aplicaciones: 8, arquitectura: 8, disponibilidad: 8, respaldos: 8,
                 devsecops: 9, integraciones: null}
+  # Ver ≠ ejecutar: estas vistas de otras etapas se ABREN en la Etapa 1 (solo para ver). Lo que lanzan sigue bloqueado con la
+  # glosa de su etapa: en el navegador por las reglas (contenedores) y la etapa de cada acción del catálogo, y en el servidor
+  # (todo POST de otra etapa se rechaza). «libres»: controles de solo vista dentro de esos contenedores (cerrar, buscar, filtrar).
+  solo_ver:
+    - {etapa: 1, nombre: "Alertas de la máquina", abrir: [".al-btn"], flotante: ".al-dlg", ejecuta: "Etapa 2 (activar o desactivar alertas)"}
+    - {etapa: 1, nombre: "Skills de la máquina", abrir: ["#hb-btn"], flotante: "#sk-cajon", ejecuta: "la etapa de la acción de cada skill u operación"}
+  libres: [".al-x", ".cajon-x", ".sk-busca", "[data-sk-todo]", ".sk-todas", "[data-ver]"]
   reglas:
     - etapa: 2      # Monitoreo, salud y alertas
-      selectores: [".al-btn", ".sl-barra", ".btn-prev", "#hb-btn ~ .al-btn"]
-      contenedores: ["#al-dlg", "#sl-dlg"]
+      selectores: [".sl-barra", ".btn-prev"]
+      contenedores: [".al-dlg", "#sl-dlg", "#hw-eventos-bmc"]   # .al-dlg: se VE en la Etapa 1 (solo_ver); sus acciones siguen aquí
       rutas: ['/alertas(/|\?|$)', '^/monitoreo/(radar|kpi-okr|itil|alertas)', '^/autocuidado', '^/incidentes', '^/grafana/', '^/deudas']
     - etapa: 3      # Plataformas, contenedores, sistemas operativos y ciclo de vida de servidores
-      selectores: ["#hb-btn", ".hb-btn", ".comp-mas", ".btn-plat", ".btn-desinst", ".ico-en.actualizar:not(.btn-agc)", "[onclick*='fxReplicar']"]
+      selectores: [".comp-mas", ".btn-plat", ".btn-desinst", ".ico-en.actualizar:not(.btn-agc)", "[onclick*='fxReplicar']"]
       contenedores: ["#hb-dlg", "#dlg-plat", "#actualizacion", "#usuarios-so"]
       rutas: ['/evaluar-so', '^/ciclo-vida', '^/sistemas-operativos', '^/so/', '^/plataformas', '/skills', '^/stack', '^/homologacion', '^/licencias']
     - etapa: 5      # Seguridad: CVE, parches y certificados
@@ -107,6 +114,7 @@ etapas:
       - consola.ticket                      # ticket en vivo
       - consola.inventario                  # Servidores › Virtuales / Físicos (y alta manual)
       - consola.equipo                      # ficha del servidor
+      - consola.cluster_vmware              # clúster de VMware (segmento de negocio de los nodos ESXi)
       - consola.consola_equipo              # consola SSH / RDP en el navegador
       - consola.consola_web_plataforma      # consolas web de productos
       - consola.aprobaciones_pendientes     # Monitoreo › Aprobaciones pendientes

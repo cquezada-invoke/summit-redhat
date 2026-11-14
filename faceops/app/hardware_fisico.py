@@ -24,7 +24,8 @@ def demo(e):
         return {}
     if _DEMO.get("mt") != mt:
         with open(ruta, encoding="utf-8") as f_:
-            _DEMO.update(mt=mt, d=(yaml.safe_load(f_) or {}).get("equipos") or {})
+            y_ = yaml.safe_load(f_) or {}
+            _DEMO.update(mt=mt, d=y_.get("equipos") or {}, clusters=y_.get("clusters") or {})
     return _DEMO["d"].get(e.get("nombre") or "") or _DEMO["d"].get(f"#{e.get('id')}") or {}
 
 
@@ -33,6 +34,18 @@ def plataformas_nodo(e):
     laboratorio, las de datos/fisicos-demo.yml. [{codigo, nombre, version, edicion, licencia, vcenter, infra}]"""
     d = e.get("_datos") if isinstance(e.get("_datos"), dict) else (j(e.get("datos"), {}) or {})
     return d.get("plataformas_nodo") or demo(e).get("plataformas") or []
+
+def cluster_vmware(e):
+    """Segmento de negocio de un nodo físico con ESXi/VMware: su clúster de vCenter. La plataforma trae «cluster» (del
+    inventario o de datos/fisicos-demo.yml) y el clúster su datacenter y vCenter. {nombre, datacenter, vcenter} o None."""
+    esx = next((p for p in plataformas_nodo(e) if re.search(r"esxi|vmware", f"{p.get('codigo', '')} {p.get('nombre', '')}", re.I)), None)
+    if not esx or not esx.get("cluster"):
+        return None
+    demo(e)   # carga los clústeres del archivo de demostración
+    meta = (_DEMO.get("clusters") or {}).get(esx["cluster"]) or {}
+    return {"nombre": esx["cluster"], "datacenter": esx.get("datacenter") or meta.get("datacenter") or "",
+            "vcenter": esx.get("vcenter") or meta.get("vcenter") or "", "version": esx.get("version") or ""}
+
 
 MARCAS = [  # (clave, nombre, patrón del fabricante, BMC, color)
     ("dell", "Dell", r"dell", "iDRAC9", "#0076ce"),
