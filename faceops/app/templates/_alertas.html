@@ -47,7 +47,7 @@
 {% macro boton_alertas(al, accion, nombre, chico=false, extras=[]) %}{% if al %}{% set sx_ = al.sufijo or '' %}{% set n_tot = al.n + (extras|sum(attribute='n')) %}
 {% set est_ = 'curso' if al.en_curso or (extras|selectattr('en_curso')|list) else ('on' if n_tot else 'off') %}
 <button type="button" id="alertas{{ sx_ }}" class="al-btn al-solo al-{{ est_ }}{{ ' al-chica' if chico }}" aria-label="Alertas{{ ' de ' ~ nombre if chico }}" onclick="event.stopPropagation();document.getElementById('al-dlg{{ sx_ }}').showModal()"
-  title="{{ 'Cambio en curso: ' ~ al.en_curso.numero if al.en_curso else (n_tot ~ ' alertas cargadas en el monitoreo' if n_tot else 'Este objeto no tiene alertas configuradas') }}">
+  title="Alertas · {{ 'Cambio en curso: ' ~ al.en_curso.numero if al.en_curso else (n_tot ~ ' alertas cargadas en el monitoreo' if n_tot else 'Este objeto no tiene alertas configuradas') }}">
   <span class="al-ic">{{ campana(14 if chico else 22) }}{% if n_tot %}<b class="al-n">{{ n_tot }}</b>{% endif %}</span>
 </button>
 <dialog id="al-dlg{{ sx_ }}" class="al-dlg" onclick="event.stopPropagation();if(event.target===this)this.close()" onkeydown="event.stopPropagation()">

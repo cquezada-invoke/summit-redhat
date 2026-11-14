@@ -1366,3 +1366,12 @@ table.sl-tab td.sl-a .sa-acc,table.sl-tab td.sl-a .sa-motivo{background:none!imp
 }
 .al-busca{padding:8px 18px 0}.al-busca input{width:100%;box-sizing:border-box}.al-pag.pag-js{justify-content:flex-end;padding:6px 18px}
 .al-amb{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px}.al-amb .al-tri{width:14px;color:var(--muted);font-size:13px}.al-form.al-plg>:not(.al-amb){display:none}
+
+/* Ficha de máquina: botones de icono cuadrados y uniformes (32×32, radio pequeño) — máquina, plataformas y energía */
+main:has(#fx-ficha-cuad) :is(.al-btn.al-solo,.al-btn.al-chica,.hb-btn,.sk-abrir,.sk-mini,.eq-energia-acc .btn-energ,.caja-energia .ico-en,.eq-term){box-sizing:border-box;width:32px!important;height:32px!important;min-width:0!important;padding:0!important;border-radius:6px!important;display:inline-grid;place-items:center;margin:0;flex:none;border-width:1px;line-height:0}
+main:has(#fx-ficha-cuad) :is(.al-btn,.hb-btn,.sk-abrir,.sk-mini){animation:none}
+main:has(#fx-ficha-cuad) .al-btn .al-ic{width:20px;height:20px;background:none!important;animation:none}
+main:has(#fx-ficha-cuad) :is(.al-ic,.hb-btn,.sk-abrir,.sk-mini,.btn-energ,.ico-en,.eq-term) svg{width:18px;height:18px}
+main:has(#fx-ficha-cuad) .al-btn .al-n{top:-7px;right:-7px;min-width:15px;height:15px;font-size:9.5px;padding:0 3px}
+main:has(#fx-ficha-cuad) .hb-btn .hb-n{top:-7px;right:-7px;min-width:15px;height:15px;font-size:9.5px;padding:0 3px;border-width:1px}
+main:has(#fx-ficha-cuad) .caja-energia .der~.der{margin-left:0}
