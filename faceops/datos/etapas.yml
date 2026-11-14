@@ -61,7 +61,7 @@ bloqueo:
     - etapa: 8      # Gobierno: stack, reportes, SLA, segmentos de negocio, respaldos
       contenedores: ["#segmentos-negocio", "#rep-dlg"]
       rutas: ['/respaldo', '^/respaldos', '^/mapa', '/replicar', '^/sla', '^/reportes', '^/gobierno', '^/arquitectura', '/segmentos']
-    - etapa: 11     # Agente en máquina (provisoria): historial de cambios, puntos de restauración, recuperación y restauración
+    - etapa: 11     # FaceOps Agent (provisoria): historial de cambios, puntos de restauración, recuperación y restauración
       selectores: [".pr-ver", "[data-volver]", ".btn-pr-conf", ".ag-mas"]
       contenedores: ["#puntos", "#pr-velo", "#pr-cajon", "#rec-velo-pr", ".hist-caja", ".hist-comp"]
       rutas: ['/puntos(/|$)', '/recuperar', '/volver', '/versiones', '/restaurar', '/historial']
@@ -79,16 +79,16 @@ etapas:
   8: {nombre: Gobierno, alcance: "Stack, reportes y SLA; segmentos de negocio; respaldos", color: "#6d28d9", modulos: [M06, M08, M01]}
   9: {nombre: Fábrica, alcance: "Fábrica de software, DevSecOps e IA", color: "#be185d", modulos: [M09, M10, M13]}
   10: {nombre: "Multicliente y FaceAdmin", alcance: "Multicliente, enlace con FaceAdmin y resumen del contrato", color: "#475569", modulos: [MULTI]}
-  # 11 · Agente en máquina (número PROVISORIO; no está en el Plan de cierre): lo que requiere el agente de respaldo en la
+  # 11 · FaceOps Agent (número PROVISORIO; no está en el Plan de cierre): lo que requiere el agente de respaldo en la
   # máquina. Sale de la Etapa 1 por decisión de Cristian (13-11-2026). En la ficha solo se muestra si la máquina tiene el
   # agente «respaldo-git»; dentro de las pantallas de la Etapa 1 queda bloqueado con su glosa.
   11:
-    nombre: Agente en máquina
+    nombre: FaceOps Agent
     modulos: [M01]
-    alcance: "Historial de cambios, puntos de restauración, recuperación y restauración (requieren el agente en la máquina)"
+    alcance: "Historial de cambios, puntos de restauración, recuperación y restauración (requieren el FaceOps Agent en la máquina; por ahora solo notifica cambios)"
     color: "#7c3aed"
     requiere_agente: true
-    glosa: "Etapa {n} · requiere agente · aún no liberada"
+    glosa: "Etapa {n} · requiere FaceOps Agent · aún no liberada"
     endpoints:
       - consola.punto                       # detalle de un punto de restauración
     menu: []

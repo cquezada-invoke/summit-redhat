@@ -3,11 +3,13 @@
 Lo pedido para funcionalidades que no están en la etapa en certificación queda aquí hasta que se libere su etapa
 (regla del Plan de cierre: un módulo congelado no recibe funcionalidades nuevas). Etapas en `faceops/datos/etapas.yml`.
 
-## Etapa 11 · Agente en máquina (número provisorio)
+## Etapa 11 · FaceOps Agent (número provisorio)
 Sale de la Etapa 1 por decisión de Cristian (13-11-2026): requiere el agente de respaldo («respaldo-git») en la máquina.
-Alcance: historial de cambios, puntos de restauración, recuperación y restauración. En la ficha solo se muestran si la
+En FaceOps existe UN SOLO agente en las máquinas, llamado «FaceOps Agent» (decisión de Cristian, 14-11-2026).
+Alcance actual: notificar cambios. El resto de sus funcionalidades (historial de cambios, puntos de restauración,
+recuperación, restauración, etc.) se implementa de a poco en esta fase. En la ficha solo se muestran si la
 máquina tiene el agente; dentro de las pantallas de la Etapa 1 quedan bloqueados con la glosa «Etapa 11 · requiere
-agente · aún no liberada».
+FaceOps Agent · aún no liberada».
 
 Pendiente para cuando se libere:
 - Historial de cambios: mostrar solo los últimos 10, con paginador y buscador. Ya está en la plantilla común

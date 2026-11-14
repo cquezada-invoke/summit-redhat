@@ -1,5 +1,5 @@
 {# Ficha · vínculo y medición agentless. Sin vínculo SSH/WinRM la ficha no queda vacía sin explicación: avisa y ofrece
-   «Incorporar a FaceOps» (solo configura el acceso; no instala agentes). El monitoreo continuo con agente es opcional. #}
+   «Incorporar a FaceOps» (solo configura el acceso; no instala el FaceOps Agent). El FaceOps Agent es opcional. #}
 {% if (e.categoria or 'servidor') in ('servidor', 'estación de trabajo') %}{% set vm_ = vinculo_maquina(e, datos) %}
 {% if not vm_.facts %}<div class="card" role="status" style="margin:0 0 10px;border-color:var(--warn);background:var(--warnbg)"><div class="fila" style="gap:10px;flex-wrap:wrap">
 <div style="flex:1;min-width:240px"><b>{{ vm_.aviso }}</b><div class="sub" style="font-size:12px;margin-top:3px">{% if vm_.nube %}Hoy FaceOps solo conoce lo que informa la API de la nube (estado, tipo, discos y el sistema según la imagen del disco de arranque). {% endif %}El inventario (sistema, CPU, memoria, discos, servicios, parches, certificados y plataformas) y la medición puntual de uso se obtienen por {{ vm_.protocolo }}, sin agente. Monitoreo continuo con agente: opcional.</div></div>
