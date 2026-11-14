@@ -1,7 +1,7 @@
 #!/bin/bash
 # Base de conocimiento de incidentes de FaceOps (PostgreSQL). Idempotente; no imprime la clave.
 #  · contenedor faceops-kb (PostgreSQL 16) en 127.0.0.1:5433, datos en /var/lib/faceops-kb
-#  · la conexión queda en /etc/faceops.env (FACEOPS_KB_DSN); FaceOps crea el esquema y carga la semilla (datos/kb/*.yml)
+#  · la conexión queda en el podman secret faceops-kb-dsn (FACEOPS_KB_DSN, vía herramientas/faceops-claves-podman.sh); FaceOps crea el esquema y carga la semilla (datos/kb/*.yml)
 set -euo pipefail
 V=/var/lib/faceops-kb; IMG=docker.io/library/postgres:16.4
 R=$(cd "$(dirname "$0")/../.." && pwd)
@@ -36,6 +36,8 @@ if [ -f "$HOME/faceops/faceops.env" ]; then
   sed -i '/^FACEOPS_KB_DSN=/d' "$HOME/faceops/faceops.env"; echo "FACEOPS_KB_DSN=$DSN" >> "$HOME/faceops/faceops.env"
 fi
 unset DSN
+# y de ahí a un podman secret (no queda en el Env visible del contenedor)
+bash "$R/herramientas/faceops-claves-podman.sh"
 cd $R && sudo podman build -q -t localhost/faceops:latest -f faceops/Containerfile faceops >/dev/null && sudo systemctl restart faceops && sleep 15
 sudo podman exec -i faceops python3 -c "
 from app import create_app

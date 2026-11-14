@@ -59,6 +59,8 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 U
+# Clave SMTP y DSN de la base de conocimiento: a podman secrets (drop-in secretos.conf), fuera del Env visible del contenedor
+bash "$(dirname "$D")/herramientas/faceops-claves-podman.sh"
 sudo systemctl daemon-reload
 sudo systemctl restart faceops
 for p in 8110; do
