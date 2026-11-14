@@ -16,3 +16,7 @@ Pendiente para cuando se libere:
 - Plan de prueba de recuperación sin agente (antes C11 de «Sistema · Inventariar máquina»): se certifica con
   «FaceOps · Recuperar servidor» (C2 y C4).
 - Asignar el número definitivo de la etapa en el Plan de cierre.
+
+## Etapa 2 · Monitoreo, salud y alertas
+- Eventos del BMC (iBMC/iDRAC/iLO) en la ficha del nodo físico: quitados de la ficha en la Etapa 1 (13-11-2026); quedan en
+  `etapas.yml` (bloque `#hw-eventos-bmc`, Etapa 2) y se reponen al liberar el Monitoreo.

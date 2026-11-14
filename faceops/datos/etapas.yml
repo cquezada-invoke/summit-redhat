@@ -62,7 +62,7 @@ bloqueo:
       contenedores: ["#segmentos-negocio", "#rep-dlg"]
       rutas: ['/respaldo', '^/respaldos', '^/mapa', '/replicar', '^/sla', '^/reportes', '^/gobierno', '^/arquitectura', '/segmentos']
     - etapa: 11     # Agente en máquina (provisoria): historial de cambios, puntos de restauración, recuperación y restauración
-      selectores: [".pr-ver", "[data-volver]", ".btn-pr-conf"]
+      selectores: [".pr-ver", "[data-volver]", ".btn-pr-conf", ".ag-mas"]
       contenedores: ["#puntos", "#pr-velo", "#pr-cajon", "#rec-velo-pr", ".hist-caja", ".hist-comp"]
       rutas: ['/puntos(/|$)', '/recuperar', '/volver', '/versiones', '/restaurar', '/historial']
     - etapa: 9      # Fábrica de software, DevSecOps e IA
