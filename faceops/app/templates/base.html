@@ -146,7 +146,10 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (()=>{let cfg=null,rx=[];const CTRL='a[href],button,input:not([type=hidden]),select,textarea,summary,[onclick],[role=button]';
 const ruta=u=>{try{const p=new URL(u,location.href);if(p.origin!==location.origin)return p.pathname.startsWith('/grafana')?p.pathname:null;let r=p.pathname;const pre=(cfg&&cfg.pre)||'';if(pre&&r.startsWith(pre+'/'))r=r.slice(pre.length);else{const raiz={{ (request.script_root or '')|tojson }};if(raiz&&r.startsWith(raiz+'/'))r=r.slice(raiz.length);}return r+(p.search||'');}catch(e){return null}};
 const panelDe=el=>el.closest('dialog,.cajon-p,aside.cajon')||document.querySelector('main');
-const etiqueta=(pan,g)=>{if(!pan||!g)return;let w=[...pan.children].find(x=>x.classList&&x.classList.contains('bloq-glosas'));if(!w){w=document.createElement('div');w.className='bloq-glosas';pan.insertAdjacentElement('afterbegin',w);pan.classList.add('bloq-cont');try{if(getComputedStyle(pan).position==='static')pan.style.position='relative';}catch(e){}}
+const etiqueta=(pan,g,fijo)=>{if(!pan||!g)return;
+  if(pan.matches('.al-dlg'))return;   /* el flotante de alertas no lleva etiqueta: ni por control ni propia */
+  if(!fijo){if([...document.querySelectorAll('main h1 .bloq-glosa')].some(x=>x.textContent===g))return;}   /* la pantalla ya lo indica */
+  let w=[...pan.children].find(x=>x.classList&&x.classList.contains('bloq-glosas'));if(!w){w=document.createElement('div');w.className='bloq-glosas';pan.insertAdjacentElement('afterbegin',w);pan.classList.add('bloq-cont');try{if(getComputedStyle(pan).position==='static')pan.style.position='relative';}catch(e){}}
   if(![...w.children].some(x=>x.textContent===g)){const s=document.createElement('span');s.className='bloq-glosa';s.textContent=g;w.appendChild(s);}};   /* una sola etiqueta por panel (y por texto), discreta, arriba a la derecha */
 const marcar=(el,g)=>{if(el.classList.contains('bloq-etapa')){etiqueta(panelDe(el),el.dataset.bloqGlosa||g);return;}el.classList.add('bloq-etapa');el.setAttribute('aria-disabled','true');el.dataset.bloqGlosa=g;el.title=g;
   if('disabled' in el&&el.tagName!=='A')el.disabled=true;etiqueta(panelDe(el),g);};
@@ -154,7 +157,7 @@ const aplicar=()=>{const j=document.getElementById('etapa-bloqueo');if(!j){cfg=n
   const m=document.querySelector('main');if(!m)return;const LIB=(cfg.libres||[]).join(',');   /* solo vista: cerrar, buscar, filtrar */
   if(cfg.pagina){m.querySelectorAll('form[method=post] button, form[method=post] input[type=submit], form[method=POST] button').forEach(el=>marcar(el,cfg.pagina));const h=m.querySelector('h1');if(h&&!h.querySelector('.bloq-glosa')){const s_=document.createElement('span');s_.className='bloq-glosa';s_.textContent=cfg.pagina;h.appendChild(s_);}}
   for(const {r,x} of rx){for(const s of r.sel){try{document.querySelectorAll('main '+s+', dialog '+s).forEach(el=>marcar(el,r.g))}catch(e){}}
-    for(const s of r.cont){try{document.querySelectorAll(s).forEach(c=>{if(!c.closest('main')&&c.tagName!=='DIALOG')return;if(!c.dataset.bloqCont){c.dataset.bloqCont='1';etiqueta(c,r.g);}
+    for(const s of r.cont){try{document.querySelectorAll(s).forEach(c=>{if(!c.closest('main')&&c.tagName!=='DIALOG')return;if(!c.dataset.bloqCont){c.dataset.bloqCont='1';etiqueta(c,r.g,true);}
       c.querySelectorAll(CTRL).forEach(el=>{if(!el.closest('.bloq-glosa')&&!(LIB&&el.matches(LIB)))marcar(el,r.g)})})}catch(e){}}}
   document.querySelectorAll('.bloq-etapa[data-bloq-glosa]').forEach(el=>etiqueta(panelDe(el),el.dataset.bloqGlosa));
   document.querySelectorAll('[data-op-id], button[data-hid], [data-hab]').forEach(el=>{const k=el.dataset.opId||el.dataset.hid||el.dataset.hab;const o=cfg.ops&&cfg.ops[k];if(o)marcar(el,o.g)});
