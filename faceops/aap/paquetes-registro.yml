@@ -132,6 +132,9 @@
         printf '%s\n' {{ a_subir | map('quote') | join(' ') }} | xargs -n 40 dnf -q download --skip-broken --destdir $d 2>&1 | tail -5 || true
         ls $d | wc -l
       register: r_dl
+      # en segundo plano con sondeo: la primera vez pueden ser cientos de RPM y el vigía de FaceOps corta lo que no avanza 20 min
+      async: 3300
+      poll: 30
       changed_when: (r_dl.stdout_lines | last | int) > 0
       when: respaldar == 'si' and a_subir | length > 0 and ansible_facts.pkg_mgr in ['dnf', 'dnf5', 'yum']
 
@@ -147,6 +150,8 @@
         echo "$ok $err"
       environment: {T: "{{ token }}"}
       register: r_up
+      async: 3300
+      poll: 30
       no_log: true
       when: r_dl is changed
 
