@@ -52,7 +52,7 @@
 <div class="sk-tit"><span class="sub" style="font-size:12px">{{ cod_eq(e) }} · skills</span><h2 class="sk-h">Skills · {{ sk_so_ }}</h2><span class="sk-filtro" hidden style="font-size:12.5px;margin-top:4px"><a href="#" class="sk-todas">ver las skills del sistema operativo</a></span>
 <span class="sub" style="font-size:12.5px;margin-top:4px">Cada skill es una automatización del catálogo con contexto propio en {{ e.nombre }}: crea su ticket (con aprobación si la pide). Las bloqueadas por la regla de prueba se muestran deshabilitadas con su motivo.</span></div>
 {% if hbv_ %}<details class="sk-grupo" data-g="habilidades" open><summary>Skills de la máquina <span class="sub">{{ hbv_|length }}</span></summary>
-{% for h in hbv_ %}<div class="sk-item{{ ' bloq' if h.bloqueo }}" data-q="{{ (h.nombre ~ ' ' ~ (h.valor or '') ~ ' ' ~ (h.grupo or '') ~ ' ' ~ h.tipo)|lower }}">
+{% for h in hbv_ %}<div class="sk-item{{ ' bloq' if h.bloqueo }}" data-plats=",," data-q="{{ (h.nombre ~ ' ' ~ (h.valor or '') ~ ' ' ~ (h.grupo or '') ~ ' ' ~ h.tipo)|lower }}">
 <b>{{ h.nombre }}</b><span class="sk-que">{{ h.valor or '—' }}</span>
 <span class="sk-chips"><span class="hb-tag {{ 'dif' if h.tipo == 'diferenciador' else 'qw' }}">{{ 'Diferenciador' if h.tipo == 'diferenciador' else 'Quick win' }}</span>{% if h.grupo %}<span class="chip">{{ h.grupo }}</span>{% endif %}
 <span class="chip sk-est {{ 's-alta' if h.bloqueo else ('s-media' if h.ticket and h.ticket.abierto else ('s-ok' if h.ticket else '')) }}">{% if h.bloqueo %}bloqueada: {{ h.bloqueo }}{% elif h.ticket and h.ticket.abierto %}en curso · {{ h.ticket.numero }}{% elif h.ticket %}aplicada · {{ h.ticket.numero }}{% else %}disponible{% endif %}</span></span>
