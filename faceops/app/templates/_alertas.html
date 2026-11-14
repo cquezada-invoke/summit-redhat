@@ -58,7 +58,7 @@
   <div><h2>Alertas de {{ nombre }}</h2><p class="sub">{% if al.tipo in ('kvm', 'vmware') %}El hipervisor: su anfitrión y su capa de virtualización{% elif al.ambito and al.ambito != 'maquina' %}Solo de esta plataforma (la máquina y su sistema operativo tienen su propia campana arriba){% else %}La máquina y su sistema operativo (cada plataforma tiene su campana en su tarjeta){% endif %} · métricas de {{ al.fuente }} · {{ al.total }} alertas posibles · la configuración queda en Ansible y Prometheus, no en FaceOps</p></div>
   <button type="button" class="al-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">✕</button></header>
 
-{{ form_alertas(al, accion, nombre, ('Máquina y sistema operativo' if (not al.ambito or al.ambito == 'maquina') else (al.nombre_amb or al.ambito))) }}
+{{ form_alertas(al, accion, nombre) }}
 {% for x in extras %}{{ form_alertas(x, accion, (x.nombre_amb or x.ambito) ~ ' en ' ~ nombre, x.nombre_amb or x.ambito) }}{% endfor %}
 <footer class="al-pie">
   <input type="text" class="al-motivo" placeholder="Motivo del cambio (opcional)" {{ 'disabled' if not al.disponible }}>
@@ -77,18 +77,6 @@ window.fxAlPagInit=window.fxAlPagInit||function(f){ f.dataset.pag='1'; const q=f
     nav.innerHTML='<span class="sub">'+(vis.length?p*N+1:0)+'–'+Math.min((p+1)*N,vis.length)+' de '+vis.length+'</span><button type="button" class="btn chico gris" data-p="-1" '+(p?'':'disabled')+'>‹ anterior</button><span class="sub">pág '+(p+1)+' de '+tot+'</span><button type="button" class="btn chico gris" data-p="1" '+(p<tot-1?'':'disabled')+'>siguiente ›</button>'; }
   nav.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b){p+=+b.dataset.p;pintar();}}); ['input','search','keyup'].forEach(ev=>q.addEventListener(ev,()=>{if(q._v===q.value)return;q._v=q.value;p=0;pintar();})); pintar(); };
 document.querySelectorAll('form.al-form:not([data-pag])').forEach(fxAlPagInit);
-// secciones por ámbito (máquina y SO, cada plataforma): se comprimen y expanden desde su encabezado; el estado se recuerda por sección.
-// Comprimir solo oculta (display:none): los campos siguen en el formulario y se envían igual.
-window.fxAlPlegInit=window.fxAlPlegInit||function(f){ f.dataset.plg='1'; const h=f.querySelector(':scope > h2.al-amb'); if(!h)return;
-  const k='faceops-al-plegado:'+(f.dataset.ambito||'maquina')+':'+(h.textContent||'').trim();
-  const tri=document.createElement('span'); tri.className='al-tri'; tri.setAttribute('aria-hidden','true'); h.prepend(tri);
-  h.setAttribute('role','button'); h.tabIndex=0;
-  const pon=c=>{f.classList.toggle('al-plg',c); tri.textContent=c?'▸':'▾'; h.setAttribute('aria-expanded',c?'false':'true');};
-  let ini=false; try{ini=localStorage.getItem(k)==='1';}catch(e){}
-  pon(ini);
-  const tog=()=>{const c=!f.classList.contains('al-plg'); pon(c); try{localStorage.setItem(k,c?'1':'0');}catch(e){}};
-  h.addEventListener('click',tog); h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}}); };
-document.querySelectorAll('form.al-form:not([data-plg])').forEach(fxAlPlegInit);
 window.fxAlProbar=window.fxAlProbar||function(b){ const out=b.closest('.al-def').querySelector('.al-prueba'); b.disabled=true; out.hidden=false; out.textContent='enviando la alerta de prueba…';
   const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('aid',b.dataset.aid); fd.append('ambito',b.dataset.ambito);
   fetch(b.dataset.url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(x=>{
