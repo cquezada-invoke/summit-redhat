@@ -105,6 +105,8 @@ def create_app():
     app.jinja_env.globals.update(tono_salud=tono_salud, tono_uso=tono_uso, semaforo_salud=semaforo_salud)
     from .aap import salud as aap_salud   # banner global «AAP no disponible» (vigía de fondo, sin consultas en la página)
     app.jinja_env.globals.update(aap_salud=aap_salud)
+    from .credenciales_usuarios import por_usuario as credenciales_usuarios
+    app.jinja_env.globals["credenciales_usuarios"] = credenciales_usuarios
 
     @app.before_request
     def cargar_usuario():
